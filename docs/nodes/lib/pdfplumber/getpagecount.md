@@ -22,13 +22,13 @@ Get the total number of pages in a PDF file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| pdf | `any` | The PDF file to analyze | - |
+| pdf | `document` | The PDF file to analyze | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `int` |  |
 
 ## Metadata
 

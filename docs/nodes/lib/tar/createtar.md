@@ -23,15 +23,15 @@ Create a tar archive from a directory.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| source_folder | `any` | Folder to archive | `` |
-| tar_path | `any` | Output tar file path | `` |
-| gzip | `any` | Use gzip compression | `False` |
+| source_folder | `str` | Folder to archive | `` |
+| tar_path | `str` | Output tar file path | `` |
+| gzip | `bool` | Use gzip compression | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

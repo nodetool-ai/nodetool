@@ -24,15 +24,15 @@ Accepts a reference to a specific data collection, typically within a vector dat
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` | The collection to use as input. | `{'type': 'collection', 'name': ''}` |
-| description | `any` | The description of the input for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `collection` | The collection to use as input. | `{'type': 'collection', 'name': ''}` |
+| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `collection` |  |
 
 ## Metadata
 

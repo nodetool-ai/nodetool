@@ -18,9 +18,9 @@ Output node for a folder path.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `{'type': 'folder_path', 'path': ''}` |
-| description | `any` | The description of the output for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `folder_path` |  | `{'type': 'folder_path', 'path': ''}` |
+| description | `str` | The description of the output for the workflow. | `` |
 
 ## Outputs
 

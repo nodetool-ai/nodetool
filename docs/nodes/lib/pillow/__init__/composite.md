@@ -23,15 +23,15 @@ Combine two images using a mask for advanced compositing.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image1 | `any` | The first image to composite. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| image2 | `any` | The second image to composite. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| mask | `any` | The mask to composite with. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image1 | `image` | The first image to composite. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image2 | `image` | The second image to composite. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| mask | `image` | The mask to composite with. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

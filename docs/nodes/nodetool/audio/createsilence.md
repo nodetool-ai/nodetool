@@ -23,13 +23,13 @@ Creates a silent audio file with a specified duration.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| duration | `any` | The duration of the silence in seconds. | `1.0` |
+| duration | `float` | The duration of the silence in seconds. | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

@@ -44,7 +44,7 @@ Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| template | `any` | 
+| template | `str` | 
     Examples:
     - text: "Hello, {{ name }}!"
     - text: "Title: {{ title|truncate(20) }}"
@@ -69,7 +69,7 @@ Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

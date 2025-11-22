@@ -18,21 +18,21 @@ Hybrid search combining semantic and keyword-based search for better retrieval. 
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| collection | `any` | The collection to query | `{'type': 'collection', 'name': ''}` |
-| text | `any` | The text to query | `` |
-| n_results | `any` | The number of final results to return | `5` |
-| k_constant | `any` | Constant for reciprocal rank fusion (default: 60.0) | `60.0` |
-| min_keyword_length | `any` | Minimum length for keyword tokens | `3` |
+| collection | `collection` | The collection to query | `{'type': 'collection', 'name': ''}` |
+| text | `str` | The text to query | `` |
+| n_results | `int` | The number of final results to return | `5` |
+| k_constant | `float` | Constant for reciprocal rank fusion (default: 60.0) | `60.0` |
+| min_keyword_length | `int` | Minimum length for keyword tokens | `3` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| ids | `any` |  |
-| documents | `any` |  |
-| metadatas | `any` |  |
-| distances | `any` |  |
-| scores | `any` |  |
+| ids | `List[str]` |  |
+| documents | `List[str]` |  |
+| metadatas | `List[Dict[Any, Any]]` |  |
+| distances | `List[float]` |  |
+| scores | `List[float]` |  |
 
 ## Metadata
 

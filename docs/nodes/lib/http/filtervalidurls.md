@@ -23,15 +23,15 @@ Filter a list of URLs by checking their validity using HEAD requests.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to make the request to. | `` |
-| urls | `any` | List of URLs to validate. | `[]` |
-| max_concurrent_requests | `any` | Maximum number of concurrent HEAD requests. | `10` |
+| url | `str` | The URL to make the request to. | `` |
+| urls | `List[str]` | List of URLs to validate. | `[]` |
+| max_concurrent_requests | `int` | Maximum number of concurrent HEAD requests. | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

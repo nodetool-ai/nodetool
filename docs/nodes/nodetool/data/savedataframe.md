@@ -22,9 +22,9 @@ Save dataframe in specified folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| df | `any` |  | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| folder | `any` | Name of the output folder. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
-| name | `any` | 
+| df | `dataframe` |  | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| folder | `folder` | Name of the output folder. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| name | `str` | 
         Name of the output file.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -39,7 +39,7 @@ Save dataframe in specified folder.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

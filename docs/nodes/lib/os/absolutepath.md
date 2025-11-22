@@ -23,13 +23,13 @@ Return the absolute path of a file or directory.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Path to convert to absolute | `` |
+| path | `str` | Path to convert to absolute | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

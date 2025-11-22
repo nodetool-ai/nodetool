@@ -23,19 +23,19 @@ Add text elements to SVG.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text content | `` |
-| x | `any` | X coordinate | `0` |
-| y | `any` | Y coordinate | `0` |
-| font_family | `any` | Font family | `Arial` |
-| font_size | `any` | Font size | `16` |
-| fill | `any` | Text color | `{'type': 'color', 'value': '#000000'}` |
-| text_anchor | `any` | Text anchor position | `start` |
+| text | `str` | Text content | `` |
+| x | `int` | X coordinate | `0` |
+| y | `int` | Y coordinate | `0` |
+| font_family | `str` | Font family | `Arial` |
+| font_size | `int` | Font size | `16` |
+| fill | `color` | Text color | `{'type': 'color', 'value': '#000000'}` |
+| text_anchor | `Enum['start', 'middle', 'end']` | Text anchor position | `start` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

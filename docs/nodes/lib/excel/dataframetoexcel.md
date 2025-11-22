@@ -22,11 +22,11 @@ Writes a DataFrame to an Excel worksheet.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| workbook | `any` | The Excel workbook to write to | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
-| dataframe | `any` | DataFrame to write | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| sheet_name | `any` | Target worksheet name | `Sheet1` |
-| start_cell | `any` | Starting cell for data | `A1` |
-| include_header | `any` | Include column headers | `True` |
+| workbook | `excel` | The Excel workbook to write to | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
+| dataframe | `dataframe` | DataFrame to write | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| sheet_name | `str` | Target worksheet name | `Sheet1` |
+| start_cell | `str` | Starting cell for data | `A1` |
+| include_header | `bool` | Include column headers | `True` |
 
 ## Outputs
 

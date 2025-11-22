@@ -23,15 +23,15 @@ Filter a list of filenames using Unix shell-style wildcards.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| filenames | `any` | list of filenames to filter | `[]` |
-| pattern | `any` | Pattern to filter by (e.g. *.txt, data_*.csv) | `*` |
-| case_sensitive | `any` | Whether the pattern matching should be case-sensitive | `True` |
+| filenames | `List[str]` | list of filenames to filter | `[]` |
+| pattern | `str` | Pattern to filter by (e.g. *.txt, data_*.csv) | `*` |
+| case_sensitive | `bool` | Whether the pattern matching should be case-sensitive | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

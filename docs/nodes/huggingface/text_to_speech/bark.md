@@ -23,14 +23,14 @@ Bark is a text-to-audio model created by Suno. Bark can generate highly realisti
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for the image generation | `{'type': 'hf.text_to_speech', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| prompt | `any` | The input text to the model | `` |
+| model | `hf.text_to_speech` | The model ID to use for the image generation | `{'type': 'hf.text_to_speech', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| prompt | `str` | The input text to the model | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

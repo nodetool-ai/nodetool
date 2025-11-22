@@ -23,13 +23,13 @@ Retrieve headers from a resource using an HTTP HEAD request.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to make the request to. | `` |
+| url | `str` | The URL to make the request to. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, str]` |  |
 
 ## Metadata
 

@@ -23,13 +23,13 @@ Represents an integer constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| value | `any` |  | `0` |
+| value | `int` |  | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `int` |  |
 
 ## Metadata
 

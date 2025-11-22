@@ -18,18 +18,18 @@ Split text semantically.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| embed_model | `any` | Embedding model to use | `{'type': 'language_model', 'provider': 'ollama', 'id': 'embeddinggemma', 'name': '', 'path': None, 'supported_tasks': []}` |
-| document | `any` | Document ID to associate with the text content | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| buffer_size | `any` | Buffer size for semantic splitting | `1` |
-| threshold | `any` | Breakpoint percentile threshold for semantic splitting | `95` |
+| embed_model | `language_model` | Embedding model to use | `{'type': 'language_model', 'provider': 'ollama', 'id': 'embeddinggemma', 'name': '', 'path': None, 'supported_tasks': []}` |
+| document | `document` | Document ID to associate with the text content | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| buffer_size | `int` | Buffer size for semantic splitting | `1` |
+| threshold | `int` | Breakpoint percentile threshold for semantic splitting | `95` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| source_id | `any` |  |
-| start_index | `any` |  |
+| text | `str` |  |
+| source_id | `str` |  |
+| start_index | `int` |  |
 
 ## Metadata
 

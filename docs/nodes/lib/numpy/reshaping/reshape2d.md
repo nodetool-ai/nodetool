@@ -23,15 +23,15 @@ Reshape an array to a new shape without changing its data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The input array to reshape | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| num_rows | `any` | The number of rows | `0` |
-| num_cols | `any` | The number of columns | `0` |
+| values | `np_array` | The input array to reshape | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| num_rows | `int` | The number of rows | `0` |
+| num_cols | `int` | The number of columns | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

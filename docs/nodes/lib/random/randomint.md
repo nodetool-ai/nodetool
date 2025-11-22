@@ -23,14 +23,14 @@ Generate a random integer within a range.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| minimum | `any` | Minimum value (inclusive) | `0` |
-| maximum | `any` | Maximum value (inclusive) | `100` |
+| minimum | `int` | Minimum value (inclusive) | `0` |
+| maximum | `int` | Maximum value (inclusive) | `100` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `int` |  |
 
 ## Metadata
 

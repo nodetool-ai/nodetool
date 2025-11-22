@@ -23,16 +23,16 @@ Reduces a list of dictionaries into one dictionary based on a specified key fiel
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dictionaries | `any` | List of dictionaries to be reduced | `[]` |
-| key_field | `any` | The field to use as the key in the resulting dictionary | `` |
-| value_field | `any` | Optional field to use as the value. If not specified, the entire dictionary (minus the key field) will be used as the value. | - |
-| conflict_resolution | `any` | How to handle conflicts when the same key appears multiple times | `first` |
+| dictionaries | `List[Dict[str, any]]` | List of dictionaries to be reduced | `[]` |
+| key_field | `str` | The field to use as the key in the resulting dictionary | `` |
+| value_field | `Optional[str]` | Optional field to use as the value. If not specified, the entire dictionary (minus the key field) will be used as the value. | - |
+| conflict_resolution | `Enum['first', 'last', 'error']` | How to handle conflicts when the same key appears multiple times | `first` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[any, any]` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Checks if text starts with a specified prefix.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| prefix | `any` |  | `` |
+| text | `str` |  | `` |
+| prefix | `str` |  | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

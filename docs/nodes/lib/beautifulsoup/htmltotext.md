@@ -23,14 +23,14 @@ Converts HTML to plain text by removing tags and decoding entities using Beautif
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| preserve_linebreaks | `any` | Convert block-level elements to newlines | `True` |
+| text | `str` |  | `` |
+| preserve_linebreaks | `bool` | Convert block-level elements to newlines | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

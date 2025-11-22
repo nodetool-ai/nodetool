@@ -23,14 +23,14 @@ Load dataframes from an asset folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | The asset folder to load the dataframes from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `folder` | The asset folder to load the dataframes from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| dataframe | `any` |  |
-| name | `any` |  |
+| dataframe | `dataframe` |  |
+| name | `str` |  |
 
 ## Metadata
 

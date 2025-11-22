@@ -23,14 +23,14 @@ Extract a tar archive to a folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| tar_path | `any` | Tar archive to extract | `` |
-| output_folder | `any` | Folder to extract into | `` |
+| tar_path | `str` | Tar archive to extract | `` |
+| output_folder | `str` | Folder to extract into | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

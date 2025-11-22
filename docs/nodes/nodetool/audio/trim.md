@@ -23,15 +23,15 @@ Trim an audio file to a specified duration.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The audio file to trim. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| start | `any` | The start time of the trimmed audio in seconds. | `0.0` |
-| end | `any` | The end time of the trimmed audio in seconds. | `0.0` |
+| audio | `audio` | The audio file to trim. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| start | `float` | The start time of the trimmed audio in seconds. | `0.0` |
+| end | `float` | The end time of the trimmed audio in seconds. | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

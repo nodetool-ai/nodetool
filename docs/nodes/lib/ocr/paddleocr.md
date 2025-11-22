@@ -24,15 +24,15 @@ Performs Optical Character Recognition (OCR) on images using PaddleOCR.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to perform OCR on | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| language | `any` | Language code for OCR | `en` |
+| image | `image` | The image to perform OCR on | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| language | `Enum['en', 'fr', 'de', 'es', 'it', 'pt', 'nl', 'pl', 'ro', 'hr', 'cs', 'hu', 'sk', 'sl', 'tr', 'vi', 'id', 'ms', 'la', 'ru', 'bg', 'uk', 'be', 'mn', 'ch', 'ja', 'ko', 'ar', 'fa', 'ur', 'hi', 'mr', 'ne', 'sa']` | Language code for OCR | `en` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| boxes | `any` |  |
-| text | `any` |  |
+| boxes | `List[ocr_result]` |  |
+| text | `str` |  |
 
 ## Metadata
 

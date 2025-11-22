@@ -22,16 +22,16 @@ Stream microphone or audio input to OpenAI Realtime and emit transcription.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | Model to use | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| system | `any` | System instructions (optional) | `` |
-| temperature | `any` | Decoding temperature | `0.8` |
+| model | `language_model` | Model to use | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| system | `str` | System instructions (optional) | `` |
+| temperature | `float` | Decoding temperature | `0.8` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| chunk | `any` |  |
+| text | `str` |  |
+| chunk | `chunk` |  |
 
 ## Metadata
 

@@ -23,15 +23,15 @@ Slice an image into a grid of tiles.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to slice into a grid. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| columns | `any` | Number of columns in the grid. | `0` |
-| rows | `any` | Number of rows in the grid. | `0` |
+| image | `image` | The image to slice into a grid. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| columns | `int` | Number of columns in the grid. | `0` |
+| rows | `int` | Number of rows in the grid. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[image]` |  |
 
 ## Metadata
 

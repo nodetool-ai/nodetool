@@ -23,13 +23,13 @@ Remove rows with NA values from dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| df | `any` | The input DataFrame. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| df | `dataframe` | The input DataFrame. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

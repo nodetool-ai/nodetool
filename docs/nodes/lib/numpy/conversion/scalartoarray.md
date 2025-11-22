@@ -23,13 +23,13 @@ Convert a scalar value to a single-element array.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| value | `any` | Scalar value to convert to array | `0` |
+| value | `(float | int)` | Scalar value to convert to array | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

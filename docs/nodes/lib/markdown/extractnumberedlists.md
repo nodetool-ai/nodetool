@@ -23,13 +23,13 @@ Extracts numbered lists from markdown.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| markdown | `any` | The markdown text to analyze | `` |
+| markdown | `str` | The markdown text to analyze | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

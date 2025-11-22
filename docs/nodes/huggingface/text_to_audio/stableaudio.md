@@ -25,17 +25,17 @@ Generate audio using Stable Audio model based on text prompts. Features high-qua
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | A text prompt describing the desired audio. | `A peaceful piano melody.` |
-| negative_prompt | `any` | A text prompt describing what you don't want in the audio. | `Low quality.` |
-| duration | `any` | The desired duration of the generated audio in seconds. | `10.0` |
-| num_inference_steps | `any` | Number of denoising steps. More steps generally improve quality but increase generation time. | `200` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `0` |
+| prompt | `str` | A text prompt describing the desired audio. | `A peaceful piano melody.` |
+| negative_prompt | `str` | A text prompt describing what you don't want in the audio. | `Low quality.` |
+| duration | `float` | The desired duration of the generated audio in seconds. | `10.0` |
+| num_inference_steps | `int` | Number of denoising steps. More steps generally improve quality but increase generation time. | `200` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

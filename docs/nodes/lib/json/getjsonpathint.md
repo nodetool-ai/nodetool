@@ -19,14 +19,14 @@ Extract an integer value from a JSON path
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
 | data | `any` | JSON object to extract from | - |
-| path | `any` | Path to the desired value (dot notation) | `` |
-| default | `any` | Default value to return if path is not found | `0` |
+| path | `str` | Path to the desired value (dot notation) | `` |
+| default | `int` | Default value to return if path is not found | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `int` |  |
 
 ## Metadata
 

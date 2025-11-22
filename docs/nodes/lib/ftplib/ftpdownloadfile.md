@@ -23,16 +23,16 @@ Download a file from an FTP server.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| host | `any` | FTP server host | `` |
-| username | `any` | Username for authentication | `` |
-| password | `any` | Password for authentication | `` |
-| remote_path | `any` | Remote file path to download | `` |
+| host | `str` | FTP server host | `` |
+| username | `str` | Username for authentication | `` |
+| password | `str` | Password for authentication | `` |
+| remote_path | `str` | Remote file path to download | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

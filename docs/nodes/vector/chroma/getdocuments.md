@@ -18,16 +18,16 @@ Get documents from a chroma collection.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| collection | `any` | The collection to get | `{'type': 'collection', 'name': ''}` |
-| ids | `any` | The ids of the documents to get | `[]` |
-| limit | `any` | The limit of the documents to get | `100` |
-| offset | `any` | The offset of the documents to get | `0` |
+| collection | `collection` | The collection to get | `{'type': 'collection', 'name': ''}` |
+| ids | `List[str]` | The ids of the documents to get | `[]` |
+| limit | `int` | The limit of the documents to get | `100` |
+| offset | `int` | The offset of the documents to get | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

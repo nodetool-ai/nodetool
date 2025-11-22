@@ -18,13 +18,13 @@ Create a FAISS IndexFlatIP (inner product / cosine with normalized vectors).
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dim | `any` | Embedding dimensionality | `768` |
+| dim | `int` | Embedding dimensionality | `768` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `faiss_index` |  |
 
 ## Metadata
 

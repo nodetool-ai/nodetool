@@ -22,14 +22,14 @@ Converts a stereo audio signal to mono.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The stereo audio file to convert. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| method | `any` | Method to use for conversion: 'average', 'left', or 'right'. | `average` |
+| audio | `audio` | The stereo audio file to convert. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| method | `str` | Method to use for conversion: 'average', 'left', or 'right'. | `average` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

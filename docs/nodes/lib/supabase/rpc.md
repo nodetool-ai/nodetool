@@ -18,9 +18,9 @@ Call a PostgreSQL function via Supabase RPC.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| function | `any` | RPC function name | `` |
-| params | `any` | Function params | - |
-| to_dataframe | `any` | Return DataframeRef if result is a list of records | `False` |
+| function | `str` | RPC function name | `` |
+| params | `Dict[str, any]` | Function params | - |
+| to_dataframe | `bool` | Return DataframeRef if result is a list of records | `False` |
 
 ## Outputs
 

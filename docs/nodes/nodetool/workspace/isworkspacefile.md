@@ -23,13 +23,13 @@ Check if a path in the workspace is a file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path within workspace to check | `` |
+| path | `str` | Relative path within workspace to check | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

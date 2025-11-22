@@ -23,14 +23,14 @@ Update resources with JSON data using an HTTP PUT request.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to make the request to. | `` |
-| data | `any` | The JSON data to send in the PUT request. | `{}` |
+| url | `str` | The URL to make the request to. | `` |
+| data | `Dict[Any, Any]` | The JSON data to send in the PUT request. | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

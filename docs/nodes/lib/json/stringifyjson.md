@@ -23,13 +23,13 @@ Convert a Python object to a JSON string.
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
 | data | `any` | Data to convert to JSON | `{}` |
-| indent | `any` | Number of spaces for indentation | `2` |
+| indent | `int` | Number of spaces for indentation | `2` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

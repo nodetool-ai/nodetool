@@ -22,9 +22,9 @@ Write raw bytes to a file on disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| data | `any` | The bytes to write to file | - |
-| folder | `any` | Folder where the file will be saved | `` |
-| filename | `any` | Name of the file to save. Supports strftime format codes. | `` |
+| data | `Optional[bytes]` | The bytes to write to file | - |
+| folder | `str` | Folder where the file will be saved | `` |
+| filename | `str` | Name of the file to save. Supports strftime format codes. | `` |
 
 ## Metadata
 

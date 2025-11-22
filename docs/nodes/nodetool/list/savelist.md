@@ -23,8 +23,8 @@ Saves a list to a text file, placing each element on a new line.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| name | `any` | 
+| values | `List[any]` |  | `[]` |
+| name | `str` | 
         Name of the output file.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -39,7 +39,7 @@ Saves a list to a text file, placing each element on a new line.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `text` |  |
 
 ## Metadata
 

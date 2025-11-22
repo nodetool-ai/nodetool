@@ -18,15 +18,15 @@ Search Google Images to retrieve live image results.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| keyword | `any` | Search query or keyword for images | `` |
-| image_url | `any` | URL of image for reverse image search | `` |
-| num_results | `any` | Maximum number of image results to return | `20` |
+| keyword | `str` | Search query or keyword for images | `` |
+| image_url | `str` | URL of image for reverse image search | `` |
+| num_results | `int` | Maximum number of image results to return | `20` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

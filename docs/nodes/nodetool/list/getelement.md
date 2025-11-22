@@ -23,8 +23,8 @@ Retrieves a single value from a list at a specific index.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| index | `any` |  | `0` |
+| values | `List[any]` |  | `[]` |
+| index | `int` |  | `0` |
 
 ## Outputs
 

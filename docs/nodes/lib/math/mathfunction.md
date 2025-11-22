@@ -18,14 +18,14 @@ Performs a selected unary math operation on an input.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input | `any` |  | `0.0` |
-| operation | `any` | Unary operation to perform | `negate` |
+| input | `(int | float)` |  | `0.0` |
+| operation | `Enum['negate', 'absolute', 'square', 'cube', 'square_root', 'cube_root', 'sine', 'cosine', 'tangent', 'arcsin', 'arccos', 'arctan', 'log']` | Unary operation to perform | `negate` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(int | float)` |  |
 
 ## Metadata
 

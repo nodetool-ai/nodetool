@@ -23,13 +23,13 @@ Extracts code blocks and their languages from markdown.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| markdown | `any` | The markdown text to analyze | `` |
+| markdown | `str` | The markdown text to analyze | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[str, str]]` |  |
 
 ## Metadata
 

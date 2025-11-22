@@ -23,7 +23,7 @@ Performs a conditional check on a boolean input and returns a value based on the
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| condition | `any` | The condition to check | `False` |
+| condition | `bool` | The condition to check | `False` |
 | if_true | `any` | The value to return if the condition is true | - |
 | if_false | `any` | The value to return if the condition is false | - |
 

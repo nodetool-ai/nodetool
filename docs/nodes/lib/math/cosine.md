@@ -18,13 +18,13 @@ Computes cosine of the given angle in radians.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| angle_rad | `any` |  | `0.0` |
+| angle_rad | `(int | float)` |  | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(int | float)` |  |
 
 ## Metadata
 

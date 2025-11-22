@@ -23,16 +23,16 @@ Extract links from HTML content.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| html | `any` | The HTML content to extract links from. | `` |
-| base_url | `any` | The base URL of the page, used to determine internal/external links. | `` |
+| html | `str` | The HTML content to extract links from. | `` |
+| base_url | `str` | The base URL of the page, used to determine internal/external links. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| href | `any` |  |
-| text | `any` |  |
-| type | `any` |  |
+| href | `str` |  |
+| text | `str` |  |
+| type | `str` |  |
 
 ## Metadata
 

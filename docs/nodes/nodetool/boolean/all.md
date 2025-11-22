@@ -24,13 +24,13 @@ Checks if all boolean values in a list are True.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | List of boolean values to check | `[]` |
+| values | `List[bool]` | List of boolean values to check | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

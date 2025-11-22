@@ -22,14 +22,14 @@ Apply a Gaussian blur effect to an image.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to blur. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| radius | `any` | Blur radius. | `2` |
+| image | `image` | The image to blur. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| radius | `int` | Blur radius. | `2` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

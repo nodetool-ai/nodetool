@@ -25,17 +25,17 @@ Decomposes an email into its individual components.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| email | `any` | Email object to decompose | `{'type': 'email', 'id': '', 'sender': '', 'subject': '', 'date': {'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}, 'body': ''}` |
+| email | `email` | Email object to decompose | `{'type': 'email', 'id': '', 'sender': '', 'subject': '', 'date': {'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}, 'body': ''}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| id | `any` |  |
-| subject | `any` |  |
-| sender | `any` |  |
-| date | `any` |  |
-| body | `any` |  |
+| id | `str` |  |
+| subject | `str` |  |
+| sender | `str` |  |
+| date | `datetime` |  |
+| body | `str` |  |
 
 ## Metadata
 

@@ -22,9 +22,9 @@ Write a video file to disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The video to save | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| folder | `any` | Folder where the file will be saved | `` |
-| filename | `any` | 
+| video | `video` | The video to save | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| folder | `str` | Folder where the file will be saved | `` |
+| filename | `str` | 
         Name of the file to save.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -39,7 +39,7 @@ Write a video file to disk.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

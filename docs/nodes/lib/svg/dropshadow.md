@@ -18,16 +18,16 @@ Apply drop shadow filter to SVG elements.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| std_deviation | `any` | Standard deviation for blur | `3.0` |
-| dx | `any` | X offset for shadow | `2` |
-| dy | `any` | Y offset for shadow | `2` |
-| color | `any` | Color for shadow | `{'type': 'color', 'value': '#000000'}` |
+| std_deviation | `float` | Standard deviation for blur | `3.0` |
+| dx | `int` | X offset for shadow | `2` |
+| dy | `int` | Y offset for shadow | `2` |
+| color | `color` | Color for shadow | `{'type': 'color', 'value': '#000000'}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

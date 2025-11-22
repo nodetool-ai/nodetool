@@ -67,8 +67,8 @@ Filter a list of dictionaries based on a condition.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| condition | `any` | 
+| values | `List[Dict[Any, Any]]` |  | `[]` |
+| condition | `str` | 
         The filtering condition using pandas query syntax.
 
         Basic Operators:
@@ -89,7 +89,7 @@ Filter a list of dictionaries based on a condition.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[Any, Any]]` |  |
 
 ## Metadata
 

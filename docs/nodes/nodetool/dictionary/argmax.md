@@ -23,13 +23,13 @@ Returns the label associated with the highest value in a dictionary.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| scores | `any` | Dictionary mapping labels to their corresponding scores/values | `{}` |
+| scores | `Dict[str, float]` | Dictionary mapping labels to their corresponding scores/values | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

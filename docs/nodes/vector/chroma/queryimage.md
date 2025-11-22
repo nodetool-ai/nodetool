@@ -18,18 +18,18 @@ Query the index for similar images.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| collection | `any` | The collection to query | `{'type': 'collection', 'name': ''}` |
-| image | `any` | The image to query | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| n_results | `any` | The number of results to return | `1` |
+| collection | `collection` | The collection to query | `{'type': 'collection', 'name': ''}` |
+| image | `image` | The image to query | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| n_results | `int` | The number of results to return | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| ids | `any` |  |
-| documents | `any` |  |
-| metadatas | `any` |  |
-| distances | `any` |  |
+| ids | `List[str]` |  |
+| documents | `List[str]` |  |
+| metadatas | `List[Dict[Any, Any]]` |  |
+| distances | `List[float]` |  |
 
 ## Metadata
 

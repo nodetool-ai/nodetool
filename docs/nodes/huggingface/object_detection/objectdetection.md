@@ -24,16 +24,16 @@ Detects and localizes objects in images.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for object detection | `{'type': 'hf.object_detection', 'repo_id': 'facebook/detr-resnet-50', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| image | `any` | The input image for object detection | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| threshold | `any` | Minimum confidence score for detected objects | `0.9` |
-| top_k | `any` | The number of top predictions to return | `5` |
+| model | `hf.object_detection` | The model ID to use for object detection | `{'type': 'hf.object_detection', 'repo_id': 'facebook/detr-resnet-50', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The input image for object detection | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| threshold | `float` | Minimum confidence score for detected objects | `0.9` |
+| top_k | `int` | The number of top predictions to return | `5` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[object_detection_result]` |  |
 
 ## Metadata
 

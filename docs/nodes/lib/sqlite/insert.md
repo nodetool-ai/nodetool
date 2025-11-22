@@ -23,15 +23,15 @@ Insert a record into a SQLite table.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| database_name | `any` | Name of the SQLite database file | `memory.db` |
-| table_name | `any` | Name of the table to insert into | `flashcards` |
-| data | `any` | Data to insert as dict (column: value) | `{'content': 'example'}` |
+| database_name | `str` | Name of the SQLite database file | `memory.db` |
+| table_name | `str` | Name of the table to insert into | `flashcards` |
+| data | `Dict[str, any]` | Data to insert as dict (column: value) | `{'content': 'example'}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

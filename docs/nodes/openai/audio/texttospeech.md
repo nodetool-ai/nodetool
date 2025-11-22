@@ -24,16 +24,16 @@ Converts text to speech using OpenAI TTS models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` |  | `tts-1` |
-| voice | `any` |  | `alloy` |
-| input | `any` |  | `` |
-| speed | `any` |  | `1.0` |
+| model | `Enum['tts-1', 'tts-1-hd', 'gpt-4o-mini-tts']` |  | `tts-1` |
+| voice | `Enum['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']` |  | `alloy` |
+| input | `str` |  | `` |
+| speed | `float` |  | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

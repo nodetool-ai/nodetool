@@ -23,16 +23,16 @@ Paste one image onto another at specified coordinates.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to paste into. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| paste | `any` | The image to paste. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| left | `any` | The left coordinate. | `0` |
-| top | `any` | The top coordinate. | `0` |
+| image | `image` | The image to paste into. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| paste | `image` | The image to paste. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| left | `int` | The left coordinate. | `0` |
+| top | `int` | The top coordinate. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

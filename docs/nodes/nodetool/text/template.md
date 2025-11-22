@@ -42,7 +42,7 @@ Uses Jinja2 templating to format strings with variables and filters. This node i
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| string | `any` | 
+| string | `str` | 
     Examples:
     - text: "Hello, {{ name }}!"
     - text: "Title: {{ title|truncate(20) }}"
@@ -74,7 +74,7 @@ Uses Jinja2 templating to format strings with variables and filters. This node i
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

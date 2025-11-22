@@ -18,14 +18,14 @@ Removes overlapping words between consecutive strings in a list. Splits text int
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| documents | `any` | List of strings to process for overlap removal | `[]` |
-| min_overlap_words | `any` | Minimum number of words that must overlap to be considered | `2` |
+| documents | `List[str]` | List of strings to process for overlap removal | `[]` |
+| min_overlap_words | `int` | Minimum number of words that must overlap to be considered | `2` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| documents | `any` |  |
+| documents | `List[str]` |  |
 
 ## Metadata
 

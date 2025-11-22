@@ -24,13 +24,13 @@ Encode a dictionary of parameters into a query string using
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| params | `any` | Parameters to encode | - |
+| params | `Dict[str, str]` | Parameters to encode | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

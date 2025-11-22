@@ -18,14 +18,14 @@ Adds a label to a Gmail message.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| message_id | `any` | Message ID to label | `` |
-| label | `any` | Label to add to the message | `` |
+| message_id | `str` | Message ID to label | `` |
+| label | `str` | Label to add to the message | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

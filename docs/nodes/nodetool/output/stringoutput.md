@@ -24,9 +24,9 @@ Output node for a string value.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `` |
-| description | `any` | The description of the output for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `str` |  | `` |
+| description | `str` | The description of the output for the workflow. | `` |
 
 ## Outputs
 

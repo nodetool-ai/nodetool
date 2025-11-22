@@ -23,13 +23,13 @@ Percent-encode a string for safe use in URLs using ``urllib.parse.quote``.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text to quote | `` |
+| text | `str` | Text to quote | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

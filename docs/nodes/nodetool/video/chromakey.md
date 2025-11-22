@@ -23,16 +23,16 @@ Apply chroma key (green screen) effect to a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to apply chroma key effect. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| key_color | `any` | The color to key out (e.g., '#00FF00' for green). | `{'type': 'color', 'value': '#00FF00'}` |
-| similarity | `any` | Similarity threshold for the key color. | `0.3` |
-| blend | `any` | Blending of the keyed area edges. | `0.1` |
+| video | `video` | The input video to apply chroma key effect. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| key_color | `color` | The color to key out (e.g., '#00FF00' for green). | `{'type': 'color', 'value': '#00FF00'}` |
+| similarity | `float` | Similarity threshold for the key color. | `0.3` |
+| blend | `float` | Blending of the keyed area edges. | `0.1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

@@ -23,17 +23,17 @@ Upload a file to an FTP server.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| host | `any` | FTP server host | `` |
-| username | `any` | Username for authentication | `` |
-| password | `any` | Password for authentication | `` |
-| remote_path | `any` | Remote file path to upload to | `` |
-| document | `any` | Document to upload | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| host | `str` | FTP server host | `` |
+| username | `str` | Username for authentication | `` |
+| password | `str` | Password for authentication | `` |
+| remote_path | `str` | Remote file path to upload to | `` |
+| document | `document` | Document to upload | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `none` |  |
 
 ## Metadata
 

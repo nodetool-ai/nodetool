@@ -24,15 +24,15 @@ Generates text descriptions from images.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for image-to-text generation | `{'type': 'hf.image_to_text', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| image | `any` | The image to generate text from | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| max_new_tokens | `any` | The maximum number of tokens to generate | `50` |
+| model | `hf.image_to_text` | The model ID to use for image-to-text generation | `{'type': 'hf.image_to_text', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The image to generate text from | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| max_new_tokens | `int` | The maximum number of tokens to generate | `50` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

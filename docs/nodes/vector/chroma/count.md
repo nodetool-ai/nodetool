@@ -18,13 +18,13 @@ Count the number of documents in a collection.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| collection | `any` | The collection to count | `{'type': 'collection', 'name': ''}` |
+| collection | `collection` | The collection to count | `{'type': 'collection', 'name': ''}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `int` |  |
 
 ## Metadata
 

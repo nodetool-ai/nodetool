@@ -23,14 +23,14 @@ Joins a list of strings into a single string using a specified separator.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| strings | `any` |  | `[]` |
-| separator | `any` |  | `` |
+| strings | `List[str]` |  | `[]` |
+| separator | `str` |  | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

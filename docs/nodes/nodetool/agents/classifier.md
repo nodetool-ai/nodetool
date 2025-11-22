@@ -24,7 +24,7 @@ Classify text into predefined or dynamic categories using LLM.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| system_prompt | `any` | The system prompt for the classifier | `
+| system_prompt | `str` | The system prompt for the classifier | `
 You are a precise classifier.
 
 Goal
@@ -46,18 +46,18 @@ Behavior
 - Be deterministic for the same input.
 - Do not ask clarifying questions; make the best choice with what's given.
 ` |
-| model | `any` | Model to use for classification | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| text | `any` | Text to classify | `` |
-| image | `any` | Optional image to classify in context | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| audio | `any` | Optional audio to classify in context | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| categories | `any` | List of possible categories. If empty, LLM will determine categories. | `[]` |
-| context_window | `any` |  | `4096` |
+| model | `language_model` | Model to use for classification | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| text | `str` | Text to classify | `` |
+| image | `image` | Optional image to classify in context | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| audio | `audio` | Optional audio to classify in context | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| categories | `List[str]` | List of possible categories. If empty, LLM will determine categories. | `[]` |
+| context_window | `int` |  | `4096` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

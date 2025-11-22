@@ -23,13 +23,13 @@ Compute the absolute value of each element in a array.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The input array to compute the absolute values from. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| values | `np_array` | The input array to compute the absolute values from. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

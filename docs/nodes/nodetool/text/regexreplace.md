@@ -23,16 +23,16 @@ Replace text matching a regex pattern.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text to perform replacements on | `` |
-| pattern | `any` | Regular expression pattern | `` |
-| replacement | `any` | Replacement text | `` |
-| count | `any` | Maximum replacements (0 for unlimited) | `0` |
+| text | `str` | Text to perform replacements on | `` |
+| pattern | `str` | Regular expression pattern | `` |
+| replacement | `str` | Replacement text | `` |
+| count | `int` | Maximum replacements (0 for unlimited) | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Calculates the similarity ratio between two strings.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` | First string to compare | `` |
-| b | `any` | Second string to compare | `` |
+| a | `str` | First string to compare | `` |
+| b | `str` | Second string to compare | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `float` |  |
 
 ## Metadata
 

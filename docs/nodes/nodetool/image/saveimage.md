@@ -23,9 +23,9 @@ Save an image to specified asset folder with customizable name format.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to save. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| folder | `any` | The asset folder to save the image in. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
-| name | `any` | 
+| image | `image` | The image to save. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `folder` | The asset folder to save the image in. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| name | `str` | 
         Name of the output file.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -40,7 +40,7 @@ Save an image to specified asset folder with customizable name format.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

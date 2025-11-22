@@ -23,14 +23,14 @@ Compress binary data using the zlib algorithm.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| data | `any` | Data to compress | `` |
-| level | `any` | Compression level | `9` |
+| data | `bytes` | Data to compress | `` |
+| level | `int` | Compression level | `9` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bytes` |  |
 
 ## Metadata
 

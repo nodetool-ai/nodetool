@@ -18,13 +18,13 @@ Define a schema for a dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| columns | `any` | The columns to use in the dataframe. | `{'type': 'record_type', 'columns': []}` |
+| columns | `record_type` | The columns to use in the dataframe. | `{'type': 'record_type', 'columns': []}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `record_type` |  |
 
 ## Metadata
 

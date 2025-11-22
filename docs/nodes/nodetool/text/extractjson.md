@@ -23,9 +23,9 @@ Extracts data from JSON using JSONPath expressions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| json_path | `any` |  | `$.*` |
-| find_all | `any` |  | `False` |
+| text | `str` |  | `` |
+| json_path | `str` |  | `$.*` |
+| find_all | `bool` |  | `False` |
 
 ## Outputs
 

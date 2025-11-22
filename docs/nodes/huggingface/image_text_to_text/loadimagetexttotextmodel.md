@@ -21,13 +21,13 @@ Load a Hugging Face image-text-to-text model/pipeline by repo_id.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| repo_id | `any` | The model repository ID to use for image-text-to-text generation. | `` |
+| repo_id | `str` | The model repository ID to use for image-text-to-text generation. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `hf.image_text_to_text` |  |
 
 ## Metadata
 

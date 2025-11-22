@@ -25,20 +25,20 @@ Performs inpainting on images using AutoPipeline for Inpainting.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The HuggingFace model to use for inpainting. | `{'type': 'hf.image_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| prompt | `any` | Text prompt describing what should be generated in the masked area. | `` |
-| negative_prompt | `any` | Text prompt describing what should not appear in the generated content. | `` |
-| image | `any` | The input image to inpaint | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| mask_image | `any` | The mask image indicating areas to be inpainted (white areas will be inpainted) | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| num_inference_steps | `any` | Number of denoising steps. | `25` |
-| guidance_scale | `any` | Guidance scale for generation. Higher values follow the prompt more closely. | `7.5` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
+| model | `hf.image_to_image` | The HuggingFace model to use for inpainting. | `{'type': 'hf.image_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| prompt | `str` | Text prompt describing what should be generated in the masked area. | `` |
+| negative_prompt | `str` | Text prompt describing what should not appear in the generated content. | `` |
+| image | `image` | The input image to inpaint | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| mask_image | `image` | The mask image indicating areas to be inpainted (white areas will be inpainted) | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| num_inference_steps | `int` | Number of denoising steps. | `25` |
+| guidance_scale | `float` | Guidance scale for generation. Higher values follow the prompt more closely. | `7.5` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

@@ -23,17 +23,17 @@ Finds all regex matches in text as separate substrings.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| regex | `any` |  | `` |
-| dotall | `any` |  | `False` |
-| ignorecase | `any` |  | `False` |
-| multiline | `any` |  | `False` |
+| text | `str` |  | `` |
+| regex | `str` |  | `` |
+| dotall | `bool` |  | `False` |
+| ignorecase | `bool` |  | `False` |
+| multiline | `bool` |  | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

@@ -22,13 +22,13 @@ Check if a file or directory exists at the specified path.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Path to check for existence | `` |
+| path | `str` | Path to check for existence | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

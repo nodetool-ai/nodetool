@@ -21,13 +21,13 @@ Convert an image batch to a list of image references.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| batch | `any` | The batch of images to convert. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| batch | `image` | The batch of images to convert. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[image]` |  |
 
 ## Metadata
 

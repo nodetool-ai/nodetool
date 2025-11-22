@@ -27,9 +27,9 @@ Save a video file to the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The video to save | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| folder | `any` | Relative folder path within workspace (use . for workspace root) | `.` |
-| filename | `any` | 
+| video | `video` | The video to save | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| folder | `str` | Relative folder path within workspace (use . for workspace root) | `.` |
+| filename | `str` | 
         Name of the file to save.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -39,13 +39,13 @@ Save a video file to the workspace.
         %M - Minute
         %S - Second
          | `video.mp4` |
-| overwrite | `any` | Overwrite the file if it already exists, otherwise file will be renamed | `False` |
+| overwrite | `bool` | Overwrite the file if it already exists, otherwise file will be renamed | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

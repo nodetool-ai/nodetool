@@ -23,14 +23,14 @@ Create clipping paths for SVG elements.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| clip_content | `any` | SVG element to use as clip path | - |
-| content | `any` | SVG element to clip | - |
+| clip_content | `svg_element` | SVG element to use as clip path | - |
+| content | `svg_element` | SVG element to clip | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

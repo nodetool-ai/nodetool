@@ -23,9 +23,9 @@ Output node for generic array data, typically numerical ('NPArray').
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| description | `any` | The description of the output for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `np_array` |  | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| description | `str` | The description of the output for the workflow. | `` |
 
 ## Outputs
 

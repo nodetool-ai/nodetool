@@ -23,15 +23,15 @@ Applies rank-based filtering to enhance or smooth image features.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to rank filter. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| size | `any` | Rank filter size. | `3` |
-| rank | `any` | Rank filter rank. | `3` |
+| image | `image` | The image to rank filter. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| size | `int` | Rank filter size. | `3` |
+| rank | `int` | Rank filter rank. | `3` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

@@ -24,15 +24,15 @@ Fills in a masked token in a given text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for fill-mask task | `{'type': 'hf.fill_mask', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| inputs | `any` | The input text with [MASK] token to be filled | `The capital of France is [MASK].` |
-| top_k | `any` | Number of top predictions to return | `5` |
+| model | `hf.fill_mask` | The model ID to use for fill-mask task | `{'type': 'hf.fill_mask', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| inputs | `str` | The input text with [MASK] token to be filled | `The capital of France is [MASK].` |
+| top_k | `int` | Number of top predictions to return | `5` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

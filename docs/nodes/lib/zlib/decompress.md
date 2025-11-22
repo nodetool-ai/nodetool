@@ -23,13 +23,13 @@ Decompress zlib-compressed binary data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| data | `any` | Data to decompress | `` |
+| data | `bytes` | Data to decompress | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bytes` |  |
 
 ## Metadata
 

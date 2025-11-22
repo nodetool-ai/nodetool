@@ -23,15 +23,15 @@ Filters a list of numbers based on various numerical conditions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| filter_type | `any` | The type of filter to apply | `greater_than` |
-| value | `any` | The comparison value (for greater_than, less_than, equal_to) | - |
+| values | `List[float]` |  | `[]` |
+| filter_type | `Enum['greater_than', 'less_than', 'equal_to', 'even', 'odd', 'positive', 'negative']` | The type of filter to apply | `greater_than` |
+| value | `Optional[float]` | The comparison value (for greater_than, less_than, equal_to) | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[float]` |  |
 
 ## Metadata
 

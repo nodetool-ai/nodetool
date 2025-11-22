@@ -23,13 +23,13 @@ Parse a JSON string into a Python list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| json_string | `any` | JSON string to parse into a list | `` |
+| json_string | `str` | JSON string to parse into a list | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Any]` |  |
 
 ## Metadata
 

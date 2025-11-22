@@ -23,14 +23,14 @@ Join a base URL with a relative URL using ``urllib.parse.urljoin``.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| base | `any` | Base URL | `` |
-| url | `any` | Relative or absolute URL | `` |
+| base | `str` | Base URL | `` |
+| url | `str` | Relative or absolute URL | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

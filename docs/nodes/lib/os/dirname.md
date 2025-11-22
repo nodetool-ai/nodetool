@@ -23,13 +23,13 @@ Get the directory name component of a file path.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | File path to get dirname from | `` |
+| path | `str` | File path to get dirname from | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 
