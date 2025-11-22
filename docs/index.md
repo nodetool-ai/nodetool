@@ -1,44 +1,58 @@
 ---
-layout: home
+layout: page
 title: NodeTool Documentation
 ---
 
-# Create Powerful AI Workflows
+**Nodettol is a visual workflow builder for AI and machine learning**
 
+NodeTool is an open source platform for building AI workflows through visual, node-based programming. Whether you're exploring ML models, automating tasks, or building chatbots, NodeTool helps you experiment and iterate quickly.
 
-Visual workflow builder for local and cloud ML models. Build chatbots, automate tasks, generate content—your data stays local by default.
+## Project Goals
 
-## What You Get
+NodeTool is built on these core principles:
 
-- **Local first** — Runs on your machine without vendor cloud infrastructure
-- **Open source** — Inspect, modify, self-host the entire stack
-- **Data stays yours** — Processes locally, never phones home or sends telemetry
-- **No lock-in** — One portable workflow format from laptop to deployment
+- **Privacy by design** — Your data processes locally by default, with no telemetry or tracking
+- **Local-first development** — Run everything on your machine without requiring cloud infrastructure
+- **Open and transparent** — Full source code available to inspect, modify, and self-host
+- **Freedom to choose** — Use local models or any API provider, with portable workflows that run anywhere
+- **Community-driven** — Built collaboratively by makers, researchers, and developers
 
-## Fast local inference
+> **License:** AGPL-3.0 — This project is free and open source software
 
-- **MLX** — Apple Silicon optimized (M1-M4) for LLMs, audio, speech, image generation
-- **llama.cpp + whisper.cpp** — Fast LLM inference and speech recognition on any platform
-- **vLLM** — Production-grade high-throughput inference engine
-- **HuggingFace** — Transformers & Diffusers running locally, 24+ model types
+## Capabilities
 
-## Use any provider
+### Local Model Inference
 
-- Bring your own API keys for OpenAI, Anthropic, Gemini, Fal AI, Replicate, HuggingFace
-- No markup, no middleman—direct API calls
-- Or skip APIs entirely and use local models
+Run AI models directly on your machine with optimized engines:
 
-## Features
+- **MLX** — Apple Silicon optimization (M1-M4) for LLMs, audio, speech, and image generation
+- **llama.cpp + whisper.cpp** — Fast LLM inference and speech recognition across platforms
+- **vLLM** — High-throughput inference engine for production workloads
+- **HuggingFace** — Support for 24+ model types using Transformers & Diffusers
 
-- Visual canvas with drag-and-drop node editing
-- Multimodal support (text, image, audio, video)
-- Built-in vector database (ChromaDB) for RAG
-- Real-time execution preview—inspect every step
-- Chat interface to run workflows conversationally
-- Asset manager for organizing files
-- Model manager for downloading HuggingFace weights
+### Flexible API Integration
 
-## Quick Start
+Choose your own providers and models:
+
+- Connect with your own API keys for OpenAI, Anthropic, Gemini, Fal AI, Replicate, HuggingFace, and more
+- Direct API calls with no intermediary services
+- Works completely offline with local models when desired
+
+### Core Features
+
+- **Visual workflow editor** — Drag-and-drop interface for building node-based workflows
+- **Multimodal processing** — Work with text, images, audio, and video in the same workflow
+- **Vector database** — Built-in ChromaDB integration for retrieval-augmented generation (RAG)
+- **Real-time preview** — Inspect outputs at every step during execution
+- **Conversational interface** — Run workflows through an integrated chat interface
+- **Asset management** — Organize and manage your files and media
+- **Model management** — Download and configure HuggingFace models locally
+
+## Installation
+
+### Desktop Application
+
+Pre-built installers are available for all platforms:
 
 | Platform    | Download                                  | Requirements                            |
 | ----------- | ----------------------------------------- | --------------------------------------- |
@@ -48,38 +62,45 @@ Visual workflow builder for local and cloud ML models. Build chatbots, automate 
 
 ### Hardware Requirements
 
-**Local Model Inference:**
+**For local model inference:**
 
 | Setup             | Hardware              | Notes                                                     |
 | ----------------- | --------------------- | --------------------------------------------------------- |
 | **Apple Silicon** | M1/M2/M3/M4 Mac       | 16GB+ RAM for LLM/TTS, 24GB+ for image generation        |
 | **Windows/Linux** | NVIDIA GPU with CUDA  | 4GB+ VRAM for LLM/TTS, 8GB+ for image, 12GB+ for video   |
-| **Cloud Only**    | No GPU required       | Use API providers (OpenAI, Anthropic, Replicate, FAL)    |
+| **API-only mode** | No GPU required       | Use cloud providers (OpenAI, Anthropic, Replicate, FAL)  |
 
-**After Install:**
+### First Steps
 
-1. Launch the app
-2. Download models from the Model Manager
-3. Connect nodes in the visual editor
-4. Run workflows locally or deploy
+1. Launch NodeTool
+2. (Optional) Download models from the Model Manager
+3. Create your first workflow by connecting nodes in the visual editor
+4. Run workflows locally or configure API providers
 
-## Bring Your Own Providers
+### Developer Installation
 
-Bring your own API keys. Direct API calls, no markup, no tracking.
+To build from source and contribute to development, see the [Installation Guide](installation.md) for detailed instructions.
+
+## Configuration
+
+### API Providers
+
+NodeTool supports connecting your own API keys for direct access to various AI services:
 
 **Supported providers:** OpenAI, Anthropic, Gemini, HuggingFace, Groq, Together, Replicate, Fal AI, Cohere, ElevenLabs, and more.
 
-Set API keys in Settings → Providers. See our [Providers Guide](providers.md) for detailed configuration.
+Configure API keys in **Settings → Providers**. For detailed setup instructions, see the [Providers Guide](providers.md).
 
-## Install Node Packs
+### Node Packs
 
-Install and manage packs directly from the desktop app.
+Extend NodeTool's functionality by installing additional node packages:
 
-- Open Package Manager: Launch the Electron desktop app, then open the Package Manager from the Tools menu.
-- Browse and search packages: Use the top search box to filter by package name, description, or repo id.
-- Search nodes across packs: Use the "Search nodes" field to find nodes by title, description, or type. You can install the required pack directly from node results.
+1. **Open Package Manager** — From the desktop app, select **Tools → Package Manager**
+2. **Browse packages** — Use the search box to filter by package name, description, or repository
+3. **Search for specific nodes** — Find nodes by title, description, or type across all available packs
+4. **Install** — Install packages directly from search results
 
-Learn more in our [Node Packs Guide](node-packs.md).
+For more details, see the [Node Packs Guide](node-packs.md).
 
 ## Documentation
 
@@ -100,16 +121,38 @@ Learn more in our [Node Packs Guide](node-packs.md).
 - **[Providers](providers.md)** – Provider configuration and API key setup
 - **[Models Manager](models-manager.md)** – Manage AI models and providers
 - **[Asset Management](asset-management.md)** – Handle files, images, and media
-- **[Base Nodes Reference](base-nodes.md)** – Complete reference for all available base nodes
+- **[Node Reference](nodes/)** – Complete reference for all available nodes
 
 ### Advanced Topics
 
 - **[Architecture](architecture.md)** – Technical overview and system design
 
-## Community
+## Community and Contributing
 
-- **[Discord](https://discord.gg/WmQTWZRcYE)** — Get help, share workflows
-- **[GitHub](https://github.com/nodetool-ai/nodetool)** — Report bugs, request features
-- **Contribute** — Pull requests welcome
+NodeTool is developed in the open, and we welcome participation from everyone.
 
-Open source under AGPL‑3.0. Built by makers, for makers.
+### Get Involved
+
+- **[Discord](https://discord.gg/WmQTWZRcYE)** — Ask questions, share workflows, discuss ideas, and connect with other users
+- **[GitHub](https://github.com/nodetool-ai/nodetool)** — Report issues, request features, submit pull requests, and browse the source code
+- **[Documentation](https://github.com/nodetool-ai/nodetool/tree/main/docs)** — Help improve these docs with corrections or additions
+
+### Contributing
+
+We welcome contributions of all kinds:
+
+- **Bug reports and feature requests** — Help us identify issues and prioritize improvements
+- **Code contributions** — Fix bugs, add features, or improve performance
+- **Documentation** — Clarify instructions, add examples, or fix typos
+- **Node development** — Create new nodes to extend NodeTool's capabilities
+- **Workflow sharing** — Share interesting workflows with the community
+
+Pull requests are welcome! For major changes, please open an issue first to discuss your ideas.
+
+### License
+
+NodeTool is free and open source software, released under the [AGPL-3.0 license](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE).
+
+---
+
+Built collaboratively by makers, researchers, and developers around the world.

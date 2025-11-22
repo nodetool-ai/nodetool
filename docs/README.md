@@ -48,6 +48,15 @@ bundle exec jekyll build
 
 The built site will be in the `_site/` directory.
 
+## Node Reference
+
+Rebuild the node references with:
+
+```bash
+nodetool package node-docs
+```
+
+
 ## Project Structure
 
 ```
