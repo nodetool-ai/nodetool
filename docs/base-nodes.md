@@ -1,4 +1,7 @@
-# Nodes Reference
+---
+layout: page
+title: "Nodes Reference"
+---
 
 NodeTool includes a comprehensive collection of base nodes from the [nodetool-base](https://github.com/nodetool-ai/nodetool-base) repository. These nodes provide fundamental building blocks for creating AI-powered workflows. The base nodes are organized into logical categories to help you quickly find the functionality you need.
 

@@ -1,4 +1,7 @@
-# Tips and Tricks
+---
+layout: page
+title: "Tips and Tricks"
+---
 
 Here are some tips and tricks for using NodeTool more effectively:
 

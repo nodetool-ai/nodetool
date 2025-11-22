@@ -11,6 +11,7 @@ export interface HuggingFaceModelMenuDialogProps {
   onClose: () => void;
   onModelChange?: (model: ImageModel) => void;
   task?: "text_to_image" | "image_to_image";
+  modelType?: string;
 }
 
 type EndpointSuffix = "image/text-to-image" | "image/image-to-image" | null;
@@ -31,9 +32,10 @@ export default function HuggingFaceModelMenuDialog({
   open,
   onClose,
   onModelChange,
-  task
+  task,
+  modelType
 }: HuggingFaceModelMenuDialogProps) {
-  const modelData = useHuggingFaceImageModelsByProvider({ task });
+  const modelData = useHuggingFaceImageModelsByProvider({ task, modelType });
 
   // Map to endpoint for recommended models API
   const endpoint = useMemo(() => mapTaskToEndpoint(task), [task]);
@@ -108,3 +110,5 @@ export default function HuggingFaceModelMenuDialog({
     />
   );
 }
+
+

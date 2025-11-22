@@ -1,4 +1,7 @@
-# Models Manager
+---
+layout: page
+title: "Models Manager"
+---
 
 The **Models Manager** helps you keep track of the AI models available on your system.
 

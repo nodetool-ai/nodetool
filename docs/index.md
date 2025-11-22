@@ -1,55 +1,85 @@
-# NodeTool - Documentation
+---
+layout: home
+title: NodeTool Documentation
+---
 
-## What is NodeTool?
+# Create Powerful AI Workflows
 
-NodeTool is a local-first visual environment for building and running AI workflows.
-It combines a node-based editor, a powerful chat assistant, asset management,
-local + cloud model integration, and real-time execution through WebSockets.
 
-NodeTool is an open‑source, local‑first platform for building AI agents and workflows visually. Design, run, and deploy
-powerful AI systems using drag‑and‑drop nodes that connect models, tools, data, and your everyday apps.
+Visual workflow builder for local and cloud ML models. Build chatbots, automate tasks, generate content—your data stays local by default.
 
-> Build agents visually • Deploy anywhere • Privacy by design
+## What You Get
 
-## How It Works
+- **Local first** — Runs on your machine without vendor cloud infrastructure
+- **Open source** — Inspect, modify, self-host the entire stack
+- **Data stays yours** — Processes locally, never phones home or sends telemetry
+- **No lock-in** — One portable workflow format from laptop to deployment
 
-1. 🏗️ Build — Create workflows by dragging and connecting nodes.
-1. ⚡ Run — Test locally; your data stays on your machine by default.
-1. 🚀 Deploy — Ship to your own cloud or provider when ready.
+## Fast local inference
 
-### Core UI screens
+- **MLX** — Apple Silicon optimized (M1-M4) for LLMs, audio, speech, image generation
+- **llama.cpp + whisper.cpp** — Fast LLM inference and speech recognition on any platform
+- **vLLM** — Production-grade high-throughput inference engine
+- **HuggingFace** — Transformers & Diffusers running locally, 24+ model types
 
-- Dashboard: workspace with dockable panels
-- Workflow Editor: node-based graph builder
-- Global Chat: agentic assistant with tool use
-- Mini-Apps: form-style UI for workflows
-- Assets: file explorer with previews
-- Models Manager: model downloads, filtering and README access
+## Use any provider
 
-## What You Can Do
+- Bring your own API keys for OpenAI, Anthropic, Gemini, Fal AI, Replicate, HuggingFace
+- No markup, no middleman—direct API calls
+- Or skip APIs entirely and use local models
 
-![Workflow Editor](/docs/assets/workflow.png)
+## Features
 
-- **Visual workflow editor** – link nodes to process text, images, audio or video.
-- **Extensive model support** – use models from OpenAI, Anthropic, Google, Hugging Face, Groq, Together, Replicate,
-  Cohere and more — or run locally with Ollama.
-- **Advanced agents** – build multi-step agents that can plan, reason and browse the web.
-- **Vector search & RAG** – index your documents and ask questions about them.
-- **System tray access** – launch workflows and manage your clipboard from anywhere.
-- **Mini‑app builder** – turn a workflow into a standalone application.
-- **Chat interface** – create custom chatbots for your projects.
-- **Global Chat** – start conversations from anywhere in the workspace with AI agents and tools.
-- **OpenAI‑compatible API & extensions** – connect NodeTool to other apps and services.
-- **Node Packs** – install extra nodes from the [NodeTool Packs Registry](node-packs.md).
+- Visual canvas with drag-and-drop node editing
+- Multimodal support (text, image, audio, video)
+- Built-in vector database (ChromaDB) for RAG
+- Real-time execution preview—inspect every step
+- Chat interface to run workflows conversationally
+- Asset manager for organizing files
+- Model manager for downloading HuggingFace weights
 
-### Startup flow
+## Quick Start
 
-At launch NodeTool loads:
+| Platform    | Download                                  | Requirements                            |
+| ----------- | ----------------------------------------- | --------------------------------------- |
+| **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU recommended, 20GB free space |
+| **macOS**   | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon                       |
+| **Linux**   | [Download AppImage](https://nodetool.ai)  | Nvidia GPU recommended                  |
 
-1. Node metadata and types from `/api/nodes/metadata`
-2. Your open workflows and layout
-3. Provider settings and installed models
-4. Recent chat threads
+### Hardware Requirements
+
+**Local Model Inference:**
+
+| Setup             | Hardware              | Notes                                                     |
+| ----------------- | --------------------- | --------------------------------------------------------- |
+| **Apple Silicon** | M1/M2/M3/M4 Mac       | 16GB+ RAM for LLM/TTS, 24GB+ for image generation        |
+| **Windows/Linux** | NVIDIA GPU with CUDA  | 4GB+ VRAM for LLM/TTS, 8GB+ for image, 12GB+ for video   |
+| **Cloud Only**    | No GPU required       | Use API providers (OpenAI, Anthropic, Replicate, FAL)    |
+
+**After Install:**
+
+1. Launch the app
+2. Download models from the Model Manager
+3. Connect nodes in the visual editor
+4. Run workflows locally or deploy
+
+## Bring Your Own Providers
+
+Bring your own API keys. Direct API calls, no markup, no tracking.
+
+**Supported providers:** OpenAI, Anthropic, Gemini, HuggingFace, Groq, Together, Replicate, Fal AI, Cohere, ElevenLabs, and more.
+
+Set API keys in Settings → Providers. See our [Providers Guide](providers.md) for detailed configuration.
+
+## Install Node Packs
+
+Install and manage packs directly from the desktop app.
+
+- Open Package Manager: Launch the Electron desktop app, then open the Package Manager from the Tools menu.
+- Browse and search packages: Use the top search box to filter by package name, description, or repo id.
+- Search nodes across packs: Use the "Search nodes" field to find nodes by title, description, or type. You can install the required pack directly from node results.
+
+Learn more in our [Node Packs Guide](node-packs.md).
 
 ## Documentation
 
@@ -67,7 +97,7 @@ At launch NodeTool loads:
 - **[User Interface](user-interface.md)** – Complete guide to the NodeTool UI
 - **[Global Chat](global-chat.md)** – AI chat interface with agents and tools
 - **[Supported Models](models.md)** – Comprehensive guide to all AI models and providers
-- **[Providers](providers.md)** - Provider support
+- **[Providers](providers.md)** – Provider configuration and API key setup
 - **[Models Manager](models-manager.md)** – Manage AI models and providers
 - **[Asset Management](asset-management.md)** – Handle files, images, and media
 - **[Base Nodes Reference](base-nodes.md)** – Complete reference for all available base nodes
@@ -76,21 +106,10 @@ At launch NodeTool loads:
 
 - **[Architecture](architecture.md)** – Technical overview and system design
 
-## Quick Start
-
-1. Install NodeTool (see [Installation](installation.md)).
-1. Launch the app and download models.
-1. Start from a template or blank canvas.
-1. Drag nodes, connect them, and click Run to see results.
-
-Want more details? Check out our [Getting Started](getting-started.md) guide and explore the complete feature
-documentation above.
-
 ## Community
 
-Share your ideas, ask questions, or contribute:
-
-- Discord: https://discord.gg/WmQTWZRcYE
-- GitHub: https://github.com/nodetool-ai/nodetool
+- **[Discord](https://discord.gg/WmQTWZRcYE)** — Get help, share workflows
+- **[GitHub](https://github.com/nodetool-ai/nodetool)** — Report bugs, request features
+- **Contribute** — Pull requests welcome
 
 Open source under AGPL‑3.0. Built by makers, for makers.

@@ -1,6 +1,6 @@
 ---
-layout: default
-title: Asset Management
+layout: page
+title: "Asset Management"
 ---
 
 NodeTool lets you store and organise files used in your workflows. Assets can be images, audio clips, PDFs or any other resources referenced by nodes.
