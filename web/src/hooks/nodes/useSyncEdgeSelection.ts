@@ -1,26 +1,25 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useNodes } from "../../contexts/NodeContext";
-import type { Edge } from "@xyflow/react";
 
 export const useSyncEdgeSelection = (
   nodeId: string,
   isSelected: boolean
 ): void => {
-  const { edges, findNode, setEdgeSelectionState } = useNodes((state) => ({
-    edges: state.edges,
-    findNode: state.findNode,
-    setEdgeSelectionState: state.setEdgeSelectionState
-  }));
-
-  const connectedEdges = useMemo(
-    () =>
-      edges.filter(
-        (edge) => edge.source === nodeId || edge.target === nodeId
-      ) as Edge[],
-    [edges, nodeId]
-  );
+  // Only subscribe to helper functions, not the full `edges` array,
+  // to avoid re-rendering every node whenever edges change.
+  const { getInputEdges, getOutputEdges, findNode, setEdgeSelectionState } =
+    useNodes((state) => ({
+      getInputEdges: state.getInputEdges,
+      getOutputEdges: state.getOutputEdges,
+      findNode: state.findNode,
+      setEdgeSelectionState: state.setEdgeSelectionState
+    }));
 
   useEffect(() => {
+    const inputEdges = getInputEdges(nodeId);
+    const outputEdges = getOutputEdges(nodeId);
+    const connectedEdges = [...inputEdges, ...outputEdges];
+
     if (!connectedEdges.length) {
       return;
     }
@@ -31,6 +30,7 @@ export const useSyncEdgeSelection = (
       const neighborId = edge.source === nodeId ? edge.target : edge.source;
       const neighborSelected = Boolean(findNode(neighborId)?.selected);
       const shouldSelect = isSelected || neighborSelected;
+
       if (Boolean(edge.selected) !== shouldSelect) {
         selectionUpdates[edge.id] = shouldSelect;
       }
@@ -40,10 +40,11 @@ export const useSyncEdgeSelection = (
       setEdgeSelectionState(selectionUpdates);
     }
   }, [
-    connectedEdges,
-    findNode,
     nodeId,
     isSelected,
+    getInputEdges,
+    getOutputEdges,
+    findNode,
     setEdgeSelectionState
   ]);
 };
