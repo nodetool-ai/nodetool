@@ -773,9 +773,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onSelectionContextMenu={handleSelectionContextMenu}
         selectionMode={settings.selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
-        // TODO: fix edge mouse enter and leave
-        // Performance issue when hovering over edges
-        // triggering edge changes
         // onEdgeMouseLeave={onEdgeMouseLeave}
         onEdgeContextMenu={onEdgeContextMenu}
         onEdgeClick={onEdgeClick}
