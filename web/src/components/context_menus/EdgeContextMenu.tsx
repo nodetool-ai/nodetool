@@ -155,7 +155,11 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
             }}
           >
             <span>Delete this connection</span>
-            <span>[Middle Mouse Button]</span>
+            <span style={{ textAlign: "center" }}>
+              <kbd>Middle Mouse Button</kbd> or select the edge and press{" "}
+              <kbd>Delete</kbd> or <kbd>Backspace</kbd>. Select many edges by
+              holding <kbd>CTRL</kbd> or <kbd>Meta</kbd> while clicking.
+            </span>
           </span>
         }
       />
