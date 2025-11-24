@@ -23,14 +23,14 @@ Generate a name-based UUID using SHA-1 (version 5).
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| namespace | `any` | Namespace (dns, url, oid, x500, or a UUID string) | `dns` |
-| name | `any` | Name to generate UUID from | `` |
+| namespace | `str` | Namespace (dns, url, oid, x500, or a UUID string) | `dns` |
+| name | `str` | Name to generate UUID from | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

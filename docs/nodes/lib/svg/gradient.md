@@ -23,19 +23,19 @@ Create linear or radial gradients for SVG elements.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| gradient_type | `any` | Type of gradient | `linearGradient` |
-| x1 | `any` | Start X position (linear) or center X (radial) | `0` |
-| y1 | `any` | Start Y position (linear) or center Y (radial) | `0` |
-| x2 | `any` | End X position (linear) or radius X (radial) | `100` |
-| y2 | `any` | End Y position (linear) or radius Y (radial) | `100` |
-| color1 | `any` | Start color of gradient | `{'type': 'color', 'value': '#000000'}` |
-| color2 | `any` | End color of gradient | `{'type': 'color', 'value': '#FFFFFF'}` |
+| gradient_type | `Enum['linearGradient', 'radialGradient']` | Type of gradient | `linearGradient` |
+| x1 | `float` | Start X position (linear) or center X (radial) | `0` |
+| y1 | `float` | Start Y position (linear) or center Y (radial) | `0` |
+| x2 | `float` | End X position (linear) or radius X (radial) | `100` |
+| y2 | `float` | End Y position (linear) or radius Y (radial) | `100` |
+| color1 | `color` | Start color of gradient | `{'type': 'color', 'value': '#000000'}` |
+| color2 | `color` | End color of gradient | `{'type': 'color', 'value': '#FFFFFF'}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

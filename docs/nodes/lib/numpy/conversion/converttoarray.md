@@ -23,13 +23,13 @@ Convert PIL Image to normalized tensor representation.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image | `image` | The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

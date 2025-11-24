@@ -23,13 +23,13 @@ Read an audio file from disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Path to the audio file to read | `` |
+| path | `str` | Path to the audio file to read | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

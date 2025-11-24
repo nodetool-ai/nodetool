@@ -23,13 +23,13 @@ Get file size in bytes for a workspace file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path to file within workspace | `` |
+| path | `str` | Relative path to file within workspace | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `int` |  |
 
 ## Metadata
 

@@ -31,14 +31,14 @@ Find the first row in a dataframe that matches a given condition.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| df | `any` | The DataFrame to search. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| condition | `any` | The condition to filter the DataFrame, e.g. 'column_name == value'. | `` |
+| df | `dataframe` | The DataFrame to search. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| condition | `str` | The condition to filter the DataFrame, e.g. 'column_name == value'. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

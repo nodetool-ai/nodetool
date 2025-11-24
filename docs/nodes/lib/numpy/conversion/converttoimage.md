@@ -23,13 +23,13 @@ Convert array data to PIL Image format.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The input array to convert to an image. Should have either 1, 3, or 4 channels. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| values | `np_array` | The input array to convert to an image. Should have either 1, 3, or 4 channels. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

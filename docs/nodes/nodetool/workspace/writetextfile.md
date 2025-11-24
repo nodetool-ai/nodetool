@@ -23,16 +23,16 @@ Write text to a file in the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path to file within workspace | `` |
-| content | `any` | Text content to write | `` |
-| encoding | `any` | Text encoding (utf-8, ascii, etc.) | `utf-8` |
-| append | `any` | Append to file instead of overwriting | `False` |
+| path | `str` | Relative path to file within workspace | `` |
+| content | `str` | Text content to write | `` |
+| encoding | `str` | Text encoding (utf-8, ascii, etc.) | `utf-8` |
+| append | `bool` | Append to file instead of overwriting | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

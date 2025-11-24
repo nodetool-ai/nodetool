@@ -355,6 +355,7 @@ const TemplateGrid = () => {
     queryKey: ["templates"],
     queryFn: loadWorkflows
   });
+  console.log("data", data);
 
   // search backend for node matches
   const {

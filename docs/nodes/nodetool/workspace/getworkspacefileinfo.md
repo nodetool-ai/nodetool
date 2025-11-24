@@ -23,13 +23,13 @@ Get information about a file in the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path to file within workspace | `` |
+| path | `str` | Relative path to file within workspace | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

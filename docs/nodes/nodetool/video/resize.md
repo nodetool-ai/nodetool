@@ -23,15 +23,15 @@ Resize a video to a specific width and height.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to resize. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| width | `any` | The target width. Use -1 to maintain aspect ratio. | `-1` |
-| height | `any` | The target height. Use -1 to maintain aspect ratio. | `-1` |
+| video | `video` | The input video to resize. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| width | `int` | The target width. Use -1 to maintain aspect ratio. | `-1` |
+| height | `int` | The target height. Use -1 to maintain aspect ratio. | `-1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

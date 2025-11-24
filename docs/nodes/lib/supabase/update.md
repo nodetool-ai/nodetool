@@ -18,10 +18,10 @@ Update records in a Supabase table.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| table_name | `any` | Table to update | `` |
-| values | `any` | New values | - |
-| filters | `any` | Filters to select rows to update | - |
-| return_rows | `any` | Return updated rows (uses select('*')) | `True` |
+| table_name | `str` | Table to update | `` |
+| values | `Dict[str, any]` | New values | - |
+| filters | `List[Tuple[str, Enum['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'like', 'contains'], any]]` | Filters to select rows to update | - |
+| return_rows | `bool` | Return updated rows (uses select('*')) | `True` |
 
 ## Outputs
 

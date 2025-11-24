@@ -21,13 +21,13 @@ namespace: "openai.text"
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| query | `any` | The search query to execute. | `` |
+| query | `str` | The search query to execute. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

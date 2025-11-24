@@ -23,13 +23,13 @@ Represents a floating-point number constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| value | `any` |  | `0.0` |
+| value | `float` |  | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `float` |  |
 
 ## Metadata
 

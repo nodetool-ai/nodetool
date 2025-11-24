@@ -22,15 +22,15 @@ Apply Canny edge detection to an image.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to canny. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| low_threshold | `any` | Low threshold. | `100` |
-| high_threshold | `any` | High threshold. | `200` |
+| image | `image` | The image to canny. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| low_threshold | `int` | Low threshold. | `100` |
+| high_threshold | `int` | High threshold. | `200` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

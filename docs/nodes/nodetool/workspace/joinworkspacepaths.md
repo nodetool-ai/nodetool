@@ -23,13 +23,13 @@ Join path components relative to workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| paths | `any` | Path components to join (relative to workspace) | `[]` |
+| paths | `List[str]` | Path components to join (relative to workspace) | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

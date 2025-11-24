@@ -24,22 +24,22 @@ Mix up to 5 audio tracks together with individual volume controls.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| track1 | `any` | First audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| track2 | `any` | Second audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| track3 | `any` | Third audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| track4 | `any` | Fourth audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| track5 | `any` | Fifth audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| volume1 | `any` | Volume for track 1. 1.0 is original volume. | `1.0` |
-| volume2 | `any` | Volume for track 2. 1.0 is original volume. | `1.0` |
-| volume3 | `any` | Volume for track 3. 1.0 is original volume. | `1.0` |
-| volume4 | `any` | Volume for track 4. 1.0 is original volume. | `1.0` |
-| volume5 | `any` | Volume for track 5. 1.0 is original volume. | `1.0` |
+| track1 | `audio` | First audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| track2 | `audio` | Second audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| track3 | `audio` | Third audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| track4 | `audio` | Fourth audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| track5 | `audio` | Fifth audio track to mix. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| volume1 | `float` | Volume for track 1. 1.0 is original volume. | `1.0` |
+| volume2 | `float` | Volume for track 2. 1.0 is original volume. | `1.0` |
+| volume3 | `float` | Volume for track 3. 1.0 is original volume. | `1.0` |
+| volume4 | `float` | Volume for track 4. 1.0 is original volume. | `1.0` |
+| volume5 | `float` | Volume for track 5. 1.0 is original volume. | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

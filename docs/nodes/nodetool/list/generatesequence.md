@@ -18,15 +18,15 @@ Iterates over a sequence of numbers.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| start | `any` |  | `0` |
-| stop | `any` |  | `0` |
-| step | `any` |  | `1` |
+| start | `int` |  | `0` |
+| stop | `int` |  | `0` |
+| step | `int` |  | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `int` |  |
 
 ## Metadata
 

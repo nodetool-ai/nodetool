@@ -22,8 +22,8 @@ Automatically adjusts column widths to fit content.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| workbook | `any` | The Excel workbook to format | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
-| sheet_name | `any` | Target worksheet name | `Sheet1` |
+| workbook | `excel` | The Excel workbook to format | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
+| sheet_name | `str` | Target worksheet name | `Sheet1` |
 
 ## Outputs
 

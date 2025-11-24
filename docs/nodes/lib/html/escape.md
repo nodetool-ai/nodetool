@@ -23,13 +23,13 @@ Escape special characters in text into HTML-safe sequences.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | The text to escape | `` |
+| text | `str` | The text to escape | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

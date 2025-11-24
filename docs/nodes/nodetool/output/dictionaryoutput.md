@@ -23,9 +23,9 @@ Output node for key-value pair data (dictionary).
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `{}` |
-| description | `any` | The description of the output for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `Dict[str, any]` |  | `{}` |
+| description | `str` | The description of the output for the workflow. | `` |
 
 ## Outputs
 

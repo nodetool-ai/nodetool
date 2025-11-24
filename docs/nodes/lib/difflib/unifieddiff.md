@@ -23,18 +23,18 @@ Generates a unified diff between two texts.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` | Original text | `` |
-| b | `any` | Modified text | `` |
-| fromfile | `any` | Name of the original file | `a` |
-| tofile | `any` | Name of the modified file | `b` |
-| lineterm | `any` | Line terminator | `
+| a | `str` | Original text | `` |
+| b | `str` | Modified text | `` |
+| fromfile | `str` | Name of the original file | `a` |
+| tofile | `str` | Name of the modified file | `b` |
+| lineterm | `str` | Line terminator | `
 ` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

@@ -23,13 +23,13 @@ Represents an image file constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| value | `any` |  | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| value | `image` |  | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

@@ -22,14 +22,14 @@ Extract a specific color channel from an image.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to get the channel from. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| channel | `any` |  | `R` |
+| image | `image` | The image to get the channel from. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| channel | `Enum['R', 'G', 'B']` |  | `R` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

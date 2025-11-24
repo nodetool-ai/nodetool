@@ -18,13 +18,13 @@ Apply Gaussian blur filter to SVG elements.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| std_deviation | `any` | Standard deviation for blur | `3.0` |
+| std_deviation | `float` | Standard deviation for blur | `3.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

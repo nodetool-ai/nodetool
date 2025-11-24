@@ -23,15 +23,15 @@ Extracts a specific field from a list of dictionaries.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| field | `any` |  | `` |
-| default | `any` |  | - |
+| values | `List[Dict[str, any]]` |  | `[]` |
+| field | `str` |  | `` |
+| default | `Optional[any]` |  | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

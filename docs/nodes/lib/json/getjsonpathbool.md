@@ -19,14 +19,14 @@ Extract a boolean value from a JSON path
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
 | data | `any` | JSON object to extract from | - |
-| path | `any` | Path to the desired value (dot notation) | `` |
-| default | `any` | Default value to return if path is not found | `False` |
+| path | `str` | Path to the desired value (dot notation) | `` |
+| default | `bool` | Default value to return if path is not found | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

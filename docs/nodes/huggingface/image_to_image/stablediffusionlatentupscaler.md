@@ -20,18 +20,18 @@ Upscales Stable Diffusion latents (x2) using the SD Latent Upscaler pipeline.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | The prompt for upscaling guidance. | `` |
-| negative_prompt | `any` | The negative prompt to guide what should not appear in the result. | `` |
-| num_inference_steps | `any` | Number of upscaling denoising steps. | `10` |
-| guidance_scale | `any` | Guidance scale for upscaling. 0 preserves content strongly. | `0.0` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
-| latents | `any` | Low-resolution latents tensor to upscale. | `{'type': 'torch_tensor', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| prompt | `str` | The prompt for upscaling guidance. | `` |
+| negative_prompt | `str` | The negative prompt to guide what should not appear in the result. | `` |
+| num_inference_steps | `int` | Number of upscaling denoising steps. | `10` |
+| guidance_scale | `float` | Guidance scale for upscaling. 0 preserves content strongly. | `0.0` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
+| latents | `torch_tensor` | Low-resolution latents tensor to upscale. | `{'type': 'torch_tensor', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `torch_tensor` |  |
 
 ## Metadata
 

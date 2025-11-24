@@ -23,15 +23,15 @@ Trim a video to a specific start and end time.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to trim. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| start_time | `any` | The start time in seconds for the trimmed video. | `0.0` |
-| end_time | `any` | The end time in seconds for the trimmed video. Use -1 for the end of the video. | `-1.0` |
+| video | `video` | The input video to trim. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| start_time | `float` | The start time in seconds for the trimmed video. | `0.0` |
+| end_time | `float` | The end time in seconds for the trimmed video. Use -1 for the end of the video. | `-1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

@@ -23,13 +23,13 @@ Convert HTML entities back to normal text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | The HTML text to unescape | `` |
+| text | `str` | The HTML text to unescape | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

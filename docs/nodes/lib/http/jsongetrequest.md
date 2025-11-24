@@ -23,13 +23,13 @@ Perform an HTTP GET request and parse the response as JSON.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to make the request to. | `` |
+| url | `str` | The URL to make the request to. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

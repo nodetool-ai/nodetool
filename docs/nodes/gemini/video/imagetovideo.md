@@ -28,17 +28,17 @@ Generate videos from images using Google's Veo models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to animate into a video | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| prompt | `any` | Optional text prompt describing the desired animation | `` |
-| model | `any` | The Veo model to use for video generation | `veo-3.0-generate-preview` |
-| aspect_ratio | `any` | The aspect ratio of the generated video | `16:9` |
-| negative_prompt | `any` | Negative prompt to guide what to avoid in the video | `` |
+| image | `image` | The image to animate into a video | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| prompt | `str` | Optional text prompt describing the desired animation | `` |
+| model | `Enum['veo-3.0-generate-preview', 'veo-3.0-fast-generate-preview', 'veo-2.0-generate-001']` | The Veo model to use for video generation | `veo-3.0-generate-preview` |
+| aspect_ratio | `Enum['16:9', '9:16']` | The aspect ratio of the generated video | `16:9` |
+| negative_prompt | `str` | Negative prompt to guide what to avoid in the video | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

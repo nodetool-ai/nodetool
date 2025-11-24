@@ -22,13 +22,13 @@ Gets information about a path.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Path to analyze | `` |
+| path | `str` | Path to analyze | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

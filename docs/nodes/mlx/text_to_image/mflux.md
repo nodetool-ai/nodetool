@@ -29,20 +29,20 @@ Generate images locally using the MFLUX MLX implementation of FLUX.1.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | The text prompt describing the image to generate. | `A vivid concept art piece of a futuristic city at sunset` |
-| model | `any` | MFLUX model variant to load | `{'type': 'hf.flux', 'repo_id': 'dhairyashil/FLUX.1-schnell-mflux-v0.6.2-4bit', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| quantize | `any` | Optional quantization level for model weights (reduces memory usage). | `4` |
-| steps | `any` | Number of denoising steps for the generation run. | `4` |
-| guidance | `any` | Classifier-free guidance scale. Used by dev/krea-dev models. | `3.5` |
-| height | `any` | Height of the generated image in pixels. | `1024` |
-| width | `any` | Width of the generated image in pixels. | `1024` |
-| seed | `any` | Seed for deterministic generation. Leave as 0 for random. | `0` |
+| prompt | `str` | The text prompt describing the image to generate. | `A vivid concept art piece of a futuristic city at sunset` |
+| model | `hf.flux` | MFLUX model variant to load | `{'type': 'hf.flux', 'repo_id': 'dhairyashil/FLUX.1-schnell-mflux-v0.6.2-4bit', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| quantize | `Enum[3, 4, 5, 6, 8]` | Optional quantization level for model weights (reduces memory usage). | `4` |
+| steps | `int` | Number of denoising steps for the generation run. | `4` |
+| guidance | `Optional[float]` | Classifier-free guidance scale. Used by dev/krea-dev models. | `3.5` |
+| height | `int` | Height of the generated image in pixels. | `1024` |
+| width | `int` | Width of the generated image in pixels. | `1024` |
+| seed | `int` | Seed for deterministic generation. Leave as 0 for random. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

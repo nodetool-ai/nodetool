@@ -18,19 +18,19 @@ Generate SVG ellipse element.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| cx | `any` | Center X coordinate | `0` |
-| cy | `any` | Center Y coordinate | `0` |
-| rx | `any` | X radius | `100` |
-| ry | `any` | Y radius | `50` |
-| fill | `any` | Fill color | `{'type': 'color', 'value': '#000000'}` |
-| stroke | `any` | Stroke color | `{'type': 'color', 'value': 'none'}` |
-| stroke_width | `any` | Stroke width | `1` |
+| cx | `int` | Center X coordinate | `0` |
+| cy | `int` | Center Y coordinate | `0` |
+| rx | `int` | X radius | `100` |
+| ry | `int` | Y radius | `50` |
+| fill | `color` | Fill color | `{'type': 'color', 'value': '#000000'}` |
+| stroke | `color` | Stroke color | `{'type': 'color', 'value': 'none'}` |
+| stroke_width | `int` | Stroke width | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

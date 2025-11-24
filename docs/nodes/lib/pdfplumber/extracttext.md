@@ -23,15 +23,15 @@ Extract text content from a PDF file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| pdf | `any` | The PDF file to extract text from | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| start_page | `any` | The start page to extract. 0-based indexing | `0` |
-| end_page | `any` | The end page to extract. -1 for all pages | `4` |
+| pdf | `document` | The PDF file to extract text from | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| start_page | `int` | The start page to extract. 0-based indexing | `0` |
+| end_page | `int` | The end page to extract. -1 for all pages | `4` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

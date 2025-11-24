@@ -18,14 +18,14 @@ Search Google Maps for places or get details about a specific place.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| query | `any` | Place name, address, or location query | `` |
-| num_results | `any` | Maximum number of map results to return | `10` |
+| query | `str` | Place name, address, or location query | `` |
+| num_results | `int` | Maximum number of map results to return | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[local_result]` |  |
 
 ## Metadata
 

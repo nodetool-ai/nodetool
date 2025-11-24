@@ -18,15 +18,15 @@ Shortens text to fit within a width, using a placeholder if truncated.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| width | `any` |  | `70` |
-| placeholder | `any` |  | `...` |
+| text | `str` |  | `` |
+| width | `int` |  | `70` |
+| placeholder | `str` |  | `...` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

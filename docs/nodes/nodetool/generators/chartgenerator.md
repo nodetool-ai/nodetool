@@ -23,16 +23,16 @@ LLM Agent to create Plotly Express charts based on natural language descriptions
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model to use for chart generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| prompt | `any` | Natural language description of the desired chart | `` |
-| data | `any` | The data to visualize | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| max_tokens | `any` | The maximum number of tokens to generate. | `4096` |
+| model | `language_model` | The model to use for chart generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| prompt | `str` | Natural language description of the desired chart | `` |
+| data | `dataframe` | The data to visualize | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| max_tokens | `int` | The maximum number of tokens to generate. | `4096` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `plotly_config` |  |
 
 ## Metadata
 

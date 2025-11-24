@@ -24,15 +24,15 @@ Performs token classification tasks such as Named Entity Recognition (NER).
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for token classification | `{'type': 'hf.token_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| inputs | `any` | The input text for token classification | `` |
-| aggregation_strategy | `any` | Strategy to aggregate tokens into entities | `simple` |
+| model | `hf.token_classification` | The model ID to use for token classification | `{'type': 'hf.token_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| inputs | `str` | The input text for token classification | `` |
+| aggregation_strategy | `Enum['simple', 'first', 'average', 'max']` | Strategy to aggregate tokens into entities | `simple` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

@@ -22,15 +22,15 @@ Change image dimensions to specified width and height.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to resize. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| width | `any` | The target width. | `512` |
-| height | `any` | The target height. | `512` |
+| image | `image` | The image to resize. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| width | `int` | The target width. | `512` |
+| height | `int` | The target height. | `512` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

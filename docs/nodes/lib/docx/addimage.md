@@ -18,16 +18,16 @@ Adds an image to the document
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to add the image to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| image | `any` | The image to add | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| width | `any` | Image width in inches | `0` |
-| height | `any` | Image height in inches | `0` |
+| document | `document` | The document to add the image to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| image | `image` | The image to add | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| width | `float` | Image width in inches | `0` |
+| height | `float` | Image height in inches | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

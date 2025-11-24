@@ -23,16 +23,16 @@ Finds close matches for a word within a list of possibilities.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| word | `any` | Word to match | `` |
-| possibilities | `any` | List of possible words | `[]` |
-| n | `any` | Maximum number of matches to return | `3` |
-| cutoff | `any` | Minimum similarity ratio | `0.6` |
+| word | `str` | Word to match | `` |
+| possibilities | `List[str]` | List of possible words | `[]` |
+| n | `int` | Maximum number of matches to return | `3` |
+| cutoff | `float` | Minimum similarity ratio | `0.6` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

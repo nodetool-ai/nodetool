@@ -18,7 +18,7 @@ Get the current date and time.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `datetime` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Read a text file from the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path to file within workspace | `` |
-| encoding | `any` | Text encoding (utf-8, ascii, etc.) | `utf-8` |
+| path | `str` | Relative path to file within workspace | `` |
+| encoding | `str` | Text encoding (utf-8, ascii, etc.) | `utf-8` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

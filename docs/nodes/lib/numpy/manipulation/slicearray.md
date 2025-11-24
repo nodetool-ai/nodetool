@@ -23,17 +23,17 @@ Extract a slice of an array along a specified axis.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The input array to slice | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| start | `any` | Starting index (inclusive) | `0` |
-| stop | `any` | Ending index (exclusive) | `0` |
-| step | `any` | Step size between elements | `1` |
-| axis | `any` | Axis along which to slice | `0` |
+| values | `np_array` | The input array to slice | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| start | `int` | Starting index (inclusive) | `0` |
+| stop | `int` | Ending index (exclusive) | `0` |
+| step | `int` | Step size between elements | `1` |
+| axis | `int` | Axis along which to slice | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

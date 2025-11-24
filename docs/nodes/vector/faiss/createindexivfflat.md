@@ -18,15 +18,15 @@ Create a FAISS IndexIVFFlat (inverted file index with flat quantizer).
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dim | `any` | Embedding dimensionality | `768` |
-| nlist | `any` | Number of Voronoi cells | `1024` |
-| metric | `any` | Distance metric | `L2` |
+| dim | `int` | Embedding dimensionality | `768` |
+| nlist | `int` | Number of Voronoi cells | `1024` |
+| metric | `Enum['L2', 'IP']` | Distance metric | `L2` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `faiss_index` |  |
 
 ## Metadata
 

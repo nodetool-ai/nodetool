@@ -23,16 +23,16 @@ List files in a directory on an FTP server.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| host | `any` | FTP server host | `` |
-| username | `any` | Username for authentication | `` |
-| password | `any` | Password for authentication | `` |
-| directory | `any` | Remote directory to list | `` |
+| host | `str` | FTP server host | `` |
+| username | `str` | Username for authentication | `` |
+| password | `str` | Password for authentication | `` |
+| directory | `str` | Remote directory to list | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

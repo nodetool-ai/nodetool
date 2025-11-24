@@ -23,15 +23,15 @@ Convert audio to numpy array for processing.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The audio to convert to numpy. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| audio | `audio` | The audio to convert to numpy. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| array | `any` |  |
-| sample_rate | `any` |  |
-| channels | `any` |  |
+| array | `np_array` |  |
+| sample_rate | `int` |  |
+| channels | `int` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Stack multiple arrays along a specified axis.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| arrays | `any` | Arrays to stack | `[]` |
-| axis | `any` | The axis to stack along. | `0` |
+| arrays | `List[np_array]` | Arrays to stack | `[]` |
+| axis | `int` | The axis to stack along. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

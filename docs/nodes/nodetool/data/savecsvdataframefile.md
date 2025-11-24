@@ -22,15 +22,15 @@ Write a pandas DataFrame to a CSV file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | DataFrame to write to CSV | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| folder | `any` | Folder where the file will be saved | `` |
-| filename | `any` | Name of the CSV file to save. Supports strftime format codes. | `` |
+| dataframe | `dataframe` | DataFrame to write to CSV | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| folder | `str` | Folder where the file will be saved | `` |
+| filename | `str` | Name of the CSV file to save. Supports strftime format codes. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

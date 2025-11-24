@@ -23,8 +23,8 @@ Combine a sequence of frames into a single video file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| frame | `any` | Collect input frames | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| fps | `any` | The FPS of the output video. | `30` |
+| frame | `image` | Collect input frames | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| fps | `float` | The FPS of the output video. | `30` |
 
 ## Metadata
 

@@ -22,14 +22,14 @@ Iterate over a list and emit each item sequentially.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input_list | `any` | The list of items to iterate over. | `[]` |
+| input_list | `List[any]` | The list of items to iterate over. | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `any` |  |
-| index | `any` |  |
+| index | `int` |  |
 
 ## Metadata
 

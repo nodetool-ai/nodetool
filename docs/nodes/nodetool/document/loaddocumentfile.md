@@ -18,13 +18,13 @@ Read a document from disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Path to the document to read | `` |
+| path | `str` | Path to the document to read | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

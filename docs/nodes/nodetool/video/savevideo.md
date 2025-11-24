@@ -23,9 +23,9 @@ Save a video to an asset folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The video to save. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| folder | `any` | The asset folder to save the video in. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
-| name | `any` | 
+| video | `video` | The video to save. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| folder | `folder` | The asset folder to save the video in. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| name | `str` | 
         Name of the output video.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -40,7 +40,7 @@ Save a video to an asset folder.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

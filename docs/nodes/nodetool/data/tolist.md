@@ -23,13 +23,13 @@ Convert dataframe to list of dictionaries.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | The input dataframe to convert. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| dataframe | `dataframe` | The input dataframe to convert. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[Any, Any]]` |  |
 
 ## Metadata
 

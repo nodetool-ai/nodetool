@@ -18,14 +18,14 @@ Adds a table to the document
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to add the table to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| data | `any` | The data to add to the table | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| document | `document` | The document to add the table to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| data | `dataframe` | The data to add to the table | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

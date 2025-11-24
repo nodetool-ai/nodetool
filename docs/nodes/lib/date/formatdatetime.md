@@ -22,14 +22,14 @@ Convert a datetime object to a formatted string.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input_datetime | `any` | Datetime object to format | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
-| output_format | `any` | Desired output format | `%B %d, %Y` |
+| input_datetime | `datetime` | Datetime object to format | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
+| output_format | `Enum['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%B %d, %Y', '%Y%m%d', '%Y%m%d_%H%M%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S%z']` | Desired output format | `%B %d, %Y` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

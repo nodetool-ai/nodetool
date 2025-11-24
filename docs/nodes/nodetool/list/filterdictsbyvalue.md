@@ -23,16 +23,16 @@ Filters a list of dictionaries based on their values using various criteria.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| key | `any` | The dictionary key to check | `` |
-| filter_type | `any` | The type of filter to apply | `contains` |
-| criteria | `any` | The filtering criteria (text to match, type name, or length as string) | `` |
+| values | `List[Dict[Any, Any]]` |  | `[]` |
+| key | `str` | The dictionary key to check | `` |
+| filter_type | `Enum['contains', 'starts_with', 'ends_with', 'equals', 'type_is', 'length_greater', 'length_less', 'exact_length']` | The type of filter to apply | `contains` |
+| criteria | `str` | The filtering criteria (text to match, type name, or length as string) | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[Any, Any]]` |  |
 
 ## Metadata
 

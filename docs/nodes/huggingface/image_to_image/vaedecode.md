@@ -18,15 +18,15 @@ Decodes latents into an image using a VAE.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The VAE model to use. | `{'type': 'hf.vae', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| latents | `any` | Latent tensor to decode. | `{'type': 'torch_tensor', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| scale_factor | `any` | Scaling factor used for encoding (inverse is applied before decode) | `0.18215` |
+| model | `hf.vae` | The VAE model to use. | `{'type': 'hf.vae', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| latents | `torch_tensor` | Latent tensor to decode. | `{'type': 'torch_tensor', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| scale_factor | `float` | Scaling factor used for encoding (inverse is applied before decode) | `0.18215` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

@@ -22,15 +22,15 @@ Extracts a section of an audio file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| start | `any` | The start time in seconds. | `0.0` |
-| end | `any` | The end time in seconds. | `1.0` |
+| audio | `audio` | The audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| start | `float` | The start time in seconds. | `0.0` |
+| end | `float` | The end time in seconds. | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

@@ -22,9 +22,9 @@ Write a list of dictionaries to a CSV file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| data | `any` | list of dictionaries to write to CSV | `[]` |
-| folder | `any` | Folder where the file will be saved | `` |
-| filename | `any` | Name of the CSV file to save. Supports strftime format codes. | `` |
+| data | `List[Dict[Any, Any]]` | list of dictionaries to write to CSV | `[]` |
+| folder | `str` | Folder where the file will be saved | `` |
+| filename | `str` | Name of the CSV file to save. Supports strftime format codes. | `` |
 
 ## Metadata
 

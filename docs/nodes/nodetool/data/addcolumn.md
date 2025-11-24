@@ -23,15 +23,15 @@ Add list of values as new column to dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | Dataframe object to add a new column to. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| column_name | `any` | The name of the new column to be added to the dataframe. | `` |
-| values | `any` | A list of any type of elements which will be the new column's values. | `[]` |
+| dataframe | `dataframe` | Dataframe object to add a new column to. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| column_name | `str` | The name of the new column to be added to the dataframe. | `` |
+| values | `List[any]` | A list of any type of elements which will be the new column's values. | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

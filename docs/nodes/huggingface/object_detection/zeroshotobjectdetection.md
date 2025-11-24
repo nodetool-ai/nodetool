@@ -23,17 +23,17 @@ Detects objects in images without the need for training data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for object detection | `{'type': 'hf.zero_shot_object_detection', 'repo_id': 'google/owlv2-base-patch16', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| image | `any` | The input image for object detection | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| threshold | `any` | Minimum confidence score for detected objects | `0.1` |
-| top_k | `any` | The number of top predictions to return | `5` |
-| candidate_labels | `any` | The candidate labels to detect in the image, separated by commas | `` |
+| model | `hf.zero_shot_object_detection` | The model ID to use for object detection | `{'type': 'hf.zero_shot_object_detection', 'repo_id': 'google/owlv2-base-patch16', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The input image for object detection | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| threshold | `float` | Minimum confidence score for detected objects | `0.1` |
+| top_k | `int` | The number of top predictions to return | `5` |
+| candidate_labels | `str` | The candidate labels to detect in the image, separated by commas | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[object_detection_result]` |  |
 
 ## Metadata
 

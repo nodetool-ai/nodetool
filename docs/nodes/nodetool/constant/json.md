@@ -18,13 +18,13 @@ Represents a JSON constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| value | `any` |  | `{'type': 'json', 'uri': '', 'asset_id': None, 'data': None}` |
+| value | `json` |  | `{'type': 'json', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `json` |  |
 
 ## Metadata
 

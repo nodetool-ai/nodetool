@@ -22,9 +22,9 @@ Saves an Excel workbook to disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| workbook | `any` | The Excel workbook to save | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
-| folder | `any` | The folder to save the file to. | `{'type': 'file_path', 'path': ''}` |
-| filename | `any` | 
+| workbook | `excel` | The Excel workbook to save | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `file_path` | The folder to save the file to. | `{'type': 'file_path', 'path': ''}` |
+| filename | `str` | 
         The filename to save the file to.
         You can use time and date variables to create unique names:
         %Y - Year

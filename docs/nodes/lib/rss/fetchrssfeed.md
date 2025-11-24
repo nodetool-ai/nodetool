@@ -23,17 +23,17 @@ Fetches and parses an RSS feed from a URL.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | URL of the RSS feed to fetch | `` |
+| url | `str` | URL of the RSS feed to fetch | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| title | `any` |  |
-| link | `any` |  |
-| published | `any` |  |
-| summary | `any` |  |
-| author | `any` |  |
+| title | `str` |  |
+| link | `str` |  |
+| published | `datetime` |  |
+| summary | `str` |  |
+| author | `str` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Partially update resources with JSON data using an HTTP PATCH request.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to make the request to. | `` |
-| data | `any` | The JSON data to send in the PATCH request. | `{}` |
+| url | `str` | The URL to make the request to. | `` |
+| data | `Dict[Any, Any]` | The JSON data to send in the PATCH request. | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

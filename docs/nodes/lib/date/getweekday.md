@@ -22,14 +22,14 @@ Get the weekday name or number from a datetime.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input_datetime | `any` | Input datetime | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
-| as_name | `any` | Return weekday name instead of number (0-6) | `True` |
+| input_datetime | `datetime` | Input datetime | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
+| as_name | `bool` | Return weekday name instead of number (0-6) | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(str | int)` |  |
 
 ## Metadata
 

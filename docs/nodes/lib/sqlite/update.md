@@ -23,16 +23,16 @@ Update records in a SQLite table.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| database_name | `any` | Name of the SQLite database file | `memory.db` |
-| table_name | `any` | Name of the table to update | `flashcards` |
-| data | `any` | Data to update as dict (column: new_value) | `{'content': 'updated'}` |
-| where | `any` | WHERE clause (without 'WHERE' keyword), e.g., 'id = 1' | `` |
+| database_name | `str` | Name of the SQLite database file | `memory.db` |
+| table_name | `str` | Name of the table to update | `flashcards` |
+| data | `Dict[str, any]` | Data to update as dict (column: new_value) | `{'content': 'updated'}` |
+| where | `str` | WHERE clause (without 'WHERE' keyword), e.g., 'id = 1' | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

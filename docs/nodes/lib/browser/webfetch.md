@@ -23,14 +23,14 @@ Fetches HTML content from a URL and converts it to text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | URL to fetch content from | `` |
-| selector | `any` | CSS selector to extract specific elements | `body` |
+| url | `str` | URL to fetch content from | `` |
+| selector | `str` | CSS selector to extract specific elements | `body` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

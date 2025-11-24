@@ -23,13 +23,13 @@ Computes the cosine of input angles in radians.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| angle_rad | `any` |  | `0.0` |
+| angle_rad | `(float | int | np_array)` |  | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(float | np_array)` |  |
 
 ## Metadata
 

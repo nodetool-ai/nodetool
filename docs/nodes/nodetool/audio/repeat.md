@@ -23,14 +23,14 @@ Loops an audio file a specified number of times.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The audio file to loop. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| loops | `any` | Number of times to loop the audio. Minimum 1 (plays once), maximum 100. | `2` |
+| audio | `audio` | The audio file to loop. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| loops | `int` | Number of times to loop the audio. Minimum 1 (plays once), maximum 100. | `2` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

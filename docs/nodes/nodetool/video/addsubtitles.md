@@ -23,18 +23,18 @@ Add subtitles to a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to add subtitles to. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| chunks | `any` | Audio chunks to add as subtitles. | `[]` |
-| font | `any` | The font to use. | `{'type': 'font', 'name': ''}` |
-| align | `any` | Vertical alignment of subtitles. | `bottom` |
-| font_size | `any` | The font size. | `24` |
-| font_color | `any` | The font color. | `{'type': 'color', 'value': '#FFFFFF'}` |
+| video | `video` | The input video to add subtitles to. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| chunks | `List[audio_chunk]` | Audio chunks to add as subtitles. | `[]` |
+| font | `font` | The font to use. | `{'type': 'font', 'name': ''}` |
+| align | `Enum['top', 'center', 'bottom']` | Vertical alignment of subtitles. | `bottom` |
+| font_size | `int` | The font size. | `24` |
+| font_color | `color` | The font color. | `{'type': 'color', 'value': '#FFFFFF'}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

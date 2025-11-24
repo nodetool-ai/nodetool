@@ -18,17 +18,17 @@ Search a FAISS index with query vectors, returning distances and indices.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| index | `any` | FAISS index | `{'type': 'faiss_index', 'index': None}` |
-| query | `any` | Query vectors (m, d) or (d,) | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| k | `any` | Number of nearest neighbors | `5` |
-| nprobe | `any` | nprobe for IVF indices | - |
+| index | `faiss_index` | FAISS index | `{'type': 'faiss_index', 'index': None}` |
+| query | `np_array` | Query vectors (m, d) or (d,) | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| k | `int` | Number of nearest neighbors | `5` |
+| nprobe | `Optional[int]` | nprobe for IVF indices | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| distances | `any` |  |
-| indices | `any` |  |
+| distances | `np_array` |  |
+| indices | `np_array` |  |
 
 ## Metadata
 

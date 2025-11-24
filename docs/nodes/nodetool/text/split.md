@@ -23,14 +23,14 @@ Separates text into a list of strings based on a specified delimiter.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| delimiter | `any` |  | `,` |
+| text | `str` |  | `` |
+| delimiter | `str` |  | `,` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

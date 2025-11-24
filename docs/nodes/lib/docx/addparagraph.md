@@ -18,18 +18,18 @@ Adds a paragraph of text to the document
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to add the paragraph to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| text | `any` | The paragraph text | `` |
-| alignment | `any` | Text alignment | `LEFT` |
-| bold | `any` | Make text bold | `False` |
-| italic | `any` | Make text italic | `False` |
-| font_size | `any` | Font size in points | `12` |
+| document | `document` | The document to add the paragraph to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| text | `str` | The paragraph text | `` |
+| alignment | `Enum['LEFT', 'CENTER', 'RIGHT', 'JUSTIFY']` | Text alignment | `LEFT` |
+| bold | `bool` | Make text bold | `False` |
+| italic | `bool` | Make text italic | `False` |
+| font_size | `int` | Font size in points | `12` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

@@ -18,14 +18,14 @@ Retrieve financial market data from Google Finance.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| query | `any` | Stock symbol or company name to search for | `` |
-| window | `any` | Time window for financial data (e.g., '1d', '5d', '1m', '3m', '6m', '1y', '5y') | `` |
+| query | `str` | Stock symbol or company name to search for | `` |
+| window | `str` | Time window for financial data (e.g., '1d', '5d', '1m', '3m', '6m', '1y', '5y') | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

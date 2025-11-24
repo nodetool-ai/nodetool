@@ -23,8 +23,8 @@ Stream responses using the official OpenAI Realtime client. Supports optional au
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` |  | `gpt-4o-mini-realtime-preview` |
-| system | `any` | System instructions for the realtime session | `
+| model | `Enum['gpt-4o-realtime-preview', 'gpt-4o-mini-realtime-preview']` |  | `gpt-4o-mini-realtime-preview` |
+| system | `str` | System instructions for the realtime session | `
 You are an AI assistant interacting in real-time. Follow these rules unless explicitly overridden by the user:
 
 1. Respond promptly — minimize delay. If you do not yet have a complete answer, acknowledge the question and indicate what you are doing to find the answer.
@@ -38,18 +38,18 @@ You are an AI assistant interacting in real-time. Follow these rules unless expl
 ---
 You are now active. Await the user’s request.
 ` |
-| chunk | `any` | The audio chunk to use as input. | `{'type': 'chunk', 'node_id': None, 'content_type': 'text', 'content': '', 'content_metadata': {}, 'done': False}` |
-| voice | `any` | The voice for the audio output | `alloy` |
-| speed | `any` | The speed of the model's spoken response | `1.0` |
-| temperature | `any` | The temperature for the response | `0.8` |
+| chunk | `chunk` | The audio chunk to use as input. | `{'type': 'chunk', 'node_id': None, 'content_type': 'text', 'content': '', 'content_metadata': {}, 'done': False}` |
+| voice | `Enum['none', 'ash', 'alloy', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'shimmer', 'sage', 'verse']` | The voice for the audio output | `alloy` |
+| speed | `float` | The speed of the model's spoken response | `1.0` |
+| temperature | `float` | The temperature for the response | `0.8` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| chunk | `any` |  |
-| audio | `any` |  |
-| text | `any` |  |
+| chunk | `chunk` |  |
+| audio | `audio` |  |
+| text | `str` |  |
 
 ## Metadata
 

@@ -24,16 +24,16 @@ Fetches content from a web page using a headless browser.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | URL to navigate to | `` |
-| timeout | `any` | Timeout in milliseconds for page navigation | `20000` |
+| url | `str` | URL to navigate to | `` |
+| timeout | `int` | Timeout in milliseconds for page navigation | `20000` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| success | `any` |  |
-| content | `any` |  |
-| metadata | `any` |  |
+| success | `bool` |  |
+| content | `str` |  |
+| metadata | `Dict[str, any]` |  |
 
 ## Metadata
 

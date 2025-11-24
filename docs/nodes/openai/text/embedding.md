@@ -27,15 +27,15 @@ Generate vector representations of text for semantic analysis.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input | `any` |  | `` |
-| model | `any` |  | `text-embedding-3-small` |
-| chunk_size | `any` |  | `4096` |
+| input | `str` |  | `` |
+| model | `Enum['text-embedding-3-large', 'text-embedding-3-small']` |  | `text-embedding-3-small` |
+| chunk_size | `int` |  | `4096` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

@@ -18,15 +18,15 @@ Split HTML content into semantic chunks based on HTML tags.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | Document ID to associate with the HTML content | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| document | `document` | Document ID to associate with the HTML content | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| source_id | `any` |  |
-| start_index | `any` |  |
+| text | `str` |  |
+| source_id | `str` |  |
+| start_index | `int` |  |
 
 ## Metadata
 

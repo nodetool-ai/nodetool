@@ -22,12 +22,12 @@ Applies formatting to a range of cells.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| workbook | `any` | The Excel workbook to format | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
-| sheet_name | `any` | Target worksheet name | `Sheet1` |
-| cell_range | `any` | Cell range to format (e.g. 'A1:B10') | `A1:B10` |
-| bold | `any` | Make text bold | `False` |
-| background_color | `any` | Background color in hex format (e.g. 'FFFF00' for yellow) | `FFFF00` |
-| text_color | `any` | Text color in hex format | `000000` |
+| workbook | `excel` | The Excel workbook to format | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
+| sheet_name | `str` | Target worksheet name | `Sheet1` |
+| cell_range | `str` | Cell range to format (e.g. 'A1:B10') | `A1:B10` |
+| bold | `bool` | Make text bold | `False` |
+| background_color | `str` | Background color in hex format (e.g. 'FFFF00' for yellow) | `FFFF00` |
+| text_color | `str` | Text color in hex format | `000000` |
 
 ## Outputs
 

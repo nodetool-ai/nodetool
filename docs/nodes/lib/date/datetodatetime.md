@@ -18,13 +18,13 @@ Convert a Date object to a Datetime object.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input_date | `any` | Date to convert | `{'type': 'date', 'year': 0, 'month': 0, 'day': 0}` |
+| input_date | `date` | Date to convert | `{'type': 'date', 'year': 0, 'month': 0, 'day': 0}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `datetime` |  |
 
 ## Metadata
 

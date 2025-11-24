@@ -23,13 +23,13 @@ Downloads a file from a URL and saves it to disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | URL of the file to download | `` |
+| url | `str` | URL of the file to download | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bytes` |  |
 
 ## Metadata
 

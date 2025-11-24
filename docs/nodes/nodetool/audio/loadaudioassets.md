@@ -18,14 +18,14 @@ Load audio files from an asset folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | The asset folder to load the audio files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `folder` | The asset folder to load the audio files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| audio | `any` |  |
-| name | `any` |  |
+| audio | `audio` |  |
+| name | `str` |  |
 
 ## Metadata
 

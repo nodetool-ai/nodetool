@@ -23,9 +23,9 @@ Saves input text to a file in the assets folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| folder | `any` | Name of the output folder. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
-| name | `any` | 
+| text | `str` |  | `` |
+| folder | `folder` | Name of the output folder. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| name | `str` | 
         Name of the output file.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -40,7 +40,7 @@ Saves input text to a file in the assets folder.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `text` |  |
 
 ## Metadata
 

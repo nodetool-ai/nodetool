@@ -22,15 +22,15 @@ Get the quarter number and start/end dates for a given datetime.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input_datetime | `any` | Input datetime | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
+| input_datetime | `datetime` | Input datetime | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| quarter | `any` |  |
-| quarter_start | `any` |  |
-| quarter_end | `any` |  |
+| quarter | `int` |  |
+| quarter_start | `datetime` |  |
+| quarter_end | `datetime` |  |
 
 ## Metadata
 

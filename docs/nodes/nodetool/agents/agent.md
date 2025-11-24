@@ -18,8 +18,8 @@ Generate natural language responses using LLM providers and streams output.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | Model to use for execution | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| system | `any` | The system prompt for the LLM | `You are a an AI agent. 
+| model | `language_model` | Model to use for execution | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| system | `str` | The system prompt for the LLM | `You are a an AI agent. 
 
 Behavior
 - Understand the user's intent and the context of the task.
@@ -39,21 +39,21 @@ File handling
 - Inputs and outputs are files in the /workspace directory.
 - Write outputs of code execution to the /workspace directory.
 ` |
-| prompt | `any` | The prompt for the LLM | `` |
-| image | `any` | The image to analyze | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| audio | `any` | The audio to analyze | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| history | `any` | The messages for the LLM | `[]` |
-| thread_id | `any` | Optional thread ID for persistent conversation history. If provided, messages will be loaded from and saved to this thread. | - |
-| max_tokens | `any` |  | `8192` |
-| context_window | `any` |  | `4096` |
+| prompt | `str` | The prompt for the LLM | `` |
+| image | `image` | The image to analyze | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| audio | `audio` | The audio to analyze | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| history | `List[message]` | The messages for the LLM | `[]` |
+| thread_id | `Optional[str]` | Optional thread ID for persistent conversation history. If provided, messages will be loaded from and saved to this thread. | - |
+| max_tokens | `int` |  | `8192` |
+| context_window | `int` |  | `4096` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| chunk | `any` |  |
-| audio | `any` |  |
+| text | `str` |  |
+| chunk | `chunk` |  |
+| audio | `audio` |  |
 
 ## Metadata
 

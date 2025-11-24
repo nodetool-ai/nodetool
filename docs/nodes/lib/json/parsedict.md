@@ -23,13 +23,13 @@ Parse a JSON string into a Python dictionary.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| json_string | `any` | JSON string to parse into a dictionary | `` |
+| json_string | `str` | JSON string to parse into a dictionary | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

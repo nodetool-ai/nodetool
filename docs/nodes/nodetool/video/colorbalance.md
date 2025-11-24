@@ -23,16 +23,16 @@ Adjust the color balance of a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to adjust color balance. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| red_adjust | `any` | Red channel adjustment factor. | `1.0` |
-| green_adjust | `any` | Green channel adjustment factor. | `1.0` |
-| blue_adjust | `any` | Blue channel adjustment factor. | `1.0` |
+| video | `video` | The input video to adjust color balance. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| red_adjust | `float` | Red channel adjustment factor. | `1.0` |
+| green_adjust | `float` | Green channel adjustment factor. | `1.0` |
+| blue_adjust | `float` | Blue channel adjustment factor. | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

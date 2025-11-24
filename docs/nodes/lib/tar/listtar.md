@@ -23,13 +23,13 @@ List contents of a tar archive.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| tar_path | `any` | Tar archive to inspect | `` |
+| tar_path | `str` | Tar archive to inspect | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

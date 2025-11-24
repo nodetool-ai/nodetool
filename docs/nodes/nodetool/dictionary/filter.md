@@ -23,14 +23,14 @@ Creates a new dictionary with only specified keys from the input.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dictionary | `any` |  | `{}` |
-| keys | `any` |  | `[]` |
+| dictionary | `Dict[str, any]` |  | `{}` |
+| keys | `List[str]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

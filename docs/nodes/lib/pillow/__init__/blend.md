@@ -23,15 +23,15 @@ Blend two images with adjustable alpha mixing.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image1 | `any` | The first image to blend. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| image2 | `any` | The second image to blend. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| alpha | `any` | The mix ratio. | `0.5` |
+| image1 | `image` | The first image to blend. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image2 | `image` | The second image to blend. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| alpha | `float` | The mix ratio. | `0.5` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

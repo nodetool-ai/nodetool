@@ -23,14 +23,14 @@ Adjust the playback speed of a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to adjust speed. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| speed_factor | `any` | The speed adjustment factor. Values > 1 speed up, < 1 slow down. | `1.0` |
+| video | `video` | The input video to adjust speed. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| speed_factor | `float` | The speed adjustment factor. Values > 1 speed up, < 1 slow down. | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

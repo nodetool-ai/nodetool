@@ -23,13 +23,13 @@ Extract main content from a website, removing navigation, ads, and other non-ess
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| html_content | `any` | The raw HTML content of the website. | `` |
+| html_content | `str` | The raw HTML content of the website. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

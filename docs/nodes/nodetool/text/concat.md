@@ -23,14 +23,14 @@ Concatenates two text inputs into a single output.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` |  | `` |
-| b | `any` |  | `` |
+| a | `str` |  | `` |
+| b | `str` |  | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

@@ -25,17 +25,17 @@ Generates images from textual descriptions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | The prompt to use. | `` |
-| model | `any` | The model to use for image generation. | `gpt-image-1` |
-| size | `any` | The size of the image to generate. | `1024x1024` |
-| background | `any` | The background of the image to generate. | `auto` |
-| quality | `any` | The quality of the image to generate. | `high` |
+| prompt | `str` | The prompt to use. | `` |
+| model | `Enum['gpt-image-1']` | The model to use for image generation. | `gpt-image-1` |
+| size | `Enum['1024x1024', '1536x1024', '1024x1536']` | The size of the image to generate. | `1024x1024` |
+| background | `Enum['transparent', 'opaque', 'auto']` | The background of the image to generate. | `auto` |
+| quality | `Enum['high', 'medium', 'low']` | The quality of the image to generate. | `high` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

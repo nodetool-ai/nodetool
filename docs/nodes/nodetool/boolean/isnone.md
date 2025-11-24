@@ -29,7 +29,7 @@ Checks if a value is None.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

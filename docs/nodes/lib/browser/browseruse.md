@@ -27,19 +27,19 @@ Browser agent tool that uses browser_use under the hood.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model to use for the browser agent. | `gpt-4o` |
-| task | `any` | Natural language description of the browser task to perform. Can include complex multi-step instructions like 'Compare prices between websites', 'Fill out forms', or 'Extract specific data'. | `` |
-| timeout | `any` | Maximum time in seconds to allow for task completion. Complex tasks may require longer timeouts. | `300` |
-| use_remote_browser | `any` | Use a remote browser instead of a local one | `True` |
+| model | `Enum['gpt-4o', 'claude-3-5-sonnet']` | The model to use for the browser agent. | `gpt-4o` |
+| task | `str` | Natural language description of the browser task to perform. Can include complex multi-step instructions like 'Compare prices between websites', 'Fill out forms', or 'Extract specific data'. | `` |
+| timeout | `int` | Maximum time in seconds to allow for task completion. Complex tasks may require longer timeouts. | `300` |
+| use_remote_browser | `bool` | Use a remote browser instead of a local one | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| success | `any` |  |
-| task | `any` |  |
+| success | `bool` |  |
+| task | `str` |  |
 | result | `any` |  |
-| error | `any` |  |
+| error | `str` |  |
 
 ## Metadata
 

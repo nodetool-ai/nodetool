@@ -23,18 +23,18 @@ Splits text recursively using LangChain's RecursiveCharacterTextSplitter.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` |  | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| chunk_size | `any` | Maximum size of each chunk in characters | `1000` |
-| chunk_overlap | `any` | Number of characters to overlap between chunks | `200` |
-| separators | `any` | List of separators to use for splitting, in order of preference | `['\n\n', '\n', '.']` |
+| document | `document` |  | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| chunk_size | `int` | Maximum size of each chunk in characters | `1000` |
+| chunk_overlap | `int` | Number of characters to overlap between chunks | `200` |
+| separators | `List[str]` | List of separators to use for splitting, in order of preference | `['\n\n', '\n', '.']` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| source_id | `any` |  |
-| start_index | `any` |  |
+| text | `str` |  |
+| source_id | `str` |  |
+| start_index | `int` |  |
 
 ## Metadata
 

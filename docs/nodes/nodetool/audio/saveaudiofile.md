@@ -22,9 +22,9 @@ Write an audio file to disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The audio to save | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| folder | `any` | Folder where the file will be saved | `` |
-| filename | `any` | 
+| audio | `audio` | The audio to save | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `str` | Folder where the file will be saved | `` |
+| filename | `str` | 
         Name of the file to save.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -39,7 +39,7 @@ Write an audio file to disk.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

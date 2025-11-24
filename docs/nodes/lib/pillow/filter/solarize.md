@@ -22,14 +22,14 @@ Apply a solarize effect to partially invert image tones.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to solarize. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| threshold | `any` | Threshold for solarization. | `128` |
+| image | `image` | The image to solarize. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| threshold | `int` | Threshold for solarization. | `128` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

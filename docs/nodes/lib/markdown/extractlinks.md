@@ -23,14 +23,14 @@ Extracts all links from markdown text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| markdown | `any` | The markdown text to analyze | `` |
-| include_titles | `any` | Whether to include link titles in output | `True` |
+| markdown | `str` | The markdown text to analyze | `` |
+| include_titles | `bool` | Whether to include link titles in output | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[str, str]]` |  |
 
 ## Metadata
 

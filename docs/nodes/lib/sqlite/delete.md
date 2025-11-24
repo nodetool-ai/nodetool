@@ -23,15 +23,15 @@ Delete records from a SQLite table.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| database_name | `any` | Name of the SQLite database file | `memory.db` |
-| table_name | `any` | Name of the table to delete from | `flashcards` |
-| where | `any` | WHERE clause (without 'WHERE' keyword), e.g., 'id = 1'. REQUIRED for safety. | `` |
+| database_name | `str` | Name of the SQLite database file | `memory.db` |
+| table_name | `str` | Name of the table to delete from | `flashcards` |
+| where | `str` | WHERE clause (without 'WHERE' keyword), e.g., 'id = 1'. REQUIRED for safety. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

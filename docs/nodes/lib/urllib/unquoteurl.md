@@ -23,13 +23,13 @@ Decode a percent-encoded URL string using ``urllib.parse.unquote``.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Encoded text | `` |
+| text | `str` | Encoded text | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

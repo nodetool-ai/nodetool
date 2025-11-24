@@ -23,15 +23,15 @@ Adjust the sharpness of a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to sharpen. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| luma_amount | `any` | Amount of sharpening to apply to luma (brightness) channel. | `1.0` |
-| chroma_amount | `any` | Amount of sharpening to apply to chroma (color) channels. | `0.5` |
+| video | `video` | The input video to sharpen. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| luma_amount | `float` | Amount of sharpening to apply to luma (brightness) channel. | `1.0` |
+| chroma_amount | `float` | Amount of sharpening to apply to chroma (color) channels. | `0.5` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

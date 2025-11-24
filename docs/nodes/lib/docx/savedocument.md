@@ -18,9 +18,9 @@ Writes the document to a file
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to write | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| path | `any` | The folder to write the document to. | `{'type': 'file_path', 'path': ''}` |
-| filename | `any` | 
+| document | `document` | The document to write | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| path | `file_path` | The folder to write the document to. | `{'type': 'file_path', 'path': ''}` |
+| filename | `str` | 
         The filename to write the document to.
         You can use time and date variables to create unique names:
         %Y - Year

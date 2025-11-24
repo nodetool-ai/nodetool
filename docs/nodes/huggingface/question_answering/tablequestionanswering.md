@@ -24,18 +24,18 @@ Answers questions based on tabular data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for table question answering | `{'type': 'hf.table_question_answering', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| dataframe | `any` | The input table to query | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| question | `any` | The question to be answered based on the table | `` |
+| model | `hf.table_question_answering` | The model ID to use for table question answering | `{'type': 'hf.table_question_answering', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| dataframe | `dataframe` | The input table to query | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| question | `str` | The question to be answered based on the table | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| answer | `any` |  |
-| coordinates | `any` |  |
-| cells | `any` |  |
-| aggregator | `any` |  |
+| answer | `str` |  |
+| coordinates | `List[Tuple[int, int]]` |  |
+| cells | `List[str]` |  |
+| aggregator | `str` |  |
 
 ## Metadata
 

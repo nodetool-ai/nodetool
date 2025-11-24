@@ -24,16 +24,16 @@ Download files from a list of URLs into a local folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| urls | `any` | List of URLs to download. | `[]` |
-| output_folder | `any` | Local folder path where files will be saved. | `downloads` |
-| max_concurrent_downloads | `any` | Maximum number of concurrent downloads. | `5` |
+| urls | `List[str]` | List of URLs to download. | `[]` |
+| output_folder | `str` | Local folder path where files will be saved. | `downloads` |
+| max_concurrent_downloads | `int` | Maximum number of concurrent downloads. | `5` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| success | `any` |  |
-| failed | `any` |  |
+| success | `List[str]` |  |
+| failed | `List[str]` |  |
 
 ## Metadata
 

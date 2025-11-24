@@ -24,15 +24,15 @@ Generates audio using the DanceDiffusion model.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio_length_in_s | `any` | The desired duration of the generated audio in seconds. | `4.0` |
-| num_inference_steps | `any` | Number of denoising steps. More steps generally improve quality but increase generation time. | `50` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `0` |
+| audio_length_in_s | `float` | The desired duration of the generated audio in seconds. | `4.0` |
+| num_inference_steps | `int` | Number of denoising steps. More steps generally improve quality but increase generation time. | `50` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

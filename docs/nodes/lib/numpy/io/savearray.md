@@ -23,9 +23,9 @@ Save a numpy array to a file in the specified folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The array to save. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| folder | `any` | The folder to save the array in. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
-| name | `any` | 
+| values | `np_array` | The array to save. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| folder | `folder` | The folder to save the array in. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| name | `str` | 
         The name of the asset to save.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -40,7 +40,7 @@ Save a numpy array to a file in the specified folder.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

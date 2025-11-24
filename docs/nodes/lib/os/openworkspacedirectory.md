@@ -18,7 +18,7 @@ Open the workspace directory.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `none` |  |
 
 ## Metadata
 

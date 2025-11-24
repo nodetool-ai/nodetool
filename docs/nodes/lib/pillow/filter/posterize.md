@@ -22,14 +22,14 @@ Reduce the number of colors in an image for a poster-like effect.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to posterize. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| bits | `any` | Number of bits to posterize to. | `4` |
+| image | `image` | The image to posterize. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| bits | `int` | Number of bits to posterize to. | `4` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

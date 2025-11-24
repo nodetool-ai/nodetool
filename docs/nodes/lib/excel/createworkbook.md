@@ -22,13 +22,13 @@ Creates a new Excel workbook.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| sheet_name | `any` | Name for the first worksheet | `Sheet1` |
+| sheet_name | `str` | Name for the first worksheet | `Sheet1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `excel` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Creates a dictionary from parallel lists of keys and values.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| keys | `any` |  | `[]` |
-| values | `any` |  | `[]` |
+| keys | `List[any]` |  | `[]` |
+| values | `List[any]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[any, any]` |  |
 
 ## Metadata
 

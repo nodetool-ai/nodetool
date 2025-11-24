@@ -23,14 +23,14 @@ Checks if text is empty or contains only whitespace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| trim_whitespace | `any` |  | `True` |
+| text | `str` |  | `` |
+| trim_whitespace | `bool` |  | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

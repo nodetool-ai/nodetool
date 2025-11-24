@@ -18,13 +18,13 @@ Adds a page break to the document
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to add the page break to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| document | `document` | The document to add the page break to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

@@ -18,10 +18,10 @@ Insert or update (upsert) records in a Supabase table.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| table_name | `any` | Table to upsert into | `` |
-| records | `any` | One or multiple rows to upsert | - |
-| on_conflict | `any` | Optional column or comma-separated columns for ON CONFLICT | - |
-| return_rows | `any` | Return upserted rows (uses select('*')) | `True` |
+| table_name | `str` | Table to upsert into | `` |
+| records | `(List[Dict[str, any]] | Dict[str, any])` | One or multiple rows to upsert | - |
+| on_conflict | `Optional[str]` | Optional column or comma-separated columns for ON CONFLICT | - |
+| return_rows | `bool` | Return upserted rows (uses select('*')) | `True` |
 
 ## Outputs
 

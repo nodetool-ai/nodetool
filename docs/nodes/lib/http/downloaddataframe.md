@@ -24,17 +24,17 @@ Download data from a URL and return as a dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to make the request to. | `` |
-| file_format | `any` | The format of the data file (csv, json, tsv). | `csv` |
-| columns | `any` | The columns of the dataframe. | `{'type': 'record_type', 'columns': []}` |
-| encoding | `any` | The encoding of the text file. | `utf-8` |
-| delimiter | `any` | The delimiter for CSV/TSV files. | `,` |
+| url | `str` | The URL to make the request to. | `` |
+| file_format | `Enum['csv', 'json', 'tsv']` | The format of the data file (csv, json, tsv). | `csv` |
+| columns | `record_type` | The columns of the dataframe. | `{'type': 'record_type', 'columns': []}` |
+| encoding | `str` | The encoding of the text file. | `utf-8` |
+| delimiter | `str` | The delimiter for CSV/TSV files. | `,` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

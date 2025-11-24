@@ -22,9 +22,9 @@ Write a document to disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to save | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| folder | `any` | Folder where the file will be saved | `` |
-| filename | `any` | Name of the file to save. Supports strftime format codes. | `` |
+| document | `document` | The document to save | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `str` | Folder where the file will be saved | `` |
+| filename | `str` | Name of the file to save. Supports strftime format codes. | `` |
 
 ## Metadata
 

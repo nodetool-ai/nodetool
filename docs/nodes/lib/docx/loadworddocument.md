@@ -18,13 +18,13 @@ Loads a Word document from disk
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Path to the document to load | `` |
+| path | `str` | Path to the document to load | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

@@ -23,17 +23,17 @@ Pivot dataframe to reshape data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | The DataFrame to pivot. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| index | `any` | Column name to use as index (rows). | `` |
-| columns | `any` | Column name to use as columns. | `` |
-| values | `any` | Column name to use as values. | `` |
-| aggfunc | `any` | Aggregation function: sum, mean, count, min, max, first, last | `sum` |
+| dataframe | `dataframe` | The DataFrame to pivot. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| index | `str` | Column name to use as index (rows). | `` |
+| columns | `str` | Column name to use as columns. | `` |
+| values | `str` | Column name to use as values. | `` |
+| aggfunc | `str` | Aggregation function: sum, mean, count, min, max, first, last | `sum` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

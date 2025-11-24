@@ -23,13 +23,13 @@ Parse and validate a UUID string.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| uuid_string | `any` | UUID string to parse | `` |
+| uuid_string | `str` | UUID string to parse | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

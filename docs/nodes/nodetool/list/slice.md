@@ -23,16 +23,16 @@ Extracts a subset from a list using start, stop, and step indices.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| start | `any` |  | `0` |
-| stop | `any` |  | `0` |
-| step | `any` |  | `1` |
+| values | `List[any]` |  | `[]` |
+| start | `int` |  | `0` |
+| stop | `int` |  | `0` |
+| step | `int` |  | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

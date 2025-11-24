@@ -23,14 +23,14 @@ Extract audio elements from HTML content.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| html | `any` | The HTML content to extract audio from. | `` |
-| base_url | `any` | The base URL of the page, used to resolve relative audio URLs. | `` |
+| html | `str` | The HTML content to extract audio from. | `` |
+| base_url | `str` | The base URL of the page, used to resolve relative audio URLs. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| audio | `any` |  |
+| audio | `audio` |  |
 
 ## Metadata
 

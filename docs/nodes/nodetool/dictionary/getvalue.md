@@ -23,8 +23,8 @@ Retrieves a value from a dictionary using a specified key.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dictionary | `any` |  | `{}` |
-| key | `any` |  | `` |
+| dictionary | `Dict[str, any]` |  | `{}` |
+| key | `str` |  | `` |
 | default | `any` |  | - |
 
 ## Outputs

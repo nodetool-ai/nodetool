@@ -18,14 +18,14 @@ Search Google News to retrieve live news articles.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| keyword | `any` | Search query or keyword for news articles | `` |
-| num_results | `any` | Maximum number of news results to return | `10` |
+| keyword | `str` | Search query or keyword for news articles | `` |
+| num_results | `int` | Maximum number of news results to return | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[news_result]` |  |
 
 ## Metadata
 

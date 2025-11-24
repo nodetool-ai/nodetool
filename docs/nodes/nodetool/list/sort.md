@@ -23,14 +23,14 @@ Sorts the elements of a list in ascending or descending order.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| order | `any` |  | `ascending` |
+| values | `List[any]` |  | `[]` |
+| order | `Enum['ascending', 'descending']` |  | `ascending` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

@@ -19,14 +19,14 @@ Extract a string value from a JSON path
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
 | data | `any` | JSON object to extract from | - |
-| path | `any` | Path to the desired value (dot notation) | `` |
-| default | `any` | Default value to return if path is not found | `` |
+| path | `str` | Path to the desired value (dot notation) | `` |
+| default | `str` | Default value to return if path is not found | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

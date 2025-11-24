@@ -17,13 +17,13 @@ Iterate over rows of a dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | The input dataframe. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| dataframe | `dataframe` | The input dataframe. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| dict | `any` |  |
+| dict | `Dict[Any, Any]` |  |
 | index | `any` |  |
 
 ## Metadata

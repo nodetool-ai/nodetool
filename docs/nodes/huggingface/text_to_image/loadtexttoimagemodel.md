@@ -21,14 +21,14 @@ Load HuggingFace model for image-to-image generation from a repo_id.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| repo_id | `any` | The repository ID of the model to use for image-to-image generation. | `` |
-| variant | `any` | The variant of the model to use for text-to-image generation. | `fp16` |
+| repo_id | `str` | The repository ID of the model to use for image-to-image generation. | `` |
+| variant | `Enum['default', 'fp16', 'fp32', 'bf16']` | The variant of the model to use for text-to-image generation. | `fp16` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `hf.text_to_image` |  |
 
 ## Metadata
 

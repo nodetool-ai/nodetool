@@ -23,17 +23,17 @@ Accepts a floating-point number as a parameter for workflows, typically constrai
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `0.0` |
-| description | `any` | The description of the input for the workflow. | `` |
-| min | `any` |  | `0` |
-| max | `any` |  | `100` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `float` |  | `0.0` |
+| description | `str` | The description of the input for the workflow. | `` |
+| min | `float` |  | `0` |
+| max | `float` |  | `100` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `float` |  |
 
 ## Metadata
 

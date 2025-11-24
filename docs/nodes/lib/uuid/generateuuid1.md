@@ -23,7 +23,7 @@ Generate a time-based UUID (version 1).
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

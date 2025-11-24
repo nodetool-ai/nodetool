@@ -22,15 +22,15 @@ Get datetime relative to current time (past or future).
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| amount | `any` | Amount of time units | `1` |
-| unit | `any` | Time unit type | `days` |
-| direction | `any` | Past or future | `future` |
+| amount | `int` | Amount of time units | `1` |
+| unit | `Enum['hours', 'days', 'months']` | Time unit type | `days` |
+| direction | `Enum['past', 'future']` | Past or future | `future` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `datetime` |  |
 
 ## Metadata
 

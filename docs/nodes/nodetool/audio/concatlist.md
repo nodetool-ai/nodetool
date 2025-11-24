@@ -23,13 +23,13 @@ Concatenates multiple audio files together in sequence.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio_files | `any` | List of audio files to concatenate in sequence. | `[]` |
+| audio_files | `List[audio]` | List of audio files to concatenate in sequence. | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

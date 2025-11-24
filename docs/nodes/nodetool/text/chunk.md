@@ -23,16 +23,16 @@ Splits text into chunks of specified word length.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| length | `any` |  | `100` |
-| overlap | `any` |  | `0` |
-| separator | `any` |  | - |
+| text | `str` |  | `` |
+| length | `int` |  | `100` |
+| overlap | `int` |  | `0` |
+| separator | `Optional[str]` |  | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

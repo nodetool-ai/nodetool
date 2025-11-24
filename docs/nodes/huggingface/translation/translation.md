@@ -25,16 +25,16 @@ Translates text from one language to another.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for translation | `{'type': 'hf.translation', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| inputs | `any` | The text to translate | `` |
-| source_lang | `any` | The source language code (e.g., 'en' for English) | `en` |
-| target_lang | `any` | The target language code (e.g., 'fr' for French) | `fr` |
+| model | `hf.translation` | The model ID to use for translation | `{'type': 'hf.translation', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| inputs | `str` | The text to translate | `` |
+| source_lang | `Enum['ar', 'bn', 'bs', 'zh', 'hr', 'cs', 'da', 'nl', 'en', 'fil', 'fi', 'fr', 'de', 'el', 'he', 'hi', 'id', 'it', 'ja', 'ko', 'ms', 'me', 'no', 'pl', 'pt', 'pa', 'ru', 'ro', 'sr', 'sk', 'sl', 'es', 'sv', 'th', 'tr', 'vi']` | The source language code (e.g., 'en' for English) | `en` |
+| target_lang | `Enum['ar', 'bn', 'bs', 'zh', 'hr', 'cs', 'da', 'nl', 'en', 'fil', 'fi', 'fr', 'de', 'el', 'he', 'hi', 'id', 'it', 'ja', 'ko', 'ms', 'me', 'no', 'pl', 'pt', 'pa', 'ru', 'ro', 'sr', 'sk', 'sl', 'es', 'sv', 'th', 'tr', 'vi']` | The target language code (e.g., 'fr' for French) | `fr` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 
