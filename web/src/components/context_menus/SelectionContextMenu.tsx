@@ -68,7 +68,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         deleteNode(node.id);
       });
     }
-  }, [deleteNode, selectedNodes]);
+    closeContextMenu();
+  }, [closeContextMenu, deleteNode, selectedNodes]);
 
   //collapse
   // const handleCollapseAll = useCallback(
@@ -261,10 +262,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       )}
       <Divider />
       <ContextMenuItem
-        onClick={() => {
-          handleDelete();
-          closeContextMenu();
-        }}
+        onClick={handleDelete}
         label="Delete"
         IconComponent={<RemoveCircleIcon />}
         tooltip={
