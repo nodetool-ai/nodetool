@@ -95,9 +95,11 @@ const gradientAnimationKeyframes = keyframes`
   }
 `;
 
-// Move the styles definition outside the component
 const getNodeStyles = (colors: string[]) =>
   css({
+    "&::before": {
+      display: "none"
+    },
     "&.loading": {
       position: "relative",
       "--glow-offset": "-4px",
@@ -106,6 +108,7 @@ const getNodeStyles = (colors: string[]) =>
       "&::before": {
         opacity: 0,
         content: '""',
+        display: "block",
         position: "absolute",
         top: "var(--glow-offset)",
         left: "var(--glow-offset)",
@@ -141,7 +144,6 @@ const getNodeStyles = (colors: string[]) =>
     }
   });
 
-// Style helper functions moved outside component
 const getStyleProps = (
   parentId: string | undefined,
   nodeType: { isInputNode: boolean; isOutputNode: boolean },
@@ -338,15 +340,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         ...theme.applyStyles("dark", {
           border: isLoading
             ? "none"
-            : `1px solid ${hexToRgba(baseColor || "#666", 0.4)}`
+            : `2px solid ${hexToRgba(baseColor || "#666", 0.4)}`
         }),
         backgroundColor:
           hasParent && !isLoading
             ? parentColor
-            : hexToRgba(theme.vars.palette.c_node_bg as string, 0.6),
-        backdropFilter: theme.vars.palette.glass.blur,
-        WebkitBackdropFilter: theme.vars.palette.glass.blur,
-        boxShadow: "0 0 24px -22px rgba(0,0,0,.65)",
+            : selected
+            ? "transparent !important"
+            : theme.vars.palette.c_node_bg,
+        backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+        WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         borderRadius: "var(--rounded-node)",
         // Set custom CSS property for dynamic selection color
         "--node-primary-color": baseColor || "var(--palette-primary-main)"
