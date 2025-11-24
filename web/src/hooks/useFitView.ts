@@ -67,8 +67,9 @@ export const useFitView = () => {
         return;
       }
 
-      // Only auto-deselect if we're using selected nodes (not explicit nodeIds)
-      if (!explicitNodeIds.length && selectedNodes.length > 0) {
+      // Only auto-deselect if more than 1 node is selected
+      //  if (!explicitNodeIds.length && selectedNodes.length == 1) {
+      if (selectedNodes.length > 1) {
         setTimeout(() => {
           setSelectedNodes([]);
         }, TRANSITION_DURATION - 300);
@@ -126,6 +127,7 @@ export const useFitView = () => {
         setViewport(newViewport);
       }, TRANSITION_DURATION + FIT_BOUNDS_DELAY_DEFAULT + 100); // Wait for animations to finish
     },
-    [nodes, selectedNodes, setSelectedNodes, reactFlowInstance, setViewport]
+    // [nodes, selectedNodes, setSelectedNodes, reactFlowInstance, setViewport]
+    [nodes, selectedNodes, reactFlowInstance, setSelectedNodes, setViewport]
   );
 };
