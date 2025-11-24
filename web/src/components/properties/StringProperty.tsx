@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, useRef, useMemo } from "react";
+import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
@@ -48,12 +48,16 @@ const StringProperty = ({
   const [isHovered, setIsHovered] = useState(false);
   // const focusHandler = useFocusPan(nodeId);
   // const handleFocus = isInspector ? () => {} : focusHandler;
-  const edges = useNodes((state) => state.edges);
-  const isConnected = useMemo(() => {
-    return edges.some(
-      (edge) => edge.target === nodeId && edge.targetHandle === property.name
-    );
-  }, [edges, nodeId, property.name]);
+  const isConnected = useNodes(
+    useCallback(
+      (state) =>
+        state.edges.some(
+          (edge) =>
+            edge.target === nodeId && edge.targetHandle === property.name
+        ),
+      [nodeId, property.name]
+    )
+  );
 
   const showTextEditor = !isConnected;
   const isConstant = nodeType.startsWith("nodetool.constant.");
