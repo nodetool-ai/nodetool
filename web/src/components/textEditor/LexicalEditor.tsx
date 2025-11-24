@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "rgba(255, 165, 0, 0.7)"
     },
     ".editor-link": {
-      color: "#60a5fa",
+      color: theme.vars.palette.c_link,
       textDecoration: "none",
       cursor: "pointer",
       "&:hover": {
@@ -43,36 +43,40 @@ const styles = (theme: Theme) =>
     ".editor-text-strikethrough": {
       textDecoration: "line-through"
     },
+    ".editor-input p, .editor-input ol,.editor-input ul": {
+      fontWeight: "300",
+      fontSize: theme.fontSizeSmall
+    },
     ".editor-text-code": {
       backgroundColor: "rgba(255, 255, 255, 0.1)",
       padding: "2px 4px",
       borderRadius: "3px",
-      fontFamily: "monospace",
-      fontSize: "0.9em"
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall
     },
     ".editor-code": {
       backgroundColor: "rgba(0, 0, 0, 0.3)",
       padding: "8px 12px",
       borderRadius: "4px",
-      fontFamily: "monospace",
-      fontSize: "0.9em",
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
       margin: "8px 0",
       display: "block",
       overflowX: "auto"
     },
     ".editor-heading-h1": {
-      fontSize: "2em",
+      fontSize: theme.fontSizeBigger,
       fontWeight: "bold",
       margin: "0.5em 0"
     },
     ".editor-heading-h2": {
-      fontSize: "1.5em",
-      fontWeight: "bold",
+      fontSize: theme.fontSizeBig,
+      fontWeight: "normal",
       margin: "0.5em 0"
     },
     ".editor-heading-h3": {
-      fontSize: "1.25em",
-      fontWeight: "bold",
+      fontSize: theme.fontSizeNormal,
+      fontWeight: "normal",
       margin: "0.5em 0"
     },
     ".editor-quote": {
