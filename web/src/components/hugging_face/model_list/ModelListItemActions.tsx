@@ -15,7 +15,8 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../../config/constants";
-import { isProduction, isElectron } from "../../../stores/ApiClient";
+import { isProduction } from "../../../stores/ApiClient";
+import { isElectron } from "../../../utils/browser";
 
 interface ModelListItemActionsProps {
   model: UnifiedModel;
