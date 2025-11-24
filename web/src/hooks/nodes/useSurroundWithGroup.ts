@@ -4,7 +4,6 @@ import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 export const useSurroundWithGroup = () => {
   const theme = useTheme();
@@ -65,7 +64,14 @@ export const useSurroundWithGroup = () => {
         groupNode.data.properties = {};
       }
 
+      if (!groupNode.data.title) {
+        groupNode.data.title = "Group";
+      }
+
       groupNode.data.properties.group_color = theme.vars.palette.c_bg_group;
+      if (!groupNode.data.properties.headline) {
+        groupNode.data.properties.headline = "Group";
+      }
       groupNode.width = Math.max(bounds.width - bounds.x + 40, 200);
       groupNode.height = Math.max(bounds.height - bounds.y + 40, 200);
       groupNode.style = {
