@@ -63,6 +63,11 @@ import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
+import { getMousePosition } from "../../utils/MousePosition";
+import {
+  getSelectionRect,
+  getNodesWithinSelection
+} from "../../utils/selectionBounds";
 
 // FIT SCREEN
 const fitViewOptions = {
@@ -116,7 +121,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     createNode,
     addNode,
     deleteEdge,
-    setEdgeSelectionState
+    setEdgeSelectionState,
+    updateNode
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
@@ -132,7 +138,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     createNode: state.createNode,
     addNode: state.addNode,
     deleteEdge: state.deleteEdge,
-    setEdgeSelectionState: state.setEdgeSelectionState
+    setEdgeSelectionState: state.setEdgeSelectionState,
+    updateNode: state.updateNode
   }));
 
   const [isVisible, setIsVisible] = useState(true);
@@ -156,6 +163,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     y: number;
   } | null>(null);
   const ghostRafRef = useRef<number | null>(null);
+  const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
+  const selectionEndRef = useRef<{ x: number; y: number } | null>(null);
   const ghostTheme = useMemo(() => {
     const isDark = theme.palette.mode === "dark";
     return {
@@ -502,14 +511,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionEnd
   } = useDragHandlers();
 
-  // We want to know when a selection rectangle is active so we can
-  // avoid doing heavy edge selection updates and edge styling work mid-drag.
-  const handleSelectionStart = useCallback(
-    (event: any) => {
-      setIsSelecting(true);
-      onSelectionStart(event);
+  const projectMouseEventToFlow = useCallback(
+    (event?: { clientX?: number; clientY?: number } | null) => {
+      const fallback = getMousePosition();
+      const x = typeof event?.clientX === "number" ? event.clientX : fallback.x;
+      const y = typeof event?.clientY === "number" ? event.clientY : fallback.y;
+      return reactFlowInstance.screenToFlowPosition({ x, y });
     },
-    [onSelectionStart]
+    [reactFlowInstance]
   );
 
   const handleSelectionDragStart = useCallback(
@@ -520,6 +529,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [onSelectionDragStart]
   );
 
+  const handleSelectionDrag = useCallback(
+    (event: ReactMouseEvent, nodesArg: any[]) => {
+      selectionEndRef.current = projectMouseEventToFlow(event);
+      onSelectionDrag(event, nodesArg);
+    },
+    [onSelectionDrag, projectMouseEventToFlow]
+  );
+
   const handleSelectionDragStop = useCallback(
     (event: any, nodes: any[]) => {
       onSelectionDragStop(event, nodes);
@@ -528,12 +545,59 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [onSelectionDragStop]
   );
 
+  const resetSelectionTracking = useCallback(() => {
+    selectionStartRef.current = null;
+    selectionEndRef.current = null;
+  }, []);
+
+  const selectGroupsWithinSelection = useCallback(() => {
+    const selectionRect = getSelectionRect(
+      selectionStartRef.current,
+      selectionEndRef.current
+    );
+    if (!selectionRect) {
+      return;
+    }
+
+    const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
+    const intersectingGroups = getNodesWithinSelection(
+      reactFlowInstance,
+      selectionRect,
+      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
+    );
+
+    intersectingGroups.forEach((node) => {
+      if (!node.selected) {
+        updateNode(node.id, { selected: true });
+      }
+    });
+  }, [reactFlowInstance, updateNode]);
+
   const handleSelectionEnd = useCallback(
-    (event: any) => {
+    (event: ReactMouseEvent) => {
       onSelectionEnd(event);
+      selectionEndRef.current = projectMouseEventToFlow(event);
+      selectGroupsWithinSelection();
       setIsSelecting(false);
+      resetSelectionTracking();
     },
-    [onSelectionEnd]
+    [
+      onSelectionEnd,
+      projectMouseEventToFlow,
+      selectGroupsWithinSelection,
+      resetSelectionTracking
+    ]
+  );
+
+  const handleSelectionStart = useCallback(
+    (event: ReactMouseEvent) => {
+      setIsSelecting(true);
+      const flowPoint = projectMouseEventToFlow(event);
+      selectionStartRef.current = flowPoint;
+      selectionEndRef.current = flowPoint;
+      onSelectionStart(event);
+    },
+    [onSelectionStart, projectMouseEventToFlow]
   );
 
   const edgeStatuses = useResultsStore((state) => state.edges);
