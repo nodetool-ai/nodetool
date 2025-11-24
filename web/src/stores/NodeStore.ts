@@ -57,6 +57,7 @@ import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
+import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 
 /**
  * Generates a UUID v4 string
@@ -1091,6 +1092,11 @@ export const createNodeStore = (
                   width: DEFAULT_NODE_WIDTH
                 };
 
+            const defaultTitle =
+              metadata.node_type === GROUP_NODE_TYPE
+                ? metadata.title || "Group"
+                : undefined;
+
             return {
               id: nodeId,
               type: metadata.node_type,
@@ -1100,7 +1106,8 @@ export const createNodeStore = (
                 collapsed: false,
                 selectable: true,
                 workflow_id: get().workflow.id,
-                dynamic_properties: {}
+                dynamic_properties: {},
+                title: defaultTitle
               },
               targetPosition: Position.Left,
               position: position
