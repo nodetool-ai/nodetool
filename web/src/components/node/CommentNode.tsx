@@ -95,15 +95,15 @@ const styles = (theme: Theme) =>
         caretColor: "var(--palette-primary-contrastText)"
       },
       "& .editor-input .font-size-large": {
-        fontSize: "var(--fontSizeGiant)"
+        fontSize: "var(--fontSizeBig)"
       }
     },
     ".format-toolbar-container": {
+      display: "none",
       position: "absolute",
       top: "-35px",
       left: "0",
       width: "100%",
-      display: "flex",
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: "rgba(240, 240, 240, 0.08)",
@@ -114,7 +114,8 @@ const styles = (theme: Theme) =>
       transition: "opacity 0.2s .2s ease"
     },
     "&:hover .format-toolbar-container": {
-      opacity: 1
+      opacity: 1,
+      display: "flex"
     },
     ".format-toolbar-actions": {
       transition: "opacity .2s .1s ease",

@@ -8,7 +8,7 @@ import {
   TextNode
 } from "lexical";
 import { memo, useCallback, useEffect, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import FormatSizeIcon from "@mui/icons-material/FormatSize";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   addClassNamesToElement,
@@ -115,13 +115,6 @@ const ToolbarPlugin = () => {
                 if (node.getType() === "text") {
                   const dom = editor.getElementByKey(node.getKey());
                   if (dom) {
-                    console.log(
-                      "Processing node:",
-                      dom,
-                      "Should apply large:",
-                      shouldApplyLarge
-                    );
-
                     if (shouldApplyLarge) {
                       // Remove the marker and add our actual data attribute and class
                       dom.removeAttribute("data-large-font-marker");
@@ -132,8 +125,6 @@ const ToolbarPlugin = () => {
                       if (dom.getAttribute("style") === "") {
                         dom.removeAttribute("style");
                       }
-
-                      console.log("Added class and data attribute to:", dom);
                     } else {
                       // Clean up everything
                       dom.removeAttribute("data-large-font-marker");
@@ -144,11 +135,6 @@ const ToolbarPlugin = () => {
                       if (dom.getAttribute("style") === "") {
                         dom.removeAttribute("style");
                       }
-
-                      console.log(
-                        "Removed class and data attribute from:",
-                        dom
-                      );
                     }
                   }
                 }
@@ -200,7 +186,7 @@ const ToolbarPlugin = () => {
         aria-label="Toggle Large Font Size"
         title="Toggle Large Font Size"
       >
-        <AddIcon sx={{ fontSize: "1em" }} />
+        <FormatSizeIcon sx={{ fontSize: "1em" }} />
       </button>
       <button
         onClick={handleInsertHR}
