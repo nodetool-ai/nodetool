@@ -189,7 +189,7 @@ export const paletteDark: PaletteOptions = {
   c_scroll_bg: "transparent",
   c_scroll_hover: "#585858",
   c_scroll_thumb: "#535353",
-  c_node_bg: "#1C1F26",
+  c_node_bg: "#17181b",
   c_node_bg_group: "#232734",
   c_node_header_bg: "#171A20",
   c_node_header_bg_group: "#2B2F3A",
@@ -257,7 +257,7 @@ export const paletteDark: PaletteOptions = {
   },
   divider: "#525865",
   glass: {
-    blur: "blur(45px)",
+    blur: "blur(35px)",
     backgroundDialog: "rgba(0, 0, 0, 0.2)",
     backgroundDialogContent: "rgba(0, 0, 0, 0.5)"
   }
