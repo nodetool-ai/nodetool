@@ -1,9 +1,19 @@
 /* COLLAPSED NODE */
+.node-body.collapsed {
+  height: 60px;
+}
 .node-body.collapsed .node-property {
-  height: 12px;
+  height: 0;
   min-height: unset;
   margin-bottom: 0;
   margin-top: 0;
+}
+.node-body.collapsed .node-property * {
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+.node-body.collapsed .expand-button-container {
+  display: none !important;
 }
 .node-body.collapsed .node-header {
   height: 1.7em;
@@ -71,7 +81,7 @@
 .node-body.collapsed .MuiInput-root,
 .node-body.collapsed .node-property textarea,
 .node-body.collapsed .node-property code,
-/* .node-body.collapsed .edge-property .value, */
+.node-body.collapsed .edge-property .value,
 .node-body.collapsed .MuiSwitch-switchBase,
 .node-body.collapsed .mui-select,
 .node-body.collapsed .audio-controls,
