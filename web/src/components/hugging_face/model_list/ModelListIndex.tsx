@@ -15,6 +15,7 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
+import { useModelCompatibility } from "./useModelCompatibility";
 
 const styles = (theme: Theme) =>
   css({
@@ -38,6 +39,9 @@ const styles = (theme: Theme) =>
       maxWidth: "350px",
       paddingRight: "2em",
       overflowY: "auto"
+    },
+    ".model-list": {
+      paddingBottom: "250px"
     },
     ".model-list-header": {
       display: "flex",
@@ -114,6 +118,7 @@ const ModelListIndex: React.FC = () => {
   } = useModels();
 
   const downloadStore = useModelDownloadStore();
+  const { getModelCompatibility } = useModelCompatibility();
 
   const handleDeleteClick = (modelId: string) => {
     setModelToDelete(modelId);
@@ -255,6 +260,7 @@ const ModelListIndex: React.FC = () => {
                     </Box>
                   );
                 } else {
+                  const compatibility = getModelCompatibility(item.model);
                   return (
                     <Box style={style}>
                       <ModelListItem
@@ -273,6 +279,7 @@ const ModelListIndex: React.FC = () => {
                             : undefined
                         }
                         showModelStats={true}
+                        compatibility={compatibility}
                       />
                     </Box>
                   );

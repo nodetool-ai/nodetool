@@ -1,11 +1,12 @@
 /** @jsxImportSource @emotion/react */
 
-import React from "react";
-import { Typography, Tooltip, Chip, Box, Link, Divider } from "@mui/material";
+import React, { useMemo, useState } from "react";
+import { Typography, Tooltip, Chip, Box, Link, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
@@ -17,11 +18,14 @@ import {
 } from "../../../config/constants";
 import { formatBytes } from "../../../utils/modelFormatting";
 import { getModelUrl } from "../../../utils/providerDisplay";
+import type { ModelCompatibilityResult } from "./useModelCompatibility";
+import ModelCompatibilityDialog from "./ModelCompatibilityDialog";
 
 const ModelListItem: React.FC<
   ModelComponentProps & {
     showModelStats?: boolean;
     showFileExplorerButton?: boolean;
+    compatibility?: ModelCompatibilityResult;
   }
 > = ({
   model,
@@ -30,13 +34,21 @@ const ModelListItem: React.FC<
   handleShowInExplorer,
   compactView = false,
   showModelStats = true,
-  showFileExplorerButton = true
+  showFileExplorerButton = true,
+  compatibility
 }) => {
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
   const theme = useTheme();
   const importantTags = ["gguf", "mlx"];
   const tags = (model.tags || []).filter((tag) => importantTags.includes(tag));
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const compatibilityCounts = useMemo(() => {
+    if (!compatibility) return { total: 0 };
+    return {
+      total: compatibility.recommended.length + compatibility.compatible.length
+    };
+  }, [compatibility]);
 
   if (downloads[modelId]) {
     return (
@@ -220,8 +232,27 @@ const ModelListItem: React.FC<
               </Typography>
             </div>
           )}
+          {compatibility && compatibilityCounts.total > 0 && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<VisibilityIcon fontSize="small" />}
+              onClick={() => setDialogOpen(true)}
+            >
+              Works with {compatibilityCounts.total} node
+              {compatibilityCounts.total > 1 ? "s" : ""}
+            </Button>
+          )}
         </div>
       </div>
+      {compatibility && (
+        <ModelCompatibilityDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          model={model}
+          compatibility={compatibility}
+        />
+      )}
     </Box>
   );
 };

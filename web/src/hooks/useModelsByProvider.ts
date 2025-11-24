@@ -140,32 +140,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
     allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
   }
 
-  // Debug logging
-  if (process.env.NODE_ENV === "development") {
-    const successfulQueries = queries.filter((q) => q.data && !q.error);
-    const failedQueries = queries.filter((q) => q.error);
-    const modelsByProvider = successfulQueries.reduce((acc, q) => {
-      const provider = q.data!.provider;
-      acc[provider] = q.data!.models.length;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    console.log("useImageModelsByProvider:", {
-      providersCount: providers.length,
-      providersLoading,
-      providersError,
-      queriesCount: queries.length,
-      successfulQueries: successfulQueries.length,
-      failedQueries: failedQueries.length,
-      isLoading,
-      modelsCount: allModels.length,
-      modelsByProvider,
-      errors: failedQueries.map((q) => ({ 
-        provider: q.data?.provider || "unknown", 
-        error: q.error 
-      }))
-    });
-  }
+  // Debug logging removed
 
   return {
     models: allModels || [],

@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import type { ImageModel, LanguageModel, TTSModel, ASRModel, VideoModel } from "./ApiTypes";
+import type {
+  ImageModel,
+  LanguageModel,
+  TTSModel,
+  ASRModel,
+  VideoModel
+} from "./ApiTypes";
 import Fuse from "fuse.js";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import useModelPreferencesStore from "./ModelPreferencesStore";
@@ -10,7 +16,12 @@ export type SidebarTab = "favorites" | "recent";
 
 export type EnabledProvidersMap = Record<string, boolean>;
 
-export type ModelSelectorModel = LanguageModel | ImageModel | TTSModel | ASRModel | VideoModel;
+export type ModelSelectorModel =
+  | LanguageModel
+  | ImageModel
+  | TTSModel
+  | ASRModel
+  | VideoModel;
 
 export interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
@@ -52,10 +63,9 @@ export const ALL_PROVIDERS = [
   "huggingface_fal_ai",
   "huggingface_hf_inference",
   "huggingface_replicate",
-  "huggingface_nebius",
+  "huggingface_nebius"
   // "aime"
 ];
-
 
 // Image-specific providers
 export const IMAGE_PROVIDERS = ALL_PROVIDERS;
@@ -86,23 +96,7 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
   enabledProviders: EnabledProvidersMap | undefined
 ): TModel[] => {
   let list = models ?? [];
-  
-  // Debug logging in development
-  if (process.env.NODE_ENV === "development" && models && models.length > 0) {
-    const providerCounts = new Map<string, number>();
-    models.forEach((m) => {
-      const p = m.provider || "unknown";
-      providerCounts.set(p, (providerCounts.get(p) || 0) + 1);
-    });
-    console.log("filterModelsList:", {
-      inputCount: models.length,
-      selectedProvider,
-      search,
-      enabledProviders,
-      providerCounts: Object.fromEntries(providerCounts)
-    });
-  }
-  
+
   if (selectedProvider) {
     if (/gemini|google/i.test(selectedProvider)) {
       list = list.filter((m) => /gemini|google/i.test(m.provider || ""));
@@ -119,19 +113,6 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
       const isEnabled = enabledProviders?.[providerKey] !== false;
       return isEnabled;
     });
-    
-    // Debug logging in development
-    if (process.env.NODE_ENV === "development" && beforeFilter > 0) {
-      const filteredOut = beforeFilter - list.length;
-      if (filteredOut > 0) {
-        console.log(`filterModelsList: Filtered out ${filteredOut} models by enabledProviders`, {
-          beforeFilter,
-          afterFilter: list.length,
-          enabledProviders,
-          sampleProviders: list.slice(0, 5).map((m) => m.provider)
-        });
-      }
-    }
   }
   const term = search.trim();
   if (term.length > 0) {
@@ -184,10 +165,7 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
   const search = storeHook((s) => s.search);
   const selectedProvider = storeHook((s) => s.selectedProvider);
 
-  const providers = React.useMemo(
-    () => computeProvidersList(models),
-    [models]
-  );
+  const providers = React.useMemo(() => computeProvidersList(models), [models]);
 
   const filteredModels = React.useMemo(
     () => filterModelsList(models, selectedProvider, search, enabledProviders),
@@ -259,8 +237,7 @@ export const createModelMenuSelector = <
   const store = createModelMenuStore<TModel>();
   return {
     useStore: store,
-    useData: (models?: TModel[]) =>
-      useModelMenuData<TModel>(models, store)
+    useData: (models?: TModel[]) => useModelMenuData<TModel>(models, store)
   };
 };
 
@@ -295,5 +272,7 @@ export const useVideoModelMenuData = videoModelMenu.useData;
 
 // HuggingFace image models use ImageModel type
 const huggingFaceImageModelMenu = createModelMenuSelector<ImageModel>();
-export const useHuggingFaceImageModelMenuStore = huggingFaceImageModelMenu.useStore;
-export const useHuggingFaceImageModelMenuData = huggingFaceImageModelMenu.useData;
+export const useHuggingFaceImageModelMenuStore =
+  huggingFaceImageModelMenu.useStore;
+export const useHuggingFaceImageModelMenuData =
+  huggingFaceImageModelMenu.useData;
