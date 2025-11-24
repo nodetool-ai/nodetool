@@ -23,15 +23,15 @@ Find all matches of a regex pattern in text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text to search in | `` |
-| pattern | `any` | Regular expression pattern | `` |
-| group | `any` | Capture group to extract (0 for full match) | - |
+| text | `str` | Text to search in | `` |
+| pattern | `str` | Regular expression pattern | `` |
+| group | `Optional[int]` | Capture group to extract (0 for full match) | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

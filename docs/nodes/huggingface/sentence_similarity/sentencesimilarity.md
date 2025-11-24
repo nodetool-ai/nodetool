@@ -23,14 +23,14 @@ Compares the similarity between two sentences.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for sentence similarity | `{'type': 'hf.sentence_similarity', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| inputs | `any` | The text to compare | `` |
+| model | `hf.sentence_similarity` | The model ID to use for sentence similarity | `{'type': 'hf.sentence_similarity', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| inputs | `str` | The text to compare | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

@@ -18,14 +18,14 @@ Extracts a specific segment from a list of segmentation masks.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| segments | `any` | The segmentation masks to search | `[]` |
-| segment_label | `any` | The label of the segment to extract | `` |
+| segments | `List[image_segmentation_result]` | The segmentation masks to search | `[]` |
+| segment_label | `str` | The label of the segment to extract | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

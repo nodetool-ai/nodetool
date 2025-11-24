@@ -23,16 +23,16 @@ Download images from list of URLs and return a list of ImageRefs.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| images | `any` | List of image URLs to download. | `[]` |
-| base_url | `any` | Base URL to prepend to relative image URLs. | `` |
-| max_concurrent_downloads | `any` | Maximum number of concurrent image downloads. | `10` |
+| images | `List[str]` | List of image URLs to download. | `[]` |
+| base_url | `str` | Base URL to prepend to relative image URLs. | `` |
+| max_concurrent_downloads | `int` | Maximum number of concurrent image downloads. | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| images | `any` |  |
-| failed_urls | `any` |  |
+| images | `List[image]` |  |
+| failed_urls | `List[str]` |  |
 
 ## Metadata
 

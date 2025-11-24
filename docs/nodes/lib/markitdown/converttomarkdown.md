@@ -23,13 +23,13 @@ Converts various document formats to markdown using MarkItDown.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to convert to markdown | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| document | `document` | The document to convert to markdown | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

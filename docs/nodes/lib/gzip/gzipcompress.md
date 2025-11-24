@@ -23,13 +23,13 @@ Compress bytes using gzip.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| data | `any` | Data to compress | - |
+| data | `Optional[bytes]` | Data to compress | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bytes` |  |
 
 ## Metadata
 

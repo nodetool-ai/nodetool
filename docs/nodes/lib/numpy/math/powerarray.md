@@ -23,14 +23,14 @@ Raises the base array to the power of the exponent element-wise.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| base | `any` |  | `1.0` |
-| exponent | `any` |  | `2.0` |
+| base | `(float | int | np_array)` |  | `1.0` |
+| exponent | `(float | int | np_array)` |  | `2.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(float | int | np_array)` |  |
 
 ## Metadata
 

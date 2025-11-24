@@ -23,15 +23,15 @@ Filters a list of strings using regular expressions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| pattern | `any` | The regular expression pattern to match against. | `` |
-| full_match | `any` | Whether to match the entire string or find pattern anywhere in string | `False` |
+| values | `List[str]` |  | `[]` |
+| pattern | `str` | The regular expression pattern to match against. | `` |
+| full_match | `bool` | Whether to match the entire string or find pattern anywhere in string | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

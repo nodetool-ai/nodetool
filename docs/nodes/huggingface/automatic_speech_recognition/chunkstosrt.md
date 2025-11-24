@@ -28,14 +28,14 @@ Convert audio chunks to SRT (SubRip Subtitle) format
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| chunks | `any` | List of audio chunks from Whisper transcription | `[]` |
-| time_offset | `any` | Time offset in seconds to apply to all timestamps | `0.0` |
+| chunks | `List[audio_chunk]` | List of audio chunks from Whisper transcription | `[]` |
+| time_offset | `float` | Time offset in seconds to apply to all timestamps | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

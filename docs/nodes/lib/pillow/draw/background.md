@@ -24,15 +24,15 @@ The Background Node creates a blank background.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| width | `any` |  | `512` |
-| height | `any` |  | `512` |
-| color | `any` |  | `{'type': 'color', 'value': '#FFFFFF'}` |
+| width | `int` |  | `512` |
+| height | `int` |  | `512` |
+| color | `color` |  | `{'type': 'color', 'value': '#FFFFFF'}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

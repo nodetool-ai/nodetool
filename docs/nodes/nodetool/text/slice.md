@@ -29,16 +29,16 @@ Slices text using Python's slice notation (start:stop:step).
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| start | `any` |  | - |
-| stop | `any` |  | - |
-| step | `any` |  | - |
+| text | `str` |  | `` |
+| start | `Optional[int]` |  | - |
+| stop | `Optional[int]` |  | - |
+| step | `Optional[int]` |  | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

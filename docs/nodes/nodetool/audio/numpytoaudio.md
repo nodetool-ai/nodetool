@@ -23,15 +23,15 @@ Convert numpy array to audio.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| array | `any` | The numpy array to convert to audio. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| sample_rate | `any` | Sample rate in Hz. | `44100` |
-| channels | `any` | Number of audio channels (1 or 2). | `1` |
+| array | `np_array` | The numpy array to convert to audio. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| sample_rate | `int` | Sample rate in Hz. | `44100` |
+| channels | `int` | Number of audio channels (1 or 2). | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

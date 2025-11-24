@@ -18,15 +18,15 @@ List documents in a directory.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | Directory to scan | `~` |
-| pattern | `any` | File pattern to match (e.g. *.txt) | `*` |
-| recursive | `any` | Search subdirectories | `False` |
+| folder | `str` | Directory to scan | `~` |
+| pattern | `str` | File pattern to match (e.g. *.txt) | `*` |
+| recursive | `bool` | Search subdirectories | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| document | `any` |  |
+| document | `document` |  |
 
 ## Metadata
 

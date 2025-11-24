@@ -23,14 +23,14 @@ Counts the number of tokens in text using tiktoken.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| encoding | `any` | The tiktoken encoding to use for token counting | `cl100k_base` |
+| text | `str` |  | `` |
+| encoding | `Enum['cl100k_base', 'p50k_base', 'r50k_base']` | The tiktoken encoding to use for token counting | `cl100k_base` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `int` |  |
 
 ## Metadata
 

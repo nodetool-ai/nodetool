@@ -24,15 +24,15 @@ Filters a list of strings based on various criteria.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| filter_type | `any` | The type of filter to apply | `contains` |
-| criteria | `any` | The filtering criteria (text to match or length as string) | `` |
+| values | `List[str]` |  | `[]` |
+| filter_type | `Enum['contains', 'starts_with', 'ends_with', 'length_greater', 'length_less', 'exact_length']` | The type of filter to apply | `contains` |
+| criteria | `str` | The filtering criteria (text to match or length as string) | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

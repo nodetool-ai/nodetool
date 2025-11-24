@@ -18,14 +18,14 @@ Search Google to retrieve organic search results.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| keyword | `any` | Search query or keyword to search for | `` |
-| num_results | `any` | Maximum number of results to return | `10` |
+| keyword | `str` | Search query or keyword to search for | `` |
+| num_results | `int` | Maximum number of results to return | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[organic_result]` |  |
 
 ## Metadata
 

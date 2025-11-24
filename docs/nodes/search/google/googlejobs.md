@@ -18,15 +18,15 @@ Search Google Jobs for job listings.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| query | `any` | Job title, skills, or company name to search for | `` |
-| location | `any` | Geographic location for job search | `` |
-| num_results | `any` | Maximum number of job results to return | `10` |
+| query | `str` | Job title, skills, or company name to search for | `` |
+| location | `str` | Geographic location for job search | `` |
+| num_results | `int` | Maximum number of job results to return | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[job_result]` |  |
 
 ## Metadata
 

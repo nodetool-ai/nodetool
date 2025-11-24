@@ -18,13 +18,13 @@ Load CSV file from URL.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL of the CSV file to load. | `` |
+| url | `str` | The URL of the CSV file to load. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

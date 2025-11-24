@@ -18,14 +18,14 @@ Multiplies two numbers.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` |  | `0.0` |
-| b | `any` |  | `0.0` |
+| a | `(int | float)` |  | `0.0` |
+| b | `(int | float)` |  | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(int | float)` |  |
 
 ## Metadata
 

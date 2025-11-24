@@ -23,14 +23,14 @@ Format a UUID string in different representations.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| uuid_string | `any` | UUID string to format | `` |
-| format | `any` | Output format (standard, hex, urn, int, bytes_hex) | `standard` |
+| uuid_string | `str` | UUID string to format | `` |
+| format | `Enum['standard', 'hex', 'urn', 'int', 'bytes_hex']` | Output format (standard, hex, urn, int, bytes_hex) | `standard` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

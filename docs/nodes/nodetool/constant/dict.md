@@ -23,13 +23,13 @@ Represents a dictionary constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| value | `any` |  | `{}` |
+| value | `Dict[str, any]` |  | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

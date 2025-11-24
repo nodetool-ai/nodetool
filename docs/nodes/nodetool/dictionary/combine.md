@@ -23,14 +23,14 @@ Merges two dictionaries, with second dictionary values taking precedence.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dict_a | `any` |  | `{}` |
-| dict_b | `any` |  | `{}` |
+| dict_a | `Dict[str, any]` |  | `{}` |
+| dict_b | `Dict[str, any]` |  | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

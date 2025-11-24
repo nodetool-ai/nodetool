@@ -23,13 +23,13 @@ Convert list of dicts to dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | List of values to be converted, each value will be a row. | `[]` |
+| values | `List[any]` | List of values to be converted, each value will be a row. | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

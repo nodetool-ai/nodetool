@@ -24,17 +24,17 @@ Converts HTML content to plain text using html2text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| html | `any` | HTML content to convert | `` |
-| base_url | `any` | Base URL for resolving relative links | `` |
-| body_width | `any` | Width for text wrapping | `1000` |
-| ignore_images | `any` | Whether to ignore image tags | `True` |
-| ignore_mailto_links | `any` | Whether to ignore mailto links | `True` |
+| html | `str` | HTML content to convert | `` |
+| base_url | `str` | Base URL for resolving relative links | `` |
+| body_width | `int` | Width for text wrapping | `1000` |
+| ignore_images | `bool` | Whether to ignore image tags | `True` |
+| ignore_mailto_links | `bool` | Whether to ignore mailto links | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

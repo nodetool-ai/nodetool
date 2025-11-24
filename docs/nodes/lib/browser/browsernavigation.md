@@ -23,19 +23,19 @@ Navigates and interacts with web pages in a browser session.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | URL to navigate to (required for 'goto' action) | `` |
-| action | `any` | Navigation or extraction action to perform | `goto` |
-| selector | `any` | CSS selector for the element to interact with or extract from | `` |
-| timeout | `any` | Timeout in milliseconds for the action | `30000` |
-| wait_for | `any` | Optional selector to wait for after performing the action | `` |
-| extract_type | `any` | Type of content to extract (for 'extract' action) | `text` |
-| attribute | `any` | Attribute name to extract (when extract_type is 'attribute') | `` |
+| url | `str` | URL to navigate to (required for 'goto' action) | `` |
+| action | `Enum['click', 'goto', 'back', 'forward', 'reload', 'extract']` | Navigation or extraction action to perform | `goto` |
+| selector | `str` | CSS selector for the element to interact with or extract from | `` |
+| timeout | `int` | Timeout in milliseconds for the action | `30000` |
+| wait_for | `str` | Optional selector to wait for after performing the action | `` |
+| extract_type | `Enum['text', 'html', 'value', 'attribute']` | Type of content to extract (for 'extract' action) | `text` |
+| attribute | `str` | Attribute name to extract (when extract_type is 'attribute') | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

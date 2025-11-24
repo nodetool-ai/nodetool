@@ -23,15 +23,15 @@ Extract text with style information (font, size, color) from a PDF.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| pdf | `any` | The PDF document to extract styled text from | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| start_page | `any` | First page to extract (0-based index) | `0` |
-| end_page | `any` | Last page to extract (-1 for last page) | `-1` |
+| pdf | `document` | The PDF document to extract styled text from | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| start_page | `int` | First page to extract (0-based index) | `0` |
+| end_page | `int` | Last page to extract (-1 for last page) | `-1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[Any, Any]]` |  |
 
 ## Metadata
 

@@ -22,15 +22,15 @@ Applies localized contrast enhancement using adaptive techniques.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to adjust the contrast for. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| clip_limit | `any` | Clip limit for adaptive contrast. | `2.0` |
-| grid_size | `any` | Grid size for adaptive contrast. | `8` |
+| image | `image` | The image to adjust the contrast for. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| clip_limit | `float` | Clip limit for adaptive contrast. | `2.0` |
+| grid_size | `int` | Grid size for adaptive contrast. | `8` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

@@ -23,22 +23,22 @@ Generate images using reference images with Flux Redux guidance on Apple Silicon
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | Primary text prompt for the Redux generation. | `Create a cinematic composition inspired by the reference images` |
-| redux_image | `any` | Reference image that will guide the generation. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| redux_image_strength | `any` | Optional strength value (0-1) for the reference image. | - |
-| model | `any` | Redux model variant to load. Defaults to FLUX.1 Redux dev weights. | `{'type': 'hf.flux_redux', 'repo_id': 'black-forest-labs/FLUX.1-Redux-dev', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| quantize | `any` | Optional quantization level for model weights (reduces memory usage). | `4` |
-| steps | `any` | Number of denoising steps for the generation run. | `20` |
-| guidance | `any` | Classifier-free guidance scale. A moderate default balances prompt adherence and references. | `7.0` |
-| height | `any` | Height of the generated image in pixels. | `1024` |
-| width | `any` | Width of the generated image in pixels. | `1024` |
-| seed | `any` | Seed for deterministic generation. Leave 0 for random seed. | `0` |
+| prompt | `str` | Primary text prompt for the Redux generation. | `Create a cinematic composition inspired by the reference images` |
+| redux_image | `image` | Reference image that will guide the generation. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| redux_image_strength | `Optional[float]` | Optional strength value (0-1) for the reference image. | - |
+| model | `hf.flux_redux` | Redux model variant to load. Defaults to FLUX.1 Redux dev weights. | `{'type': 'hf.flux_redux', 'repo_id': 'black-forest-labs/FLUX.1-Redux-dev', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| quantize | `Optional[Enum[3, 4, 5, 6, 8]]` | Optional quantization level for model weights (reduces memory usage). | `4` |
+| steps | `int` | Number of denoising steps for the generation run. | `20` |
+| guidance | `Optional[float]` | Classifier-free guidance scale. A moderate default balances prompt adherence and references. | `7.0` |
+| height | `int` | Height of the generated image in pixels. | `1024` |
+| width | `int` | Width of the generated image in pixels. | `1024` |
+| seed | `int` | Seed for deterministic generation. Leave 0 for random seed. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

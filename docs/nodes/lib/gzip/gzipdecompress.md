@@ -23,13 +23,13 @@ Decompress gzip data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| data | `any` | Gzip data to decompress | - |
+| data | `Optional[bytes]` | Gzip data to decompress | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bytes` |  |
 
 ## Metadata
 

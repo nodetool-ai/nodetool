@@ -18,9 +18,9 @@ Saves input text to a file in the assets folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| folder | `any` | Path to the output folder. | `` |
-| name | `any` | 
+| text | `str` |  | `` |
+| folder | `str` | Path to the output folder. | `` |
+| name | `str` | 
         Name of the output file.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -35,7 +35,7 @@ Saves input text to a file in the assets folder.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `text` |  |
 
 ## Metadata
 

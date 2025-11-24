@@ -18,14 +18,14 @@ Wraps text to a specified width, returning a list of lines.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| width | `any` |  | `70` |
+| text | `str` |  | `` |
+| width | `int` |  | `70` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

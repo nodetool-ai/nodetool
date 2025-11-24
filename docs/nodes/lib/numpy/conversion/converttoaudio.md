@@ -23,14 +23,14 @@ Converts a array object back to an audio file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The array to convert to an audio file. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| sample_rate | `any` | The sample rate of the audio file. | `44100` |
+| values | `np_array` | The array to convert to an audio file. | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| sample_rate | `int` | The sample rate of the audio file. | `44100` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

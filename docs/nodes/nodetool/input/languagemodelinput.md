@@ -18,15 +18,15 @@ Accepts a language model as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` | The language model to use as input. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| description | `any` | The description of the input for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `language_model` | The language model to use as input. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `language_model` |  |
 
 ## Metadata
 

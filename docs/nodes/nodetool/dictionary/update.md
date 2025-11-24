@@ -23,14 +23,14 @@ Updates a dictionary with new key-value pairs.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dictionary | `any` |  | `{}` |
-| new_pairs | `any` |  | `{}` |
+| dictionary | `Dict[str, any]` |  | `{}` |
+| new_pairs | `Dict[str, any]` |  | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

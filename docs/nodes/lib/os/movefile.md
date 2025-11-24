@@ -23,8 +23,8 @@ Move a file from source to destination path.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| source_path | `any` | Source file path | `` |
-| destination_path | `any` | Destination file path | `` |
+| source_path | `str` | Source file path | `` |
+| destination_path | `str` | Destination file path | `` |
 
 ## Metadata
 

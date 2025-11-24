@@ -25,16 +25,16 @@ This node creates and adds Gaussian noise to an image.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| mean | `any` |  | `0.0` |
-| stddev | `any` |  | `1.0` |
-| width | `any` |  | `512` |
-| height | `any` |  | `512` |
+| mean | `float` |  | `0.0` |
+| stddev | `float` |  | `1.0` |
+| width | `int` |  | `512` |
+| height | `int` |  | `512` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

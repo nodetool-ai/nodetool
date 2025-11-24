@@ -27,20 +27,20 @@ This node allows you to add text to images.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | The text to render. | `` |
-| font | `any` | The font to use. | `{'type': 'font', 'name': 'DejaVuSans'}` |
-| x | `any` | The x coordinate. | `0` |
-| y | `any` | The y coordinate. | `0` |
-| size | `any` | The font size. | `12` |
-| color | `any` | The font color. | `{'type': 'color', 'value': '#000000'}` |
-| align | `any` |  | `left` |
-| image | `any` | The image to render on. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| text | `str` | The text to render. | `` |
+| font | `font` | The font to use. | `{'type': 'font', 'name': 'DejaVuSans'}` |
+| x | `int` | The x coordinate. | `0` |
+| y | `int` | The y coordinate. | `0` |
+| size | `int` | The font size. | `12` |
+| color | `color` | The font color. | `{'type': 'color', 'value': '#000000'}` |
+| align | `Enum['left', 'center', 'right']` |  | `left` |
+| image | `image` | The image to render on. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

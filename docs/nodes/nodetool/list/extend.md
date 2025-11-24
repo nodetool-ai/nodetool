@@ -22,14 +22,14 @@ Merges one list into another, extending the original list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| other_values | `any` |  | `[]` |
+| values | `List[any]` |  | `[]` |
+| other_values | `List[any]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

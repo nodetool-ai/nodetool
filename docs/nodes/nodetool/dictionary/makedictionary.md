@@ -23,7 +23,7 @@ Creates a simple dictionary with up to three key-value pairs.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

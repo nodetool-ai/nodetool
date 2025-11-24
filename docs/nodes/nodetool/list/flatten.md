@@ -27,14 +27,14 @@ Flattens a nested list structure into a single flat list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| max_depth | `any` |  | `-1` |
+| values | `List[any]` |  | `[]` |
+| max_depth | `int` |  | `-1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

@@ -23,15 +23,15 @@ Execute arbitrary SQL statements for advanced operations.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| database_name | `any` | Name of the SQLite database file | `memory.db` |
-| sql | `any` | SQL statement to execute | `SELECT * FROM flashcards` |
-| parameters | `any` | Parameters for parameterized queries (use ? in SQL) | `[]` |
+| database_name | `str` | Name of the SQLite database file | `memory.db` |
+| sql | `str` | SQL statement to execute | `SELECT * FROM flashcards` |
+| parameters | `List[any]` | Parameters for parameterized queries (use ? in SQL) | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

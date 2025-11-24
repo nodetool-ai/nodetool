@@ -21,13 +21,13 @@ Inverts the order of elements in a list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
+| values | `List[any]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

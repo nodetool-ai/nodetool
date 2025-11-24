@@ -23,7 +23,7 @@ Select a random element from a list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| options | `any` | List of options | `[]` |
+| options | `List[any]` | List of options | `[]` |
 
 ## Outputs
 

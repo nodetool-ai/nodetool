@@ -17,13 +17,13 @@ No description available.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| repo_id | `any` | The model ID to use for image-to-text generation | `` |
+| repo_id | `str` | The model ID to use for image-to-text generation | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `hf.image_to_text` |  |
 
 ## Metadata
 

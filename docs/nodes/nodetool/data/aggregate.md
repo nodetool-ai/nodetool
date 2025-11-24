@@ -23,15 +23,15 @@ Aggregate dataframe by one or more columns.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | The DataFrame to group. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| columns | `any` | Comma-separated column names to group by. | `` |
-| aggregation | `any` | Aggregation function: sum, mean, count, min, max, std, var, median, first, last | `sum` |
+| dataframe | `dataframe` | The DataFrame to group. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| columns | `str` | Comma-separated column names to group by. | `` |
+| aggregation | `str` | Aggregation function: sum, mean, count, min, max, std, var, median, first, last | `sum` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

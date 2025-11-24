@@ -18,10 +18,10 @@ Index a single text chunk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| collection | `any` | The collection to index | `{'type': 'collection', 'name': ''}` |
-| document_id | `any` | The document ID to associate with the text chunk | `` |
-| text | `any` | The text to index | `` |
-| metadata | `any` | The metadata to associate with the text chunk | `{}` |
+| collection | `collection` | The collection to index | `{'type': 'collection', 'name': ''}` |
+| document_id | `str` | The document ID to associate with the text chunk | `` |
+| text | `str` | The text to index | `` |
+| metadata | `Dict[Any, Any]` | The metadata to associate with the text chunk | `{}` |
 
 ## Metadata
 

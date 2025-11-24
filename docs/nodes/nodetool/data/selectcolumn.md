@@ -23,14 +23,14 @@ Select specific columns from dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | a dataframe from which columns are to be selected | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| columns | `any` | comma separated list of column names | `` |
+| dataframe | `dataframe` | a dataframe from which columns are to be selected | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| columns | `str` | comma separated list of column names | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

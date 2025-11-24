@@ -23,14 +23,14 @@ Extracts headers and creates a document structure/outline.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| markdown | `any` | The markdown text to analyze | `` |
-| max_level | `any` | Maximum header level to extract (1-6) | `6` |
+| markdown | `str` | The markdown text to analyze | `` |
+| max_level | `int` | Maximum header level to extract (1-6) | `6` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[str, any]]` |  |
 
 ## Metadata
 

@@ -23,13 +23,13 @@ Check if a string is a valid UUID.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| uuid_string | `any` | String to check | `` |
+| uuid_string | `str` | String to check | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

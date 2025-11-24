@@ -24,16 +24,16 @@ Performs zero-shot classification on text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for zero-shot classification | `{'type': 'hf.zero_shot_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| inputs | `any` | The text to classify | `` |
-| candidate_labels | `any` | Comma-separated list of candidate labels for classification | `` |
-| multi_label | `any` | Whether to perform multi-label classification | `False` |
+| model | `hf.zero_shot_classification` | The model ID to use for zero-shot classification | `{'type': 'hf.zero_shot_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| inputs | `str` | The text to classify | `` |
+| candidate_labels | `str` | Comma-separated list of candidate labels for classification | `` |
+| multi_label | `bool` | Whether to perform multi-label classification | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, float]` |  |
 
 ## Metadata
 

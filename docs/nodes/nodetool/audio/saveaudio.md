@@ -23,9 +23,9 @@ Save an audio file to a specified asset folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` |  | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| folder | `any` | The asset folder to save the audio file to.  | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
-| name | `any` | 
+| audio | `audio` |  | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `folder` | The asset folder to save the audio file to.  | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| name | `str` | 
         The name of the audio file.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -40,7 +40,7 @@ Save an audio file to a specified asset folder.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

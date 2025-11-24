@@ -32,15 +32,15 @@ Performs text-to-text generation tasks.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for the text-to-text generation | `{'type': 'hf.text2text_generation', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| text | `any` | The input text for the text-to-text task | `` |
-| max_length | `any` | The maximum length of the generated text | `50` |
+| model | `hf.text2text_generation` | The model ID to use for the text-to-text generation | `{'type': 'hf.text2text_generation', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| text | `str` | The input text for the text-to-text task | `` |
+| max_length | `int` | The maximum length of the generated text | `50` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

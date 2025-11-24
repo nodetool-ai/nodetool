@@ -22,16 +22,16 @@ Add or subtract time from a datetime.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input_datetime | `any` | Starting datetime | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
-| days | `any` | Number of days to add (negative to subtract) | `0` |
-| hours | `any` | Number of hours to add (negative to subtract) | `0` |
-| minutes | `any` | Number of minutes to add (negative to subtract) | `0` |
+| input_datetime | `datetime` | Starting datetime | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
+| days | `int` | Number of days to add (negative to subtract) | `0` |
+| hours | `int` | Number of hours to add (negative to subtract) | `0` |
+| minutes | `int` | Number of minutes to add (negative to subtract) | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `datetime` |  |
 
 ## Metadata
 

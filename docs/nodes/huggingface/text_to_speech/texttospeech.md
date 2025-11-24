@@ -23,14 +23,14 @@ A generic Text-to-Speech node that can work with various Hugging Face TTS models
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for text-to-speech generation | `{'type': 'hf.text_to_speech', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| text | `any` | The text to convert to speech | `Hello, this is a test of the text-to-speech system.` |
+| model | `hf.text_to_speech` | The model ID to use for text-to-speech generation | `{'type': 'hf.text_to_speech', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| text | `str` | The text to convert to speech | `Hello, this is a test of the text-to-speech system.` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

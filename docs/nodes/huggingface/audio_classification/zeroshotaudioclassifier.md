@@ -23,15 +23,15 @@ Classifies audio into categories without the need for training data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for the classification | `{'type': 'hf.zero_shot_audio_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| audio | `any` | The input audio to classify | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| candidate_labels | `any` | The candidate labels to classify the audio against, separated by commas | `` |
+| model | `hf.zero_shot_audio_classification` | The model ID to use for the classification | `{'type': 'hf.zero_shot_audio_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| audio | `audio` | The input audio to classify | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| candidate_labels | `str` | The candidate labels to classify the audio against, separated by commas | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, float]` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Apply noise reduction to a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to denoise. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| strength | `any` | Strength of the denoising effect. Higher values mean more denoising. | `5.0` |
+| video | `video` | The input video to denoise. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| strength | `float` | Strength of the denoising effect. Higher values mean more denoising. | `5.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Applies a transformation to each element in a list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| transform_type | `any` |  | `to_string` |
+| values | `List[any]` |  | `[]` |
+| transform_type | `Enum['to_int', 'to_float', 'to_string', 'uppercase', 'lowercase', 'strip']` |  | `to_string` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

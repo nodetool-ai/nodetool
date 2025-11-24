@@ -36,18 +36,18 @@ Convert speech to text
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for the speech recognition. | `{'type': 'hf.automatic_speech_recognition', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| audio | `any` | The input audio to transcribe. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| task | `any` | The task to perform: 'transcribe' for speech-to-text or 'translate' for speech translation. | `transcribe` |
-| language | `any` | The language of the input audio. If not specified, the model will attempt to detect it automatically. | `auto_detect` |
-| timestamps | `any` | The type of timestamps to return for the generated text. | `none` |
+| model | `hf.automatic_speech_recognition` | The model ID to use for the speech recognition. | `{'type': 'hf.automatic_speech_recognition', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| audio | `audio` | The input audio to transcribe. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| task | `Enum['transcribe', 'translate']` | The task to perform: 'transcribe' for speech-to-text or 'translate' for speech translation. | `transcribe` |
+| language | `Enum['auto_detect', 'spanish', 'italian', 'korean', 'portuguese', 'english', 'japanese', 'german', 'russian', 'dutch', 'polish', 'catalan', 'french', 'indonesian', 'ukrainian', 'turkish', 'malay', 'swedish', 'mandarin', 'finnish', 'norwegian', 'romanian', 'thai', 'vietnamese', 'slovak', 'arabic', 'czech', 'croatian', 'greek', 'serbian', 'danish', 'bulgarian', 'hungarian', 'filipino', 'bosnian', 'galician', 'macedonian', 'hindi', 'estonian', 'slovenian', 'tamil', 'latvian', 'azerbaijani', 'urdu', 'lithuanian', 'hebrew', 'welsh', 'persian', 'icelandic', 'kazakh', 'afrikaans', 'kannada', 'marathi', 'swahili', 'telugu', 'maori', 'nepali', 'armenian', 'belarusian', 'gujarati', 'punjabi', 'bengali']` | The language of the input audio. If not specified, the model will attempt to detect it automatically. | `auto_detect` |
+| timestamps | `Enum['none', 'word', 'sentence']` | The type of timestamps to return for the generated text. | `none` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| chunks | `any` |  |
+| text | `str` |  |
+| chunks | `List[audio_chunk]` |  |
 
 ## Metadata
 

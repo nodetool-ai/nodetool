@@ -18,14 +18,14 @@ Visualizes object detection results on images.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The input image to visualize | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| objects | `any` | The detected objects to visualize | `{}` |
+| image | `image` | The input image to visualize | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| objects | `List[object_detection_result]` | The detected objects to visualize | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

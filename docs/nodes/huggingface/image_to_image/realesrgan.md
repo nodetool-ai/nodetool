@@ -23,14 +23,14 @@ Performs image super-resolution using the RealESRGAN model.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The input image to transform | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| model | `any` | The RealESRGAN model to use for image super-resolution | `{'type': 'hf.real_esrgan', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The input image to transform | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| model | `hf.real_esrgan` | The RealESRGAN model to use for image super-resolution | `{'type': 'hf.real_esrgan', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

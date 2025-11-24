@@ -18,14 +18,14 @@ Divides A by B.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` |  | `0.0` |
-| b | `any` |  | `1.0` |
+| a | `(int | float)` |  | `0.0` |
+| b | `(int | float)` |  | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(int | float)` |  |
 
 ## Metadata
 

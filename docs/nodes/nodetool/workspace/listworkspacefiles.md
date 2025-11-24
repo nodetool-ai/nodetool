@@ -23,15 +23,15 @@ List files in the workspace directory matching a pattern.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path within workspace (use . for workspace root) | `.` |
-| pattern | `any` | File pattern to match (e.g. *.txt, *.json) | `*` |
-| recursive | `any` | Search subdirectories recursively | `False` |
+| path | `str` | Relative path within workspace (use . for workspace root) | `.` |
+| pattern | `str` | File pattern to match (e.g. *.txt, *.json) | `*` |
+| recursive | `bool` | Search subdirectories recursively | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| file | `any` |  |
+| file | `str` |  |
 
 ## Metadata
 

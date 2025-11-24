@@ -23,13 +23,13 @@ Extracts tables from markdown and converts them to structured data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| markdown | `any` | The markdown text to analyze | `` |
+| markdown | `str` | The markdown text to analyze | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

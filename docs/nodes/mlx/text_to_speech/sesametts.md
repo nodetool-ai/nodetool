@@ -17,17 +17,17 @@ MLX Sesame / CSM text-to-speech with reference audio cloning.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text content to synthesize into speech. | `Hello from MLX TTS.` |
-| speed | `any` | Speech speed multiplier for Sesame (0.5–2.0). | `1.0` |
-| model | `any` | Sesame/CSM model variant to load. | `mlx-community/csm-1b` |
-| reference_audio | `any` | Reference audio clip used for voice cloning. | - |
+| text | `str` | Text content to synthesize into speech. | `Hello from MLX TTS.` |
+| speed | `float` | Speech speed multiplier for Sesame (0.5–2.0). | `1.0` |
+| model | `Enum['mlx-community/csm-1b', 'mlx-community/csm-1b-8bit']` | Sesame/CSM model variant to load. | `mlx-community/csm-1b` |
+| reference_audio | `audio` | Reference audio clip used for voice cloning. | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| audio | `any` |  |
-| chunk | `any` |  |
+| audio | `audio` |  |
+| chunk | `chunk` |  |
 
 ## Metadata
 

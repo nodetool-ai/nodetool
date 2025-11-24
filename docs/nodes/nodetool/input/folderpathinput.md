@@ -18,15 +18,15 @@ Accepts a folder path as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` | The folder path to use as input. | `` |
-| description | `any` | The description of the input for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `str` | The folder path to use as input. | `` |
+| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

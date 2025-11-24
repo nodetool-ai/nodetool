@@ -18,14 +18,14 @@ Collects a stream of text inputs into a single string.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| input_item | `any` |  | `` |
-| separator | `any` |  | `` |
+| input_item | `str` |  | `` |
+| separator | `str` |  | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

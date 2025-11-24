@@ -23,13 +23,13 @@ Read a binary file from the workspace as base64-encoded string.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path to file within workspace | `` |
+| path | `str` | Relative path to file within workspace | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

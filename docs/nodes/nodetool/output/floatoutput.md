@@ -23,9 +23,9 @@ Output node for a single float value.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `0` |
-| description | `any` | The description of the output for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `float` |  | `0` |
+| description | `str` | The description of the output for the workflow. | `` |
 
 ## Outputs
 

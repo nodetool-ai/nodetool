@@ -24,15 +24,15 @@ Accepts a reference to an audio asset for workflows, specified by an 'AudioRef'.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` | The audio to use as input. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| description | `any` | The description of the input for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `audio` | The audio to use as input. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

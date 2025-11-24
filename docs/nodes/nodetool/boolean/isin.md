@@ -24,13 +24,13 @@ Checks if a value is present in a list of options.
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
 | value | `any` | The value to check for membership | - |
-| options | `any` | The list of options to check against | `[]` |
+| options | `List[any]` | The list of options to check against | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

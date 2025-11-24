@@ -23,15 +23,15 @@ Shows a system notification.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| title | `any` | Title of the notification | `` |
-| message | `any` | Content of the notification | `` |
-| timeout | `any` | How long the notification should stay visible (in seconds) | `10` |
+| title | `str` | Title of the notification | `` |
+| message | `str` | Content of the notification | `` |
+| timeout | `int` | How long the notification should stay visible (in seconds) | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `none` |  |
 
 ## Metadata
 

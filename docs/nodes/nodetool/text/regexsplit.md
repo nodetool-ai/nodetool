@@ -23,15 +23,15 @@ Split text using a regex pattern as delimiter.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text to split | `` |
-| pattern | `any` | Regular expression pattern to split on | `` |
-| maxsplit | `any` | Maximum number of splits (0 for unlimited) | `0` |
+| text | `str` | Text to split | `` |
+| pattern | `str` | Regular expression pattern to split on | `` |
+| maxsplit | `int` | Maximum number of splits (0 for unlimited) | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

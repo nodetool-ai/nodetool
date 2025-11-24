@@ -23,13 +23,13 @@ Get the full path to a SQLite database file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| database_name | `any` | Name of the SQLite database file | `memory.db` |
+| database_name | `str` | Name of the SQLite database file | `memory.db` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

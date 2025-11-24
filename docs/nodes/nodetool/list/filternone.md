@@ -23,13 +23,13 @@ Filters out None values from a list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
+| values | `List[any]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

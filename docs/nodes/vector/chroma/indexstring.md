@@ -21,10 +21,10 @@ Index a string with a Document ID to a collection.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| collection | `any` | The collection to index | `{'type': 'collection', 'name': ''}` |
-| text | `any` | Text content to index | `` |
-| document_id | `any` | Document ID to associate with the text content | `` |
-| metadata | `any` | The metadata to associate with the text | `{}` |
+| collection | `collection` | The collection to index | `{'type': 'collection', 'name': ''}` |
+| text | `str` | Text content to index | `` |
+| document_id | `str` | Document ID to associate with the text content | `` |
+| metadata | `Dict[Any, Any]` | The metadata to associate with the text | `{}` |
 
 ## Metadata
 

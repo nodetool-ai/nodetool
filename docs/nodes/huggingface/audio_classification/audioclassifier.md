@@ -28,15 +28,15 @@ Classifies audio into predefined categories.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for audio classification | `{'type': 'hf.audio_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| audio | `any` | The input audio to classify | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| top_k | `any` | The number of top results to return | `10` |
+| model | `hf.audio_classification` | The model ID to use for audio classification | `{'type': 'hf.audio_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| audio | `audio` | The input audio to classify | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| top_k | `int` | The number of top results to return | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, float]` |  |
 
 ## Metadata
 

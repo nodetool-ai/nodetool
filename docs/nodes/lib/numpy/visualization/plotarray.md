@@ -23,14 +23,14 @@ Create a plot visualization of array data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | Array to plot | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| plot_type | `any` | Type of plot to create | `line` |
+| values | `np_array` | Array to plot | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| plot_type | `Enum['line', 'bar', 'scatter']` | Type of plot to create | `line` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

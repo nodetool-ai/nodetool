@@ -18,17 +18,17 @@ Sets document metadata properties
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to modify | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| title | `any` | Document title | `` |
-| author | `any` | Document author | `` |
-| subject | `any` | Document subject | `` |
-| keywords | `any` | Document keywords | `` |
+| document | `document` | The document to modify | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| title | `str` | Document title | `` |
+| author | `str` | Document author | `` |
+| subject | `str` | Document subject | `` |
+| keywords | `str` | Document keywords | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

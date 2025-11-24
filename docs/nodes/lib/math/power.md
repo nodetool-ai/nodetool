@@ -18,14 +18,14 @@ Raises base to the given exponent.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| base | `any` |  | `0.0` |
-| exponent | `any` |  | `1.0` |
+| base | `(int | float)` |  | `0.0` |
+| exponent | `(int | float)` |  | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(int | float)` |  |
 
 ## Metadata
 

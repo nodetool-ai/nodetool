@@ -22,8 +22,8 @@ Create a new directory at specified path.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Directory path to create | `` |
-| exist_ok | `any` | Don't error if directory already exists | `True` |
+| path | `str` | Directory path to create | `` |
+| exist_ok | `bool` | Don't error if directory already exists | `True` |
 
 ## Metadata
 

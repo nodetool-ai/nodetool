@@ -18,15 +18,15 @@ Accepts a list of strings as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` | The list of strings to use as input. | `[]` |
-| description | `any` | The description of the input for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `List[str]` | The list of strings to use as input. | `[]` |
+| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

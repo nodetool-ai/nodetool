@@ -23,15 +23,15 @@ Performs image super-resolution using the Swin2SR model.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The input image to transform | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| prompt | `any` | The text prompt to guide the image transformation (if applicable) | `` |
-| model | `any` | The model ID to use for image super-resolution | `{'type': 'hf.image_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The input image to transform | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| prompt | `str` | The text prompt to guide the image transformation (if applicable) | `` |
+| model | `hf.image_to_image` | The model ID to use for image super-resolution | `{'type': 'hf.image_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

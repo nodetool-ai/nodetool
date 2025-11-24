@@ -18,13 +18,13 @@ Represents a document constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| value | `any` |  | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| value | `document` |  | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

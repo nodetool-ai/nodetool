@@ -23,7 +23,7 @@ Get the current workspace directory path.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

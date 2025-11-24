@@ -23,14 +23,14 @@ Write binary data (base64-encoded) to a file in the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path to file within workspace | `` |
-| content | `any` | Base64-encoded binary content to write | `` |
+| path | `str` | Relative path to file within workspace | `` |
+| content | `str` | Base64-encoded binary content to write | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

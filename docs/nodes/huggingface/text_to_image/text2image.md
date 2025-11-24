@@ -24,22 +24,22 @@ Generates images from text prompts using AutoPipeline for automatic pipeline sel
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model to use for text-to-image generation. | `{'type': 'hf.text_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| prompt | `any` | A text prompt describing the desired image. | `A cat holding a sign that says hello world` |
-| negative_prompt | `any` | A text prompt describing what to avoid in the image. | `` |
-| num_inference_steps | `any` | The number of denoising steps. | `50` |
-| guidance_scale | `any` | The scale for classifier-free guidance. | `7.5` |
-| width | `any` | The width of the generated image. | `512` |
-| height | `any` | The height of the generated image. | `512` |
-| pag_scale | `any` | Scale of the Perturbed-Attention Guidance applied to the image. | `3.0` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
+| model | `hf.text_to_image` | The model to use for text-to-image generation. | `{'type': 'hf.text_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| prompt | `str` | A text prompt describing the desired image. | `A cat holding a sign that says hello world` |
+| negative_prompt | `str` | A text prompt describing what to avoid in the image. | `` |
+| num_inference_steps | `int` | The number of denoising steps. | `50` |
+| guidance_scale | `float` | The scale for classifier-free guidance. | `7.5` |
+| width | `int` | The width of the generated image. | `512` |
+| height | `int` | The height of the generated image. | `512` |
+| pag_scale | `float` | Scale of the Perturbed-Attention Guidance applied to the image. | `3.0` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| image | `any` |  |
-| latent | `any` |  |
+| image | `image` |  |
+| latent | `torch_tensor` |  |
 
 ## Metadata
 

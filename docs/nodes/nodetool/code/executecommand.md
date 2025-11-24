@@ -20,17 +20,17 @@ Executes a single shell command inside a Docker container.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| command | `any` | Single command to run via the selected shell. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'. | `` |
-| image | `any` | Docker image to use for execution | `bash:5.2` |
-| execution_mode | `any` | Execution mode: 'docker' or 'subprocess' | `docker` |
-| stdin | `any` | String to write to process stdin before any streaming input. Use newlines to separate lines. | `` |
+| command | `str` | Single command to run via the selected shell. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'. | `` |
+| image | `Enum['bash:5.2', 'alpine:3', 'ubuntu:22.04', 'ubuntu:24.04']` | Docker image to use for execution | `bash:5.2` |
+| execution_mode | `Enum['docker', 'subprocess']` | Execution mode: 'docker' or 'subprocess' | `docker` |
+| stdin | `str` | String to write to process stdin before any streaming input. Use newlines to separate lines. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| stdout | `any` |  |
-| stderr | `any` |  |
+| stdout | `str` |  |
+| stderr | `str` |  |
 
 ## Metadata
 

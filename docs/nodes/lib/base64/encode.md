@@ -22,13 +22,13 @@ Encodes text to Base64 format.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text to encode | `` |
+| text | `str` | Text to encode | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

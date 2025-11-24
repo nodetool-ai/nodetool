@@ -23,14 +23,14 @@ Adjusts overall image brightness to lighten or darken.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to adjust the brightness for. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| factor | `any` | Factor to adjust the brightness. 1.0 means no change. | `1.0` |
+| image | `image` | The image to adjust the brightness for. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| factor | `(float | int)` | Factor to adjust the brightness. 1.0 means no change. | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

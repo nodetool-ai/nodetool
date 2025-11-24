@@ -24,7 +24,7 @@ Extract structured data from text content using LLM providers.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| system_prompt | `any` | The system prompt for the data extractor | `
+| system_prompt | `str` | The system prompt for the data extractor | `
 You are a precise structured data extractor.
 
 Goal
@@ -53,11 +53,11 @@ Extraction rules
 Validation
 - Ensure the final JSON validates against <JSON_SCHEMA> exactly.
 ` |
-| model | `any` | Model to use for data extraction | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| text | `any` | The text to extract data from | `` |
-| image | `any` | Optional image to assist extraction | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| audio | `any` | Optional audio to assist extraction | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| context_window | `any` |  | `4096` |
+| model | `language_model` | Model to use for data extraction | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| text | `str` | The text to extract data from | `` |
+| image | `image` | Optional image to assist extraction | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| audio | `audio` | Optional audio to assist extraction | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| context_window | `int` |  | `4096` |
 
 ## Metadata
 

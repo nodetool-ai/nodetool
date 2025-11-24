@@ -18,9 +18,9 @@ Insert record(s) into a Supabase table.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| table_name | `any` | Table to insert into | `` |
-| records | `any` | One or multiple rows to insert | - |
-| return_rows | `any` | Return inserted rows (uses select('*')) | `True` |
+| table_name | `str` | Table to insert into | `` |
+| records | `(List[Dict[str, any]] | Dict[str, any])` | One or multiple rows to insert | - |
+| return_rows | `bool` | Return inserted rows (uses select('*')) | `True` |
 
 ## Outputs
 

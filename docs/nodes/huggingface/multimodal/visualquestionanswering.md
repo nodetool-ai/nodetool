@@ -24,15 +24,15 @@ Answers questions about images.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for visual question answering | `{'type': 'hf.visual_question_answering', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| image | `any` | The image to analyze | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| question | `any` | The question to be answered about the image | `` |
+| model | `hf.visual_question_answering` | The model ID to use for visual question answering | `{'type': 'hf.visual_question_answering', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The image to analyze | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| question | `str` | The question to be answered about the image | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

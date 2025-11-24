@@ -25,13 +25,13 @@ Compares two values using a specified comparison operator.
 |----------|------|-------------|----------|
 | a | `any` | First value to compare | - |
 | b | `any` | Second value to compare | - |
-| comparison | `any` | Comparison operator to use | `==` |
+| comparison | `Enum['==', '!=', '>', '<', '>=', '<=']` | Comparison operator to use | `==` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

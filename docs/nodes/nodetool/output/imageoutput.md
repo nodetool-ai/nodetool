@@ -23,9 +23,9 @@ Output node for a single image reference ('ImageRef').
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| description | `any` | The description of the output for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `image` |  | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| description | `str` | The description of the output for the workflow. | `` |
 
 ## Outputs
 

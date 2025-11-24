@@ -18,13 +18,13 @@ Computes square root of x.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| x | `any` |  | `0.0` |
+| x | `(int | float)` |  | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(int | float)` |  |
 
 ## Metadata
 

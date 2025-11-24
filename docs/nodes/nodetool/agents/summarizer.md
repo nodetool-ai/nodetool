@@ -24,7 +24,7 @@ Generate concise summaries of text content using LLM providers with streaming ou
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| system_prompt | `any` | The system prompt for the summarizer | `
+| system_prompt | `str` | The system prompt for the summarizer | `
         You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring. 
         Follow these guidelines:
         1. Identify and include only the most important information.
@@ -32,18 +32,18 @@ Generate concise summaries of text content using LLM providers with streaming ou
         3. Use clear, direct language.
         4. Aim for approximately {self.max_tokens} tokens.
         ` |
-| model | `any` | Model to use for summarization | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| text | `any` | The text to summarize | `` |
-| image | `any` | Optional image to condition the summary | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| audio | `any` | Optional audio to condition the summary | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| context_window | `any` |  | `4096` |
+| model | `language_model` | Model to use for summarization | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| text | `str` | The text to summarize | `` |
+| image | `image` | Optional image to condition the summary | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| audio | `audio` | Optional audio to condition the summary | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| context_window | `int` |  | `4096` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| chunk | `any` |  |
+| text | `str` |  |
+| chunk | `chunk` |  |
 
 ## Metadata
 

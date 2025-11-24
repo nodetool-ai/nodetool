@@ -23,14 +23,14 @@ Compute the cryptographic hash of a string using hashlib.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | The text to hash | `` |
-| algorithm | `any` | Hash algorithm name (e.g. md5, sha1, sha256) | `md5` |
+| text | `str` | The text to hash | `` |
+| algorithm | `str` | Hash algorithm name (e.g. md5, sha1, sha256) | `md5` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

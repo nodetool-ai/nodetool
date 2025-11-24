@@ -23,13 +23,13 @@ Convert a list of values to a array.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | List of values to convert to array | `[]` |
+| values | `List[any]` | List of values to convert to array | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

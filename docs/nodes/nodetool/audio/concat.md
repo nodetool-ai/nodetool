@@ -22,14 +22,14 @@ Concatenates two audio files together.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` | The first audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| b | `any` | The second audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| a | `audio` | The first audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| b | `audio` | The second audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

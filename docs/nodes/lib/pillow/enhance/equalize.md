@@ -23,13 +23,13 @@ Enhances image contrast by equalizing intensity distribution.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to equalize. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image | `image` | The image to equalize. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

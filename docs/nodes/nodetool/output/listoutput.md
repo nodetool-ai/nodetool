@@ -22,9 +22,9 @@ Output node for a list of arbitrary values.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `[]` |
-| description | `any` | The description of the output for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `List[any]` |  | `[]` |
+| description | `str` | The description of the output for the workflow. | `` |
 
 ## Outputs
 

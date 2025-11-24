@@ -23,13 +23,13 @@ Create a directory in the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path to directory within workspace | `` |
+| path | `str` | Relative path to directory within workspace | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

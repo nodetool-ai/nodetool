@@ -28,16 +28,16 @@ Generate speech audio from text using Google's Gemini text-to-speech models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | The text to convert to speech. | `` |
-| model | `any` | The text-to-speech model to use | `gemini-2.5-flash-preview-tts` |
-| voice_name | `any` | The voice to use for speech generation | `Kore` |
-| style_prompt | `any` | Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement') | `` |
+| text | `str` | The text to convert to speech. | `` |
+| model | `Enum['gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts']` | The text-to-speech model to use | `gemini-2.5-flash-preview-tts` |
+| voice_name | `Enum['Zephyr', 'Puck', 'Nova', 'Quest', 'Echo', 'Fable', 'Orbit', 'Chime', 'Kore', 'Zenith', 'Cosmos', 'Sage', 'Breeze', 'Glimmer', 'Drift', 'Pearl', 'Flux', 'Prism', 'Vega', 'Lyra', 'Ripple', 'Azure', 'Juno', 'River', 'Sterling', 'Atlas', 'Beacon', 'Ember', 'Harmony', 'Spirit']` | The voice to use for speech generation | `Kore` |
+| style_prompt | `str` | Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement') | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

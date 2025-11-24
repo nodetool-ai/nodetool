@@ -23,14 +23,14 @@ Adjust the color saturation of a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video | `any` | The input video to adjust saturation. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| saturation | `any` | Saturation level. 1.0 is original, <1 decreases saturation, >1 increases saturation. | `1.0` |
+| video | `video` | The input video to adjust saturation. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| saturation | `float` | Saturation level. 1.0 is original, <1 decreases saturation, >1 increases saturation. | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

@@ -18,14 +18,14 @@ Parse a date string into components.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| date_string | `any` | The date string to parse | `` |
-| input_format | `any` | Format of the input date string | `%Y-%m-%d` |
+| date_string | `str` | The date string to parse | `` |
+| input_format | `Enum['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%B %d, %Y', '%Y%m%d', '%Y%m%d_%H%M%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S%z']` | Format of the input date string | `%Y-%m-%d` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `date` |  |
 
 ## Metadata
 

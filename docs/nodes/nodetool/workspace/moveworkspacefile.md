@@ -23,14 +23,14 @@ Move or rename a file within the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| source | `any` | Relative source path within workspace | `` |
-| destination | `any` | Relative destination path within workspace | `` |
+| source | `str` | Relative source path within workspace | `` |
+| destination | `str` | Relative destination path within workspace | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

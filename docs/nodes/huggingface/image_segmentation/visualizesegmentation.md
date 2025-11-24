@@ -23,14 +23,14 @@ Visualizes segmentation masks on images with labels.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The input image to visualize | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| segments | `any` | The segmentation masks to visualize | `[]` |
+| image | `image` | The input image to visualize | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| segments | `List[image_segmentation_result]` | The segmentation masks to visualize | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

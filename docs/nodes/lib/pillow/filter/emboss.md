@@ -22,13 +22,13 @@ Apply an emboss filter for a 3D raised effect.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to emboss. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image | `image` | The image to emboss. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

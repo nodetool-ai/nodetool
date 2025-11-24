@@ -18,16 +18,16 @@ Accepts streaming audio data for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
 | value | `any` | The value of the input. | - |
-| description | `any` | The description of the input for the workflow. | `` |
-| audio | `any` | The audio to use as input. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| description | `str` | The description of the input for the workflow. | `` |
+| audio | `audio` | The audio to use as input. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| chunk | `any` |  |
+| chunk | `chunk` |  |
 
 ## Metadata
 

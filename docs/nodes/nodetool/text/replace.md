@@ -23,15 +23,15 @@ Replaces a substring in a text with another substring.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| old | `any` |  | `` |
-| new | `any` |  | `` |
+| text | `str` |  | `` |
+| old | `str` |  | `` |
+| new | `str` |  | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

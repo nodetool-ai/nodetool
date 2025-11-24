@@ -23,13 +23,13 @@ Transpose the dimensions of the input array.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | Array to transpose | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| values | `np_array` | Array to transpose | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

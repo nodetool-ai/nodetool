@@ -23,20 +23,19 @@ Upscales an image using Stable Diffusion 4x upscaler.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | The prompt for image generation. | `` |
-| negative_prompt | `any` | The negative prompt to guide what should not appear in the generated image. | `` |
-| num_inference_steps | `any` | Number of upscaling steps. | `25` |
-| guidance_scale | `any` | Guidance scale for generation. | `7.5` |
-| image | `any` | The initial image for Image-to-Image generation. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| scheduler | `any` | The scheduler to use for the diffusion process. | `HeunDiscreteScheduler` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
-| enable_tiling | `any` | Enable tiling to save VRAM | `False` |
+| prompt | `str` | The prompt for image generation. | `` |
+| negative_prompt | `str` | The negative prompt to guide what should not appear in the generated image. | `` |
+| num_inference_steps | `int` | Number of upscaling steps. | `25` |
+| guidance_scale | `float` | Guidance scale for generation. | `7.5` |
+| image | `image` | The initial image for Image-to-Image generation. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| scheduler | `Enum['DPMSolverSDEScheduler', 'EulerDiscreteScheduler', 'LMSDiscreteScheduler', 'DDIMScheduler', 'DDPMScheduler', 'HeunDiscreteScheduler', 'DPMSolverMultistepScheduler', 'DEISMultistepScheduler', 'PNDMScheduler', 'EulerAncestralDiscreteScheduler', 'UniPCMultistepScheduler', 'KDPM2DiscreteScheduler', 'DPMSolverSinglestepScheduler', 'KDPM2AncestralDiscreteScheduler']` | The scheduler to use for the diffusion process. | `HeunDiscreteScheduler` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

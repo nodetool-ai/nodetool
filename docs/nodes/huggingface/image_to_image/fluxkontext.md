@@ -24,18 +24,18 @@ Performs image editing using FLUX Kontext models for context-aware image generat
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The FLUX Kontext model to use for image editing. | `{'type': 'hf.flux_kontext', 'repo_id': 'black-forest-labs/FLUX.1-Kontext-dev', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| image | `any` | The input image to edit | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| prompt | `any` | Text description of the desired edit to apply to the image | `Add a hat to the cat` |
-| guidance_scale | `any` | Guidance scale for editing. Higher values follow the prompt more closely | `2.5` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed | `-1` |
-| enable_cpu_offload | `any` | Enable CPU offload to reduce VRAM usage. | `True` |
+| model | `hf.flux_kontext` | The FLUX Kontext model to use for image editing. | `{'type': 'hf.flux_kontext', 'repo_id': 'black-forest-labs/FLUX.1-Kontext-dev', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The input image to edit | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| prompt | `str` | Text description of the desired edit to apply to the image | `Add a hat to the cat` |
+| guidance_scale | `float` | Guidance scale for editing. Higher values follow the prompt more closely | `2.5` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed | `-1` |
+| enable_cpu_offload | `bool` | Enable CPU offload to reduce VRAM usage. | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

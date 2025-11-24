@@ -23,13 +23,13 @@ Converts an audio file to a Array for further processing.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The audio file to convert to a tensor. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| audio | `audio` | The audio file to convert to a tensor. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

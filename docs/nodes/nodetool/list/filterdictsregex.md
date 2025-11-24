@@ -23,16 +23,16 @@ Filters a list of dictionaries using regular expressions on specified keys.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| key | `any` |  | `` |
-| pattern | `any` |  | `` |
-| full_match | `any` |  | `False` |
+| values | `List[Dict[Any, Any]]` |  | `[]` |
+| key | `str` |  | `` |
+| pattern | `str` |  | `` |
+| full_match | `bool` |  | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[Any, Any]]` |  |
 
 ## Metadata
 

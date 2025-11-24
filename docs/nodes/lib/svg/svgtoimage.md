@@ -23,17 +23,17 @@ Create an SVG document and convert it to a raster image in one step.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| content | `any` | SVG content | `[]` |
-| width | `any` | Document width | `800` |
-| height | `any` | Document height | `600` |
-| viewBox | `any` | SVG viewBox attribute | `0 0 800 600` |
-| scale | `any` | Scale factor for rasterization | `1` |
+| content | `(str | svg_element | List[svg_element])` | SVG content | `[]` |
+| width | `int` | Document width | `800` |
+| height | `int` | Document height | `600` |
+| viewBox | `str` | SVG viewBox attribute | `0 0 800 600` |
+| scale | `int` | Scale factor for rasterization | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

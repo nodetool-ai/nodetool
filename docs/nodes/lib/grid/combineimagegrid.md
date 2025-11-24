@@ -23,14 +23,14 @@ Combine a grid of image tiles into a single image.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| tiles | `any` | List of image tiles to combine. | `[]` |
-| columns | `any` | Number of columns in the grid. | `0` |
+| tiles | `List[image]` | List of image tiles to combine. | `[]` |
+| columns | `int` | Number of columns in the grid. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

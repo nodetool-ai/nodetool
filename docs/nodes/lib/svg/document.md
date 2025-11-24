@@ -23,16 +23,16 @@ Combine SVG elements into a complete SVG document.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| content | `any` | SVG content | `[]` |
-| width | `any` | Document width | `800` |
-| height | `any` | Document height | `600` |
-| viewBox | `any` | SVG viewBox attribute | `0 0 800 600` |
+| content | `(str | svg_element | List[svg_element])` | SVG content | `[]` |
+| width | `int` | Document width | `800` |
+| height | `int` | Document height | `600` |
+| viewBox | `str` | SVG viewBox attribute | `0 0 800 600` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg` |  |
 
 ## Metadata
 

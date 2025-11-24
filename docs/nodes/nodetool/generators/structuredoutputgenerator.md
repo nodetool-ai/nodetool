@@ -24,7 +24,7 @@ Generate structured JSON objects from instructions using LLM providers.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| system_prompt | `any` | The system prompt guiding JSON generation. | `
+| system_prompt | `str` | The system prompt guiding JSON generation. | `
 You are a structured data generator focused on JSON outputs.
 
 Goal
@@ -49,11 +49,11 @@ Generation rules
 Validation
 - Ensure the final JSON validates against <JSON_SCHEMA> exactly.
 ` |
-| model | `any` | Model to use for structured generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| instructions | `any` | Detailed instructions for the structured output. | `` |
-| context | `any` | Optional context to ground the generation. | `` |
-| max_tokens | `any` | The maximum number of tokens to generate. | `4096` |
-| context_window | `any` |  | `4096` |
+| model | `language_model` | Model to use for structured generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| instructions | `str` | Detailed instructions for the structured output. | `` |
+| context | `str` | Optional context to ground the generation. | `` |
+| max_tokens | `int` | The maximum number of tokens to generate. | `4096` |
+| context_window | `int` |  | `4096` |
 
 ## Metadata
 

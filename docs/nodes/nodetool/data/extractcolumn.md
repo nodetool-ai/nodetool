@@ -23,14 +23,14 @@ Convert dataframe column to list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | The input dataframe. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| column_name | `any` | The name of the column to be converted to a list. | `` |
+| dataframe | `dataframe` | The input dataframe. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| column_name | `str` | The name of the column to be converted to a list. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 
