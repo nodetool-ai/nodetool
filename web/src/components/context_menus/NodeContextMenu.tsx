@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 //mui
-import { Menu } from "@mui/material";
+import { Menu, Divider } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import DataArrayIcon from "@mui/icons-material/DataArray";
@@ -9,6 +9,7 @@ import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import DeleteIcon from "@mui/icons-material/Delete";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
@@ -17,6 +18,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import log from "loglevel";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { isDevelopment } from "../../stores/ApiClient";
 //reactflow
 import { Node } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -41,12 +43,21 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
-  const { updateNodeData, selectNodesByType } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData,
-    selectNodesByType: state.selectNodesByType
-  }));
-
-  const currentSyncMode = (nodeData?.sync_mode as string) || "on_any";
+  const { updateNodeData, selectNodesByType, deleteNode, selectedNodes } =
+    useNodes((state) => ({
+      updateNodeData: state.updateNodeData,
+      selectNodesByType: state.selectNodesByType,
+      deleteNode: state.deleteNode,
+      selectedNodes: state.getSelectedNodes()
+    }));
+  const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const handleToggleComment = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
+    closeContextMenu();
+  }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
 
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
@@ -86,6 +97,17 @@ const NodeContextMenu: React.FC = () => {
     }
   };
 
+  const handleDeleteNode = useCallback(() => {
+    if (selectedNodes.length > 1) {
+      selectedNodes.forEach((selected) => {
+        deleteNode(selected.id);
+      });
+    } else if (nodeId) {
+      deleteNode(nodeId);
+    }
+    closeContextMenu();
+  }, [closeContextMenu, deleteNode, nodeId, selectedNodes]);
+
   return (
     <Menu
       className="context-menu node-context-menu"
@@ -112,18 +134,18 @@ const NodeContextMenu: React.FC = () => {
           tooltip="Remove this node from the group"
         />
       )}
-      <ContextMenuItem
-        onClick={() => {
-          if (nodeId) {
-            updateNodeData(nodeId, {
-              title: "Click to edit"
-            });
+      {nodeId && (
+        <ContextMenuItem
+          onClick={handleToggleComment}
+          label={hasCommentTitle ? "Remove Comment" : "Add Comment"}
+          IconComponent={<EditIcon />}
+          tooltip={
+            hasCommentTitle
+              ? "Remove the comment from this node"
+              : "Add a comment to this node"
           }
-        }}
-        label="Edit Comment"
-        IconComponent={<EditIcon />}
-        tooltip="Edit this comment"
-      />
+        />
+      )}
       <ContextMenuItem
         onClick={handleFindTemplates}
         label="Show Templates"
@@ -136,13 +158,24 @@ const NodeContextMenu: React.FC = () => {
         IconComponent={<FilterListIcon />}
         tooltip="Select all nodes of the same type"
       />
-      {/* Sync mode selection moved to header icon menu */}
+      {/* Delete Node */}
       <ContextMenuItem
-        onClick={handleCopyMetadataToClipboard}
-        label="Copy NodeData"
-        IconComponent={<DataArrayIcon />}
-        tooltip="Copy node metadata to the clipboard"
+        onClick={handleDeleteNode}
+        label="Delete Node"
+        IconComponent={<DeleteIcon />}
+        tooltip="Delete this node"
       />
+      {isDevelopment && (
+        <>
+          <Divider />
+          <ContextMenuItem
+            onClick={handleCopyMetadataToClipboard}
+            label="Copy NodeData"
+            IconComponent={<DataArrayIcon />}
+            tooltip="Copy node metadata to the clipboard"
+          />
+        </>
+      )}
     </Menu>
   );
 };
