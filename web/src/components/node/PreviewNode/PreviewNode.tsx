@@ -42,7 +42,6 @@ const styles = (theme: Theme) =>
       },
       "&.preview-node": {
         padding: 0,
-        backgroundColor: "transparent",
         margin: 0,
         "&.collapsed": {
           maxHeight: "60px"
@@ -413,24 +412,31 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       sx={{
         display: "flex",
         border: "none",
-        bgcolor: hasParent ? theme.vars.palette.c_node_bg_group : undefined,
-        backgroundColor: hasParent
-          ? undefined
-          : (theme.vars.palette.c_node_bg as any)
-          ? (theme.vars.palette.c_node_bg as string)
-          : undefined,
-        ...(hasParent
-          ? {}
-          : {
-              backgroundColor: hexToRgba(
-                theme.vars.palette.c_node_bg as string,
-                0.6
-              ),
-              backdropFilter: theme.vars.palette.glass.blur,
-              WebkitBackdropFilter: theme.vars.palette.glass.blur,
-              boxShadow: "0 0 24px -22px rgba(0,0,0,.65)",
-              borderRadius: "var(--rounded-node)"
-            })
+        backgroundColor: theme.vars.palette.c_node_bg,
+        backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
+        WebkitBackdropFilter: props.selected
+          ? theme.vars.palette.glass.blur
+          : "none"
+
+        // backgroundColor: theme.vars.palette.c_node_bg
+        // bgcolor: hasParent ? theme.vars.palette.c_node_bg_group : undefined,
+        // backgroundColor: hasParent
+        //   ? undefined
+        //   : (theme.vars.palette.c_node_bg as any)
+        //   ? (theme.vars.palette.c_node_bg as string)
+        //   : undefined,
+        // ...(hasParent
+        //   ? {}
+        //   : {
+        //       backgroundColor: hexToRgba(
+        //         theme.vars.palette.c_node_bg as string,
+        //         0.6
+        //       ),
+        //       // backdropFilter: theme.vars.palette.glass.blur,
+        //       // WebkitBackdropFilter: theme.vars.palette.glass.blur,
+        //       // boxShadow: "0 0 24px -22px rgba(0,0,0,.65)",
+        //       borderRadius: "var(--rounded-node)"
+        //     })
       }}
       className={`preview-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
@@ -452,7 +458,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             hasParent={hasParent}
             metadataTitle="Preview"
             selected={props.selected}
-            backgroundColor={theme.vars.palette.primary.main}
+            // backgroundColor={theme.vars.palette.primary.main}
+            backgroundColor={"transparent"}
             iconType={"any"}
             iconBaseColor={theme.vars.palette.primary.main}
             showIcon={false}
