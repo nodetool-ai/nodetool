@@ -76,45 +76,35 @@
 }
 
 /* IS CONNECTING */
-.connecting-class {
+.react-flow .connecting-class {
   background-color: red !important;
 }
 
 /* edge */
-.react-flow__edge-path,
-.react-flow__connection-path {
+.react-flow .react-flow__edge-path,
+.react-flow .react-flow__connection-path {
   stroke: var(--palette-grey-400);
-  stroke-width: 3 !important;
-}
-
-/* Connection (temporary line while dragging) opacity */
-.react-flow__connection .react-flow__connection-path {
-  opacity: 0.7;
-  transition: opacity 150ms ease-in-out;
-}
-
-/* Make it a bit more visible only while actively connecting */
-.react-flow.is-connecting .react-flow__connection .react-flow__connection-path {
-  opacity: 1;
+  stroke-width: 2.5 !important;
+  transition: stroke-opacity 0.25s, stroke-width 0.25s;
 }
 
 /* Dim static edges by default */
-.react-flow__edges .react-flow__edge .react-flow__edge-path {
-  opacity: 0.45;
-  transition: opacity 150ms ease-in-out;
+.react-flow .react-flow__edges .react-flow__edge .react-flow__edge-path {
+  stroke-opacity: 0.6;
+  transition: stroke-opacity 0.2s;
 }
 
 /* Highlight on hover */
-.react-flow .react-flow__edge.hovered .react-flow__edge-path {
-  opacity: 0.9;
-}
+/* .react-flow .react-flow__edge.hovered .react-flow__edge-path {
+  opacity: 1;
+} */
 
 /* Keep selected edges fully visible */
 .react-flow
   .react-flow__edges
   .react-flow__edge.selected
   .react-flow__edge-path {
-  opacity: 1;
+  stroke-opacity: 1;
 }
 
 /* While connecting, dim all static edges further to make the in-progress line pop */
@@ -122,15 +112,13 @@
   .react-flow__edges
   .react-flow__edge
   .react-flow__edge-path {
-  opacity: 0.25;
+  stroke-opacity: 0.25;
 }
 
 /* edge hover */
-.react-flow .react-flow__edge.hovered .react-flow__edge-path,
-.react-flow .react-flow__edge.hovered .react-flow__connection-path {
-  stroke-width: 3.5 !important;
-  filter: drop-shadow(0 0 1px var(--palette-grey-400));
-  filter: saturate(1.1) brightness(1.1);
+.react-flow .react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 4 !important;
+  filter: saturate(1.2) brightness(1.2);
 }
 
 /* edge selected */
@@ -144,13 +132,12 @@
 
 /* Flow animation for edges on message_sent */
 .react-flow .react-flow__edge.message-sent .react-flow__edge-path {
-  opacity: 1;
+  stroke-opacity: 1;
   stroke-width: 4 !important;
   stroke-linecap: round;
   /* create a repeating dash pattern to simulate flow */
   stroke-dasharray: 14 10;
   animation: edgeFlow 1.4s linear infinite;
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.35));
 }
 
 @keyframes edgeFlow {
@@ -162,18 +149,18 @@
   }
 }
 
-/* zoomed out */
-.zoomed-out .react-flow__edge .react-flow__edge-path,
-.zoomed-out .react-flow__connection .react-flow__connection-path {
-  stroke: var(--palette-grey-400);
-  stroke-width: 6 !important;
-}
-
 .react-flow__edge .react-flow__edge-text {
   visibility: visible !important;
   fill: #000;
   font-size: var(--fontSizeTinyer);
   transition: all 0.8s;
+}
+
+/* zoomed out */
+.zoomed-out .react-flow__edge .react-flow__edge-path,
+.zoomed-out .react-flow__connection .react-flow__connection-path {
+  stroke: var(--palette-grey-400);
+  stroke-width: 6 !important;
 }
 
 /* HANDLE */

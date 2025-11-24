@@ -15,12 +15,14 @@
 .react-flow__node:not(.selected) {
   /* Match outline to header background color */
   outline: 1px solid var(--c_node_header_bg) !important;
+  /* outline: none; */
+  box-shadow: none;
   /* Increase brightness and add slight saturation toward primary */
-  outline-color: color-mix(
+  /* outline-color: color-mix(
     in srgb,
     var(--c_node_header_bg) 82%,
     var(--palette-primary-main) 18%
-  ) !important;
+  ) !important; */
   /* outline-offset: 1px; */
 }
 
@@ -35,7 +37,7 @@
 }
 
 .react-flow__node:hover:not(.selected) {
-  outline: 1px solid var(--c_node_header_bg) !important;
+  outline: 2px solid var(--c_node_header_bg) !important;
   outline-color: color-mix(
     in srgb,
     var(--c_node_header_bg) 82%,
