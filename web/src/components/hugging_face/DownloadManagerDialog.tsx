@@ -28,7 +28,8 @@ import {
   openHuggingfacePath,
   openOllamaPath
 } from "../../utils/fileExplorer";
-import { isElectron, isLocalhost, isProduction } from "../../stores/ApiClient";
+import { isLocalhost, isProduction } from "../../stores/ApiClient";
+import { isElectron } from "../../utils/browser";
 
 const styles = (theme: Theme) =>
   css({

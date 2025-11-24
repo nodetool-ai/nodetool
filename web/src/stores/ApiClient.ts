@@ -3,6 +3,7 @@ import { paths } from "../api.js"; // Generated from openapi-typescript
 import { supabase } from "../lib/supabaseClient";
 import log from "loglevel";
 import { BASE_URL } from "./BASE_URL";
+import { isElectron as browserIsElectron } from "../utils/browser";
 
 /**
  * Checks if localhost mode should be forced.
@@ -74,24 +75,8 @@ export const isDevelopment = isLocalhost;
 /** Flag indicating a production environment. */
 export const isProduction = !isLocalhost;
 
-const detectElectron = (): boolean => {
-  if (typeof window === "undefined") {
-    return false;
-  }
-  const w = window as typeof window & {
-    process?: { type?: string; versions?: Record<string, unknown> };
-    api?: unknown;
-  };
-  const isElectronProcess =
-    Boolean(w.process?.type) || Boolean(w.process?.versions?.electron);
-  const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
-  const isElectronUA = userAgent.toLowerCase().includes("electron");
-  const hasElectronBridge = Boolean(w.api);
-  return isElectronProcess || isElectronUA || hasElectronBridge;
-};
-
 /** Flag indicating whether the app is running inside the Electron shell. */
-export const isElectron = detectElectron();
+export const isElectron = browserIsElectron;
 
 /**
  * Programmatically set the force localhost preference in localStorage.

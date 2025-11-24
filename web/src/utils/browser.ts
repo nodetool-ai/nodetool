@@ -3,6 +3,7 @@ export interface ElectronDetectionDetails {
   isRendererProcess: boolean; // from window.process.type === 'renderer'
   hasElectronVersionInWindowProcess: boolean; // from window.process.versions.electron
   hasElectronInUserAgent: boolean; // from navigator.userAgent
+  hasElectronBridge: boolean; // from preload bridge (window.api)
 }
 
 /**
@@ -15,14 +16,15 @@ export interface ElectronDetectionDetails {
  * @returns An object containing boolean flags for each check and a combined `isElectron` flag.
  */
 export const getIsElectronDetails = (): ElectronDetectionDetails => {
+  const hasWindow = typeof window !== "undefined";
   const isRendererProcess =
-    typeof window !== "undefined" &&
+    hasWindow &&
     typeof window.process === "object" &&
     typeof (window.process as any).type === "string" &&
     (window.process as any).type === "renderer";
 
   const hasElectronVersionInWindowProcess =
-    typeof window !== "undefined" &&
+    hasWindow &&
     typeof window.process === "object" &&
     typeof window.process.versions === "object" &&
     !!window.process.versions.electron;
@@ -32,16 +34,24 @@ export const getIsElectronDetails = (): ElectronDetectionDetails => {
     typeof navigator.userAgent === "string" &&
     navigator.userAgent.includes("Electron");
 
+  const hasElectronBridge =
+    hasWindow &&
+    typeof (window as typeof window & { api?: unknown }).api !== "undefined";
+
   // An environment is considered Electron if any of these specific checks are true.
   const isElectron =
     isRendererProcess ||
     hasElectronVersionInWindowProcess ||
-    hasElectronInUserAgent;
+    hasElectronInUserAgent ||
+    hasElectronBridge;
 
   return {
     isElectron,
     isRendererProcess,
     hasElectronVersionInWindowProcess,
-    hasElectronInUserAgent
+    hasElectronInUserAgent,
+    hasElectronBridge
   };
 };
+
+export const isElectron = getIsElectronDetails().isElectron;
