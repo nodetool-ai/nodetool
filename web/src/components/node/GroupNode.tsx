@@ -22,7 +22,7 @@ import { Tooltip } from "@mui/material";
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
-const GROUP_COLOR_OPACITY = 0.5;
+const GROUP_COLOR_OPACITY = 0.4;
 
 const styles = (theme: Theme, minWidth: number, minHeight: number) =>
   css({
@@ -332,9 +332,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         enterNextDelay={TOOLTIP_ENTER_DELAY * 5}
         title={
           <span>
-            <b>SELECT NODE:</b> Hold CTRL or ⌘ key + click
+            <b>SELECT GROUP NODE:</b> <br />
+            Hold CTRL or ⌘ key + click <br />
             <br />
-            <b>EDIT TITLE:</b> Double click on header area
+            <b>EDIT GROUP TITLE:</b> <br />
+            Double click on header area
           </span>
         }
       >
@@ -372,7 +374,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {/* Help text that appears when dragging nodes */}
       <div className={`help-text ${isDragging ? "visible" : "none"}`}>
         <div>
-          <b>REMOVE FROM GROUP</b>
+          <b>REMOVE NODES FROM GROUP</b>
         </div>
         <ul>
           <li>Drag out while holding CTRL | ⌘ key</li>
