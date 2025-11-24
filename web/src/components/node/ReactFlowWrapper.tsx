@@ -572,9 +572,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     const selectionUpdates: Record<string, boolean> = {};
 
     for (const edge of edges) {
-      const shouldSelect =
+      const isEdgeAlreadySelected = Boolean(edge.selected);
+      const nodeDrivenSelection =
         selectedIds.has(edge.source) || selectedIds.has(edge.target);
-      if (Boolean(edge.selected) !== shouldSelect) {
+      const shouldSelect = isEdgeAlreadySelected || nodeDrivenSelection;
+
+      if (isEdgeAlreadySelected !== shouldSelect) {
         selectionUpdates[edge.id] = shouldSelect;
       }
     }
