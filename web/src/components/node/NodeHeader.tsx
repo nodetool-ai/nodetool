@@ -7,13 +7,13 @@ import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   Menu,
   MenuItem,
   Tooltip,
   ListItemIcon,
-  ListItemText,
-  Divider
+  ListItemText
 } from "@mui/material";
 
 export interface NodeHeaderProps {
@@ -48,6 +48,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const [syncMenuAnchor, setSyncMenuAnchor] = useState<null | HTMLElement>(
     null
   );
+  const [isSyncTooltipOpen, setIsSyncTooltipOpen] = useState(false);
 
   const handleOpenContextMenu = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -83,61 +84,54 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const hasIcon = Boolean(iconType);
 
-  const glassyStyle: React.CSSProperties | undefined = useMemo(() => {
-    // Keep group header look from CSS when within a group
-    if (hasParent) return undefined;
+  const headerStyle: React.CSSProperties | undefined = useMemo(() => {
     const tint = backgroundColor || "var(--c_node_header_bg)";
     return {
-      background: `linear-gradient(90deg, ${hexToRgba(tint, 0.18)}, ${hexToRgba(
-        tint,
-        0.08
-      )})`,
+      background: selected
+        ? backgroundColor
+        : `linear-gradient(90deg, ${hexToRgba(tint, 0.25)}, ${hexToRgba(
+            tint,
+            0.1
+          )})`,
       border: 0,
-      borderBottom: `1px solid ${hexToRgba("#FFFFFF", 0.08)}`,
-      backdropFilter: (theme as any).vars?.palette?.glass?.blur || "blur(24px)",
-      WebkitBackdropFilter:
-        (theme as any).vars?.palette?.glass?.blur || "blur(12px)",
-      // Remove top inner highlight to avoid double border effect with wrapper outline
-      // boxShadow: `0 10px 24px -18px ${hexToRgba(tint, 0.6)}`,
       borderRadius:
-        "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0"
+        "calc(var(--rounded-node) - 2px) calc(var(--rounded-node) - 2px) 0 0"
     } as React.CSSProperties;
-  }, [backgroundColor, hasParent, theme]);
+  }, [backgroundColor, selected]);
 
-  const DotsIcon = ({
-    dot = 2.2,
-    gap = 6.5
-  }: {
-    dot?: number;
-    gap?: number;
-  }) => {
-    const r = dot / 2;
-    // Three circles, farther apart than default MoreHoriz
-    const cx1 = r;
-    const cx2 = r + dot + gap;
-    const cx3 = r + (dot + gap) * 2;
-    const width = dot * 3 + gap * 2;
-    const height = dot;
-    return (
-      <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        aria-hidden
-        focusable={false}
-        style={{ display: "block" }}
-      >
-        <circle cx={cx1} cy={r} r={r} fill="currentColor" />
-        <circle cx={cx2} cy={r} r={r} fill="currentColor" />
-        <circle cx={cx3} cy={r} r={r} fill="currentColor" />
-      </svg>
-    );
-  };
+  // const DotsIcon = ({
+  //   dot = 2.2,
+  //   gap = 6.5
+  // }: {
+  //   dot?: number;
+  //   gap?: number;
+  // }) => {
+  //   const r = dot / 2;
+  //   const cx1 = r;
+  //   const cx2 = r + dot + gap;
+  //   const cx3 = r + (dot + gap) * 2;
+  //   const width = dot * 3 + gap * 2;
+  //   const height = dot;
+  //   return (
+  //     <svg
+  //       width={width}
+  //       height={height}
+  //       viewBox={`0 0 ${width} ${height}`}
+  //       aria-hidden
+  //       focusable={false}
+  //       style={{ display: "block" }}
+  //     >
+  //       <circle cx={cx1} cy={r} r={r} fill="currentColor" />
+  //       <circle cx={cx2} cy={r} r={r} fill="currentColor" />
+  //       <circle cx={cx3} cy={r} r={r} fill="currentColor" />
+  //     </svg>
+  //   );
+  // };
 
   const SyncModeIcon = ({ mode }: { mode: string }) => {
     // Minimalistic dot motif: 1 dot for on_any, 2 overlapping dots for zip_all
     if (mode === "zip_all") {
-      const size = 12;
+      const size = 18;
       const r = 2.2;
       return (
         <svg
@@ -173,9 +167,21 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const openSyncMenu = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
     e.stopPropagation();
     setSyncMenuAnchor(e.currentTarget);
+    setIsSyncTooltipOpen(false);
   }, []);
 
-  const closeSyncMenu = useCallback(() => setSyncMenuAnchor(null), []);
+  const closeSyncMenu = useCallback(() => {
+    setSyncMenuAnchor(null);
+    setIsSyncTooltipOpen(false);
+  }, []);
+
+  const handleSyncTooltipOpen = useCallback(() => {
+    setIsSyncTooltipOpen(true);
+  }, []);
+
+  const handleSyncTooltipClose = useCallback(() => {
+    setIsSyncTooltipOpen(false);
+  }, []);
 
   const handleSelectMode = useCallback(
     (mode: "on_any" | "zip_all") => {
@@ -193,11 +199,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       onClick={handleHeaderClick}
       onContextMenu={handleHeaderContextMenu}
       style={{
-        ...(glassyStyle || { backgroundColor }),
+        ...(headerStyle || { backgroundColor }),
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 4px"
+        padding: "0 4px",
+        transition: "background-color 0.2s ease-in-out"
       }}
     >
       <div
@@ -213,28 +220,20 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           <div
             className="node-icon"
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 10,
+              width: 20,
+              height: 20,
+              borderRadius: 4,
               display: "grid",
               placeItems: "center",
               background: iconBaseColor
                 ? hexToRgba(iconBaseColor, 0.22)
-                : "rgba(255,255,255,0.08)",
-              border: `1px solid ${
-                iconBaseColor
-                  ? hexToRgba(iconBaseColor, 0.35)
-                  : "rgba(255,255,255,0.12)"
-              }`,
-              boxShadow: iconBaseColor
-                ? `0 0 24px -8px ${hexToRgba(iconBaseColor, 0.5)}`
-                : "none"
+                : "rgba(255,255,255,0.08)"
             }}
           >
             <IconForType
               iconName={iconType!}
               showTooltip={false}
-              svgProps={{ width: 16, height: 16 }}
+              iconSize="small"
             />
           </div>
         )}
@@ -251,11 +250,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       {showMenu && (
         <div className="menu-button-container" tabIndex={-1}>
           <Tooltip
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            disableInteractive
             title={`Sync mode: ${
               data?.sync_mode || "on_any"
             }. Click to change.`}
             placement="bottom"
             arrow
+            open={isSyncTooltipOpen}
+            onOpen={handleSyncTooltipOpen}
+            onClose={handleSyncTooltipClose}
           >
             <span
               className="sync-mode-button"
