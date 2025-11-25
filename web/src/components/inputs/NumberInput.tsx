@@ -173,7 +173,15 @@ const NumberInput: React.FC<InputProps> = (props) => {
         setSpeedFactorState(1);
 
         // Capture actual slider width at drag start
-        const sliderWidth = containerRef.current?.offsetWidth || 180;
+        const sliderWidth = (() => {
+          if (!containerRef.current) {
+            return 180;
+          }
+          if (props.zoomAffectsDragging) {
+            return containerRef.current.getBoundingClientRect().width || 180;
+          }
+          return containerRef.current.offsetWidth || 180;
+        })();
 
         setState((prevState) => ({
           ...prevState,
@@ -187,7 +195,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }));
       }
     },
-    [props.value]
+    [props.value, props.zoomAffectsDragging]
   );
 
   const handleClick = useCallback(
