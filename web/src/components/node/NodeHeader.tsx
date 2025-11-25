@@ -92,10 +92,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         : `linear-gradient(90deg, ${hexToRgba(tint, 0.25)}, ${hexToRgba(
             tint,
             0.1
-          )})`,
-      border: 0,
-      borderRadius:
-        "calc(var(--rounded-node) - 2px) calc(var(--rounded-node) - 2px) 0 0"
+          )})`
     } as React.CSSProperties;
   }, [backgroundColor, selected]);
 
@@ -198,33 +195,13 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       }`}
       onClick={handleHeaderClick}
       onContextMenu={handleHeaderContextMenu}
-      style={{
-        ...(headerStyle || { backgroundColor }),
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 4px",
-        transition: "background-color 0.2s ease-in-out"
-      }}
+      style={headerStyle || { backgroundColor }}
     >
-      <div
-        className="header-left"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "6px 4px"
-        }}
-      >
+      <div className="header-left">
         {hasIcon && showIcon && (
           <div
             className="node-icon"
             style={{
-              width: 20,
-              height: 20,
-              borderRadius: 4,
-              display: "grid",
-              placeItems: "center",
               background: iconBaseColor
                 ? hexToRgba(iconBaseColor, 0.22)
                 : "rgba(255,255,255,0.08)"
@@ -240,7 +217,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         <span
           className="node-title"
           style={{
-            color: "var(--palette-text-primary)",
             paddingLeft: hasIcon ? 0 : undefined
           }}
         >
@@ -263,17 +239,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           >
             <span
               className="sync-mode-button"
-              style={{
-                display: "inline-grid",
-                placeItems: "center",
-                width: 22,
-                height: 22,
-                borderRadius: 8,
-                color: "var(--palette-text-secondary)",
-                background: hexToRgba("#000", 0.12),
-                border: `1px solid ${hexToRgba("#fff", 0.08)}`,
-                cursor: "pointer"
-              }}
               aria-label={`Sync mode: ${data?.sync_mode || "on_any"}`}
               onClick={openSyncMenu}
             >
