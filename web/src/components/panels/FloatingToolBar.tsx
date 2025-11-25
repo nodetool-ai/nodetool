@@ -37,6 +37,9 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { Workflow } from "../../stores/ApiTypes";
+import QuickActions from "./QuickActions";
+import FlashOnIcon from "@mui/icons-material/FlashOn";
+import { Fade } from "@mui/material";
 
 const styles = (theme: Theme) =>
   css({
@@ -520,6 +523,11 @@ const FloatingToolBar: React.FC<{
     setActionsMenuAnchor(null);
   }, []);
 
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const handleToggleQuickActions = useCallback(() => {
+    setShowQuickActions((prev) => !prev);
+  }, []);
+
   const handleToggleTerminal = useCallback(() => {
     toggleBottomPanel("terminal");
   }, [toggleBottomPanel]);
@@ -555,6 +563,8 @@ const FloatingToolBar: React.FC<{
             : "20px"
         }}
       >
+
+
         {isMobile && (
           <Tooltip
             title="Open canvas menu"
@@ -570,6 +580,49 @@ const FloatingToolBar: React.FC<{
             </Fab>
           </Tooltip>
         )}
+
+        <div style={{ position: "relative", display: "flex" }}>
+          <Fade in={showQuickActions} mountOnEnter unmountOnExit>
+            <div
+              style={{
+                position: "absolute",
+                bottom: "100%",
+                left: "50%",
+                transform: "translateX(-50%)",
+                marginBottom: "16px",
+                zIndex: 10
+              }}
+            >
+              <QuickActions />
+            </div>
+          </Fade>
+          <Tooltip
+            title="Quick Actions"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            placement="top"
+          >
+            <Fab
+              className={`floating-action-button subtle ${
+                showQuickActions ? "active" : ""
+              }`}
+              onClick={handleToggleQuickActions}
+              aria-label="Quick Actions"
+              style={
+                showQuickActions
+                  ? {
+                      backgroundColor: theme.vars.palette.primary.main,
+                      color: "#fff",
+                      borderColor: theme.vars.palette.primary.main,
+                      boxShadow: `0 0 12px ${theme.vars.palette.primary.main}60`
+                    }
+                  : {}
+              }
+            >
+              <FlashOnIcon />
+            </Fab>
+          </Tooltip>
+        </div>
+
         <Tooltip
           title={getShortcutTooltip("openNodeMenu")}
           enterDelay={TOOLTIP_ENTER_DELAY}
@@ -596,19 +649,7 @@ const FloatingToolBar: React.FC<{
             <LayoutIcon />
           </Fab>
         </Tooltip>
-        <Tooltip
-          title="Open mini app view"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button mini-app`}
-            onClick={handleOpenInMiniApp}
-            aria-label="Open mini app view"
-          >
-            <AppsIcon />
-          </Fab>
-        </Tooltip>
+
         <Tooltip
           title="More actions"
           enterDelay={TOOLTIP_ENTER_DELAY}
