@@ -21,8 +21,10 @@ export const createStyles = (theme: Theme) => {
     ".glass-card": {
       position: "relative",
       borderRadius: doubledRadius,
-      backdropFilter: "blur(14px)",
-      boxShadow: `0 24px 60px -28px ${theme.vars.palette.grey[900]}`,
+      backdropFilter: "blur(12px)",
+      backgroundColor: `color-mix(in srgb, ${theme.vars.palette.background.paper}, transparent 60%)`,
+      boxShadow: theme.shadows[4],
+      border: `1px solid ${theme.vars.palette.divider}`,
       overflow: "hidden"
     },
 
@@ -142,6 +144,8 @@ export const createStyles = (theme: Theme) => {
       alignItems: "stretch",
       gridTemplateColumns: "minmax(0, 1fr)",
       minHeight: 0,
+      position: "relative",
+      zIndex: 1,
 
       [theme.breakpoints.up("lg")]: {
         gridTemplateColumns: "minmax(0, 1fr) minmax(0, 2.25fr)"
@@ -244,6 +248,7 @@ export const createStyles = (theme: Theme) => {
       borderRadius: doubledRadius,
       color: theme.vars.palette.text.secondary,
       padding: theme.spacing(6),
+      background: "transparent",
 
       [theme.breakpoints.down("sm")]: {
         padding: theme.spacing(4)

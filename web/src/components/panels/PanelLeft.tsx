@@ -185,40 +185,42 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: 6,
-      padding: "12px 10px",
-      marginTop: "6px",
-      borderRadius: "16px",
-      background: "rgba(16, 18, 28, 0.14)",
-      border: `1px solid ${theme.vars.palette.grey[800]}33`,
-      boxShadow: "0 6px 20px rgba(0, 0, 0, 0.18)",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)"
+      gap: 8,
+      padding: "14px 10px",
+      marginTop: "8px",
+      borderRadius: "20px",
+      background: "rgba(10, 12, 18, 0.3)",
+      border: `1px solid rgba(255, 255, 255, 0.06)`,
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.03)",
+      backdropFilter: "blur(16px)",
+      WebkitBackdropFilter: "blur(16px)"
     },
     ".quick-actions-group .quick-add-button": {
-      width: "40px",
-      height: "40px",
-      borderRadius: "12px",
-      padding: "6px",
+      width: "42px",
+      height: "42px",
+      borderRadius: "14px",
+      padding: "0",
       position: "relative",
       overflow: "hidden",
-      background: "var(--quick-gradient, rgba(28, 30, 38, 0.1))",
-      border: `1px solid ${theme.vars.palette.grey[700]}30`,
+      background: "var(--quick-gradient, rgba(255, 255, 255, 0.03))",
+      border: `1px solid rgba(255, 255, 255, 0.08)`,
       boxShadow:
-        "var(--quick-shadow, 0 3px 12px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255,255,255,0.04))",
+        "var(--quick-shadow, 0 2px 8px rgba(0, 0, 0, 0.16))",
       color: theme.vars.palette.grey[100],
-      transition: "all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)",
+      transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
+      backdropFilter: "blur(8px)",
+      WebkitBackdropFilter: "blur(8px)",
 
       "& svg": {
-        fontSize: "1.3rem",
-        color: "var(--quick-icon-color, #f5f7ff)",
+        fontSize: "1.4rem",
+        color: "var(--quick-icon-color, #fff)",
         position: "relative",
-        zIndex: 1
+        zIndex: 1,
+        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
+        transition: "transform 0.3s ease"
       },
 
       "&::before": {
@@ -227,10 +229,10 @@ const styles = (theme: Theme) =>
         inset: 0,
         borderRadius: "inherit",
         background:
-          "linear-gradient(135deg, rgba(255,255,255,0.28), transparent 45%)",
-        opacity: 0.32,
+          "linear-gradient(180deg, rgba(255,255,255,0.16), transparent 60%)",
+        opacity: 0.6,
         pointerEvents: "none",
-        mixBlendMode: "screen"
+        mixBlendMode: "overlay"
       },
 
       "&::after": {
@@ -238,28 +240,33 @@ const styles = (theme: Theme) =>
         position: "absolute",
         inset: 0,
         borderRadius: "inherit",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22)",
-        pointerEvents: "none"
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
+        pointerEvents: "none",
+        opacity: 0.8
       },
 
       "&:hover": {
-        transform: "translateY(-2px) scale(1.04)",
-        background: "var(--quick-hover-gradient, rgba(42, 46, 60, 0.16))",
+        transform: "translateY(-3px) scale(1.05)",
+        background: "var(--quick-hover-gradient, rgba(255, 255, 255, 0.08))",
         boxShadow:
-          "var(--quick-shadow-hover, 0 10px 20px rgba(0,0,0,0.28), 0 0 16px rgba(56,189,248,0.18))",
-        borderColor: "var(--quick-border-hover, rgba(255,255,255,0.2))"
+          "var(--quick-shadow-hover, 0 12px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.15))",
+        borderColor: "rgba(255,255,255,0.25)",
+        zIndex: 10,
+        "& svg": {
+          transform: "scale(1.1)"
+        }
       },
 
       "&:active": {
-        transform: "scale(0.96)",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.4)"
+        transform: "scale(0.96) translateY(0)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
       },
 
       "&.active": {
-        borderColor: `${theme.vars.palette.primary.main}66`,
-        boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}33, var(--quick-shadow, 0 3px 12px rgba(0,0,0,0.22))`,
+        borderColor: `${theme.vars.palette.primary.main}`,
+        boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}40, var(--quick-shadow)`,
         "& svg": {
-          color: theme.vars.palette.primary.main
+          color: "#fff"
         }
       }
     },
@@ -314,153 +321,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
   const nodeStore =
     nodeStoreFromContext ??
     (currentWorkflowId ? getNodeStore(currentWorkflowId) ?? null : null);
-
-  const getViewportCenter = useCallback((): XYPosition => {
-    if (!nodeStore || typeof window === "undefined") {
-      return { x: 0, y: 0 };
-    }
-    const { viewport } = nodeStore.getState();
-    const { innerWidth, innerHeight } = window;
-    if (!viewport) {
-      return { x: 0, y: 0 };
-    }
-    const { x, y, zoom } = viewport;
-    const centerX = innerWidth / 2;
-    const centerY = innerHeight / 2;
-
-    return {
-      x: (centerX - x) / zoom,
-      y: (centerY - y) / zoom
-    };
-  }, [nodeStore]);
-
-  const computePlacementPosition = useCallback((): XYPosition => {
-    const basePosition = getViewportCenter();
-    if (!nodeStore) {
-      return basePosition;
-    }
-
-    const { nodes } = nodeStore.getState();
-    if (!nodes || nodes.length === 0) {
-      return basePosition;
-    }
-
-    const spacingX = 240;
-    const spacingY = 180;
-
-    const candidateOffsets: Array<{ offset: XYPosition; distance: number }> =
-      [];
-    const maxRadius = 3;
-    for (let y = -maxRadius; y <= maxRadius; y++) {
-      for (let x = -maxRadius; x <= maxRadius; x++) {
-        const distance = Math.abs(x) + Math.abs(y);
-        candidateOffsets.push({
-          offset: { x: x * spacingX, y: y * spacingY },
-          distance
-        });
-      }
-    }
-
-    candidateOffsets.sort((a, b) => a.distance - b.distance);
-
-    const isPositionFree = (candidate: XYPosition) => {
-      const horizontalBuffer = spacingX * 0.6;
-      const verticalBuffer = spacingY * 0.6;
-
-      return nodes.every((node: ReactFlowNode<any>) => {
-        const pos = node.position ?? { x: 0, y: 0 };
-        const nodeWidth = node.width ?? 200;
-        const nodeHeight = node.height ?? 140;
-
-        const deltaX = Math.abs(candidate.x - pos.x);
-        const deltaY = Math.abs(candidate.y - pos.y);
-
-        const minX = nodeWidth / 2 + horizontalBuffer;
-        const minY = nodeHeight / 2 + verticalBuffer;
-
-        return deltaX >= minX || deltaY >= minY;
-      });
-    };
-
-    for (const { offset } of candidateOffsets) {
-      const candidate = {
-        x: basePosition.x + offset.x,
-        y: basePosition.y + offset.y
-      };
-      if (isPositionFree(candidate)) {
-        return candidate;
-      }
-    }
-
-    const fallbackOffset = nodes.length + 1;
-    return {
-      x: basePosition.x + fallbackOffset * (spacingX / 2),
-      y: basePosition.y + fallbackOffset * (spacingY / 2)
-    };
-  }, [getViewportCenter, nodeStore]);
-
-  const { activatePlacement, cancelPlacement, pendingNodeType } =
-    useNodePlacementStore((state) => ({
-      activatePlacement: state.activatePlacement,
-      cancelPlacement: state.cancelPlacement,
-      pendingNodeType: state.pendingNodeType
-    }));
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-
-  const handleAddNode = useCallback(
-    (action: QuickActionDefinition, event: ReactMouseEvent<HTMLButtonElement>) => {
-      const { nodeType, label } = action;
-      if (!nodeStore) {
-        return;
-      }
-      const metadata = getMetadata(nodeType);
-      if (!metadata) {
-        console.warn(`Metadata not found for node type: ${nodeType}`);
-        addNotification({
-          type: "warning",
-          content: `Unable to find metadata for ${label}.`,
-          timeout: 4000
-        });
-        return;
-      }
-
-      if (event.shiftKey) {
-        const store = nodeStore.getState();
-        const position = computePlacementPosition();
-        const newNode = store.createNode(metadata, position);
-        newNode.selected = true;
-        store.addNode(newNode);
-        cancelPlacement();
-        return;
-      }
-
-      if (pendingNodeType === nodeType) {
-        cancelPlacement();
-        return;
-      }
-
-      activatePlacement(nodeType, label, "quickAction");
-      addNotification({
-        type: "info",
-        content: `Click on the canvas to place "${label}". Press Esc to cancel.`,
-        timeout: 5000,
-        dismissable: true
-      });
-    },
-    [
-      nodeStore,
-      getMetadata,
-      computePlacementPosition,
-      cancelPlacement,
-      pendingNodeType,
-      activatePlacement,
-      addNotification
-    ]
-  );
-
-  const quickActionsAvailable = Boolean(nodeStore);
 
   return (
     <div className="vertical-toolbar">
@@ -532,11 +392,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <FolderIcon />
         </IconButton>
       </Tooltip>
-
-      <QuickActions
-        isAvailable={quickActionsAvailable}
-        onAddNode={handleAddNode}
-      />
 
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />

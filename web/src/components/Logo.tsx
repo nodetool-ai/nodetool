@@ -132,7 +132,7 @@ const Logo = ({
       style={onClick ? { cursor: "pointer" } : undefined}
     >
       {small && (
-        <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
+        <img className="logo-image" src="/logo.png" alt="NodeTool" />
       )}
       {enableText && (
         <div className="nt" onMouseEnter={handleMouseEnter} aria-hidden="true">
