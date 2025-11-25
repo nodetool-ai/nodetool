@@ -11,6 +11,7 @@ import {
   Button,
   TextField
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
@@ -31,6 +32,7 @@ import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
+import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/BASE_URL";
 import { useTheme } from "@mui/material/styles";
@@ -54,6 +56,7 @@ interface NodeEditorProps {
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const { missingModelFiles, missingModelRepos, clearMissingModels } = useNodes(
@@ -139,6 +142,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         <ReactFlowWrapper workflowId={workflowId} active={active} />
         {active && (
           <>
+            <RunAsAppFab workflowId={workflowId} />
             <NodeMenu focusSearchInput={true} />
             <CommandMenu
               open={commandMenuOpen}

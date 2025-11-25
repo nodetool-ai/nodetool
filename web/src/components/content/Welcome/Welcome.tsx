@@ -345,7 +345,7 @@ const Welcome = () => {
         >
           <img
             className="logo-image"
-            src="/nodetool_icon.png"
+            src="/logo.png"
             alt="NodeTool"
             style={{
               width: "28px",

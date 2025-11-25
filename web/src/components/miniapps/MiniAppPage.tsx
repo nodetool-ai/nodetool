@@ -7,14 +7,18 @@ import {
   Button,
   CircularProgress,
   LinearProgress,
-  Typography
+  Typography,
+  Fab,
+  Tooltip
 } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import MiniAppResults from "./components/MiniAppResults";
 import MiniAppInputsForm from "./components/MiniAppInputsForm";
+import MiniAppBackground from "./components/MiniAppBackground";
 import { useMiniAppInputs } from "./hooks/useMiniAppInputs";
 import { useMiniAppRunner } from "./hooks/useMiniAppRunner";
 import { clampNumber } from "./utils";
@@ -180,20 +184,33 @@ const MiniAppPage: React.FC = () => {
         {error && <Typography color="error">{error.message}</Typography>}
         {workflow && (
           <>
-            <Box
-              display="flex"
-              alignItems="center"
-              justifyContent="space-between"
-              mb={2}
-            >
-              <Typography>{workflow?.name}</Typography>
-              <Button
-                variant="outlined"
-                size="small"
+            <Tooltip title="Open in Editor" placement="left">
+              <Fab
+                size="medium"
                 onClick={handleOpenInEditor}
+                sx={{
+                  position: "absolute",
+                  top: 88,
+                  right: 50,
+                  zIndex: 100,
+                  backgroundColor: "#00BCD4",
+                  color: "#0b1220",
+                  boxShadow: "0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)",
+                  "&:hover": {
+                    backgroundColor: "#00ACC1",
+                    boxShadow: "0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)",
+                    transform: "scale(1.05)"
+                  },
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                }}
               >
-                Open in Editor
-              </Button>
+                <EditIcon />
+              </Fab>
+            </Tooltip>
+            <Box mb={2}>
+              <Typography variant="h5" fontWeight="500">
+                {workflow?.name}
+              </Typography>
             </Box>
             <div className="content-grid">
               <MiniAppInputsForm
