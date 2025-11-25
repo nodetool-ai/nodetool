@@ -734,28 +734,41 @@ export const createNodeStore = (
             }
           },
           updateNodeData: (id: string, data: Partial<NodeData>): void => {
-            set({
-              nodes: get().nodes.map((n) =>
-                n.id === id ? { ...n, data: { ...n.data, ...data } } : n
-              )
+            set((state) => {
+              const index = state.nodes.findIndex((n) => n.id === id);
+              if (index === -1) {
+                return state;
+              }
+              const nodes = state.nodes.slice();
+              const target = nodes[index];
+              nodes[index] = {
+                ...target,
+                data: { ...target.data, ...data }
+              };
+              return { ...state, nodes };
             });
           },
           updateNodeProperties: (id: string, properties: any): void => {
             const workflow_id = get().workflow.id;
-            set({
-              nodes: get().nodes.map(
-                (node) =>
-                  (node.id === id
-                    ? {
-                        ...node,
-                        data: {
-                          ...node.data,
-                          workflow_id,
-                          properties: { ...node.data.properties, ...properties }
-                        }
-                      }
-                    : node) as Node<NodeData>
-              )
+            set((state) => {
+              const index = state.nodes.findIndex((n) => n.id === id);
+              if (index === -1) {
+                return state;
+              }
+              const nodes = state.nodes.slice();
+              const target = nodes[index];
+              nodes[index] = {
+                ...target,
+                data: {
+                  ...target.data,
+                  workflow_id,
+                  properties: {
+                    ...target.data.properties,
+                    ...properties
+                  }
+                }
+              };
+              return { ...state, nodes };
             });
             get().setWorkflowDirty(true);
           },
