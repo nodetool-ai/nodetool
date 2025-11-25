@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
       ".node-subtitle": {
         color: theme.vars.palette.text.secondary,
         fontWeight: 300,
-        fontSize: theme.fontSizeSmaller,
+        fontSize: theme.fontSizeTiny,
         textTransform: "uppercase",
         overflow: "hidden",
         textOverflow: "ellipsis",
