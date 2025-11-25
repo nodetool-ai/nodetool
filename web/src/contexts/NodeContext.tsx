@@ -34,12 +34,15 @@ export const NodeProvider = ({ createStore, children }: NodeProviderProps) => {
   return <NodeContext.Provider value={store}>{children}</NodeContext.Provider>;
 };
 
-export const useNodes = <T,>(selector: (state: NodeStoreState) => T): T => {
+export const useNodes = <T,>(
+  selector: (state: NodeStoreState) => T,
+  equalityFn?: (a: T, b: T) => boolean
+): T => {
   const store = useContext(NodeContext);
   if (!store) {
     throw new Error("useNodes must be used within a NodeProvider");
   }
-  return useStoreWithEqualityFn(store, selector, isEqual);
+  return useStoreWithEqualityFn(store, selector, equalityFn ?? shallow);
 };
 
 export const useTemporalNodes = <T,>(
