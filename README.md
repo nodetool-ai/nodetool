@@ -13,89 +13,46 @@
 
 **Build AI Workflows Visually. Locally.**
 
-NodeTool is an open-source visual programming environment for building, testing, and deploying AI workflows. Drag, drop, and connect powerful AI models running entirely on your machine or via cloud APIs. No API keys required for local models. No data leaves your device unless you choose to.
+NodeTool is an open-source visual environment for building, testing, and deploying AI workflows. Connect powerful models running locally or in the cloud. No API keys needed for local inference. Your data stays with you.
 
 ![Screenshot](screenshot.png)
 
 ## Core Principles
 
-- **Local First**: Run workflows on your machine without relying on vendor cloud infrastructure.
-- **Open Source**: Inspect, modify, and self-host the entire stack. AGPL-3.0 licensed.
-- **Data Privacy**: Data is processed locally. No telemetry, tracking, or phoning home.
-- **No Lock-In**: Portable workflow format that works from laptop to deployment.
+- **Local First**: Run entirely on your machine. No cloud dependency.
+- **Open Source**: AGPL-3.0 licensed. Inspect, modify, and self-host.
+- **Private**: No telemetry. No tracking. Your data is yours.
+- **Portable**: Workflows run anywhere, from laptop to cloud.
 
 ## Features
 
-### The Workflow Engine
-
-Design logic visually with a typed node system.
-
-- **Visual Canvas**: Drag-and-drop interface with type-safe connections and infinite undo.
-- **Real-time Execution**: Watch the graph execute step-by-step. Preview outputs (images, text, audio) immediately.
-- **Multimodal**: Process text, images, audio, and video in a single graph.
-- **Built-in Memory**: Integrated ChromaDB for RAG workflows.
-- **Observability**: Inspect every step as it runs. No black boxes.
-
-### Universal Local Inference
-
-Run state-of-the-art models natively on Apple Silicon and NVIDIA GPUs with zero latency.
-
-- **MLX**: Optimized for Apple Silicon (M1-M4). Run LLMs, audio, and image generation natively on macOS.
-- **llama.cpp**: Universal inference for GGUF models on CPU/GPU across any platform.
-- **vLLM**: Production-grade serving with PagedAttention and continuous batching.
-- **Nunchaku**: High-performance inference for Flux, Qwen, and SDXL.
-
-### HuggingFace Native Integration
-
-Access thousands of models directly.
-
-- **Model Manager**: Search, download, and manage model weights directly from the Hub.
-- **Broad Support**: From Transformers to Diffusers, download and run compatible models with a single click.
-
-### Use Any Provider
-
-Bring your own API keys. No markup, no middleman.
-
-- **Supported Providers**: OpenAI, Anthropic, Gemini, Fal AI, Replicate, HuggingFace, and more.
-- **Mix and Match**: Use different providers in one workflow. Swap models instantly.
-
-### Deployment
-
-Scale workflows from local development to serverless GPUs with one command.
-
-- **One Command Deploy**: `nodetool deploy` pushes your workflow to the cloud.
-- **Scale to Zero**: Pay only for active inference time. Endpoints automatically scale down when idle.
-- **Providers**: Supports RunPod, Google Cloud, and others.
-
-### Asset Management
-
-- **Organize Everything**: Built-in Asset Manager for files.
-- **Drag & Drop**: Import images, videos, documents, and audio.
-- **Preview**: Built-in preview for all media types.
+- **Visual Workflow Engine**: Drag-and-drop interface with real-time execution, type safety, and multimodal support (text, image, audio, video).
+- **Universal Inference**: Run SOTA models (LLMs, Flux, SDXL) natively on Apple Silicon (MLX), NVIDIA GPUs, or CPU (llama.cpp).
+- **HuggingFace Integration**: Download and run thousands of models directly from the Hub.
+- **Flexible Providers**: Mix local models with APIs from OpenAI, Anthropic, Gemini, Replicate, and more.
+- **One-Click Deployment**: Scale from local dev to serverless GPUs with `nodetool deploy`.
+- **Asset Management**: Built-in manager for all your media files.
 
 ## Use Cases
 
-- **Smart Assistants**: Build assistants that interact with your local documents and notes.
-- **Agentic Workflows**: Create systems that search the web, classify emails, and use tools.
-- **Content Generation**: Automate text-to-image, video generation, and music creation pipelines.
-- **Data Analysis**: Process spreadsheets, generate charts, and extract insights.
-- **Voice & Audio**: Transcribe, analyze, and generate speech.
+- **Smart Assistants**: Chat with local documents.
+- **Agentic Workflows**: Search, classify, and automate.
+- **Content Creation**: Generate text, images, video, and music.
+- **Data Analysis**: Process data and extract insights.
 
 ## Quick Start
 
-| Platform    | Download                                  | Requirements                            |
-| ----------- | ----------------------------------------- | --------------------------------------- |
+| Platform | Download | Requirements |
+| :--- | :--- | :--- |
 | **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU recommended, 20GB free space |
-| **macOS**   | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon                       |
-| **Linux**   | [Download AppImage](https://nodetool.ai)  | Nvidia GPU recommended                  |
+| **macOS** | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon |
+| **Linux** | [Download AppImage](https://nodetool.ai) | Nvidia GPU recommended |
 
-### Hardware Requirements for Local Inference
+**Hardware for Local Inference:**
 
-| Setup             | Hardware              | Notes                                                     |
-| ----------------- | --------------------- | --------------------------------------------------------- |
-| **Apple Silicon** | M1/M2/M3/M4 Mac       | 16GB+ RAM for LLM/TTS, 24GB+ for image generation        |
-| **Windows/Linux** | NVIDIA GPU with CUDA  | 4GB+ VRAM for LLM/TTS, 8GB+ for image, 12GB+ for video   |
-| **Cloud Only**    | No GPU required       | Use API providers (OpenAI, Anthropic, Replicate, FAL)    |
+- **Apple Silicon**: 16GB+ RAM (LLM/TTS), 24GB+ (Image Gen)
+- **Windows/Linux**: 4GB+ VRAM (LLM/TTS), 8GB+ (Image), 12GB+ (Video)
+- **Cloud Only**: No GPU required.
 
 ______________________________________________________________________
 
@@ -111,189 +68,71 @@ ______________________________________________________________________
 
 ## 🛠️ Development Setup
 
-Set up a local development environment for the entire NodeTool platform.
-
-For core library development, see [nodetool-core repository](https://github.com/nodetool-ai/nodetool-core).
+For core library development, see [nodetool-core](https://github.com/nodetool-ai/nodetool-core).
 
 ### Prerequisites
 
-- Python 3.11
-- Conda ([miniconda.org](https://docs.conda.io/en/latest/miniconda.html))
-- Node.js LTS ([nodejs.org](https://nodejs.org/en))
+- Python 3.11, Conda, Node.js LTS
 
-### 1. Set Up Conda Environment
+### Quick Start
 
 ```bash
-# Create or update the Conda environment from environment.yml
+# 1. Setup Environment
 conda env update -f environment.yml --prune
 conda activate nodetool
+
+# 2. Install Core
+uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+
+# 3. Run Backend & Frontend
+nodetool serve --reload &
+cd web && npm install && npm start
 ```
 
-### 2. Install Core Python Dependencies
+### Desktop App (Electron)
+
+Configure `settings.yaml` with your Conda path, then:
 
 ```bash
-# Install core packages
-uv pip install git+https://github.com/nodetool-ai/nodetool-core
-uv pip install git+https://github.com/nodetool-ai/nodetool-base
+# Build
+cd web && npm install && npm run build
+cd ../apps && npm install && npm run build
+cd ../electron && npm install && npm run build
+
+# Start
+cd ../electron && npm start
 ```
 
-**For development:**
+## Testing & Quality
 
 ```bash
-git clone https://github.com/nodetool-ai/nodetool-core
-cd nodetool-core
-uv pip install -e .
-cd ..
-
-git clone https://github.com/nodetool-ai/nodetool-base
-cd nodetool-base
-uv pip install -e .
-cd ..
-```
-
-### 3. Install Node Packs
-
-For a list of available packs and installation instructions, see the [Node Packs documentation](https://docs.nodetool.ai/packs).
-
-### 4. Run NodeTool Backend & Web UI
-
-Activate the conda environment first.
-
-**Option A: Development (Backend + Web UI)**
-
-```bash
-# Terminal 1: Start backend
-nodetool serve --reload
-
-# Terminal 2: Start frontend
-cd web
-npm install
-npm start
-```
-
-Access at `http://localhost:3000`
-
-**Option B: Desktop App (Electron)**
-
-Configure conda path in `settings.yaml`:
-
-- macOS/Linux: `~/.config/nodetool/settings.yaml`
-- Windows: `%APPDATA%/nodetool/settings.yaml`
-
-```yaml
-CONDA_ENV: /path/to/your/conda/envs/nodetool
-```
-
-Build frontends (once or when code changes):
-
-```bash
-cd web && npm install && npm run build && cd ..
-cd apps && npm install && npm run build && cd ..
-cd electron && npm install && npm run build && cd ..
-```
-
-Start Electron:
-
-```bash
-cd electron
-npm start
-```
-
-## Testing
-
-### Python (core, packs)
-
-```bash
+# Python
 pytest -q
+
+# Web
+cd web && npm test && npm run lint
+
+# Pre-commit
+pip install pre-commit && pre-commit install && pre-commit run --all-files
 ```
-
-### Web UI
-
-```bash
-cd web
-npm test
-npm run lint
-npm run typecheck
-```
-
-### Electron
-
-```bash
-cd electron
-npm run lint
-npm run typecheck
-```
-
-## Code Quality
-
-Pre-commit hooks check and format code before commits.
-
-```bash
-# Install pre-commit
-conda activate nodetool
-pip install pre-commit
-pre-commit install
-
-# Run manually
-pre-commit run --all-files
-
-# Skip if necessary (not recommended)
-git commit --no-verify -m "Your message"
-```
-
-**Checks:**
-
-- Python: Ruff linting/formatting
-- TypeScript/JavaScript: ESLint, type checking
-- General: trailing whitespace, YAML/JSON validation
-
-## Troubleshooting
-
-- **Node/npm versions**: Use Node.js LTS (≥18). Reset with `rm -rf node_modules && npm install`
-- **Port in use**: Stop other processes on port 3000/8000 or change ports
-- **CLI not found**: Activate conda environment and restart shell
-- **GPU/PyTorch issues**: Use `--extra-index-url` when installing GPU-dependent packs
 
 ## Contributing
 
-NodeTool is developed in the open, and we welcome contributions of all kinds:
+We welcome contributions!
 
-- **Bug reports and feature requests** — Help us identify issues and prioritize improvements
-- **Code contributions** — Fix bugs, add features, or improve performance
-- **Documentation** — Clarify instructions, add examples, or fix typos
-- **Node development** — Create new nodes to extend NodeTool's capabilities
-- **Workflow sharing** — Share interesting workflows with the community
+- **Bug reports & Features**: Help us improve.
+- **Code**: Fix bugs or add features.
+- **Nodes**: Create new nodes.
 
-**Pull requests are welcome!** For major changes, please open an issue first to discuss your ideas.
-
-### Development workflow
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/name`)
-3. Commit changes (`git commit -m 'Add feature'`)
-4. Push to branch (`git push origin feature/name`)
-5. Open a Pull Request
+**Pull requests are welcome!** Open an issue for major changes.
 
 ## License
 
-NodeTool is free and open source software, released under the [AGPL-3.0 license](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE).
+[AGPL-3.0 license](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE).
 
 ## Get in Touch
 
-Questions, bug reports, feature requests. We're here to help.
-
-### General Inquiries
-
-Say hi or tell us what you need.
-[hello@nodetool.ai](mailto:hello@nodetool.ai)
-
-### The Team
-
-Direct contact to the developers.
-
-- **Matthias**: [matti@nodetool.ai](mailto:matti@nodetool.ai)
-- **David**: [david@nodetool.ai](mailto:david@nodetool.ai)
-
-Built with ❤️ by the NodeTool team.
+- **General**: [hello@nodetool.ai](mailto:hello@nodetool.ai)
+- **Team**: [matti@nodetool.ai](mailto:matti@nodetool.ai), [david@nodetool.ai](mailto:david@nodetool.ai)
 
 [GitHub](https://github.com/nodetool-ai/nodetool) • [Discord](https://discord.gg/WmQTWZRcYE)
