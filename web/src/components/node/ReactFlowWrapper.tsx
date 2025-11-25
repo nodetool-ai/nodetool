@@ -106,41 +106,24 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 }) => {
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
-  const {
-    nodes,
-    edges,
-    onNodesChange,
-    onEdgesChange,
-    onEdgeUpdate,
-    shouldFitToScreen,
-    setShouldFitToScreen,
-    validateConnection,
-    findNode,
-    viewport: storedViewport,
-    setViewport,
-    createNode,
-    addNode,
-    deleteEdge,
-    setEdgeSelectionState,
-    updateNode
-  } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    onNodesChange: state.onNodesChange,
-    onEdgesChange: state.onEdgesChange,
-    onEdgeUpdate: state.onEdgeUpdate,
-    shouldFitToScreen: state.shouldFitToScreen,
-    setShouldFitToScreen: state.setShouldFitToScreen,
-    validateConnection: state.validateConnection,
-    findNode: state.findNode,
-    viewport: state.viewport,
-    setViewport: state.setViewport,
-    createNode: state.createNode,
-    addNode: state.addNode,
-    deleteEdge: state.deleteEdge,
-    setEdgeSelectionState: state.setEdgeSelectionState,
-    updateNode: state.updateNode
-  }));
+  const nodes = useNodes((state) => state.nodes);
+  const edges = useNodes((state) => state.edges);
+  const onNodesChange = useNodes((state) => state.onNodesChange);
+  const onEdgesChange = useNodes((state) => state.onEdgesChange);
+  const onEdgeUpdate = useNodes((state) => state.onEdgeUpdate);
+  const shouldFitToScreen = useNodes((state) => state.shouldFitToScreen);
+  const setShouldFitToScreen = useNodes((state) => state.setShouldFitToScreen);
+  const validateConnection = useNodes((state) => state.validateConnection);
+  const findNode = useNodes((state) => state.findNode);
+  const storedViewport = useNodes((state) => state.viewport);
+  const setViewport = useNodes((state) => state.setViewport);
+  const createNode = useNodes((state) => state.createNode);
+  const addNode = useNodes((state) => state.addNode);
+  const deleteEdge = useNodes((state) => state.deleteEdge);
+  const setEdgeSelectionState = useNodes(
+    (state) => state.setEdgeSelectionState
+  );
+  const updateNode = useNodes((state) => state.updateNode);
 
   const [isVisible, setIsVisible] = useState(true);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -731,7 +714,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           height: "100%",
           backgroundColor: "var(--c_editor_bg_color)"
         }}
-        onlyRenderVisibleElements={false}
+        onlyRenderVisibleElements={false} // if true, adds lag when panning
         ref={ref}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
