@@ -57,18 +57,24 @@ const PropertyDropzone = ({
       },
       ".toggle-url-button": {
         position: "absolute",
-        top: "0",
+        top: "-15px",
         right: "0",
         zIndex: 2,
-        color: theme.vars.palette.grey[100],
-        backgroundColor: theme.vars.palette.grey[600],
-        fontSize: theme.fontSizeTinyer,
-        lineHeight: "1.1em",
-        height: "15px",
+        color: theme.vars.palette.grey[500],
+        backgroundColor: "transparent",
+        fontSize: "10px",
+        fontWeight: 600,
+        lineHeight: "1",
+        height: "auto",
         minWidth: "unset",
         margin: "0",
-        padding: ".2em .5em",
-        borderRadius: "0"
+        padding: "2px 4px",
+        borderRadius: "4px",
+        transition: "all 0.2s ease",
+        "&:hover": {
+          color: theme.vars.palette.primary.main,
+          backgroundColor: theme.vars.palette.action.hover
+        }
       },
       ".url-input": {
         height: "1em",
