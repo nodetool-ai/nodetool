@@ -16,17 +16,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   return (
     <div className="pretty-namespace">
       {parts.map((part, index) => (
-        <Typography
-          key={index}
-          component="span"
-          style={{
-            fontWeight: index === parts.length - 1 ? "500" : "300",
-            color:
-              index === parts.length - 1
-                ? theme.vars.palette.grey[400]
-                : "inherit"
-          }}
-        >
+        <Typography key={index} component="span">
           {part.replace("huggingface", "HF").replace("nodetool", "NT")}
           {index < parts.length - 1 && "."}
         </Typography>
@@ -69,21 +59,14 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   );
 
   return (
-    <div
-      className="node-footer"
-      style={{
-        borderTop: `1px solid ${theme.vars.palette.divider}`,
-        // backgroundColor: theme.vars.palette.background.default
-        backgroundColor: "transparent"
-      }}
-    >
+    <div className="node-footer">
       <Tooltip
         title={
           <span>
-            <span style={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}>
-              {nodeNamespace}
+            <span className="node-footer-tooltip-title">{nodeNamespace}</span>
+            <span className="node-footer-tooltip-subtitle">
+              Click to show in NodeMenu
             </span>
-            <span style={{ display: "block" }}>Click to show in NodeMenu</span>
           </span>
         }
         placement="bottom-start"

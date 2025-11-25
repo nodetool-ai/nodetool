@@ -20,10 +20,6 @@ const styles = (theme: Theme) =>
     "& .property-label": {
       marginBottom: "5px"
     },
-    "& .toggle-url-button": {
-      top: "-2.5em",
-      right: "0"
-    },
     "& .dropzone": {
       width: "100%"
     },
