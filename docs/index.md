@@ -16,6 +16,7 @@ NodeTool is built on these core principles:
 - <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>**Open and transparent** — Full source code available to inspect, modify, and self-host
 - <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>**Freedom to choose** — Use local models or any API provider, with portable workflows that run anywhere
 - <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>**Community-driven** — Built collaboratively by makers, researchers, and developers
+{: .icon-list }
 
 > **License:** AGPL-3.0 — This project is free and open source software
 
@@ -36,7 +37,9 @@ Run AI models directly on your machine with optimized engines:
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>**MLX** — Apple Silicon optimization (M1-M4) for LLMs, audio, speech, and image generation
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>**llama.cpp + whisper.cpp** — Fast LLM inference and speech recognition across platforms
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>**vLLM** — High-throughput inference engine for production workloads
+- <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>**Nunchaku** — High-performance 4-bit diffusion engine for NVIDIA GPUs
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>**HuggingFace** — Support for 24+ model types using Transformers & Diffusers
+{: .icon-list }
 
 ### Flexible API Integration
 
@@ -45,6 +48,7 @@ Choose your own providers and models:
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Connect with your own API keys for OpenAI, Anthropic, Gemini, Fal AI, Replicate, HuggingFace, and more
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Direct API calls with no intermediary services
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>Works completely offline with local models when desired
+{: .icon-list }
 
 ### Core Features
 
@@ -55,6 +59,7 @@ Choose your own providers and models:
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>**Conversational interface** — Run workflows through an integrated chat interface
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>**Asset management** — Organize and manage your files and media
 - <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>**Model management** — Download and configure HuggingFace models locally
+{: .icon-list }
 
 ## Installation
 

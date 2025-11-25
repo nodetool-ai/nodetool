@@ -22,9 +22,11 @@ Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
     - Formatting and filtering text output based on variable inputs
 
     Examples:
+    {% raw %}
     - text: "Hello, {{ name }}!"
     - text: "Title: {{ title|truncate(20) }}"
     - text: "Name: {{ name|upper }}"
+    {% endraw %}
 
     Available filters:
     - truncate(length): Truncates text to given length
@@ -44,11 +46,14 @@ Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| template | `str` | 
+| template | `str` |
+
     Examples:
+    {% raw %}
     - text: "Hello, {{ name }}!"
     - text: "Title: {{ title|truncate(20) }}"
     - text: "Name: {{ name|upper }}" 
+    {% endraw %} 
 
     Available filters:
     - truncate(length): Truncates text to given length
@@ -76,4 +81,3 @@ Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
 ## Related Nodes
 
 Browse other nodes in the [nodetool.text](../) namespace.
-

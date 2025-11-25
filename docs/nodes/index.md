@@ -3,12 +3,9 @@ layout: page
 title: "Node Reference"
 ---
 
-# Node Reference
-
 Complete reference documentation for all 698 NodeTool nodes across 113 namespaces.
 
 ## Namespaces
-
 
 ### comfy
 
@@ -88,7 +85,7 @@ Complete reference documentation for all 698 NodeTool nodes across 113 namespace
 - **[lib.os](lib/os/)** - 29 node(s)
 - **[lib.pandoc](lib/pandoc/)** - 2 node(s)
 - **[lib.pdfplumber](lib/pdfplumber/)** - 5 node(s)
-- **[lib.pillow.__init__](lib/pillow/__init__/)** - 2 node(s)
+- **[lib.pillow.**init**](lib/pillow/__init__/)** - 2 node(s)
 - **[lib.pillow.draw](lib/pillow/draw/)** - 3 node(s)
 - **[lib.pillow.enhance](lib/pillow/enhance/)** - 12 node(s)
 - **[lib.pillow.filter](lib/pillow/filter/)** - 12 node(s)

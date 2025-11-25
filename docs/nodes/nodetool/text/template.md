@@ -20,9 +20,11 @@ Uses Jinja2 templating to format strings with variables and filters. This node i
     - Formatting and filtering text output based on variable inputs
 
     Examples:
+    {% raw %}
     - text: "Hello, {{ name }}!"
     - text: "Title: {{ title|truncate(20) }}"
     - text: "Name: {{ name|upper }}"
+    {% endraw %}
 
     Available filters:
     - truncate(length): Truncates text to given length
@@ -42,11 +44,14 @@ Uses Jinja2 templating to format strings with variables and filters. This node i
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| string | `str` | 
+| string | `str` |
+
     Examples:
+    {% raw %}
     - text: "Hello, {{ name }}!"
     - text: "Title: {{ title|truncate(20) }}"
     - text: "Name: {{ name|upper }}"
+    {% endraw %}
 
     Available filters:
     - truncate(length): Truncates text to given length
@@ -62,12 +67,12 @@ Uses Jinja2 templating to format strings with variables and filters. This node i
     - sort: Sorts list
     - join(delimiter): Joins list with delimiter
  | `` |
-| values | `any` | 
+| values | `any` |
         The values to replace in the string.
         - If a string, it will be used as the format string.
         - If a list, it will be used as the format arguments.
         - If a dictionary, it will be used as the template variables.
-        - If an object, it will be converted to a dictionary using the object's __dict__ method.
+        - If an object, it will be converted to a dictionary using the object's **dict** method.
          | `{}` |
 
 ## Outputs
@@ -81,4 +86,3 @@ Uses Jinja2 templating to format strings with variables and filters. This node i
 ## Related Nodes
 
 Browse other nodes in the [nodetool.text](../) namespace.
-
