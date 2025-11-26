@@ -1,7 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import CloseIcon from "@mui/icons-material/Close";
 import { isEqual } from "lodash";
-import { DragEvent, MouseEvent, memo, useCallback, useState, useEffect } from "react";
+import {
+  DragEvent,
+  MouseEvent,
+  memo,
+  useCallback,
+  useState,
+  useEffect
+} from "react";
 import { Menu, MenuItem } from "@mui/material";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -78,20 +85,29 @@ const TabHeader = ({
 }: TabHeaderProps) => {
   // Use the simple hook to get reactive dirty state
   const isWorkflowDirty = useWorkflowDirty(workflow.id);
-  const [contextMenuPosition, setContextMenuPosition] = useState<
-    { mouseX: number; mouseY: number } | null
-  >(null);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{
+    mouseX: number;
+    mouseY: number;
+  } | null>(null);
 
   const closeContextMenu = useCallback(() => {
     setContextMenuPosition(null);
   }, []);
 
-  const handleContextMenu = useCallback(
+  const handleContextMenu = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setContextMenuPosition({ mouseX: event.clientX, mouseY: event.clientY });
+  }, []);
+
+  const handleAuxClick = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      setContextMenuPosition({ mouseX: event.clientX, mouseY: event.clientY });
+      if (event.button === 1) {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose(workflow.id);
+      }
     },
-    []
+    [onClose, workflow.id]
   );
 
   const handleDragOver = useCallback(
@@ -137,6 +153,7 @@ const TabHeader = ({
             onClose(workflow.id);
           }
         }}
+        onAuxClick={handleAuxClick}
         draggable={!isEditing}
         onDragStart={(e) => onDragStart(e, workflow.id)}
         onDragOver={handleDragOver}
