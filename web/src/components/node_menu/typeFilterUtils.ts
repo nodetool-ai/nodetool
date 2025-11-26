@@ -17,28 +17,31 @@ export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
     return;
   }
 
-  // Get unique types by using a Map with hashType as key
   const typeMap = new Map<string, TypeMetadata>();
-  metadata
-    .flatMap((node) => node.properties.map((prop) => prop.type))
-    .forEach((type) => {
-      typeMap.set(hashType(type), type);
-    });
-  const allTypes = Array.from(typeMap.values());
+  const addType = (type?: TypeMetadata) => {
+    if (!type) {
+      return;
+    }
+    typeMap.set(hashType(type), type);
+  };
 
-  const matrix: ConnectabilityMatrix = {};
-
-  // Initialize the matrix with nested objects first
-  allTypes.forEach((inputType) => {
-    matrix[hashType(inputType)] = {};
+  metadata.forEach((node) => {
+    node.properties.forEach((prop) => addType(prop.type));
+    node.outputs?.forEach((output) => addType(output.type));
   });
 
-  // Now set the connectability values
-  allTypes.forEach((inputType) => {
-    allTypes.forEach((outputType) => {
-      matrix[hashType(inputType)][hashType(outputType)] = isConnectable(
-        inputType,
-        outputType,
+  const allTypes = Array.from(typeMap.values());
+  const matrix: ConnectabilityMatrix = {};
+
+  allTypes.forEach((sourceType) => {
+    const sourceKey = hashType(sourceType);
+    matrix[sourceKey] = {};
+
+    allTypes.forEach((targetType) => {
+      const targetKey = hashType(targetType);
+      matrix[sourceKey][targetKey] = isConnectable(
+        sourceType,
+        targetType,
         true
       );
     });
@@ -48,12 +51,18 @@ export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
 }
 
 export function isConnectableCached(
-  inputType: TypeMetadata,
-  outputType: TypeMetadata
+  sourceType: TypeMetadata,
+  targetType: TypeMetadata
 ) {
-  return (
-    connectabilityMatrix?.[hashType(inputType)]?.[hashType(outputType)] ?? false
-  );
+  const sourceKey = hashType(sourceType);
+  const targetKey = hashType(targetType);
+  const cached = connectabilityMatrix?.[sourceKey]?.[targetKey];
+
+  if (typeof cached === "boolean") {
+    return cached;
+  }
+
+  return isConnectable(sourceType, targetType, true);
 }
 
 /**
