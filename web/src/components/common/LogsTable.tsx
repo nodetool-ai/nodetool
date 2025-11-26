@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
+import { CopyToClipboardButton } from "./CopyToClipboardButton";
 
 export type Severity = "info" | "warning" | "error";
 
@@ -45,7 +46,7 @@ const tableStyles = (theme: Theme) =>
     ".header": {
       display: "grid",
       gridAutoFlow: "column",
-      gridTemplateColumns: "70px 1fr 120px",
+      gridTemplateColumns: "70px 1fr 90px 48px",
       gap: 0,
       alignItems: "center",
       height: 40,
@@ -59,7 +60,7 @@ const tableStyles = (theme: Theme) =>
     ".row": {
       display: "grid",
       gridAutoFlow: "column",
-      gridTemplateColumns: "70px 1fr 120px",
+      gridTemplateColumns: "70px 1fr 90px 48px",
       gap: 0,
       alignItems: "center",
       height: 44,
@@ -80,6 +81,11 @@ const tableStyles = (theme: Theme) =>
       whiteSpace: "nowrap",
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.text.primary
+    },
+    ".cell.actions": {
+      display: "flex",
+      justifyContent: "flex-end",
+      whiteSpace: "normal"
     },
     ".content": {
       fontFamily: theme.fontFamily2,
@@ -136,6 +142,14 @@ export const LogsTable: React.FC<LogsTableProps> = ({
             {r.content}
           </div>
           <div className="cell">{formatTime(r.timestamp)}</div>
+          <div className="cell actions">
+            <CopyToClipboardButton
+              title="Copy log entry"
+              tooltipPlacement="left"
+              copyValue={`${r.timestamp} ${r.severity} ${r.content}`}
+              size="small"
+            />
+          </div>
         </div>
       </div>
     );
@@ -149,6 +163,9 @@ export const LogsTable: React.FC<LogsTableProps> = ({
           <Typography variant="caption">Severity</Typography>
           <Typography variant="caption">Content</Typography>
           <Typography variant="caption">Timestamp</Typography>
+          <Typography variant="caption" textAlign="right">
+            Copy
+          </Typography>
         </div>
         <div style={{ flex: 1, minHeight: 0 }}>
           {filteredRows.length === 0 ? (
