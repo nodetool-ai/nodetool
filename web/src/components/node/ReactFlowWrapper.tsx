@@ -219,8 +219,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       if (!edgeId) {
         return;
       }
-
-      console.log("[ReactFlowWrapper] middle click delete edge", { edgeId });
       deleteEdge(edgeId);
       event.preventDefault();
       event.stopPropagation();
