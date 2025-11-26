@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Button,
+  Chip,
   List,
   ListItem,
   ListItemButton,
@@ -35,12 +36,19 @@ const styles = (theme: Theme) =>
     height: "100%",
     ".explorer-header": {
       display: "flex",
-      flexDirection: "column",
-      gap: "0.25em",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      gap: "0.5em",
       userSelect: "none"
     },
     ".explorer-header h5": {
       margin: ".5em 0 .5em 0"
+    },
+    ".explorer-count": {
+      fontSize: theme.fontSizeTiny,
+      fontWeight: 500,
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase"
     },
     ".filter-input": {
       width: "100%"
@@ -255,6 +263,14 @@ const NodeExplorer: React.FC = () => {
     <Box className="node-explorer" css={explorerStyles}>
       <div className="explorer-header">
         <Typography variant="h5">Node Explorer</Typography>
+        <Chip
+          size="small"
+          label={
+            filter.trim().length === 0
+              ? `${nodes.length}`
+              : `${entries.length} / ${nodes.length}`
+          }
+        />
       </div>
       <TextField
         className="filter-input"
