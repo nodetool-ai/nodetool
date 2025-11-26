@@ -3,7 +3,6 @@ layout: page
 title: "search.google Nodes"
 ---
 
-# search.google
 
 This namespace contains 8 node(s).
 

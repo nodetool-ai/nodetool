@@ -3,7 +3,6 @@ layout: page
 title: "lib.date Nodes"
 ---
 
-# lib.date
 
 This namespace contains 15 node(s).
 

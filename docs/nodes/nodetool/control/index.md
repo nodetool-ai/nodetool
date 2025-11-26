@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.control Nodes"
 ---
 
-# nodetool.control
 
 This namespace contains 4 node(s).
 

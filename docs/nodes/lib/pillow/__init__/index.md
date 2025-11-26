@@ -3,7 +3,6 @@ layout: page
 title: "lib.pillow.__init__ Nodes"
 ---
 
-# lib.pillow.__init__
 
 This namespace contains 2 node(s).
 

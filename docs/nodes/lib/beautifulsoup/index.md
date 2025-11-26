@@ -3,7 +3,6 @@ layout: page
 title: "lib.beautifulsoup Nodes"
 ---
 
-# lib.beautifulsoup
 
 This namespace contains 8 node(s).
 

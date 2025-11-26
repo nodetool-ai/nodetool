@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.text Nodes"
 ---
 
-# nodetool.text
 
 This namespace contains 29 node(s).
 

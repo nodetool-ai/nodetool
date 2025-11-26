@@ -3,7 +3,6 @@ layout: page
 title: "lib.difflib Nodes"
 ---
 
-# lib.difflib
 
 This namespace contains 3 node(s).
 

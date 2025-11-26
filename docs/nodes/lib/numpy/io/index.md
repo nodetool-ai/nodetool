@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.io Nodes"
 ---
 
-# lib.numpy.io
 
 This namespace contains 1 node(s).
 

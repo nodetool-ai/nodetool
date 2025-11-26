@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.text_classification Nodes"
 ---
 
-# huggingface.text_classification
 
 This namespace contains 2 node(s).
 

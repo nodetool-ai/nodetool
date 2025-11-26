@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.image_classification Nodes"
 ---
 
-# huggingface.image_classification
 
 This namespace contains 2 node(s).
 

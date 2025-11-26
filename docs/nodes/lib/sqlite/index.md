@@ -3,7 +3,6 @@ layout: page
 title: "lib.sqlite Nodes"
 ---
 
-# lib.sqlite
 
 This namespace contains 7 node(s).
 

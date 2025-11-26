@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.arithmetic Nodes"
 ---
 
-# lib.numpy.arithmetic
 
 This namespace contains 5 node(s).
 

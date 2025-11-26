@@ -3,7 +3,6 @@ layout: page
 title: "lib.urllib Nodes"
 ---
 
-# lib.urllib
 
 This namespace contains 5 node(s).
 

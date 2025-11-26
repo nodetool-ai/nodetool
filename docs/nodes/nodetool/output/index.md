@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.output Nodes"
 ---
 
-# nodetool.output
 
 This namespace contains 14 node(s).
 

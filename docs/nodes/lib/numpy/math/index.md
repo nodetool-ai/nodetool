@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.math Nodes"
 ---
 
-# lib.numpy.math
 
 This namespace contains 7 node(s).
 

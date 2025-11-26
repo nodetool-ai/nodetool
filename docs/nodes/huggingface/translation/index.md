@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.translation Nodes"
 ---
 
-# huggingface.translation
 
 This namespace contains 1 node(s).
 

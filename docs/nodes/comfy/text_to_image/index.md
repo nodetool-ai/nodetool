@@ -3,7 +3,6 @@ layout: page
 title: "comfy.text_to_image Nodes"
 ---
 
-# comfy.text_to_image
 
 This namespace contains 6 node(s).
 

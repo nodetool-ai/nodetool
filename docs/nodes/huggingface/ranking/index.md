@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.ranking Nodes"
 ---
 
-# huggingface.ranking
 
 This namespace contains 1 node(s).
 

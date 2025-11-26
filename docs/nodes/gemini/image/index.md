@@ -3,7 +3,6 @@ layout: page
 title: "gemini.image Nodes"
 ---
 
-# gemini.image
 
 This namespace contains 1 node(s).
 

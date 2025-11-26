@@ -3,7 +3,6 @@ layout: page
 title: "mlx.text_generation Nodes"
 ---
 
-# mlx.text_generation
 
 This namespace contains 1 node(s).
 

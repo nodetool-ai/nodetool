@@ -3,7 +3,6 @@ layout: page
 title: "lib.pillow.draw Nodes"
 ---
 
-# lib.pillow.draw
 
 This namespace contains 3 node(s).
 

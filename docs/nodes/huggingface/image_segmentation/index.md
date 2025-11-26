@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.image_segmentation Nodes"
 ---
 
-# huggingface.image_segmentation
 
 This namespace contains 4 node(s).
 

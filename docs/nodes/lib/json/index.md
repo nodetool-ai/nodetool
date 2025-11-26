@@ -3,7 +3,6 @@ layout: page
 title: "lib.json Nodes"
 ---
 
-# lib.json
 
 This namespace contains 13 node(s).
 

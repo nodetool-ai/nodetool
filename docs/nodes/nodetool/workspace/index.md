@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.workspace Nodes"
 ---
 
-# nodetool.workspace
 
 This namespace contains 18 node(s).
 

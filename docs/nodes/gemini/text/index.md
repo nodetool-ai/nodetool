@@ -3,7 +3,6 @@ layout: page
 title: "gemini.text Nodes"
 ---
 
-# gemini.text
 
 This namespace contains 1 node(s).
 

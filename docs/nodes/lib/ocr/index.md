@@ -3,7 +3,6 @@ layout: page
 title: "lib.ocr Nodes"
 ---
 
-# lib.ocr
 
 This namespace contains 1 node(s).
 

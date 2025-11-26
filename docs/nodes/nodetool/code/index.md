@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.code Nodes"
 ---
 
-# nodetool.code
 
 This namespace contains 6 node(s).
 
