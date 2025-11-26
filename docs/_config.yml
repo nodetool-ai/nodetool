@@ -49,8 +49,9 @@ header_pages:
   - providers.md
   - asset-management.md
   - nodes/index.md
-  - architecture.md
+
   - cookbook.md
+  - developer/index.md
   - workflows/index.md
   - tips-and-tricks.md
 

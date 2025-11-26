@@ -3,7 +3,6 @@ layout: page
 title: "lib.pillow.enhance Nodes"
 ---
 
-# lib.pillow.enhance
 
 This namespace contains 12 node(s).
 

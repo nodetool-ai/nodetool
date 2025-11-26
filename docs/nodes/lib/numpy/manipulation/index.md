@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.manipulation Nodes"
 ---
 
-# lib.numpy.manipulation
 
 This namespace contains 6 node(s).
 

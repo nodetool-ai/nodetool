@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.generators Nodes"
 ---
 
-# nodetool.generators
 
 This namespace contains 5 node(s).
 

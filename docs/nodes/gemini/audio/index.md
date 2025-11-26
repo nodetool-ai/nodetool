@@ -3,7 +3,6 @@ layout: page
 title: "gemini.audio Nodes"
 ---
 
-# gemini.audio
 
 This namespace contains 1 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "lib.random Nodes"
 ---
 
-# lib.random
 
 This namespace contains 4 node(s).
 

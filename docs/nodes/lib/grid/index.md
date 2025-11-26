@@ -3,7 +3,6 @@ layout: page
 title: "lib.grid Nodes"
 ---
 
-# lib.grid
 
 This namespace contains 2 node(s).
 

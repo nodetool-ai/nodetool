@@ -3,7 +3,6 @@ layout: page
 title: "openai.image Nodes"
 ---
 
-# openai.image
 
 This namespace contains 1 node(s).
 

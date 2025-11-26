@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.image_to_text Nodes"
 ---
 
-# huggingface.image_to_text
 
 This namespace contains 2 node(s).
 

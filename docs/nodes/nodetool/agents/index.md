@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.agents Nodes"
 ---
 
-# nodetool.agents
 
 This namespace contains 5 node(s).
 

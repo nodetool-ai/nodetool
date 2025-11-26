@@ -3,7 +3,6 @@ layout: page
 title: "gemini.video Nodes"
 ---
 
-# gemini.video
 
 This namespace contains 2 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "lib.pillow.filter Nodes"
 ---
 
-# lib.pillow.filter
 
 This namespace contains 12 node(s).
 

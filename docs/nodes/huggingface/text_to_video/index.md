@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.text_to_video Nodes"
 ---
 
-# huggingface.text_to_video
 
 This namespace contains 2 node(s).
 

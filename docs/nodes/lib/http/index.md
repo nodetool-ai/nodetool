@@ -3,7 +3,6 @@ layout: page
 title: "lib.http Nodes"
 ---
 
-# lib.http
 
 This namespace contains 17 node(s).
 

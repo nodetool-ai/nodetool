@@ -3,7 +3,6 @@ layout: page
 title: "openai.text Nodes"
 ---
 
-# openai.text
 
 This namespace contains 2 node(s).
 

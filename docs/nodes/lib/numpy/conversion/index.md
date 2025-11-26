@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.conversion Nodes"
 ---
 
-# lib.numpy.conversion
 
 This namespace contains 7 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.sentence_similarity Nodes"
 ---
 
-# huggingface.sentence_similarity
 
 This namespace contains 1 node(s).
 

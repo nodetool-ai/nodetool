@@ -3,7 +3,6 @@ layout: page
 title: "lib.uuid Nodes"
 ---
 
-# lib.uuid
 
 This namespace contains 7 node(s).
 

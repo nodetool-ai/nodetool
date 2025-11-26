@@ -3,7 +3,6 @@ layout: page
 title: "lib.os Nodes"
 ---
 
-# lib.os
 
 This namespace contains 29 node(s).
 

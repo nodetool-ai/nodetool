@@ -3,7 +3,6 @@ layout: page
 title: "lib.docx Nodes"
 ---
 
-# lib.docx
 
 This namespace contains 9 node(s).
 

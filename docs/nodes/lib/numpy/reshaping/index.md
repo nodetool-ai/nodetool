@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.reshaping Nodes"
 ---
 
-# lib.numpy.reshaping
 
 This namespace contains 4 node(s).
 

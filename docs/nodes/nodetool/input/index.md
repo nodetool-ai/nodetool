@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.input Nodes"
 ---
 
-# nodetool.input
 
 This namespace contains 19 node(s).
 

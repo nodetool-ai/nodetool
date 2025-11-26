@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.audio_classification Nodes"
 ---
 
-# huggingface.audio_classification
 
 This namespace contains 2 node(s).
 

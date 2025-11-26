@@ -3,7 +3,6 @@ layout: page
 title: "lib.secret Nodes"
 ---
 
-# lib.secret
 
 This namespace contains 1 node(s).
 

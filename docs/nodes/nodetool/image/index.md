@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.image Nodes"
 ---
 
-# nodetool.image
 
 This namespace contains 14 node(s).
 

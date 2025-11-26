@@ -3,7 +3,6 @@ layout: page
 title: "lib.math Nodes"
 ---
 
-# lib.math
 
 This namespace contains 10 node(s).
 

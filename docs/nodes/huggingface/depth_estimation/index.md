@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.depth_estimation Nodes"
 ---
 
-# huggingface.depth_estimation
 
 This namespace contains 1 node(s).
 

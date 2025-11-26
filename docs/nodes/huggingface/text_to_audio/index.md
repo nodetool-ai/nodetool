@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.text_to_audio Nodes"
 ---
 
-# huggingface.text_to_audio
 
 This namespace contains 6 node(s).
 

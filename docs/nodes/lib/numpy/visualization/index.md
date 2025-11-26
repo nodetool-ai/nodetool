@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.visualization Nodes"
 ---
 
-# lib.numpy.visualization
 
 This namespace contains 1 node(s).
 

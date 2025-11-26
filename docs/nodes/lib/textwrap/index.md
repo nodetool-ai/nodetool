@@ -3,7 +3,6 @@ layout: page
 title: "lib.textwrap Nodes"
 ---
 
-# lib.textwrap
 
 This namespace contains 5 node(s).
 
