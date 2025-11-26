@@ -3,12 +3,15 @@ import React, { useMemo, useCallback, memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
-import { OutputSlot } from "../../stores/ApiTypes";
+import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { css } from "@emotion/react";
+import { useNodes } from "../../contexts/NodeContext";
+import useMetadataStore from "../../stores/MetadataStore";
+import { findInputHandle } from "../../utils/handleUtils";
 
 export type NodeOutputProps = {
   id: string;
@@ -22,7 +25,38 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
     (state) => state.connectDirection
   );
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
+  const connectHandleId = useConnectionStore((state) => state.connectHandleId);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const findNode = useNodes((state) => state.findNode);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+
+  const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
+    if (
+      connectDirection !== "target" ||
+      !connectNodeId ||
+      !connectHandleId ||
+      connectType
+    ) {
+      return connectType;
+    }
+    const targetNode = findNode(connectNodeId);
+    if (!targetNode) {
+      return null;
+    }
+    const metadata = getMetadata(targetNode.type || "");
+    if (!metadata) {
+      return null;
+    }
+    const handle = findInputHandle(targetNode, connectHandleId, metadata);
+    return handle?.type ?? null;
+  }, [
+    connectDirection,
+    connectHandleId,
+    connectNodeId,
+    connectType,
+    findNode,
+    getMetadata
+  ]);
 
   const outputContextMenu = useCallback(
     (event: React.MouseEvent, id: string, output: OutputSlot) => {
@@ -43,46 +77,44 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
   );
 
   const isConnectable = useMemo(() => {
-    // Output handles should always be draggable to start connections
-    if (!connectType || connectDirection !== "target") {
+    if (!effectiveConnectType || connectDirection !== "target") {
       return true;
     }
-    
-    // When something is being dragged TO this output (which shouldn't happen for source handles)
-    // or when checking compatibility for dynamic outputs
-    if (isDynamic) {
-      return true;
-    }
-    
-    return isConnectableCached(connectType, output.type) && connectNodeId !== id;
+    return (
+      isConnectableCached(output.type, effectiveConnectType) &&
+      connectNodeId !== id
+    );
   }, [
-    output.type,
-    connectType,
-    connectNodeId,
-    id,
     connectDirection,
-    isDynamic
+    connectNodeId,
+    effectiveConnectType,
+    id,
+    isDynamic,
+    output.type
   ]);
 
   const classConnectable = useMemo(() => {
-    if (!connectType || connectDirection !== "target") {
+    if (connectDirection === "source") {
+      if (connectNodeId === id && connectHandleId === output.name) {
+        return "is-connectable";
+      }
+      return "not-connectable";
+    }
+    if (!effectiveConnectType || connectDirection !== "target") {
       return "is-connectable";
     }
-    
-    if (isDynamic) {
-      return "is-connectable";
-    }
-    
-    return isConnectableCached(connectType, output.type) && connectNodeId !== id
+    return isConnectableCached(output.type, effectiveConnectType) &&
+      connectNodeId !== id
       ? "is-connectable"
       : "not-connectable";
   }, [
-    output.type,
-    connectType,
-    connectNodeId,
-    id,
     connectDirection,
-    isDynamic
+    connectHandleId,
+    connectNodeId,
+    effectiveConnectType,
+    id,
+    isDynamic,
+    output.type
   ]);
 
   return (
