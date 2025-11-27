@@ -11,6 +11,7 @@ import {
   ConnectionMatchMenuPayload,
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
+import { wouldCreateCycle } from "../../utils/graphCycle";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
@@ -159,6 +160,14 @@ export default function useConnectionHandlers() {
           true
         )
       ) {
+        if (wouldCreateCycle(edges, source, target)) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: "Cannot create a cyclic connection"
+          });
+          return;
+        }
         connectionCreated.current = true;
         // Add className based on the source handle type
         const connectionWithClassName = {
@@ -174,7 +183,7 @@ export default function useConnectionHandlers() {
         });
       }
     },
-    [findNode, getMetadata, onConnect, addNotification]
+    [findNode, getMetadata, onConnect, addNotification, edges]
   );
 
   const openHandleSelectionMenu = useCallback(

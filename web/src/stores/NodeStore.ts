@@ -49,6 +49,7 @@ import {
   hasInputHandle
 } from "../utils/handleUtils";
 import { WorkflowAttributes } from "./ApiTypes";
+import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
@@ -650,6 +651,16 @@ export const createNodeStore = (
                 )
             );
 
+            if (
+              wouldCreateCycle(
+                filteredEdges as Edge[],
+                connection.source,
+                connection.target
+              )
+            ) {
+              return;
+            }
+
             const newEdge = {
               ...connection,
               id: get().generateEdgeId(),
@@ -1062,6 +1073,16 @@ export const createNodeStore = (
               targetMetadata
             );
             if (!targetHandle) {
+              return false;
+            }
+
+            if (
+              wouldCreateCycle(
+                get().edges,
+                connection.source,
+                connection.target
+              )
+            ) {
               return false;
             }
 

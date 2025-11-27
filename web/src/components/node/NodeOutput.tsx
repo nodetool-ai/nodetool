@@ -84,14 +84,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
       isConnectableCached(output.type, effectiveConnectType) &&
       connectNodeId !== id
     );
-  }, [
-    connectDirection,
-    connectNodeId,
-    effectiveConnectType,
-    id,
-    isDynamic,
-    output.type
-  ]);
+  }, [connectDirection, connectNodeId, effectiveConnectType, id, output.type]);
 
   const classConnectable = useMemo(() => {
     if (connectDirection === "source") {
@@ -113,8 +106,8 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
     connectNodeId,
     effectiveConnectType,
     id,
-    isDynamic,
-    output.type
+    output.type,
+    output.name
   ]);
 
   return (
