@@ -11,6 +11,8 @@ import {
   ConnectionMode,
   useViewport,
   Connection,
+  Edge,
+  IsValidConnection,
   Viewport
 } from "@xyflow/react";
 
@@ -64,6 +66,7 @@ import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import { getMousePosition } from "../../utils/MousePosition";
+import { wouldCreateCycle } from "../../utils/graphCycle";
 import {
   getSelectionRect,
   getNodesWithinSelection
@@ -113,7 +116,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const onEdgeUpdate = useNodes((state) => state.onEdgeUpdate);
   const shouldFitToScreen = useNodes((state) => state.shouldFitToScreen);
   const setShouldFitToScreen = useNodes((state) => state.setShouldFitToScreen);
-  const validateConnection = useNodes((state) => state.validateConnection);
   const findNode = useNodes((state) => state.findNode);
   const storedViewport = useNodes((state) => state.viewport);
   const setViewport = useNodes((state) => state.setViewport);
@@ -329,6 +331,18 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       document.body.style.cursor = previousCursor;
     };
   }, [pendingNodeType]);
+
+  const isConnectionValid = useCallback<IsValidConnection<Edge>>(
+    (connection) => {
+      const sourceId = connection.source ?? null;
+      const targetId = connection.target ?? null;
+      if (!sourceId || !targetId) {
+        return true;
+      }
+      return !wouldCreateCycle(edges, sourceId, targetId);
+    },
+    [edges]
+  );
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -733,13 +747,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
         connectionRadius={settings.connectionSnap}
-        // isValidConnection={(connection) => {
-        //   if (!connection.source || !connection.target) return true;
-        //   const src = findNode(connection.source);
-        //   const tgt = findNode(connection.target);
-        //   if (!src || !tgt) return false;
-        //   return validateConnection(connection as Connection, src, tgt);
-        // }}
+        isValidConnection={isConnectionValid}
         attributionPosition="bottom-left"
         selectNodesOnDrag={settings.selectNodesOnDrag}
         // onClick={handleClick}
