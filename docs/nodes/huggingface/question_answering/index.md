@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.question_answering Nodes"
 ---
 
-# huggingface.question_answering
 
 This namespace contains 2 node(s).
 

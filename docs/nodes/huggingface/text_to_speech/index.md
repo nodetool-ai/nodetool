@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.text_to_speech Nodes"
 ---
 
-# huggingface.text_to_speech
 
 This namespace contains 3 node(s).
 

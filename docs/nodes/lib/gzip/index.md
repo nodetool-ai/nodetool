@@ -3,7 +3,6 @@ layout: page
 title: "lib.gzip Nodes"
 ---
 
-# lib.gzip
 
 This namespace contains 2 node(s).
 

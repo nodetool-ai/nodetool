@@ -3,7 +3,6 @@ layout: page
 title: "mlx.text_to_speech Nodes"
 ---
 
-# mlx.text_to_speech
 
 This namespace contains 3 node(s).
 

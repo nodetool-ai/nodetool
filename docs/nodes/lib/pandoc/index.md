@@ -3,7 +3,6 @@ layout: page
 title: "lib.pandoc Nodes"
 ---
 
-# lib.pandoc
 
 This namespace contains 2 node(s).
 

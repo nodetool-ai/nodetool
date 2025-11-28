@@ -1,4 +1,8 @@
-# NodeTool Documentation
+---
+layout: page
+title: "NodeTool Documentation"
+---
+
 
 This directory contains the markdown files for the NodeTool documentation. The site is built using [Jekyll](https://jekyllrb.com/), a static site generator that converts markdown files into a complete website.
 

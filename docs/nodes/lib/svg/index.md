@@ -3,7 +3,6 @@ layout: page
 title: "lib.svg Nodes"
 ---
 
-# lib.svg
 
 This namespace contains 14 node(s).
 

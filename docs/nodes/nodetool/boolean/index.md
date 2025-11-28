@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.boolean Nodes"
 ---
 
-# nodetool.boolean
 
 This namespace contains 8 node(s).
 

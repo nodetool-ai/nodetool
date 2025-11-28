@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.summarization Nodes"
 ---
 
-# huggingface.summarization
 
 This namespace contains 1 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "lib.markdown Nodes"
 ---
 
-# lib.markdown
 
 This namespace contains 6 node(s).
 

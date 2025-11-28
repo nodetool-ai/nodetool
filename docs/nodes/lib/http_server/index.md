@@ -3,7 +3,6 @@ layout: page
 title: "lib.http_server Nodes"
 ---
 
-# lib.http_server
 
 This namespace contains 1 node(s).
 

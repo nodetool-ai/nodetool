@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.audio Nodes"
 ---
 
-# nodetool.audio
 
 This namespace contains 25 node(s).
 

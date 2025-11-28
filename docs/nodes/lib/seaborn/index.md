@@ -3,7 +3,6 @@ layout: page
 title: "lib.seaborn Nodes"
 ---
 
-# lib.seaborn
 
 This namespace contains 1 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "lib.supabase Nodes"
 ---
 
-# lib.supabase
 
 This namespace contains 6 node(s).
 

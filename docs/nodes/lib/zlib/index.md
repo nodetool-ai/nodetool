@@ -3,7 +3,6 @@ layout: page
 title: "lib.zlib Nodes"
 ---
 
-# lib.zlib
 
 This namespace contains 2 node(s).
 

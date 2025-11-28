@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.dictionary Nodes"
 ---
 
-# nodetool.dictionary
 
 This namespace contains 12 node(s).
 

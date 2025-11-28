@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.lora Nodes"
 ---
 
-# huggingface.lora
 
 This namespace contains 2 node(s).
 

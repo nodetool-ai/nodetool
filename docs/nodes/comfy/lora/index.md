@@ -3,7 +3,6 @@ layout: page
 title: "comfy.lora Nodes"
 ---
 
-# comfy.lora
 
 This namespace contains 1 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "lib.base64 Nodes"
 ---
 
-# lib.base64
 
 This namespace contains 2 node(s).
 

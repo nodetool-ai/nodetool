@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.video Nodes"
 ---
 
-# nodetool.video
 
 This namespace contains 27 node(s).
 

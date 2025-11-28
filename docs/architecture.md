@@ -1,25 +1,34 @@
 ---
 layout: page
-title: "Architecture Overview"
+title: "Architecture & Lifecycle"
 ---
 
-This page explains how the pieces of NodeTool fit together. The codebase is split into multiple packages that interact through a simple client‑server design.
+## Job Lifecycle (run, stream, reconnect, cancel)
 
-## Repository Structure
+{% mermaid %}
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant JEM as JobExecutionManager
+    participant Runner as Execution Strategy
+    participant Msg as Messaging/WS
 
-- **`web/`** – React application containing the main workflow editor.
-- **`electron/`** – Electron wrapper providing the desktop experience and system tray integration.
+    Client->>API: POST /api/workflows/{id}/run (stream=true)
+    API->>JEM: Create job + enqueue
+    JEM->>Runner: Start job (threaded/subprocess/docker)
+    Runner->>Msg: Emit streaming events
+    Msg-->>Client: token/output events
+    Client-->>API: reconnect with thread/job id
+    API-->>Msg: resume stream from checkpoint
+    Client->>API: DELETE /api/workflows/{id}/run (cancel)
+    API->>JEM: cancel job
+    Runner-->>JEM: teardown and cleanup
+    JEM-->>Msg: end event
+    Msg-->>Client: completion / cancelled status
+{% endmermaid %}
 
-The Python backend lives inside the main repository and exposes a FastAPI server plus a WebSocket runner. Workers connect locally or remotely to execute nodes with CPU or GPU models.
+## Notes
 
-## Data Flow
-
-1. The **Web UI** communicates with the API server over HTTP for management tasks (saving workflows, listing assets, etc.).
-2. During execution, the UI connects to the **WebSocket Runner** to receive live updates from nodes.
-3. Results are streamed back through the runner to the frontend in real time.
-
-This modular approach keeps the core editor lightweight while enabling heavy computation on dedicated workers or in the cloud.
-
-Workflow execution and system stats use a shared GlobalWebSocketManager. Chat uses a dedicated WebSocket connection.
-
-The web app blocks rendering until metadata for all node types is loaded. This ensures type compatibility and connection validation is correct.
+- All endpoints and examples use `http://127.0.0.1:8000` by default; update host/port when deploying.
+- Messaging emits both JSON and optional MessagePack; see [chat-server](chat-server.md) for protocol details.
+- Execution strategies are detailed in [execution-strategies](execution-strategies.md).

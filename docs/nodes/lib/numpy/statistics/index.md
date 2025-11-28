@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.statistics Nodes"
 ---
 
-# lib.numpy.statistics
 
 This namespace contains 6 node(s).
 

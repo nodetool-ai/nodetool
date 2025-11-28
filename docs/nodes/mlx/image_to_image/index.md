@@ -3,7 +3,6 @@ layout: page
 title: "mlx.image_to_image Nodes"
 ---
 
-# mlx.image_to_image
 
 This namespace contains 7 node(s).
 

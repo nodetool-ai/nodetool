@@ -3,7 +3,6 @@ layout: page
 title: "openai.audio Nodes"
 ---
 
-# openai.audio
 
 This namespace contains 3 node(s).
 

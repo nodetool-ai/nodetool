@@ -3,7 +3,6 @@ layout: page
 title: "lib.pymupdf Nodes"
 ---
 
-# lib.pymupdf
 
 This namespace contains 5 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "lib.markitdown Nodes"
 ---
 
-# lib.markitdown
 
 This namespace contains 1 node(s).
 

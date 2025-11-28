@@ -3,7 +3,6 @@ layout: page
 title: "vector.faiss Nodes"
 ---
 
-# vector.faiss
 
 This namespace contains 7 node(s).
 
