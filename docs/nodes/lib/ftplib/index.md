@@ -3,7 +3,6 @@ layout: page
 title: "lib.ftplib Nodes"
 ---
 
-# lib.ftplib
 
 This namespace contains 3 node(s).
 

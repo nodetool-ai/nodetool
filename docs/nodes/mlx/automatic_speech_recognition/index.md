@@ -3,7 +3,6 @@ layout: page
 title: "mlx.automatic_speech_recognition Nodes"
 ---
 
-# mlx.automatic_speech_recognition
 
 This namespace contains 1 node(s).
 

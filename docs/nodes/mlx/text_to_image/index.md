@@ -3,7 +3,6 @@ layout: page
 title: "mlx.text_to_image Nodes"
 ---
 
-# mlx.text_to_image
 
 This namespace contains 1 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.data Nodes"
 ---
 
-# nodetool.data
 
 This namespace contains 27 node(s).
 

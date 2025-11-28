@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.image_to_image Nodes"
 ---
 
-# huggingface.image_to_image
 
 This namespace contains 23 node(s).
 

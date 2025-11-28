@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.object_detection Nodes"
 ---
 
-# huggingface.object_detection
 
 This namespace contains 3 node(s).
 

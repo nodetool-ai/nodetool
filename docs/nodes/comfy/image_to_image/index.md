@@ -3,7 +3,6 @@ layout: page
 title: "comfy.image_to_image Nodes"
 ---
 
-# comfy.image_to_image
 
 This namespace contains 5 node(s).
 

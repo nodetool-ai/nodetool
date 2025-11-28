@@ -3,7 +3,6 @@ layout: page
 title: "lib.bytes Nodes"
 ---
 
-# lib.bytes
 
 This namespace contains 2 node(s).
 

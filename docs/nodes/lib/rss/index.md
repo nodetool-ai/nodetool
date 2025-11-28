@@ -3,7 +3,6 @@ layout: page
 title: "lib.rss Nodes"
 ---
 
-# lib.rss
 
 This namespace contains 2 node(s).
 

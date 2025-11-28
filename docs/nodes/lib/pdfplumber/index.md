@@ -3,7 +3,6 @@ layout: page
 title: "lib.pdfplumber Nodes"
 ---
 
-# lib.pdfplumber
 
 This namespace contains 5 node(s).
 

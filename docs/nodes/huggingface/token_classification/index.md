@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.token_classification Nodes"
 ---
 
-# huggingface.token_classification
 
 This namespace contains 1 node(s).
 

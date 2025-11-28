@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.text_generation Nodes"
 ---
 
-# huggingface.text_generation
 
 This namespace contains 1 node(s).
 

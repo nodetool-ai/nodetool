@@ -3,7 +3,6 @@ layout: page
 title: "vector.chroma Nodes"
 ---
 
-# vector.chroma
 
 This namespace contains 13 node(s).
 

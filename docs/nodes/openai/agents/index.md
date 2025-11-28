@@ -3,7 +3,6 @@ layout: page
 title: "openai.agents Nodes"
 ---
 
-# openai.agents
 
 This namespace contains 2 node(s).
 

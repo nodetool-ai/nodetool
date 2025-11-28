@@ -3,7 +3,6 @@ layout: page
 title: "lib.numpy.utils Nodes"
 ---
 
-# lib.numpy.utils
 
 This namespace contains 1 node(s).
 

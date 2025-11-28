@@ -3,7 +3,6 @@ layout: page
 title: "lib.tar Nodes"
 ---
 
-# lib.tar
 
 This namespace contains 3 node(s).
 

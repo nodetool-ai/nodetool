@@ -3,7 +3,6 @@ layout: page
 title: "lib.browser Nodes"
 ---
 
-# lib.browser
 
 This namespace contains 6 node(s).
 

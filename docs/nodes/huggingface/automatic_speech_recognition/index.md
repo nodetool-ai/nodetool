@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.automatic_speech_recognition Nodes"
 ---
 
-# huggingface.automatic_speech_recognition
 
 This namespace contains 2 node(s).
 

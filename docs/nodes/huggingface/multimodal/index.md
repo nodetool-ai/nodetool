@@ -3,7 +3,6 @@ layout: page
 title: "huggingface.multimodal Nodes"
 ---
 
-# huggingface.multimodal
 
 This namespace contains 2 node(s).
 

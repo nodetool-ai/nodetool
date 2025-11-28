@@ -32,6 +32,21 @@
     });
   }
 
+  // Sidebar scroll position persistence across page loads
+  const SIDEBAR_SCROLL_KEY = 'nodetool-sidebar-scroll';
+  function restoreSidebarScroll() {
+    if (!sidebar) return;
+    const stored = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+    if (stored !== null) {
+      sidebar.scrollTop = parseInt(stored, 10);
+    }
+  }
+
+  function persistSidebarScroll() {
+    if (!sidebar) return;
+    sessionStorage.setItem(SIDEBAR_SCROLL_KEY, sidebar.scrollTop);
+  }
+
   // Smooth scroll for anchor links
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
@@ -186,6 +201,12 @@
     addCopyButtons();
     setupScrollAnimations();
     addLogoGlitch();
+    restoreSidebarScroll();
+
+    if (sidebar) {
+      sidebar.addEventListener('scroll', persistSidebarScroll, { passive: true });
+      window.addEventListener('beforeunload', persistSidebarScroll);
+    }
 
     // Close mobile menu when clicking outside
     document.addEventListener('click', function(e) {

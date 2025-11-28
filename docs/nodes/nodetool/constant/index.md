@@ -3,7 +3,6 @@ layout: page
 title: "nodetool.constant Nodes"
 ---
 
-# nodetool.constant
 
 This namespace contains 15 node(s).
 

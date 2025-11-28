@@ -3,7 +3,6 @@ layout: page
 title: "lib.excel Nodes"
 ---
 
-# lib.excel
 
 This namespace contains 6 node(s).
 

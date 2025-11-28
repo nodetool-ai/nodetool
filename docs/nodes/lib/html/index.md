@@ -3,7 +3,6 @@ layout: page
 title: "lib.html Nodes"
 ---
 
-# lib.html
 
 This namespace contains 2 node(s).
 

@@ -3,7 +3,6 @@ layout: page
 title: "lib.mail Nodes"
 ---
 
-# lib.mail
 
 This namespace contains 5 node(s).
 
