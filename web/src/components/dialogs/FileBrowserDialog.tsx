@@ -1,0 +1,849 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef
+} from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  IconButton,
+  Breadcrumbs,
+  Link,
+  CircularProgress,
+  TextField,
+  InputAdornment,
+  useTheme,
+  Theme
+} from "@mui/material";
+import {
+  Folder as FolderIcon,
+  InsertDriveFile as FileIcon,
+  Search as SearchIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  Refresh as RefreshIcon,
+  Close as CloseIcon
+} from "@mui/icons-material";
+import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
+import { TreeViewBaseItem } from "@mui/x-tree-view/models";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeList as List } from "react-window";
+import { client } from "../../stores/ApiClient";
+import { FileInfo } from "../../stores/ApiTypes";
+import { createErrorMessage } from "../../utils/errorHandling";
+import log from "loglevel";
+
+import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+
+export type SelectionMode = "file" | "directory";
+
+interface FileBrowserDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (path: string) => void;
+  title?: string;
+  initialPath?: string;
+  selectionMode?: SelectionMode;
+}
+
+// Extended Tree Item type for RichTreeView
+type ExtendedTreeItem = TreeViewBaseItem & {
+  id: string;
+  label: string;
+  children?: ExtendedTreeItem[];
+  path: string; // Store full path
+};
+
+const styles = (theme: Theme) =>
+  css({
+    ".file-browser-content": {
+      display: "flex",
+      flex: 1,
+      minHeight: 0,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "0",
+      overflow: "hidden",
+      backgroundColor: theme.vars.palette.background.paper
+    },
+    ".left-panel": {
+      width: "250px",
+      minWidth: "200px",
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      display: "flex",
+      flexDirection: "column",
+      backgroundColor: theme.vars.palette.background.default,
+      overflow: "hidden"
+    },
+    ".right-panel": {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      backgroundColor: theme.vars.palette.background.paper
+    },
+    ".toolbar": {
+      display: "flex",
+      alignItems: "center",
+      padding: "8px 16px",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      gap: "16px",
+      backgroundColor: theme.vars.palette.background.default
+    },
+    ".breadcrumbs": {
+      flex: 1,
+      minWidth: 0,
+      "& .MuiBreadcrumbs-ol": {
+        flexWrap: "nowrap",
+        overflowX: "auto",
+        scrollbarWidth: "none",
+        listStyle: "none !important",
+        margin: 0,
+        padding: 0,
+        "&::-webkit-scrollbar": {
+          display: "none"
+        }
+      },
+      "& .MuiBreadcrumbs-li": {
+        listStyle: "none !important"
+      },
+      "& li": {
+        listStyle: "none !important"
+      },
+      "& .MuiBreadcrumbs-separator": {
+        marginLeft: "4px",
+        marginRight: "4px"
+      }
+    },
+    ".file-list": {
+      flex: 1,
+      outline: "none"
+    },
+    ".list-item": {
+      display: "flex",
+      alignItems: "center",
+      padding: "0 12px",
+      cursor: "pointer",
+      gap: "8px",
+      fontSize: "0.875rem",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      },
+      "&.selected": {
+        backgroundColor: theme.vars.palette.action.selected
+      }
+    },
+    ".folder-tree": {
+      overflowY: "auto",
+      flex: 1,
+      padding: "8px"
+    },
+    // Tree View Styles
+    ".MuiTreeItem-content": {
+      borderRadius: "4px",
+      padding: "4px 8px",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      },
+      "&.Mui-selected": {
+        backgroundColor: theme.vars.palette.action.selected
+      }
+    }
+  });
+
+// --- Helper Functions ---
+
+const fetchFileList = async (path: string) => {
+  const { data, error } = await client.GET("/api/files/list", {
+    params: { query: { path } }
+  });
+  if (error) {
+    throw createErrorMessage(error, "Failed to list files");
+  }
+  return data;
+};
+
+const formatBytes = (bytes: number, decimals = 2) => {
+  if (!+bytes) return "0 Bytes";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+};
+
+// --- Component ---
+
+export default function FileBrowserDialog({
+  open,
+  onClose,
+  onConfirm,
+  title = "Select File",
+  initialPath = "~",
+  selectionMode = "file"
+}: FileBrowserDialogProps) {
+  const theme = useTheme();
+
+  // --- State ---
+  const [currentPath, setCurrentPath] = useState(initialPath);
+  const [isEditingPath, setIsEditingPath] = useState(false);
+  const [pathInputValue, setPathInputValue] = useState(initialPath);
+  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [selectedPath, setSelectedPath] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Tree State
+  const [treeItems, setTreeItems] = useState<ExtendedTreeItem[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const treeScrollRef = useRef<HTMLDivElement>(null);
+
+  // --- Memos (Moved up for usage in effects) ---
+
+  // Filter files
+  const filteredFiles = useMemo(() => {
+    if (!searchQuery) return files;
+    return files.filter((f) =>
+      f.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [files, searchQuery]);
+
+  // Breadcrumbs
+  const breadcrumbs = useMemo(() => {
+    // Detect likely separator from current path
+    const separator = currentPath.includes("\\") ? "\\" : "/";
+    const parts = currentPath.split(/[/\\]/).filter(Boolean);
+    const items = [];
+    let pathAcc = "";
+
+    // Special handling for root based on OS style
+    if (currentPath.startsWith("/")) {
+      // Unix absolute
+      items.push({ name: "Root", path: "/" });
+      pathAcc = "";
+    } else if (currentPath.includes(":")) {
+      // Windows absolute probably
+      pathAcc = "";
+    } else if (currentPath.startsWith("~")) {
+      // Home relative
+      items.push({ name: "Home", path: "~" });
+      pathAcc = "~";
+      parts.shift();
+    }
+
+    parts.forEach((part) => {
+      if (pathAcc === "" && currentPath.startsWith("/")) {
+        pathAcc = `/${part}`;
+      } else if (pathAcc === "" && part.includes(":")) {
+        // Windows drive root
+        pathAcc = part + "\\";
+      } else if (pathAcc.endsWith("/") || pathAcc.endsWith("\\")) {
+        pathAcc = `${pathAcc}${part}`;
+      } else {
+        // Default separator
+        pathAcc = `${pathAcc}${separator}${part}`;
+      }
+      items.push({ name: part, path: pathAcc });
+    });
+    return items;
+  }, [currentPath]);
+
+  // --- Effects ---
+
+  // Sync input value when path changes externally
+  useEffect(() => {
+    setPathInputValue(currentPath);
+  }, [currentPath]);
+
+  // Auto-scroll to selected item in tree
+  useEffect(() => {
+    if (!treeScrollRef.current) return;
+
+    // Allow some time for expansion/rendering
+    const timeoutId = setTimeout(() => {
+      const selected = treeScrollRef.current?.querySelector(".Mui-selected");
+      if (selected) {
+        selected.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentPath, expandedItems, treeItems]);
+
+  // Initial Tree Load
+  useEffect(() => {
+    const loadRoots = async () => {
+      try {
+        const rootFiles = await fetchFileList("~");
+        const roots = rootFiles
+          .filter((f) => f.is_dir)
+          .map((f) => ({
+            id: f.path,
+            label: f.name,
+            path: f.path,
+            children: [
+              { id: `${f.path}_loading`, label: "Loading...", path: "" }
+            ] as ExtendedTreeItem[]
+          }));
+        setTreeItems(roots);
+      } catch (e) {
+        console.error("Failed to load roots", e);
+      }
+    };
+    if (open && treeItems.length === 0) {
+      loadRoots();
+    }
+  }, [open, treeItems.length]);
+
+  // Helper to update tree items recursively
+  const updateTreeItem = useCallback(
+    (itemId: string, newChildren: ExtendedTreeItem[]) => {
+      setTreeItems((prevItems) => {
+        const updateRecursive = (
+          items: ExtendedTreeItem[]
+        ): ExtendedTreeItem[] => {
+          return items.map((item) => {
+            if (item.id === itemId) {
+              return { ...item, children: newChildren };
+            }
+            if (item.children) {
+              return { ...item, children: updateRecursive(item.children) };
+            }
+            return item;
+          });
+        };
+        return updateRecursive(prevItems);
+      });
+    },
+    []
+  );
+
+  // Load ancestors of currentPath to ensure it is visible in tree
+  useEffect(() => {
+    if (!open || treeItems.length === 0) return;
+
+    const loadMissingAncestors = async () => {
+      // Find ancestors that are in the tree but have "Loading..." children
+      // We skip the current path itself since we only need its parent loaded to show it
+      // (or if we want to show children of current path in tree, we could include it)
+
+      // Breadcrumbs contains the full path hierarchy
+      // We iterate and check if each segment is loaded
+
+      const findNode = (
+        items: ExtendedTreeItem[],
+        id: string
+      ): ExtendedTreeItem | undefined => {
+        for (const item of items) {
+          if (item.id === id) return item;
+          if (item.children) {
+            const found = findNode(item.children, id);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      };
+
+      // We check ancestors. If an ancestor is found but needs loading, we load it.
+      // We do one at a time per effect run (since state update triggers re-run)
+      for (const breadcrumb of breadcrumbs) {
+        // Skip Root/Home placeholders if they aren't in tree (tree roots are their children)
+        if (breadcrumb.path === "~" || breadcrumb.path === "/") continue;
+
+        const node = findNode(treeItems, breadcrumb.path);
+        if (node) {
+          const isPlaceholder =
+            node.children &&
+            node.children.length === 1 &&
+            node.children[0].id.endsWith("_loading");
+          if (isPlaceholder) {
+            try {
+              const fileList = await fetchFileList(node.path);
+              const folders = fileList
+                .filter((f) => f.is_dir)
+                .map((f) => ({
+                  id: f.path,
+                  label: f.name,
+                  path: f.path,
+                  children: [
+                    { id: `${f.path}_loading`, label: "Loading...", path: "" }
+                  ] as ExtendedTreeItem[]
+                }));
+
+              updateTreeItem(node.id, folders.length > 0 ? folders : []);
+              // Break after one update, effect will re-run
+              return;
+            } catch (e) {
+              console.error("Failed to load tree node for sync", e);
+              updateTreeItem(node.id, []);
+              return;
+            }
+          }
+        }
+      }
+    };
+
+    loadMissingAncestors();
+  }, [currentPath, breadcrumbs, open, treeItems, updateTreeItem]);
+
+  // Sync expansion when navigating
+  useEffect(() => {
+    if (currentPath === "~" || currentPath === "/" || currentPath === "")
+      return;
+
+    // Expand all ancestor paths derived from breadcrumbs
+    const ancestorPaths = breadcrumbs.map((b) => b.path);
+
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      ancestorPaths.forEach((p) => next.add(p));
+      return Array.from(next);
+    });
+  }, [currentPath, breadcrumbs]);
+
+  // Load files for right panel
+  useEffect(() => {
+    const loadFiles = async () => {
+      setIsLoadingFiles(true);
+      try {
+        const fileList = await fetchFileList(currentPath);
+        // Sort: Folders first, then files
+        const sorted = fileList.sort((a, b) => {
+          if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
+          return a.is_dir ? -1 : 1;
+        });
+        setFiles(sorted);
+      } catch (err) {
+        log.error("Failed to load files", err);
+      } finally {
+        setIsLoadingFiles(false);
+      }
+    };
+    if (open) {
+      loadFiles();
+    }
+  }, [currentPath, open]);
+
+  // --- Handlers ---
+
+  const handlePathSubmit = async () => {
+    const path = pathInputValue.trim();
+
+    if (selectionMode === "file" && path) {
+      try {
+        // Try to list as directory first
+        await fetchFileList(path);
+        handleNavigate(path);
+      } catch (e) {
+        // If listing fails, assume it's a file path
+        // Try to navigate to parent and select the file
+        const parts = path.split(/[/\\]/);
+        if (parts.length > 1) {
+          const separator = path.includes("\\") ? "\\" : "/";
+          parts.pop();
+          let parent = parts.join(separator);
+
+          // Handle root/drive cases
+          if (path.startsWith("/") && parent === "") parent = "/";
+          if (parent.endsWith(":")) parent += separator;
+
+          setCurrentPath(parent);
+          setSelectedPath(path);
+          setSearchQuery("");
+        } else {
+          handleNavigate(path);
+        }
+      }
+    } else {
+      handleNavigate(path);
+    }
+    setIsEditingPath(false);
+  };
+
+  const handleNavigate = (path: string) => {
+    setCurrentPath(path);
+    setSearchQuery("");
+    if (selectionMode === "directory") {
+      setSelectedPath(path);
+    } else {
+      setSelectedPath("");
+    }
+  };
+
+  const handleUp = () => {
+    if (currentPath === "~" || currentPath === "/") return;
+    // Naive parent path
+    const separator = currentPath.includes("\\") ? "\\" : "/";
+    const parts = currentPath.split(/[/\\]/);
+    parts.pop();
+
+    let parent = parts.join(separator);
+    if (currentPath.startsWith("/") && parent === "") parent = "/";
+    if (parent.endsWith(":")) parent += "\\"; // Windows drive root often needs backslash
+
+    handleNavigate(parent || "~");
+  };
+
+  const handleFileClick = (file: FileInfo) => {
+    if (file.is_dir) {
+      if (selectionMode === "directory") {
+        setSelectedPath(file.path);
+      }
+    } else {
+      if (selectionMode === "file") {
+        setSelectedPath(file.path);
+      }
+    }
+  };
+
+  const handleFileDoubleClick = (file: FileInfo) => {
+    if (file.is_dir) {
+      handleNavigate(file.path);
+    } else {
+      if (selectionMode === "file") {
+        setSelectedPath(file.path);
+        onConfirm(file.path);
+      }
+    }
+  };
+
+  const handleConfirmClick = () => {
+    if (selectedPath) {
+      onConfirm(selectedPath);
+    }
+  };
+
+  // --- Tree Logic ---
+
+  const handleItemExpansionToggle = async (
+    event: React.SyntheticEvent,
+    itemId: string,
+    isExpanded: boolean
+  ) => {
+    if (isExpanded) {
+      // Find the item in treeItems to check if it needs loading
+      const findNode = (
+        items: ExtendedTreeItem[]
+      ): ExtendedTreeItem | undefined => {
+        for (const item of items) {
+          if (item.id === itemId) return item;
+          if (item.children) {
+            const found = findNode(item.children);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      };
+
+      const node = findNode(treeItems);
+
+      // Check if children is placeholder
+      if (
+        node &&
+        node.children &&
+        node.children.length === 1 &&
+        node.children[0].id.endsWith("_loading")
+      ) {
+        try {
+          // Fetch children folders
+          const fileList = await fetchFileList(node.path);
+          const folders = fileList
+            .filter((f) => f.is_dir)
+            .map((f) => ({
+              id: f.path,
+              label: f.name,
+              path: f.path,
+              children: [
+                { id: `${f.path}_loading`, label: "Loading...", path: "" }
+              ] as ExtendedTreeItem[]
+            }));
+
+          if (folders.length === 0) {
+            updateTreeItem(itemId, []);
+          } else {
+            updateTreeItem(itemId, folders);
+          }
+        } catch (e) {
+          console.error("Failed to load tree children", e);
+          updateTreeItem(itemId, []);
+        }
+      }
+    }
+    setExpandedItems((prev) =>
+      isExpanded ? [...prev, itemId] : prev.filter((id) => id !== itemId)
+    );
+  };
+
+  const handleTreeItemClick = (event: React.MouseEvent, itemId: string) => {
+    if (itemId.endsWith("_loading")) return;
+    handleNavigate(itemId);
+  };
+
+  // --- Renderers ---
+
+  const Row = ({
+    index,
+    style
+  }: {
+    index: number;
+    style: React.CSSProperties;
+  }) => {
+    const file = filteredFiles[index];
+    const isSelected = selectedPath === file.path;
+
+    return (
+      <div
+        style={style}
+        className={`list-item ${isSelected ? "selected" : ""}`}
+        onClick={() => handleFileClick(file)}
+        onDoubleClick={() => handleFileDoubleClick(file)}
+      >
+        {file.is_dir ? (
+          <FolderIcon color="primary" sx={{ fontSize: 20 }} />
+        ) : (
+          <FileIcon color="action" sx={{ fontSize: 20 }} />
+        )}
+        <Typography
+          noWrap
+          variant="body2"
+          sx={{ flex: 1, ml: 0.5, fontSize: "0.875rem" }}
+        >
+          {file.name}
+        </Typography>
+        {file.size !== undefined && !file.is_dir && (
+          <Typography variant="caption" color="text.secondary">
+            {formatBytes(file.size)}
+          </Typography>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Dialog
+      className="file-browser-dialog"
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: { height: "80vh", maxHeight: "800px" }
+        }
+      }}
+    >
+      <DialogTitle
+        className="file-browser-header"
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          py: 1,
+          px: 2
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{ fontSize: "1.1rem", padding: "0 1em", margin: 0 }}
+        >
+          {title}
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent
+        className="file-browser-body"
+        sx={{
+          p: 0,
+          overflow: "hidden",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column"
+        }}
+      >
+        <div
+          css={styles(theme)}
+          style={{ display: "flex", flexDirection: "column", height: "100%" }}
+        >
+          {/* Toolbar */}
+          <div className="toolbar">
+            <IconButton
+              onClick={handleUp}
+              disabled={currentPath === "~" || currentPath === "/"}
+            >
+              <ArrowUpwardIcon fontSize="small" />
+            </IconButton>
+
+            {isEditingPath ? (
+              <TextField
+                size="small"
+                fullWidth
+                value={pathInputValue}
+                onChange={(e) => setPathInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handlePathSubmit();
+                  if (e.key === "Escape") {
+                    setPathInputValue(currentPath);
+                    setIsEditingPath(false);
+                  }
+                }}
+                onBlur={() => setIsEditingPath(false)}
+                autoFocus
+                sx={{ flex: 1 }}
+              />
+            ) : (
+              <div
+                className="breadcrumbs-container"
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: "text",
+                  minWidth: "100px"
+                }}
+                onClick={() => setIsEditingPath(true)}
+              >
+                <Breadcrumbs className="breadcrumbs" separator="/">
+                  {breadcrumbs.map((b, i) => (
+                    <Link
+                      key={b.path}
+                      component="button"
+                      color={
+                        i === breadcrumbs.length - 1
+                          ? "text.primary"
+                          : "inherit"
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate(b.path);
+                      }}
+                      underline="hover"
+                      variant="body2"
+                    >
+                      {b.name}
+                    </Link>
+                  ))}
+                </Breadcrumbs>
+              </div>
+            )}
+
+            <TextField
+              size="small"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  )
+                }
+              }}
+              sx={{ width: 200, "& .MuiInputBase-root": { height: 32 } }}
+            />
+
+            <IconButton
+              onClick={() => {
+                handleNavigate(currentPath);
+              }}
+              size="small"
+              style={{ width: 32, height: 32 }}
+            >
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </div>
+
+          {/* Split View */}
+          <div
+            className="file-browser-content"
+            style={{ border: "none", borderRadius: 0 }}
+          >
+            {/* Left Panel: Folder Tree */}
+            <div className="left-panel">
+              <div className="folder-tree" ref={treeScrollRef}>
+                <RichTreeView
+                  items={treeItems}
+                  onItemClick={handleTreeItemClick}
+                  onItemExpansionToggle={handleItemExpansionToggle}
+                  expandedItems={expandedItems}
+                  selectedItems={currentPath}
+                />
+              </div>
+            </div>
+
+            {/* Right Panel: Files */}
+            <div className="right-panel">
+              {isLoadingFiles ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100%"
+                  }}
+                >
+                  <CircularProgress size={30} />
+                </Box>
+              ) : (
+                <AutoSizer>
+                  {({ height, width }) => (
+                    <List
+                      className="file-list"
+                      height={height}
+                      itemCount={filteredFiles.length}
+                      itemSize={32}
+                      width={width}
+                    >
+                      {Row}
+                    </List>
+                  )}
+                </AutoSizer>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+
+      <DialogActions
+        className="file-browser-footer"
+        sx={{ p: 2, borderTop: 1, borderColor: "divider" }}
+      >
+        <Typography
+          variant="body2"
+          sx={{ flex: 1, ml: 1, color: "text.secondary" }}
+        >
+          {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
+        </Typography>
+        {selectedPath && (
+          <CopyToClipboardButton
+            copyValue={selectedPath}
+            title="Copy path"
+            size="small"
+          />
+        )}
+        <Button onClick={onClose} color="inherit">
+          Cancel
+        </Button>
+        <Button
+          onClick={handleConfirmClick}
+          variant="contained"
+          disabled={!selectedPath}
+        >
+          Select
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
