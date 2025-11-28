@@ -739,7 +739,7 @@ export default function FileBrowserDialog({
 
             <TextField
               size="small"
-              placeholder="Search..."
+              placeholder="Search in current folder..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               slotProps={{
