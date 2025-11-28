@@ -55,11 +55,12 @@ const createPathPropertyStyles = (theme: Theme) =>
     },
 
     ".path-picker__preview": {
-      color: theme.vars.palette.grey[400],
       display: "flex",
       alignItems: "center",
       flex: 1,
-      marginLeft: "8px",
+      color: theme.vars.palette.grey[400],
+      fontSize: theme.vars.fontSizeTinyer,
+      marginLeft: ".5em",
       wordBreak: "break-all",
       minHeight: "20px"
     },
@@ -71,7 +72,7 @@ const createPathPropertyStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       cursor: "pointer",
       padding: "4px 8px",
-      minWidth: "24px",
+      minWidth: "20px",
       height: "24px",
       display: "flex",
       alignItems: "center",
