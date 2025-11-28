@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -15,6 +16,9 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 const AssetItemContextMenu = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const closeContextMenu = useContextMenuStore(
+    (state) => state.closeContextMenu
+  );
   const setRenameDialogOpen = useAssetGridStore(
     (state) => state.setRenameDialogOpen
   );
@@ -65,12 +69,31 @@ const AssetItemContextMenu = () => {
     }
   };
 
+  const withMenuClose =
+    (action: () => Promise<void> | void) =>
+    async (event?: MouseEvent<HTMLElement>) => {
+      event?.stopPropagation();
+      await action();
+      closeContextMenu();
+    };
+
+  const openRenameDialog = withMenuClose(() => setRenameDialogOpen(true));
+  const openMoveDialog = withMenuClose(() => setMoveToFolderDialogOpen(true));
+  const openCreateFolderDialog = withMenuClose(() =>
+    setCreateFolderDialogOpen(true)
+  );
+  const openDeleteDialog = withMenuClose(() => setDeleteDialogOpen(true));
+  const downloadSelected = withMenuClose(async () => {
+    await handleDownloadAssets(selectedAssetIds);
+  });
+
   if (!menuPosition) return null;
   return (
     <>
       <Menu
         className="context-menu asset-item-context-menu"
         open={menuPosition !== null}
+        onClose={closeContextMenu}
         onContextMenu={(event) => event.preventDefault()}
         anchorReference="anchorPosition"
         style={{ padding: "1em" }}
@@ -91,29 +114,20 @@ const AssetItemContextMenu = () => {
         </MenuItem>
         <Divider />
         <ContextMenuItem
-          onClick={(e: any) => {
-            e.stopPropagation();
-            setRenameDialogOpen(true);
-          }}
+          onClick={openRenameDialog}
           label="Rename"
           IconComponent={<DriveFileRenameOutlineIcon />}
           tooltip="Rename selected assets"
         />
         <Divider />
         <ContextMenuItem
-          onClick={(e: any) => {
-            e.stopPropagation();
-            setMoveToFolderDialogOpen(true);
-          }}
+          onClick={openMoveDialog}
           label="Move to existing folder"
           IconComponent={<DriveFileMoveIcon />}
           tooltip="Move selected assets to an existing folder"
         />
         <ContextMenuItem
-          onClick={(e: any) => {
-            e.stopPropagation();
-            setCreateFolderDialogOpen(true);
-          }}
+          onClick={openCreateFolderDialog}
           label={hasSelectedAssets ? "Move to new folder" : "Create new folder"}
           IconComponent={<CreateNewFolderIcon />}
           tooltip={
@@ -124,10 +138,7 @@ const AssetItemContextMenu = () => {
         />
         <Divider />
         <ContextMenuItem
-          onClick={(e: any) => {
-            e.stopPropagation();
-            handleDownloadAssets(selectedAssetIds);
-          }}
+          onClick={downloadSelected}
           label="Download Selected Assets"
           IconComponent={<FileDownloadIcon />}
           tooltip="Download selected assets to your Downloads folder"
@@ -135,12 +146,7 @@ const AssetItemContextMenu = () => {
         <Divider />
         <div style={{ height: ".5em" }} />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.stopPropagation();
-              setDeleteDialogOpen(true);
-            }
-          }}
+          onClick={openDeleteDialog}
           label="Delete"
           addButtonClassName="delete"
           IconComponent={<RemoveCircleIcon />}

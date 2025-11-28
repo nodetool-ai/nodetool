@@ -1,4 +1,5 @@
 //mui
+import type { MouseEvent } from "react";
 import { Menu, MenuItem, Typography, Divider } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
@@ -25,29 +26,18 @@ const AssetGridContextMenu = () => {
     setAssetsOrder: state.setAssetsOrder
   }));
 
-  const handleCreateFolder = (e?: React.MouseEvent<HTMLElement>) => {
-    e?.stopPropagation();
-    setCreateFolderDialogOpen(true);
-    closeContextMenu();
-  };
+  const withMenuClose =
+    (action: () => void) =>
+    (event?: MouseEvent<HTMLElement>) => {
+      event?.stopPropagation();
+      action();
+      closeContextMenu();
+    };
 
-  const handleSortByName = (e?: React.MouseEvent<HTMLElement>) => {
-    e?.stopPropagation();
-    setAssetsOrder("name");
-    closeContextMenu();
-  };
-
-  const handleSortByDate = (e?: React.MouseEvent<HTMLElement>) => {
-    e?.stopPropagation();
-    setAssetsOrder("date");
-    closeContextMenu();
-  };
-
-  const handleSortBySize = (e?: React.MouseEvent<HTMLElement>) => {
-    e?.stopPropagation();
-    setAssetsOrder("size");
-    closeContextMenu();
-  };
+  const handleCreateFolder = withMenuClose(() => setCreateFolderDialogOpen(true));
+  const handleSortByName = withMenuClose(() => setAssetsOrder("name"));
+  const handleSortByDate = withMenuClose(() => setAssetsOrder("date"));
+  const handleSortBySize = withMenuClose(() => setAssetsOrder("size"));
 
   if (!menuPosition) return null;
 
