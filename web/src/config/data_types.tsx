@@ -289,7 +289,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "int",
     label: "Integer",
     description: "Whole numbers",
-    color: colour("scalar"),
+    color: "#0891B2",
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
