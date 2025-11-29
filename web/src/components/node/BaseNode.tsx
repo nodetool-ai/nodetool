@@ -338,19 +338,21 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           ? "none"
           : `1px solid ${hexToRgba(baseColor || "#666", 0.8)}`,
         ...theme.applyStyles("dark", {
-          border: isLoading
-            ? "none"
-            : `1px solid ${baseColor || "#666"}`,
-          boxShadow: selected
-            ? `0 0 0 1px ${baseColor || "#666"}, 0 10px 30px -10px rgba(0,0,0,0.8)`
-            : "0 4px 20px rgba(0,0,0,0.4)"
+          border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
+          // boxShadow: selected
+          //   ? `0 0 0 1px ${
+          //       baseColor || "#666"
+          //     }, 0 10px 30px -10px rgba(0,0,0,0.8)`
+          //   : "0 4px 20px rgba(0,0,0,0.4)"
         }),
         backgroundColor:
           hasParent && !isLoading
             ? parentColor
             : selected
             ? "transparent !important"
-            : "#121212", // Darker background
+            : // theme.vars.palette.c_node_bg
+              // : "#121212", // Darker background
+              theme.vars.palette.c_node_bg, // Darker background
         backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         borderRadius: "var(--rounded-node)",
