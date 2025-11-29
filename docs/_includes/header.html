@@ -25,6 +25,26 @@
     </nav>
 
     <div class="header-right">
+      <div class="search-container" data-search-index="{{ '/search.json' | relative_url }}">
+        <label class="search-input-wrapper">
+          <span class="search-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input id="site-search" type="search" name="q" placeholder="Search docs, nodes, errors…" autocomplete="off" aria-label="Search documentation" role="combobox" aria-expanded="false" aria-controls="search-results-list" />
+          <span class="search-shortcut">/</span>
+        </label>
+        <div class="search-results" id="search-results" aria-live="polite" hidden>
+          <div class="search-results-header">
+            <span class="search-results-title">Quick find</span>
+            <span class="search-results-hint">Enter to open · Esc to close</span>
+          </div>
+          <ul class="search-results-list" id="search-results-list" role="listbox"></ul>
+        </div>
+      </div>
+
       <div class="social-links">
         <a href="https://github.com/nodetool-ai/nodetool" target="_blank" rel="noopener" class="social-link" aria-label="GitHub">
           <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
