@@ -1,0 +1,409 @@
+---
+layout: page
+title: Workflow Patterns
+parent: NodeTool Workflow Cookbook
+nav_order: 2
+---
+
+# Workflow Patterns
+
+To build any example:
+– press Space to add nodes
+– drag connections
+– press Ctrl/⌘+Enter to run
+– add Preview nodes to inspect intermediate results
+
+<a id="pattern-1-simple-pipeline"></a>
+
+### Pattern 1: Simple Pipeline
+
+**Use Case**: Transform input → process → output
+
+**Example**: Image Enhancement
+
+{% mermaid %}
+graph TD
+  image_output["ImageOutput"]
+  image_input["ImageInput"]
+  sharpen["Sharpen"]
+  auto_contrast["AutoContrast"]
+  image_input --> sharpen
+  sharpen --> auto_contrast
+  auto_contrast --> image_output
+{% endmermaid %}
+
+**When to Use**:
+
+- Simple data transformations
+- Single input, single output
+- No conditional logic needed
+
+______________________________________________________________________
+
+<a id="pattern-2-agent-driven-generation"></a>
+
+### Pattern 2: Agent-Driven Generation
+
+**Use Case**: LLM generates content based on input
+
+**Example**: Image to Story
+
+{% mermaid %}
+graph TD
+  image_input["Image"]
+  agent_story["Agent (Story Generator)"]
+  preview_audio["Preview (Audio)"]
+  comment_workflow["Comment"]
+  text_to_speech["TextToSpeech"]
+  image_input --> agent_story
+  agent_story --> text_to_speech
+  text_to_speech --> preview_audio
+{% endmermaid %}
+
+**When to Use**:
+
+- Creative generation tasks
+- Multimodal transformations (image→text→audio)
+- Need semantic understanding
+
+**Key Nodes**:
+
+- `Agent`: General-purpose LLM agent with streaming
+- `Summarizer`: Specialized for text summarization
+- `ListGenerator`: Streams list of items
+
+______________________________________________________________________
+
+<a id="pattern-3-streaming-with-multiple-previews"></a>
+
+### Pattern 3: Streaming with Multiple Previews
+
+**Use Case**: Show intermediate results during generation
+
+**Example**: Movie Poster Generator
+
+{% mermaid %}
+graph TD
+  strategy_llm["Agent (Strategy)"]
+  strategy_template_prompt["String (Strategy Template)"]
+  strategy_preview["Preview (Strategy)"]
+  strategy_prompt_formatter["FormatText (Strategy)"]
+  movie_title_input["StringInput (Title)"]
+  genre_input["StringInput (Genre)"]
+  audience_input["StringInput (Audience)"]
+  image_preview["Preview (Image)"]
+  prompt_list_generator["ListGenerator"]
+  designer_instructions_prompt["String (Designer Instructions)"]
+  preview_prompts["Preview (Prompts)"]
+  mflux["MFlux"]
+  strategy_llm --> strategy_preview
+  strategy_template_prompt --> strategy_prompt_formatter
+  strategy_prompt_formatter --> strategy_llm
+  strategy_llm --> prompt_list_generator
+  designer_instructions_prompt --> prompt_list_generator
+  audience_input --> strategy_prompt_formatter
+  movie_title_input --> strategy_prompt_formatter
+  genre_input --> strategy_prompt_formatter
+  prompt_list_generator --> preview_prompts
+  prompt_list_generator --> mflux
+  mflux --> image_preview
+{% endmermaid %}
+
+**When to Use**:
+
+- Complex multi-stage generation
+- User needs to see progress
+- Agent planning + execution workflow
+
+**Key Concepts**:
+
+- **Strategy Phase**: Agent plans approach
+- **Preview Nodes**: Show intermediate results
+- **ListGenerator**: Streams generated prompts
+- **Image Generation**: Final output
+
+______________________________________________________________________
+
+<a id="pattern-4-rag-retrieval-augmented-generation"></a>
+
+### Pattern 4: RAG (Retrieval-Augmented Generation)
+
+**Use Case**: Answer questions using documents as context
+
+**Example**: Chat with Docs
+
+{% mermaid %}
+graph TD
+  chat_input["ChatInput"]
+  string_output["StringOutput (Answer)"]
+  format_text["FormatText"]
+  hybrid_search["HybridSearch"]
+  llm_streaming["LLMStreaming"]
+  chat_input --> format_text
+  chat_input --> hybrid_search
+  hybrid_search --> format_text
+  format_text --> llm_streaming
+  llm_streaming --> string_output
+{% endmermaid %}
+
+**When to Use**:
+
+- Question-answering over documents
+- Need factual accuracy from specific sources
+- Reduce LLM hallucinations
+
+**Key Components**:
+
+1. **Search**: Query vector database for relevant documents
+1. **Format**: Inject retrieved context into prompt
+1. **Generate**: Stream LLM response with context
+
+**Related Workflow**: Index PDFs
+
+{% mermaid %}
+graph TD
+  list_files["ListFiles"]
+  collection["Collection"]
+  load_document["LoadDocumentFile"]
+  extract_text["ExtractText"]
+  index_chunks["IndexTextChunks"]
+  sentence_splitter["SentenceSplitter"]
+  path_to_string["PathToString"]
+  extract_text --> sentence_splitter
+  load_document --> extract_text
+  sentence_splitter --> index_chunks
+  collection --> index_chunks
+  list_files --> load_document
+  list_files --> path_to_string
+  path_to_string --> sentence_splitter
+{% endmermaid %}
+
+______________________________________________________________________
+
+<a id="pattern-5-database-persistence"></a>
+
+### Pattern 5: Database Persistence
+
+**Use Case**: Store generated data for later retrieval
+
+**Example**: AI Flashcard Generator with SQLite
+
+{% mermaid %}
+graph TD
+  topic_input["StringInput (Topic)"]
+  create_table["CreateTable"]
+  format_prompt["FormatText"]
+  generate_flashcards["DataGenerator"]
+  insert_flashcard["Insert"]
+  query_all["Query"]
+  display_result["Preview"]
+  topic_input --> format_prompt
+  format_prompt --> generate_flashcards
+  generate_flashcards --> insert_flashcard
+  create_table --> query_all
+  create_table --> insert_flashcard
+  query_all --> display_result
+{% endmermaid %}
+
+**When to Use**:
+
+- Need persistent storage
+- Building apps with memory
+- Agent workflows that need to recall past interactions
+
+**Key Nodes**:
+
+- `CreateTable`: Initialize database schema
+- `Insert`: Add records
+- `Query`: Retrieve records
+- `Update`: Modify records
+- `Delete`: Remove records
+
+**Database Flow**:
+
+1. Create table structure
+1. Generate data with agent
+1. Insert into database
+1. Query and display results
+
+______________________________________________________________________
+
+<a id="pattern-6-email--web-integration"></a>
+
+### Pattern 6: Email & Web Integration
+
+**Use Case**: Process emails or web content
+
+**Example**: Summarize Newsletters
+
+{% mermaid %}
+graph TD
+  gmail_search["GmailSearch"]
+  email_fields["EmailFields"]
+  summarizer_streaming["SummarizerStreaming"]
+  preview_summary["Preview (Summary)"]
+  preview_body["Preview (Body)"]
+  gmail_search --> email_fields
+  email_fields --> summarizer_streaming
+  summarizer_streaming --> preview_summary
+  email_fields --> preview_body
+{% endmermaid %}
+
+**When to Use**:
+
+- Automate email processing
+- Monitor RSS feeds
+- Extract web content
+
+**Key Nodes**:
+
+- `GmailSearch`: Search Gmail with queries
+- `EmailFields`: Extract email metadata
+- `FetchRSSFeed`: Get RSS feed entries
+- `GetRequest`: Fetch web content
+
+______________________________________________________________________
+
+<a id="pattern-7-realtime-processing"></a>
+
+### Pattern 7: Realtime Processing
+
+**Use Case**: Process streaming audio/video in real-time
+
+**Example**: Realtime Agent
+
+{% mermaid %}
+graph TD
+  audio_input["RealtimeAudioInput"]
+  preview_output["Preview"]
+  realtime_agent["RealtimeAgent"]
+  audio_input --> realtime_agent
+  realtime_agent --> preview_output
+{% endmermaid %}
+
+**When to Use**:
+
+- Voice interfaces
+- Live transcription
+- Interactive audio applications
+
+**Key Nodes**:
+
+- `RealtimeAudioInput`: Streaming audio input
+- `RealtimeAgent`: OpenAI Realtime API with streaming
+- `RealtimeWhisper`: Live transcription
+- `RealtimeTranscription`: OpenAI transcription streaming
+
+______________________________________________________________________
+
+<a id="pattern-8-multi-modal-workflows"></a>
+
+### Pattern 8: Multi-Modal Workflows
+
+**Use Case**: Convert between different media types
+
+**Example**: Audio to Image
+
+{% mermaid %}
+graph TD
+  stable_diffusion["StableDiffusion"]
+  whisper["Whisper"]
+  audio_input["AudioInput"]
+  image_output["ImageOutput"]
+  whisper --> stable_diffusion
+  audio_input --> whisper
+  stable_diffusion --> image_output
+{% endmermaid %}
+
+**When to Use**:
+
+- Converting between media types
+- Creating rich multimedia experiences
+- Accessibility applications
+
+**Common Chains**:
+
+- Audio → Text → Image
+- Image → Text → Audio
+- Video → Audio → Text → Summary
+
+______________________________________________________________________
+
+<a id="pattern-9-advanced-image-processing"></a>
+
+### Pattern 9: Advanced Image Processing
+
+**Use Case**: AI-powered image transformations
+
+**Example**: Style Transfer
+
+{% mermaid %}
+graph TD
+  stable_diffusion_control_net_img2img["StableDiffusionControlNetImg2Img"]
+  image_input_1["ImageInput"]
+  image_input_2["ImageInput"]
+  image_output["ImageOutput"]
+  canny["Canny"]
+  image_to_text["ImageToText"]
+  fit_1["Fit"]
+  fit_2["Fit"]
+  stable_diffusion_control_net_img2img --> image_output
+  canny --> stable_diffusion_control_net_img2img
+  image_to_text --> stable_diffusion_control_net_img2img
+  image_input_2 --> fit_1
+  image_input_1 --> fit_2
+  fit_2 --> canny
+  fit_2 --> image_to_text
+  image_input_2 --> stable_diffusion_control_net_img2img
+  fit_2 --> stable_diffusion_control_net_img2img
+{% endmermaid %}
+
+**When to Use**:
+
+- Style transfer between images
+- Controlled image generation
+- Preserving structure while changing style
+
+**Key Techniques**:
+
+- **ControlNet**: Preserve structure with edge detection
+- **Image-to-Text**: Generate descriptions
+- **Img2Img**: Transform while maintaining composition
+
+______________________________________________________________________
+
+<a id="pattern-10-data-processing-pipeline"></a>
+
+### Pattern 10: Data Processing Pipeline
+
+**Use Case**: Fetch, transform, and visualize data
+
+**Example**: Data Visualization Pipeline
+
+{% mermaid %}
+graph TD
+  preview_1["Preview"]
+  get_request["GetRequest"]
+  import_c_s_v["ImportCSV"]
+  filter["Filter"]
+  chart_generator["ChartGenerator"]
+  preview_2["Preview"]
+  get_request --> import_c_s_v
+  import_c_s_v --> filter
+  filter --> preview_1
+  filter --> chart_generator
+  chart_generator --> preview_2
+{% endmermaid %}
+
+**When to Use**:
+
+- Fetch external data sources
+- Transform and filter datasets
+- Auto-generate visualizations
+
+**Key Nodes**:
+
+- `GetRequest`: Fetch web resources
+- `ImportCSV`: Parse CSV data
+- `Filter`: Transform data
+- `ChartGenerator`: AI-generated charts with Plotly
