@@ -10,32 +10,32 @@ export default defineConfig(async ({ mode }) => {
 
   const proxyConfig: Record<string, ProxyOptions> = {
     "/api": {
-      target: "http://localhost:8000",
+      target: "http://localhost:7777",
       changeOrigin: true,
       secure: false
     },
     "/predict": {
-      target: "http://localhost:8000",
+      target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     },
     "/chat": {
-      target: "http://localhost:8000",
+      target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     },
     "/hf/download": {
-      target: "http://localhost:8000",
+      target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     },
     "/updates": {
-      target: "http://localhost:8000",
+      target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     },
     "/terminal": {
-      target: "http://localhost:8000",
+      target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     }

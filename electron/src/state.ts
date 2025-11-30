@@ -15,9 +15,9 @@ let mainWindow: BrowserWindow | null = null;
 const serverState: ServerState = {
   isStarted: false,
   bootMsg: "Initializing...",
-  initialURL: `http://127.0.0.1:${8000}`,
+  initialURL: `http://127.0.0.1:${7777}`,
   logs: [],
-  serverPort: 8000,
+  serverPort: 7777,
   ollamaPort: 11435,
   ollamaExternalManaged: false,
 };

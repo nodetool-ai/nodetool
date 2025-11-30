@@ -94,7 +94,7 @@ async function createLaunchAgent(
 ): Promise<void> {
   const logPath: string = await getLaunchAgentLogPath(workflowId);
 
-  const port = serverState.serverPort ?? 8000;
+  const port = serverState.serverPort ?? 7777;
   const plistContent: string = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
