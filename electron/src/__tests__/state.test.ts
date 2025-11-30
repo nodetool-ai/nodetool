@@ -14,9 +14,9 @@ describe('State', () => {
     it('should have default values', () => {
       expect(serverState.isStarted).toBe(false);
       expect(serverState.bootMsg).toBe('Initializing...');
-      expect(serverState.initialURL).toBe('http://127.0.0.1:8000');
+      expect(serverState.initialURL).toBe('http://127.0.0.1:7777');
       expect(serverState.logs).toEqual([]);
-      expect(serverState.serverPort).toBe(8000);
+      expect(serverState.serverPort).toBe(7777);
       expect(serverState.ollamaPort).toBe(11435);
       expect(serverState.ollamaExternalManaged).toBe(false);
     });

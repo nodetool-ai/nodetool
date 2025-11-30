@@ -12,7 +12,7 @@ let healthCheckTimer: NodeJS.Timeout | null = null;
 export async function fetchWorkflows(): Promise<Workflow[]> {
   logMessage("Fetching workflows from server...");
   try {
-    const port = serverState.serverPort ?? 8000;
+    const port = serverState.serverPort ?? 7777;
     const response = await fetch(`http://127.0.0.1:${port}/api/workflows/`, {
       method: "GET",
       headers: {
@@ -35,7 +35,7 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
 
 async function checkHealth(): Promise<boolean> {
   try {
-    const port = serverState.serverPort ?? 8000;
+    const port = serverState.serverPort ?? 7777;
     const response = await fetch(`http://127.0.0.1:${port}/health/`);
     logMessage(`Health check response: ${response.ok}`);
     return response.ok;
