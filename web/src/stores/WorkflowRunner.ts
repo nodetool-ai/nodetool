@@ -1,3 +1,17 @@
+/**
+ * Workflow runner WebSocket bridge.
+ *
+ * Expects the backend runner protocol to accept `run_job` and `reconnect_job`
+ * commands via `globalWebSocketManager`, keyed by workflow_id and job_id. The
+ * server streams JobUpdate/Prediction/NodeProgress/NodeUpdate/TaskUpdate and
+ * PlanningUpdate messages in order, and acknowledges a reconnect by replaying
+ * in-flight updates for the given job_id.
+ *
+ * State machine: idle → connecting → connected → running → (cancelled|error).
+ * `ensureConnection` subscribes to workflow_id topics, while reconnects also
+ * subscribe to job_id channels so the UI continues receiving status after a
+ * reload or tab switch.
+ */
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeData } from "./NodeData";
 import { isLocalhost } from "./ApiClient";

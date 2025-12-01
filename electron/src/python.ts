@@ -10,13 +10,13 @@ import { checkPermissions } from "./utils";
 import { emitBootMessage } from "./events";
 
 /**
- * Python environment management for the Electron shell.
+ * Python environment manager for the Electron shell.
  *
- * Responsibilities:
- * - Validate write permissions for app data/log locations
- * - Detect an existing Python/conda environment
- * - Install/update required Python packages via uv
- * - Expose helpers to run commands with the correct environment
+ * This module owns the Electron-side bootstrap of the Python toolchain:
+ * - Verify the app can write to user data and log directories before installing
+ * - Detect an existing conda/uv-based environment and surface clear failures
+ * - Install or update the bundled Python packages from the NodeTool registry
+ * - Provide helpers to run commands with the correct environment variables
  */
 
 interface PathCheck {

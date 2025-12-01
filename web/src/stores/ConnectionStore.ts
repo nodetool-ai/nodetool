@@ -45,7 +45,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
    * Handle the start of a connection between two nodes.
    * This is used to set the type and direction of the node to connect.
    *
-   * @param node The node to connect.j
+   * @param node The node to connect.
    * @param handleId The id of the handle to connect.
    * @param handleType The type of the handle to connect.
    * @param metadata The metadata of the node to connect.
@@ -59,7 +59,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     if (handleType === "source") {
       const outputHandle = findOutputHandle(node, handleId, metadata);
       const connectType = outputHandle?.type;
-      
+
       set({
         connecting: true,
         connectType,
@@ -71,7 +71,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     if (handleType === "target") {
       const inputHandle = findInputHandle(node, handleId, metadata);
       const connectType = inputHandle?.type;
-      
+
       set({
         connecting: true,
         connectType,
