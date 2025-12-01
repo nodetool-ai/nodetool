@@ -29,6 +29,7 @@ declare global {
       onServerStarted: (callback: () => void) => void;
       onBootMessage: (callback: (message: string) => void) => void;
       onServerLog: (callback: (message: string) => void) => void;
+      onServerError: (callback: (data: { message: string }) => void) => void;
       onUpdateAvailable: (callback: (info: UpdateInfo) => void) => void;
       onInstallLocationPrompt: (
         callback: (data: InstallLocationData) => void
@@ -69,9 +70,13 @@ declare global {
   }
 }
 
+export type ServerStatus = "idle" | "starting" | "started" | "error";
+
 export interface ServerState {
   isStarted: boolean;
+  status: ServerStatus;
   bootMsg: string;
+  error?: string;
   logs: string[];
   initialURL: string;
   serverPort?: number;
@@ -214,6 +219,7 @@ export enum IpcChannels {
   BOOT_MESSAGE = "boot-message",
   SERVER_STARTED = "server-started",
   SERVER_LOG = "server-log",
+  SERVER_ERROR = "server-error",
   UPDATE_PROGRESS = "update-progress",
   UPDATE_AVAILABLE = "update-available",
   INSTALL_LOCATION_PROMPT = "install-location-prompt",
@@ -325,6 +331,7 @@ export interface IpcEvents {
   [IpcChannels.BOOT_MESSAGE]: string;
   [IpcChannels.SERVER_LOG]: string;
   [IpcChannels.SERVER_STARTED]: void;
+  [IpcChannels.SERVER_ERROR]: { message: string };
   [IpcChannels.UPDATE_PROGRESS]: UpdateProgressData;
   [IpcChannels.UPDATE_AVAILABLE]: UpdateInfo;
   [IpcChannels.INSTALL_LOCATION_PROMPT]: InstallLocationData;

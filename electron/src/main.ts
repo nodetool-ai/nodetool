@@ -54,6 +54,50 @@ import { IpcChannels } from "./types.d";
  */
 let isAppQuitting = false;
 let mainWindow: BrowserWindow | null = null;
+let isShowingUnexpectedError = false;
+
+function shouldForceQuit(error: unknown): boolean {
+  // Treat only clearly fatal cases as requiring a full shutdown.
+  if (!app.isReady()) {
+    return true;
+  }
+  if (error instanceof assert.AssertionError) {
+    return true;
+  }
+  return false;
+}
+
+function showUnexpectedErrorDialog(title: string, message: string): void {
+  if (isShowingUnexpectedError) {
+    return;
+  }
+  isShowingUnexpectedError = true;
+
+  dialog
+    .showMessageBox({
+      type: "error",
+      title,
+      message,
+      detail:
+        "An unexpected error occurred in the main process. Some features may not work correctly.",
+    })
+    .finally(() => {
+      // Avoid spamming dialogs if multiple errors occur in quick succession.
+      setTimeout(() => {
+        isShowingUnexpectedError = false;
+      }, 2000);
+    });
+}
+
+function logUnexpectedError(prefix: string, error: unknown): string {
+  const errorMessage =
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  logMessage(`${prefix}: ${errorMessage}`, "error");
+  if (error instanceof Error && error.stack) {
+    logMessage(`Stack Trace: ${error.stack}`, "error");
+  }
+  return errorMessage;
+}
 
 async function notifyPackageUpdates(): Promise<void> {
   try {
@@ -186,10 +230,17 @@ async function initialize(): Promise<void> {
     logMessage("=== Application Initialization Complete ===");
   } catch (error) {
     logMessage(`Initialization error: ${error}`, "error");
-    dialog.showErrorBox(
-      "Initialization Error",
-      `Failed to initialize: ${error}`
-    );
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (serverState.status === "error") {
+      logMessage(
+        "Backend failed to start; staying on splash screen for recovery actions",
+        "warn"
+      );
+      return;
+    }
+
+    dialog.showErrorBox("Initialization Error", `Failed to initialize: ${message}`);
     app.quit();
   }
 }
@@ -294,21 +345,23 @@ app.on("window-all-closed", () => {
 app.on("activate", handleActivation);
 
 process.on("uncaughtException", (error: Error) => {
-  logMessage(`Uncaught Exception: ${error.message}`, "error");
-  logMessage(`Stack Trace: ${error.stack}`, "error");
-  forceQuit(`Uncaught Exception: ${error.message}`);
+  const message = logUnexpectedError("Uncaught Exception", error);
+  showUnexpectedErrorDialog("Unexpected Error", message);
+
+  if (shouldForceQuit(error)) {
+    forceQuit(`Uncaught Exception: ${message}`);
+  }
 });
 
 process.on(
   "unhandledRejection",
   (reason: unknown, promise: Promise<unknown>) => {
-    const errorMessage =
-      reason instanceof Error ? reason.message : String(reason);
-    logMessage(`Unhandled Promise Rejection: ${errorMessage}`, "error");
-    if (reason instanceof Error) {
-      logMessage(`Stack Trace: ${reason.stack}`, "error");
+    const message = logUnexpectedError("Unhandled Promise Rejection", reason);
+    showUnexpectedErrorDialog("Unexpected Error", message);
+
+    if (shouldForceQuit(reason)) {
+      forceQuit(`Unhandled Promise Rejection: ${message}`);
     }
-    forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
   }
 );
 
