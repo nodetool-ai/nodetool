@@ -7,6 +7,7 @@ import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
+import type { components } from "../api";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -54,7 +55,7 @@ const uploadAsset = async (
 
   try {
     const { data, error } = await client.POST("/api/assets/", {
-      body: formData as any
+      body: formData as unknown as components["schemas"]["Body_create_api_assets__post"]
     });
 
     if (error) {
@@ -64,12 +65,13 @@ const uploadAsset = async (
     emitUploadProgress(onUploadProgress, total, total);
     return data as Asset;
   } catch (error) {
+    const statusCode = (error as { status?: number })?.status;
     const normalizedError =
       error instanceof DOMException && error.name === "AbortError"
         ? createErrorMessage(error, "Asset upload was cancelled")
         : error instanceof TypeError
         ? createErrorMessage(error, "Network error while creating asset")
-        : (error as any)?.status === 408
+        : statusCode === 408
         ? createErrorMessage(error, "Asset upload timed out")
         : createErrorMessage(error, errorMessage);
 
@@ -118,7 +120,7 @@ export interface AssetStore {
     onUploadProgress?: (progressEvent: UploadProgressEvent) => void
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
-  loadFolderTree: (sortBy?: string) => Promise<Record<string, any>>;
+  loadFolderTree: (sortBy?: string) => Promise<FolderTree>;
   loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
   loadFolderById: (id: string) => Promise<AssetList>;
   search: (query: AssetSearchQuery) => Promise<AssetSearchResult>;
@@ -137,12 +139,14 @@ const sort = (assets: { [key: string]: Asset }) => {
   });
 };
 
+type FolderTree = Record<string, AssetTreeNode>;
+
 const buildFolderTree = (
   folders: Asset[],
   sortBy: "name" | "updated_at" = "name"
-) => {
-  const tree: Record<string, any> = {};
-  const lookup: Record<string, any> = {};
+): FolderTree => {
+  const tree: FolderTree = {};
+  const lookup: Record<string, AssetTreeNode> = {};
 
   folders.forEach((folder) => {
     lookup[folder.id] = { ...folder, children: [] };
@@ -156,7 +160,7 @@ const buildFolderTree = (
     }
   });
 
-  const sortNodes = (a: any, b: any) => {
+  const sortNodes = (a: AssetTreeNode, b: AssetTreeNode) => {
     if (sortBy === "name") {
       return a.name.localeCompare(b.name);
     } else if (sortBy === "updated_at") {
@@ -167,14 +171,14 @@ const buildFolderTree = (
     return 0;
   };
 
-  const sortChildren = (node: any) => {
+  const sortChildren = (node: AssetTreeNode) => {
     node.children.sort(sortNodes);
     node.children.forEach(sortChildren);
   };
 
   // Convert tree object to array, sort, and convert back to object
   const sortedTreeArray = Object.values(tree).sort(sortNodes);
-  const sortedTree: Record<string, any> = {};
+  const sortedTree: FolderTree = {};
   sortedTreeArray.forEach((node) => {
     sortedTree[node.id] = node;
   });
@@ -272,7 +276,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
     return buildFolderTree(
       data.assets as unknown as Asset[],
-      (sortBy as any) === "updated_at" ? "updated_at" : "name"
+      sortBy === "updated_at" ? "updated_at" : "name"
     );
   },
 
@@ -457,7 +461,18 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         : "assets.zip";
 
       // Check for Electron's API (could be window.electron or window.api)
-      const electronApi = (window as any).electron || (window as any).api;
+      type ElectronSaveFile = (
+        data: ArrayBuffer,
+        filename: string,
+        filters?: { name: string; extensions: string[] }[]
+      ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
+
+      const electronApi =
+        (window as unknown as {
+          electron?: { saveFile?: ElectronSaveFile };
+          api?: { saveFile?: ElectronSaveFile };
+        }).electron ||
+        (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
 
       if (electronApi?.saveFile) {
         const result = await electronApi.saveFile(response.data, filename, [
