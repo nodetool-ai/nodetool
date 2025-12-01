@@ -10,6 +10,7 @@ import PackageUpdatesNotification from "./PackageUpdatesNotification";
 import type {
   InstallLocationData,
   PackageUpdateInfo,
+  ServerState,
   UpdateInfo,
   UpdateProgressData,
 } from "../types";
@@ -31,6 +32,9 @@ const App: React.FC = () => {
     action: "",
     eta: "",
   });
+  const [serverStatus, setServerStatus] =
+    useState<ServerState["status"]>("idle");
+  const [serverError, setServerError] = useState<string | null>(null);
   // showPackageManager is declared above to allow conditional initial state
 
   const [installLocationData, setInstallLocationData] =
@@ -56,11 +60,24 @@ const App: React.FC = () => {
       const {
         isStarted,
         bootMsg,
+        status,
+        error,
         logs: serverLogs,
         initialURL,
       } = await window.api.getServerState();
 
-      if (isStarted) {
+      setServerStatus(status ?? "idle");
+      setServerError(error ?? null);
+
+      if (status === "error") {
+        setShowBootMessage(true);
+        setBootMessage(error ?? bootMsg);
+        setShowLogs(true);
+        setLogs(serverLogs);
+        return;
+      }
+
+      if (isStarted || status === "started") {
         loadContentWithNoCaching(initialURL);
       } else {
         setShowBootMessage(true);
@@ -87,6 +104,8 @@ const App: React.FC = () => {
   );
 
   const handleServerStarted = useCallback(() => {
+    setServerStatus("started");
+    setServerError(null);
     if (!showPackageManager) {
       initializeApp();
     }
@@ -94,6 +113,7 @@ const App: React.FC = () => {
 
   const handleBootMessage = useCallback(
     (message: string) => {
+      setServerStatus((prev) => (prev === "error" ? prev : "starting"));
       setBootMessage(message);
       if (message.includes("Setting up Python")) {
         setShowLogs(true);
@@ -108,6 +128,15 @@ const App: React.FC = () => {
     },
     [addLog]
   );
+
+  const handleServerError = useCallback((data: { message: string }) => {
+    setServerStatus("error");
+    setServerError(data.message);
+    setShowBootMessage(true);
+    setBootMessage(data.message);
+    setShowUpdateSteps(false);
+    setShowLogs(true);
+  }, []);
 
   const handleInstallLocationPrompt = useCallback(
     (data: InstallLocationData) => {
@@ -193,6 +222,7 @@ const App: React.FC = () => {
     window.api.onServerStarted(handleServerStarted);
     window.api.onBootMessage(handleBootMessage);
     window.api.onServerLog(handleServerLog);
+    window.api.onServerError(handleServerError);
     window.api.onInstallLocationPrompt(handleInstallLocationPrompt);
     window.api.onUpdateAvailable(handleUpdateAvailable);
     window.api.onPackageUpdatesAvailable(handlePackageUpdatesAvailable);
@@ -220,6 +250,7 @@ const App: React.FC = () => {
     handleServerStarted,
     handleBootMessage,
     handleServerLog,
+    handleServerError,
     handleInstallLocationPrompt,
     handleUpdateAvailable,
     handlePackageUpdatesAvailable,
@@ -232,11 +263,47 @@ const App: React.FC = () => {
     setShowBootMessage(true);
   }, []);
 
+  const handleRetryStart = useCallback(() => {
+    setServerError(null);
+    setServerStatus("starting");
+    setBootMessage("Retrying backend start...");
+    setShowBootMessage(true);
+    setShowLogs(true);
+    void window.api.restartServer().catch((error: any) => {
+      const message = error?.message ?? "Failed to restart backend server.";
+      setServerStatus("error");
+      setServerError(message);
+      setBootMessage(message);
+    });
+  }, []);
+
+  const handleOpenLogs = useCallback(() => {
+    setShowLogs(true);
+    window.api.openLogFile();
+  }, []);
+
+  const handleReinstallEnvironment = useCallback(() => {
+    if (installLocationData) {
+      setShowBootMessage(false);
+      setShowInstallPrompt(true);
+      return;
+    }
+    window.api.showPackageManager?.(undefined);
+  }, [installLocationData]);
+
   const handleSkipPackageManager = useCallback(() => {
     setShowBootMessage(true);
     setBootMessage("Starting server...");
+    setServerStatus("starting");
+    setServerError(null);
     clearAllAnimations();
-    window.api.startServer();
+    void window.api.startServer().catch((error: any) => {
+      const message = error?.message ?? "Failed to start backend server.";
+      setServerStatus("error");
+      setServerError(message);
+      setBootMessage(message);
+      setShowLogs(true);
+    });
   }, [clearAllAnimations]);
 
   return (
@@ -250,6 +317,11 @@ const App: React.FC = () => {
           message={bootMessage}
           showUpdateSteps={showUpdateSteps}
           progressData={progressData}
+          status={serverStatus}
+          errorMessage={serverError ?? undefined}
+          onRetry={handleRetryStart}
+          onOpenLogs={handleOpenLogs}
+          onReinstall={handleReinstallEnvironment}
         />
       )}
 

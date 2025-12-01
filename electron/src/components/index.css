@@ -1,58 +1,74 @@
 /* THEME */
 :root {
-  --c_bg_primary: #0f1115;
-  --c_bg_secondary: #161a22;
-  --c_panel_bg: rgba(28, 31, 38, 0.8);
-  --c_panel_border: rgba(96, 165, 250, 0.25);
-  --c_text_primary: #ffffff;
-  --c_text_secondary: #b9b9b4;
-  --c_text_tertiary: #94a3b8;
-  --c_accent: #50fa7b;
-  --c_accent_alt: #60a5fa;
-  --c_info: #60a5fa;
-  --c_info_light: #93c5fd;
-  --c_border: #1c1f26;
-  --c_border_hover: #2a2e38;
-  --c_success: #50fa7b;
-  --c_danger: #ff5555;
-  --c_warning: #ffb86c;
-  --c_warning_dark: #ff9800;
-  --c_scroll_bg: #0f1115;
-  --c_scroll_thumb: #535353;
-  --c_scroll_hover: #585858;
-  --c_paper: #161a22;
-  --c_paper_overlay: #1c1f26;
-  --c_divider: #525865;
-  --c_text_disabled: #94a3b8;
-  --c_link: #93c5fd;
-  --c_link_visited: #a5b4fc;
-  --c_primary_dark: #1d4ed8;
-  --c_primary_light: #93c5fd;
-  --c_success_dark: #229a16;
-  --c_success_light: #80e27e;
-  --c_error_light: #ff8a80;
-  --c_primary_dark_rgb: 29, 78, 216;
-  --c_primary_light_rgb: 147, 197, 253;
-  --c_link_visited_rgb: 165, 180, 252;
-  --c_accent_rgb: 80, 250, 123;
-  --c_success_light_rgb: 128, 226, 126;
-  --c_danger_rgb: 255, 85, 85;
-  --c_warning_rgb: 255, 184, 108;
-  --c_error_light_rgb: 255, 138, 128;
-  --c_border_rgb: 28, 31, 38;
+  /* Modern Dark Theme Palette */
+  --c_bg_primary: #09090b; /* Zinc 950 */
+  --c_bg_secondary: #18181b; /* Zinc 900 */
+  --c_panel_bg: rgba(24, 24, 27, 0.75);
+  --c_panel_border: rgba(255, 255, 255, 0.1);
+  
+  /* Text Colors */
+  --c_text_primary: #fafafa; /* Zinc 50 */
+  --c_text_secondary: #a1a1aa; /* Zinc 400 */
+  --c_text_tertiary: #52525b; /* Zinc 600 */
+  --c_text_disabled: #3f3f46; /* Zinc 700 */
+
+  /* Accents */
+  --c_accent: #8b5cf6; /* Violet 500 */
+  --c_accent_alt: #6366f1; /* Indigo 500 */
+  --c_accent_rgb: 139, 92, 246;
+
+  /* Functional Colors */
+  --c_info: #3b82f6; /* Blue 500 */
+  --c_info_light: #60a5fa; /* Blue 400 */
+  
+  --c_success: #10b981; /* Emerald 500 */
+  --c_success_dark: #059669; /* Emerald 600 */
+  --c_success_light: #34d399; /* Emerald 400 */
+  --c_success_light_rgb: 52, 211, 153;
+  
+  --c_warning: #f59e0b; /* Amber 500 */
+  --c_warning_dark: #d97706; /* Amber 600 */
+  --c_warning_rgb: 245, 158, 11;
+  
+  --c_danger: #ef4444; /* Red 500 */
+  --c_error_light: #f87171; /* Red 400 */
+  --c_danger_rgb: 239, 68, 68;
+
+  /* UI Elements */
+  --c_border: #27272a; /* Zinc 800 */
+  --c_border_hover: #3f3f46; /* Zinc 700 */
+  --c_border_rgb: 39, 39, 42;
+  
+  --c_scroll_bg: #09090b;
+  --c_scroll_thumb: #3f3f46;
+  --c_scroll_hover: #52525b;
+  
+  --c_paper: #18181b;
+  --c_paper_overlay: #27272a;
+  --c_divider: #27272a;
+  
+  --c_link: #60a5fa;
+  --c_link_visited: #818cf8;
+  
+  --c_primary_dark: #4f46e5; /* Indigo 600 */
+  --c_primary_light: #818cf8; /* Indigo 400 */
+  --c_primary_dark_rgb: 79, 70, 229;
+  --c_primary_light_rgb: 129, 140, 248;
 }
 
 /* SCROLLBARS */
+/* SCROLLBARS */
 ::-webkit-scrollbar {
-  width: 15px !important;
-  height: 15px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 ::-webkit-scrollbar-track {
   background: var(--c_scroll_bg);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--c_scroll_thumb);
-  border-radius: 0;
+  border-radius: 5px;
+  border: 2px solid var(--c_scroll_bg);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--c_scroll_hover);
@@ -60,23 +76,23 @@
 /* Firefox 64+ */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--c_scroll_thumb) transparent;
+  scrollbar-color: var(--c_scroll_thumb) var(--c_scroll_bg);
 }
 
 /* Package Manager Styles */
 .package-manager {
-  padding: 24px;
+  padding: 32px;
   height: 100vh;
   overflow-y: auto;
   background: radial-gradient(
-      1200px 800px at 10% 10%,
-      rgba(147, 197, 253, 0.08),
-      transparent
+      circle at 0% 0%,
+      rgba(139, 92, 246, 0.05),
+      transparent 40%
     ),
     radial-gradient(
-      1000px 600px at 80% 30%,
-      rgba(199, 210, 254, 0.06),
-      transparent
+      circle at 100% 100%,
+      rgba(59, 130, 246, 0.05),
+      transparent 40%
     ),
     var(--c_bg_primary);
   color: var(--c_text_primary);
@@ -123,41 +139,45 @@
 }
 
 @keyframes pulse {
-  0% {
+  0%, 100% {
     opacity: 0.5;
+    transform: scale(0.98);
   }
   50% {
     opacity: 1;
+    transform: scale(1);
   }
-  100% {
-    opacity: 0.5;
+}
+
+@keyframes logo-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 40px rgba(139, 92, 246, 0.4));
   }
 }
 
 .skip-button {
-  background: linear-gradient(
-    135deg,
-    var(--c_accent_alt),
-    var(--c_primary_dark)
-  );
-  color: var(--c_text_primary);
-  border: none;
-  padding: 10px 16px;
-  border-radius: 10px;
+  background: var(--c_bg_secondary);
+  color: var(--c_text_secondary);
+  border: 1px solid var(--c_border);
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 10px rgba(var(--c_primary_dark_rgb), 0.25);
 }
 
 .skip-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(var(--c_primary_dark_rgb), 0.35);
+  background: var(--c_border);
+  color: var(--c_text_primary);
+  border-color: var(--c_border_hover);
 }
 
 .skip-button:disabled {
-  background: rgba(255, 255, 255, 0.12);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -211,6 +231,37 @@
   letter-spacing: 0.06em;
 }
 
+.progress-container {
+  width: 100%;
+  max-width: 320px;
+  margin-top: 12px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--c_text_secondary);
+  font-weight: 500;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--c_bg_secondary);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--c_border);
+}
+
+.progress {
+  height: 100%;
+  background: var(--c_text_primary);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+}
+
 .package-list {
   flex: 1;
   overflow-y: auto;
@@ -220,14 +271,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.02),
-      rgba(255, 255, 255, 0) 40%
-    ),
-    var(--c_bg_secondary);
+  padding: 16px;
+  margin-bottom: 12px;
+  background: var(--c_bg_secondary);
   border-radius: 12px;
   border: 1px solid var(--c_border);
   transition: all 0.2s ease;
@@ -235,8 +281,9 @@
 
 .package-item:hover {
   border-color: var(--c_border_hover);
+  background: var(--c_paper_overlay);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .package-item.installed {
@@ -296,47 +343,49 @@
 .uninstall-button,
 .update-button,
 .installed-indicator {
-  padding: 8px 14px;
+  padding: 8px 16px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   transition: all 0.2s ease;
-  min-width: 82px;
+  min-width: 90px;
 }
 
 .install-button {
-  background: linear-gradient(135deg, var(--c_success), var(--c_success_light));
-  color: var(--c_text_primary);
-  box-shadow: 0 4px 10px rgba(var(--c_accent_rgb), 0.25);
+  background: var(--c_text_primary);
+  color: var(--c_bg_primary);
+  font-weight: 600;
 }
 
 .install-button:hover:not(:disabled) {
+  background: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(var(--c_accent_rgb), 0.35);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
 .update-button {
-  background: linear-gradient(135deg, var(--c_warning), var(--c_warning_dark));
-  color: var(--c_text_primary);
-  box-shadow: 0 4px 10px rgba(var(--c_warning_rgb), 0.25);
+  background: rgba(var(--c_warning_rgb), 0.15);
+  color: var(--c_warning);
+  border: 1px solid rgba(var(--c_warning_rgb), 0.3);
 }
 
 .update-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(var(--c_warning_rgb), 0.35);
+  background: rgba(var(--c_warning_rgb), 0.25);
+  border-color: var(--c_warning);
 }
 
 .uninstall-button {
-  background: linear-gradient(135deg, var(--c_danger), var(--c_error_light));
-  color: var(--c_text_primary);
-  box-shadow: 0 4px 10px rgba(var(--c_danger_rgb), 0.25);
+  background: transparent;
+  color: var(--c_text_tertiary);
+  border: 1px solid var(--c_border);
 }
 
 .uninstall-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(var(--c_danger_rgb), 0.35);
+  color: var(--c_danger);
+  border-color: var(--c_danger);
+  background: rgba(var(--c_danger_rgb), 0.1);
 }
 
 .installed-indicator {
@@ -421,42 +470,29 @@ html {
   inset: 0;
   padding: 24px;
   background: radial-gradient(
-      1200px 800px at 10% 10%,
-      rgba(96, 165, 250, 0.08),
-      transparent
+      circle at 50% 0%,
+      rgba(139, 92, 246, 0.1),
+      transparent 50%
     ),
-    radial-gradient(
-      1000px 600px at 80% 30%,
-      rgba(80, 250, 123, 0.08),
-      transparent
-    ),
-    radial-gradient(
-      1000px 600px at 50% 100%,
-      rgba(255, 255, 255, 0.04),
-      transparent
-    ),
-    var(--c_bg_secondary);
-  border: 12px solid var(--c_border);
-  border-radius: 36px;
-  overflow: hidden;
+    var(--c_bg_primary);
   z-index: 1100;
 }
 
 .welcome-panel {
   position: relative;
   width: min(860px, 92vw);
-  padding: 40px 28px 32px;
+  padding: 48px;
   border-radius: 24px;
   background: var(--c_panel_bg);
   border: 1px solid var(--c_panel_border);
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   color: var(--c_text_primary);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
 }
 
 .welcome-title {
@@ -478,31 +514,39 @@ html {
 }
 
 .welcome-actions .primary {
-  background: linear-gradient(
-    135deg,
-    var(--c_accent_alt),
-    var(--c_primary_dark)
-  );
-  color: var(--c_text_primary);
+  background: var(--c_text_primary);
+  color: var(--c_bg_primary);
   border: none;
-  padding: 10px 16px;
-  border-radius: 10px;
+  padding: 12px 24px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 10px rgba(29, 78, 216, 0.25);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.welcome-actions .primary:hover {
+  background: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 255, 255, 0.3);
 }
 
 .welcome-actions .secondary {
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   color: var(--c_text_secondary);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 10px 16px;
-  border-radius: 10px;
+  border: 1px solid var(--c_border);
+  padding: 12px 24px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.welcome-actions .secondary:hover {
+  border-color: var(--c_text_primary);
+  color: var(--c_text_primary);
 }
 
 .feature-grid {
@@ -756,43 +800,21 @@ ul li {
   position: fixed;
   inset: 0;
   padding: 24px;
-  background: radial-gradient(
-      1200px 800px at 10% 10%,
-      rgba(96, 165, 250, 0.08),
-      transparent
-    ),
-    radial-gradient(
-      1000px 600px at 80% 30%,
-      rgba(80, 250, 123, 0.08),
-      transparent
-    ),
-    radial-gradient(
-      1000px 600px at 50% 100%,
-      rgba(255, 255, 255, 0.04),
-      transparent
-    ),
-    var(--c_bg_secondary);
-  border: 12px solid var(--c_border);
-  border-radius: 36px;
-  overflow: hidden;
+  background: var(--c_bg_primary);
   z-index: 1000;
 }
 
 .boot-panel {
   position: relative;
   width: min(720px, 92vw);
-  padding: 40px 28px 56px;
+  padding: 64px;
   border-radius: 24px;
-  background: var(--c_panel_bg);
-  border: 1px solid var(--c_panel_border);
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
   color: var(--c_text_primary);
-  backdrop-filter: blur(10px);
 }
 
 .brand {
@@ -828,6 +850,66 @@ ul li {
   text-align: center;
   width: 100%;
   overflow: hidden;
+}
+
+.boot-error {
+  width: 100%;
+  max-width: 560px;
+  background: rgba(var(--c_danger_rgb), 0.12);
+  border: 1px solid rgba(var(--c_danger_rgb), 0.28);
+  border-radius: 14px;
+  padding: 16px 18px;
+  color: var(--c_text_primary);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.24);
+}
+
+.boot-error-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--c_text_primary);
+  text-align: center;
+}
+
+.boot-error-message {
+  color: var(--c_text_secondary);
+  margin-bottom: 14px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.boot-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.boot-action {
+  border-radius: 10px;
+  border: 1px solid var(--c_border);
+  background: var(--c_bg_secondary);
+  color: var(--c_text_primary);
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.boot-action:hover {
+  border-color: var(--c_border_hover);
+  background: #1f1f25;
+}
+
+.boot-action.primary {
+  background: linear-gradient(
+    120deg,
+    rgba(var(--c_primary_dark_rgb), 0.9),
+    rgba(var(--c_primary_light_rgb), 0.9)
+  );
+  border-color: rgba(var(--c_primary_dark_rgb), 0.8);
+  color: #fdfdfd;
+  box-shadow: 0 10px 24px rgba(var(--c_primary_dark_rgb), 0.25);
 }
 
 .boot-text::before,
@@ -1182,23 +1264,23 @@ ul li {
 .location-button.default-location {
   background: linear-gradient(
     135deg,
-    rgba(76, 175, 80, 0.2) 0%,
-    rgba(76, 175, 80, 0.1) 100%
+    rgba(16, 185, 129, 0.1) 0%,
+    rgba(16, 185, 129, 0.05) 100%
   );
-  border: 2px solid rgba(76, 175, 80, 0.4);
+  border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.1);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.1);
 }
 
 .location-button.default-location:hover {
   background: linear-gradient(
     135deg,
-    rgba(76, 175, 80, 0.3) 0%,
-    rgba(76, 175, 80, 0.2) 100%
+    rgba(16, 185, 129, 0.15) 0%,
+    rgba(16, 185, 129, 0.1) 100%
   );
-  border-color: rgba(76, 175, 80, 0.6);
-  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2),
-    0 0 0 4px rgba(76, 175, 80, 0.1);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15),
+    0 0 0 4px rgba(16, 185, 129, 0.05);
 }
 
 .location-button.custom-location {
@@ -1329,23 +1411,19 @@ ul li {
   display: grid;
   grid-template-columns: 40px 1fr;
   align-items: start;
-  transition: transform 0.18s ease, box-shadow 0.18s ease,
-    background-color 0.18s ease;
+  transition: all 0.2s ease;
   cursor: pointer;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.02),
-    rgba(255, 255, 255, 0)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--c_bg_secondary);
+  border: 1px solid var(--c_border);
   border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .package-option:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--c_paper_overlay);
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  border-color: var(--c_border_hover);
 }
 
 .checkbox-wrapper {
@@ -1391,14 +1469,9 @@ ul li {
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
-  background: linear-gradient(
-    180deg,
-    rgba(var(--c_accent_rgb), 0.18),
-    rgba(var(--c_accent_rgb), 0.08)
-  );
-  border: 1px solid rgba(var(--c_accent_rgb), 0.35);
-  color: var(--c_text_primary);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: var(--c_accent);
 }
 
 .package-info {
@@ -1444,6 +1517,38 @@ ul li {
   font-size: 0.8rem;
   font-weight: 600;
   box-shadow: 0 2px 4px rgba(80, 250, 123, 0.3);
+}
+
+.runtime-option {
+  display: block;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--c_border);
+  border-radius: 12px;
+  background: var(--c_bg_secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.runtime-option:hover {
+  border-color: var(--c_border_hover);
+  background: var(--c_paper_overlay);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.runtime-option.selected {
+  border-color: var(--c_accent);
+  background: rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 1px var(--c_accent);
+}
+
+.runtime-option h4 {
+  color: var(--c_text_primary);
+}
+
+.runtime-option p {
+  color: var(--c_text_secondary);
 }
 
 .size-info {
@@ -1677,34 +1782,45 @@ body::before {
 }
 
 .nav-button {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--c_bg_secondary);
+  border: 1px solid var(--c_border);
   color: var(--c_text_primary);
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .nav-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--c_paper_overlay);
+  border-color: var(--c_border_hover);
+  transform: translateY(-1px);
 }
 
 .nav-button.next {
-  background: linear-gradient(135deg, var(--c_success_dark), var(--c_success));
-  border: none;
-  color: var(--c_text_primary);
+  background: var(--c_text_primary);
+  color: var(--c_bg_primary);
+  border: 1px solid var(--c_text_primary);
   font-weight: 600;
 }
 
 .nav-button.next:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--c_success_light_rgb), 0.4);
-  background: linear-gradient(135deg, var(--c_success), var(--c_success_light));
+  background: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
 .nav-button.back {
   background: transparent;
+  color: var(--c_text_secondary);
+}
+
+.nav-button.back:hover {
+  color: var(--c_text_primary);
+  background: rgba(255, 255, 255, 0.05);
 }
