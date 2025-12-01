@@ -41,19 +41,27 @@ titles_from_headings:
 # Navigation
 header_pages:
   - index.md
-  - installation.md
   - getting-started.md
+  - key-concepts.md
+  - user-interface.md
   - workflow-editor.md
+  - cookbook.md
+  - workflows/index.md
+  - models-and-providers.md
+  - global-chat-agents.md
+  - deployment.md
+  - storage.md
+  - api-reference.md
+  - developer/index.md
+  - architecture.md
+  - installation.md
+  - tips-and-tricks.md
   - global-chat.md
   - models.md
   - providers.md
   - asset-management.md
   - nodes/index.md
-
-  - cookbook.md
-  - developer/index.md
-  - workflows/index.md
-  - tips-and-tricks.md
+  - agents.md
 
 # Collections (optional, for organizing docs)
 # collections:

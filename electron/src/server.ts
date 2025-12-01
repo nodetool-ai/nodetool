@@ -272,7 +272,7 @@ async function startServer(): Promise<void> {
     }
   }
 
-  const basePort = 8000;
+  const basePort = 7777;
   logMessage(`Finding available port starting from ${basePort}...`);
   const selectedPort = await findAvailablePort(basePort);
   serverState.serverPort = selectedPort;
@@ -388,13 +388,13 @@ async function initializeBackendServer(): Promise<void> {
     if (pidFileExists) {
       // PID file exists, do a quick health check (500ms timeout for fast failure)
       try {
-        logMessage(`PID file found, checking if server is healthy on port ${serverState.serverPort ?? 8000}...`);
+        logMessage(`PID file found, checking if server is healthy on port ${serverState.serverPort ?? 7777}...`);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms timeout for fast startup
         
         try {
           const response = await fetch(
-            `http://127.0.0.1:${serverState.serverPort ?? 8000}/health`,
+            `http://127.0.0.1:${serverState.serverPort ?? 7777}/health`,
             { signal: controller.signal }
           );
           clearTimeout(timeoutId);
@@ -457,14 +457,14 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
       
       try {
         const response = await fetch(
-          `http://127.0.0.1:${serverState.serverPort ?? 8000}/health`,
+          `http://127.0.0.1:${serverState.serverPort ?? 7777}/health`,
           { signal: controller.signal }
         );
         clearTimeout(timeoutId);
         if (response.ok) {
           logMessage(
             `Server endpoint is available at http://127.0.0.1:${
-              serverState.serverPort ?? 8000
+              serverState.serverPort ?? 7777
             }/health`
           );
           emitServerStarted();

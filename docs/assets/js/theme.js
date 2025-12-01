@@ -189,6 +189,265 @@
     }, 3000);
   }
 
+  // Debounce utility for input-driven handlers
+  function debounce(fn, delay) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  }
+
+  // Client-side search loader + renderer
+  function initSearch() {
+    const container = document.querySelector('.search-container');
+    const input = document.getElementById('site-search');
+    const resultsPanel = document.getElementById('search-results');
+    const resultsList = document.getElementById('search-results-list');
+
+    if (!container || !input || !resultsPanel || !resultsList) return;
+
+    const endpoint = container.dataset.searchIndex || '/search.json';
+    let searchIndex = [];
+    let searchLoaded = false;
+    let activeIndex = -1;
+    let currentResults = [];
+
+    const typeClass = {
+      Concept: 'concept',
+      Tutorial: 'tutorial',
+      Reference: 'reference',
+      API: 'api',
+      Node: 'node'
+    };
+
+    async function loadIndex() {
+      if (searchLoaded) return searchIndex;
+      try {
+        const response = await fetch(endpoint, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Search index failed: ${response.status}`);
+        searchIndex = await response.json();
+      } catch (error) {
+        console.error('Failed to load search index', error);
+        renderResults([], 'Search is temporarily unavailable.');
+      } finally {
+        searchLoaded = true;
+      }
+      return searchIndex;
+    }
+
+    function closeResults() {
+      resultsPanel.hidden = true;
+      activeIndex = -1;
+      currentResults = [];
+      resultsList.innerHTML = '';
+      input.setAttribute('aria-expanded', 'false');
+    }
+
+    function renderResults(results, emptyMessage) {
+      resultsList.innerHTML = '';
+      currentResults = results;
+
+      if (!results.length) {
+        activeIndex = -1;
+        const emptyState = document.createElement('li');
+        emptyState.className = 'search-empty';
+        emptyState.textContent = emptyMessage || 'No matches yet. Try a different term.';
+        resultsList.appendChild(emptyState);
+        resultsPanel.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+        return;
+      }
+
+      activeIndex = 0;
+      input.setAttribute('aria-expanded', 'true');
+
+      results.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.className = 'search-result';
+        li.dataset.url = item.url;
+        li.setAttribute('role', 'option');
+
+        const badge = document.createElement('span');
+        badge.className = `search-badge ${typeClass[item.type] || 'concept'}`;
+        badge.textContent = item.type || 'Concept';
+
+        const title = document.createElement('span');
+        title.className = 'search-result-title';
+        title.textContent = item.title;
+
+        const meta = document.createElement('div');
+        meta.className = 'search-result-meta';
+        meta.appendChild(badge);
+
+        if (item.node_type) {
+          const tag = document.createElement('span');
+          tag.textContent = item.node_type;
+          meta.appendChild(tag);
+        } else if (item.namespace) {
+          const tag = document.createElement('span');
+          tag.textContent = item.namespace;
+          meta.appendChild(tag);
+        }
+
+        const heading = (item.headings && item.headings[0]) ? ` · ${item.headings[0]}` : '';
+        if (heading) {
+          const headingEl = document.createElement('span');
+          headingEl.textContent = heading;
+          meta.appendChild(headingEl);
+        }
+
+        const snippet = document.createElement('div');
+        snippet.className = 'search-snippet';
+        const fallbackContent = item.content ? item.content.slice(0, 180) : '';
+        snippet.textContent = item.summary || fallbackContent || '';
+
+        li.appendChild(title);
+        li.appendChild(meta);
+        li.appendChild(snippet);
+
+        li.addEventListener('click', () => {
+          window.location.href = item.url;
+        });
+
+        li.addEventListener('mouseenter', () => setActive(idx));
+        resultsList.appendChild(li);
+      });
+
+      resultsPanel.hidden = false;
+    }
+
+    function setActive(index) {
+      const items = resultsList.querySelectorAll('.search-result');
+      items.forEach(el => el.classList.remove('active'));
+      if (items[index]) {
+        items[index].classList.add('active');
+        activeIndex = index;
+      }
+    }
+
+    function runSearch(value) {
+      const query = value.trim().toLowerCase();
+      if (!query) {
+        closeResults();
+        return;
+      }
+
+      const terms = query.split(/\s+/).filter(Boolean);
+      if (!terms.length) {
+        closeResults();
+        return;
+      }
+
+      const results = searchIndex
+        .map(item => {
+          const haystack = [
+            item.title,
+            item.summary,
+            item.node_type,
+            item.namespace,
+            (item.headings || []).join(' '),
+            (item.keywords || []).join(' '),
+            item.content
+          ].join(' ').toLowerCase();
+
+          const matchesAll = terms.every(term => haystack.includes(term));
+          if (!matchesAll) return null;
+
+          let score = 0;
+          terms.forEach(term => {
+            if (item.title && item.title.toLowerCase().includes(term)) score += 8;
+            if (item.node_type && item.node_type.toLowerCase().includes(term)) score += 5;
+            if (item.namespace && item.namespace.toLowerCase().includes(term)) score += 3;
+            if (item.type === 'Node') score += 2;
+            if (item.headings && item.headings.join(' ').toLowerCase().includes(term)) score += 3;
+            if (item.keywords && item.keywords.join(' ').toLowerCase().includes(term)) score += 2;
+            if (item.summary && item.summary.toLowerCase().includes(term)) score += 1;
+          });
+
+          return { ...item, score };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 12);
+
+      renderResults(results);
+      setActive(0);
+    }
+
+    const debouncedSearch = debounce(runSearch, 140);
+
+    input.addEventListener('input', async (event) => {
+      if (!searchLoaded) {
+        await loadIndex();
+      }
+      debouncedSearch(event.target.value);
+    });
+
+    input.addEventListener('focus', async () => {
+      if (!searchLoaded) {
+        await loadIndex();
+      }
+      if (input.value.trim()) {
+        runSearch(input.value);
+      }
+    });
+
+    input.addEventListener('keydown', (event) => {
+      if (resultsPanel.hidden) return;
+      const items = resultsList.querySelectorAll('.search-result');
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (items.length) {
+          const nextIndex = (activeIndex + 1) % items.length;
+          setActive(nextIndex);
+          items[nextIndex].scrollIntoView({ block: 'nearest' });
+        }
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (items.length) {
+          const nextIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
+          setActive(nextIndex);
+          items[nextIndex].scrollIntoView({ block: 'nearest' });
+        }
+      }
+
+      if (event.key === 'Enter') {
+        const item = currentResults[activeIndex] || currentResults[0];
+        if (item) {
+          window.location.href = item.url;
+        }
+      }
+
+      if (event.key === 'Escape') {
+        closeResults();
+        input.blur();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      const isInputFocused = document.activeElement === input;
+      if (event.key === '/' && !isInputFocused) {
+        event.preventDefault();
+        input.focus();
+      }
+
+      if (event.key === 'Escape' && !resultsPanel.hidden) {
+        closeResults();
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!container.contains(target)) {
+        closeResults();
+      }
+    });
+  }
+
   // Initialize everything when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -202,6 +461,7 @@
     setupScrollAnimations();
     addLogoGlitch();
     restoreSidebarScroll();
+    initSearch();
 
     if (sidebar) {
       sidebar.addEventListener('scroll', persistSidebarScroll, { passive: true });

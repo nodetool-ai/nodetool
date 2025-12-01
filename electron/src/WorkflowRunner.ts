@@ -6,7 +6,7 @@ import { serverState } from "./state";
 import { Workflow } from "./types";
 
 const getWorkerUrl = () =>
-  `ws://127.0.0.1:${serverState.serverPort ?? 8000}/predict`;
+  `ws://127.0.0.1:${serverState.serverPort ?? 7777}/predict`;
 
 interface WorkflowRunnerState {
   workflow: Workflow | null;

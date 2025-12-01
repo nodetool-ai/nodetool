@@ -1,0 +1,78 @@
+---
+layout: null
+permalink: /search.json
+---
+[
+  {%- assign docs = site.pages | where_exp: "page", "page.url" -%}
+  {%- assign docs = docs | where_exp: "page", "page.url != '/search.json'" -%}
+  {%- assign docs = docs | where_exp: "page", "page.url != '/404.html'" -%}
+  {%- assign docs = docs | sort: "url" -%}
+  {%- for page in docs -%}
+    {%- unless page.draft or page.exclude_from_search -%}
+      {%- assign html = page.content | markdownify -%}
+      {%- assign plain = html | strip_html | replace: "\n", " " | replace: "\t", " " | strip -%}
+      {%- assign url = page.url -%}
+      {%- assign entry_type = "Concept" -%}
+      {%- if page.node_type or url contains "/nodes/" -%}
+        {%- assign entry_type = "Node" -%}
+      {%- elsif url contains "api" or url contains "terminal-websocket" -%}
+        {%- assign entry_type = "API" -%}
+      {%- elsif url contains "getting-started" or url contains "installation" or url contains "cookbook" or url contains "tips-and-tricks" or url contains "deployment-journeys" -%}
+        {%- assign entry_type = "Tutorial" -%}
+      {%- elsif url contains "developer" or url contains "configuration" or url contains "storage" or url contains "deployment" or url contains "authentication" or url contains "agents" or url contains "architecture" -%}
+        {%- assign entry_type = "Reference" -%}
+      {%- endif -%}
+
+      {%- assign heading_sections = html | split: "<h" -%}
+      {%- assign heading_count = 0 -%}
+
+      {%- assign token_string = "|" -%}
+      {%- assign words = plain | split: " " -%}
+      {%- for word in words -%}
+        {%- assign cleaned = word | remove: "," | remove: "." | remove: ":" | remove: "`" | remove: '"' | remove: "(" | remove: ")" -%}
+        {%- assign cleaned = cleaned | strip -%}
+        {%- assign cleaned_upcase = cleaned | upcase -%}
+        {%- if cleaned contains "_" and cleaned == cleaned_upcase and cleaned.size > 3 -%}
+          {%- unless token_string contains cleaned -%}
+            {%- assign token_string = token_string | append: cleaned | append: "|" -%}
+          {%- endunless -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- assign tokens = token_string | split: "|" -%}
+
+      {
+        "title": {{ page.title | default: page.name | jsonify }},
+        "url": {{ page.url | relative_url | jsonify }},
+        "type": {{ entry_type | jsonify }},
+        "summary": {{ plain | truncate: 220 | jsonify }},
+        "node_type": {{ page.node_type | default: "" | jsonify }},
+        "namespace": {{ page.namespace | default: "" | jsonify }},
+        "keywords": [
+          {%- assign printed_keyword = false -%}
+          {%- for token in tokens -%}
+            {%- if token != "" -%}
+              {%- if printed_keyword -%},{%- endif -%}
+              {{ token | jsonify }}
+              {%- assign printed_keyword = true -%}
+            {%- endif -%}
+          {%- endfor -%}
+        ],
+        "headings": [
+          {%- assign first_heading = true -%}
+          {%- for section in heading_sections offset:1 -%}
+            {%- assign level = section | slice: 0, 1 -%}
+            {%- if level == "1" or level == "2" or level == "3" or level == "4" -%}
+              {%- assign heading_text = section | split: "</h" | first | split: ">" | last | strip_html | strip -%}
+              {%- if heading_text != "" -%}
+                {%- if first_heading -%}{%- assign first_heading = false -%}{%- else -%},{%- endif -%}
+                {{ heading_text | jsonify }}
+                {%- assign heading_count = heading_count | plus: 1 -%}
+              {%- endif -%}
+            {%- endif -%}
+          {%- endfor -%}
+        ],
+        "content": {{ plain | jsonify }}
+      }{% unless forloop.last %},{% endunless %}
+    {%- endunless -%}
+  {%- endfor -%}
+]

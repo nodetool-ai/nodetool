@@ -10,7 +10,6 @@ import {
   OllamaLink
 } from "../ModelActionsCommon";
 import { UnifiedModel } from "../../../stores/ApiTypes";
-import { useModelInfo } from "../../../hooks/useModelInfo";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
@@ -33,7 +32,8 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   handleShowInExplorer,
   showFileExplorerButton = true
 }) => {
-  const { isHuggingFace, isOllama } = useModelInfo(model);
+  const isHuggingFace = model.type?.startsWith("hf") ?? false;
+  const isOllama = model.type === "llama_model";
   const downloaded = model.downloaded ?? !!model.path;
   const canShowExplorerButton = Boolean(
     handleShowInExplorer && showFileExplorerButton

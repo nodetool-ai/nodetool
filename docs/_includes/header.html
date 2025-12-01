@@ -15,16 +15,35 @@
 
       <ul class="nav-list">
         <li><a href="{{ '/' | relative_url }}" class="nav-item {% if page.url == '/' %}active{% endif %}">Home</a></li>
-        <li><a href="{{ '/getting-started' | relative_url }}" class="nav-item {% if page.url contains '/getting-started' %}active{% endif %}">Get Started</a></li>
-        <li><a href="{{ '/workflow-editor' | relative_url }}" class="nav-item {% if page.url contains '/workflow-editor' %}active{% endif %}">Workflow</a></li>
-        <li><a href="{{ '/workflows' | relative_url }}" class="nav-item {% if page.url contains '/workflows' %}active{% endif %}">Examples</a></li>
-        <li><a href="{{ '/nodes/' | relative_url }}" class="nav-item {% if page.url contains '/nodes/' %}active{% endif %}">Nodes</a></li>
+        <li><a href="{{ '/getting-started' | relative_url }}" class="nav-item {% if page.url contains '/getting-started' %}active{% endif %}">Getting Started</a></li>
         <li><a href="{{ '/cookbook' | relative_url }}" class="nav-item {% if page.url contains '/cookbook' %}active{% endif %}">Cookbook</a></li>
-        <li><a href="{{ '/developer/' | relative_url }}" class="nav-item {% if page.url contains '/developer/' %}active{% endif %}">Developer</a></li>
+        <li><a href="{{ '/workflows/' | relative_url }}" class="nav-item {% if page.url contains '/workflows' %}active{% endif %}">Examples</a></li>
+        <li><a href="{{ '/models-and-providers' | relative_url }}" class="nav-item {% if page.url contains '/models-and-providers' %}active{% endif %}">Models</a></li>
+        <li><a href="{{ '/global-chat-agents' | relative_url }}" class="nav-item {% if page.url contains '/global-chat-agents' %}active{% endif %}">Chat & Agents</a></li>
       </ul>
     </nav>
 
     <div class="header-right">
+      <div class="search-container" data-search-index="{{ '/search.json' | relative_url }}">
+        <label class="search-input-wrapper">
+          <span class="search-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input id="site-search" type="search" name="q" placeholder="Search docs, nodes, errors…" autocomplete="off" aria-label="Search documentation" role="combobox" aria-expanded="false" aria-controls="search-results-list" />
+          <span class="search-shortcut">/</span>
+        </label>
+        <div class="search-results" id="search-results" aria-live="polite" hidden>
+          <div class="search-results-header">
+            <span class="search-results-title">Quick find</span>
+            <span class="search-results-hint">Enter to open · Esc to close</span>
+          </div>
+          <ul class="search-results-list" id="search-results-list" role="listbox"></ul>
+        </div>
+      </div>
+
       <div class="social-links">
         <a href="https://github.com/nodetool-ai/nodetool" target="_blank" rel="noopener" class="social-link" aria-label="GitHub">
           <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
