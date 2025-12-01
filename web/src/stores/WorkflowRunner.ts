@@ -19,7 +19,6 @@ import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
 import useErrorStore from "./ErrorStore";
-import { handleUpdate } from "./workflowUpdates";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { supabase } from "../lib/supabaseClient";
@@ -27,6 +26,7 @@ import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager"
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { queryClient } from "../queryClient";
+import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -440,9 +440,7 @@ export const createWorkflowRunnerStore = (
   }));
 
   store.setState({
-    messageHandler: (workflow: WorkflowAttributes, data: MsgpackData) => {
-      handleUpdate(workflow, data, store);
-    }
+    messageHandler: createRunnerMessageHandler(store)
   });
 
   return store;
