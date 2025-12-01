@@ -13,6 +13,19 @@ import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
 
+const hasValidPosition = (position: any) =>
+  !!position &&
+  typeof position.x === "number" &&
+  typeof position.y === "number";
+
+const isValidNode = (node: any): node is Node<NodeData> =>
+  !!node && typeof node.id === "string" && hasValidPosition(node.position);
+
+const isValidEdge = (edge: any): edge is Edge =>
+  !!edge &&
+  typeof edge.source === "string" &&
+  typeof edge.target === "string";
+
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
   const generateNodeIds = useNodes((state) => state.generateNodeIds);
@@ -115,7 +128,27 @@ export const useCopyPaste = () => {
       return;
     }
 
-    const parsedData = JSON.parse(clipboardData);
+    let parsedData: unknown;
+    try {
+      parsedData = JSON.parse(clipboardData);
+    } catch (error) {
+      log.warn("Failed to parse clipboard data", error);
+      setIsClipboardValid(false);
+      return;
+    }
+
+    if (
+      !parsedData ||
+      typeof parsedData !== "object" ||
+      !Array.isArray((parsedData as any).nodes) ||
+      !Array.isArray((parsedData as any).edges) ||
+      !(parsedData as any).nodes.every(isValidNode) ||
+      !(parsedData as any).edges.every(isValidEdge)
+    ) {
+      log.warn("Clipboard data does not contain valid nodes/edges");
+      setIsClipboardValid(false);
+      return;
+    }
 
     const mousePosition = getMousePosition();
     if (!mousePosition) {
@@ -216,7 +249,15 @@ export const useCopyPaste = () => {
       setNodes([...nodes, ...newNodes]);
       setEdges([...edges, ...newEdges]);
     }
-  }, [generateNodeIds, reactFlow, nodes, edges, setNodes, setEdges]);
+  }, [
+    generateNodeIds,
+    reactFlow,
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    setIsClipboardValid
+  ]);
 
   return { handleCopy, handleCut, handlePaste };
 };
