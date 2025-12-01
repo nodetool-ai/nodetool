@@ -2,20 +2,13 @@
 layout: default
 ---
 <div class="home-page">
-  <div class="hero-section">
-    <h1 class="hero-title">{{ page.title | default: site.title }}</h1>
-    <p class="hero-subtitle">{{ site.description }}</p>
-  </div>
-
-  <div class="home-content">
-    {{ content }}
-  </div>
+  {{ content }}
 </div>
 
 <style>
 .home-page {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing-2xl) var(--spacing-lg);
 }

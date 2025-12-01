@@ -13,7 +13,7 @@ describe('API', () => {
     jest.clearAllMocks();
     jest.clearAllTimers();
     // Reset server state
-    serverState.serverPort = 8000;
+    serverState.serverPort = 7777;
   });
 
   afterEach(() => {
@@ -36,7 +36,7 @@ describe('API', () => {
       const result = await fetchWorkflows();
 
       expect(result).toEqual(mockWorkflows);
-      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:8000/api/workflows/', {
+      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:7777/api/workflows/', {
         method: 'GET',
         headers: {
           Accept: 'application/json'
@@ -107,7 +107,7 @@ describe('API', () => {
       // Advance timers to trigger initial check
       await jest.advanceTimersByTimeAsync(0);
 
-      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:8000/health/');
+      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:7777/health/');
       expect(onStatusChange).toHaveBeenCalledWith(true);
     });
 
