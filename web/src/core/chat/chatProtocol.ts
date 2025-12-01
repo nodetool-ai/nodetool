@@ -1,3 +1,13 @@
+/**
+ * Global chat protocol reducer.
+ *
+ * The chat WebSocket streams mixed message types: user/assistant Messages,
+ * Chunk streams for assistant text, Job/Node updates, ToolCall/ToolResult,
+ * Planning/Task updates, workflow graph create/update events, and generation
+ * stop notices. Ordering is preserved per thread; updates are merged into the
+ * GlobalChatStore via pure reducer helpers here so connection logic stays in
+ * the store while message handling remains testable.
+ */
 import log from "loglevel";
 
 import {

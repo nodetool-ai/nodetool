@@ -5,19 +5,13 @@ import ELK from "elkjs";
 import { zip } from "lodash";
 
 /**
- * Topological sort of a graph.
- * This is used to sort nodes in the workflow editor for processing.
- * The algorithm is based on Kahn's algorithm.
- * https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm
+ * Graph utilities for workflow layout and traversal.
  *
- * The nodes are returned as layers of nodes, where each layer can be
- * processed in parallel.
- *
- * If the graph contains a cycle, an error is thrown.
- *
- * @param edges The edges of the graph.
- * @param nodes The nodes of the graph.
- * @returns A list of sorted layers of nodes.
+ * - `topologicalSort` (Kahn) returns layered node ids for parallel-friendly
+ *   processing and warns on cycles.
+ * - `subgraph` collects nodes/edges reachable from a start node (optional stop).
+ * - `autoLayout` runs ELK layered layout, filtering out comment nodes, grouping
+ *   by parentId, and resizing group nodes to fit children with padding.
  */
 export function topologicalSort(
   edges: Edge[],

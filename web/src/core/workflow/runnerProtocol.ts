@@ -1,3 +1,12 @@
+/**
+ * Workflow runner protocol adapter.
+ *
+ * Runner WebSocket messages (JobUpdate, Prediction, NodeProgress/NodeUpdate,
+ * Task/Planning updates) are processed via `handleUpdate` in
+ * `workflowUpdates.ts`. This helper wires a store-specific handler that
+ * delegates everything to the shared reducer so the protocol logic stays
+ * centralized and testable outside of Zustand.
+ */
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { handleUpdate } from "../../stores/workflowUpdates";
 import { WorkflowRunnerStore } from "../../stores/WorkflowRunner";

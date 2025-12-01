@@ -1,11 +1,13 @@
 /**
- * NodeStore manages the state of the workflow editor's nodes and edges.
- * It provides functionality for:
- * - Managing nodes and their connections
- * - Handling node/edge selection and updates
- * - Workflow state management and serialization
- * - Auto-layout capabilities
- * - Undo/redo support via temporal state
+ * NodeStore manages workflow graph state for a single editor tab.
+ *
+ * Responsibilities:
+ * - Track nodes/edges, selection, viewport, and hover state
+ * - Enforce connection validity (handle types, prevent cycles) via
+ *   `isValidEdge`/`sanitizeGraph`
+ * - Run ELK auto-layout when requested and resize group nodes accordingly
+ * - Provide serialization helpers to/from backend graph shapes
+ * - Offer temporal undo/redo on nodes/edges/workflow via zundo (limit 1000)
  */
 
 import { temporal } from "zundo";
