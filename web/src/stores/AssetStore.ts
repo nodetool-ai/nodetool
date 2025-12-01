@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import { client, authHeader } from "../stores/ApiClient";
+import { client, authHeader } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
-import { Asset, AssetList, AssetSearchResult } from "../stores/ApiTypes";
+import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
 import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
@@ -20,6 +20,13 @@ type UploadProgressEvent = {
   loaded: number;
   total: number;
   lengthComputable: boolean;
+};
+
+const normalizeAssetError = (error: unknown, message: string) => {
+  if (error instanceof AppError) {
+    throw error;
+  }
+  throw createErrorMessage(error, message);
 };
 
 const emitUploadProgress = (
@@ -371,10 +378,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       get().invalidateQueries(["assets", { content_type: "folder" }]);
       return folder;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      throw createErrorMessage(error, "Failed to create folder");
+      throw normalizeAssetError(error, "Failed to create folder");
     }
   },
   /**
@@ -588,10 +592,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       get().add(asset);
       return asset;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      throw createErrorMessage(error, "Failed to create asset");
+      throw normalizeAssetError(error, "Failed to create asset");
     }
   },
 

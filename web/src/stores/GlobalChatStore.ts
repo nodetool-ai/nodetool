@@ -1,3 +1,16 @@
+/**
+ * Global chat state and WebSocket bridge.
+ *
+ * Server contract: connects to `CHAT_URL` (with Supabase auth outside
+ * localhost) and exchanges chatProtocol messages: Message streams, Job/Node
+ * updates, ToolCallUpdate, PlanningUpdate/TaskUpdate, and workflow graph
+ * updates keyed by thread_id. The server is expected to preserve message
+ * ordering per thread and resume streams after reconnects.
+ *
+ * State machine: disconnected → connecting → connected/streaming → stopping →
+ * disconnected or error. Reconnects recreate the WebSocketManager, restore the
+ * active thread, and replay cached messages while new ones stream in.
+ */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useQuery } from "@tanstack/react-query";
@@ -26,7 +39,7 @@ import { client } from "./ApiClient";
 import log from "loglevel";
 import { supabase } from "../lib/supabaseClient";
 import { DEFAULT_MODEL } from "../config/constants";
-import { NodeStore } from "../stores/NodeStore";
+import { NodeStore } from "./NodeStore";
 import {
   WebSocketManager,
   ConnectionState
