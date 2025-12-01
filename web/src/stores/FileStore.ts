@@ -9,6 +9,9 @@ interface TreeViewItem {
   children?: TreeViewItem[];
 }
 
+const MAX_TREE_DEPTH = 4;
+const MAX_TREE_NODES = 5000;
+
 const fetchDirectoryContents = async (path: string): Promise<FileInfo[]> => {
   const { data, error } = await client.GET("/api/files/list", {
     params: { query: { path } }
@@ -67,27 +70,57 @@ export const useFileStore = create<FileStore>((set, get) => ({
 
     try {
       const buildTreeRecursively = async (
-        currentPath: string
+        currentPath: string,
+        depth: number,
+        budget: { remaining: number },
+        visited: Set<string>
       ): Promise<TreeViewItem[]> => {
+        if (depth > MAX_TREE_DEPTH || budget.remaining <= 0) {
+          return [];
+        }
+
+        // Avoid cycles if backend returns symlinks pointing upward.
+        if (visited.has(currentPath)) {
+          return [];
+        }
+        visited.add(currentPath);
+
         const files = await fetchDirectoryContents(currentPath);
         const [directories, nonDirectories] = partitionDirectories(files);
 
-        // Convert regular files to tree items
-        const fileItems = nonDirectories.map(fileToTreeItem);
+        const fileItems: TreeViewItem[] = [];
+        for (const file of nonDirectories) {
+          if (budget.remaining <= 0) break;
+          budget.remaining -= 1;
+          fileItems.push(fileToTreeItem(file));
+        }
 
-        // Process directories in parallel and convert to tree items
-        const dirItems = await Promise.all(
-          directories.map(async (dir) => ({
+        const dirItems: TreeViewItem[] = [];
+        for (const dir of directories) {
+          if (budget.remaining <= 0) break;
+          budget.remaining -= 1;
+          const children = await buildTreeRecursively(
+            dir.path,
+            depth + 1,
+            budget,
+            visited
+          );
+          dirItems.push({
             ...fileToTreeItem(dir),
-            children: await buildTreeRecursively(dir.path)
-          }))
-        );
+            children
+          });
+        }
 
         // Combine and return all items
         return [...dirItems, ...fileItems];
       };
 
-      const tree = await buildTreeRecursively(path);
+      const tree = await buildTreeRecursively(
+        path,
+        0,
+        { remaining: MAX_TREE_NODES },
+        new Set()
+      );
       set({ fileTree: tree, isLoadingTree: false });
       return tree;
     } catch (error) {
