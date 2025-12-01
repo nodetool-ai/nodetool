@@ -104,6 +104,376 @@ type ChatStateSetter = (
 
 type ChatStateGetter = () => GlobalChatState;
 
+type ReducerResult = {
+  update: Partial<GlobalChatState>;
+  postAction?: (get: ChatStateGetter) => void;
+};
+
+const noopUpdate: ReducerResult = { update: {} };
+
+const updateThreadTimestamp = (
+  threadId: string,
+  threads: GlobalChatState["threads"]
+) => ({
+  ...threads,
+  [threadId]: {
+    ...threads[threadId],
+    updated_at: new Date().toISOString()
+  }
+});
+
+const applyJobUpdate = (state: GlobalChatState, update: JobUpdate) => {
+  if (update.status === "completed") {
+    return {
+      update: {
+        status: "connected",
+        progress: { current: 0, total: 0 },
+        statusMessage: null
+      }
+    };
+  }
+  if (update.status === "failed") {
+    return {
+      update: {
+        status: "error",
+        error: update.error,
+        progress: { current: 0, total: 0 },
+        statusMessage: update.error || null
+      }
+    };
+  }
+  return noopUpdate;
+};
+
+const applyNodeUpdate = (state: GlobalChatState, update: NodeUpdate) => {
+  if (update.status === "completed") {
+    return {
+      update: {
+        status: "connected",
+        progress: { current: 0, total: 0 },
+        statusMessage: null
+      }
+    };
+  }
+  return { update: { statusMessage: update.node_name } };
+};
+
+const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
+  const threadId = state.currentThreadId;
+  if (!threadId) return noopUpdate;
+
+  const thread = state.threads[threadId];
+  if (!thread) return noopUpdate;
+
+  const messages = state.messageCache[threadId] || [];
+  const lastMessage = messages[messages.length - 1];
+  let updatedMessages: Message[];
+
+  if (lastMessage && lastMessage.role === "assistant") {
+    const updatedMessage: Message = {
+      ...lastMessage,
+      content: (lastMessage.content || "") + chunk.content
+    };
+    updatedMessages = [...messages.slice(0, -1), updatedMessage];
+  } else {
+    const message: Message = {
+      role: "assistant",
+      type: "message",
+      content: chunk.content
+    };
+    updatedMessages = [...messages, message];
+  }
+
+  const baseUpdate: Partial<GlobalChatState> = {
+    status: chunk.done ? "connected" : "streaming",
+    statusMessage: null,
+    messageCache: {
+      ...state.messageCache,
+      [threadId]: updatedMessages
+    },
+    threads: updateThreadTimestamp(threadId, state.threads)
+  };
+
+  if (!chunk.done) {
+    return { update: baseUpdate };
+  }
+
+  const postAction = (get: ChatStateGetter) => {
+    const { selectedModel, summarizeThread } = get();
+    const messagesAfterUpdate = get().messageCache[threadId] || [];
+    if (messagesAfterUpdate.length === 2) {
+      log.debug("Triggering thread summarization for thread:", threadId);
+    }
+    if (selectedModel.provider && selectedModel.id) {
+      summarizeThread(
+        threadId,
+        selectedModel.provider,
+        selectedModel.id,
+        JSON.stringify(messagesAfterUpdate)
+      );
+    }
+  };
+
+  return {
+    update: {
+      ...baseUpdate,
+      currentPlanningUpdate: null,
+      currentTaskUpdate: null
+    },
+    postAction
+  };
+};
+
+const applyOutputUpdate = (
+  state: GlobalChatState,
+  update: OutputUpdate
+): ReducerResult => {
+  const threadId = state.currentThreadId;
+  if (!threadId) return noopUpdate;
+
+  const thread = state.threads[threadId];
+  if (!thread) return noopUpdate;
+
+  if (update.output_type === "string") {
+    const messages = state.messageCache[threadId] || [];
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage && lastMessage.role === "assistant") {
+      if (update.value === "<nodetool_end_of_stream>") {
+        return noopUpdate;
+      }
+      const updatedMessage: Message = {
+        ...lastMessage,
+        content: lastMessage.content + (update.value as string)
+      };
+      return {
+        update: {
+          status: "streaming",
+          statusMessage: undefined,
+          messageCache: {
+            ...state.messageCache,
+            [threadId]: [...messages.slice(0, -1), updatedMessage]
+          },
+          threads: updateThreadTimestamp(threadId, state.threads)
+        }
+      };
+    }
+
+    const message: Message = {
+      role: "assistant",
+      type: "message",
+      content: update.value as string
+    };
+    return {
+      update: {
+        status: "streaming",
+        messageCache: {
+          ...state.messageCache,
+          [threadId]: [...messages, message]
+        },
+        threads: updateThreadTimestamp(threadId, state.threads)
+      }
+    };
+  }
+
+  if (["image", "audio", "video"].includes(update.output_type)) {
+    const message: Message = {
+      role: "assistant",
+      type: "message",
+      content: [
+        makeMessageContent(
+          update.output_type,
+          (update.value as { data: Uint8Array }).data
+        )
+      ],
+      name: "assistant"
+    } as Message;
+    const messages = state.messageCache[threadId] || [];
+    return {
+      update: {
+        statusMessage: null,
+        messageCache: {
+          ...state.messageCache,
+          [threadId]: [...messages, message]
+        },
+        threads: updateThreadTimestamp(threadId, state.threads)
+      }
+    };
+  }
+
+  return noopUpdate;
+};
+
+const applyToolCallUpdate = (
+  _state: GlobalChatState,
+  update: ToolCallUpdate
+) => ({
+  update: {
+    statusMessage: update.message,
+    currentRunningToolCallId: (update as any).tool_call_id || null,
+    currentToolMessage: update.message || null
+  }
+});
+
+const applyAgentExecutionMessage = (
+  state: GlobalChatState,
+  threadId: string,
+  thread: any,
+  messages: Message[],
+  msg: Message
+): ReducerResult => {
+  const update: Partial<GlobalChatState> = {
+    messageCache: {
+      ...state.messageCache,
+      [threadId]: [...messages, msg]
+    },
+    threads: updateThreadTimestamp(threadId, state.threads)
+  };
+
+  if (msg.execution_event_type === "planning_update") {
+    const content = msg.content;
+    if (content && typeof content === "object" && !Array.isArray(content)) {
+      update.currentPlanningUpdate = content as PlanningUpdate;
+    }
+  } else if (msg.execution_event_type === "task_update") {
+    const content = msg.content;
+    if (content && typeof content === "object" && !Array.isArray(content)) {
+      update.currentTaskUpdate = content as TaskUpdate;
+    }
+  }
+
+  return { update };
+};
+
+const applyToolMessage = (
+  state: GlobalChatState,
+  threadId: string,
+  messages: Message[],
+  msg: Message
+) => ({
+  update: {
+    messageCache: {
+      ...state.messageCache,
+      [threadId]: [...messages, msg]
+    },
+    threads: updateThreadTimestamp(threadId, state.threads),
+    ...(msg.role === "tool"
+      ? {
+          currentRunningToolCallId: null,
+          currentToolMessage: null,
+          statusMessage: null
+        }
+      : {})
+  }
+});
+
+const applyAssistantMessage = (
+  state: GlobalChatState,
+  threadId: string,
+  messages: Message[],
+  msg: Message
+) => {
+  const incomingText =
+    typeof msg.content === "string"
+      ? msg.content
+      : Array.isArray(msg.content)
+      ? msg.content.map((c: any) => (c?.type === "text" ? c.text : "")).join("")
+      : "";
+
+  return {
+    update: {
+      messageCache: {
+        ...state.messageCache,
+        [threadId]: (() => {
+          const currentLast = messages[messages.length - 1];
+          const currentLastText =
+            currentLast &&
+            currentLast.role === "assistant" &&
+            typeof currentLast.content === "string"
+              ? (currentLast.content as string)
+              : null;
+
+          if (
+            currentLast &&
+            currentLast.role === "assistant" &&
+            currentLastText === incomingText
+          ) {
+            return messages;
+          }
+
+          return [...messages, msg];
+        })()
+      },
+      threads: updateThreadTimestamp(threadId, state.threads)
+    }
+  };
+};
+
+const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
+  const threadId = state.currentThreadId;
+  if (!threadId) return noopUpdate;
+
+  const thread = state.threads[threadId];
+  if (!thread) return noopUpdate;
+
+  const messages = state.messageCache[threadId] || [];
+
+  if (msg.role === "agent_execution") {
+    return applyAgentExecutionMessage(state, threadId, thread, messages, msg);
+  }
+
+  const isAssistantToolCall =
+    msg.role === "assistant" &&
+    Array.isArray(msg.tool_calls) &&
+    msg.tool_calls.length > 0;
+  if (msg.role === "tool" || isAssistantToolCall) {
+    return applyToolMessage(state, threadId, messages, msg);
+  }
+
+  if (msg.role === "assistant") {
+    return applyAssistantMessage(state, threadId, messages, msg);
+  }
+
+  return {
+    update: {
+      messageCache: {
+        ...state.messageCache,
+        [threadId]: [...messages, msg]
+      },
+      threads: updateThreadTimestamp(threadId, state.threads)
+    }
+  };
+};
+
+const applyNodeProgress = (
+  _state: GlobalChatState,
+  progress: NodeProgress
+) => ({
+  update: {
+    status: "loading",
+    progress: { current: progress.progress, total: progress.total },
+    statusMessage: null
+  }
+});
+
+const applyGenerationStopped = (): ReducerResult => ({
+  update: {
+    status: "connected",
+    progress: { current: 0, total: 0 },
+    statusMessage: null,
+    currentPlanningUpdate: null,
+    currentTaskUpdate: null
+  }
+});
+
+const applyError = (message: string): ReducerResult => ({
+  update: {
+    error: message || "An error occurred",
+    status: "error",
+    statusMessage: message
+  }
+});
+
 export async function handleChatWebSocketMessage(
   data: MsgpackData,
   set: ChatStateSetter,
@@ -117,347 +487,35 @@ export async function handleChatWebSocketMessage(
     }
   }
 
+  const applyReducer = <T>(
+    fn: (state: GlobalChatState, payload: T) => ReducerResult,
+    payload: T
+  ) => {
+    let postAction: ReducerResult["postAction"];
+    set((state) => {
+      const result = fn(state, payload);
+      postAction = result.postAction;
+      return result.update;
+    });
+    if (postAction) {
+      postAction(get);
+    }
+  };
+
   if (data.type === "job_update") {
-    const update = data as JobUpdate;
-    if (update.status === "completed") {
-      set({
-        status: "connected",
-        progress: { current: 0, total: 0 },
-        statusMessage: null
-      });
-    } else if (update.status === "failed") {
-      set({
-        status: "error",
-        error: update.error,
-        progress: { current: 0, total: 0 },
-        statusMessage: update.error || null
-      });
-    }
+    applyReducer(applyJobUpdate, data as JobUpdate);
   } else if (data.type === "node_update") {
-    const update = data as NodeUpdate;
-    if (update.status === "completed") {
-      set({
-        status: "connected",
-        progress: { current: 0, total: 0 },
-        statusMessage: null
-      });
-    } else {
-      set({ statusMessage: update.node_name });
-    }
+    applyReducer(applyNodeUpdate, data as NodeUpdate);
   } else if (data.type === "chunk") {
-    const chunk = data as Chunk;
-    const threadId = get().currentThreadId;
-    if (threadId) {
-      const thread = get().threads[threadId];
-      if (thread) {
-        const messages = get().messageCache[threadId] || [];
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage && lastMessage.role === "assistant") {
-          const updatedMessage: Message = {
-            ...lastMessage,
-            content: (lastMessage.content || "") + chunk.content
-          };
-          set((state) => ({
-            status: "streaming",
-            statusMessage: null,
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages.slice(0, -1), updatedMessage]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            }
-          }));
-        } else {
-          const message: Message = {
-            role: "assistant" as const,
-            type: "message" as const,
-            content: chunk.content
-          };
-          set((state) => ({
-            status: "streaming",
-            statusMessage: null,
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, message]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            }
-          }));
-        }
-        if (chunk.done) {
-          set({
-            status: "connected",
-            statusMessage: null,
-            currentPlanningUpdate: null,
-            currentTaskUpdate: null
-          });
-          const innerThreadId = get().currentThreadId;
-          if (innerThreadId) {
-            const messages = get().messageCache[innerThreadId];
-            const model = get().selectedModel;
-            if (messages.length == 2)
-              log.debug("Triggering thread summarization for thread:", innerThreadId);
-            if (model.provider && model.id) {
-              get().summarizeThread(
-                innerThreadId,
-                model.provider,
-                model.id,
-                JSON.stringify(messages)
-              );
-            }
-          }
-        }
-      }
-    }
+    applyReducer(applyChunk, data as Chunk);
   } else if (data.type === "output_update") {
-    const update = data as OutputUpdate;
-    const threadId = get().currentThreadId;
-    if (threadId) {
-      const thread = get().threads[threadId];
-      if (thread) {
-        if (update.output_type === "string") {
-          const messages = get().messageCache[threadId] || [];
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage && lastMessage.role === "assistant") {
-            if (update.value === "<nodetool_end_of_stream>") {
-              return;
-            }
-            const updatedMessage: Message = {
-              ...lastMessage,
-              content: lastMessage.content + (update.value as string)
-            };
-            set((state) => ({
-              status: "streaming",
-              statusMessage: undefined,
-              messageCache: {
-                ...state.messageCache,
-                [threadId]: [...messages.slice(0, -1), updatedMessage]
-              },
-              threads: {
-                ...state.threads,
-                [threadId]: {
-                  ...thread,
-                  updated_at: new Date().toISOString()
-                }
-              }
-            }));
-          } else {
-            const message: Message = {
-              role: "assistant" as const,
-              type: "message" as const,
-              content: update.value as string
-            };
-            set((state) => ({
-              status: "streaming",
-              messageCache: {
-                ...state.messageCache,
-                [threadId]: [...messages, message]
-              },
-              threads: {
-                ...state.threads,
-                [threadId]: {
-                  ...thread,
-                  updated_at: new Date().toISOString()
-                }
-              }
-            }));
-          }
-        } else if (["image", "audio", "video"].includes(update.output_type)) {
-          const message: Message = {
-            role: "assistant",
-            type: "message",
-            content: [
-              makeMessageContent(
-                update.output_type,
-                (update.value as { data: Uint8Array }).data
-              )
-            ],
-            name: "assistant"
-          } as Message;
-          const messages = get().messageCache[threadId] || [];
-          set((state) => ({
-            statusMessage: null,
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, message]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            }
-          }));
-        }
-      }
-    }
+    applyReducer(applyOutputUpdate, data as OutputUpdate);
   } else if (data.type === "tool_call_update") {
-    const update = data as ToolCallUpdate;
-    set({
-      statusMessage: update.message,
-      currentRunningToolCallId: (update as any).tool_call_id || null,
-      currentToolMessage: update.message || null
-    });
+    applyReducer(applyToolCallUpdate, data as ToolCallUpdate);
   } else if (data.type === "message") {
-    const msg = data as Message;
-    const threadId = get().currentThreadId;
-    if (threadId) {
-      const thread = get().threads[threadId];
-      if (thread) {
-        const messages = get().messageCache[threadId] || [];
-        const last = messages[messages.length - 1];
-
-        if (msg.role === "agent_execution") {
-          set((state) => ({
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, msg]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            }
-          }));
-
-          if (msg.execution_event_type === "planning_update") {
-            const content = msg.content;
-            if (content && typeof content === "object" && !Array.isArray(content)) {
-              set({ currentPlanningUpdate: content as PlanningUpdate });
-            }
-          } else if (msg.execution_event_type === "task_update") {
-            const content = msg.content;
-            if (content && typeof content === "object" && !Array.isArray(content)) {
-              set({ currentTaskUpdate: content as TaskUpdate });
-            }
-          }
-
-          return;
-        }
-
-        const isAssistantToolCall =
-          msg.role === "assistant" &&
-          Array.isArray(msg.tool_calls) &&
-          msg.tool_calls.length > 0;
-        if (msg.role === "tool" || isAssistantToolCall) {
-          set((state) => ({
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, msg]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            },
-            ...(msg.role === "tool"
-              ? {
-                  currentRunningToolCallId: null,
-                  currentToolMessage: null,
-                  statusMessage: null
-                }
-              : {})
-          }));
-          return;
-        }
-
-        if (msg.role === "assistant") {
-          const incomingText =
-            typeof msg.content === "string"
-              ? msg.content
-              : Array.isArray(msg.content)
-              ? msg.content
-                  .map((c: any) => (c?.type === "text" ? c.text : ""))
-                  .join("")
-              : "";
-          const lastText =
-            last &&
-            last.role === "assistant" &&
-            typeof last.content === "string"
-              ? (last.content as string)
-              : null;
-
-          set((state) => {
-            const current = state.messageCache[threadId] || [];
-            const currentLast = current[current.length - 1];
-            const currentLastText =
-              currentLast &&
-              currentLast.role === "assistant" &&
-              typeof currentLast.content === "string"
-                ? (currentLast.content as string)
-                : null;
-
-            if (
-              currentLast &&
-              currentLast.role === "assistant" &&
-              currentLastText === incomingText
-            ) {
-              return {
-                messageCache: state.messageCache,
-                threads: {
-                  ...state.threads,
-                  [threadId]: {
-                    ...thread,
-                    updated_at: new Date().toISOString()
-                  }
-                }
-              } as Partial<GlobalChatState>;
-            }
-
-            return {
-              messageCache: {
-                ...state.messageCache,
-                [threadId]: [...current, msg]
-              },
-              threads: {
-                ...state.threads,
-                [threadId]: {
-                  ...thread,
-                  updated_at: new Date().toISOString()
-                }
-              }
-            } as Partial<GlobalChatState>;
-          });
-          return;
-        }
-
-        set((state) => ({
-          messageCache: {
-            ...state.messageCache,
-            [threadId]: [...messages, msg]
-          },
-          threads: {
-            ...state.threads,
-            [threadId]: {
-              ...thread,
-              updated_at: new Date().toISOString()
-            }
-          }
-        }));
-      }
-    }
+    applyReducer(applyMessage, data as Message);
   } else if (data.type === "node_progress") {
-    const progress = data as NodeProgress;
-    set({
-      status: "loading",
-      progress: { current: progress.progress, total: progress.total },
-      statusMessage: null
-    });
+    applyReducer(applyNodeProgress, data as NodeProgress);
   } else if (data.type === "tool_call") {
     const toolCallData = data as ToolCallMessage;
     const { tool_call_id, name, args, thread_id } = toolCallData;
@@ -502,21 +560,17 @@ export async function handleChatWebSocketMessage(
       });
     }
   } else if (data.type === "generation_stopped") {
+    applyReducer(
+      (_state) => applyGenerationStopped(),
+      data as GenerationStoppedUpdate
+    );
     const stoppedData = data as GenerationStoppedUpdate;
-    set({
-      status: "connected",
-      progress: { current: 0, total: 0 },
-      statusMessage: null,
-      currentPlanningUpdate: null,
-      currentTaskUpdate: null
-    });
     log.info("Generation stopped:", stoppedData.message);
   } else if ((data as any).type === "error") {
     const errorData = data as any;
-    set({
-      error: errorData.message || "An error occurred",
-      status: "error",
-      statusMessage: errorData.message
-    });
+    applyReducer(
+      (_state) => applyError(errorData.message),
+      errorData as { message?: string }
+    );
   }
 }
