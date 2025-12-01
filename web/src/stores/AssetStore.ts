@@ -6,37 +6,75 @@ import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
-import { createErrorMessage } from "../utils/errorHandling";
+import { AppError, createErrorMessage } from "../utils/errorHandling";
 
-const createAsset = (
-  url: string,
-  method: string,
-  headers: any,
-  jsonData: any,
-  file: File | undefined,
-  onUploadProgress: (progressEvent: any) => void
+type AssetCreatePayload = {
+  workflow_id?: string;
+  parent_id?: string | null;
+  content_type?: string | null;
+  name?: string;
+};
+
+type UploadProgressEvent = {
+  loaded: number;
+  total: number;
+  lengthComputable: boolean;
+};
+
+const emitUploadProgress = (
+  onUploadProgress: ((progressEvent: UploadProgressEvent) => void) | undefined,
+  loaded: number,
+  total: number
+) => {
+  if (!onUploadProgress) return;
+  onUploadProgress({
+    loaded,
+    total,
+    lengthComputable: true
+  });
+};
+
+const uploadAsset = async (
+  payload: AssetCreatePayload,
+  file?: File,
+  onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
+  errorMessage = "Failed to create asset"
 ): Promise<Asset> => {
-  return new Promise((resolve, reject) => {
-    const formData = new FormData();
-    formData.append("json", JSON.stringify(jsonData));
+  const formData = new FormData();
+  formData.append("json", JSON.stringify(payload));
 
-    if (file) {
-      formData.append("file", file);
+  if (file) {
+    formData.append("file", file);
+  }
+
+  // Provide basic progress feedback even though fetch-based uploads
+  // don't stream progress events.
+  const total = file?.size ?? 1;
+  emitUploadProgress(onUploadProgress, 0, total);
+
+  try {
+    const { data, error } = await client.POST("/api/assets/", {
+      body: formData as any
+    });
+
+    if (error) {
+      throw error;
     }
 
-    axios({
-      url: url,
-      method: method,
-      data: formData,
-      headers: {
-        ...headers,
-        "Content-Type": "multipart/form-data"
-      },
-      onUploadProgress
-    })
-      .then((res) => resolve(res.data as Asset))
-      .catch((err) => reject(err));
-  });
+    emitUploadProgress(onUploadProgress, total, total);
+    return data as Asset;
+  } catch (error) {
+    const normalizedError =
+      error instanceof DOMException && error.name === "AbortError"
+        ? createErrorMessage(error, "Asset upload was cancelled")
+        : error instanceof TypeError
+        ? createErrorMessage(error, "Network error while creating asset")
+        : (error as any)?.status === 408
+        ? createErrorMessage(error, "Asset upload timed out")
+        : createErrorMessage(error, errorMessage);
+
+    throw normalizedError;
+  }
 };
 
 export type AssetQuery = {
@@ -77,7 +115,7 @@ export interface AssetStore {
     file: File,
     workflow_id?: string,
     parent_id?: string,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: UploadProgressEvent) => void
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string) => Promise<Record<string, any>>;
@@ -312,24 +350,28 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @param name The name of the folder.
    */
   createFolder: async (parent_id: string | null, name: string) => {
-    const headers = await authHeader();
-    const folder = await createAsset(
-      BASE_URL + "/api/assets/",
-      "POST",
-      headers,
-      {
-        parent_id: parent_id,
-        content_type: "folder",
-        name: name
-      },
-      undefined,
-      (_) => {}
-    );
-    get().add(folder);
-    get().invalidateQueries(["assets", { parent_id: parent_id }]);
-    // Also invalidate the folder list so components like FolderProperty refresh
-    get().invalidateQueries(["assets", { content_type: "folder" }]);
-    return folder;
+    try {
+      const folder = await uploadAsset(
+        {
+          parent_id,
+          content_type: "folder",
+          name
+        },
+        undefined,
+        undefined,
+        "Failed to create folder"
+      );
+      get().add(folder);
+      get().invalidateQueries(["assets", { parent_id: parent_id }]);
+      // Also invalidate the folder list so components like FolderProperty refresh
+      get().invalidateQueries(["assets", { content_type: "folder" }]);
+      return folder;
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw createErrorMessage(error, "Failed to create folder");
+    }
   },
   /**
    * Get all assets in a folder, including subfolders.
@@ -514,14 +556,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     file: File,
     workflow_id?: string,
     parent_id?: string,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: UploadProgressEvent) => void
   ) => {
-    const headers = await authHeader();
     try {
-      const asset = await createAsset(
-        BASE_URL + "/api/assets/",
-        "POST",
-        headers,
+      const asset = await uploadAsset(
         {
           workflow_id: workflow_id,
           parent_id: parent_id,
@@ -529,12 +567,15 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
           name: file.name
         },
         file,
-        onUploadProgress || ((_) => {})
+        onUploadProgress
       );
       get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
       get().add(asset);
       return asset;
     } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
       throw createErrorMessage(error, "Failed to create asset");
     }
   },
