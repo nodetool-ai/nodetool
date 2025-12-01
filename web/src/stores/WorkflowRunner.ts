@@ -26,6 +26,7 @@ import { supabase } from "../lib/supabaseClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import { queryClient } from "../queryClient";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -379,6 +380,9 @@ export const createWorkflowRunnerStore = (
         command: "run_job",
         data: req
       });
+
+      // Invalidate running jobs query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
 
       set({
         state: "running",
