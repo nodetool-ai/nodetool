@@ -113,6 +113,8 @@ type NodeMenuStoreOptions = {
 
 export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
   create<NodeMenuStore>((set, get) => {
+    let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const getFilteredMetadata = () => {
       const all = Object.values(useMetadataStore.getState().metadata);
       return options.onlyTools ? all.filter((n) => n.expose_as_tool) : all;
@@ -127,9 +129,25 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         get().searchResults
       );
 
+    const scheduleSearch = (term: string) => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+      const nextSearchId = get().currentSearchId + 1;
+      set({ currentSearchId: nextSearchId, isLoading: true });
+      searchTimeout = setTimeout(() => {
+        searchTimeout = null;
+        get().performSearch(term, nextSearchId);
+        set({ isLoading: false });
+      }, 75);
+    };
+
     // Subscribe to metadata changes and clear cache
     useMetadataStore.subscribe(() => {
       set({ searchResultsCache: {} });
+      if (get().isMenuOpen) {
+        scheduleSearch(get().searchTerm);
+      }
     });
 
     return {
@@ -141,12 +159,12 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       selectedInputType: "",
       setSelectedInputType: (inputType) => {
         set({ selectedInputType: inputType });
-        get().performSearch(get().searchTerm);
+        scheduleSearch(get().searchTerm);
       },
       selectedOutputType: "",
       setSelectedOutputType: (outputType) => {
         set({ selectedOutputType: outputType });
-        get().performSearch(get().searchTerm);
+        scheduleSearch(get().searchTerm);
       },
 
       setDragToCreate: (dragToCreate) => {
@@ -173,8 +191,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           selectedPath: state.selectedPath,
           hoveredNode: null
         }));
-        // Run search immediately with the provided term, not state.searchTerm (which might lag in React dev mode)
-        get().performSearch(term);
+        // Run debounced search with the provided term, not state.searchTerm (which might lag in React dev mode)
+        scheduleSearch(term);
       },
       selectedPath: [],
       setSelectedPath: (path: string[]) => {
@@ -216,39 +234,36 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           isLoading: true
         });
 
-        // Defer expensive computation
-        setTimeout(() => {
-          const metadata = getFilteredMetadata();
-          const { sortedResults, groupedResults, allMatches } =
-            computeSearchResults(
-              metadata,
-              searchTerm,
-              newPath,
-              selectedInputType as TypeName,
-              selectedOutputType as TypeName,
-              true
-            );
-          // Store in cache
-          set((state) => ({
-            searchResults: sortedResults,
-            groupedSearchResults: groupedResults,
-            allSearchMatches:
-              currentAllMatches.length > 0 ? currentAllMatches : allMatches,
-            isLoading: false,
-            searchResultsCache: {
-              ...state.searchResultsCache,
-              [cacheKey]: {
-                sortedResults,
-                groupedResults,
-                allMatches:
-                  currentAllMatches.length > 0 ? currentAllMatches : allMatches
-              }
-            }
-          }));
-          get().updateHighlightedNamespaces(
-            currentAllMatches.length > 0 ? currentAllMatches : allMatches
+        const metadata = getFilteredMetadata();
+        const { sortedResults, groupedResults, allMatches } =
+          computeSearchResults(
+            metadata,
+            searchTerm,
+            newPath,
+            selectedInputType as TypeName,
+            selectedOutputType as TypeName,
+            true
           );
-        }, 0);
+        // Store in cache
+        set((state) => ({
+          searchResults: sortedResults,
+          groupedSearchResults: groupedResults,
+          allSearchMatches:
+            currentAllMatches.length > 0 ? currentAllMatches : allMatches,
+          isLoading: false,
+          searchResultsCache: {
+            ...state.searchResultsCache,
+            [cacheKey]: {
+              sortedResults,
+              groupedResults,
+              allMatches:
+                currentAllMatches.length > 0 ? currentAllMatches : allMatches
+            }
+          }
+        }));
+        get().updateHighlightedNamespaces(
+          currentAllMatches.length > 0 ? currentAllMatches : allMatches
+        );
       },
 
       /**
@@ -485,26 +500,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         // Perform search when opening if needed
         if (shouldSearchOnOpen) {
           const term = params.searchTerm || "";
-          // run immediately so initial render shows results, using current state
-          // Defer to next tick to let isMenuOpen take effect for subscribers
-          setTimeout(() => get().performSearch(term), 0);
-          // safety: re-run after tick and once metadata arrives
-          setTimeout(() => {
-            get().performSearch(term);
-            if (
-              term &&
-              Object.values(useMetadataStore.getState().metadata).length === 0
-            ) {
-              const unsubscribe = useMetadataStore.subscribe(() => {
-                if (
-                  Object.values(useMetadataStore.getState().metadata).length > 0
-                ) {
-                  get().performSearch(term);
-                  unsubscribe();
-                }
-              });
-            }
-          }, 0);
+          scheduleSearch(term);
         }
       },
       isLoading: false,
