@@ -132,17 +132,8 @@ export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
 export type Notification = components["schemas"]["Notification"];
 export type LogUpdate = components["schemas"]["LogUpdate"];
 export type SecretResponse = components["schemas"]["SecretResponse"];
-
+export type JobResponse = components["schemas"]["JobResponse"];
+export type JobListResponse = components["schemas"]["JobListResponse"];
 
 // Job types
-export interface Job {
-  id: string;
-  user_id: string;
-  job_type: string;
-  status: string;
-  workflow_id: string;
-  started_at: string;
-  finished_at?: string | null;
-  error?: string | null;
-  cost?: number | null;
-}
+export type Job = JobResponse;

@@ -43,6 +43,11 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 import QuickActions, { QuickActionDefinition } from "./QuickActions";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useRunningJobs } from "../../hooks/useRunningJobs";
+import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
+import { List, ListItem, ListItemText, ListItemIcon, CircularProgress } from "@mui/material";
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -301,6 +306,36 @@ const styles = (theme: Theme) =>
     }
   });
 
+const RunningJobsList = () => {
+  const { data: jobs, isLoading, error } = useRunningJobs();
+
+  if (isLoading) return <div style={{ padding: "1em" }}>Loading...</div>;
+  if (error) return <div style={{ padding: "1em" }}>Error loading jobs</div>;
+  if (!jobs?.length) return <div style={{ padding: "1em" }}>No running jobs</div>;
+
+  return (
+    <List>
+      {jobs.map((job) => (
+        <ListItem key={job.id}>
+          <ListItemIcon>
+            {job.status === 'running' ? (
+               <CircularProgress size={24} />
+            ) : job.status === 'queued' ? (
+               <HourglassEmptyIcon />
+            ) : (
+               <PlayArrowIcon />
+            )}
+          </ListItemIcon>
+          <ListItemText
+            primary={job.job_type}
+            secondary={`Status: ${job.status}`}
+          />
+        </ListItem>
+      ))}
+    </List>
+  );
+};
+
 const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
   onViewChange,
@@ -390,6 +425,23 @@ const VerticalToolbar = memo(function VerticalToolbar({
           className={activeView === "workspace" && panelVisible ? "active" : ""}
         >
           <FolderIcon />
+        </IconButton>
+      </Tooltip>
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Jobs</div>
+          </div>
+        }
+        placement="right-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={() => onViewChange("jobs")}
+          className={activeView === "jobs" && panelVisible ? "active" : ""}
+        >
+          <WorkHistoryIcon />
         </IconButton>
       </Tooltip>
 
@@ -566,6 +618,19 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           <WorkspaceTree />
+        </Box>
+      )}
+      {activeView === "jobs" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "auto",
+            margin: "10px 0"
+          }}
+        >
+          <h3 style={{ paddingLeft: "1em" }}>Running Jobs</h3>
+          <RunningJobsList />
         </Box>
       )}
     </>
