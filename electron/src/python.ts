@@ -10,28 +10,13 @@ import { checkPermissions } from "./utils";
 import { emitBootMessage } from "./events";
 
 /**
- * API Module for Electron-Server Communication
+ * Python environment management for the Electron shell.
  *
- * This module handles all communication between the Electron app and the backend server,
- * including REST API calls and WebSocket connections for real-time updates.
- *
- * Key Features:
- * - REST API integration for fetching workflows
- * - WebSocket connection management for real-time workflow updates
- * - Automatic reconnection handling for WebSocket failures
- * - Integration with system tray and global shortcuts
- *
- * The module maintains a persistent WebSocket connection to receive live updates about:
- * - Workflow creation
- * - Workflow updates/modifications
- * - Workflow deletions
- *
- * When updates are received, it:
- * 1. Updates the system tray menu
- * 2. Manages global keyboard shortcuts
- * 3. Logs relevant events for debugging
- *
- * @module api
+ * Responsibilities:
+ * - Validate write permissions for app data/log locations
+ * - Detect an existing Python/conda environment
+ * - Install/update required Python packages via uv
+ * - Expose helpers to run commands with the correct environment
  */
 
 interface PathCheck {
