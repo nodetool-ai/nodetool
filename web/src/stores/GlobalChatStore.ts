@@ -937,9 +937,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
 );
 
 // Network status monitoring
-if (typeof window !== "undefined") {
-  // Listen for online/offline events
-  window.addEventListener("online", () => {
+const registerGlobalChatListeners = () => {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handleOnline = () => {
     const state = useGlobalChatStore.getState();
     if (
       (state.status === "disconnected" || state.status === "failed") &&
@@ -950,15 +953,14 @@ if (typeof window !== "undefined") {
         log.error("Failed to reconnect after network online:", error);
       });
     }
-  });
+  };
 
-  window.addEventListener("offline", () => {
+  const handleOffline = () => {
     log.info("Network went offline");
     // The WebSocket will close automatically, triggering our reconnection logic
-  });
+  };
 
-  // Visibility change handling - reconnect when tab becomes visible
-  document.addEventListener("visibilitychange", () => {
+  const handleVisibilityChange = () => {
     if (document.visibilityState === "visible") {
       const state = useGlobalChatStore.getState();
       if (
@@ -971,8 +973,29 @@ if (typeof window !== "undefined") {
         });
       }
     }
-  });
+  };
+
+  window.addEventListener("online", handleOnline);
+  window.addEventListener("offline", handleOffline);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  return () => {
+    window.removeEventListener("online", handleOnline);
+    window.removeEventListener("offline", handleOffline);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+};
+
+let teardownGlobalChatListeners: (() => void) | null = null;
+
+if (typeof window !== "undefined") {
+  teardownGlobalChatListeners = registerGlobalChatListeners();
 }
+
+export const removeGlobalChatListeners = () => {
+  teardownGlobalChatListeners?.();
+  teardownGlobalChatListeners = null;
+};
 
 // Custom hook for TanStack Query thread loading
 export const useThreadsQuery = () => {
