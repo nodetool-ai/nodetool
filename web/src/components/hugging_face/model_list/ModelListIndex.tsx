@@ -34,11 +34,13 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     ".sidebar": {
-      width: "26%",
-      minWidth: "200px",
-      maxWidth: "350px",
-      paddingRight: "2em",
-      overflowY: "auto"
+      width: "240px",
+      minWidth: "240px",
+      maxWidth: "240px",
+      padding: "1em",
+      overflowY: "auto",
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      background: "rgba(0, 0, 0, 0.2)"
     },
     ".model-list": {
       paddingBottom: "250px"
@@ -48,15 +50,16 @@ const styles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: theme.spacing(1),
-      padding: "0.5em 1em",
+      gap: theme.spacing(2),
+      padding: "1em 1.5em",
       position: "sticky",
       top: 0,
       zIndex: 2,
       width: "100%",
-      backdropFilter: "saturate(120%) blur(20px)",
-      background: "transparent",
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
+      backdropFilter: "blur(12px)",
+      background: "rgba(18, 18, 18, 0.4)",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
     },
     ".model-list-header button": {
       padding: ".4em 1em",
@@ -91,7 +94,8 @@ const styles = (theme: Theme) =>
       height: "95%",
       flexGrow: 1,
       overflow: "hidden",
-      padding: "0 0 4em 1em"
+      padding: "0 1em 4em 1em",
+      position: "relative"
     },
     ".model-list-section": {
       marginBottom: theme.spacing(5)
@@ -166,7 +170,7 @@ const ModelListIndex: React.FC = () => {
   const getItemSize = useCallback(
     (index: number) => {
       const item = flattenedList[index];
-      return item.type === "header" ? 60 : 130;
+      return item.type === "header" ? 60 : 180;
     },
     [flattenedList]
   );
