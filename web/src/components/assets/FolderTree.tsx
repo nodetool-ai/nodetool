@@ -5,20 +5,13 @@ import React, { useEffect, useState } from "react";
 import { Box, Button } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore, type AssetTreeNode } from "../../stores/AssetStore";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-interface FolderNode {
-  id: string;
-  name: string;
-  parent_id: string | null;
-  children: FolderNode[];
-}
-
 interface FolderTreeProps {
-  folder?: FolderNode;
+  folder?: AssetTreeNode;
   onSelect: (id: string) => void;
   sortBy?: "name" | "updated_at";
 }
@@ -71,7 +64,9 @@ const FolderTree: React.FC<FolderTreeProps> = ({
 }) => {
   const theme = useTheme();
   const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
-  const [folderTree, setFolderTree] = useState<Record<string, FolderNode>>({});
+  const [folderTree, setFolderTree] = useState<Record<string, AssetTreeNode>>(
+    {}
+  );
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   useEffect(() => {
@@ -83,8 +78,11 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     fetchFolderTree();
   }, [loadFolderTree, sortBy]);
 
-  const renderTree = (node: FolderNode): React.ReactNode => {
-    const handleOnSelect = (event: React.MouseEvent, node: FolderNode) => {
+  const renderTree = (node: AssetTreeNode): React.ReactNode => {
+    const handleOnSelect = (
+      event: React.MouseEvent,
+      node: AssetTreeNode
+    ) => {
       event.stopPropagation();
       onSelect(node.id);
     };

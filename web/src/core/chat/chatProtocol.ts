@@ -132,7 +132,10 @@ const updateThreadTimestamp = (
   }
 });
 
-const applyJobUpdate = (state: GlobalChatState, update: JobUpdate) => {
+const applyJobUpdate = (
+  state: GlobalChatState,
+  update: JobUpdate
+): ReducerResult => {
   if (update.status === "completed") {
     return {
       update: {
@@ -155,7 +158,10 @@ const applyJobUpdate = (state: GlobalChatState, update: JobUpdate) => {
   return noopUpdate;
 };
 
-const applyNodeUpdate = (state: GlobalChatState, update: NodeUpdate) => {
+const applyNodeUpdate = (
+  state: GlobalChatState,
+  update: NodeUpdate
+): ReducerResult => {
   if (update.status === "completed") {
     return {
       update: {
@@ -458,7 +464,7 @@ const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
 const applyNodeProgress = (
   _state: GlobalChatState,
   progress: NodeProgress
-) => ({
+): ReducerResult => ({
   update: {
     status: "loading",
     progress: { current: progress.progress, total: progress.total },

@@ -87,7 +87,6 @@ export function findInputHandle(
     };
   }
 
-
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
     if (dynamicProperties[handleName] !== undefined) {
@@ -99,11 +98,11 @@ export function findInputHandle(
           values: null,
           type_args: [],
           type_name: null
-          },
-          isDynamic: true
-        };
-      }
+        },
+        isDynamic: true
+      };
     }
+  }
 
   return undefined;
 }

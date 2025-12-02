@@ -171,7 +171,11 @@ export const useCopyPaste = () => {
       elementUnderCursor?.classList.contains("loop-node") ||
       isInActionElement
     ) {
-      const { nodes: copiedNodes, edges: copiedEdges } = parsedData;
+      const { nodes: copiedNodes, edges: copiedEdges } =
+        parsedData as {
+          nodes: Node<NodeData>[];
+          edges: Edge[];
+        };
       const oldToNewIds = new Map<string, string>();
       const newNodes: Node<NodeData>[] = [];
       const newEdges: Edge[] = [];
@@ -210,20 +214,25 @@ export const useCopyPaste = () => {
           newParentId = undefined;
         }
 
+        const positionAbsolute = node.data?.positionAbsolute;
+
         const newNode: Node<NodeData> = {
           ...node,
           id: newId,
           parentId: newParentId,
+          data: {
+            ...node.data,
+            positionAbsolute: positionAbsolute
+              ? {
+                  x: positionAbsolute.x + offset.x,
+                  y: positionAbsolute.y + offset.y
+                }
+              : undefined
+          },
           position: {
             x: node.position.x + (newParentId ? 0 : offset.x),
             y: node.position.y + (newParentId ? 0 : offset.y)
           },
-          positionAbsolute: node.positionAbsolute
-            ? {
-                x: node.positionAbsolute.x + offset.x,
-                y: node.positionAbsolute.y + offset.y
-              }
-            : undefined,
           selected: false
         };
 
