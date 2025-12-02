@@ -11,6 +11,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import EditIcon from "@mui/icons-material/Edit";
 import DatasetIcon from "@mui/icons-material/Dataset";
+import DescriptionIcon from "@mui/icons-material/Description";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -342,6 +343,29 @@ const CollectionsButton = memo(function CollectionsButton({
   );
 });
 
+const DocsButton = memo(function DocsButton() {
+  const handleClick = useCallback(() => {
+    window.open("https://docs.nodetool.ai", "_blank");
+  }, []);
+
+  return (
+    <Tooltip
+      title="Documentation"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="bottom"
+    >
+      <IconButton
+        className="nav-button docs-button"
+        onClick={handleClick}
+        tabIndex={-1}
+      >
+        <DescriptionIcon />
+        <span className="nav-button-text">Docs</span>
+      </IconButton>
+    </Tooltip>
+  );
+});
+
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
@@ -370,6 +394,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
             <TemplatesButton isActive={path.startsWith("/templates")} />
             <CollectionsButton isActive={path.startsWith("/collections")} />
             <DashboardButton isActive={path.startsWith("/dashboard")} />
+            <DocsButton />
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
