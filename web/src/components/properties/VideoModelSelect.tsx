@@ -69,7 +69,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   const theme = useTheme();
 
   const loadVideoModels = useCallback(async () => {
-    const { data, error } = await client.GET("/api/models/{model_type}", {
+    const { data, error } = await client.GET("/api/models/{model_type}" as any, {
       params: { path: { model_type: "video" } }
     });
     if (error) {

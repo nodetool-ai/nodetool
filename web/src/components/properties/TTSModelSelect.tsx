@@ -68,7 +68,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   const theme = useTheme();
 
   const loadTTSModels = useCallback(async () => {
-    const { data, error } = await client.GET("/api/models/{model_type}", {
+    const { data, error } = await client.GET("/api/models/{model_type}" as any, {
       params: { path: { model_type: "tts" } }
     });
     if (error) {

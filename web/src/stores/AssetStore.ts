@@ -23,10 +23,14 @@ type UploadProgressEvent = {
 };
 
 const normalizeAssetError = (error: unknown, message: string) => {
-  if (error instanceof AppError) {
+  if (typeof AppError === "function" && error instanceof AppError) {
     throw error;
   }
-  throw createErrorMessage(error, message);
+  const normalized = createErrorMessage(error, message);
+  if (normalized instanceof Error) {
+    throw normalized;
+  }
+  throw new Error(message);
 };
 
 const emitUploadProgress = (
@@ -146,7 +150,7 @@ const sort = (assets: { [key: string]: Asset }) => {
   });
 };
 
-type FolderTree = Record<string, AssetTreeNode>;
+export type FolderTree = Record<string, AssetTreeNode>;
 
 const buildFolderTree = (
   folders: Asset[],
@@ -171,9 +175,9 @@ const buildFolderTree = (
     if (sortBy === "name") {
       return a.name.localeCompare(b.name);
     } else if (sortBy === "updated_at") {
-      return (
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
+      const updatedA = a.updated_at ?? a.created_at;
+      const updatedB = b.updated_at ?? b.created_at;
+      return new Date(updatedB).getTime() - new Date(updatedA).getTime();
     }
     return 0;
   };
@@ -199,8 +203,9 @@ interface AssetTreeResponse {
   assets: AssetTreeNode[];
 }
 
-interface AssetTreeNode extends Asset {
-  children?: AssetTreeNode[];
+export interface AssetTreeNode extends Asset {
+  updated_at?: string;
+  children: AssetTreeNode[];
 }
 
 export const useAssetStore = create<AssetStore>((set, get) => ({

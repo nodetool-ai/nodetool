@@ -5,27 +5,44 @@ import { NodeData } from "../../../stores/NodeData";
 import { isValidEdge, sanitizeGraph } from "../graphMapping";
 
 const baseMetadata: NodeMetadata = {
-  name: "Test Node",
+  title: "Test Node",
   description: "Test node",
-  category: "test",
-  display_name: "Test",
-  icon: "",
+  namespace: "test",
+  node_type: "test.node",
+  layout: "default",
   properties: [
     {
       name: "input",
-      type: "string",
-      description: "input",
-      required: false
+      type: {
+        type: "string",
+        optional: true,
+        values: null,
+        type_args: [],
+        type_name: null
+      },
+      description: "input"
     }
   ],
   outputs: [
     {
       name: "output",
-      type: "string",
-      description: "output"
+      type: {
+        type: "string",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      },
+      stream: false
     }
   ],
-  is_dynamic: false
+  the_model_info: {},
+  recommended_models: [],
+  basic_fields: [],
+  is_dynamic: false,
+  is_streaming_output: false,
+  expose_as_tool: false,
+  supports_dynamic_outputs: false
 } as NodeMetadata;
 
 const makeNode = (id: string, type = "test"): Node<NodeData> => ({

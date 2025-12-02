@@ -869,9 +869,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         try {
           wsManager.send({ type: "stop", thread_id: currentThreadId });
 
-          // Set status to stopping to filter late chunks
           set({
-            status: "stopping",
+            status: "connected",
             progress: { current: 0, total: 0 },
             statusMessage: null,
             currentPlanningUpdate: null,
