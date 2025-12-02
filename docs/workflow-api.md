@@ -58,10 +58,10 @@ const outputs = await response.json();
 
 ## Streaming API
 
-The streaming API provides real-time job updates. See
-[`run_workflow_streaming.js`](../examples/run_workflow_streaming.js) for a full example. On deployed workers, use
-`/workflows/{id}/run/stream` for SSE streaming; on the Editor API, prefer the WebSocket `/predict` endpoint for
-long-running jobs.
+The streaming API provides real-time job updates. See the WebSocket runner in
+[`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a complete example used by the
+bundled runner UI (`../workflow_runner/index.html`). On deployed workers, use `/workflows/{id}/run/stream` for SSE
+streaming; on the Editor API, prefer the WebSocket `/predict` endpoint for long-running jobs.
 
 Updates include:
 
@@ -126,7 +126,7 @@ while (true) {
 ## WebSocket API
 
 The WebSocket API uses a binary protocol for efficiency and allows cancelling jobs. See
-[`run_workflow_websocket.js`](../examples/run_workflow_websocket.js) for more details.
+[`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a full client implementation.
 
 ```javascript
 const socket = new WebSocket("ws://localhost:8000/predict");
@@ -169,7 +169,7 @@ socket.send(msgpack.encode({ command: "get_status" }));
 
 ## API Demo
 
-- Download the [html file](<(api-demo.html)>)
+- Download the [HTML file](../api-demo.html)
 - Open it in a browser locally.
 - Select the endpoint (local or `api.nodetool.ai` for alpha users).
 - Enter an API token from the NodeTool settings dialog.

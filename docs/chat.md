@@ -16,4 +16,4 @@ Main features:
 - Support for provider specific models
 - Optional agent mode for tool-augmented conversations
 
-For details see the [chat README](../src/nodetool/chat/README.md) and the [Chat CLI guide](chat-cli.md).
+For details see the [Chat CLI guide](chat-cli.md) and the [Chat API reference](chat-api.md).
