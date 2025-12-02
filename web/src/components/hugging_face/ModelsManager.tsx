@@ -72,14 +72,20 @@ const styles = (theme: Theme) =>
       zIndex: 2,
       background: "transparent",
       margin: 0,
-      padding: theme.spacing(4, 4),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+      padding: theme.spacing(3, 4),
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      backdropFilter: "blur(10px)"
     },
     ".close-button": {
       position: "absolute",
-      right: theme.spacing(1),
+      right: theme.spacing(2),
       top: theme.spacing(2),
-      color: theme.vars.palette.grey[500]
+      color: theme.vars.palette.text.secondary,
+      transition: "color 0.2s",
+      "&:hover": {
+        color: theme.vars.palette.text.primary,
+        backgroundColor: "rgba(255, 255, 255, 0.1)"
+      }
     }
   });
 
@@ -106,8 +112,10 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
         },
         paper: {
           style: {
-            borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.glass.backgroundDialogContent
+            borderRadius: "16px",
+            background: "rgba(18, 18, 18, 0.65)", // Darker, translucent background
+            backdropFilter: "blur(20px) saturate(180%)",
+            border: `1px solid ${theme.vars.palette.divider}`
           }
         }
       }}
@@ -118,8 +126,10 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           height: "90vh",
           maxHeight: "90vh",
           margin: "auto",
-          borderRadius: (theme as any)?.rounded?.dialog ?? 6,
-          border: `1px solid ${theme.vars.palette.grey[700]}`
+          borderRadius: (theme as any)?.rounded?.dialog ?? "16px",
+          border: `1px solid ${theme.vars.palette.divider}`,
+          background: "transparent", // Let the slotProps handle the background
+          boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
         }
       }}
     >
