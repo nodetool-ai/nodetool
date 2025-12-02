@@ -13,7 +13,9 @@
       "Bash(ls:*)",
       "Read(//Users/mg/workspace/**)",
       "Bash(npm test -- packageManager)",
-      "Bash(bundle install:*)"
+      "Bash(bundle install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
