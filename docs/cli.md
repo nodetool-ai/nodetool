@@ -238,7 +238,7 @@ nodetool secrets store OPENAI_API_KEY --description "My OpenAI API key"
 nodetool secrets store HUGGINGFACE_TOKEN --user-id user123 --force
 ```
 
-**See also:** [Encrypted Secrets Management](../CLAUDE.md#encrypted-secrets-management) in CLAUDE.md
+**See also:** [Secret Storage and Master Key](configuration.md#secret-storage-and-master-key)
 
 ## Settings & Packages
 
@@ -852,4 +852,4 @@ nodetool list-gcp-options
 - Use `--verbose` / `-v` where available to enable DEBUG-level logging for troubleshooting.
 - For deployment operations, ensure Docker is installed and configured with appropriate registry credentials.
 - Configuration files (deployment.yaml, proxy configs) support environment variable substitution (e.g., `${ENV_VAR_NAME}`).
-- See [Environment Variables](../CLAUDE.md#comprehensive-environment-variables) for a complete list of configurable variables.
+- See [Environment Variables Index](configuration.md#environment-variables-index) for a complete list of configurable variables.

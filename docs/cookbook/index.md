@@ -13,28 +13,28 @@ ______________________________________________________________________
 
 ## Cookbook Sections
 
-1. [**Core Concepts & Architecture**](core-concepts.md)
+1. [**Core Concepts & Architecture**]({{ '/cookbook/core-concepts' | relative_url }})
    Learn about the DAG structure, streaming execution, and node types.
 
-2. [**Workflow Patterns**](patterns.md)
+2. [**Workflow Patterns**]({{ '/cookbook/patterns' | relative_url }})
    Explore 10+ common workflow patterns with diagrams and use cases.
 
 ______________________________________________________________________
 
 ## Detailed Workflow Examples
 
-For step-by-step guides with detailed explanations and Mermaid diagrams, browse our [Workflow Examples Gallery](/workflows/).
+For step-by-step guides with detailed explanations and Mermaid diagrams, browse our [Workflow Examples Gallery]({{ '/workflows/' | relative_url }}).
 
 **Highlighted Examples:**
 
-- [Image Enhance](/workflows/image-enhance.md) - Basic image enhancement workflow
-- [Transcribe Audio](/workflows/transcribe-audio.md) - Speech-to-text with Whisper
-- [Chat with Docs](/workflows/chat-with-docs.md) - RAG-based document Q&A
-- [Creative Story Ideas](/workflows/creative-story-ideas.md) - Beginner tutorial workflow
-- [Movie Posters](/workflows/movie-posters.md) - Multi-stage AI generation
-- [Data Visualization Pipeline](/workflows/data-visualization-pipeline.md) - Data fetching and visualization
+- [Image Enhance]({{ '/workflows/image-enhance' | relative_url }}) - Basic image enhancement workflow
+- [Transcribe Audio]({{ '/workflows/transcribe-audio' | relative_url }}) - Speech-to-text with Whisper
+- [Chat with Docs]({{ '/workflows/chat-with-docs' | relative_url }}) - RAG-based document Q&A
+- [Creative Story Ideas]({{ '/workflows/creative-story-ideas' | relative_url }}) - Beginner tutorial workflow
+- [Movie Posters]({{ '/workflows/movie-posters' | relative_url }}) - Multi-stage AI generation
+- [Data Visualization Pipeline]({{ '/workflows/data-visualization-pipeline' | relative_url }}) - Data fetching and visualization
 
-[View all 19+ workflow examples →](/workflows/)
+[View all 19+ workflow examples →]({{ '/workflows/' | relative_url }})
 
 ______________________________________________________________________
 
@@ -46,7 +46,7 @@ ______________________________________________________________________
 generators
 
 **Answer questions about documents:** → Use Pattern 4 (RAG) → First: Index documents with `IndexTextChunks` → Then:
-Query with `HybridSearch` + `LLMStreaming`
+Query with `HybridSearch` + `Agent`
 
 **Process emails automatically:** → Use Pattern 6 (Email Integration) → Nodes: `GmailSearch`, `EmailFields`,
 `Classifier`/`Summarizer`

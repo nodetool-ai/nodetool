@@ -20,5 +20,5 @@ Important modules:
 - **`settings.py`** – settings and configuration endpoints for the local app.
 - **`debug.py`** – debug artifacts (ZIP exports, etc.) intended only for local usage.
 
-For a module-by-module description, see the [API README](../src/nodetool/api/README.md). For the deployable Worker API,
+For a module-by-module description, see the API README in the source tree (`src/nodetool/api/README.md`). For the deployable Worker API,
 refer to [Deployment Guide](deployment.md) and [Authentication](authentication.md#authentication-providers).
