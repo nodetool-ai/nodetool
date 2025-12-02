@@ -85,15 +85,16 @@ const namespaceStyles = (theme: Theme) =>
       maxHeight: "calc(min(750px, 80vh))",
       paddingRight: "0.75em",
       paddingLeft: "0.75em",
-      borderRadius: "10px",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      backgroundColor: "rgba(255,255,255,0.02)",
-      backdropFilter: "blur(2px)"
+      borderRadius: "12px",
+      // Glassmorphic list container
+      border: `1px solid rgba(255, 255, 255, 0.05)`,
+      backgroundColor: "rgba(255, 255, 255, 0.02)",
+      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)"
     },
-    ".namespace-list::-webkit-scrollbar": { width: "8px" },
+    ".namespace-list::-webkit-scrollbar": { width: "6px" },
     ".namespace-list::-webkit-scrollbar-track": { background: "transparent" },
     ".namespace-list::-webkit-scrollbar-thumb": {
-      backgroundColor: "rgba(255,255,255,0.12)",
+      backgroundColor: "rgba(255,255,255,0.1)",
       borderRadius: "8px"
     },
     ".namespace-list::-webkit-scrollbar-thumb:hover": {
@@ -108,29 +109,28 @@ const namespaceStyles = (theme: Theme) =>
       flex: "0 0 auto",
       height: "fit-content",
       overflowY: "visible",
-      borderTop: `1px dashed ${theme.vars.palette.grey[700]}`,
+      borderTop: `1px dashed rgba(255, 255, 255, 0.1)`,
       marginTop: "0.75em",
       paddingTop: "0.5em",
       ".namespace-item": {
-        color: theme.vars.palette.grey[300]
+        color: "rgba(255, 255, 255, 0.3)"
       }
     },
     ".node-list": {
       height: "100%",
       maxHeight: "750px",
-      width: "260px",
+      width: "320px",
       flex: "0 1 auto",
       backgroundColor: "transparent",
       transition: "max-width 0.35s ease, width 0.35s ease",
       overflowX: "hidden",
       overflowY: "auto",
-      // borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
       padding: "0 0.5em"
     },
-    ".node-list::-webkit-scrollbar": { width: "8px" },
+    ".node-list::-webkit-scrollbar": { width: "6px" },
     ".node-list::-webkit-scrollbar-track": { background: "transparent" },
     ".node-list::-webkit-scrollbar-thumb": {
-      backgroundColor: "rgba(255,255,255,0.12)",
+      backgroundColor: "rgba(255,255,255,0.1)",
       borderRadius: "8px"
     },
     ".node-list::-webkit-scrollbar-thumb:hover": {
@@ -190,23 +190,24 @@ const namespaceStyles = (theme: Theme) =>
       }
     },
     ".result-info": {
-      color: theme.vars.palette.grey[0],
+      color: "rgba(255, 255, 255, 0.9)",
       cursor: "default",
       display: "flex",
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeNormal,
       padding: "0.25em .75em .2em .75em",
-      borderRadius: "4px",
-      backgroundColor: theme.vars.palette.grey[600],
-      margin: "1em .5em 0 0"
+      borderRadius: "6px",
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      margin: "1em .5em 0 0",
+      border: "1px solid rgba(255, 255, 255, 0.05)"
     },
     ".result-info span": {
       color: "var(--palette-primary-main)",
       fontWeight: "500"
     },
     ".result-label": {
-      color: `${theme.vars.palette.grey[400]} !important`,
+      color: "rgba(255, 255, 255, 0.5) !important",
       fontSize: "0.8em",
       fontWeight: "400",
       marginLeft: "0.5em",
@@ -244,16 +245,17 @@ const namespaceStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       margin: "2px 0",
-      padding: "2px",
-      borderRadius: "6px",
+      padding: "4px", // Increased padding
+      borderRadius: "8px",
       cursor: "pointer",
-      transition: "background-color 0.18s ease, box-shadow 0.18s ease",
+      transition: "all 0.2s ease",
+      border: "1px solid transparent",
       ".node-button": {
         padding: "0",
         flexGrow: 1,
         borderRadius: "6px",
         "&:hover": {
-          backgroundColor: "var(--palette-grey-800)"
+          backgroundColor: "transparent"
         },
         "& .MuiTypography-root": {
           fontSize: theme.fontSizeSmall
@@ -263,30 +265,32 @@ const namespaceStyles = (theme: Theme) =>
         backgroundColor: "transparent !important"
       },
       ".icon-bg svg": {
-        color: theme.vars.palette.grey[400]
+        color: "rgba(255, 255, 255, 0.5)"
       }
     },
     ".node:hover": {
-      backgroundColor: theme.vars.palette.grey[800],
-      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)"
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
+      border: "1px solid rgba(255, 255, 255, 0.1)",
+      transform: "translateX(2px)"
     },
     ".node.focused": {
       color: "var(--palette-primary-main)",
-      backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "3px",
-      boxShadow: "inset 1px 1px 2px #00000044"
+      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.1)",
+      borderRadius: "8px",
+      border: "1px solid rgba(var(--palette-primary-mainChannel) / 0.2)",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     },
     ".namespace-text": {
-      color: theme.vars.palette.grey[400],
-      fontWeight: 500,
+      color: "rgba(255, 255, 255, 0.4)",
+      fontWeight: 600,
       fontSize: "0.7rem",
-      // borderTop: `1px solid ${theme.vars.palette.grey[700]}`,
       padding: ".4em 0 0 0",
       margin: "0.75em 0 .4em 0",
       letterSpacing: "0.5px",
       wordBreak: "break-word",
       userSelect: "none",
-      pointerEvents: "none"
+      pointerEvents: "none",
+      textTransform: "uppercase"
     },
     ".info-button": {
       marginLeft: "auto"
@@ -306,7 +310,7 @@ const namespaceStyles = (theme: Theme) =>
       gap: "0"
     },
     ".namespace-item": {
-      color: theme.vars.palette.grey[0],
+      color: "rgba(255, 255, 255, 0.8)",
       textTransform: "capitalize",
       whiteSpace: "nowrap",
       overflow: "hidden",
@@ -314,36 +318,36 @@ const namespaceStyles = (theme: Theme) =>
       userSelect: "none"
     },
     ".disabled .namespace-item": {
-      color: theme.vars.palette.grey[400]
+      color: "rgba(255, 255, 255, 0.3)"
     },
     ".namespaces .list-item": {
       cursor: "pointer",
-      padding: ".4em .8em",
+      padding: ".5em .8em", // More padding
       backgroundColor: "transparent",
-      // borderLeft: `3px solid ${theme.vars.palette.grey[800]}`,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      fontWeight: 300,
-      transition: "background-color 0.18s ease, border-color 0.18s ease",
+      fontWeight: 400,
+      transition: "all 0.2s ease",
       overflow: "hidden",
-      margin: "0",
-      borderRadius: "0 6px 6px 0"
+      margin: "0 2px 1px 2px", // Added bottom margin instead of gap
+      borderRadius: "6px",
+      borderLeft: "3px solid transparent"
     },
     ".namespaces .list-item.disabled": {
       backgroundColor: "transparent",
       border: "none !important",
       color: theme.vars.palette.grey[200],
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600]
+        backgroundColor: "rgba(255, 255, 255, 0.05)"
       }
     },
     ".list-item.firstDisabled": {
-      borderTop: `1px solid ${theme.vars.palette.grey[200]}`,
+      borderTop: `1px solid rgba(255, 255, 255, 0.1)`,
       marginTop: "0.5em"
     },
     ".namespaces .list-item:hover": {
-      backgroundColor: theme.vars.palette.grey[600]
-      // borderLeft: `3px solid ${"var(--palette-primary-main)"}`
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
+      paddingLeft: "1em" // Slide effect
     },
     ".namespaces .list-item.expanded": {
       opacity: 1
@@ -353,26 +357,27 @@ const namespaceStyles = (theme: Theme) =>
       opacity: 0,
       padding: "0",
       width: "0",
+      margin: "0", // Ensure no margin when collapsed
       overflow: "hidden"
     },
     ".namespaces .list-item.selected": {
-      backgroundColor: "var(--palette-primary-main)",
+      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
       borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
       fontWeight: 600,
-      boxShadow: "0 1px 6px rgba(0,0,0,0.25)"
+      color: "var(--palette-primary-main)"
     },
     ".namespaces .list-item.selected .namespace-item": {
-      color: theme.vars.palette.grey[1000]
+      color: "var(--palette-primary-main)"
     },
     ".namespaces .list-item.disabled.selected": {
-      backgroundColor: theme.vars.palette.grey[600],
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
       border: "none"
     },
     ".namespaces .list-item.highlighted": {
       borderLeft: `3px solid ${"var(--palette-primary-main)"}`
     },
     ".namespaces .list-item.highlighted.selected .namespace-item": {
-      color: theme.vars.palette.grey[1000]
+      color: "var(--palette-primary-main)"
     },
     ".namespaces .sublist": {
       paddingLeft: "1em"
@@ -384,7 +389,7 @@ const namespaceStyles = (theme: Theme) =>
     },
     "&.has-search-results .namespace-list-enabled .no-highlight .namespace-item":
       {
-        color: theme.vars.palette.grey[200]
+        color: "rgba(255, 255, 255, 0.2)"
       },
     "&.has-search-results .no-highlight": {
       pointerEvents: "none"
@@ -405,7 +410,7 @@ const namespaceStyles = (theme: Theme) =>
     ".node-info-container": {
       width: "300px",
       backgroundColor: "transparent",
-      borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderLeft: `1px solid rgba(255, 255, 255, 0.1)`,
       paddingLeft: "0.5em"
     },
     ".toggle-panel-button": {
@@ -443,11 +448,11 @@ const namespaceStyles = (theme: Theme) =>
       textTransform: "none",
       borderRadius: "8px",
       padding: "6px 10px",
-      borderColor: theme.vars.palette.grey[600],
-      color: theme.vars.palette.grey[0],
+      borderColor: "rgba(255, 255, 255, 0.2)",
+      color: "rgba(255, 255, 255, 0.8)",
       "&:hover": {
         backgroundColor: "rgba(255,255,255,0.06)",
-        borderColor: theme.vars.palette.grey[500]
+        borderColor: "rgba(255, 255, 255, 0.4)"
       }
     }
   });

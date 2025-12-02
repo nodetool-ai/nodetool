@@ -36,52 +36,64 @@ const treeStyles = (theme: Theme) =>
       position: "absolute",
       overflow: "hidden",
       zIndex: 20000,
-      border: `1px solid ${theme.vars.palette.grey[500]}`,
-      borderRadius: "12px",
-      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-      backgroundColor: theme.vars.palette.background.default
+      // Glassmorphism container
+      // Glassmorphism container
+      border: `1px solid rgba(255, 255, 255, 0.08)`,
+      borderRadius: "16px",
+      boxShadow: "0 24px 48px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0,0,0,0.2)",
+      backgroundColor: "rgba(20, 20, 20, 0.75)", // Dark semi-transparent base
+      backdropFilter: "blur(16px) saturate(180%)",
+      transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
+      animation: "fadeIn 0.2s ease-out forwards",
+    },
+    "@keyframes fadeIn": {
+      "0%": { opacity: 0 },
+      "100%": { opacity: 1 }
     },
     ".draggable-header": {
-      borderRadius: "12px 12px 0 0",
-      backgroundColor: theme.vars.palette.background.default,
+      borderRadius: "16px 16px 0 0",
+      backgroundColor: "transparent", // Let glass effect show through
       width: "100%",
-      minHeight: "40px",
+      minHeight: "48px", // Slightly taller for elegance
       cursor: "grab",
       userSelect: "none",
       display: "flex",
       alignItems: "center",
+      borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
       h4: {
         margin: "0",
         padding: "0 0 0 1.25em",
-        fontSize: theme.fontSizeNormal,
+        fontSize: "1rem",
         fontWeight: 500,
-        color: theme.vars.palette.grey[100]
+        letterSpacing: "0.5px",
+        color: "rgba(255, 255, 255, 0.9)",
+        textShadow: "0 1px 2px rgba(0,0,0,0.5)"
       }
     },
-    ".draggable-header:hover": {
-      opacity: 0.95
+    ".draggable-header:active": {
+      cursor: "grabbing"
     },
     ".node-menu-container": {
-      borderRadius: "0 0 8px 8px",
-      padding: ".5em 0px 1em .5em",
+      borderRadius: "0 0 16px 16px",
+      padding: "0.75em 0px 1em 0.75em",
       width: "100%",
       maxHeight: "77vh",
       flexGrow: 1,
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+      // Removed inner shadow to keep it clean
     },
     ".search-toolbar": {
       display: "flex",
       flexDirection: "row",
-      alignItems: "flex-start",
-      gap: "0.5em",
-      minHeight: "40px",
+      alignItems: "center", // Center vertically
+      gap: "0.75em",
+      minHeight: "48px",
       flexGrow: 0,
-      overflow: "hidden",
+      overflow: "visible", // Allow dropdowns to overflow if needed, though usually they are portals
       width: "100%",
       margin: 0,
-      padding: ".5em 1em 0 .7em",
+      padding: "0 1em 0.5em 0.5em",
       ".search-input-container": {
-        minWidth: "170px"
+        minWidth: "200px" // Slightly wider
       }
     },
     ".close-button": {
@@ -89,14 +101,16 @@ const treeStyles = (theme: Theme) =>
       top: "8px",
       right: "8px",
       zIndex: 150,
-      color: theme.vars.palette.grey[200],
-      width: "28px",
-      height: "28px",
-      padding: "2px",
+      color: "rgba(255, 255, 255, 0.5)",
+      width: "32px",
+      height: "32px",
+      padding: "4px",
+      borderRadius: "50%",
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: "rgba(0, 0, 0, 0.04)",
-        color: theme.vars.palette.grey[100]
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        color: "rgba(255, 255, 255, 0.9)",
+        transform: "rotate(90deg)"
       }
     },
     "& .MuiPaper-root.MuiAccordion-root": {
