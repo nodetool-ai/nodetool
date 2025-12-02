@@ -33,12 +33,14 @@ const styles = (theme: Theme) =>
     minWidth: 0,
     "& .tabs-container": {
       display: "flex",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: "rgba(18, 18, 18, 0.6)",
+      backdropFilter: "blur(12px)",
       alignItems: "center",
       position: "relative",
       padding: "4px 0px 0px 10px",
       width: "100%",
-      WebkitAppRegion: "drag"
+      WebkitAppRegion: "drag",
+      borderBottom: "1px solid rgba(255, 255, 255, 0.08)"
     },
     "& .tabs": {
       flex: 1,
@@ -71,46 +73,50 @@ const styles = (theme: Theme) =>
       minWidth: "80px",
       flex: "0 0 auto",
       cursor: "pointer",
-      color: theme.vars.palette.grey[200],
-      background: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[400],
+      background: "rgba(255, 255, 255, 0.02)",
       borderRadius: "8px 8px 0 0",
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      border: `1px solid rgba(255, 255, 255, 0.05)`,
       borderBottom: "none",
       fontSize: "13px",
       letterSpacing: "0.3px",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       position: "relative",
-      marginRight: "1px",
+      marginRight: "4px",
       boxSizing: "border-box",
 
       "&::before": {
         content: '""',
         position: "absolute",
         bottom: 0,
-        left: 4,
-        right: 4,
-        height: "2px",
-        background: "var(--palette-primary-main)",
+        left: 0,
+        right: 0,
+        height: "1px",
+        background: "rgba(255, 255, 255, 0.1)",
         opacity: 0,
-        transform: "scaleX(0.7)",
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
       },
 
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)",
-        color: theme.vars.palette.grey[0],
-        borderColor: theme.vars.palette.grey[700],
+        color: theme.vars.palette.grey[100],
+        borderColor: "rgba(255, 255, 255, 0.1)",
         "&::before": {
-          opacity: 0.3,
-          transform: "scaleX(0.3)"
+          opacity: 1
         }
       },
 
       "&.active": {
-        color: theme.vars.palette.grey[0],
-        background: theme.vars.palette.c_editor_bg_color,
+        color: theme.vars.palette.primary.main,
+        background: "rgba(255, 255, 255, 0.08)",
         zIndex: 2,
-        borderColor: theme.vars.palette.grey[700]
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
+        "&::before": {
+          background: theme.vars.palette.primary.main,
+          height: "2px",
+          opacity: 1
+        }
       },
 
       "& .close-icon": {
