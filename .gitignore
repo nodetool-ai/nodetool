@@ -30,6 +30,7 @@ postgres_data/
 .huggingface
 
 .bin
+.claude
 .vite
 .venv
 node_modules
