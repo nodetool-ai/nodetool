@@ -11,6 +11,7 @@ import { DEFAULT_MODEL } from "../../config/constants";
 import { PanelProps } from "./panelConfig";
 import ActivityPanel from "./ActivityPanel";
 import TemplatesPanel from "./TemplatesPanel";
+import MiniAppPanel from "./miniApps/MiniAppPanel";
 
 export const createPanelComponents = () => ({
   activity: (props: IDockviewPanelProps<PanelProps>) => (
@@ -104,5 +105,21 @@ export const createPanelComponents = () => ({
     <Box sx={{ overflow: "auto", height: "100%" }}>
       <SetupPanel />
     </Box>
+  ),
+  "mini-app": (props: IDockviewPanelProps<PanelProps>) => (
+    <MiniAppPanel
+      workflowId={props.params?.workflowId}
+      onWorkflowSelect={(workflowId) => {
+        console.log("props.api", props.api);
+        console.log("props.containerApi", props.containerApi);
+        // Try to find the panel via containerApi
+        const panel = (props.containerApi as any).getPanel?.(props.api.id);
+        if (panel) {
+            panel.update({ params: { ...props.params, workflowId } });
+        } else {
+            console.error("Could not find panel to update");
+        }
+      }}
+    />
   )
 });
