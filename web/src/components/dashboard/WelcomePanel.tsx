@@ -12,10 +12,6 @@ import {
   Tooltip,
   Checkbox,
   Button,
-  Grid,
-  Card,
-  CardActionArea,
-  CardContent
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -25,10 +21,66 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import FolderIcon from "@mui/icons-material/Folder";
+import SettingsIcon from "@mui/icons-material/Settings";
+import { DEFAULT_MODEL } from "../../config/constants";
+import { UnifiedModel } from "../../stores/ApiTypes";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { DownloadProgress } from "../hugging_face/DownloadProgress";
+import DownloadIcon from "@mui/icons-material/Download";
+
+const InlineModelDownload: React.FC<{
+  model: UnifiedModel;
+  label?: React.ReactNode;
+  isDefault?: boolean;
+  tooltip?: string;
+}> = ({ model, label, isDefault, tooltip }) => {
+  const { startDownload, downloads } = useModelDownloadStore((state) => ({
+    startDownload: state.startDownload,
+    downloads: state.downloads
+  }));
+  const downloadKey = model.repo_id || model.id;
+  const inProgress = !!downloads[downloadKey];
+  if (inProgress) {
+    return (
+      <Box
+        component="span"
+        sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}
+        className="inline-download-progress"
+      >
+        <DownloadProgress name={downloadKey} minimal />
+      </Box>
+    );
+  }
+  const button = (
+    <Button
+      size="small"
+      variant={isDefault ? "contained" : "outlined"}
+      color={isDefault ? "primary" : "inherit"}
+      startIcon={<DownloadIcon fontSize="small" />}
+      aria-label={`Download ${model.repo_id || model.id}`}
+      sx={{ ml: 1, verticalAlign: "middle" }}
+      className={`model-download-button ${isDefault ? "default-model" : ""}`}
+      onClick={() =>
+        startDownload(
+          model.repo_id || "",
+          model.type || "hf.model",
+          model.path ?? null,
+          model.allow_patterns ?? null,
+          model.ignore_patterns ?? null
+        )
+      }
+    >
+      {label ?? "Download"}
+    </Button>
+  );
+  return tooltip ? (
+    <Tooltip title={tooltip} arrow>
+      <span>{button}</span>
+    </Tooltip>
+  ) : (
+    button
+  );
+};
 
 const extractText = (node: ReactNode): string => {
   if (typeof node === "string") return node;
@@ -134,7 +186,50 @@ const panelStyles = (theme: any) =>
 const WelcomePanel: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const sections: Section[] = overviewContents.map((section) => ({
+  const sections: Section[] = [
+    {
+      id: "how-to-use-models",
+      title: "How to Use Models",
+      content: (
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mt: 1, mb: 0.5, color: "primary.main" }}>
+            Remote Models
+          </Typography>
+          <ol style={{ paddingLeft: "1.2em", marginTop: "0.5em" }}>
+            <li>
+              Open <SettingsIcon sx={{ verticalAlign: "middle", fontSize: "inherit" }} /> <b>Settings</b> in the top-right
+            </li>
+            <li>Add API keys</li>
+          </ol>
+
+          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mt: 2, mb: 0.5, color: "primary.main" }}>
+            Local Models
+          </Typography>
+          <ol style={{ paddingLeft: "1.2em", marginTop: "0.5em" }}>
+            <li>
+              Download models using the <b>MODELS</b> button in the header
+            </li>
+            <li>
+              Or use <b>RECOMMENDED MODELS</b> button on nodes
+            </li>
+          </ol>
+          
+          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mt: 2, mb: 0.5, color: "primary.main" }}>
+            Quick Download
+          </Typography>
+          <Box sx={{ mt: 1 }}>
+             <InlineModelDownload 
+                model={{ id: DEFAULT_MODEL, repo_id: DEFAULT_MODEL, type: "llama_model" } as UnifiedModel} 
+                label="GPT-OSS (20B)"
+                isDefault={true}
+                tooltip="Download default model"
+             />
+          </Box>
+        </Box>
+      )
+    },
+    ...overviewContents
+  ].map((section) => ({
     ...section,
     originalContent: section.content
   }));
@@ -270,107 +365,6 @@ const WelcomePanel: React.FC = () => {
       </div>
 
       <div className="scrollable-content">
-        {searchTerm === "" && (
-          <Box className="quick-start">
-            <Typography variant="h6" sx={{ mb: 1, fontSize: "1em" }}>
-              Quick Start
-            </Typography>
-            <Grid container spacing={1.5} className="quick-start-grid">
-              <Grid
-                sx={{
-                  gridColumn: { xs: "span 12", sm: "span 6" }
-                }}
-                className="quick-start-grid-item"
-              >
-                <Card className="quick-card" elevation={0}>
-                  <CardActionArea
-                    onClick={() => navigate("/editor")}
-                    className="quick-card-action"
-                  >
-                    <CardContent className="quick-card-content">
-                      <AddCircleOutlineIcon className="quick-card-icon" />
-                      <Typography className="quick-card-title">
-                        Create Workflow
-                      </Typography>
-                      <Typography className="quick-card-desc">
-                        Start a new canvas and design a workflow from scratch.
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-              <Grid
-                sx={{
-                  gridColumn: { xs: "span 12", sm: "span 6" }
-                }}
-                className="quick-start-grid-item"
-              >
-                <Card className="quick-card" elevation={0}>
-                  <CardActionArea
-                    onClick={() => navigate("/templates")}
-                    className="quick-card-action"
-                  >
-                    <CardContent className="quick-card-content">
-                      <LibraryBooksIcon className="quick-card-icon" />
-                      <Typography className="quick-card-title">
-                        Browse Templates
-                      </Typography>
-                      <Typography className="quick-card-desc">
-                        Explore ready-made workflows to learn and remix.
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-              <Grid
-                sx={{
-                  gridColumn: { xs: "span 12", sm: "span 6" }
-                }}
-                className="quick-start-grid-item"
-              >
-                <Card className="quick-card" elevation={0}>
-                  <CardActionArea
-                    onClick={() => navigate("/chat")}
-                    className="quick-card-action"
-                  >
-                    <CardContent className="quick-card-content">
-                      <ChatBubbleOutlineIcon className="quick-card-icon" />
-                      <Typography className="quick-card-title">
-                        Open Chat
-                      </Typography>
-                      <Typography className="quick-card-desc">
-                        Chat globally and trigger workflows from anywhere.
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-              <Grid
-                sx={{
-                  gridColumn: { xs: "span 12", sm: "span 6" }
-                }}
-                className="quick-start-grid-item"
-              >
-                <Card className="quick-card" elevation={0}>
-                  <CardActionArea
-                    onClick={() => navigate("/assets")}
-                    className="quick-card-action"
-                  >
-                    <CardContent className="quick-card-content">
-                      <FolderIcon className="quick-card-icon" />
-                      <Typography className="quick-card-title">
-                        Open Assets
-                      </Typography>
-                      <Typography className="quick-card-desc">
-                        Manage and import your media and data files.
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            </Grid>
-          </Box>
-        )}
         {(() => {
           const list = searchTerm === "" ? sections : filteredSections;
           if (!list || list.length === 0) {

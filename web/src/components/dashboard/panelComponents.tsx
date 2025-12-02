@@ -9,10 +9,35 @@ import WelcomePanel from "./WelcomePanel";
 import SetupPanel from "./SetupPanel";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { PanelProps } from "./panelConfig";
+import ActivityPanel from "./ActivityPanel";
+import TemplatesPanel from "./TemplatesPanel";
 
 export const createPanelComponents = () => ({
+  activity: (props: IDockviewPanelProps<PanelProps>) => (
+    <ActivityPanel
+      // Workflow props
+      sortedWorkflows={props.params?.sortedWorkflows || []}
+      isLoadingWorkflows={props.params?.isLoadingWorkflows ?? true}
+      settings={props.params?.settings || {}}
+      handleOrderChange={props.params?.handleOrderChange || (() => {})}
+      handleCreateNewWorkflow={
+        props.params?.handleCreateNewWorkflow || (() => {})
+      }
+      handleWorkflowClick={props.params?.handleWorkflowClick || (() => {})}
+      
+      // Chat props
+      threads={props.params?.threads || {}}
+      currentThreadId={props.params?.currentThreadId || null}
+      onNewThread={props.params?.onNewThread || (() => {})}
+      onSelectThread={props.params?.onSelectThread || (() => {})}
+      onDeleteThread={props.params?.onDeleteThread || (() => {})}
+      getThreadPreview={
+        props.params?.getThreadPreview || (() => "No messages yet")
+      }
+    />
+  ),
   templates: (props: IDockviewPanelProps<PanelProps>) => (
-    <ExamplesList
+    <TemplatesPanel
       startTemplates={props.params?.startTemplates || []}
       isLoadingTemplates={props.params?.isLoadingTemplates ?? true}
       loadingExampleId={props.params?.loadingExampleId || null}
@@ -22,6 +47,7 @@ export const createPanelComponents = () => ({
       }
     />
   ),
+  // Legacy panels kept for backward compatibility
   workflows: (props: IDockviewPanelProps<PanelProps>) => (
     <WorkflowsList
       sortedWorkflows={props.params?.sortedWorkflows || []}
