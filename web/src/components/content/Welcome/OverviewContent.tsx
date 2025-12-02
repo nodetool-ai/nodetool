@@ -1,8 +1,5 @@
 import React, { ReactNode } from "react";
-import { Box, Typography } from "@mui/material";
-import ExamplesIcon from "@mui/icons-material/Fluorescent";
-import SettingsIcon from "@mui/icons-material/Settings";
-import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
+import { Typography } from "@mui/material";
 
 export interface Section {
   id: string;
@@ -18,346 +15,422 @@ export const overviewContents: Section[] = [
     title: "Welcome to NodeTool",
     defaultExpanded: true,
     content: (
-      <Typography>
+      <>
+        <Typography>
+          NodeTool is the local-first canvas for building AI workflows. Compose
+          text, audio, video, and automation nodes on one graph, run them on
+          your machine, then ship the same workflow to RunPod, Cloud Run, or
+          your own infrastructure when you need scale.
+        </Typography>
         <ul>
           <li>
-            <b>🔒 Privacy by design:</b> Your data stays local unless you opt‑in
-            to third‑party nodes.
+            <b>Visual first:</b> Drag-and-drop nodes, preview intermediate
+            results, and keep your graph as the single source of truth.
           </li>
           <li>
-            <b>🧰 Own your stack:</b> Open source (AGPL). Fork, customize, and
-            deploy your way—no lock‑in.
+            <b>Local by default:</b> Data stays on your device unless you attach
+            a provider. Opt into APIs only when you need them.
           </li>
           <li>
-            <b>🚀 Production ready:</b> Start local, scale globally. One‑command
-            deploys to your cloud.
-          </li>
-          <li>
-            <b>🔌 Bring your own providers:</b> OpenAI, Anthropic, Hugging Face,
-            Gemini, Replicate, Groq, Together, Cohere and more.
+            <b>Deployable:</b> Trigger the same workflow from Global Chat, the
+            CLI, APIs, or Mini-Apps without rewrites.
           </li>
         </ul>
-        <b>
-          Explore <ExamplesIcon /> Templates to get started fast.
-        </b>
-      </Typography>
+      </>
     )
   },
   {
     id: "panel2",
-    title: "Creating Workflows",
+    title: "Start Here",
     content: (
       <>
-        <Typography>From idea to production in 3 steps:</Typography>
+        <Typography>
+          NodeTool is your local-first canvas for building AI workflows that can
+          run identically on your laptop or in the cloud.
+        </Typography>
         <ul>
           <li>
-            <b>1. Build:</b> Drag nodes to design workflows—no code.
+            <b>Dashboard:</b> Home for workflows, templates, and chats.
           </li>
           <li>
-            <b>2. Run:</b> Test locally. Data stays on your machine by default.
+            <b>Workflow Editor:</b> The graph where you connect nodes and run
+            them.
           </li>
           <li>
-            <b>3. Deploy:</b> Deploy with one command to your cloud.
-          </li>
-        </ul>
-        <Typography>Start a new workflow or explore templates:</Typography>
-        <ul>
-          <li>
-            Click <b>Workflows</b> in the top panel to browse and manage your
-            projects.
+            <b>Global Chat:</b> Full-screen assistant that can trigger
+            workflows.
           </li>
           <li>
-            Use <b>New Workflow</b> to start from scratch or select a template
-            for common AI tasks.
+            <b>Mini-Apps:</b> Form-based UIs generated from your workflow
+            inputs.
+          </li>
+          <li>
+            <b>Assets and Models:</b> Manage files and model downloads in one
+            place.
           </li>
         </ul>
         <Typography>
-          Run your workflow by clicking the <b>Play</b> button. The active node
-          is highlighted, and you can view detailed logs for longer processes.
+          Want a full walkthrough? Read the{" "}
+          <a
+            href="https://docs.nodetool.ai/user-interface"
+            target="_blank"
+            rel="noreferrer"
+          >
+            User Interface tour
+          </a>
+          .
         </Typography>
       </>
     )
   },
   {
     id: "panel3",
-    title: "Using the Node Menu",
+    title: "What you can build right away",
     content: (
       <>
-        <Typography>Open the Node Menu in several ways:</Typography>
+        <Typography>
+          The docs highlight four fast-start patterns from the gallery and
+          cookbook:
+        </Typography>
         <ul>
-          <li>Double-click on the canvas</li>
           <li>
-            Press <b>Space</b>
+            <b>LLM agents with tool access:</b> Plan, call tools, and stream
+            progress updates.{" "}
+            <a
+              href="https://docs.nodetool.ai/cookbook/patterns#pattern-2-agent-driven-generation"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Agent pattern
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://docs.nodetool.ai/workflows/realtime-agent"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Realtime Agent example
+            </a>
           </li>
-          <li>Click the Node Menu button in the top panel</li>
           <li>
-            Start a connection and release it on the canvas to filter node
-            options
+            <b>Retrieval-augmented generation:</b> Ingest PDFs, chunk text, and
+            answer with citations.{" "}
+            <a
+              href="https://docs.nodetool.ai/cookbook/patterns#pattern-4-rag-retrieval-augmented-generation"
+              target="_blank"
+              rel="noreferrer"
+            >
+              RAG pattern
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://docs.nodetool.ai/workflows/chat-with-docs"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Chat with Docs example
+            </a>
+          </li>
+          <li>
+            <b>Audio and video pipelines:</b> Transcribe, edit, caption, and
+            narrate.{" "}
+            <a
+              href="https://docs.nodetool.ai/workflows/transcribe-audio"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Transcribe Audio example
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://docs.nodetool.ai/workflows/story-to-video-generator"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Story to Video example
+            </a>
+          </li>
+          <li>
+            <b>Data automation and visualization:</b> Fetch, transform, and
+            publish dashboards.{" "}
+            <a
+              href="https://docs.nodetool.ai/workflows/data-visualization-pipeline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Data Viz pipeline
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://docs.nodetool.ai/cookbook/patterns#pattern-10-data-processing-pipeline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Data processing pattern
+            </a>
           </li>
         </ul>
-        <Typography>
-          Browse, search, and read descriptions to find the right node. Click a
-          node&apos;s namespace to quickly find related nodes.
-        </Typography>
       </>
     )
   },
   {
     id: "panel4",
-    title: "Working with Nodes",
+    title: "Your first 10 minutes",
     content: (
       <>
-        <ul>
+        <Typography>
+          Follow the golden path from the docs to get a working workflow in a
+          few minutes:
+        </Typography>
+        <ol>
           <li>
-            Connect nodes to create data flows—compatible connections are
-            highlighted.
+            <a
+              href="https://docs.nodetool.ai/installation"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Install NodeTool
+            </a>{" "}
+            and launch it.
           </li>
-          <li>Delete connections by right-clicking them.</li>
           <li>
-            Change node values with left-click; changed values are highlighted.
+            Open <b>Models → Model Manager</b> and install <b>GPT-OSS</b> plus{" "}
+            <b>Flux</b> for fast local runs.
           </li>
           <li>
-            Reset values to default with <b>CTRL/⌘+right-click</b>.
+            From Templates, open <b>Creative Story Ideas</b> and press{" "}
+            <b>Run</b> to watch Preview stream results.
           </li>
-          <li>Adjust numbers by dragging horizontally or clicking.</li>
-        </ul>
-        <Typography variant="h3">Connection Menu</Typography>
-        <Box sx={{ margin: "16px 0" }}>
-          <img
-            src="/images/help/connection_menu.png"
-            alt="Connection Menu"
-            style={{
-              maxWidth: "100%",
-              height: "auto",
-              borderRadius: "4px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-            }}
-          />
-        </Box>
-        <ul>
           <li>
-            Drag a connection from any input or output and release it on the
-            canvas for quick options:
-            <ul>
-              <li>Create a Preview node</li>
-              <li>Create new input/output nodes (exposed to external apps)</li>
-              <li>
-                Create a constant node (for inputs) or save node (for outputs)
-              </li>
-              <li>
-                Open the Node Menu with filtered options for compatible nodes
-              </li>
-            </ul>
+            Save it and trigger the same workflow from <b>Global Chat</b>.
           </li>
-        </ul>
-        <Typography variant="h3">Quick Connection</Typography>
-        <Typography variant="body1">
-          Drag a connection and drop it inside another node to auto-connect the
-          first compatible input/output. Fastest way to link nodes.
+          <li>
+            Click <b>Mini-App</b> to publish a simple form UI backed by the same
+            graph.
+          </li>
+        </ol>
+        <Typography>
+          Full walkthrough:{" "}
+          <a
+            href="https://docs.nodetool.ai/getting-started"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Getting Started guide
+          </a>
+          .
         </Typography>
       </>
     )
   },
   {
     id: "panel5",
-    title: "Interface Tips",
+    title: "Choose your path",
     content: (
       <>
         <Typography>
-          Hover or right-click on elements for more options:
+          Jump to the doc section that matches what you need:
         </Typography>
         <ul>
-          <li>Buttons</li>
-          <li>Parameters</li>
-          <li>Node Header</li>
-          <li>Canvas</li>
-          <li>Node Selections</li>
-          <li>Assets</li>
+          <li>
+            <a
+              href="https://docs.nodetool.ai/getting-started"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Getting Started
+            </a>{" "}
+            for the full tutorial.
+          </li>
+          <li>
+            <a
+              href="https://docs.nodetool.ai/workflows/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Examples gallery
+            </a>{" "}
+            for ready-made workflows.
+          </li>
+          <li>
+            <a
+              href="https://docs.nodetool.ai/cookbook"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Workflow cookbook
+            </a>{" "}
+            for patterns you can remix.
+          </li>
+          <li>
+            <a
+              href="https://docs.nodetool.ai/key-concepts"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Core concepts
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://docs.nodetool.ai/user-interface"
+              target="_blank"
+              rel="noreferrer"
+            >
+              UI tour
+            </a>{" "}
+            to master the editor.
+          </li>
+          <li>
+            <a
+              href="https://docs.nodetool.ai/deployment"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Deployment
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://docs.nodetool.ai/deployment-journeys"
+              target="_blank"
+              rel="noreferrer"
+            >
+              deployment journeys
+            </a>{" "}
+            for shipping to production.
+          </li>
         </ul>
-        <Typography>
-          Discover keyboard shortcuts by hovering over buttons and menu entries.
-          See the <QuestionMarkIcon /> Help menu for a full list.
-        </Typography>
-        <Typography>
-          Control the left panel menus by clicking or using hotkeys <kbd>1</kbd>{" "}
-          to <kbd>5</kbd>.
-        </Typography>
       </>
     )
   },
   {
     id: "panel6",
-    title: "Organize Everything (Assets)",
+    title: "Local-first or cloud-augmented",
     content: (
       <>
-        <Typography>Built‑in Asset Manager for all your media:</Typography>
+        <Typography variant="subtitle1">Local-only mode</Typography>
         <ul>
+          <li>Workflows, assets, and models stay on your machine.</li>
+          <li>Use MLX, llama.cpp, Whisper, and Flux locally.</li>
+          <li>Disable outbound traffic entirely if needed.</li>
+        </ul>
+        <Typography variant="subtitle1">Cloud-augmented mode</Typography>
+        <ul>
+          <li>Mix local nodes with OpenAI, Anthropic, or RunPod workers.</li>
+          <li>Configure API keys in <b>Settings → Providers</b>.</li>
           <li>
-            <b>Smart Import & Organization:</b> Drag and drop files.
-            Auto‑organized by type, project, or tags.
-          </li>
-          <li>
-            <b>Preview Everything:</b> Instant previews for images, audio,
-            video, and documents.
-          </li>
-          <li>
-            <b>Workflow Integration:</b> Drag assets onto the canvas to create
-            constants or connect them in one click.
-          </li>
-          <li>
-            <b>Manage at scale:</b> Multi‑select, rename (F2), move, search, and
-            sort by name or date.
-          </li>
-          <li>
-            <b>Formats:</b> PNG, JPG, GIF, SVG, WebP, MP3, WAV, MP4, MOV, AVI,
-            PDF, TXT, JSON, CSV, DOCX
+            Deploy the same workflow to RunPod or Cloud Run when you need
+            capacity.
           </li>
         </ul>
+        <Typography>
+          Learn more in{" "}
+          <a
+            href="https://docs.nodetool.ai/models-and-providers"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Models & Providers
+          </a>{" "}
+          or the{" "}
+          <a
+            href="https://docs.nodetool.ai/storage"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Storage guide
+          </a>
+          .
+        </Typography>
       </>
     )
   },
   {
     id: "panel7",
-    title: "Advanced Features",
-    content: (
-      <>
-        <ul>
-          <li>
-            <b>Multimodal:</b> Text, image, audio, and video workflows.
-          </li>
-          <li>
-            <b>Built‑in Memory:</b> ChromaDB for RAG—no extra setup.
-          </li>
-          <li>
-            <b>Observability:</b> Logs, traces, and error details to debug fast.
-          </li>
-          <li>
-            <b>API Access:</b> OpenAI‑compatible API for easy integration.
-          </li>
-          <li>
-            <b>Global Chat Overlay:</b> Access and trigger workflows anywhere on
-            your desktop.
-          </li>
-          <li>
-            <b>Mini‑App Builder:</b> Turn workflows into desktop apps.
-          </li>
-          <li>
-            <b>ComfyUI Integration (beta):</b> Import and run ComfyUI workflows
-            directly in NodeTool.
-          </li>
-        </ul>
-      </>
-    )
-  },
-  {
-    id: "panel7b",
-    title: "Deploy Anywhere",
+    title: "Where you'll spend time",
     content: (
       <>
         <Typography>
-          Deploy from laptop to production in minutes. One‑command deploys, GPU
-          auto‑scaling, and portable workflows across environments.
+          Keep these core surfaces in mind as you move around NodeTool:
         </Typography>
         <ul>
           <li>
-            <b>Serverless GPUs:</b> Run on providers like RunPod with global
-            regions and flexible pricing.
+            <b>Dashboard:</b> Organize workflows, templates, and chats.
           </li>
           <li>
-            <b>Auto‑scaling:</b> Scale to zero when idle; burst to hundreds of
-            workers on demand.
+            <b>Workflow Editor:</b> Build and run graphs with previews.
           </li>
           <li>
-            <b>Enterprise features:</b> Network storage, custom Docker, and fast
-            cold starts.
+            <b>Global Chat:</b> Trigger workflows conversationally and let the
+            agent use tools.
+          </li>
+          <li>
+            <b>Mini-Apps:</b> Hand teammates a simple form UI backed by your
+            workflow.
+          </li>
+          <li>
+            <b>Assets and Models:</b> Manage files, downloads, and providers.
+          </li>
+          <li>
+            <b>Command Menu:</b> Press Alt+K or Cmd+K to jump anywhere fast.
           </li>
         </ul>
-      </>
-    )
-  },
-  {
-    id: "panel7c",
-    title: "Bring Your Own Providers",
-    content: (
-      <>
         <Typography>
-          Connect your own keys and mix providers in one workflow. Switch models
-          without code changes.
+          See the{" "}
+          <a
+            href="https://docs.nodetool.ai/user-interface"
+            target="_blank"
+            rel="noreferrer"
+          >
+            User Interface guide
+          </a>{" "}
+          for screenshots and shortcuts.
         </Typography>
-        <ul>
-          <li>OpenAI, Anthropic, Hugging Face, Gemini</li>
-          <li>Replicate, Groq, Together, Cohere</li>
-          <li>And more—choose per node where it runs</li>
-        </ul>
-      </>
-    )
-  },
-  {
-    id: "panel7d",
-    title: "Agent Tools",
-    content: (
-      <>
-        <Typography>
-          Extensible tools for AI agents to interact with the world:
-        </Typography>
-        <ul>
-          <li>
-            <b>Web & Search:</b> Browser automation, scraping, Google Search,
-            SERP API, screenshots, HTTP requests
-          </li>
-          <li>
-            <b>Content Processing:</b> PDF extraction, TTS, image generation,
-            email, Markdown
-          </li>
-          <li>
-            <b>Data & Analytics:</b> Vector search, math, statistics, geometry,
-            unit conversion, ChromaDB indexing
-          </li>
-        </ul>
       </>
     )
   },
   {
     id: "panel8",
-    title: "Settings",
+    title: "Build with the community",
     content: (
-      <Typography variant="body1">
-        Open the <SettingsIcon /> Settings menu (top right) to adjust the
-        interface, set API keys and folder paths. Bring your own keys for
-        OpenAI, Anthropic, Hugging Face, Replicate, and more.
-        <br />
-      </Typography>
-    )
-  },
-  {
-    id: "panel9",
-    title: "Help and Resources",
-    content: (
-      <ul>
-        <li>
-          Open the Help menu (top right) for more explanations and keyboard
-          shortcuts
-        </li>
-        <li>
-          Visit the{" "}
-          <a href="https://forum.nodetool.ai" target="_blank" rel="noreferrer">
-            NodeTool forum
-          </a>{" "}
-          to ask questions and connect with others
-        </li>
-        <li>
-          Join our{" "}
-          <a
-            href="https://discord.gg/26m5xBwe"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Discord Community
-          </a>{" "}
-          for support and sharing workflows
-        </li>
-        <li>Click the NodeTool icon (top left) to reopen this menu anytime</li>
-      </ul>
+      <>
+        <Typography>
+          NodeTool is open source (AGPL-3.0). Share what you build and learn
+          from others:
+        </Typography>
+        <ul>
+          <li>
+            Join the{" "}
+            <a
+              href="https://discord.gg/WmQTWZRcYE"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Discord community
+            </a>{" "}
+            for support and showcase sessions.
+          </li>
+          <li>
+            Browse the{" "}
+            <a
+              href="https://github.com/nodetool-ai/nodetool"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub repo
+            </a>{" "}
+            or contribute docs at{" "}
+            <a
+              href="https://docs.nodetool.ai"
+              target="_blank"
+              rel="noreferrer"
+            >
+              docs.nodetool.ai
+            </a>
+            .
+          </li>
+          <li>Click the NodeTool icon (top left) to reopen this menu anytime.</li>
+        </ul>
+      </>
     )
   }
 ];

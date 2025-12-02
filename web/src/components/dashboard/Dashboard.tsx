@@ -146,6 +146,22 @@ const Dashboard: React.FC = () => {
 
   const panelParams = useMemo(() => {
     return {
+      activity: {
+        // Workflows
+        sortedWorkflows,
+        isLoadingWorkflows,
+        settings,
+        handleOrderChange,
+        handleCreateNewWorkflow,
+        handleWorkflowClick,
+        // Chats
+        threads: threads as { [key: string]: Thread },
+        currentThreadId,
+        onNewThread: onNewThread,
+        onSelectThread: onSelectThread,
+        onDeleteThread: deleteThread,
+        getThreadPreview
+      },
       templates: {
         startTemplates,
         isLoadingTemplates,
@@ -309,49 +325,7 @@ const Dashboard: React.FC = () => {
     };
   }, [dockviewApi, settings.showWelcomeOnStartup]);
 
-  // Ensure setup panel is shown when showWelcomeOnStartup is enabled
-  useEffect(() => {
-    if (!dockviewApi || !settings.showWelcomeOnStartup) return;
 
-    // Check if setup panel already exists
-    if (dockviewApi.getPanel("setup")) return;
-
-    // Small delay to ensure layout is fully applied
-    const timeoutId = setTimeout(() => {
-      if (!dockviewApi) return;
-
-      // Find the welcome panel or first panel to position setup next to it
-      const welcomePanel = dockviewApi.getPanel("welcome");
-      const panels = dockviewApi.panels;
-      const referencePanel = welcomePanel || (panels.length > 0 ? panels[0] : null);
-
-      if (referencePanel && referencePanel.id !== "setup") {
-        // Position setup panel to the right of the reference panel
-        dockviewApi.addPanel({
-          id: "setup",
-          component: "setup",
-          title: PANEL_CONFIG.setup.title,
-          params: {},
-          position: {
-            referencePanel: referencePanel.id,
-            direction: "right"
-          }
-        });
-      } else {
-        // Fallback: add as first panel if no panels exist
-        dockviewApi.addPanel({
-          id: "setup",
-          component: "setup",
-          title: PANEL_CONFIG.setup.title,
-          params: {}
-        });
-      }
-    }, 300);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [dockviewApi, settings.showWelcomeOnStartup]);
 
   useEffect(() => {
     if (!dockviewApi) return;
