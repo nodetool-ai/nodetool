@@ -117,6 +117,7 @@ export type CollectionCreate = components["schemas"]["CollectionCreate"];
 export type Task = components["schemas"]["Task-Input"];
 export type TaskPlan = components["schemas"]["TaskPlan-Output"];
 export type SubTask = components["schemas"]["SubTask"];
+export type SubTaskResult = components["schemas"]["SubTaskResult"];
 export type PlotlyConfig = components["schemas"]["PlotlyConfig"];
 export type PlanningUpdate = components["schemas"]["PlanningUpdate"];
 export type InferenceProvider = components["schemas"]["InferenceProvider"];
