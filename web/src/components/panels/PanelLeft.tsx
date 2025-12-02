@@ -58,7 +58,7 @@ const styles = (theme: Theme) =>
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
-      backgroundColor: theme.vars.palette.background.default
+      backgroundColor: "transparent"
     },
     ".panel-left": {
       border: "none",
@@ -69,7 +69,9 @@ const styles = (theme: Theme) =>
       padding: "0",
       top: "80px",
       height: "calc(100vh - 80px)",
-      backgroundColor: theme.vars.palette.background.default
+      backgroundColor: "rgba(18, 18, 18, 0.6)",
+      backdropFilter: "blur(12px)",
+      borderRight: "1px solid rgba(255, 255, 255, 0.08)"
     },
 
     ".panel-button": {
@@ -689,7 +691,7 @@ const PanelLeft: React.FC = () => {
                 : "0 8px 24px rgba(16,24,40,0.14), 0 2px 8px rgba(16,24,40,0.08)"
               : "none",
             backgroundColor: isVisible
-              ? "var(--palette-background-default)"
+              ? "rgba(18, 18, 18, 0.6)"
               : "transparent",
             borderRight: isVisible
               ? `1px solid ${theme.vars.palette.grey[800]}`
