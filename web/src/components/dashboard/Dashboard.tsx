@@ -28,6 +28,7 @@ import { useChatService } from "../../hooks/useChatService";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { PANEL_CONFIG } from "./panelConfig";
+import { uuidv4 } from "../../stores/uuidv4";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
 import AppHeader from "../panels/AppHeader";
@@ -335,7 +336,7 @@ const Dashboard: React.FC = () => {
     const updateAvailablePanels = () => {
       const openPanelIds = dockviewApi.panels.map((p) => p.id);
       const closedPanels = allPanelIds
-        .filter((id) => !openPanelIds.includes(id))
+        .filter((id) => id === "mini-app" || !openPanelIds.includes(id))
         .map((id) => ({
           id,
           title: PANEL_CONFIG[id as keyof typeof PANEL_CONFIG].title
@@ -410,6 +411,16 @@ const Dashboard: React.FC = () => {
           });
           return;
         }
+      }
+
+      if (panelId === "mini-app") {
+        dockviewApi.addPanel({
+          id: `mini-app-${uuidv4()}`,
+          component: "mini-app",
+          title: PANEL_CONFIG["mini-app"].title,
+          params: {}
+        });
+        return;
       }
       
       // Default behavior for other panels

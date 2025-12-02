@@ -5,7 +5,8 @@ export const PANEL_CONFIG = {
   "recent-chats": { title: "Recent Chats" },
   chat: { title: "Chat" },
   welcome: { title: "Welcome" },
-  setup: { title: "Setup" } // Kept for backward compatibility
+  setup: { title: "Setup" }, // Kept for backward compatibility
+  "mini-app": { title: "Mini App" }
 } as const;
 
 export type PanelType = keyof typeof PANEL_CONFIG;
