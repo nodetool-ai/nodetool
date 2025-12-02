@@ -70,10 +70,8 @@ const styles = (theme: Theme) =>
       top: "80px",
       height: "calc(100vh - 80px)",
       backgroundColor: "rgba(18, 18, 18, 0.6)",
-      backdropFilter: "blur(12px)",
       borderRight: "1px solid rgba(255, 255, 255, 0.08)"
     },
-
     ".panel-button": {
       position: "absolute",
       zIndex: 1200,
@@ -690,6 +688,7 @@ const PanelLeft: React.FC = () => {
                 ? `0 14px 32px rgba(0,0,0,0.85), 0 4px 14px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14), 0 0 24px ${theme.vars.palette.primary.main}33`
                 : "0 8px 24px rgba(16,24,40,0.14), 0 2px 8px rgba(16,24,40,0.08)"
               : "none",
+            backdropFilter: isVisible ? "blur(12px)" : "none",
             backgroundColor: isVisible
               ? "rgba(18, 18, 18, 0.6)"
               : "transparent",
