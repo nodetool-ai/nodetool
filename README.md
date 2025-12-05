@@ -89,6 +89,18 @@ nodetool serve --reload &
 cd web && npm install && npm start
 ```
 
+### Installing HuggingFace pack (Linux/Windows GPU)
+
+```bash
+uv pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu130
+```
+
+### Installing MLX pack (Apple Silicon)
+
+```bash
+uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
+```
+
 ### Desktop App (Electron)
 
 Configure `settings.yaml` with your Conda path, then:
