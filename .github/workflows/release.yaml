@@ -172,5 +172,8 @@ jobs:
 
           cd electron
           npm ci
+          npm run download-micromamba
           npm run vite:build
+          echo "Listing dist-electron:"
+          ls -R dist-electron
           npx electron-builder --config electron-builder.json --publish always

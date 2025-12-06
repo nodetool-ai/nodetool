@@ -21,10 +21,6 @@
             "to": "apps"
         },
         {
-            "from": "../src",
-            "to": "src"
-        },
-        {
             "from": "../conda-lock.yml",
             "to": "environment.lock.yml"
         },
