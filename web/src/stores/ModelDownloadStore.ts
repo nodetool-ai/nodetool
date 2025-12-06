@@ -93,11 +93,11 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           const id = data.path ? data.repo_id + "/" + data.path : data.repo_id;
           get().updateDownload(id, {
             status: data.status,
-            id: data.repo_id,
-            downloadedBytes: data.downloaded_bytes,
-            totalBytes: data.total_bytes,
-            totalFiles: data.total_files,
-            downloadedFiles: data.downloaded_files,
+            id,
+            downloadedBytes: data.downloaded_bytes ?? 0,
+            totalBytes: data.total_bytes ?? 0,
+            totalFiles: data.total_files ?? 0,
+            downloadedFiles: data.downloaded_files ?? 0,
             currentFiles: data.current_files,
             message: data.message
           });
@@ -143,13 +143,45 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
   updateDownload: (id: string, update: Partial<Download>) =>
     set((state) => {
-      const currentDownload = state.downloads[id];
-      if (!currentDownload) return state;
+      const currentDownload =
+        state.downloads[id] ||
+        ({
+          status: "pending",
+          downloadedBytes: 0,
+          totalBytes: 0,
+          totalFiles: 0,
+          downloadedFiles: 0,
+          id,
+          speed: null,
+          speedHistory: [],
+          currentFiles: []
+        } as Download);
+
+      const nextDownloadedBytes =
+        update.downloadedBytes ?? currentDownload.downloadedBytes;
+      const nextTotalBytes = update.totalBytes ?? currentDownload.totalBytes;
+      const nextDownloadedFiles =
+        update.downloadedFiles ?? currentDownload.downloadedFiles;
+      const nextTotalFiles = update.totalFiles ?? currentDownload.totalFiles;
+      const nextStatusRaw = update.status ?? currentDownload.status;
+
+      const incompleteBytes =
+        nextStatusRaw === "completed" &&
+        nextTotalBytes > 0 &&
+        nextDownloadedBytes < nextTotalBytes;
+      const incompleteFiles =
+        nextStatusRaw === "completed" &&
+        nextTotalFiles > 0 &&
+        nextDownloadedFiles < nextTotalFiles;
+      const nextStatus =
+        nextStatusRaw === "completed" && (incompleteBytes || incompleteFiles)
+          ? "progress"
+          : nextStatusRaw;
 
       const newSpeedHistory = [
         ...currentDownload.speedHistory,
         {
-          bytes: update.downloadedBytes || currentDownload.downloadedBytes,
+          bytes: nextDownloadedBytes,
           timestamp: Date.now()
         }
       ].slice(-10); // Keep only the last 10 data points
@@ -162,6 +194,11 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           [id]: {
             ...currentDownload,
             ...update,
+            downloadedBytes: nextDownloadedBytes,
+            totalBytes: nextTotalBytes,
+            downloadedFiles: nextDownloadedFiles,
+            totalFiles: nextTotalFiles,
+            status: nextStatus,
             speedHistory: newSpeedHistory,
             speed: newSpeed
           }

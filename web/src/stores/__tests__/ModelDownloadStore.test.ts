@@ -81,6 +81,32 @@ describe("ModelDownloadStore", () => {
     nowSpy.mockRestore();
   });
 
+  test("updateDownload initializes missing download entries", () => {
+    useModelDownloadStore.getState().updateDownload("new-model", {
+      status: "progress",
+      downloadedBytes: 50,
+      totalBytes: 100
+    });
+    const download = useModelDownloadStore.getState().downloads["new-model"];
+    expect(download).toBeDefined();
+    expect(download.status).toBe("progress");
+    expect(download.downloadedBytes).toBe(50);
+    expect(download.totalBytes).toBe(100);
+  });
+
+  test("completed status is corrected when totals are not reached", () => {
+    useModelDownloadStore.getState().addDownload("model4");
+    useModelDownloadStore.getState().updateDownload("model4", {
+      status: "completed",
+      downloadedBytes: 50,
+      totalBytes: 100,
+      downloadedFiles: 1,
+      totalFiles: 2
+    });
+    const download = useModelDownloadStore.getState().downloads["model4"];
+    expect(download.status).toBe("progress");
+  });
+
   test("removeDownload removes the specified download", () => {
     useModelDownloadStore.getState().addDownload("model3");
     useModelDownloadStore.getState().removeDownload("model3");
