@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   #
   # No need for PyPI publishing at the moment
@@ -168,5 +172,9 @@ jobs:
 
           cd electron
           npm ci
+          npm run download-micromamba
           npm run vite:build
+          echo "Listing dist-electron:"
+          ls -R dist-electron
+          ls -l dist-electron/main.js
           npx electron-builder --config electron-builder.json --publish always

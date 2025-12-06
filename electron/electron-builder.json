@@ -8,6 +8,7 @@
     "afterPack": "scripts/after-pack.cjs",
     "files": [
         "assets/**/*",
+        "dist-electron/main.js",
         "dist-electron/**/*",
         "dist-web/**/*"
     ],
@@ -19,10 +20,6 @@
         {
             "from": "../apps/dist",
             "to": "apps"
-        },
-        {
-            "from": "../src",
-            "to": "src"
         },
         {
             "from": "../conda-lock.yml",
@@ -47,7 +44,9 @@
         {
             "from": "resources/micromamba",
             "to": "micromamba",
-            "filter": ["**/*"]
+            "filter": [
+                "**/*"
+            ]
         }
     ],
     "publish": [
@@ -99,8 +98,9 @@
         "icon": "resources/icon.ico",
         "azureSignOptions": {
             "endpoint": "https://weu.codesigning.azure.net",
-            "codeSigningAccountName": "Nodetool",
-            "certificateProfileName": "nodetool"
+            "codeSigningAccountName": "nodetool",
+            "certificateProfileName": "nodetool",
+            "publisherName": "CN=Matthias Georgi, O=Matthias Georgi, L=Leiden, C=NL"
         }
     },
     "linux": {

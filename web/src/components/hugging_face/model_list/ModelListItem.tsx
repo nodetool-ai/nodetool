@@ -190,6 +190,31 @@ const ModelListItem: React.FC<
                   </Link>
                 </Tooltip>
               )}
+              {compatibility && compatibilityCounts.total > 0 && (
+                <Chip
+                  label={`Works with ${compatibilityCounts.total} node${compatibilityCounts.total > 1 ? "s" : ""}`}
+                  size="small"
+                  onClick={() => setDialogOpen(true)}
+                  icon={<VisibilityIcon style={{ fontSize: "1rem" }} />}
+                  sx={{
+                    height: 20,
+                    fontSize: theme.vars.fontSizeTiny,
+                    borderColor: theme.vars.palette.primary.main,
+                    color: theme.vars.palette.primary.main,
+                    background: "rgba(var(--palette-primary-main-channel) / 0.1)",
+                    borderWidth: 1,
+                    borderStyle: "solid",
+                    cursor: "pointer",
+                    "&:hover": {
+                      background: "rgba(var(--palette-primary-main-channel) / 0.2)"
+                    },
+                    "& .MuiChip-icon": {
+                      color: "inherit",
+                      marginLeft: "4px"
+                    }
+                  }}
+                />
+              )}
             </div>
           </div>
 
@@ -234,17 +259,6 @@ const ModelListItem: React.FC<
                 {model.description}
               </Typography>
             </div>
-          )}
-          {compatibility && compatibilityCounts.total > 0 && (
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<VisibilityIcon fontSize="small" />}
-              onClick={() => setDialogOpen(true)}
-            >
-              Works with {compatibilityCounts.total} node
-              {compatibilityCounts.total > 1 ? "s" : ""}
-            </Button>
           )}
         </div>
       </div>

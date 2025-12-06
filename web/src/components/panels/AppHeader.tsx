@@ -11,6 +11,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import EditIcon from "@mui/icons-material/Edit";
 import DatasetIcon from "@mui/icons-material/Dataset";
+import DescriptionIcon from "@mui/icons-material/Description";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -23,7 +24,10 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: "rgba(18, 18, 18, 0.6)",
+      backdropFilter: "blur(12px)",
+      borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+      boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
       paddingLeft: "8px",
       position: "fixed",
       top: 0,
@@ -31,7 +35,7 @@ const styles = (theme: Theme) =>
       zIndex: 1100
     },
     ".toolbar": {
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: "transparent",
       overflow: "visible",
       display: "flex",
       justifyContent: "space-between",
@@ -79,38 +83,38 @@ const styles = (theme: Theme) =>
       borderRadius: "10px"
     },
     ".nav-button": {
-      padding: "0px 8px",
-      borderRadius: "8px",
+      padding: "4px 12px",
+      borderRadius: "20px",
       fontWeight: 600,
-      letterSpacing: "0.01em",
-      color: theme.vars.palette.grey[100],
+      letterSpacing: "0.02em",
+      color: theme.vars.palette.grey[400],
       minWidth: "auto",
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      border: "1px solid transparent",
       "& svg": {
-        marginRight: "6px"
+        marginRight: "6px",
+        transition: "color 0.3s ease"
       },
       "& .icon-container": {
         marginRight: "6px"
       },
       position: "relative",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        color: theme.vars.palette.grey[100],
+        "& svg": {
+          color: theme.vars.palette.grey[100]
+        }
+      },
       "&.active": {
-        border: `1px solid ${theme.vars.palette.primary.main}`,
-        borderRadius: 0,
+        backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.1)",
+        border: `1px solid rgba(var(--palette-primary-main-channel) / 0.2)`,
         color: theme.vars.palette.primary.main,
+        boxShadow: "0 0 15px rgba(var(--palette-primary-main-channel) / 0.15)",
         "& svg, & .icon-container svg": {
           color: theme.vars.palette.primary.main
         }
       }
-      // "&.active::after": {
-      //   content: '""',
-      //   position: "absolute",
-      //   left: "10%",
-      //   right: "10%",
-      //   bottom: "-6px",
-      //   height: "2px",
-      //   borderRadius: "2px",
-      //   background: theme.vars.palette.primary.main,
-      //   opacity: 0.85
-      // }
     },
     ".nav-button-text": {
       display: "inline",
@@ -339,6 +343,29 @@ const CollectionsButton = memo(function CollectionsButton({
   );
 });
 
+const DocsButton = memo(function DocsButton() {
+  const handleClick = useCallback(() => {
+    window.open("https://docs.nodetool.ai", "_blank");
+  }, []);
+
+  return (
+    <Tooltip
+      title="Documentation"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="bottom"
+    >
+      <IconButton
+        className="nav-button docs-button"
+        onClick={handleClick}
+        tabIndex={-1}
+      >
+        <DescriptionIcon />
+        <span className="nav-button-text">Docs</span>
+      </IconButton>
+    </Tooltip>
+  );
+});
+
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
@@ -367,6 +394,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
             <TemplatesButton isActive={path.startsWith("/templates")} />
             <CollectionsButton isActive={path.startsWith("/collections")} />
             <DashboardButton isActive={path.startsWith("/dashboard")} />
+            <DocsButton />
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>

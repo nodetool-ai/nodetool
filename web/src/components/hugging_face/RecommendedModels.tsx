@@ -50,7 +50,11 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 
     const run = async () => {
       const tasks = recommendedModels
-        .filter((m) => (m.type?.startsWith("hf") ?? false))
+        .filter((model) => {
+          const isHfModel = model.type?.startsWith("hf") ?? false;
+          const isSingleFileModel = Boolean(model.repo_id && model.path);
+          return isHfModel || isSingleFileModel;
+        })
         .map(async (model) => {
           const id = model.id;
           const repoId = model.repo_id || model.id;

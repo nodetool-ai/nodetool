@@ -3,7 +3,11 @@ layout: page
 title: "Workflow Examples"
 ---
 
-Explore pre-built NodeTool workflow examples to learn concepts and jumpstart your projects. Each example includes a detailed explanation and visual diagram.
+Explore pre-built NodeTool workflow examples to learn concepts and jumpstart your projects. Each example includes a detailed explanation and visual diagram. For the underlying design patterns, pair these with the [Workflow Patterns]({{ '/cookbook/patterns' | relative_url }}):
+
+- RAG-heavy flows → [Pattern 4: RAG]({{ '/cookbook/patterns' | relative_url }}#pattern-4-rag-retrieval-augmented-generation)
+- Streaming/agents → [Pattern 2: Agent-Driven Generation]({{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation) and [Pattern 3: Streaming with Multiple Previews]({{ '/cookbook/patterns' | relative_url }}#pattern-3-streaming-with-multiple-previews)
+- Data pipelines → [Pattern 9: Advanced Image Processing]({{ '/cookbook/patterns' | relative_url }}#pattern-9-advanced-image-processing) and [Pattern 10: Data Processing Pipeline]({{ '/cookbook/patterns' | relative_url }}#pattern-10-data-processing-pipeline)
 
 ## Getting Started Workflows
 

@@ -1,6 +1,6 @@
 {
   "name": "nodetool-electron",
-  "version": "0.6.2-rc.6",
+  "version": "0.6.2-rc.8",
   "description": "node-based AI development tool",
   "homepage": "https://nodetool.ai",
   "main": "dist-electron/main.js",
@@ -39,7 +39,7 @@
     "@typescript-eslint/parser": "^8.17.0",
     "@vitejs/plugin-react": "^4.6.0",
     "electron": "29.4.6",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.3.4",
     "electron-mock": "^0.5.0",
     "eslint": "^9.16.0",
     "eslint-config-prettier": "^9.1.0",

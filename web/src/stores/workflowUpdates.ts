@@ -24,6 +24,16 @@ import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
 
+/**
+ * Central reducer for WorkflowRunner WebSocket updates.
+ *
+ * Expected messages: job/node/progress/output/log/tool/task/planning/preview/edge
+ * updates, notifications, predictions, chunks, and plain messages. This module
+ * fans updates out to Status/Results/Log/Error/Notification stores and adjusts
+ * the runner store state (job_id/state, notifications). Callers supply the
+ * runner store so the protocol logic stays decoupled from Zustand wiring.
+ */
+
 export type MsgpackData =
   | JobUpdate
   | Chunk

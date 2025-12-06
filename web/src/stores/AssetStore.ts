@@ -1,42 +1,93 @@
 import { create } from "zustand";
-import { client, authHeader } from "../stores/ApiClient";
+import { client, authHeader } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
-import { Asset, AssetList, AssetSearchResult } from "../stores/ApiTypes";
+import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
 import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
-import { createErrorMessage } from "../utils/errorHandling";
+import { AppError, createErrorMessage } from "../utils/errorHandling";
+import type { components } from "../api";
 
-const createAsset = (
-  url: string,
-  method: string,
-  headers: any,
-  jsonData: any,
-  file: File | undefined,
-  onUploadProgress: (progressEvent: any) => void
+type AssetCreatePayload = {
+  workflow_id?: string;
+  parent_id?: string | null;
+  content_type?: string | null;
+  name?: string;
+};
+
+type UploadProgressEvent = {
+  loaded: number;
+  total: number;
+  lengthComputable: boolean;
+};
+
+const normalizeAssetError = (error: unknown, message: string) => {
+  if (typeof AppError === "function" && error instanceof AppError) {
+    throw error;
+  }
+  const normalized = createErrorMessage(error, message);
+  if (normalized instanceof Error) {
+    throw normalized;
+  }
+  throw new Error(message);
+};
+
+const emitUploadProgress = (
+  onUploadProgress: ((progressEvent: UploadProgressEvent) => void) | undefined,
+  loaded: number,
+  total: number
+) => {
+  if (!onUploadProgress) return;
+  onUploadProgress({
+    loaded,
+    total,
+    lengthComputable: true
+  });
+};
+
+const uploadAsset = async (
+  payload: AssetCreatePayload,
+  file?: File,
+  onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
+  errorMessage = "Failed to create asset"
 ): Promise<Asset> => {
-  return new Promise((resolve, reject) => {
-    const formData = new FormData();
-    formData.append("json", JSON.stringify(jsonData));
+  const formData = new FormData();
+  formData.append("json", JSON.stringify(payload));
 
-    if (file) {
-      formData.append("file", file);
+  if (file) {
+    formData.append("file", file);
+  }
+
+  // Provide basic progress feedback even though fetch-based uploads
+  // don't stream progress events.
+  const total = file?.size ?? 1;
+  emitUploadProgress(onUploadProgress, 0, total);
+
+  try {
+    const { data, error } = await client.POST("/api/assets/", {
+      body: formData as unknown as components["schemas"]["Body_create_api_assets__post"]
+    });
+
+    if (error) {
+      throw error;
     }
 
-    axios({
-      url: url,
-      method: method,
-      data: formData,
-      headers: {
-        ...headers,
-        "Content-Type": "multipart/form-data"
-      },
-      onUploadProgress
-    })
-      .then((res) => resolve(res.data as Asset))
-      .catch((err) => reject(err));
-  });
+    emitUploadProgress(onUploadProgress, total, total);
+    return data as Asset;
+  } catch (error) {
+    const statusCode = (error as { status?: number })?.status;
+    const normalizedError =
+      error instanceof DOMException && error.name === "AbortError"
+        ? createErrorMessage(error, "Asset upload was cancelled")
+        : error instanceof TypeError
+        ? createErrorMessage(error, "Network error while creating asset")
+        : statusCode === 408
+        ? createErrorMessage(error, "Asset upload timed out")
+        : createErrorMessage(error, errorMessage);
+
+    throw normalizedError;
+  }
 };
 
 export type AssetQuery = {
@@ -77,10 +128,10 @@ export interface AssetStore {
     file: File,
     workflow_id?: string,
     parent_id?: string,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: UploadProgressEvent) => void
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
-  loadFolderTree: (sortBy?: string) => Promise<Record<string, any>>;
+  loadFolderTree: (sortBy?: string) => Promise<FolderTree>;
   loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
   loadFolderById: (id: string) => Promise<AssetList>;
   search: (query: AssetSearchQuery) => Promise<AssetSearchResult>;
@@ -99,12 +150,14 @@ const sort = (assets: { [key: string]: Asset }) => {
   });
 };
 
+export type FolderTree = Record<string, AssetTreeNode>;
+
 const buildFolderTree = (
   folders: Asset[],
   sortBy: "name" | "updated_at" = "name"
-) => {
-  const tree: Record<string, any> = {};
-  const lookup: Record<string, any> = {};
+): FolderTree => {
+  const tree: FolderTree = {};
+  const lookup: Record<string, AssetTreeNode> = {};
 
   folders.forEach((folder) => {
     lookup[folder.id] = { ...folder, children: [] };
@@ -118,25 +171,25 @@ const buildFolderTree = (
     }
   });
 
-  const sortNodes = (a: any, b: any) => {
+  const sortNodes = (a: AssetTreeNode, b: AssetTreeNode) => {
     if (sortBy === "name") {
       return a.name.localeCompare(b.name);
     } else if (sortBy === "updated_at") {
-      return (
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
+      const updatedA = a.updated_at ?? a.created_at;
+      const updatedB = b.updated_at ?? b.created_at;
+      return new Date(updatedB).getTime() - new Date(updatedA).getTime();
     }
     return 0;
   };
 
-  const sortChildren = (node: any) => {
+  const sortChildren = (node: AssetTreeNode) => {
     node.children.sort(sortNodes);
     node.children.forEach(sortChildren);
   };
 
   // Convert tree object to array, sort, and convert back to object
   const sortedTreeArray = Object.values(tree).sort(sortNodes);
-  const sortedTree: Record<string, any> = {};
+  const sortedTree: FolderTree = {};
   sortedTreeArray.forEach((node) => {
     sortedTree[node.id] = node;
   });
@@ -150,8 +203,9 @@ interface AssetTreeResponse {
   assets: AssetTreeNode[];
 }
 
-interface AssetTreeNode extends Asset {
-  children?: AssetTreeNode[];
+export interface AssetTreeNode extends Asset {
+  updated_at?: string;
+  children: AssetTreeNode[];
 }
 
 export const useAssetStore = create<AssetStore>((set, get) => ({
@@ -234,7 +288,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
     return buildFolderTree(
       data.assets as unknown as Asset[],
-      (sortBy as any) === "updated_at" ? "updated_at" : "name"
+      sortBy === "updated_at" ? "updated_at" : "name"
     );
   },
 
@@ -312,24 +366,25 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @param name The name of the folder.
    */
   createFolder: async (parent_id: string | null, name: string) => {
-    const headers = await authHeader();
-    const folder = await createAsset(
-      BASE_URL + "/api/assets/",
-      "POST",
-      headers,
-      {
-        parent_id: parent_id,
-        content_type: "folder",
-        name: name
-      },
-      undefined,
-      (_) => {}
-    );
-    get().add(folder);
-    get().invalidateQueries(["assets", { parent_id: parent_id }]);
-    // Also invalidate the folder list so components like FolderProperty refresh
-    get().invalidateQueries(["assets", { content_type: "folder" }]);
-    return folder;
+    try {
+      const folder = await uploadAsset(
+        {
+          parent_id,
+          content_type: "folder",
+          name
+        },
+        undefined,
+        undefined,
+        "Failed to create folder"
+      );
+      get().add(folder);
+      get().invalidateQueries(["assets", { parent_id: parent_id }]);
+      // Also invalidate the folder list so components like FolderProperty refresh
+      get().invalidateQueries(["assets", { content_type: "folder" }]);
+      return folder;
+    } catch (error) {
+      throw normalizeAssetError(error, "Failed to create folder");
+    }
   },
   /**
    * Get all assets in a folder, including subfolders.
@@ -415,7 +470,18 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         : "assets.zip";
 
       // Check for Electron's API (could be window.electron or window.api)
-      const electronApi = (window as any).electron || (window as any).api;
+      type ElectronSaveFile = (
+        data: ArrayBuffer,
+        filename: string,
+        filters?: { name: string; extensions: string[] }[]
+      ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
+
+      const electronApi =
+        (window as unknown as {
+          electron?: { saveFile?: ElectronSaveFile };
+          api?: { saveFile?: ElectronSaveFile };
+        }).electron ||
+        (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
 
       if (electronApi?.saveFile) {
         const result = await electronApi.saveFile(response.data, filename, [
@@ -514,14 +580,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     file: File,
     workflow_id?: string,
     parent_id?: string,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: UploadProgressEvent) => void
   ) => {
-    const headers = await authHeader();
     try {
-      const asset = await createAsset(
-        BASE_URL + "/api/assets/",
-        "POST",
-        headers,
+      const asset = await uploadAsset(
         {
           workflow_id: workflow_id,
           parent_id: parent_id,
@@ -529,13 +591,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
           name: file.name
         },
         file,
-        onUploadProgress || ((_) => {})
+        onUploadProgress
       );
       get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
       get().add(asset);
       return asset;
     } catch (error) {
-      throw createErrorMessage(error, "Failed to create asset");
+      throw normalizeAssetError(error, "Failed to create asset");
     }
   },
 

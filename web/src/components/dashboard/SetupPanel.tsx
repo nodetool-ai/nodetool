@@ -148,7 +148,6 @@ const panelStyles = (theme: any) =>
     },
     ".setup-container": {
       padding: "1em",
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
       borderRadius: "12px"
     },
     ".setup-list-title": {

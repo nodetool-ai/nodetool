@@ -58,7 +58,10 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     if (dockviewApi && newLayoutName) {
       const layout = dockviewApi.toJSON();
       Object.values(layout.panels).forEach((panel) => {
-        delete (panel as any).params;
+        // Preserve params for mini-app panels to save selected workflow
+        if ((panel as any).id !== "mini-app" && !(panel as any).id.startsWith("mini-app")) {
+             delete (panel as any).params;
+        }
       });
 
       const newLayout: UserLayout = {
@@ -76,7 +79,10 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     if (dockviewApi) {
       const layout = dockviewApi.toJSON();
       Object.values(layout.panels).forEach((panel) => {
-        delete (panel as any).params;
+        // Preserve params for mini-app panels to save selected workflow
+        if ((panel as any).id !== "mini-app" && !(panel as any).id.startsWith("mini-app")) {
+            delete (panel as any).params;
+        }
       });
       updateActiveLayout(layout);
     }

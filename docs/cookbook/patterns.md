@@ -5,8 +5,6 @@ parent: NodeTool Workflow Cookbook
 nav_order: 2
 ---
 
-# Workflow Patterns
-
 To build any example:
 – press Space to add nodes
 – drag connections
@@ -53,7 +51,6 @@ graph TD
   image_input["Image"]
   agent_story["Agent (Story Generator)"]
   preview_audio["Preview (Audio)"]
-  comment_workflow["Comment"]
   text_to_speech["TextToSpeech"]
   image_input --> agent_story
   agent_story --> text_to_speech
@@ -138,12 +135,12 @@ graph TD
   string_output["StringOutput (Answer)"]
   format_text["FormatText"]
   hybrid_search["HybridSearch"]
-  llm_streaming["LLMStreaming"]
+  agent["Agent"]
   chat_input --> format_text
   chat_input --> hybrid_search
   hybrid_search --> format_text
-  format_text --> llm_streaming
-  llm_streaming --> string_output
+  format_text --> agent
+  agent --> string_output
 {% endmermaid %}
 
 **When to Use**:

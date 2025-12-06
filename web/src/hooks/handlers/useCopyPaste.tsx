@@ -13,6 +13,19 @@ import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
 
+const hasValidPosition = (position: any) =>
+  !!position &&
+  typeof position.x === "number" &&
+  typeof position.y === "number";
+
+const isValidNode = (node: any): node is Node<NodeData> =>
+  !!node && typeof node.id === "string" && hasValidPosition(node.position);
+
+const isValidEdge = (edge: any): edge is Edge =>
+  !!edge &&
+  typeof edge.source === "string" &&
+  typeof edge.target === "string";
+
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
   const generateNodeIds = useNodes((state) => state.generateNodeIds);
@@ -115,7 +128,27 @@ export const useCopyPaste = () => {
       return;
     }
 
-    const parsedData = JSON.parse(clipboardData);
+    let parsedData: unknown;
+    try {
+      parsedData = JSON.parse(clipboardData);
+    } catch (error) {
+      log.warn("Failed to parse clipboard data", error);
+      setIsClipboardValid(false);
+      return;
+    }
+
+    if (
+      !parsedData ||
+      typeof parsedData !== "object" ||
+      !Array.isArray((parsedData as any).nodes) ||
+      !Array.isArray((parsedData as any).edges) ||
+      !(parsedData as any).nodes.every(isValidNode) ||
+      !(parsedData as any).edges.every(isValidEdge)
+    ) {
+      log.warn("Clipboard data does not contain valid nodes/edges");
+      setIsClipboardValid(false);
+      return;
+    }
 
     const mousePosition = getMousePosition();
     if (!mousePosition) {
@@ -138,7 +171,11 @@ export const useCopyPaste = () => {
       elementUnderCursor?.classList.contains("loop-node") ||
       isInActionElement
     ) {
-      const { nodes: copiedNodes, edges: copiedEdges } = parsedData;
+      const { nodes: copiedNodes, edges: copiedEdges } =
+        parsedData as {
+          nodes: Node<NodeData>[];
+          edges: Edge[];
+        };
       const oldToNewIds = new Map<string, string>();
       const newNodes: Node<NodeData>[] = [];
       const newEdges: Edge[] = [];
@@ -177,20 +214,25 @@ export const useCopyPaste = () => {
           newParentId = undefined;
         }
 
+        const positionAbsolute = node.data?.positionAbsolute;
+
         const newNode: Node<NodeData> = {
           ...node,
           id: newId,
           parentId: newParentId,
+          data: {
+            ...node.data,
+            positionAbsolute: positionAbsolute
+              ? {
+                  x: positionAbsolute.x + offset.x,
+                  y: positionAbsolute.y + offset.y
+                }
+              : undefined
+          },
           position: {
             x: node.position.x + (newParentId ? 0 : offset.x),
             y: node.position.y + (newParentId ? 0 : offset.y)
           },
-          positionAbsolute: node.positionAbsolute
-            ? {
-                x: node.positionAbsolute.x + offset.x,
-                y: node.positionAbsolute.y + offset.y
-              }
-            : undefined,
           selected: false
         };
 
@@ -216,7 +258,15 @@ export const useCopyPaste = () => {
       setNodes([...nodes, ...newNodes]);
       setEdges([...edges, ...newEdges]);
     }
-  }, [generateNodeIds, reactFlow, nodes, edges, setNodes, setEdges]);
+  }, [
+    generateNodeIds,
+    reactFlow,
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    setIsClipboardValid
+  ]);
 
   return { handleCopy, handleCut, handlePaste };
 };

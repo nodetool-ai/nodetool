@@ -35,25 +35,22 @@ const ModelTypeSidebar: React.FC = () => {
   }, []);
 
   return (
-    <List className="model-type-list">
+    <List className="model-type-list" sx={{ padding: 0 }}>
       {modelTypes
         .filter((type) => availableModelTypes.has(type))
         .map((type) => {
           const href = getHuggingFaceLink(type);
-          const listItemSx =
-            type === "All"
-              ? {
-                  mb: 2,
-                  pb: 1,
-                  borderBottom: (theme: Theme) =>
-                    `1px solid ${theme.palette.divider}`
-                }
-              : undefined;
+          const isSelected = selectedModelType === type;
+          
           return (
             <ListItem
               disablePadding
               key={type}
-              sx={listItemSx}
+              sx={{ 
+                mb: 0.5,
+                borderRadius: "8px",
+                overflow: "hidden"
+              }}
               secondaryAction={
                 href ? (
                   <Tooltip title="View on Hugging Face">
@@ -65,6 +62,11 @@ const ModelTypeSidebar: React.FC = () => {
                       rel="noopener noreferrer"
                       size="small"
                       onClick={(event) => event.stopPropagation()}
+                      sx={{ 
+                        color: isSelected ? "white" : "inherit",
+                        opacity: 0.7,
+                        "&:hover": { opacity: 1 }
+                      }}
                     >
                       <OpenInNewIcon fontSize="small" />
                     </IconButton>
@@ -74,23 +76,47 @@ const ModelTypeSidebar: React.FC = () => {
             >
               <ListItemButton
                 className={`model-type-button`}
-                selected={selectedModelType === type}
+                selected={isSelected}
                 onClick={() => onModelTypeChange(type)}
+                sx={{
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  transition: "all 0.2s ease",
+                  "&.Mui-selected": {
+                    backgroundColor: "rgba(255, 255, 255, 0.08)",
+                    backdropFilter: "blur(4px)",
+                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.12)",
+                    }
+                  },
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.04)",
+                  }
+                }}
               >
                 {type === "All" && (
                   <IconForType
                     iconName={"model"}
-                    containerStyle={{ marginRight: "0.5em" }}
+                    containerStyle={{ marginRight: "0.75em" }}
                     svgProps={{
                       style: {
-                        width: "20px",
-                        height: "20px"
+                        width: "18px",
+                        height: "18px",
+                        opacity: isSelected ? 1 : 0.7
                       }
                     }}
                     showTooltip={false}
                   />
                 )}
-                <ListItemText primary={prettifyModelType(type)} />
+                <ListItemText 
+                  primary={prettifyModelType(type)} 
+                  primaryTypographyProps={{
+                    fontSize: "0.9rem",
+                    fontWeight: isSelected ? 600 : 400,
+                    color: isSelected ? "white" : "text.secondary"
+                  }}
+                />
               </ListItemButton>
             </ListItem>
           );

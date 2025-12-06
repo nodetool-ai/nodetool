@@ -1,9 +1,9 @@
 import { useMemo, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ModelFile } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
 import { client } from "../../stores/ApiClient";
+import { RepoPath } from "../../stores/ApiTypes";
 
 interface ComfyModelSelectProps {
   modelType: string;
@@ -17,7 +17,7 @@ const ComfyModelSelect = ({
   value
 }: ComfyModelSelectProps) => {
   const loadComfyModels = useCallback(async (modelType: string) => {
-    const { error, data } = await client.GET("/api/models/{model_type}", {
+    const { error, data } = await client.GET("/api/models/{model_type}" as any, {
       params: { path: { model_type: modelType } }
     });
     if (error) {
@@ -38,9 +38,9 @@ const ComfyModelSelect = ({
 
   const options = useMemo(() => {
     if (!models || isLoading || isError) return [];
-    return (models as ModelFile[]).map((model) => ({
-      value: model.name,
-      label: model.name || ""
+    return (models as Array<RepoPath | { name?: string }>).map((model) => ({
+      value: (model as any).name ?? (model as RepoPath).path,
+      label: (model as any).name ?? (model as RepoPath).path ?? ""
     }));
   }, [models, isLoading, isError]);
 

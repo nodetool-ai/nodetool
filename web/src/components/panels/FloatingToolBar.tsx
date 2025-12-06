@@ -20,6 +20,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useModelManagerStore } from "../../stores/ModelManagerStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -387,6 +388,8 @@ const FloatingToolBar: React.FC<{
     (state) => state.handleViewChange
   );
 
+  const { isOpen: isModelManagerOpen } = useModelManagerStore();
+
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
       workflow: state.workflow,
@@ -534,6 +537,10 @@ const FloatingToolBar: React.FC<{
 
   // Only show in editor view
   if (!path.startsWith("/editor")) {
+    return null;
+  }
+
+  if (isModelManagerOpen) {
     return null;
   }
 

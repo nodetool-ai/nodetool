@@ -40,7 +40,8 @@ import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
 import AssetExplorer from "./components/assets/AssetExplorer";
 import CollectionsExplorer from "./components/collections/CollectionsExplorer";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./queryClient";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
 import TemplateGrid from "./components/workflows/ExampleGrid";
@@ -264,7 +265,6 @@ function getRoutes() {
   return routes;
 }
 
-const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
 useModelDownloadStore.getState().setQueryClient(queryClient);
 const router = createBrowserRouter(getRoutes());

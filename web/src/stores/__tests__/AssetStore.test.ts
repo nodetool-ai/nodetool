@@ -176,12 +176,15 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      (mockedAxios as any).mockResolvedValue({ data: mockAsset });
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
 
       const { createAsset } = useAssetStore.getState();
       const result = await createAsset(mockFile, "test-workflow");
 
-      expect(mockedAxios).toHaveBeenCalled();
+      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
+        body: expect.any(FormData)
+      });
       expect(result).toEqual(mockAsset);
     });
 
@@ -203,14 +206,21 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      (mockedAxios as any).mockResolvedValue({ data: mockAsset });
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
 
       const mockOnUploadProgress = jest.fn();
       const { createAsset } = useAssetStore.getState();
       await createAsset(mockFile, undefined, undefined, mockOnUploadProgress);
 
-      const axiosCall = (mockedAxios as any).mock.calls[0][0];
-      expect(axiosCall.onUploadProgress).toBe(mockOnUploadProgress);
+      expect(mockOnUploadProgress).toHaveBeenCalledTimes(2);
+      expect(mockOnUploadProgress).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ loaded: 0, total: mockFile.size })
+      );
+      expect(mockOnUploadProgress).toHaveBeenLastCalledWith(
+        expect.objectContaining({ loaded: mockFile.size, total: mockFile.size })
+      );
     });
 
     it("should handle upload errors", async () => {
@@ -219,11 +229,14 @@ describe("AssetStore", () => {
       });
       const mockError = new Error("Upload failed");
 
-      (mockedAxios as any).mockRejectedValue(mockError);
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ error: mockError });
 
       const { createAsset } = useAssetStore.getState();
 
-      await expect(createAsset(mockFile)).rejects.toMatch(/Upload failed/);
+      await expect(createAsset(mockFile)).rejects.toThrow(
+        /Failed to create asset/
+      );
     });
   });
 
@@ -400,12 +413,15 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      (mockedAxios as any).mockResolvedValue({ data: mockFolder });
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ data: mockFolder });
 
       const { createFolder } = useAssetStore.getState();
       const result = await createFolder("parent1", "New Folder");
 
-      expect((mockedAxios as any).mock.calls.length).toBeGreaterThan(0);
+      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
+        body: expect.any(FormData)
+      });
       expect(result).toEqual(mockFolder);
     });
 
@@ -424,12 +440,15 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      (mockedAxios as any).mockResolvedValue({ data: mockFolder });
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ data: mockFolder });
 
       const { createFolder } = useAssetStore.getState();
       const result = await createFolder(null, "Root Folder");
 
-      expect((mockedAxios as any).mock.calls.length).toBeGreaterThan(0);
+      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
+        body: expect.any(FormData)
+      });
       expect(result).toEqual(mockFolder);
     });
   });
@@ -490,15 +509,16 @@ describe("AssetStore", () => {
     });
 
     it("should handle API response errors", async () => {
-      const { createAsset } = useAssetStore.getState();
       const mockFile = new File(["test"], "test.jpg");
-      (mockedAxios as any).mockRejectedValue({
-        response: {
-          status: 404,
-          data: { message: "Asset not found" }
-        }
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({
+        error: { detail: "Asset not found" }
       });
-      await expect(createAsset(mockFile)).rejects.toMatch(/Asset not found/);
+
+      const { createAsset } = useAssetStore.getState();
+      await expect(createAsset(mockFile)).rejects.toThrow(
+        /Failed to create asset/
+      );
     });
   });
 

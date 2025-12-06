@@ -42,22 +42,33 @@ const styles = (theme: Theme) =>
       flexWrap: "wrap",
       alignItems: "flex-start",
       overflowY: "auto",
-      padding: "15px 15px 100px 15px",
-      gap: ".5em"
+      padding: "2em",
+      gap: "1em"
     },
     ".workflow": {
       position: "relative",
       flexGrow: "1",
       flexShrink: "0",
-      flexBasis: "200px",
-      margin: ".5em",
-      maxWidth: "200px",
+      flexBasis: "220px",
+      margin: "0.5em",
+      maxWidth: "220px",
       cursor: "pointer",
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
       height: "auto",
-      overflow: "visible"
+      overflow: "hidden",
+      borderRadius: "16px",
+      background: "rgba(255, 255, 255, 0.03)",
+      border: "1px solid rgba(255, 255, 255, 0.08)",
+      transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+      "&:hover": {
+        transform: "translateY(-4px)",
+        boxShadow: "0 12px 24px rgba(0, 0, 0, 0.2)",
+        background: "rgba(255, 255, 255, 0.05)",
+        borderColor: "rgba(255, 255, 255, 0.2)"
+      }
     },
     ".workflow.loading": {
       cursor: "wait",
@@ -90,31 +101,41 @@ const styles = (theme: Theme) =>
       textShadow: "0 1px 3px rgba(0,0,0,0.8)"
     },
     ".workflow h3": {
-      color: "var(--c_brightest)",
-      marginTop: "8px",
+      color: theme.vars.palette.text.primary,
+      marginTop: "12px",
       marginBottom: "4px",
-      height: "2.2em",
-      lineHeight: "1.1em",
+      padding: "0 16px",
+      fontSize: "1.1rem",
+      fontWeight: 600,
+      height: "auto",
+      lineHeight: "1.3",
       overflow: "hidden",
       position: "relative",
-      zIndex: 2
+      zIndex: 2,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical"
     },
     ".workflow .package-name": {
       position: "absolute",
-      bottom: "-6px",
-      left: "-4px",
-      fontSize: "var(--fontSizeTiny)",
+      bottom: "8px",
+      left: "8px",
+      fontSize: "0.7rem",
       lineHeight: "1.2",
-      backgroundColor: theme.vars.palette.grey[800],
-      color: theme.vars.palette.grey[200],
-      padding: "0.2em 0.4em",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backdropFilter: "blur(4px)",
+      color: theme.vars.palette.common.white,
+      padding: "4px 8px",
+      borderRadius: "6px",
       margin: "0",
-      zIndex: 110
+      zIndex: 110,
+      fontWeight: 600,
+      letterSpacing: "0.5px"
     },
     ".workflow .description": {
       fontSize: "0.875rem",
       color: theme.vars.palette.text.secondary,
-      lineHeight: "1.2",
+      lineHeight: "1.4",
       display: "-webkit-box",
       WebkitBoxOrient: "vertical",
       WebkitLineClamp: 3,
@@ -122,10 +143,10 @@ const styles = (theme: Theme) =>
       width: "100%",
       position: "relative",
       maxHeight: "4.5em",
-      margin: "0.5em 0",
+      margin: "0.75em 1.25em",
+      paddingRight: "1.25em",
       backgroundColor: "transparent",
-      transition:
-        "color 0.3s ease, background-color 0.3s ease, opacity 0.3s ease, transform 0.3s ease"
+      transition: "color 0.3s ease"
     },
     ".workflow:hover .description": {
       // Expand without changing layout position
@@ -143,10 +164,12 @@ const styles = (theme: Theme) =>
       width: "100%"
     },
     ".image-wrapper": {
-      width: "200px",
-      height: "200px",
-      overflow: "visible",
+      width: "100%",
+      height: "140px",
+      overflow: "hidden",
       position: "relative",
+      borderTopLeftRadius: "16px",
+      borderTopRightRadius: "16px",
       background: `linear-gradient(0deg, ${"var(--palette-primary-main)"}20, ${
         theme.vars.palette.grey[800]
       }22)`
@@ -200,29 +223,32 @@ const styles = (theme: Theme) =>
     ".tag-menu button": {
       transition: "all 0.3s ease",
       textTransform: "uppercase",
-      letterSpacing: "1px",
-      fontWeight: "bold",
-      color: theme.vars.palette.text.primary,
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      letterSpacing: "0.5px",
+      fontWeight: 600,
+      color: theme.vars.palette.text.secondary,
+      border: "1px solid rgba(255, 255, 255, 0.1)",
+      background: "rgba(255, 255, 255, 0.03)",
+      borderRadius: "20px !important",
       "&:hover": {
         border: `1px solid ${"var(--palette-primary-main)"}`,
-        boxShadow: `0 4px 8px rgba(0, 0, 0, 0.2)`,
-        animation: "glowPulse 1.5s infinite"
+        background: "rgba(255, 255, 255, 0.08)",
+        color: theme.vars.palette.text.primary,
+        boxShadow: `0 0 12px ${"var(--palette-primary-main)"}40`
       },
       fontSize: "0.8rem",
-      padding: "6px 12px",
+      padding: "6px 16px",
       "@media (max-width: 600px)": {
         fontSize: "0.75rem",
-        padding: "4px 8px"
+        padding: "4px 12px"
       }
     },
     ".tag-menu .selected": {
-      boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-      animation: "glowPulse 1.5s infinite",
+      boxShadow: `0 0 15px ${"var(--palette-primary-main)"}60`,
       border: `1px solid ${"var(--palette-primary-main)"}`,
+      background: "rgba(var(--palette-primary-main-channel) / 0.1)",
+      color: "var(--palette-primary-main) !important",
       "&:hover": {
-        transform: "none",
-        boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
+        background: "rgba(var(--palette-primary-main-channel) / 0.2)"
       }
     },
     "@keyframes glowPulse": {
@@ -248,11 +274,17 @@ const styles = (theme: Theme) =>
       marginBottom: "0",
       maxWidth: "400px",
       "& .MuiOutlinedInput-root": {
+        background: "rgba(255, 255, 255, 0.03)",
+        borderRadius: "12px",
+        "& fieldset": {
+          borderColor: "rgba(255, 255, 255, 0.1)"
+        },
         "&:hover fieldset": {
-          borderColor: "var(--palette-primary-main)"
+          borderColor: "rgba(255, 255, 255, 0.3)"
         },
         "&.Mui-focused fieldset": {
-          borderColor: "var(--palette-primary-main)"
+          borderColor: "var(--palette-primary-main)",
+          boxShadow: `0 0 0 2px ${"var(--palette-primary-main)"}20`
         }
       }
     },
