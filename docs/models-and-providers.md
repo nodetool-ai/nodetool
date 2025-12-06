@@ -19,7 +19,7 @@ NodeTool lets you combine **local inference engines, downloaded checkpoints, and
    Open the in-app **Models Manager** and download GPT-OSS (LLM) plus Flux (image) so default templates work offline. See [Getting Started – Step 1](getting-started.md#step-1--install-nodetool).
 
 2. **Connect a cloud provider**  
-   Go to **Settings → Providers**, add your API key, and map nodes to that provider using the **Models** button on the node. Follow the [Providers Guide](providers.md#connecting-api-keys).
+   Go to **Settings → Providers**, add your API key, and map nodes to that provider using the **Models** button on the node. Follow the [Providers Guide](providers.md#getting-api-keys).
 
 3. **Mix local + remote nodes**  
    Keep sensitive preprocessing local (Whisper, ChromaDB), then fan out to hosted generation nodes. The [Cookbook patterns](cookbook.md) show hybrid examples.

@@ -64,9 +64,11 @@ export const createStyles = (theme: Theme) => ({
       margin: "4em 0 2em auto",
       padding: "0.2em",
       color: theme.vars.palette.grey[100],
-      backgroundColor: theme.vars.palette.grey[800],
+      background: "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
+      border: "1px solid rgba(255, 255, 255, 0.08)",
       opacity: 0.9,
-      borderRadius: "20px"
+      borderRadius: "16px 16px 4px 16px",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
     },
 
     ".chat-message.user .markdown": {
@@ -192,9 +194,9 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card": {
-      border: "1px solid var(--palette-grey-900)",
-      borderRadius: 8,
-      background: "transparent",
+      border: "1px solid rgba(255, 255, 255, 0.05)",
+      borderRadius: 12,
+      background: "rgba(0, 0, 0, 0.2)",
       padding: "6px 10px",
       marginBottom: 3
     },

@@ -1,3 +1,17 @@
+/**
+ * Workflow runner WebSocket bridge.
+ *
+ * Expects the backend runner protocol to accept `run_job` and `reconnect_job`
+ * commands via `globalWebSocketManager`, keyed by workflow_id and job_id. The
+ * server streams JobUpdate/Prediction/NodeProgress/NodeUpdate/TaskUpdate and
+ * PlanningUpdate messages in order, and acknowledges a reconnect by replaying
+ * in-flight updates for the given job_id.
+ *
+ * State machine: idle → connecting → connected → running → (cancelled|error).
+ * `ensureConnection` subscribes to workflow_id topics, while reconnects also
+ * subscribe to job_id channels so the UI continues receiving status after a
+ * reload or tab switch.
+ */
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeData } from "./NodeData";
 import { isLocalhost } from "./ApiClient";
@@ -19,13 +33,14 @@ import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
 import useErrorStore from "./ErrorStore";
-import { handleUpdate } from "./workflowUpdates";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { supabase } from "../lib/supabaseClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import { queryClient } from "../queryClient";
+import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -380,6 +395,9 @@ export const createWorkflowRunnerStore = (
         data: req
       });
 
+      // Invalidate running jobs query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+
       set({
         state: "running",
         notifications: []
@@ -436,9 +454,7 @@ export const createWorkflowRunnerStore = (
   }));
 
   store.setState({
-    messageHandler: (workflow: WorkflowAttributes, data: MsgpackData) => {
-      handleUpdate(workflow, data, store);
-    }
+    messageHandler: createRunnerMessageHandler(store)
   });
 
   return store;

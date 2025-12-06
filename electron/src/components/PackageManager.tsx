@@ -184,20 +184,32 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
             <div className="package-list">
               {installedPackages.map((pkg) => (
                 <div key={pkg.repo_id} className="package-item installed">
-                  <div className="package-info">
-                    <h3>{pkg.name}</h3>
-                    <div className="version-info">
-                      <p className="package-version">
-                        Installed: v{pkg.version}
-                      </p>
-                      {pkg.hasUpdate && pkg.latestVersion && (
-                        <p className="update-available">
-                          Update available: v{pkg.latestVersion}
+                    <div className="package-info">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3>{pkg.name}</h3>
+                        <span style={{ 
+                          fontSize: '10px', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px', 
+                          background: 'rgba(16, 185, 129, 0.1)', 
+                          color: 'var(--c_success)',
+                          border: '1px solid rgba(16, 185, 129, 0.2)'
+                        }}>
+                          INSTALLED
+                        </span>
+                      </div>
+                      <div className="version-info">
+                        <p className="package-version">
+                          v{pkg.version}
                         </p>
-                      )}
+                        {pkg.hasUpdate && pkg.latestVersion && (
+                          <p className="update-available">
+                            Update available: v{pkg.latestVersion}
+                          </p>
+                        )}
+                      </div>
+                      <p className="package-description">{pkg.description}</p>
                     </div>
-                    <p className="package-description">{pkg.description}</p>
-                  </div>
                   <div className="package-actions">
                     {pkg.hasUpdate && (
                       <button

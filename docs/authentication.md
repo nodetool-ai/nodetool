@@ -7,6 +7,7 @@ title: "NodeTool Worker Authentication"
 
 See [API Reference](api-reference.md) for a matrix of endpoints, auth requirements, and streaming behavior. The NodeTool
 worker uses token-based authentication to secure all endpoints when deployed.
+For environment variable defaults and precedence, see the [Configuration Guide](configuration.md#environment-variables-index).
 
 ## Quick Start
 

@@ -9,9 +9,16 @@ interface TreeViewItem {
   children?: TreeViewItem[];
 }
 
-const fetchDirectoryContents = async (path: string): Promise<FileInfo[]> => {
+const MAX_TREE_DEPTH = 4;
+const MAX_TREE_NODES = 5000;
+
+const fetchDirectoryContents = async (
+  path: string,
+  signal?: AbortSignal
+): Promise<FileInfo[]> => {
   const { data, error } = await client.GET("/api/files/list", {
-    params: { query: { path } }
+    params: { query: { path } },
+    signal
   });
 
   if (error) {
@@ -36,6 +43,8 @@ const partitionDirectories = (files: FileInfo[]): [FileInfo[], FileInfo[]] =>
 interface FileStore {
   fileTree: TreeViewItem[];
   isLoadingTree: boolean;
+  fileTreeAbortController: AbortController | null;
+  cancelFileTree: () => void;
 
   listFiles: (path?: string) => Promise<FileInfo[]>;
   fetchFileTree: (path?: string) => Promise<TreeViewItem[]>;
@@ -47,6 +56,15 @@ export const useFileStore = create<FileStore>((set, get) => ({
   error: null,
   fileTree: [],
   isLoadingTree: false,
+  fileTreeAbortController: null,
+
+  cancelFileTree: () => {
+    const controller = get().fileTreeAbortController;
+    if (controller) {
+      controller.abort();
+      set({ fileTreeAbortController: null, isLoadingTree: false });
+    }
+  },
 
   listFiles: async (path) => {
     const { data, error } = await client.GET("/api/files/list", {
@@ -63,36 +81,81 @@ export const useFileStore = create<FileStore>((set, get) => ({
   },
 
   fetchFileTree: async (path = "~") => {
-    set({ isLoadingTree: true });
+    // Cancel any in-flight fetch and start a fresh controller
+    get().cancelFileTree();
+    const abortController = new AbortController();
+    set({ isLoadingTree: true, fileTreeAbortController: abortController });
 
     try {
       const buildTreeRecursively = async (
-        currentPath: string
+        currentPath: string,
+        depth: number,
+        budget: { remaining: number },
+        visited: Set<string>
       ): Promise<TreeViewItem[]> => {
-        const files = await fetchDirectoryContents(currentPath);
+        if (depth > MAX_TREE_DEPTH || budget.remaining <= 0) {
+          return [];
+        }
+
+        // Avoid cycles if backend returns symlinks pointing upward.
+        if (visited.has(currentPath)) {
+          return [];
+        }
+        visited.add(currentPath);
+
+        const files = await fetchDirectoryContents(
+          currentPath,
+          abortController.signal
+        );
         const [directories, nonDirectories] = partitionDirectories(files);
 
-        // Convert regular files to tree items
-        const fileItems = nonDirectories.map(fileToTreeItem);
+        const fileItems: TreeViewItem[] = [];
+        for (const file of nonDirectories) {
+          if (budget.remaining <= 0) break;
+          budget.remaining -= 1;
+          fileItems.push(fileToTreeItem(file));
+        }
 
-        // Process directories in parallel and convert to tree items
-        const dirItems = await Promise.all(
-          directories.map(async (dir) => ({
+        const dirItems: TreeViewItem[] = [];
+        for (const dir of directories) {
+          if (budget.remaining <= 0) break;
+          budget.remaining -= 1;
+          const children = await buildTreeRecursively(
+            dir.path,
+            depth + 1,
+            budget,
+            visited
+          );
+          dirItems.push({
             ...fileToTreeItem(dir),
-            children: await buildTreeRecursively(dir.path)
-          }))
-        );
+            children
+          });
+        }
 
         // Combine and return all items
         return [...dirItems, ...fileItems];
       };
 
-      const tree = await buildTreeRecursively(path);
-      set({ fileTree: tree, isLoadingTree: false });
+      const tree = await buildTreeRecursively(
+        path,
+        0,
+        { remaining: MAX_TREE_NODES },
+        new Set()
+      );
+      if (!abortController.signal.aborted) {
+        set({ fileTree: tree, isLoadingTree: false });
+      }
       return tree;
     } catch (error) {
-      set({ isLoadingTree: false });
-      throw error;
+      if (!abortController.signal.aborted) {
+        set({ isLoadingTree: false });
+        throw error;
+      }
+      return [];
+    } finally {
+      if (get().fileTreeAbortController === abortController) {
+        set({ fileTreeAbortController: null });
+      }
     }
   }
 }));

@@ -22,6 +22,8 @@ function emitBootMessage(message: string): void {
  */
 function emitServerStarted(): void {
   serverState.isStarted = true;
+  serverState.status = "started";
+  serverState.error = undefined;
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IpcChannels.SERVER_STARTED);
@@ -37,6 +39,19 @@ function emitServerLog(message: string): void {
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IpcChannels.SERVER_LOG, message);
+  }
+}
+
+function emitServerError(message: string): void {
+  serverState.status = "error";
+  serverState.isStarted = false;
+  serverState.error = message;
+  serverState.bootMsg = message;
+  const mainWindow: BrowserWindow | null = getMainWindow();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IpcChannels.SERVER_ERROR, { message });
+  } else {
+    logMessage("No main window available to send server error");
   }
 }
 
@@ -88,6 +103,7 @@ export {
   emitBootMessage,
   emitServerStarted,
   emitServerLog,
+  emitServerError,
   emitUpdateProgress,
   emitShowPackageManager,
 };

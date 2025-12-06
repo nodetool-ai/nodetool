@@ -1,10 +1,13 @@
 // WorkflowManagerContext.tsx
 // -----------------------------------------------
-// This module creates a React context along with a corresponding Zustand store
-// to manage workflows for the application. It is responsible for:
-// - Managing open workflows and associated node stores.
-// - Persisting the current workflow and list of open workflows in localStorage.
-// - Handling API calls to create, retrieve, copy, update, and delete workflows.
+// React context + Zustand store coordinating all workflows in the app.
+// Responsibilities:
+// - Create/load/copy/delete workflows via API and expose helpers to the UI
+// - Maintain per-workflow NodeStore instances (tabbed editors) and surface
+//   validation helpers
+// - Persist `currentWorkflowId` and the list/order of open workflows in
+//   localStorage to restore tabs between sessions
+// - Provide a shared QueryClient and system stats for child components
 // -----------------------------------------------
 
 import { createContext, useContext, useState, useEffect } from "react";

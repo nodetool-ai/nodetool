@@ -11,13 +11,13 @@ export const createStyles = (theme: Theme) =>
       height: "auto",
       width: "100%",
       marginTop: "12px",
-      backgroundColor: theme.vars.palette.grey[800],
-      border: "1px solid",
-      borderColor: theme.vars.palette.grey[700],
+      backgroundColor: "rgba(255, 255, 255, 0.03)",
+      backdropFilter: "blur(10px)",
+      border: "1px solid rgba(255, 255, 255, 0.08)",
       display: "flex",
       alignItems: "center",
-      borderRadius: 16,
-      boxShadow: "0 1px 0 rgba(0,0,0,0.25)",
+      borderRadius: 24,
+      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
       padding: "8px 12px",
       minHeight: "44px",
       maxHeight: "120px",
@@ -25,6 +25,13 @@ export const createStyles = (theme: Theme) =>
       position: "relative",
       visibility: "visible",
       opacity: 1,
+      transition: "all 0.2s ease",
+
+      "&:focus-within": {
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        borderColor: "rgba(255, 255, 255, 0.15)",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.2)"
+      },
 
       "&.dragging": {
         borderColor: "var(--palette-primary-main)",

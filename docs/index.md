@@ -59,13 +59,13 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
   <article class="pattern-card">
     <h5>LLM Agents with Tool Access</h5>
     <p>Plan, call tools, and summarize results with streaming progress updates.</p>
-    <a href="cookbook/patterns.md#pattern-2-agent-driven-generation">Agent pattern →</a>
+    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation">Agent pattern →</a>
     <a href="workflows/realtime-agent.md">Realtime Agent example →</a>
   </article>
   <article class="pattern-card">
     <h5>Retrieval-Augmented Generation</h5>
     <p>Ingest PDFs, chunk text, and answer questions grounded in citations.</p>
-    <a href="cookbook/patterns.md#pattern-4-rag-retrieval-augmented-generation">RAG pattern →</a>
+    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-4-rag-retrieval-augmented-generation">RAG pattern →</a>
     <a href="workflows/chat-with-docs.md">Chat with Docs example →</a>
   </article>
   <article class="pattern-card">
@@ -78,7 +78,7 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
     <h5>Data Automation & Visualization</h5>
     <p>Fetch data, transform it with AI nodes, and publish dashboards or reports.</p>
     <a href="workflows/data-visualization-pipeline.md">Data Viz pipeline →</a>
-    <a href="cookbook/patterns.md#pattern-10-data-processing-pipeline">Data processing pattern →</a>
+    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-10-data-processing-pipeline">Data processing pattern →</a>
   </article>
 </div>
 
@@ -94,11 +94,10 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
 
 ### Choose your path
 
-- **Need the full tutorial?** Jump to the [Getting Started guide](getting-started.md).
-- **Want ready-made workflows?** Browse the [Examples gallery](/workflows/).
-- **Looking for patterns?** Read the [Workflow Cookbook](cookbook.md).
-- **Master the UI?** Start with the [Core Concepts](key-concepts.md) and [User Interface tour](user-interface.md).
-- **Shipping to production?** Review the [Deployment Guide](deployment.md) and [Deployment Journeys](deployment-journeys.md).
+- **I'm new to NodeTool:** [Getting Started](getting-started.md), [Workflow Editor](workflow-editor.md), [Tips & Tricks](tips-and-tricks.md), [Example gallery](/workflows/).
+- **I deploy NodeTool:** [Deployment Guide](deployment.md), [Self-Hosted Deployment](self_hosted.md), [Proxy Reference](proxy.md), [Security Hardening](security-hardening.md), [Terminal WebSocket](terminal-websocket.md), [Storage](storage.md).
+- **I build or integrate:** [Developer Guide](developer/index.md), [Workflow API](workflow-api.md), [Chat Module](chat.md) + [Chat API](chat-api.md), [CLI Reference](cli.md), [Architecture](architecture.md), [Testing Process](TESTING_PROCESS.md).
+- **Reference shortcuts:** [Cookbook Patterns]({{ '/cookbook/patterns' | relative_url }}), [Glossary](glossary.md), [Indexing](indexing.md), [Asset Management](asset-management.md), [Node Packs](node-packs.md).
 
 ### Local-first or cloud-augmented
 

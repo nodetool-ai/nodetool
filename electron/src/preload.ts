@@ -134,6 +134,8 @@ contextBridge.exposeInMainWorld("api", {
     createEventHandler(IpcChannels.BOOT_MESSAGE)(callback),
   onServerLog: (callback: (data: string) => void) =>
     createEventHandler(IpcChannels.SERVER_LOG)(callback),
+  onServerError: (callback: (data: { message: string }) => void) =>
+    createEventHandler(IpcChannels.SERVER_ERROR)(callback),
   onUpdateProgress: (callback: (data: UpdateProgressData) => void) =>
     createEventHandler(IpcChannels.UPDATE_PROGRESS)(callback),
   onUpdateAvailable: (callback: (data: UpdateInfo) => void) =>

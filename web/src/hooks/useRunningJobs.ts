@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Job } from "../stores/ApiTypes";
+import { Job, JobListResponse } from "../stores/ApiTypes";
 import { client } from "../stores/ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";
 import { useAuth } from "../stores/useAuth";
@@ -23,10 +23,10 @@ const fetchRunningJobs = async (): Promise<Job[]> => {
   }
 
   // Filter to only return jobs that are actually running or queued
-  const runningStatuses = ["running", "queued", "starting"];
-  return (data || []).filter((job: any) =>
-    runningStatuses.includes(job.status)
-  ) as Job[];
+  const runningStatuses = new Set(["running", "queued", "starting"]);
+  const jobs = (data as JobListResponse | undefined)?.jobs ?? [];
+
+  return (jobs as Job[]).filter((job) => runningStatuses.has(job.status));
 };
 
 /**

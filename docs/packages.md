@@ -97,4 +97,4 @@ Installed packages automatically register nodes with the runtime:
 
 - [CLI Reference](cli.md) – package subcommands.  
 - [Configuration Guide](configuration.md) – where package metadata is cached.  
-- [DSL & Node Authoring](dsl.md) – creating new nodes and generating DSL wrappers.
+- [DSL Guide](developer/dsl-guide.md) – creating new nodes and generating DSL wrappers.

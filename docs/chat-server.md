@@ -182,7 +182,7 @@ while (true) {
 }
 ```
 
-See [`examples/chat_server_examples.py`](../examples/chat_server_examples.py) for a complete SSE client implementation.
+Use the JavaScript example above as a template; the same pattern works in Python with `requests` + `iter_lines()` for SSE streaming.
 
 ## Error Handling
 

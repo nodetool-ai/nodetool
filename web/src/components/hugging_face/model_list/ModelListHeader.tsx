@@ -91,12 +91,32 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           aria-label="filter models"
           size="small"
           color="primary"
-          sx={{ height: "32px" }}
+          sx={{ 
+            height: "32px",
+            background: "rgba(255, 255, 255, 0.05)",
+            backdropFilter: "blur(4px)",
+            borderRadius: "8px",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            "& .MuiToggleButton-root": {
+              border: "none",
+              color: "text.secondary",
+              "&.Mui-selected": {
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                color: "text.primary",
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.15)",
+                }
+              },
+              "&:hover": {
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
+              }
+            }
+          }}
         >
           <ToggleButton
             value="all"
             aria-label="show all models"
-            sx={{ px: 2, minWidth: "60px" }}
+            sx={{ px: 2, minWidth: "60px", borderRadius: "8px 0 0 8px" }}
           >
             All
           </ToggleButton>
@@ -110,7 +130,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           <ToggleButton
             value="not_downloaded"
             aria-label="show available models only"
-            sx={{ px: 2, minWidth: "100px" }}
+            sx={{ px: 2, minWidth: "100px", borderRadius: "0 8px 8px 0" }}
           >
             Available
           </ToggleButton>

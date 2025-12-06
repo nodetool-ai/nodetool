@@ -492,22 +492,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   style={{ marginTop: "24px" }}
                 >
                   <label
-                    className="runtime-option"
-                    style={{
-                      display: "block",
-                      marginBottom: "16px",
-                      padding: "16px",
-                      border:
-                        selectedRuntime === "ollama"
-                          ? "2px solid rgba(74, 158, 255, 0.6)"
-                          : "2px solid #e0e0e0",
-                      borderRadius: "8px",
-                      backgroundColor:
-                        selectedRuntime === "ollama"
-                          ? "rgba(74, 158, 255, 0.1)"
-                          : "transparent",
-                      cursor: "pointer",
-                    }}
+                    className={`runtime-option ${
+                      selectedRuntime === "ollama" ? "selected" : ""
+                    }`}
                   >
                     <div style={{ display: "flex", alignItems: "flex-start" }}>
                       <input
@@ -544,7 +531,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                         <p
                           style={{
                             margin: "4px 0 0 0",
-                            color: "#666",
                             fontSize: "14px",
                           }}
                         >
@@ -556,22 +542,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   </label>
 
                   <label
-                    className="runtime-option"
-                    style={{
-                      display: "block",
-                      marginBottom: "16px",
-                      padding: "16px",
-                      border:
-                        selectedRuntime === "llamacpp"
-                          ? "2px solid rgba(74, 158, 255, 0.6)"
-                          : "2px solid #e0e0e0",
-                      borderRadius: "8px",
-                      backgroundColor:
-                        selectedRuntime === "llamacpp"
-                          ? "rgba(74, 158, 255, 0.1)"
-                          : "transparent",
-                      cursor: "pointer",
-                    }}
+                    className={`runtime-option ${
+                      selectedRuntime === "llamacpp" ? "selected" : ""
+                    }`}
                   >
                     <div style={{ display: "flex", alignItems: "flex-start" }}>
                       <input
@@ -587,7 +560,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                         <p
                           style={{
                             margin: "4px 0 0 0",
-                            color: "#666",
                             fontSize: "14px",
                           }}
                         >
@@ -599,22 +571,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   </label>
 
                   <label
-                    className="runtime-option"
-                    style={{
-                      display: "block",
-                      marginBottom: "16px",
-                      padding: "16px",
-                      border:
-                        selectedRuntime === "skip"
-                          ? "2px solid rgba(74, 158, 255, 0.6)"
-                          : "2px solid #e0e0e0",
-                      borderRadius: "8px",
-                      backgroundColor:
-                        selectedRuntime === "skip"
-                          ? "rgba(74, 158, 255, 0.1)"
-                          : "transparent",
-                      cursor: "pointer",
-                    }}
+                    className={`runtime-option ${
+                      selectedRuntime === "skip" ? "selected" : ""
+                    }`}
                   >
                     <div style={{ display: "flex", alignItems: "flex-start" }}>
                       <input
@@ -630,7 +589,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                         <p
                           style={{
                             margin: "4px 0 0 0",
-                            color: "#666",
                             fontSize: "14px",
                           }}
                         >

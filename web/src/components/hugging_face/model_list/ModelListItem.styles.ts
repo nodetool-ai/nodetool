@@ -4,28 +4,35 @@ import type { Theme } from "@mui/material/styles";
 const modelListItemStyles = (theme: Theme) =>
   css({
     "&.model-list-item": {
-      padding: "0.75em 1.25em",
-      marginBottom: "0",
+      padding: "1em",
+      marginBottom: "0.75em",
       boxSizing: "border-box",
-      borderBottom: "1px solid " + theme.vars.palette.grey[700],
+      border: "1px solid rgba(255, 255, 255, 0.08)",
+      borderRadius: "16px",
+      background: "rgba(255, 255, 255, 0.03)",
       wordBreak: "break-word",
-      transition:
-        "background-color 0.125s ease-in, border 0.125s ease-in, transform 0.08s ease-in",
+      transition: "all 0.2s ease",
+      marginRight: "0.5em", // Reduced margin
+      maxHeight: "calc(100% - 0.75em)", // Ensure it fits within the react-window item size minus margin
+      overflow: "hidden", // Prevent content from spilling out
+      
       "&.compact": {
-        padding: ".25em .5em"
+        padding: ".5em .75em"
       },
 
       "&:hover": {
-        opacity: 0.98,
-        backgroundColor: theme.vars.palette.grey[900]
+        background: "rgba(255, 255, 255, 0.06)",
+        borderColor: "rgba(255, 255, 255, 0.15)",
+        transform: "translateY(-1px)",
+        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)"
       },
 
       "& .model-content": {
         display: "flex",
         flexDirection: "column",
-        gap: "0.5em",
+        gap: "0.75em",
         width: "100%",
-        padding: "0em 0.5em"
+        padding: "0"
       },
 
       "& .model-top-row": {
@@ -61,20 +68,26 @@ const modelListItemStyles = (theme: Theme) =>
       },
 
       "& .model-description": {
-        display: "block",
-        color: theme.vars.palette.text.secondary,
-        fontSize: "var(--fontSizeSmall)",
         lineHeight: "1.4em",
-        wordBreak: "break-word"
+        wordBreak: "break-word",
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
       },
 
       "& .model-name-link": {
-        color: "var(--palette-primary-light)",
+        color: theme.vars.palette.primary.light,
         display: "block",
         textDecoration: "none",
         marginLeft: "0 !important",
         paddingBottom: "0.25em",
-        "&:hover": { textDecoration: "underline" },
+        transition: "color 0.2s",
+        "&:hover": { 
+          color: theme.vars.palette.primary.main,
+          textDecoration: "none" 
+        },
         "&.no-link": {
           color: theme.vars.palette.text.primary,
           cursor: "default",
@@ -83,11 +96,12 @@ const modelListItemStyles = (theme: Theme) =>
       },
 
       "& .model-owner": {
-        color: theme.vars.palette.grey[300],
-        fontSize: "var(--fontSize)",
+        color: theme.vars.palette.text.secondary,
+        fontSize: "0.85rem",
         marginRight: 0,
         marginBottom: ".15em",
-        opacity: 0.85
+        opacity: 0.8,
+        fontWeight: 500
       },
 
       "& .model-name": {
@@ -96,14 +110,15 @@ const modelListItemStyles = (theme: Theme) =>
         WebkitBoxOrient: "vertical",
         overflow: "hidden",
         textOverflow: "ellipsis",
-        fontSize: "var(--fontSizeBig)",
-        fontWeight: 500,
-        wordBreak: "break-word"
+        fontSize: "1.1rem",
+        fontWeight: 600,
+        wordBreak: "break-word",
+        letterSpacing: "-0.01em"
       },
       "& .model-path": {
         display: "block",
-        color: theme.vars.palette.grey[200],
-        fontSize: "var(--fontSizeSmaller)",
+        color: theme.vars.palette.text.secondary,
+        fontSize: "0.85rem",
         marginTop: "0.25em"
       },
       "& .model-details": {
@@ -128,14 +143,20 @@ const modelListItemStyles = (theme: Theme) =>
         fontSize: "0.875rem"
       },
       "& .pipeline-tag": {
-        backgroundColor: "var(--palette-grey-700)",
-        color: "var(--palette-grey-50)",
-        fontSize: "var(--fontSizeSmaller)",
-        fontWeight: "bold",
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        color: theme.vars.palette.text.primary,
+        fontSize: "0.75rem",
+        fontWeight: 500,
         marginLeft: "0.5em",
-        padding: ".8em .2em",
-        borderRadius: "0.5em",
-        height: "1em"
+        padding: ".3em .8em",
+        borderRadius: "12px",
+        height: "auto",
+        border: "1px solid rgba(255, 255, 255, 0.05)",
+        transition: "all 0.2s",
+        "&:hover": {
+          backgroundColor: "rgba(255, 255, 255, 0.1)",
+          borderColor: "rgba(255, 255, 255, 0.1)"
+        }
       },
 
       "& .pipeline-tag-link": {
@@ -180,17 +201,7 @@ const modelListItemStyles = (theme: Theme) =>
         alignItems: "center"
       },
 
-      "& .secondary-action": {
-        display: "flex",
-        gap: ".1em",
-        alignItems: "center",
-        position: "absolute"
-      },
-      "&.compact .secondary-action": {
-        position: "relative",
-        right: "unset",
-        left: "1em"
-      },
+
       "& .downloaded-icon": {
         marginBottom: "-0.25em",
         marginRight: "0.5em",

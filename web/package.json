@@ -116,7 +116,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "release": "ts-node release.ts",
-    "openapi": "openapi-typescript http://127.0.0.1:8000/openapi.json -o ./src/api.ts",
+    "openapi": "openapi-typescript http://127.0.0.1:7777/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit",
     "prepare": "husky"
   },
@@ -140,6 +140,7 @@
     "@babel/preset-typescript": "^7.26.0",
     "@eslint/compat": "^1.2.6",
     "@jest/globals": "^29.7.0",
+    "@playwright/test": "^1.57.0",
     "@svgr/webpack": "^8.1.0",
     "@types/chroma-js": "^2.4.4",
     "@types/jest": "^29.5.14",

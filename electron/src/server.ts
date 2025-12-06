@@ -12,8 +12,7 @@ import {
   appsPath,
   getCondaEnvPath,
 } from "./config";
-import { forceQuit } from "./window";
-import { emitBootMessage, emitServerStarted, emitServerLog } from "./events";
+import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
 import fs from "fs/promises";
 import net from "net";
@@ -239,6 +238,9 @@ async function killExistingServer(): Promise<void> {
  */
 async function startServer(): Promise<void> {
   emitBootMessage("Configuring server environment...");
+  serverState.status = "starting";
+  serverState.error = undefined;
+  serverState.isStarted = false;
 
   let pythonExecutablePath: string;
   try {
@@ -336,12 +338,14 @@ function handleServerOutput(data: Buffer): void {
   }
 
   if (output.includes("Address already in use")) {
-    logMessage("Port is blocked, quitting application", "error");
-    dialog.showErrorBox(
-      "Server Error",
-      "The server cannot start because the port is already in use. Please close any applications using the port and try again."
-    );
-    app.quit();
+    const message =
+      "The server cannot start because the port is already in use. Please close any applications using the port and try again.";
+    logMessage("Port is blocked, server startup failed", "error");
+    serverState.error = message;
+    serverState.status = "error";
+    serverState.isStarted = false;
+    dialog.showErrorBox("Server Error", message);
+    emitServerError(message);
   }
 
   if (output.includes("Application startup complete.")) {
@@ -376,6 +380,8 @@ function isOllamaRunning(): boolean {
 async function initializeBackendServer(): Promise<void> {
   logMessage("Initializing backend server");
   try {
+    serverState.status = "starting";
+    serverState.error = undefined;
     // Quick check: if PID file exists, server might be running - do a fast health check
     let pidFileExists = false;
     try {
@@ -439,7 +445,11 @@ async function initializeBackendServer(): Promise<void> {
       "error"
     );
     logMessage(`Error stack: ${(error as Error).stack}`, "error");
-    forceQuit(`Critical error starting server: ${(error as Error).message}`);
+    const errorMessage = (error as Error).message ?? "Unknown server error";
+    serverState.status = "error";
+    serverState.error = errorMessage;
+    emitServerError(`Critical error starting server: ${errorMessage}`);
+    throw error;
   }
 }
 
@@ -507,6 +517,8 @@ async function stopServer(): Promise<void> {
     logMessage(`Error during shutdown: ${(error as Error).message}`, "error");
   }
 
+  serverState.isStarted = false;
+  serverState.status = "idle";
   logMessage("Graceful shutdown complete");
 }
 

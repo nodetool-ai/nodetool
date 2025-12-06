@@ -67,7 +67,7 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
   const theme = useTheme();
 
   const loadASRModels = useCallback(async () => {
-    const { data, error } = await client.GET("/api/models/{model_type}", {
+    const { data, error } = await client.GET("/api/models/{model_type}" as any, {
       params: { path: { model_type: "asr" } }
     });
     if (error) {

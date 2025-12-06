@@ -104,7 +104,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       "&": {
         display: "flex",
         justifyContent: "flex-start",
-        alignItems: "flex-start",
+        alignItems: "center", // Align center
         width: "100%"
       },
       ".type-filter-container": {
@@ -112,7 +112,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         flexDirection: "row",
         gap: ".5em",
         width: "500px",
-        backgroundColor: theme.vars.palette.background.default,
+        backgroundColor: "transparent", // Transparent container
         padding: "0",
         marginLeft: ".5em"
       },
@@ -125,7 +125,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         position: "absolute",
         zIndex: 100,
         fontSize: theme.fontSizeNormal,
-        color: theme.vars.palette.grey[400],
+        color: "rgba(255, 255, 255, 0.4)",
         padding: ".6em 0 0 .5em"
       },
       ".type-filter-select": {
@@ -140,12 +140,27 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         padding: "0 1.75em 0 .75em",
         height: "36px",
         lineHeight: "36px",
-        backgroundColor: theme.vars.palette.background.paper,
-        borderColor: theme.vars.palette.grey[600],
-        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s"
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        color: theme.vars.palette.text.primary,
+        transition: "all 0.2s ease",
+        borderRadius: "10px !important", // Force rounded corners
+        "&:focus": {
+          backgroundColor: "rgba(255, 255, 255, 0.1)"
+        }
       },
       ".type-filter .MuiOutlinedInput-root": {
-        borderRadius: "8px"
+        borderRadius: "10px",
+        "&:hover .MuiOutlinedInput-notchedOutline": {
+          borderColor: "rgba(255, 255, 255, 0.2)"
+        },
+        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+          borderColor: "var(--palette-primary-main)",
+          borderWidth: "1px"
+        }
+      },
+      ".type-filter .MuiOutlinedInput-notchedOutline": {
+        borderColor: "rgba(255, 255, 255, 0.1)"
       },
       ".type-filter .MuiListItemIcon-root": {
         minWidth: "18px",

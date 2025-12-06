@@ -28,6 +28,7 @@ import { useChatService } from "../../hooks/useChatService";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { PANEL_CONFIG } from "./panelConfig";
+import { uuidv4 } from "../../stores/uuidv4";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
 import AppHeader from "../panels/AppHeader";
@@ -146,6 +147,22 @@ const Dashboard: React.FC = () => {
 
   const panelParams = useMemo(() => {
     return {
+      activity: {
+        // Workflows
+        sortedWorkflows,
+        isLoadingWorkflows,
+        settings,
+        handleOrderChange,
+        handleCreateNewWorkflow,
+        handleWorkflowClick,
+        // Chats
+        threads: threads as { [key: string]: Thread },
+        currentThreadId,
+        onNewThread: onNewThread,
+        onSelectThread: onSelectThread,
+        onDeleteThread: deleteThread,
+        getThreadPreview
+      },
       templates: {
         startTemplates,
         isLoadingTemplates,
@@ -309,49 +326,7 @@ const Dashboard: React.FC = () => {
     };
   }, [dockviewApi, settings.showWelcomeOnStartup]);
 
-  // Ensure setup panel is shown when showWelcomeOnStartup is enabled
-  useEffect(() => {
-    if (!dockviewApi || !settings.showWelcomeOnStartup) return;
 
-    // Check if setup panel already exists
-    if (dockviewApi.getPanel("setup")) return;
-
-    // Small delay to ensure layout is fully applied
-    const timeoutId = setTimeout(() => {
-      if (!dockviewApi) return;
-
-      // Find the welcome panel or first panel to position setup next to it
-      const welcomePanel = dockviewApi.getPanel("welcome");
-      const panels = dockviewApi.panels;
-      const referencePanel = welcomePanel || (panels.length > 0 ? panels[0] : null);
-
-      if (referencePanel && referencePanel.id !== "setup") {
-        // Position setup panel to the right of the reference panel
-        dockviewApi.addPanel({
-          id: "setup",
-          component: "setup",
-          title: PANEL_CONFIG.setup.title,
-          params: {},
-          position: {
-            referencePanel: referencePanel.id,
-            direction: "right"
-          }
-        });
-      } else {
-        // Fallback: add as first panel if no panels exist
-        dockviewApi.addPanel({
-          id: "setup",
-          component: "setup",
-          title: PANEL_CONFIG.setup.title,
-          params: {}
-        });
-      }
-    }, 300);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [dockviewApi, settings.showWelcomeOnStartup]);
 
   useEffect(() => {
     if (!dockviewApi) return;
@@ -361,7 +336,7 @@ const Dashboard: React.FC = () => {
     const updateAvailablePanels = () => {
       const openPanelIds = dockviewApi.panels.map((p) => p.id);
       const closedPanels = allPanelIds
-        .filter((id) => !openPanelIds.includes(id))
+        .filter((id) => id === "mini-app" || !openPanelIds.includes(id))
         .map((id) => ({
           id,
           title: PANEL_CONFIG[id as keyof typeof PANEL_CONFIG].title
@@ -436,6 +411,16 @@ const Dashboard: React.FC = () => {
           });
           return;
         }
+      }
+
+      if (panelId === "mini-app") {
+        dockviewApi.addPanel({
+          id: `mini-app-${uuidv4()}`,
+          component: "mini-app",
+          title: PANEL_CONFIG["mini-app"].title,
+          params: {}
+        });
+        return;
       }
       
       // Default behavior for other panels

@@ -5,8 +5,12 @@ import log from "loglevel";
 type MessageHandler = (message: any) => void;
 
 /**
- * Global WebSocket Manager - Singleton pattern
- * Manages a single WebSocket connection shared across all workflows
+ * Global WebSocket Manager - Singleton pattern.
+ *
+ * Establishes a single shared WebSocket to the worker backend (WORKER_URL) and
+ * multiplexes messages by `workflow_id` or `job_id`. Consumers subscribe with
+ * a routing key and receive only their messages. Built-in reconnect with up to
+ * 5 attempts/1s backoff; `ensureConnection` blocks until connected.
  */
 class GlobalWebSocketManager {
   private static instance: GlobalWebSocketManager | null = null;

@@ -5,6 +5,8 @@ title: "Deployment Journeys"
 
 
 
+Use this page as a scenario walkthrough. For the canonical reference material, rely on the [Deployment Guide](deployment.md) for CLI/`deployment.yaml`, [Self-Hosted Deployment](self_hosted.md) for proxy + Docker details, and [Proxy Reference](proxy.md) for config fields.
+
 ## Self-hosted with Proxy
 
 1. **Clone and install**

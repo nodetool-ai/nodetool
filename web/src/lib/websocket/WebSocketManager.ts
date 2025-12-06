@@ -1,3 +1,11 @@
+/**
+ * Thin WebSocket wrapper with reconnect/backoff and msgpack encoding.
+ *
+ * Exposes a small state machine (`ConnectionState`) plus EventEmitter events
+ * for `open/close/message/error/reconnecting/stateChange`. Queues outbound
+ * messages until connected, retries with exponential-ish backoff, and enforces
+ * valid transitions to avoid double-connect/disconnect races.
+ */
 import { EventEmitter } from "events";
 import { encode, decode } from "@msgpack/msgpack";
 import log from "loglevel";
