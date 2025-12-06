@@ -100,7 +100,7 @@
             "endpoint": "https://weu.codesigning.azure.net",
             "codeSigningAccountName": "Nodetool",
             "certificateProfileName": "nodetool",
-            "publisherName": "Matthias Georgi"
+            "publisherName": "CN=Matthias Georgi, O=Matthias Georgi, L=Leiden, C=NL"
         }
     },
     "linux": {
