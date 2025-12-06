@@ -38,7 +38,10 @@ const ModelListItem: React.FC<
   compatibility
 }) => {
   const downloads = useModelDownloadStore((state) => state.downloads);
-  const modelId = model.id;
+  const downloadId = useMemo(() => {
+    const baseId = model.repo_id || model.id;
+    return model.path ? `${baseId}/${model.path}` : baseId;
+  }, [model.id, model.path, model.repo_id]);
   const theme = useTheme();
   const importantTags = ["gguf", "mlx"];
   const tags = (model.tags || []).filter((tag) => importantTags.includes(tag));
@@ -50,14 +53,14 @@ const ModelListItem: React.FC<
     };
   }, [compatibility]);
 
-  if (downloads[modelId]) {
+  if (downloadId && downloads[downloadId]) {
     return (
       <Box
         css={modelListItemStyles(theme)}
         className={`model-list-item ${compactView ? "compact" : ""}`}
       >
         <div className="model-content">
-          <DownloadProgress name={modelId} />
+          <DownloadProgress name={downloadId} />
         </div>
       </Box>
     );
