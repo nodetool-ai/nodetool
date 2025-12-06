@@ -124,6 +124,18 @@ export function computeSearchResults(
   const selectedPathString = selectedPath.join(".");
   const hasSearchTerm = term.trim().length > 0;
   const hasTypeFilters = selectedInputType || selectedOutputType;
+  const searchTerms = [term];
+
+  // If the user types a full namespace,
+  // also search using the last segment so results are found even when the full
+  // dotted path doesn't fuzzy-match well.
+  if (term.includes(".")) {
+    const parts = term.split(".").filter(Boolean);
+    const lastPart = parts[parts.length - 1];
+    if (lastPart && lastPart !== term) {
+      searchTerms.push(lastPart);
+    }
+  }
 
   // Filter out default namespace nodes
   const filteredMetadata = metadata.filter(
@@ -194,7 +206,47 @@ export function computeSearchResults(
     };
   });
 
-  const groupedResults = performGroupedSearch(allEntries, term);
+  // Run searches for each derived term and merge results while preserving order
+  const groupedResultsMap = new Map<string, Map<string, NodeMetadata>>();
+
+  const addToGroup = (title: string, node: NodeMetadata) => {
+    if (!groupedResultsMap.has(title)) {
+      groupedResultsMap.set(title, new Map<string, NodeMetadata>());
+    }
+    const group = groupedResultsMap.get(title)!;
+    if (!group.has(node.node_type)) {
+      group.set(node.node_type, node);
+    }
+  };
+
+  searchTerms.forEach((searchTerm) => {
+    const groups = performGroupedSearch(allEntries, searchTerm);
+    groups.forEach((group) => {
+      group.nodes.forEach((node) => addToGroup(group.title, node));
+    });
+
+    // Add exact namespace matches explicitly so full namespaces work even if Fuse misses
+    const exactNamespaceMatches = allEntries
+      .filter((entry) => entry.namespace === searchTerm)
+      .map((entry) => ({
+        ...entry.metadata,
+        searchInfo: { score: 0, matches: [] }
+      }));
+
+    exactNamespaceMatches.forEach((node) =>
+      addToGroup("Namespace + Tags", node)
+    );
+  });
+
+  const groupedResults: SearchResultGroup[] = Array.from(
+    groupedResultsMap.entries()
+  )
+    .map(([title, nodes]) => ({
+      title,
+      nodes: Array.from(nodes.values())
+    }))
+    .filter((group) => group.nodes.length > 0);
+
   const searchMatchedNodes = groupedResults.flatMap((group) => group.nodes);
 
   const sortedResults = searchMatchedNodes.sort((a, b) => {
