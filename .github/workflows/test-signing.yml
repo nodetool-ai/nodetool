@@ -1,0 +1,39 @@
+name: Test Signing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sign-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Download Micromamba
+        shell: bash
+        run: |
+          cd nodetool/electron
+          # Force download for win32-x64 since we are on windows-latest
+          BUILD_PLATFORM=win32-x64 node scripts/download-micromamba.cjs
+          ls -R resources
+
+      - name: Sign files with Trusted Signing
+        uses: azure/trusted-signing-action@v0.6.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://weu.codesigning.azure.net
+          trusted-signing-account-name: nodetool
+          certificate-profile-name: nodetool
+          files-folder: ${{ github.workspace }}\nodetool\electron\resources\micromamba\win-64\Library\bin
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256

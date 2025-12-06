@@ -98,7 +98,7 @@
         "icon": "resources/icon.ico",
         "azureSignOptions": {
             "endpoint": "https://weu.codesigning.azure.net",
-            "codeSigningAccountName": "Nodetool",
+            "codeSigningAccountName": "nodetool",
             "certificateProfileName": "nodetool",
             "publisherName": "CN=Matthias Georgi, O=Matthias Georgi, L=Leiden, C=NL"
         }
