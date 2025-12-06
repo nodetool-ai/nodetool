@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   #
   # No need for PyPI publishing at the moment
@@ -62,14 +66,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "20"
-
-      - name: Azure Login
-        if: matrix.os == 'windows-latest'
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Install Apple Certificate
         if: matrix.os == 'macos-latest'

@@ -47,7 +47,9 @@
         {
             "from": "resources/micromamba",
             "to": "micromamba",
-            "filter": ["**/*"]
+            "filter": [
+                "**/*"
+            ]
         }
     ],
     "publish": [
@@ -100,7 +102,8 @@
         "azureSignOptions": {
             "endpoint": "https://weu.codesigning.azure.net",
             "codeSigningAccountName": "Nodetool",
-            "certificateProfileName": "nodetool"
+            "certificateProfileName": "nodetool",
+            "publisherName": "Matthias Georgi"
         }
     },
     "linux": {
