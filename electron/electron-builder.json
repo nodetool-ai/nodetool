@@ -8,6 +8,7 @@
     "afterPack": "scripts/after-pack.cjs",
     "files": [
         "assets/**/*",
+        "dist-electron/main.js",
         "dist-electron/**/*",
         "dist-web/**/*"
     ],

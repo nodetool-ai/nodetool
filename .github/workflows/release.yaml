@@ -176,4 +176,5 @@ jobs:
           npm run vite:build
           echo "Listing dist-electron:"
           ls -R dist-electron
+          ls -l dist-electron/main.js
           npx electron-builder --config electron-builder.json --publish always
