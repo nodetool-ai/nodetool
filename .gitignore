@@ -17,10 +17,10 @@ build/
 coverage/
 dist/
 electron/apps/build/
-electron/dist/
-electron/dist-web/
-electron/dist-electron/
-electron/resources/micromamba
+# electron/dist/
+# electron/dist-web/
+# electron/dist-electron/
+# electron/resources/micromamba
 # Temporary build files
 .tmp/
 __notebooks/
