@@ -18,7 +18,7 @@ jobs:
       - name: Download Micromamba
         shell: bash
         run: |
-          cd nodetool/electron
+          cd electron
           # Force download for win32-x64 since we are on windows-latest
           BUILD_PLATFORM=win32-x64 node scripts/download-micromamba.cjs
           ls -R resources
@@ -32,7 +32,7 @@ jobs:
           endpoint: https://weu.codesigning.azure.net
           trusted-signing-account-name: nodetool
           certificate-profile-name: nodetool
-          files-folder: ${{ github.workspace }}\nodetool\electron\resources\micromamba\win-64\Library\bin
+          files-folder: ${{ github.workspace }}\electron\resources\micromamba\win-64\Library\bin
           files-folder-filter: exe
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
