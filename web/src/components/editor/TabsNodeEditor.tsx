@@ -384,12 +384,10 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
           height: hideContent ? "100%" : "calc(100% - 40px)"
         }}
       >
-        <div className="tabs-container">
           <TabsBar
             workflows={tabsToRender}
             currentWorkflowId={currentWorkflowId!}
           />
-        </div>
         {!hideContent && (
           <div
             className="editor-container"
