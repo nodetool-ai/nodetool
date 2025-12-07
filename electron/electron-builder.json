@@ -95,13 +95,7 @@
                 ]
             }
         ],
-        "icon": "resources/icon.ico",
-        "azureSignOptions": {
-            "endpoint": "https://weu.codesigning.azure.net",
-            "codeSigningAccountName": "nodetool",
-            "certificateProfileName": "nodetool",
-            "publisherName": "CN=Matthias Georgi, O=Matthias Georgi, L=Leiden, C=NL"
-        }
+        "icon": "resources/icon.ico"
     },
     "linux": {
         "target": [
