@@ -147,7 +147,7 @@ const styles = (theme: Theme) =>
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         willChange: "transform, box-shadow",
-        backgroundColor: "var(--palette-background-default)",
+        backgroundColor: "transparent",
         // Make icons smaller within toolbar buttons
         "& svg": {
           fontSize: "1.125rem",
