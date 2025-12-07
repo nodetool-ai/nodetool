@@ -33,7 +33,7 @@ const styles = (theme: Theme) =>
     minWidth: 0,
     "& .tabs-container": {
       display: "flex",
-      backgroundColor: theme.vars.palette.glass.backgroundDialogContent,
+      backgroundColor: theme.vars.palette.c_tabs_header,
       backdropFilter: "blur(12px)",
       alignItems: "center",
       position: "relative",

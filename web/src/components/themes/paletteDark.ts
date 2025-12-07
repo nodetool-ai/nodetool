@@ -43,6 +43,8 @@ declare module "@mui/material/styles" {
     c_provider_api?: string;
     c_provider_local?: string;
     c_provider_hf?: string;
+    c_app_header?: string;
+    c_tabs_header?: string;
 
     // Provider badge colors
     providerApi?: string;
@@ -103,6 +105,8 @@ declare module "@mui/material/styles" {
     c_provider_api?: string;
     c_provider_local?: string;
     c_provider_hf?: string;
+    c_app_header?: string;
+    c_tabs_header?: string;
 
     // Provider badge colors
     providerApi?: string;
@@ -202,6 +206,8 @@ export const paletteDark: PaletteOptions = {
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",
   c_provider_hf: "#C4B5FD",
+  c_app_header: "#1E1E1E",
+  c_tabs_header: "#1E1E1E",
 
   primary: {
     main: "#60A5FA",

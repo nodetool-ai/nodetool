@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: theme.vars.palette.glass.backgroundDialogContent,
+      backgroundColor: theme.vars.palette.c_app_header,
       backdropFilter: "blur(12px)",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",

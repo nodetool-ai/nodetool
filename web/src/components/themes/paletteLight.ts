@@ -43,6 +43,8 @@ declare module "@mui/material/styles" {
     c_provider_api?: string;
     c_provider_local?: string;
     c_provider_hf?: string;
+    c_app_header?: string;
+    c_tabs_header?: string;
 
     // Provider badge colors
     providerApi?: string;
@@ -101,6 +103,15 @@ declare module "@mui/material/styles" {
     c_editor_axis_color?: string;
     c_selection_rect?: string;
     c_provider_api?: string;
+    c_provider_local?: string;
+    c_provider_hf?: string;
+    c_app_header?: string;
+    c_tabs_header?: string;
+
+    // Provider badge colors
+    providerApi?: string;
+    providerLocal?: string;
+    providerHf?: string;
 
     background: { default: string; paper: string };
     Paper: {
@@ -182,19 +193,21 @@ export const paletteLight: PaletteOptions = {
   c_scroll_bg: "transparent",
   c_scroll_hover: "#D9D2C9",
   c_scroll_thumb: "#C7BEB3",
-  c_node_bg: "#FFFFFF",
+  c_node_bg: "#F8F9FA",
   c_node_bg_group: "#F5F5F5",
   c_node_header_bg: "#F8F8F8",
   c_node_header_bg_group: "#EBEBEB",
   c_bg_loop: "#5E9A8F14",
   c_bg_group: "#A59F9730",
-  c_editor_bg_color: "#F5F5F5",
-  c_editor_grid_color: "#E0E0E0",
+  c_editor_bg_color: "#FFFFFF",
+  c_editor_grid_color: "#F0F0F0",
   c_editor_axis_color: "#D4CCC3",
   c_selection_rect: "rgba(94, 154, 143, 0.12)",
   c_provider_api: "#2C415A",
   c_provider_local: "#2E5B4E",
   c_provider_hf: "#6D4B6F",
+  c_app_header: "#FFFFFF",
+  c_tabs_header: "#FFFFFF",
 
   // Provider badge colors (light) - single token per provider type
   providerApi: "#2C415A",
