@@ -163,7 +163,7 @@ const panelStyles = (theme: any) =>
     ".MuiAccordion-root": {
       color: theme.vars.palette.grey[0],
       borderBottom: `1px solid ${theme.vars.palette.grey[500]}`,
-      backgroundColor: theme.vars.palette.background.paper,
+      backgroundColor: theme.vars.palette.c_editor_bg_color,
       marginBottom: "0.5em",
       "&:before": {
         display: "none"

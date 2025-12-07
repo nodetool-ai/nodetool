@@ -36,16 +36,21 @@ import AppHeader from "../panels/AppHeader";
 const styles = (theme: Theme) =>
   css({
     ".dashboard": {
-      width: "calc(100vw - 64px)",
-      height: "calc(100vh - 64px)",
+      width: "100vw",
+      height: "100vh",
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      top: "64px",
-      left: "64px"
+      top: "0",
+      left: "0",
+      paddingTop: "64px",
+      paddingLeft: "64px",
+      boxSizing: "border-box",
+      backgroundColor: theme.vars.palette.c_editor_bg_color
     },
     "& .dockview-container": {
-      paddingTop: "2rem",
+      paddingTop: "1rem",
       flex: 1,
       minHeight: 0,
       height: "100%"
@@ -450,7 +455,6 @@ const Dashboard: React.FC = () => {
       </Box>
       <Box
         className="dashboard"
-        sx={{ height: "100vh", width: "100vw", position: "relative" }}
       >
         <DashboardHeader>
           <LayoutMenu dockviewApi={dockviewApi} />

@@ -24,10 +24,13 @@ const styles = (theme: Theme) =>
   css({
     ".workflow-grid": {
       position: "relative",
-      top: "64px",
-      left: "48px",
-      height: "calc(100vh - 16px)",
-      width: "calc(100% - 64px)",
+      top: "0",
+      left: "0",
+      height: "100%",
+      width: "100%",
+      paddingTop: "64px",
+      paddingLeft: "48px",
+      boxSizing: "border-box",
       overflow: "scroll"
     },
     "&": {

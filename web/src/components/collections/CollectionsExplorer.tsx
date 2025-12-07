@@ -16,7 +16,8 @@ const styles = (theme: Theme) =>
       height: "100%",
       top: "0",
       left: "0",
-      padding: "0"
+      padding: "0",
+      backgroundColor: theme.vars.palette.c_editor_bg_color
     },
     ".collections-explorer": {
       position: "relative",

@@ -21,13 +21,18 @@ const styles = (theme: Theme) =>
       height: "100%",
       top: "0",
       left: "0",
-      padding: "0"
+      padding: "0",
+      backgroundColor: theme.vars.palette.c_editor_bg_color
     },
     ".asset-explorer": {
       position: "relative",
       width: "100%",
-      left: "64px",
-      top: "64px"
+      height: "100%",
+      left: "0",
+      top: "0",
+      paddingTop: "64px",
+      paddingLeft: "64px",
+      boxSizing: "border-box"
     },
     ".asset-explorer .asset-content-wrapper .asset-grid-content": {
       width: "calc(100% - 60px) !important"

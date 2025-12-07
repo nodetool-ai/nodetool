@@ -25,6 +25,7 @@ const styles = (theme: Theme) =>
     overflowY: "auto",
     height: "100%",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+    backgroundColor: theme.vars.palette.c_editor_bg_color,
     ".section-title": {
       color: theme.vars.palette.grey[100],
       marginBottom: theme.spacing(3)
