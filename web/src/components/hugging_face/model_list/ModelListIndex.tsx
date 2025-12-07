@@ -135,10 +135,15 @@ const ModelListIndex: React.FC = () => {
   const startDownload = useCallback(
     (model: UnifiedModel) => {
       const repoId = model.repo_id || model.id;
+      const path = model.path ?? null;
+      const allowPatterns = path ? null : model.allow_patterns ?? null;
+      const ignorePatterns = path ? null : model.ignore_patterns ?? null;
       downloadStore.startDownload(
         repoId,
         model.type ?? "",
-        model.path ?? undefined
+        path ?? undefined,
+        allowPatterns,
+        ignorePatterns
       );
       downloadStore.openDialog();
     },
