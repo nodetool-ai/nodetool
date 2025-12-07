@@ -24,9 +24,9 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: "rgba(18, 18, 18, 0.6)",
+      backgroundColor: theme.vars.palette.glass.backgroundDialogContent,
       backdropFilter: "blur(12px)",
-      borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
       paddingLeft: "8px",
       position: "fixed",
@@ -49,12 +49,12 @@ const styles = (theme: Theme) =>
     ".MuiIconButton-root": {
       height: "28px",
       padding: "4px",
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.text.primary,
       borderRadius: "6px",
       fontSize: theme.typography.body2.fontSize,
       transition: "all 0.2s ease-out",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        backgroundColor: theme.vars.palette.action.hover
       },
       "& svg, & .icon-container svg": {
         display: "block",
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
       borderRadius: "20px",
       fontWeight: 600,
       letterSpacing: "0.02em",
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       minWidth: "auto",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       border: "1px solid transparent",
@@ -100,10 +100,10 @@ const styles = (theme: Theme) =>
       },
       position: "relative",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        color: theme.vars.palette.grey[100],
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.text.primary,
         "& svg": {
-          color: theme.vars.palette.grey[100]
+          color: theme.vars.palette.text.primary
         }
       },
       "&.active": {
