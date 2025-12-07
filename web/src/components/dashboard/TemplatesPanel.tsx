@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
     overflowY: "auto",
     height: "100%",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-    background: theme.vars.palette.background.paper,
+    background: theme.vars.palette.c_editor_bg_color,
     ".panel-header": {
       display: "flex",
       justifyContent: "space-between",

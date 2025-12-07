@@ -6,6 +6,7 @@ import GlobalSearchResults from "../GlobalSearchResults";
 import AssetGridContent from "../AssetGridContent";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
+import { useTheme } from "@mui/material/styles";
 
 export interface AssetFilesPanelParams {
   isHorizontal?: boolean;
@@ -66,8 +67,10 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
   const isHorizontal = props.params?.isHorizontal;
   const itemSpacing = props.params?.itemSpacing;
 
+  const theme = useTheme();
+
   return (
-    <div style={{ height: "100%", overflow: "hidden" }}>
+    <div style={{ height: "100%", overflow: "hidden", backgroundColor: theme.vars.palette.c_editor_bg_color }}>
       <div
         className={`asset-content-wrapper ${
           isGlobalSearchModeLocal && isGlobalSearchActiveLocal

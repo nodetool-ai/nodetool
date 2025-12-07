@@ -284,8 +284,7 @@ const GlobalChat: React.FC = () => {
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",
-        background:
-          "linear-gradient(180deg, rgba(20, 20, 20, 0.95) 0%, rgba(10, 10, 10, 1) 100%)"
+        background: theme.vars.palette.c_editor_bg_color
         // Mobile styles handled via separate CSS file
       }}
     >
