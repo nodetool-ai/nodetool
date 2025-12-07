@@ -25,7 +25,13 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
   const onStartDownload = React.useCallback(
     (model: UnifiedModel) => {
       const repoId = model.repo_id || model.id;
-      startDownload(repoId, model.type ?? "", model.path ?? undefined);
+      startDownload(
+        repoId,
+        model.type ?? "",
+        model.path ?? undefined,
+        model.path ? undefined : (model.allow_patterns ?? undefined),
+        model.path ? undefined : (model.ignore_patterns ?? undefined)
+      );
       openDialog();
     },
     [startDownload, openDialog]
