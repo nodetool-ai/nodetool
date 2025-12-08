@@ -161,8 +161,9 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         update.downloadedBytes ?? currentDownload.downloadedBytes;
       const nextTotalBytes = update.totalBytes ?? currentDownload.totalBytes;
       const nextDownloadedFiles =
-        update.downloadedFiles ?? currentDownload.downloadedFiles;
-      const nextTotalFiles = update.totalFiles ?? currentDownload.totalFiles;
+        update.downloadedFiles ?? currentDownload.downloadedFiles ?? 0;
+      const nextTotalFiles =
+        update.totalFiles ?? currentDownload.totalFiles ?? 0;
       const nextStatusRaw = update.status ?? currentDownload.status;
 
       const incompleteBytes =
