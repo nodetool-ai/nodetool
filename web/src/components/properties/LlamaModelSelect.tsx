@@ -14,6 +14,7 @@ import {
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { isElectron } from "../../stores/ApiClient";
 // no providers here; always Ollama
 
 interface LlamaModelSelectProps {
@@ -122,9 +123,41 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             <CircularProgress size={24} />
           </Box>
         ) : ollamaError ? (
-          <MenuItem disabled>
-            <ListItemText primary="Error loading models" />
-          </MenuItem>
+          <Box sx={{ p: 2, maxWidth: 300 }}>
+            <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+              Could not load Ollama models
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 1 }}
+            >
+              {typeof (ollamaError as any)?.detail === "string"
+                ? (ollamaError as any).detail
+                : "Please check that Ollama is running"}
+            </Typography>
+            {isElectron ? (
+              <Typography
+                variant="caption"
+                color="warning.main"
+                sx={{ display: "block", mt: 1 }}
+              >
+                Ollama should be running automatically. Please try restarting
+                the application.
+              </Typography>
+            ) : (
+              <Typography
+                variant="caption"
+                component="a"
+                href="https://ollama.com/download"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ color: "primary.main", textDecoration: "underline" }}
+              >
+                Download Ollama →
+              </Typography>
+            )}
+          </Box>
         ) : sortedModels.length === 0 ? (
           <MenuItem disabled>
             <ListItemText primary="No models available" />
