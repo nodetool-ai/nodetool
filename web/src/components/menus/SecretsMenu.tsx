@@ -46,14 +46,14 @@ const SecretsMenu = () => {
   const [editingSecret, setEditingSecret] = useState<any | null>(null);
   const [formData, setFormData] = useState<SecretFormData>({
     key: "",
-    value: "",
+    value: ""
   });
 
   // Use React Query to trigger fetch, but use store state directly
   const { isLoading: queryLoading } = useQuery({
     queryKey: ["secrets"],
     queryFn: () => fetchSecrets(),
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    staleTime: 30000 // Consider data fresh for 30 seconds
   });
 
   const isLoading = storeLoading || queryLoading;
@@ -68,11 +68,7 @@ const SecretsMenu = () => {
   }, [safeSecrets]);
 
   const updateMutation = useMutation({
-    mutationFn: () =>
-      updateSecret(
-        editingSecret.key,
-        formData.value,
-      ),
+    mutationFn: () => updateSecret(editingSecret.key, formData.value),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["secrets"] });
       // Invalidate providers cache when secrets change, as provider availability
@@ -138,7 +134,7 @@ const SecretsMenu = () => {
     setEditingSecret(secret);
     setFormData({
       key: secret.key,
-      value: "",
+      value: ""
     });
     setOpenDialog(true);
   };
@@ -161,7 +157,9 @@ const SecretsMenu = () => {
   }, [formData, updateMutation, addNotification]);
 
   const handleDelete = (key: string) => {
-    if (window.confirm(`Are you sure you want to delete the secret "${key}"?`)) {
+    if (
+      window.confirm(`Are you sure you want to delete the secret "${key}"?`)
+    ) {
       deleteMutation.mutate(key);
     }
   };
@@ -174,10 +172,7 @@ const SecretsMenu = () => {
         </Typography>
       )}
       {isSuccess && (
-        <div
-          className="secrets-content"
-          css={getSharedSettingsStyles(theme)}
-        >
+        <div className="secrets-content" css={getSharedSettingsStyles(theme)}>
           <div className="settings-main-content">
             <Typography variant="h1">Secrets Management</Typography>
 
@@ -191,7 +186,8 @@ const SecretsMenu = () => {
 
             {safeSecrets.length === 0 ? (
               <Typography sx={{ textAlign: "center", padding: "2em" }}>
-                No secrets available. Contact your administrator to configure available secrets.
+                No secrets available. Contact your administrator to configure
+                available secrets.
               </Typography>
             ) : (
               <>
@@ -217,7 +213,9 @@ const SecretsMenu = () => {
                             variant="body2"
                             sx={{ fontWeight: 600, marginBottom: "0.25em" }}
                           >
-                            <code style={{ color: "var(--palette-primary-main)" }}>
+                            <code
+                              style={{ color: "var(--palette-primary-main)" }}
+                            >
                               {secret.key}
                             </code>
                           </Typography>
@@ -228,12 +226,23 @@ const SecretsMenu = () => {
                           )}
                           <Typography
                             variant="caption"
-                            sx={{ opacity: 0.7, marginTop: "0.5em", display: "block" }}
+                            sx={{
+                              opacity: 0.7,
+                              marginTop: "0.5em",
+                              display: "block"
+                            }}
                           >
-                            Updated: {new Date(secret.updated_at).toLocaleDateString()}
+                            Updated:{" "}
+                            {new Date(secret.updated_at).toLocaleDateString()}
                           </Typography>
                         </div>
-                        <div style={{ display: "flex", gap: "0.5em", flexShrink: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "0.5em",
+                            flexShrink: 0
+                          }}
+                        >
                           <Tooltip title="Update secret">
                             <IconButton
                               size="small"
@@ -281,7 +290,9 @@ const SecretsMenu = () => {
                             variant="body2"
                             sx={{ fontWeight: 600, marginBottom: "0.25em" }}
                           >
-                            <code style={{ color: "var(--palette-primary-main)" }}>
+                            <code
+                              style={{ color: "var(--palette-primary-main)" }}
+                            >
                               {secret.key}
                             </code>
                           </Typography>
@@ -292,7 +303,13 @@ const SecretsMenu = () => {
                             sx={{ marginTop: "0.5em" }}
                           />
                         </div>
-                        <div style={{ display: "flex", gap: "0.5em", flexShrink: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "0.5em",
+                            flexShrink: 0
+                          }}
+                        >
                           <Tooltip title="Set secret">
                             <IconButton
                               size="small"
@@ -340,20 +357,22 @@ const SecretsMenu = () => {
           <LockIcon sx={{ color: "var(--palette-primary-main)" }} />
           {editingSecret?.is_configured ? "Update Secret" : "Set Secret"}
         </DialogTitle>
-        <DialogContent sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1.5em",
-          paddingTop: "1.5em",
-          paddingBottom: "1.5em"
-        }}>
+        <DialogContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.5em",
+            paddingTop: "1.5em",
+            paddingBottom: "1.5em"
+          }}
+        >
           <Box>
             <TextField
               disabled={true}
               label="Key"
               value={formData.key}
               fullWidth
-              helperText="Secret key cannot be changed"
+              helperText="This is the secret name — update the value below"
               variant="outlined"
             />
           </Box>
@@ -391,7 +410,6 @@ const SecretsMenu = () => {
               Keep this value secure and do not share it publicly.
             </Typography>
           </Box>
-
         </DialogContent>
 
         <Divider />
@@ -416,10 +434,7 @@ const SecretsMenu = () => {
           <Button
             onClick={handleSave}
             variant="contained"
-            disabled={
-              updateMutation.isPending ||
-              !formData.value
-            }
+            disabled={updateMutation.isPending || !formData.value}
             sx={{
               textTransform: "none",
               fontSize: "0.95rem",
@@ -433,7 +448,11 @@ const SecretsMenu = () => {
               transition: "all 0.2s ease"
             }}
           >
-            {updateMutation.isPending ? "Saving..." : (editingSecret?.is_configured ? "Update" : "Set")}
+            {updateMutation.isPending
+              ? "Saving..."
+              : editingSecret?.is_configured
+              ? "Update"
+              : "Set"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -469,7 +488,8 @@ export const getSecretsSidebarSections = () => {
       category: "Configured Secrets",
       items: configured.map((secret: any) => ({
         id: `secret-${secret.key}`,
-        label: secret.key.replace(/_/g, " ")
+        label: secret.key
+          .replace(/_/g, " ")
           .toLowerCase()
           .replace(/\b\w/g, (char: string) => char.toUpperCase())
       }))
@@ -481,7 +501,8 @@ export const getSecretsSidebarSections = () => {
       category: "Available Secrets",
       items: unconfigured.map((secret: any) => ({
         id: `secret-${secret.key}`,
-        label: secret.key.replace(/_/g, " ")
+        label: secret.key
+          .replace(/_/g, " ")
           .toLowerCase()
           .replace(/\b\w/g, (char: string) => char.toUpperCase())
       }))
