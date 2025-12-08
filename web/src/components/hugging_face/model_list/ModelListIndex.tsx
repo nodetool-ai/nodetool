@@ -16,6 +16,7 @@ import ModelListItem from "./ModelListItem";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
+import { isElectron } from "../../../stores/ApiClient";
 
 const styles = (theme: Theme) =>
   css({
@@ -201,15 +202,60 @@ const ModelListIndex: React.FC = () => {
   }
 
   if (error) {
+    // Extract error message - API returns {detail: "..."} or {detail: [{msg: "..."}]}
+    const err = error as any;
+    const errorMessage =
+      typeof err?.detail === "string"
+        ? err.detail
+        : err?.detail?.[0]?.msg || err?.message || "Unknown error";
+
+    const isOllamaError = errorMessage.toLowerCase().includes("ollama");
+
     return (
-      <div className="status-container">
-        <Typography variant="h3">Could not load models.</Typography>
-        {error && (
-          <Typography variant="body2" color="error">
-            {error.message}
-          </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          gap: 2,
+          p: 4,
+          textAlign: "center"
+        }}
+      >
+        <Typography variant="h4" color="error">
+          Could not load models
+        </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ maxWidth: 600 }}
+        >
+          {errorMessage}
+        </Typography>
+        {isOllamaError && (
+          <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+            {isElectron ? (
+              <Typography variant="body2" color="warning.main">
+                Ollama should be running automatically. Please try restarting
+                the application.
+              </Typography>
+            ) : (
+              <Typography
+                variant="body2"
+                component="a"
+                href="https://ollama.com/download"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ color: "primary.main", textDecoration: "underline" }}
+              >
+                Download Ollama →
+              </Typography>
+            )}
+          </Box>
         )}
-      </div>
+      </Box>
     );
   }
 
