@@ -114,7 +114,7 @@ const styles = (theme: Theme) =>
         boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
         "&::before": {
           background: theme.vars.palette.primary.main,
-          height: "2px",
+          height: "1px",
           opacity: 1
         }
       },
