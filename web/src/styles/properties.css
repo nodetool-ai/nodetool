@@ -435,6 +435,7 @@
   font-family: var(--font_family1);
   font-size: var(--fontSizeSmall);
   color: var(--palette-primary-main);
+  margin-bottom: 10px;
 }
 
 .number-input label {
@@ -442,7 +443,7 @@
 }
 
 .number-input .value {
-  margin-top: 3px;
+  margin-top: -3px;
   font-family: var(--font_family2);
   font-size: var(--fontSizeNormal);
 }
@@ -452,7 +453,7 @@
   align-items: center;
   outline: none !important;
   width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   min-height: 18px;
   margin-top: -1px;
 }
@@ -477,7 +478,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin: 0 8px 0 0;
+  margin: -4px 8px 0 0;
   padding: 0;
 }
 
@@ -505,11 +506,10 @@
   border: none;
   border-radius: 0;
   font-family: var(--font_family2);
-  font-size: var(--fontSizeSmaller);
-  font-size: var(--fontSizeSmaller);
+  font-size: var(--fontSizeSmall);
   line-height: 1.5em;
   height: 12px;
-  top: -2px;
+  top: 2px;
   right: 0;
   margin: 0;
   padding: 0;
