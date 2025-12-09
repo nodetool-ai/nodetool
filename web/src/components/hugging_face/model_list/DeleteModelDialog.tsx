@@ -52,6 +52,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         dismissable: true
       });
       queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
+      queryClient.invalidateQueries({ queryKey: ["allModels"] });
     } finally {
       setDeletingModels((prev) => {
         const newSet = new Set(prev);
@@ -82,6 +83,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         dismissable: true
       });
       queryClient.invalidateQueries({ queryKey: ["ollamaModels"] });
+      queryClient.invalidateQueries({ queryKey: ["allModels"] });
     } finally {
       setDeletingModels((prev) => {
         const newSet = new Set(prev);
@@ -129,13 +131,46 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   const handleConfirmDelete = async () => {
     if (modelId) {
       const model = allModels?.find((m) => m.id === modelId);
-      if (model?.type === "llama_model") {
-        await deleteOllamaModel(modelId);
-      } else {
-        await deleteHFModel(modelId);
+      try {
+        if (model?.type === "llama_model") {
+          await deleteOllamaModel(modelId);
+        } else {
+          await deleteHFModel(modelId);
+        }
+        onClose();
+      } catch (error: any) {
+        console.error("Deletion error:", error);
+
+        // Extract error message
+        const errorMessage = error.message || "Unknown error";
+
+        // Check if error is "Not Found" (404)
+        const isNotFound =
+          errorMessage.includes("Not Found") || errorMessage.includes("404");
+
+        if (isNotFound) {
+          // If model is not found, treat as success (already deleted)
+          addNotification({
+            type: "warning",
+            content: `Model ${modelId} not found (may have been already deleted)`,
+            dismissable: true
+          });
+          queryClient.invalidateQueries({ queryKey: ["ollamaModels"] });
+          queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
+          queryClient.invalidateQueries({ queryKey: ["allModels"] });
+          onClose();
+        } else {
+          // Show error for other failures
+          addNotification({
+            type: "error",
+            content: errorMessage,
+            dismissable: true
+          });
+        }
       }
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   const isDeleting =
