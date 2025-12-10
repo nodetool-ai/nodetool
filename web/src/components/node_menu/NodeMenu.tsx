@@ -298,7 +298,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 focusSearchInput={focusSearchInput}
                 focusOnTyping={true}
                 placeholder="Search for nodes..."
-                debounceTime={30}
+                debounceTime={80}
                 width={390}
                 maxWidth={"400px"}
                 searchTerm={searchTerm}
