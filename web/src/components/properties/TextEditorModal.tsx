@@ -108,22 +108,26 @@ const styles = (theme: Theme) =>
       width: "calc(100vw - 51px)",
       height: "fit-content",
       padding: ".5em .5em 0 .5em",
-      backgroundColor: theme.vars.palette.glass.backgroundDialog,
-      backdropFilter: theme.vars.palette.glass.blur,
+      backgroundColor: "rgba(0, 0, 0, 0.2)", // Darker, more subtle overlay
+      backdropFilter: "blur(4px)",
       zIndex: 10000,
       display: "flex",
       justifyContent: "center",
-      alignItems: "flex-start"
+      alignItems: "flex-start",
+      transition: "all 0.2s ease-in-out"
     },
     ".modal-overlay.fullscreen": {
       top: 0,
       left: 0,
       width: "100vw",
       height: "100vh",
-      padding: 0
+      padding: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.4)"
     },
     ".modal-content": {
-      background: theme.vars.palette.glass.backgroundDialogContent,
+      background: "rgba(20, 23, 28, 0.75)", // More opaque for better readability
+      backdropFilter: "blur(16px)", // Stronger blur
+      WebkitBackdropFilter: "blur(16px)",
       color: theme.vars.palette.grey[100],
       fontSize: "var(--fontSizeBigger)",
       width: "92%",
@@ -133,8 +137,10 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       position: "relative",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: theme.vars.rounded.dialog
+      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderRadius: theme.vars.rounded.dialog,
+      boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)", // Custom XL shadow for glassmorphism
+      overflow: "hidden" // Ensure border-radius clips content
     },
     ".modal-content.fullscreen": {
       width: "100%",
@@ -142,25 +148,28 @@ const styles = (theme: Theme) =>
       height: "100%",
       borderRadius: 0,
       borderLeft: 0,
-      borderRight: 0
+      borderRight: 0,
+      borderTop: 0,
+      borderBottom: 0
     },
     ".modal-header": {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "flex-start",
-      padding: ".5em 3.5em .5em 1em",
-      minHeight: "2em",
-      background: "transparent",
-      position: "sticky",
-      top: 0,
+      alignItems: "center", // Center aligned items
+      padding: "0.75em 1.5em",
+      minHeight: "3.5em",
+      background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.0) 100%)",
+      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+      position: "relative", // Changed from sticky to avoid layout issues if not needed, or keep sticky if content scrolls
       zIndex: 5,
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
       h4: {
         cursor: "default",
         fontWeight: "600",
         margin: "0",
         fontSize: "var(--fontSizeBig)",
-        letterSpacing: "0.02em"
+        letterSpacing: "0.02em",
+        color: theme.vars.palette.text.primary,
+        textShadow: "0 1px 2px rgba(0,0,0,0.2)"
       }
     },
     ".title-and-description": {
@@ -168,12 +177,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       alignItems: "baseline",
-      gap: "1em"
+      gap: "1em",
+      overflow: "hidden"
     },
     ".toolbar-group": {
       display: "flex",
       alignItems: "center",
-      gap: ".25em",
+      gap: ".5em",
       "& + .toolbar-group": {
         borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
         marginLeft: ".5em",
@@ -183,32 +193,41 @@ const styles = (theme: Theme) =>
     ".code-tools": {
       display: "flex",
       alignItems: "center",
-      gap: ".25em",
+      gap: ".35em",
       marginRight: "0.5em"
     },
     ".language-select": {
-      background: "transparent",
-      color: theme.vars.palette.grey[0],
+      background: "rgba(0,0,0,0.2)",
+      color: theme.vars.palette.grey[100],
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "8px",
-      padding: "4px 6px",
+      borderRadius: "6px",
+      padding: "4px 8px",
       fontSize: "var(--fontSizeSmaller)",
-      outline: "none"
+      outline: "none",
+      transition: "all 0.2s ease",
+      cursor: "pointer",
+      "&:hover": {
+        borderColor: theme.vars.palette.grey[500],
+        background: "rgba(255,255,255,0.05)"
+      },
+      "&:focus": {
+        borderColor: theme.vars.palette.primary.main
+      }
     },
     ".description": {
-      width: "calc(100% - 100px)",
-      maxWidth: "800px",
-      maxHeight: "110px",
-      overflowY: "auto",
+      width: "100%",
+      maxWidth: "600px",
+      maxHeight: "1.5em",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
       padding: "0",
       margin: "0",
       fontSize: "var(--fontSizeSmaller)",
+      opacity: 0.7,
       p: {
-        color: theme.vars.palette.grey[200],
-        margin: "0 0 0.5em 0",
-        "&:last-child": {
-          margin: 0
-        }
+        margin: 0,
+        display: "inline"
       }
     },
     ".modal-body": {
@@ -216,7 +235,7 @@ const styles = (theme: Theme) =>
       flex: 1,
       display: "flex",
       flexDirection: "row",
-      padding: "1em 2em 1em 1em",
+      padding: "0", // Removed padding to edge-to-edge look
       background: "transparent",
       height: "100%",
       overflow: "hidden",
@@ -224,21 +243,22 @@ const styles = (theme: Theme) =>
         flex: 1,
         width: "100%",
         fontSize: "var(--fontSizeSmall)",
-        lineHeight: "1.2",
-        color: theme.vars.palette.grey[0],
-        // backgroundColor: theme.vars.palette.grey[600],
+        lineHeight: "1.5", // Slightly improved line height
+        color: theme.vars.palette.grey[100],
         outline: "none",
         overflow: "auto !important",
         height: "100%",
-        borderRadius: "4px",
+        padding: "1em 1.5em", // Add padding inside editor instead of parent
         pre: {
           height: "100%",
-          overflowWrap: "break-word"
+          overflowWrap: "break-word",
+          fontFamily: "'JetBrains Mono', 'Fira Code', monospace" // Ensure nice code font if available
         },
         textarea: {
           overflowWrap: "break-word",
           height: "100% !important",
-          width: "100% !important"
+          width: "100% !important",
+          fontFamily: "inherit"
         },
         "&.word-wrap": {
           whiteSpace: "pre-wrap",
@@ -266,14 +286,15 @@ const styles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        overflow: "hidden"
+        overflow: "hidden",
+        position: "relative"
       },
       ".assistant-pane": {
-        width: "40%",
-        minWidth: "320px",
-        maxWidth: "560px",
-        borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
-        marginLeft: "1em",
+        width: "35%",
+        minWidth: "300px",
+        maxWidth: "500px",
+        borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
+        background: "rgba(0,0,0,0.1)", // Subtle transform
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -282,110 +303,123 @@ const styles = (theme: Theme) =>
     },
     ".actions": {
       display: "flex",
-      gap: ".5em",
+      gap: ".6em",
       alignItems: "center",
-      flexWrap: "wrap",
-      marginTop: "0",
-      marginRight: "0"
+      flexWrap: "nowrap"
     },
     ".copy-to-clipboard-button": {
       position: "absolute",
-      right: ".3em",
+      right: "1.5em",
       top: "1em",
       zIndex: 10,
-      padding: "8px !important",
-      backgroundColor: "transparent",
-      color: `${theme.vars.palette.grey[0]} !important`,
-      borderRadius: "4px !important",
+      padding: "6px !important",
+      backgroundColor: "rgba(0,0,0,0.3)",
+      color: `${theme.vars.palette.grey[200]} !important`,
+      borderRadius: "6px !important",
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: "500",
+      backdropFilter: "blur(2px)",
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      minWidth: "28px",
+      minHeight: "28px",
       transition: "all 0.2s ease",
-      minWidth: "32px",
-      minHeight: "32px",
       "&:hover": {
-        backgroundColor: `${theme.vars.palette.grey[600]} `
+        backgroundColor: `${theme.vars.palette.grey[700]} !important`,
+        color: `${theme.vars.palette.text.primary} !important`,
+        borderColor: theme.vars.palette.grey[500]
       }
     },
     ".button": {
-      padding: "6px 8px",
+      padding: "6px 10px",
       cursor: "pointer",
-      color: theme.vars.palette.grey[0],
-      textTransform: "uppercase",
-      borderRadius: "8px",
+      color: theme.vars.palette.text.primary,
+      textTransform: "none", // Updated to mixed case for cleaner look
+      borderRadius: "6px",
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: "600",
-      transition: "all 0.2s ease",
+      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      minWidth: "34px",
-      minHeight: "34px",
-      background:
-        "linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.06) 100%)",
-      backdropFilter: theme.vars.palette.glass.blur,
-      WebkitBackdropFilter: theme.vars.palette.glass.blur,
+      minWidth: "32px",
+      minHeight: "32px",
+      background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
       "&:hover": {
         transform: "translateY(-1px)",
-        borderColor: theme.vars.palette.grey[600]
+        background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.08) 100%)",
+        borderColor: theme.vars.palette.grey[500],
+        boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
       },
       "&:active": {
         transform: "translateY(0)",
-        boxShadow:
-          "inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 10px rgba(0,0,0,0.2)"
+        background: "rgba(0,0,0,0.2)",
+        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.2)"
       }
     },
     ".button-close": {
-      position: "absolute",
-      padding: "5px",
-      right: ".5em",
+      marginLeft: "0.5em",
+      padding: "6px",
       minWidth: "32px",
       minHeight: "32px",
+      borderRadius: "6px",
+      color: theme.vars.palette.grey[400],
+      transition: "all 0.2s ease",
       "&:hover": {
-        transform: "translateY(-1px)"
+        backgroundColor: "rgba(255, 59, 48, 0.2)", // Subtle red hover
+        color: "#ff3b30",
+        transform: "rotate(90deg)"
       }
     },
     ".button-ghost": {
-      padding: "6px 8px",
+      padding: "6px",
       cursor: "pointer",
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.grey[300],
       fontSize: "var(--fontSizeSmaller)",
-      borderRadius: "8px",
+      borderRadius: "6px",
       background: "transparent",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      minWidth: "34px",
-      minHeight: "34px",
+      border: "1px solid transparent",
+      minWidth: "32px",
+      minHeight: "32px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700]
+        backgroundColor: "rgba(255,255,255,0.1)",
+        color: theme.vars.palette.text.primary,
+        borderColor: "rgba(255,255,255,0.1)"
       }
     },
     ".resize-handle": {
       position: "relative",
-      height: "10px",
+      height: "12px",
       width: "100%",
       cursor: "row-resize",
-      // borderRadius: "4px",
-      backgroundColor: theme.vars.palette.grey[600],
-      borderTop: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: "transparent",
+      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      transition: "all 0.2s ease",
       "&:hover": {
-        // backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: "rgba(255,255,255,0.02)"
       },
       "&:hover .resize-handle-thumb": {
-        backgroundColor: theme.vars.palette.grey[100]
+        backgroundColor: theme.vars.palette.primary.main,
+        transform: "translate(-50%, -50%) scaleX(1.1)"
       }
     },
     ".resize-handle-thumb": {
       position: "absolute",
-      width: "100px",
+      width: "60px",
       height: "4px",
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      backgroundColor: theme.vars.palette.grey[400],
-      borderRadius: "4px"
+      backgroundColor: theme.vars.palette.grey[700],
+      borderRadius: "10px",
+      transition: "all 0.2s ease"
     },
     "@media (max-width: 1200px)": {
       ".modal-content": {
@@ -393,7 +427,7 @@ const styles = (theme: Theme) =>
       },
       ".assistant-pane": {
         width: "36%",
-        minWidth: "300px"
+        minWidth: "280px"
       }
     },
     "@media (max-width: 900px)": {
@@ -403,8 +437,7 @@ const styles = (theme: Theme) =>
         gap: ".25em"
       },
       ".description": {
-        width: "100%",
-        maxWidth: "100%"
+        display: "none" // Hide description on small screens to save space
       },
       ".modal-body": {
         flexDirection: "column"
@@ -414,13 +447,14 @@ const styles = (theme: Theme) =>
         minWidth: "unset",
         maxWidth: "unset",
         marginLeft: 0,
-        marginTop: "1em",
+        marginTop: "0",
         borderLeft: "none",
-        borderTop: `1px solid ${theme.vars.palette.grey[700]}`
+        borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+        height: "40%" // Fixed height interaction on mobile
       },
       ".button": {
-        minWidth: "40px",
-        minHeight: "40px"
+        minWidth: "36px",
+        minHeight: "36px"
       }
     }
   });
