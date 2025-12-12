@@ -668,17 +668,20 @@ export async function uninstallPackage(
 
 /**
  * Update a package using wheel-based package index
+ * Forces a true reinstall by clearing the uv cache and reinstalling the package
  */
 export async function updatePackage(repoId: string): Promise<PackageResponse> {
   try {
     const packageName = repoId.split("/")[1];
 
-    logMessage(`Updating ${packageName} with Nodetool extra index`);
+    logMessage(`Updating ${packageName} with Nodetool extra index (forcing reinstall)`);
 
     const args = [
       "pip",
       "install",
       "--upgrade",
+      "--reinstall",  // Force reinstall even if same version
+      "--refresh",    // Clear cache and fetch fresh from index
       "--index-url",
       PYPI_SIMPLE_INDEX_URL,
       "--extra-index-url",
