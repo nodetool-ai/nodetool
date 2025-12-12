@@ -298,7 +298,9 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           isMenuOpen: get().isMenuOpen,
           selectedPath: get().selectedPath
         });
-        if (searchId !== undefined && searchId !== get().currentSearchId) {
+        // Check against the local pendingSearchId to detect stale requests
+        // Note: searchId comes from scheduleSearch which uses pendingSearchId
+        if (searchId !== undefined && searchId !== pendingSearchId) {
           return;
         }
 
