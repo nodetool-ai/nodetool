@@ -149,8 +149,8 @@ const OutputContextMenu: React.FC = () => {
         targetHandle = getTargetHandle(sourceType?.type || "", nodeType);
       }
 
-      if (newNode.data.properties.name) {
-        newNode.data.properties.name = targetHandle;
+      if (sourceHandle && newNode.data.properties.name !== undefined) {
+        newNode.data.properties.name = sourceHandle;
       }
 
       addNode(newNode);
