@@ -234,7 +234,30 @@ export const createStyles = (theme: Theme) => {
       flexDirection: "column",
       gap: theme.spacing(1),
       overflowX: "auto",
-      position: "relative"
+      position: "relative",
+
+      // Fix text output styling - override the fixed height from OutputRenderer styles
+      ".output.value": {
+        height: "auto",
+        minHeight: "auto",
+        maxHeight: "none"
+      },
+
+      // Ensure text wraps properly
+      ".no-markdown-text": {
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word"
+      },
+
+      // Hide copy button by default, show on hover
+      ".result-card-copy-button": {
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out"
+      },
+
+      "&:hover .result-card-copy-button": {
+        opacity: 1
+      }
     },
 
     ".result-placeholder": {
