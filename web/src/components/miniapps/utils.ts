@@ -21,6 +21,8 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
       return "float";
     case "nodetool.input.ImageInput":
       return "image";
+    case "nodetool.input.AudioInput":
+      return "audio";
     case "nodetool.input.FilePathInput":
       return "file_path";
     default:

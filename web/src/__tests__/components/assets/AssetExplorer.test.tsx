@@ -1,5 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import ThemeNodetool from "../../../components/themes/ThemeNodetool";
 import AssetExplorer from "../../../components/assets/AssetExplorer";
 
 // Mock child components and hooks to isolate AssetExplorer behavior
@@ -31,10 +33,13 @@ jest.mock("react-router-dom", () => ({
 
 describe("AssetExplorer", () => {
   it("renders AppHeader and AssetGrid with provided assets", () => {
-    render(<AssetExplorer />);
+    render(
+      <ThemeProvider theme={ThemeNodetool}>
+        <AssetExplorer />
+      </ThemeProvider>
+    );
     expect(screen.getByTestId("app-header")).toBeInTheDocument();
     const grid = screen.getByTestId("asset-grid");
     expect(grid).toHaveTextContent("asset-grid:2");
   });
 });
-

@@ -24,7 +24,7 @@ const WorkflowFormModal = ({
       maxWidth="sm"
       fullWidth
     >
-      <DialogContent sx={{ bgcolor: "background.paper" }}>
+      <DialogContent sx={{ bgcolor: "background.paper", p: 0 }}>
         <WorkflowForm onClose={onClose} workflow={workflow} />
       </DialogContent>
     </Dialog>

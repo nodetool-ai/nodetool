@@ -99,6 +99,16 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
 }
 
 /**
+ * Convert npm/semver version to PEP 440 (Python) version format
+ * e.g., "0.6.2-rc.9" -> "0.6.2rc9"
+ */
+function convertToPep440Version(npmVersion: string): string {
+  // Remove the '-' before prerelease tags and '.' within them
+  // npm: 0.6.2-rc.9 -> pip: 0.6.2rc9
+  return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
+}
+
+/**
  * Update the Python environment packages using wheel-based package index
  */
 async function updateCondaEnvironment(packages: string[]): Promise<void> {
@@ -109,10 +119,18 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
     const PACKAGE_INDEX_URL =
       "https://nodetool-ai.github.io/nodetool-registry/simple/";
 
-    // Convert repo IDs to package names for wheel installation
-    const corePackages = ["nodetool-core", "nodetool-base"];
+    // Get version from package.json via Electron's app.getVersion()
+    const appVersion = app.getVersion();
+    const pipVersion = convertToPep440Version(appVersion);
+    logMessage(`Pinning packages to version: ${pipVersion} (from ${appVersion})`);
 
-    // Convert additional packages from repo format to package names
+    // Convert repo IDs to package names for wheel installation, pinned to app version
+    const corePackages = [
+      `nodetool-core==${pipVersion}`,
+      `nodetool-base==${pipVersion}`,
+    ];
+
+    // Convert additional packages from repo format to package names, pinned to app version
     const additionalPackages = packages.map((repoId) => {
       if (!repoId) {
         return repoId;
@@ -123,12 +141,16 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
         return trimmed;
       }
 
+      let packageName: string;
       if (!trimmed.includes("/")) {
-        return trimmed;
+        packageName = trimmed;
+      } else {
+        const [, name = ""] = trimmed.split("/", 2);
+        packageName = name || trimmed;
       }
 
-      const [, packageName = ""] = trimmed.split("/", 2);
-      return packageName || trimmed;
+      // Pin to the same version as the app
+      return `${packageName}==${pipVersion}`;
     });
 
     const allPackages = [...corePackages, ...additionalPackages];
@@ -147,7 +169,7 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
 
     if (process.platform !== "darwin") {
       installCommand.push("--extra-index-url");
-      installCommand.push("https://download.pytorch.org/whl/cu126");
+      installCommand.push("https://download.pytorch.org/whl/cu129");
     }
 
     logMessage(`Running command: ${installCommand.join(" ")}`);

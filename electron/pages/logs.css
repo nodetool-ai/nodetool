@@ -177,6 +177,17 @@ h1 {
   color: #fff;
 }
 
+.btn-outline {
+  border-color: #666;
+  color: #ccc;
+  background: transparent;
+}
+
+.btn-outline:hover {
+  border-color: #888;
+  background-color: rgba(255,255,255,0.05);
+}
+
 .logs-container {
   flex: 1;
   overflow-y: auto;
@@ -213,12 +224,32 @@ h1 {
   padding: 6px 10px;
   margin-bottom: 2px;
   border-left: 3px solid transparent;
-  transition: background-color 0.15s;
+  transition: background-color 0.15s, transform 0.1s;
   border-radius: 4px;
+  cursor: pointer;
+  position: relative;
 }
 
 .log-entry:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.log-entry:active {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(0.995);
+}
+
+.log-entry.copied {
+  background-color: rgba(76, 175, 80, 0.15);
+}
+
+.log-entry.selected {
+  background-color: rgba(90, 159, 212, 0.2);
+  border-left-color: #5a9fd4;
+}
+
+.log-entry.selected:hover {
+  background-color: rgba(90, 159, 212, 0.28);
 }
 
 .log-index {
@@ -234,6 +265,31 @@ h1 {
   flex: 1;
   word-wrap: break-word;
   white-space: pre-wrap;
+}
+
+.copied-badge {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0.9); }
+  to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+.btn.copied {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.15)) !important;
+  border-color: #4caf50 !important;
+  color: #a5d6a7 !important;
 }
 
 .log-info {

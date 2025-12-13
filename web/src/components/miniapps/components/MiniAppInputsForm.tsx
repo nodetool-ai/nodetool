@@ -12,6 +12,7 @@ import IntegerProperty from "../../properties/IntegerProperty";
 import FloatProperty from "../../properties/FloatProperty";
 import BoolProperty from "../../properties/BoolProperty";
 import ImageProperty from "../../properties/ImageProperty";
+import AudioProperty from "../../properties/AudioProperty";
 import FilePathProperty from "../../properties/FilePathProperty";
 import {
   MiniAppInputDefinition,
@@ -38,6 +39,7 @@ const KIND_TO_PROPERTY_TYPE: Record<
   float: "float",
   boolean: "bool",
   image: "image",
+  audio: "audio",
   file_path: "str"
 };
 
@@ -48,7 +50,8 @@ const PROPERTY_COMPONENT_MAP: Partial<
   int: IntegerProperty,
   float: FloatProperty,
   bool: BoolProperty,
-  image: ImageProperty
+  image: ImageProperty,
+  audio: AudioProperty
 };
 
 const JSON_SCHEMA_EXTRA_TYPE_MAP: Partial<

@@ -36,12 +36,209 @@ const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
 const styles = (theme: Theme) =>
   css({
     "&": {
-      margin: theme.spacing(2)
+      margin: 0,
+      padding: theme.spacing(3),
+      minWidth: "420px",
+      maxWidth: "500px"
     },
+    
+    // Header styling
+    ".workflow-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(2),
+      marginBottom: theme.spacing(4),
+      paddingBottom: theme.spacing(2),
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      "& h3": {
+        margin: 0,
+        fontSize: "1.25rem",
+        fontWeight: 600,
+        color: theme.vars.palette.grey[0],
+        letterSpacing: "-0.02em"
+      }
+    },
+    
+    // Section grouping
+    ".settings-section": {
+      marginBottom: theme.spacing(3),
+      padding: theme.spacing(2),
+      backgroundColor: "rgba(255, 255, 255, 0.02)",
+      borderRadius: "8px",
+      border: `1px solid ${theme.vars.palette.grey[800]}`
+    },
+    
+    ".section-title": {
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 600,
+      color: theme.vars.palette.grey[300],
+      textTransform: "uppercase",
+      letterSpacing: "0.08em",
+      marginBottom: theme.spacing(2)
+    },
+    
+    // Form controls
+    ".MuiFormControl-root": {
+      marginBottom: theme.spacing(2),
+      "&:last-child": {
+        marginBottom: 0
+      }
+    },
+    
+    ".MuiFormLabel-root": {
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 500,
+      color: theme.vars.palette.grey[200],
+      marginBottom: theme.spacing(0.75),
+      display: "block"
+    },
+    
+    ".MuiOutlinedInput-root": {
+      backgroundColor: theme.vars.palette.grey[900],
+      borderRadius: "6px",
+      transition: "all 0.2s ease",
+      "& fieldset": {
+        borderColor: theme.vars.palette.grey[700],
+        transition: "border-color 0.2s ease"
+      },
+      "&:hover fieldset": {
+        borderColor: theme.vars.palette.grey[500]
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: "var(--palette-primary-main)",
+        borderWidth: "1px"
+      }
+    },
+    
+    ".MuiOutlinedInput-input": {
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeNormal,
+      color: theme.vars.palette.grey[0],
+      padding: "10px 12px"
+    },
+    
+    ".MuiFormHelperText-root": {
+      fontSize: "0.7rem",
+      color: theme.vars.palette.grey[400],
+      marginTop: theme.spacing(0.5),
+      marginLeft: 0
+    },
+    
+    // Tag input
+    ".tag-input": {
+      "& .MuiOutlinedInput-root": {
+        fontFamily: theme.fontFamily1,
+        color: theme.vars.palette.grey[0],
+        minHeight: "42px"
+      },
+      "& .MuiAutocomplete-popper": {
+        backgroundColor: theme.vars.palette.grey[800],
+        zIndex: theme.zIndex.autocomplete,
+        "& .MuiPaper-root": {
+          backgroundColor: theme.vars.palette.grey[800],
+          color: theme.vars.palette.grey[0],
+          borderRadius: "6px",
+          border: `1px solid ${theme.vars.palette.grey[700]}`
+        },
+        "& .MuiAutocomplete-option": {
+          fontSize: theme.fontSizeSmall,
+          "&:hover": {
+            backgroundColor: theme.vars.palette.grey[600]
+          },
+          "&[aria-selected='true']": {
+            backgroundColor: theme.vars.palette.grey[500]
+          }
+        }
+      },
+      "& .MuiChip-root": {
+        color: theme.vars.palette.grey[0],
+        backgroundColor: theme.vars.palette.grey[700],
+        borderColor: theme.vars.palette.grey[500],
+        fontSize: theme.fontSizeSmall,
+        height: "26px"
+      }
+    },
+    
+    // Shortcut input
+    ".shortcut-input-container": {
+      position: "relative",
+      display: "flex",
+      alignItems: "center"
+    },
+    
+    ".shortcut-input .MuiOutlinedInput-root": {
+      cursor: "pointer",
+      fontFamily: theme.fontFamily1,
+      color: theme.vars.palette.grey[0],
+      "&.Mui-focused": {
+        backgroundColor: theme.vars.palette.grey[800]
+      }
+    },
+    
+    ".clear-button": {
+      position: "absolute",
+      right: "8px",
+      color: theme.vars.palette.grey[300],
+      fontSize: theme.fontSizeSmall,
+      textTransform: "none",
+      minWidth: "auto",
+      padding: "4px 10px",
+      "&:hover": {
+        color: theme.vars.palette.grey[0],
+        backgroundColor: "rgba(255, 255, 255, 0.1)"
+      }
+    },
+    
+    // Run mode select
+    ".MuiSelect-select": {
+      fontFamily: theme.fontFamily1
+    },
+    
+    // Button container
+    ".button-container": {
+      display: "flex",
+      gap: theme.spacing(2),
+      marginTop: theme.spacing(4),
+      paddingTop: theme.spacing(3),
+      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      justifyContent: "flex-end"
+    },
+    
+    ".cancel-button": {
+      backgroundColor: "transparent",
+      color: theme.vars.palette.grey[200],
+      padding: "8px 20px",
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 500,
+      textTransform: "none",
+      borderRadius: "6px",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[700]
+      }
+    },
+    
+    ".save-button": {
+      background: "linear-gradient(135deg, var(--palette-primary-main) 0%, #1976d2 100%)",
+      color: "#fff",
+      padding: "8px 28px",
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 600,
+      textTransform: "none",
+      borderRadius: "6px",
+      border: "none",
+      boxShadow: "0 2px 8px rgba(33, 150, 243, 0.3)",
+      transition: "all 0.2s ease",
+      "&:hover": {
+        boxShadow: "0 4px 12px rgba(33, 150, 243, 0.4)",
+        transform: "translateY(-1px)"
+      }
+    },
+    
+    // Thumbnail (commented out but keeping styles)
     ".thumbnail-img": {
       position: "relative",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
-      borderRadius: "4px",
+      borderRadius: "6px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -60,100 +257,6 @@ const styles = (theme: Theme) =>
       top: "1px",
       right: "1px",
       backgroundColor: "#333333cc"
-    },
-    "input, textarea, .MuiSelect-select": {
-      fontFamily: theme.fontFamily1
-    },
-    ".tag-input": {
-      marginBottom: theme.spacing(2),
-      "& .MuiOutlinedInput-root": {
-        fontFamily: theme.fontFamily1,
-        color: theme.vars.palette.grey[0]
-      },
-      "& .MuiAutocomplete-popper": {
-        backgroundColor: theme.vars.palette.grey[800],
-        zIndex: theme.zIndex.autocomplete,
-        "& .MuiPaper-root": {
-          backgroundColor: theme.vars.palette.grey[800],
-          color: theme.vars.palette.grey[0]
-        },
-        "& .MuiAutocomplete-option": {
-          "&:hover": {
-            backgroundColor: theme.vars.palette.grey[600]
-          },
-          "&[aria-selected='true']": {
-            backgroundColor: theme.vars.palette.grey[500]
-          }
-        }
-      },
-      "& .MuiChip-root": {
-        color: theme.vars.palette.grey[0],
-        borderColor: theme.vars.palette.grey[500]
-      }
-    },
-    ".workflow-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(2),
-      marginBottom: theme.spacing(3),
-      padding: theme.spacing(2, 0),
-      "& h3": {
-        margin: 0,
-        fontSize: "1.5rem",
-        fontWeight: 500,
-        color: theme.vars.palette.grey[0]
-      }
-    },
-    ".button-container": {
-      display: "flex",
-      gap: theme.spacing(10),
-      marginTop: theme.spacing(5),
-      justifyContent: "space-between"
-    },
-    ".save-button": {
-      backgroundColor: theme.vars.palette.grey[800],
-      border: "1px solid" + theme.vars.palette.grey[500],
-      color: "var(--palette-primary-main)",
-      width: "120px",
-      height: "40px",
-      "&.MuiButton-root": {
-        fontSize: theme.fontSizeNormal
-      },
-      "&:hover": {
-        border: "1px solid" + theme.vars.palette.grey[0]
-      }
-    },
-    ".cancel-button": {
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[100],
-      width: "120px",
-      height: "40px",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600]
-      }
-    },
-    ".shortcut-input": {
-      "& .MuiOutlinedInput-root": {
-        cursor: "pointer",
-        fontFamily: theme.fontFamily1,
-        color: theme.vars.palette.grey[0],
-        "&.Mui-focused": {
-          backgroundColor: theme.vars.palette.grey[600]
-        }
-      }
-    },
-    ".shortcut-input-container": {
-      position: "relative",
-      display: "flex",
-      alignItems: "center",
-      "& .clear-button": {
-        position: "absolute",
-        right: "8px",
-        color: theme.vars.palette.grey[100],
-        "&:hover": {
-          color: theme.vars.palette.grey[0]
-        }
-      }
     }
   });
 
@@ -288,11 +391,15 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
 
   return (
     <div css={styles(theme)} className="workflow-form">
-      <Box sx={{ pl: 2, pr: 2 }}>
-        <div className="workflow-header">
-          <Typography variant="h3">Workflow Settings</Typography>
-        </div>
-        <FormControl>
+      <div className="workflow-header">
+        <Typography variant="h3">Workflow Settings</Typography>
+      </div>
+
+      {/* Basic Information Section */}
+      <div className="settings-section">
+        <Typography className="section-title">Basic Information</Typography>
+        
+        <FormControl fullWidth>
           <FormLabel htmlFor="name">Name</FormLabel>
           <OutlinedInput
             fullWidth
@@ -304,23 +411,8 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             onChange={handleChange}
           />
         </FormControl>
-        <FormControl>
-          <FormLabel htmlFor="tool_name">Tool Name</FormLabel>
-          <OutlinedInput
-            fullWidth
-            name="tool_name"
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            value={localWorkflow.tool_name || ""}
-            onChange={handleToolNameChange}
-            placeholder="letters_numbers_or_underscores"
-          />
-          <FormHelperText>
-            Only letters, numbers, and underscores are allowed.
-          </FormHelperText>
-        </FormControl>
-        <FormControl>
+
+        <FormControl fullWidth>
           <FormLabel htmlFor="description">Description</FormLabel>
           <OutlinedInput
             name="description"
@@ -330,35 +422,10 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             spellCheck={false}
             autoComplete="off"
             autoCorrect="off"
-            minRows={1}
-            style={{
-              width: "100%",
-              backgroundColor: "transparent",
-              color: "white",
-              fontSize: theme.fontSizeNormal
-            }}
+            minRows={2}
           />
         </FormControl>
-        {/* <FormControl className="thumbnail">
-          <FormLabel htmlFor="thumbnail">Thumbnail</FormLabel>
-          <Box
-            className="thumbnail-img"
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            {...tooltipAttributes}
-            sx={{
-              backgroundImage: `url(${workflow.thumbnail_url})`
-            }}
-          >
-            {!workflow.thumbnail_url && "Drop image"}
-            {workflow.thumbnail_url && (
-              <DeleteButton
-                item={workflow}
-                onClick={(e) => deleteThumbnail(e)}
-              />
-            )}
-          </Box>
-        </FormControl> */}
+
         <FormControl fullWidth>
           <FormLabel htmlFor="tags">Tags</FormLabel>
           <Autocomplete
@@ -379,10 +446,33 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             )}
           />
         </FormControl>
-        {/* <FormControl fullWidth>
-          <FormLabel htmlFor="shortcut">
-            Keyboard Shortcut for Running Workflow
-          </FormLabel>
+      </div>
+
+      {/* Execution Section */}
+      <div className="settings-section">
+        <Typography className="section-title">Execution</Typography>
+
+        <FormControl fullWidth>
+          <FormLabel>Run Mode</FormLabel>
+          <TextField
+            select
+            value={localWorkflow.run_mode || "workflow"}
+            onChange={(e) =>
+              setLocalWorkflow((prev: Workflow) => ({
+                ...prev,
+                run_mode: e.target.value
+              }))
+            }
+          >
+            <MenuItem value="workflow">Workflow</MenuItem>
+            <MenuItem value="chat">Chat</MenuItem>
+            <MenuItem value="app">App</MenuItem>
+            <MenuItem value="tool">Tool</MenuItem>
+          </TextField>
+        </FormControl>
+
+        <FormControl fullWidth>
+          <FormLabel htmlFor="shortcut">Keyboard Shortcut</FormLabel>
           <div className="shortcut-input-container">
             <OutlinedInput
               className="shortcut-input"
@@ -408,36 +498,42 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
               </Button>
             )}
           </div>
-        </FormControl> */}
-        <FormControl fullWidth sx={{ mt: 2 }}>
-          <FormLabel>Run Mode</FormLabel>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
-            <TextField
-              select
-              value={localWorkflow.run_mode || "workflow"}
-              onChange={(e) =>
-                setLocalWorkflow((prev: Workflow) => ({
-                  ...prev,
-                  run_mode: e.target.value
-                }))
-              }
-            >
-              <MenuItem value="workflow">Workflow</MenuItem>
-              <MenuItem value="chat">Chat</MenuItem>
-              <MenuItem value="app">App</MenuItem>
-              <MenuItem value="tool">Tool</MenuItem>
-            </TextField>
-          </Box>
+          <FormHelperText>
+            Global shortcut to run this workflow (Electron only)
+          </FormHelperText>
         </FormControl>
-        <div className="button-container">
-          <Button className="cancel-button" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button className="save-button" onClick={handleSave}>
-            Save
-          </Button>
-        </div>
-      </Box>
+      </div>
+
+      {/* Advanced Section */}
+      <div className="settings-section">
+        <Typography className="section-title">Advanced</Typography>
+        
+        <FormControl fullWidth>
+          <FormLabel htmlFor="tool_name">Tool Name</FormLabel>
+          <OutlinedInput
+            fullWidth
+            name="tool_name"
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            value={localWorkflow.tool_name || ""}
+            onChange={handleToolNameChange}
+            placeholder="my_workflow_tool"
+          />
+          <FormHelperText>
+            Identifier for API/tool usage. Letters, numbers, underscores only.
+          </FormHelperText>
+        </FormControl>
+      </div>
+
+      <div className="button-container">
+        <Button className="cancel-button" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button className="save-button" onClick={handleSave}>
+          Save Changes
+        </Button>
+      </div>
     </div>
   );
 };

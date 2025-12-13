@@ -14,9 +14,6 @@ const srcPath: string = app.isPackaged
 const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
   : path.join(__dirname, "..", "..", "web", "dist");
-const appsPath: string = app.isPackaged
-  ? path.join(process.resourcesPath, "apps")
-  : path.join(__dirname, "..", "..", "apps", "dist");
 
 const PID_DIRECTORY: string = path.join(app.getPath("temp"), "nodetool-electron");
 const PID_FILE_PATH: string = path.join(PID_DIRECTORY, "server.pid");
@@ -286,5 +283,4 @@ export {
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,
-  appsPath,
 };

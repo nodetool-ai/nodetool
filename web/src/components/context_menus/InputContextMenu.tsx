@@ -143,6 +143,9 @@ const InputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
+      if (handleId && newNode.data.properties.name !== undefined) {
+        newNode.data.properties.name = handleId;
+      }
       addNode(newNode);
       const validEdges = edges.filter(
         (edge: Edge) =>

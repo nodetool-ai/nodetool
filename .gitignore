@@ -16,7 +16,6 @@ __pycache__
 build/
 coverage/
 dist/
-electron/apps/build/
 electron/dist/
 electron/dist-web/
 electron/dist-electron/

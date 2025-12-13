@@ -14,7 +14,6 @@ NodeTool follows a client-server architecture with multiple components:
 
    - Web UI (React/TypeScript): Visual editor for building AI workflows
    - Electron Wrapper: Packages the web UI into a desktop application
-   - Apps UI: Standalone mini-applications created from workflows
 
 2. **Backend Components:**
 
@@ -32,7 +31,6 @@ NodeTool follows a client-server architecture with multiple components:
 
 - `/web`: Main React web application (editor UI)
 - `/electron`: Electron desktop app wrapper
-- `/apps`: Mini-app builder components
 - `/docs`: Documentation files
 - `/scripts`: Build and release scripts
 
@@ -55,19 +53,13 @@ NodeTool follows a client-server architecture with multiple components:
    npm start
    ```
 
-   - Access at http://localhost:3000
+   - Access at <http://localhost:3000>
 
 3. **Electron App Development:**
 
    ```bash
    # Build the web UI first
    cd web
-   npm install
-   npm run build
-   cd ..
-
-   # Build the apps UI
-   cd apps
    npm install
    npm run build
    cd ..
@@ -87,14 +79,8 @@ NodeTool follows a client-server architecture with multiple components:
    npm run build
    ```
 
-2. **Apps UI Build:**
+2. **Electron App Build:**
 
-   ```bash
-   cd apps
-   npm run build
-   ```
-
-3. **Electron App Build:**
    ```bash
    cd electron
    npm run build
@@ -111,16 +97,8 @@ NodeTool follows a client-server architecture with multiple components:
    npm run typecheck   # Check TypeScript types
    ```
 
-2. **Apps UI:**
+2. **Electron App:**
 
-   ```bash
-   cd apps
-   npm run lint
-   npm run lint:fix
-   npm run typecheck
-   ```
-
-3. **Electron App:**
    ```bash
    cd electron
    npm run lint
@@ -131,6 +109,7 @@ NodeTool follows a client-server architecture with multiple components:
 ### Testing
 
 1. **Web UI Tests:**
+
    ```bash
    cd web
    npm test
@@ -260,6 +239,7 @@ _Usage: These hooks manage graph connections and UI panel behaviors._
    ```
 
 4. **File Hooks**: Handle complex file operations with loading states
+
    ```typescript
    const { onDragOver, onDrop, uploading, filename } = useFileDrop({
      type: "image",
@@ -283,6 +263,7 @@ _Usage: These hooks manage graph connections and UI panel behaviors._
    - Use shallow comparison for selectors when possible
 
 3. **Store Organization:**
+
    ```typescript
    interface WorkflowState {
      workflows: Workflow[];
@@ -444,6 +425,7 @@ _Usage: These utilities handle data transformation between backend API and React
    ```
 
 4. **Store with Computed Values:**
+
    ```typescript
    // Use selectors for derived state
    const selectedNodes = useNodeStore((state) =>
@@ -687,10 +669,6 @@ Routes are created via `createBrowserRouter(getRoutes())`:
   - Wrapped in `ProtectedRoute`
   - Layout: `AppHeader` at top, `PanelLeft`, `GlobalChat`, `PanelBottom`
   - `GlobalChat` (`web/src/components/chat/containers/GlobalChat.tsx`) orchestrates threads, messages, and tool use
-
-- `/apps/:workflowId?` – mini-app runner:
-  - Protected route with `AppHeader`, `PanelLeft`, `MiniAppPage`, `PanelBottom`
-  - `MiniAppPage` (`web/src/components/miniapps/MiniAppPage.tsx`) shows a form UI for workflow inputs and results panel
 
 - `/editor` – redirects to root start logic (no editor loaded)
 

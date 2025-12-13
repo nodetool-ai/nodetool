@@ -6,6 +6,20 @@ import { runWorkflow } from '../workflowExecution';
 // Mock dependencies
 jest.mock('../api');
 jest.mock('../workflowExecution');
+jest.mock('electron', () => ({
+  app: {
+    isPackaged: false,
+    getPath: jest.fn().mockReturnValue('/mock/path'),
+  },
+  globalShortcut: {
+    register: jest.fn().mockReturnValue(true),
+    unregister: jest.fn(),
+    isRegistered: jest.fn().mockReturnValue(false),
+  },
+  dialog: {
+    showMessageBox: jest.fn(),
+  },
+}));
 
 describe('Shortcuts', () => {
   const mockGlobalShortcut = globalShortcut as jest.Mocked<typeof globalShortcut>;
@@ -27,6 +41,7 @@ describe('Shortcuts', () => {
 
     it('should register shortcut for workflow with settings', async () => {
       mockGlobalShortcut.register.mockReturnValue(true);
+      (mockGlobalShortcut.isRegistered as jest.Mock).mockReturnValue(true);
 
       await registerWorkflowShortcut(mockWorkflow);
 
@@ -39,6 +54,7 @@ describe('Shortcuts', () => {
 
     it('should execute workflow when shortcut is triggered', async () => {
       let shortcutCallback: () => void = () => {};
+      (mockGlobalShortcut.isRegistered as jest.Mock).mockReturnValue(true);
       mockGlobalShortcut.register.mockImplementation((shortcut, callback) => {
         shortcutCallback = callback;
         return true;
@@ -79,19 +95,22 @@ describe('Shortcuts', () => {
 
     it('should handle registration failure', async () => {
       mockGlobalShortcut.register.mockReturnValue(false);
+      (mockGlobalShortcut.isRegistered as jest.Mock).mockReturnValue(false);
 
-      await registerWorkflowShortcut(mockWorkflow);
+      const result = await registerWorkflowShortcut(mockWorkflow);
 
       expect(mockGlobalShortcut.register).toHaveBeenCalled();
+      expect(result).toBe(false);
     });
 
     it('should handle errors during registration', async () => {
+      (mockGlobalShortcut.isRegistered as jest.Mock).mockReturnValue(false);
       mockGlobalShortcut.register.mockImplementation(() => {
         throw new Error('Registration error');
       });
 
-      // Should not throw
-      await expect(registerWorkflowShortcut(mockWorkflow)).resolves.toBeUndefined();
+      // Should not throw, returns false on error
+      await expect(registerWorkflowShortcut(mockWorkflow)).resolves.toBe(false);
     });
   });
 
