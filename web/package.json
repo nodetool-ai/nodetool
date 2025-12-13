@@ -1,6 +1,6 @@
 {
   "name": "nodetool",
-  "version": "0.6.2-rc.9",
+  "version": "0.6.2-rc.10",
   "private": true,
   "type": "module",
   "dependencies": {
