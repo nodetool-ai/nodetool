@@ -18,10 +18,6 @@
             "to": "web"
         },
         {
-            "from": "../apps/dist",
-            "to": "apps"
-        },
-        {
             "from": "../conda-lock.yml",
             "to": "environment.lock.yml"
         },

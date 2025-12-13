@@ -24,7 +24,6 @@ Runs the FastAPI backend server for the NodeTool platform. This serves the REST 
 - `--host` (default `127.0.0.1`) — bind address (use `0.0.0.0` for all interfaces).
 - `--port` (default `8000`) — listen port.
 - `--static-folder` — path to folder containing static web assets (e.g., compiled React UI).
-- `--apps-folder` — path to folder containing app bundles.
 - `--force-fp16` — force FP16 precision for ComfyUI integrations if available (GPU optimization).
 - `--reload` — enable auto-reload on file changes (development only).
 - `--production` — enable production mode (stricter validation, optimizations).
