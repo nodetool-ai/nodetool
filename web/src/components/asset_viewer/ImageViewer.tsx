@@ -51,6 +51,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
   const [imageWidth, setImageWidth] = useState<number>(0);
   const [imageHeight, setImageHeight] = useState<number>(0);
   const maxZoom = 16;
+
   useEffect(() => {
     if (imageRef.current) {
       const img = imageRef.current;

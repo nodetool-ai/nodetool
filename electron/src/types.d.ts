@@ -230,6 +230,7 @@ export enum IpcChannels {
   WINDOW_MAXIMIZE = "window-maximize",
   CLIPBOARD_WRITE_TEXT = "clipboard-write-text",
   CLIPBOARD_READ_TEXT = "clipboard-read-text",
+  CLIPBOARD_WRITE_IMAGE = "clipboard-write-image",
   MENU_EVENT = "menu-event",
   ON_CREATE_WORKFLOW = "on-create-workflow",
   ON_UPDATE_WORKFLOW = "on-update-workflow",
@@ -277,6 +278,7 @@ export interface IpcRequest {
   [IpcChannels.WINDOW_MAXIMIZE]: void;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: string;
   [IpcChannels.CLIPBOARD_READ_TEXT]: void;
+  [IpcChannels.CLIPBOARD_WRITE_IMAGE]: string; // data URL or file path
   [IpcChannels.ON_CREATE_WORKFLOW]: Workflow;
   [IpcChannels.ON_UPDATE_WORKFLOW]: Workflow;
   [IpcChannels.ON_DELETE_WORKFLOW]: Workflow;
@@ -310,6 +312,7 @@ export interface IpcResponse {
   [IpcChannels.WINDOW_MAXIMIZE]: void;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: void;
   [IpcChannels.CLIPBOARD_READ_TEXT]: string;
+  [IpcChannels.CLIPBOARD_WRITE_IMAGE]: void;
   [IpcChannels.ON_CREATE_WORKFLOW]: void;
   [IpcChannels.ON_UPDATE_WORKFLOW]: void;
   [IpcChannels.ON_DELETE_WORKFLOW]: void;

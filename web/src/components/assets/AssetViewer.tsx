@@ -10,6 +10,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckIcon from "@mui/icons-material/Check";
 import AssetItem from "./AssetItem";
 //
 //components
@@ -30,6 +32,7 @@ import type { Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
+import { isElectron } from "../../utils/browser";
 
 const containerStyles = css({
   width: "100%",
@@ -236,6 +239,37 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
 
   const { handleDownload } = useAssetDownload({ currentAsset, url });
+
+  // Check if current asset is an image
+  const isImage = useMemo(() => {
+    const ct = currentAsset?.content_type || contentType;
+    return ct?.startsWith("image/") || false;
+  }, [currentAsset?.content_type, contentType]);
+
+  // Copy to clipboard state and handler
+  const [copied, setCopied] = useState(false);
+  const handleCopyToClipboard = useCallback(async () => {
+    const imageSrc = currentAsset?.get_url || url;
+    if (!imageSrc || !isImage) return;
+
+    try {
+      const response = await fetch(imageSrc);
+      const blob = await response.blob();
+      
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      await window.api.clipboardWriteImage(dataUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy image to clipboard:", error);
+    }
+  }, [currentAsset?.get_url, url, isImage]);
 
   const handleChangeAsset = useCallback(
     (index: number) => {
@@ -454,6 +488,19 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               <FileDownloadIcon />
             </IconButton>
           </Tooltip>
+          {isElectron && isImage && (
+            <Tooltip title={copied ? "Copied!" : "Copy Image"}>
+              <IconButton
+                className="button copy"
+                edge="end"
+                color="inherit"
+                onMouseDown={handleCopyToClipboard}
+                aria-label="copy image"
+              >
+                {copied ? <CheckIcon /> : <ContentCopyIcon />}
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Close" enterDelay={TOOLTIP_ENTER_DELAY}>
             <IconButton
               className="button close"

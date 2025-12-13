@@ -86,8 +86,10 @@ const buildMenu = () => {
         {
           label: "Cut",
           accelerator: "CmdOrCtrl+X",
-          role: "cut",
           click: () => {
+            // Execute native cut operation first (for text fields)
+            mainWindow.webContents.cut();
+            // Also send IPC event for custom handling (e.g., node cutting)
             mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
               type: "cut",
             });
@@ -96,8 +98,10 @@ const buildMenu = () => {
         {
           label: "Copy",
           accelerator: "CmdOrCtrl+C",
-          role: "copy",
           click: () => {
+            // Execute native copy operation first (for text fields)
+            mainWindow.webContents.copy();
+            // Also send IPC event for custom handling (e.g., node copying)
             mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
               type: "copy",
             });
@@ -106,8 +110,10 @@ const buildMenu = () => {
         {
           label: "Paste",
           accelerator: "CmdOrCtrl+V",
-          role: "paste",
           click: () => {
+            // Execute native paste operation first (for text fields)
+            mainWindow.webContents.paste();
+            // Also send IPC event for custom handling (e.g., node pasting)
             mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
               type: "paste",
             });
