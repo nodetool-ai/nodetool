@@ -18,6 +18,7 @@ declare global {
       runApp: (workflowId: string) => void;
       clipboardWriteText: (text: string) => void;
       clipboardReadText: () => string;
+      clipboardWriteImage: (dataUrl: string) => Promise<void>;
       openFolder: (fullPath: string) => void;
       openLogFile: () => void;
       showItemInFolder: (fullPath: string) => void;

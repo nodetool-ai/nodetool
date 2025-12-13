@@ -156,108 +156,107 @@ export const useCopyPaste = () => {
       return;
     }
 
-    const elementUnderCursor = document.elementFromPoint(
-      mousePosition.x,
-      mousePosition.y
-    );
+    // Check if the active element is a text input (should use native paste instead)
+    const activeElement = document.activeElement;
+    const isTextInput =
+      activeElement instanceof HTMLInputElement ||
+      activeElement instanceof HTMLTextAreaElement ||
+      (activeElement as HTMLElement)?.isContentEditable;
 
-    const isInActionElement =
-      !!elementUnderCursor &&
-      !!(elementUnderCursor as HTMLElement).closest(".action") &&
-      !document.activeElement?.classList.contains("MuiInputBase-input");
+    // Skip node paste if user is typing in a text field
+    if (isTextInput) {
+      return;
+    }
 
-    if (
-      elementUnderCursor?.classList.contains("react-flow__pane") ||
-      elementUnderCursor?.classList.contains("loop-node") ||
-      isInActionElement
-    ) {
-      const { nodes: copiedNodes, edges: copiedEdges } =
-        parsedData as {
-          nodes: Node<NodeData>[];
-          edges: Edge[];
-        };
-      const oldToNewIds = new Map<string, string>();
-      const newNodes: Node<NodeData>[] = [];
-      const newEdges: Edge[] = [];
+    // At this point, no text input is focused, so we can proceed with node paste
+    // Previously we checked if cursor was over the flow pane, but that breaks
+    // paste from Electron's Edit menu where cursor is on the menu
+    const { nodes: copiedNodes, edges: copiedEdges } =
+      parsedData as {
+        nodes: Node<NodeData>[];
+        edges: Edge[];
+      };
+    const oldToNewIds = new Map<string, string>();
+    const newNodes: Node<NodeData>[] = [];
+    const newEdges: Edge[] = [];
 
-      // Generate new sequential IDs for all copied nodes
-      const newIds = generateNodeIds(copiedNodes.length);
-      copiedNodes.forEach((node: Node<NodeData>, index: number) => {
-        oldToNewIds.set(node.id, newIds[index]);
-      });
+    // Generate new sequential IDs for all copied nodes
+    const newIds = generateNodeIds(copiedNodes.length);
+    copiedNodes.forEach((node: Node<NodeData>, index: number) => {
+      oldToNewIds.set(node.id, newIds[index]);
+    });
 
-      // calculate offset for pasting
-      const firstNodePosition = reactFlow.screenToFlowPosition({
-        x: mousePosition.x,
-        y: mousePosition.y
-      });
+    // calculate offset for pasting
+    const firstNodePosition = reactFlow.screenToFlowPosition({
+      x: mousePosition.x,
+      y: mousePosition.y
+    });
 
-      if (!firstNodePosition) {
-        log.warn("Failed to calculate paste position");
-        return;
+    if (!firstNodePosition) {
+      log.warn("Failed to calculate paste position");
+      return;
+    }
+
+    const offset = {
+      x: firstNodePosition.x - copiedNodes[0].position.x,
+      y: firstNodePosition.y - copiedNodes[0].position.y
+    };
+
+    // create new nodes with updated IDs and parent references
+    for (const node of copiedNodes) {
+      const newId = oldToNewIds.get(node.id)!;
+      let newParentId: string | undefined;
+
+      // check if parent exists in copied nodes
+      if (node.parentId && oldToNewIds.has(node.parentId)) {
+        newParentId = oldToNewIds.get(node.parentId);
+      } else {
+        newParentId = undefined;
       }
 
-      const offset = {
-        x: firstNodePosition.x - copiedNodes[0].position.x,
-        y: firstNodePosition.y - copiedNodes[0].position.y
+      const positionAbsolute = node.data?.positionAbsolute;
+
+      const newNode: Node<NodeData> = {
+        ...node,
+        id: newId,
+        parentId: newParentId,
+        data: {
+          ...node.data,
+          positionAbsolute: positionAbsolute
+            ? {
+                x: positionAbsolute.x + offset.x,
+                y: positionAbsolute.y + offset.y
+              }
+            : undefined
+        },
+        position: {
+          x: node.position.x + (newParentId ? 0 : offset.x),
+          y: node.position.y + (newParentId ? 0 : offset.y)
+        },
+        selected: false
       };
 
-      // create new nodes with updated IDs and parent references
-      for (const node of copiedNodes) {
-        const newId = oldToNewIds.get(node.id)!;
-        let newParentId: string | undefined;
-
-        // check if parent exists in copied nodes
-        if (node.parentId && oldToNewIds.has(node.parentId)) {
-          newParentId = oldToNewIds.get(node.parentId);
-        } else {
-          newParentId = undefined;
-        }
-
-        const positionAbsolute = node.data?.positionAbsolute;
-
-        const newNode: Node<NodeData> = {
-          ...node,
-          id: newId,
-          parentId: newParentId,
-          data: {
-            ...node.data,
-            positionAbsolute: positionAbsolute
-              ? {
-                  x: positionAbsolute.x + offset.x,
-                  y: positionAbsolute.y + offset.y
-                }
-              : undefined
-          },
-          position: {
-            x: node.position.x + (newParentId ? 0 : offset.x),
-            y: node.position.y + (newParentId ? 0 : offset.y)
-          },
-          selected: false
-        };
-
-        newNodes.push(newNode);
-      }
-
-      // Update edges
-      copiedEdges.forEach((edge: Edge) => {
-        const newSource = oldToNewIds.get(edge.source);
-        const newTarget = oldToNewIds.get(edge.target);
-
-        if (newSource && newTarget) {
-          newEdges.push({
-            ...edge,
-            id: uuidv4(), // Edge IDs can still be UUIDs
-            source: newSource,
-            target: newTarget
-          });
-        }
-      });
-
-      // Update state
-      setNodes([...nodes, ...newNodes]);
-      setEdges([...edges, ...newEdges]);
+      newNodes.push(newNode);
     }
+
+    // Update edges
+    copiedEdges.forEach((edge: Edge) => {
+      const newSource = oldToNewIds.get(edge.source);
+      const newTarget = oldToNewIds.get(edge.target);
+
+      if (newSource && newTarget) {
+        newEdges.push({
+          ...edge,
+          id: uuidv4(), // Edge IDs can still be UUIDs
+          source: newSource,
+          target: newTarget
+        });
+      }
+    });
+
+    // Update state
+    setNodes([...nodes, ...newNodes]);
+    setEdges([...edges, ...newEdges]);
   }, [
     generateNodeIds,
     reactFlow,

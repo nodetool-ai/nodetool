@@ -218,6 +218,19 @@ function initializePermissionHandlers(): void {
     }
   );
 
+  // Add CORS headers for localhost API requests to allow cross-origin access
+  // This handles the localhost vs 127.0.0.1 mismatch
+  session.defaultSession.webRequest.onHeadersReceived(
+    { urls: ["http://localhost:*/*", "http://127.0.0.1:*/*"] },
+    (details, callback) => {
+      const responseHeaders = { ...details.responseHeaders };
+      responseHeaders["Access-Control-Allow-Origin"] = ["*"];
+      responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
+      responseHeaders["Access-Control-Allow-Headers"] = ["*"];
+      callback({ responseHeaders });
+    }
+  );
+
   logMessage("Permission handlers initialized with device enumeration support");
 }
 

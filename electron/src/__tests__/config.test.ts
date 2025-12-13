@@ -9,7 +9,6 @@ import {
   srcPath,
   PID_FILE_PATH,
   webPath,
-  appsPath
 } from '../config';
 import { readSettings } from '../settings';
 import * as path from 'path';
@@ -59,10 +58,6 @@ describe('Config', () => {
       expect(typeof webPath).toBe('string');
     });
 
-    it('should export appsPath', () => {
-      expect(appsPath).toBeDefined();
-      expect(typeof appsPath).toBe('string');
-    });
   });
 
   describe('getCondaEnvPath', () => {

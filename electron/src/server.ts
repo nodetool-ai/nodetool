@@ -9,7 +9,6 @@ import {
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,
-  appsPath,
   getCondaEnvPath,
 } from "./config";
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
@@ -289,8 +288,6 @@ async function startServer(): Promise<void> {
     String(selectedPort),
     "--static-folder",
     webPath,
-    "--apps-folder",
-    appsPath,
   ];
 
   logMessage(`Starting backend server with command: ${pythonExecutablePath} ${args.join(" ")}`);

@@ -59,8 +59,11 @@ export type IpcOnceHandler<T extends keyof IpcEvents> = (
   data: IpcEvents[T]
 ) => Promise<void>;
 
+// Channels that should have their payloads redacted for security
+const SENSITIVE_CHANNELS = ['clipboard:write-text', 'clipboard:read-text'];
+
 /**
- * Type-safe wrapper for IPC main handlers
+ * Type-safe wrapper for IPC main handlers with logging
  */
 export function createIpcMainHandler<T extends keyof IpcRequest>(
   channel: T,
@@ -78,17 +81,58 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
       "warn"
     );
   }
-  ipcMain.handle(channel, handler);
+
+  // Wrap the handler with logging
+  const wrappedHandler: IpcMainHandler<T> = async (event, data) => {
+    const startTime = Date.now();
+    const channelStr = String(channel);
+    const isSensitive = SENSITIVE_CHANNELS.includes(channelStr);
+
+    // Log incoming request
+    if (isSensitive) {
+      logMessage(`IPC → ${channelStr} (payload redacted)`);
+    } else {
+      const payloadStr = data !== undefined ? JSON.stringify(data) : 'undefined';
+      const truncatedPayload = payloadStr.length > 200 
+        ? payloadStr.substring(0, 200) + '...' 
+        : payloadStr;
+      logMessage(`IPC → ${channelStr}: ${truncatedPayload}`);
+    }
+
+    try {
+      const result = await handler(event, data);
+      const duration = Date.now() - startTime;
+      logMessage(`IPC ← ${channelStr} OK (${duration}ms)`);
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logMessage(`IPC ← ${channelStr} ERROR (${duration}ms): ${String(error)}`, "error");
+      throw error;
+    }
+  };
+
+  ipcMain.handle(channel, wrappedHandler);
 }
 
 /**
- * Type-safe wrapper for IPC once handlers
+ * Type-safe wrapper for IPC once handlers with logging
  */
 export function createIpcOnceHandler<T extends keyof IpcEvents>(
   channel: T,
   handler: IpcOnceHandler<T>
 ): void {
-  ipcMain.once(channel as string, handler);
+  const wrappedHandler: IpcOnceHandler<T> = async (event, data) => {
+    const channelStr = String(channel);
+    logMessage(`IPC (once) → ${channelStr}`);
+    try {
+      await handler(event, data);
+      logMessage(`IPC (once) ← ${channelStr} OK`);
+    } catch (error) {
+      logMessage(`IPC (once) ← ${channelStr} ERROR: ${String(error)}`, "error");
+      throw error;
+    }
+  };
+  ipcMain.once(channel as string, wrappedHandler);
 }
 
 /**
@@ -107,6 +151,17 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.CLIPBOARD_READ_TEXT, async () => {
     return clipboard.readText();
   });
+
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_WRITE_IMAGE,
+    async (_event, dataUrl) => {
+      // Import nativeImage from electron
+      const { nativeImage } = await import("electron");
+      // Create image from data URL and write to clipboard
+      const image = nativeImage.createFromDataURL(dataUrl);
+      clipboard.writeImage(image);
+    }
+  );
 
   // Server state handlers
   createIpcMainHandler(IpcChannels.GET_SERVER_STATE, async () => {
