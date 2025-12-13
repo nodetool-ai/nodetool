@@ -20,7 +20,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useModelManagerStore } from "../../stores/ModelManagerStore";
+
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
     bottom: "20px",
     left: "50%",
     transform: "translateX(-50%)",
-    zIndex: theme.zIndex.floating,
+    zIndex: theme.zIndex.drawer,
     display: "flex",
     flexDirection: "row",
     gap: "12px",
@@ -388,7 +388,7 @@ const FloatingToolBar: React.FC<{
     (state) => state.handleViewChange
   );
 
-  const { isOpen: isModelManagerOpen } = useModelManagerStore();
+
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
@@ -540,9 +540,7 @@ const FloatingToolBar: React.FC<{
     return null;
   }
 
-  if (isModelManagerOpen) {
-    return null;
-  }
+
 
   return (
     <>
