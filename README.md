@@ -106,24 +106,11 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
 
 ### Desktop App (Electron)
 
-Configure `settings.yaml` with your Conda path, then:
-
-```bash
-# Build
-cd web && npm install && npm run build
-cd ../apps && npm install && npm run build
-cd ../electron && npm install && npm run build
-
-# Start
-cd ../electron && npm start
-```
+Configure `settings.yaml` with your Conda path and run `make electron`.
 
 ## Testing & Quality
 
 ```bash
-# Python
-pytest -q
-
 # Web
 cd web && npm test && npm run lint
 
