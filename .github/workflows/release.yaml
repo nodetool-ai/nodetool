@@ -150,7 +150,197 @@ jobs:
           npm ci
           npm run build
 
+      # -------------------------
+      # Windows release: build + (optional) SSL.com signing + upload assets
+      # -------------------------
+      - name: Build Electron (Windows, unpacked)
+        if: matrix.os == 'windows-latest'
+        shell: bash -l {0}
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEBUG: electron-builder
+        run: |
+          cd electron
+          npm ci
+          npm run download-micromamba
+          npm run vite:build
+          # Build unpacked app directory (no publishing)
+          npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
+
+      - name: Resolve Windows artifacts (paths)
+        if: matrix.os == 'windows-latest'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          DIST_DIR="${GITHUB_WORKSPACE}/electron/dist"
+          WIN_UNPACKED_DIR="${DIST_DIR}/win-unpacked"
+          INSTALLER_PATH="${DIST_DIR}/Nodetool-Setup-${VERSION}.exe"
+
+          if [ ! -d "${WIN_UNPACKED_DIR}" ]; then
+            echo "Expected win-unpacked not found: ${WIN_UNPACKED_DIR}"
+            ls -la "${DIST_DIR}" || true
+            exit 1
+          fi
+
+          # Try common executable names first, then fallback to first .exe in win-unpacked.
+          APP_EXE=""
+          if [ -f "${WIN_UNPACKED_DIR}/Nodetool.exe" ]; then
+            APP_EXE="${WIN_UNPACKED_DIR}/Nodetool.exe"
+          elif [ -f "${WIN_UNPACKED_DIR}/Nodetool Electron.exe" ]; then
+            APP_EXE="${WIN_UNPACKED_DIR}/Nodetool Electron.exe"
+          else
+            APP_EXE="$(ls -1 "${WIN_UNPACKED_DIR}"/*.exe 2>/dev/null | head -n 1 || true)"
+          fi
+
+          if [ -z "${APP_EXE}" ] || [ ! -f "${APP_EXE}" ]; then
+            echo "Could not find main app .exe in ${WIN_UNPACKED_DIR}"
+            ls -la "${WIN_UNPACKED_DIR}" || true
+            exit 1
+          fi
+
+          echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
+          echo "DIST_DIR=${DIST_DIR}" >> "${GITHUB_ENV}"
+          echo "WIN_UNPACKED_DIR=${WIN_UNPACKED_DIR}" >> "${GITHUB_ENV}"
+          echo "APP_EXE=${APP_EXE}" >> "${GITHUB_ENV}"
+          echo "INSTALLER_PATH=${INSTALLER_PATH}" >> "${GITHUB_ENV}"
+
+      - name: Decide whether to sign (skip rc/test tags)
+        if: matrix.os == 'windows-latest'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          SHOULD_SIGN="true"
+          if echo "${TAG}" | grep -Eiq -- '-rc|-test'; then
+            SHOULD_SIGN="false"
+          fi
+          echo "SHOULD_SIGN=${SHOULD_SIGN}" >> "${GITHUB_ENV}"
+          echo "Windows signing enabled: ${SHOULD_SIGN}"
+
+      - name: Sign main app exe (SSL.com eSigner)
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        # Guide: https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
+        uses: sslcom/actions-codesigner@develop
+        with:
+          command: sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          file_path: ${{ env.APP_EXE }}
+          output_path: ${{ env.WIN_UNPACKED_DIR }}
+
+      - name: Build NSIS installer from prepackaged app (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash -l {0}
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEBUG: electron-builder
+        run: |
+          cd electron
+          # Build the NSIS installer using the prepackaged app directory.
+          npx electron-builder --config electron-builder.json --win --x64 --prepackaged dist/win-unpacked --publish never
+
+      - name: Sign installer exe (SSL.com eSigner)
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        # Guide: https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
+        uses: sslcom/actions-codesigner@develop
+        with:
+          command: sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          file_path: ${{ env.INSTALLER_PATH }}
+          output_path: ${{ env.DIST_DIR }}
+
+      - name: Update latest.yml sha512/size for signed installer (Windows)
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          cd electron
+          node - <<'NODE'
+          const fs = require("fs");
+          const path = require("path");
+          const crypto = require("crypto");
+          const yaml = require("js-yaml");
+
+          const distDir = process.env.DIST_DIR;
+          const version = process.env.VERSION;
+          const installerName = `Nodetool-Setup-${version}.exe`;
+          const installerPath = process.env.INSTALLER_PATH;
+          const latestPath = path.join(distDir, "latest.yml");
+
+          if (!fs.existsSync(latestPath)) {
+            console.warn(`latest.yml not found at ${latestPath}; skipping update`);
+            process.exit(0);
+          }
+          if (!fs.existsSync(installerPath)) {
+            console.error(`Installer not found at ${installerPath}`);
+            process.exit(1);
+          }
+
+          const buf = fs.readFileSync(installerPath);
+          const sha512 = crypto.createHash("sha512").update(buf).digest("base64");
+          const size = buf.length;
+
+          const doc = yaml.load(fs.readFileSync(latestPath, "utf8")) || {};
+
+          // Update top-level fields commonly used by electron-updater
+          doc.path = installerName;
+          doc.sha512 = sha512;
+
+          // Update files[] entry for installer if present
+          if (Array.isArray(doc.files)) {
+            for (const f of doc.files) {
+              if (!f || typeof f !== "object") continue;
+              if (typeof f.url === "string" && f.url.includes(installerName)) {
+                f.sha512 = sha512;
+                f.size = size;
+              }
+            }
+          }
+
+          // If blockmap entries exist, remove them to avoid mismatch after signing.
+          if (Array.isArray(doc.files)) {
+            doc.files = doc.files.filter((f) => {
+              if (!f || typeof f !== "object") return true;
+              const url = typeof f.url === "string" ? f.url : "";
+              return !url.endsWith(".blockmap");
+            });
+          }
+
+          fs.writeFileSync(latestPath, yaml.dump(doc, { lineWidth: 120 }), "utf8");
+          console.log(`Updated latest.yml for signed installer: sha512=${sha512.slice(0, 16)}... size=${size}`);
+          NODE
+
+      - name: Upload Windows assets to GitHub Release (signed)
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
+            ${{ env.DIST_DIR }}/latest.yml
+
+      - name: Upload Windows assets to GitHub Release (unsigned)
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
+            ${{ env.DIST_DIR }}/latest.yml
+
+      # -------------------------
+      # macOS + Linux release: keep existing publishing behavior untouched
+      # -------------------------
       - name: Build and Publish Electron
+        if: matrix.os != 'windows-latest'
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
