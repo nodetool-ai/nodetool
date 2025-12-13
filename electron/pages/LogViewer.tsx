@@ -9,6 +9,10 @@ const LogViewer: React.FC = () => {
   const [logLevel, setLogLevel] = useState<"all" | "info" | "warn" | "error">(
     "all"
   );
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [allCopied, setAllCopied] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -31,6 +35,8 @@ const LogViewer: React.FC = () => {
 
   useEffect(() => {
     filterLogs();
+    // Clear selection when filter changes
+    setSelectedIndices(new Set());
   }, [logs, searchTerm, logLevel]);
 
   useEffect(() => {
@@ -38,6 +44,20 @@ const LogViewer: React.FC = () => {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [filteredLogs, autoScroll]);
+
+  // Auto-copy when selection changes
+  useEffect(() => {
+    if (selectedIndices.size > 0) {
+      const selectedLogs = Array.from(selectedIndices)
+        .sort((a, b) => a - b)
+        .map(i => filteredLogs[i])
+        .join("\n");
+      window.api.clipboardWriteText(selectedLogs);
+      setCopied(true);
+      const timer = setTimeout(() => setCopied(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedIndices, filteredLogs]);
 
   const loadLogs = async () => {
     try {
@@ -84,6 +104,7 @@ const LogViewer: React.FC = () => {
       await window.api.clearLogs();
       setLogs([]);
       setFilteredLogs([]);
+      setSelectedIndices(new Set());
     } catch (error) {
       console.error("Failed to clear logs:", error);
     }
@@ -92,6 +113,40 @@ const LogViewer: React.FC = () => {
   const handleCopyLogs = () => {
     const logText = filteredLogs.join("\n");
     window.api.clipboardWriteText(logText);
+    setAllCopied(true);
+    setTimeout(() => setAllCopied(false), 2000);
+  };
+
+  const handleLogClick = (index: number, event: React.MouseEvent) => {
+    const newSelection = new Set(selectedIndices);
+    
+    if (event.shiftKey && lastClickedIndex !== null) {
+      // Range selection with Shift
+      const start = Math.min(lastClickedIndex, index);
+      const end = Math.max(lastClickedIndex, index);
+      for (let i = start; i <= end; i++) {
+        newSelection.add(i);
+      }
+    } else if (event.metaKey || event.ctrlKey) {
+      // Toggle selection with Cmd/Ctrl
+      if (newSelection.has(index)) {
+        newSelection.delete(index);
+      } else {
+        newSelection.add(index);
+      }
+    } else {
+      // Single click - select only this row
+      newSelection.clear();
+      newSelection.add(index);
+    }
+    
+    setSelectedIndices(newSelection);
+    setLastClickedIndex(index);
+  };
+
+  const clearSelection = () => {
+    setSelectedIndices(new Set());
+    setLastClickedIndex(null);
   };
 
   const getLogClassName = (log: string): string => {
@@ -152,11 +207,16 @@ const LogViewer: React.FC = () => {
               />
               Auto-scroll
             </label>
-            <button className="btn btn-secondary" onClick={handleCopyLogs}>
-              Copy Logs
+            {selectedIndices.size > 0 && (
+              <button className="btn btn-outline" onClick={clearSelection}>
+                Clear Selection ({selectedIndices.size})
+              </button>
+            )}
+            <button className={`btn btn-secondary ${allCopied ? 'copied' : ''}`} onClick={handleCopyLogs}>
+              {allCopied ? '✓ Copied!' : 'Copy All'}
             </button>
             <button className="btn btn-danger" onClick={handleClearLogs}>
-              Clear Logs
+              Clear
             </button>
           </div>
         </div>
@@ -172,7 +232,12 @@ const LogViewer: React.FC = () => {
             </div>
           ) : (
             filteredLogs.map((log, index) => (
-              <div key={index} className={`log-entry ${getLogClassName(log)}`}>
+              <div 
+                key={index} 
+                className={`log-entry ${getLogClassName(log)} ${selectedIndices.has(index) ? 'selected' : ''}`}
+                onClick={(e) => handleLogClick(index, e)}
+                title="Click to select • Shift+Click for range • Cmd/Ctrl+Click to toggle"
+              >
                 <span className="log-index">{index + 1}</span>
                 <span className="log-text">{log}</span>
               </div>
@@ -184,6 +249,8 @@ const LogViewer: React.FC = () => {
         <div className="status-bar">
           <span>
             Showing {filteredLogs.length} of {logs.length} logs
+            {selectedIndices.size > 0 && ` • ${selectedIndices.size} selected`}
+            {copied && ' • Copied to clipboard!'}
           </span>
           <span>{autoScroll ? "Auto-scroll: ON" : "Auto-scroll: OFF"}</span>
         </div>
