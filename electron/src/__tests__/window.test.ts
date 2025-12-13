@@ -66,6 +66,9 @@ jest.mock('electron', () => {
       defaultSession: {
         setPermissionRequestHandler: jest.fn(),
         setPermissionCheckHandler: jest.fn(),
+        webRequest: {
+          onHeadersReceived: jest.fn(),
+        },
       }
     },
     dialog: {

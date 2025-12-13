@@ -7,14 +7,12 @@ on:
     paths:
       - "web/**"
       - "electron/**"
-      - "apps/**"
   pull_request:
     branches:
       - main
     paths:
       - "web/**"
       - "electron/**"
-      - "apps/**"
 
 jobs:
   web:
@@ -85,39 +83,4 @@ jobs:
       - name: Run Tests
         run: |
           cd electron
-          npm test
-
-  apps:
-    name: Apps Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: apps/package-lock.json
-
-      - name: Install mini apps dependencies
-        run: |
-          cd apps
-          npm ci
-
-      - name: Run TypeScript type check
-        run: |
-          cd apps
-          npm run typecheck
-
-      - name: Run ESLint
-        run: |
-          cd apps
-          npm run lint
-
-      - name: Run Tests
-        run: |
-          cd apps
           npm test

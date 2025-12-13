@@ -92,7 +92,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
                     sx={{
                       position: "absolute",
                       bottom: 8,
-                      left: 8,
+                      right: 8,
                       backgroundColor: "background.paper",
                       boxShadow: 1,
                       "&:hover": {

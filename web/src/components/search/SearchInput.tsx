@@ -8,7 +8,6 @@ import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "use-debounce";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { isMac } from "../../utils/platform";
 
@@ -121,7 +120,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   focusOnTyping = false,
   placeholder = "Search...",
   maxWidth = "unset",
-  debounceTime = 30,
+  debounceTime = 50,
   searchTerm: externalSearchTerm = "",
   searchResults = [],
   width = 150
@@ -133,41 +132,21 @@ const SearchInput: React.FC<SearchInputProps> = ({
     (state) => state.isKeyPressed("control") || state.isKeyPressed("meta")
   );
 
-  // Counter to generate unique IDs for each search request
-  // This helps prevent race conditions with debounced searches
-  const searchIdCounter = useRef(0);
-
-  const { setCurrentSearchId } = useNodeMenuStore((state) => ({
-    setCurrentSearchId: state.setCurrentSearchId
-  }));
-
-  // Debounced search implementation:
-  // - Waits for user to stop typing for [debounceTime] ms
-  // - Cancels pending searches if user types again
-  // - Assigns unique ID to each search request
+  // Debounced search - store handles search ID management internally
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
-    const searchId = ++searchIdCounter.current;
-    setCurrentSearchId(searchId);
     onSearchChange(value);
   }, debounceTime);
 
   // Reset search state and cancel any pending searches
   const resetSearch = useCallback(() => {
+    // Cancel any pending debounced searches first
+    debouncedSetSearchTerm.cancel();
     // Clear local input state
     setLocalSearchTerm("");
-
-    // Reset search state
-    const searchId = ++searchIdCounter.current;
-    setCurrentSearchId(searchId);
+    // Reset search in store
     onSearchChange("");
+  }, [debouncedSetSearchTerm, onSearchChange]);
 
-    // Cancel any pending debounced searches
-    debouncedSetSearchTerm.cancel();
-  }, [debouncedSetSearchTerm, onSearchChange, setCurrentSearchId]);
-
-  const { closeNodeMenu } = useNodeMenuStore((state) => ({
-    closeNodeMenu: state.closeNodeMenu
-  }));
 
   // Handle input changes with debouncing
   const handleInputChange = useCallback(
@@ -236,7 +215,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onPressEscape,
     debouncedSetSearchTerm,
     clearSearch,
-    closeNodeMenu,
     searchResults
   ]);
 

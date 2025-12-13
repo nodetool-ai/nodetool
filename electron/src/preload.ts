@@ -91,6 +91,8 @@ contextBridge.exposeInMainWorld("api", {
   clipboardWriteText: (text: string) =>
     ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, text),
   clipboardReadText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT),
+  clipboardWriteImage: (dataUrl: string) =>
+    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_IMAGE, dataUrl),
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
   showItemInFolder: (fullPath: string) =>
     ipcRenderer.invoke(IpcChannels.SHOW_ITEM_IN_FOLDER, fullPath),

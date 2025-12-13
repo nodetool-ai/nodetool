@@ -594,16 +594,28 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
 
 /**
  * Install a package using wheel-based package index
+ * Always fetches the latest version from the simple index and installs that specific version
  */
 export async function installPackage(repoId: string): Promise<PackageResponse> {
   try {
     const packageName = repoId.split("/")[1];
 
-    logMessage(`Installing ${packageName} with Nodetool extra index`);
+    // Fetch the latest version from the simple index
+    const latestVersion = await fetchLatestVersionFromSimpleIndex(packageName);
+    if (!latestVersion) {
+      return {
+        success: false,
+        message: `Could not find package ${packageName} in the package index`,
+      };
+    }
+
+    const packageSpec = `${packageName}==${latestVersion}`;
+    logMessage(`Installing ${packageSpec} with Nodetool extra index`);
 
     const args = [
       "pip",
       "install",
+      "--prerelease=allow",
       "--index-url",
       PYPI_SIMPLE_INDEX_URL,
       "--extra-index-url",
@@ -611,7 +623,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       "--index-strategy",
       "unsafe-best-match",
       "--system",
-      packageName,
+      packageSpec,
     ];
 
     // Add extra index URL for CUDA packages on non-macOS platforms
@@ -623,7 +635,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
 
     return {
       success: true,
-      message: `Package ${repoId} installed successfully from wheel index`,
+      message: `Package ${repoId} v${latestVersion} installed successfully from wheel index`,
     };
   } catch (error: any) {
     logMessage(
@@ -668,17 +680,32 @@ export async function uninstallPackage(
 
 /**
  * Update a package using wheel-based package index
+ * Always fetches the latest version from the simple index and installs that specific version
+ * Forces a true reinstall by clearing the uv cache and reinstalling the package
  */
 export async function updatePackage(repoId: string): Promise<PackageResponse> {
   try {
     const packageName = repoId.split("/")[1];
 
-    logMessage(`Updating ${packageName} with Nodetool extra index`);
+    // Fetch the latest version from the simple index
+    const latestVersion = await fetchLatestVersionFromSimpleIndex(packageName);
+    if (!latestVersion) {
+      return {
+        success: false,
+        message: `Could not find package ${packageName} in the package index`,
+      };
+    }
+
+    const packageSpec = `${packageName}==${latestVersion}`;
+    logMessage(`Updating to ${packageSpec} with Nodetool extra index (forcing reinstall)`);
 
     const args = [
       "pip",
       "install",
       "--upgrade",
+      "--reinstall",  // Force reinstall even if same version
+      "--refresh",    // Clear cache and fetch fresh from index
+      "--prerelease=allow",
       "--index-url",
       PYPI_SIMPLE_INDEX_URL,
       "--extra-index-url",
@@ -686,7 +713,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       "--index-strategy",
       "unsafe-best-match",
       "--system",
-      packageName,
+      packageSpec,
     ];
 
     // Add extra index URL for CUDA packages on non-macOS platforms
@@ -698,7 +725,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
 
     return {
       success: true,
-      message: `Package ${repoId} updated successfully from wheel index`,
+      message: `Package ${repoId} updated to v${latestVersion} successfully from wheel index`,
     };
   } catch (error: any) {
     logMessage(`Failed to update package ${repoId}: ${error.message}`, "error");

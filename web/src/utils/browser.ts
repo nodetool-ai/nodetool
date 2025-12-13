@@ -17,6 +17,12 @@ export interface ElectronDetectionDetails {
  */
 export const getIsElectronDetails = (): ElectronDetectionDetails => {
   const hasWindow = typeof window !== "undefined";
+  
+  // Primary check: the preload bridge (window.api) is the most reliable indicator
+  const hasElectronBridge =
+    hasWindow &&
+    typeof (window as typeof window & { api?: unknown }).api !== "undefined";
+
   const isRendererProcess =
     hasWindow &&
     typeof window.process === "object" &&
@@ -34,16 +40,8 @@ export const getIsElectronDetails = (): ElectronDetectionDetails => {
     typeof navigator.userAgent === "string" &&
     navigator.userAgent.includes("Electron");
 
-  const hasElectronBridge =
-    hasWindow &&
-    typeof (window as typeof window & { api?: unknown }).api !== "undefined";
-
-  // An environment is considered Electron if any of these specific checks are true.
-  const isElectron =
-    isRendererProcess ||
-    hasElectronVersionInWindowProcess ||
-    hasElectronInUserAgent ||
-    hasElectronBridge;
+  // Use window.api as the primary check since it's exposed by our preload script
+  const isElectron = hasElectronBridge;
 
   return {
     isElectron,

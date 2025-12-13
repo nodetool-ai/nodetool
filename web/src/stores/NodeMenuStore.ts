@@ -114,6 +114,7 @@ type NodeMenuStoreOptions = {
 export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
   create<NodeMenuStore>((set, get) => {
     let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+    let pendingSearchId = 0;
 
     const getFilteredMetadata = () => {
       const all = Object.values(useMetadataStore.getState().metadata);
@@ -129,17 +130,21 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         get().searchResults
       );
 
+    // Optimized search scheduling - no synchronous isLoading update
     const scheduleSearch = (term: string) => {
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
-      const nextSearchId = get().currentSearchId + 1;
-      set({ currentSearchId: nextSearchId, isLoading: true });
+      const nextSearchId = ++pendingSearchId;
+      // Don't set isLoading synchronously - it causes unnecessary re-renders
+      // The search is fast enough that isLoading state isn't needed for short debounces
       searchTimeout = setTimeout(() => {
         searchTimeout = null;
-        get().performSearch(term, nextSearchId);
-        set({ isLoading: false });
-      }, 75);
+        // Only proceed if this is still the latest search request
+        if (nextSearchId === pendingSearchId) {
+          get().performSearch(term, nextSearchId);
+        }
+      }, 50); // Reduced from 75ms since SearchInput already debounces
     };
 
     // Subscribe to metadata changes and clear cache
@@ -158,13 +163,19 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       dragToCreate: false,
       selectedInputType: "",
       setSelectedInputType: (inputType) => {
-        set({ selectedInputType: inputType });
-        scheduleSearch(get().searchTerm);
+        const current = get().selectedInputType;
+        if (current !== inputType) {
+          set({ selectedInputType: inputType });
+          scheduleSearch(get().searchTerm);
+        }
       },
       selectedOutputType: "",
       setSelectedOutputType: (outputType) => {
-        set({ selectedOutputType: outputType });
-        scheduleSearch(get().searchTerm);
+        const current = get().selectedOutputType;
+        if (current !== outputType) {
+          set({ selectedOutputType: outputType });
+          scheduleSearch(get().searchTerm);
+        }
       },
 
       setDragToCreate: (dragToCreate) => {
@@ -184,14 +195,13 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         set({ menuWidth: width, menuHeight: height }),
       searchTerm: "",
       setSearchTerm: (term) => {
-        // Update searchTerm and trigger search synchronously so opening with a term shows results
-        set((state) => ({
-          searchTerm: term,
-          // keep selectedPath as-is; allow callers to control it
-          selectedPath: state.selectedPath,
-          hoveredNode: null
-        }));
-        // Run debounced search with the provided term, not state.searchTerm (which might lag in React dev mode)
+        // Only update searchTerm - avoid unnecessary state changes
+        // Don't clear hoveredNode here as it causes extra re-renders
+        const currentTerm = get().searchTerm;
+        if (currentTerm !== term) {
+          set({ searchTerm: term });
+        }
+        // Run debounced search with the provided term
         scheduleSearch(term);
       },
       selectedPath: [],
@@ -288,7 +298,9 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           isMenuOpen: get().isMenuOpen,
           selectedPath: get().selectedPath
         });
-        if (searchId !== undefined && searchId !== get().currentSearchId) {
+        // Check against the local pendingSearchId to detect stale requests
+        // Note: searchId comes from scheduleSearch which uses pendingSearchId
+        if (searchId !== undefined && searchId !== pendingSearchId) {
           return;
         }
 

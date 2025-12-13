@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react";
+import { useState, useCallback } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -8,12 +9,14 @@ import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutli
 import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { isElectron } from "../../utils/browser";
 const AssetItemContextMenu = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
@@ -43,8 +46,46 @@ const AssetItemContextMenu = () => {
     (asset) => asset.content_type === "folder"
   );
 
+  // Check if the selected asset is a single image
+  const isSingleImage =
+    selectedAssets.length === 1 &&
+    selectedAssets[0]?.content_type?.startsWith("image/");
+
   // Determine if we have non-folder assets selected for moving to new folder
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
+
+  const handleCopyImageToClipboard = useCallback(async () => {
+    if (!isSingleImage || !selectedAssets[0]?.get_url) return;
+
+    try {
+      // Fetch image as blob to avoid CORS issues with canvas
+      const response = await fetch(selectedAssets[0].get_url);
+      const blob = await response.blob();
+      
+      // Convert blob to data URL
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      await window.api.clipboardWriteImage(dataUrl);
+
+      addNotification({
+        type: "success",
+        content: "Image copied to clipboard",
+        alert: true
+      });
+    } catch (error) {
+      log.error("Failed to copy image to clipboard", error);
+      addNotification({
+        type: "error",
+        content: "Failed to copy image to clipboard",
+        alert: true
+      });
+    }
+  }, [isSingleImage, selectedAssets, addNotification]);
 
   const handleDownloadAssets = async (selectedAssetIds: string[]) => {
     addNotification({
@@ -85,6 +126,9 @@ const AssetItemContextMenu = () => {
   const openDeleteDialog = withMenuClose(() => setDeleteDialogOpen(true));
   const downloadSelected = withMenuClose(async () => {
     await handleDownloadAssets(selectedAssetIds);
+  });
+  const copyImageToClipboard = withMenuClose(async () => {
+    await handleCopyImageToClipboard();
   });
 
   if (!menuPosition) return null;
@@ -143,6 +187,14 @@ const AssetItemContextMenu = () => {
           IconComponent={<FileDownloadIcon />}
           tooltip="Download selected assets to your Downloads folder"
         />
+        {isElectron && isSingleImage && (
+          <ContextMenuItem
+            onClick={copyImageToClipboard}
+            label="Copy Image"
+            IconComponent={<ContentCopyIcon />}
+            tooltip="Copy image to clipboard"
+          />
+        )}
         <Divider />
         <div style={{ height: ".5em" }} />
         <ContextMenuItem
