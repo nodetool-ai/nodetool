@@ -615,6 +615,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     const args = [
       "pip",
       "install",
+      "--prerelease=allow",
       "--index-url",
       PYPI_SIMPLE_INDEX_URL,
       "--extra-index-url",
@@ -704,6 +705,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       "--upgrade",
       "--reinstall",  // Force reinstall even if same version
       "--refresh",    // Clear cache and fetch fresh from index
+      "--prerelease=allow",
       "--index-url",
       PYPI_SIMPLE_INDEX_URL,
       "--extra-index-url",

@@ -7,7 +7,6 @@ src/comfy/
 src/comfy_custom_nodes/
 src/comfy_extras/
 src/RealESRGAN/
-electron/apps/build/
 electron/dist/
 electron/dist-web/
 electron/dist-electron/
