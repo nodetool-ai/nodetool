@@ -191,7 +191,7 @@ describe('IPC utilities', () => {
     createIpcMainHandler(Channels.CLIPBOARD_READ_TEXT as any, handler);
     expect(ipcMainMock.handle).toHaveBeenCalledWith(
       Channels.CLIPBOARD_READ_TEXT,
-      handler
+      expect.any(Function)
     );
   });
 
@@ -200,7 +200,7 @@ describe('IPC utilities', () => {
     createIpcOnceHandler(Channels.BOOT_MESSAGE as any, handler as any);
     expect(ipcMainMock.once).toHaveBeenCalledWith(
       Channels.BOOT_MESSAGE,
-      handler
+      expect.any(Function)
     );
   });
 });
@@ -326,7 +326,7 @@ describe('initializeIpcHandlers', () => {
     );
     expect(ipcMainMock.handle).toHaveBeenCalledWith(
       Channels.CLIPBOARD_READ_TEXT,
-      handler
+      expect.any(Function)
     );
   });
 

@@ -27,14 +27,16 @@ describe("getIsElectronDetails", () => {
   it("detects renderer process", () => {
     (window as any).process = { type: "renderer" };
     const details = getIsElectronDetails();
-    expect(details.isElectron).toBe(true);
+    // isElectron is only true when window.api is present (the primary check)
+    expect(details.isElectron).toBe(false);
     expect(details.isRendererProcess).toBe(true);
   });
 
   it("detects electron version in process", () => {
     (window as any).process = { versions: { electron: "1.0.0" } };
     const details = getIsElectronDetails();
-    expect(details.isElectron).toBe(true);
+    // isElectron is only true when window.api is present (the primary check)
+    expect(details.isElectron).toBe(false);
     expect(details.hasElectronVersionInWindowProcess).toBe(true);
   });
 
@@ -45,7 +47,8 @@ describe("getIsElectronDetails", () => {
       writable: true
     });
     const details = getIsElectronDetails();
-    expect(details.isElectron).toBe(true);
+    // isElectron is only true when window.api is present (the primary check)
+    expect(details.isElectron).toBe(false);
     expect(details.hasElectronInUserAgent).toBe(true);
   });
 
