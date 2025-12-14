@@ -355,9 +355,9 @@ jobs:
             ${{ env.DIST_DIR }}/latest.yml
 
       # -------------------------
-      # macOS + Linux release: keep existing publishing behavior untouched
+      # macOS + Linux release: build without publishing
       # -------------------------
-      - name: Build and Publish Electron
+      - name: Build Electron (macOS/Linux)
         if: matrix.os != 'windows-latest'
         shell: bash -l {0}
         env:
@@ -385,4 +385,23 @@ jobs:
           echo "Listing dist-electron:"
           ls -R dist-electron
           ls -l dist-electron/main.js
-          npx electron-builder --config electron-builder.json --publish always
+          npx electron-builder --config electron-builder.json --publish never
+
+      - name: Upload macOS assets to GitHub Release
+        if: matrix.os == 'macos-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            electron/dist/*.dmg
+            electron/dist/*.zip
+            electron/dist/latest-mac.yml
+
+      - name: Upload Linux assets to GitHub Release
+        if: matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            electron/dist/*.AppImage
+            electron/dist/latest-linux.yml
