@@ -143,7 +143,17 @@ async function startOllamaServer(): Promise<void> {
   serverState.ollamaPort = selectedPort;
   serverState.ollamaExternalManaged = false;
 
-  const ollamaExecutablePath = await getOllamaPath();
+  const bundledOllamaPath = getOllamaPath();
+  let ollamaExecutablePath = bundledOllamaPath;
+  try {
+    await fs.access(bundledOllamaPath);
+  } catch {
+    ollamaExecutablePath = "ollama";
+    logMessage(
+      `Bundled Ollama binary not found at ${bundledOllamaPath}; falling back to system 'ollama'`,
+      "warn"
+    );
+  }
   const args = ["serve"]; // OLLAMA_HOST controls bind address/port
   const modelsPath = getOllamaModelsPath();
   try {

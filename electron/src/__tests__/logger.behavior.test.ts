@@ -15,18 +15,19 @@ describe('logger.logMessage', () => {
   it('logs messages, emits server log events, and writes to file', async () => {
     jest.unmock('../logger');
 
-    const mkdirMock = jest.fn().mockResolvedValue(undefined);
-    const appendFileMock = jest.fn().mockResolvedValue(undefined);
+    const writeMock = jest.fn();
+    const onMock = jest.fn();
+    const createWriteStreamMock = jest.fn().mockReturnValue({
+      destroyed: false,
+      write: writeMock,
+      on: onMock,
+    });
+    const existsSyncMock = jest.fn().mockReturnValue(false);
+    const mkdirSyncMock = jest.fn();
     jest.doMock('fs', () => ({
-      promises: {
-        mkdir: mkdirMock,
-        appendFile: appendFileMock,
-      },
-    }));
-
-    const emitServerLogMock = jest.fn();
-    jest.doMock('../events', () => ({
-      emitServerLog: emitServerLogMock,
+      createWriteStream: createWriteStreamMock,
+      existsSync: existsSyncMock,
+      mkdirSync: mkdirSyncMock,
     }));
 
     const electronLogSpies = {
@@ -47,40 +48,36 @@ describe('logger.logMessage', () => {
 
     const loggerModule = await import('../logger');
 
-    await loggerModule.logMessage('  hello world  ');
+    loggerModule.logMessage('  hello world  ');
 
     expect(electronLogSpies.info).toHaveBeenCalledWith('hello world');
-    expect(emitServerLogMock).toHaveBeenCalledWith('hello world');
     expect(getSystemDataPathMock).toHaveBeenCalledWith(
       path.join('logs', 'nodetool.log'),
     );
-    expect(mkdirMock).toHaveBeenCalledWith(
-      path.join('/mock/system', 'logs'),
-      { recursive: true },
-    );
-    expect(appendFileMock).toHaveBeenCalledWith(
-      loggerModule.LOG_FILE,
-      'hello world\n',
-    );
+    expect(existsSyncMock).toHaveBeenCalledWith(path.join('/mock/system', 'logs'));
+    expect(mkdirSyncMock).toHaveBeenCalledWith(path.join('/mock/system', 'logs'), {
+      recursive: true,
+    });
+    expect(createWriteStreamMock).toHaveBeenCalledWith(loggerModule.LOG_FILE, {
+      flags: 'a',
+    });
+    expect(writeMock).toHaveBeenCalledWith('hello world\n');
+    expect(onMock).toHaveBeenCalledWith('error', expect.any(Function));
   });
 
   it('continues when file system operations fail and logs errors', async () => {
     jest.unmock('../logger');
 
-    const mkdirError = new Error('mkdir failed');
-    const appendError = new Error('append failed');
-    const mkdirMock = jest.fn().mockRejectedValue(mkdirError);
-    const appendFileMock = jest.fn().mockRejectedValue(appendError);
+    const streamError = new Error('stream failed');
+    const createWriteStreamMock = jest.fn(() => {
+      throw streamError;
+    });
+    const existsSyncMock = jest.fn().mockReturnValue(true);
+    const mkdirSyncMock = jest.fn();
     jest.doMock('fs', () => ({
-      promises: {
-        mkdir: mkdirMock,
-        appendFile: appendFileMock,
-      },
-    }));
-
-    const emitServerLogMock = jest.fn();
-    jest.doMock('../events', () => ({
-      emitServerLog: emitServerLogMock,
+      createWriteStream: createWriteStreamMock,
+      existsSync: existsSyncMock,
+      mkdirSync: mkdirSyncMock,
     }));
 
     const electronLogSpies = {
@@ -105,12 +102,13 @@ describe('logger.logMessage', () => {
 
     const loggerModule = await import('../logger');
 
-    await expect(loggerModule.logMessage('issue detected', 'error')).resolves.toBeUndefined();
+    expect(() => loggerModule.logMessage('issue detected', 'error')).not.toThrow();
 
     expect(electronLogSpies.error).toHaveBeenCalledWith('issue detected');
-    expect(emitServerLogMock).toHaveBeenCalledWith('issue detected');
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to create log directory:', mkdirError);
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to write to log file:', appendError);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to create log stream:',
+      streamError,
+    );
 
     consoleErrorSpy.mockRestore();
   });

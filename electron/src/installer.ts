@@ -40,6 +40,11 @@ interface InstallationPreferences {
   modelBackend: ModelBackend;
 }
 
+interface InstallationSelection extends InstallationPreferences {
+  installOllama?: boolean;
+  installLlamaCpp?: boolean;
+}
+
 function sanitizePackageSelection(packages: unknown): PythonPackages {
   if (!Array.isArray(packages)) {
     return [];
@@ -139,34 +144,48 @@ function readInstallationPreferences(): InstallationPreferences {
  */
 async function promptForInstallLocation(
   defaults?: InstallationPreferences
-): Promise<InstallationPreferences> {
+): Promise<InstallationSelection> {
   const defaultLocation = defaults?.location ?? getDefaultInstallLocation();
   const defaultPackages = defaults?.packages ?? [];
   // Use defaultBackend if you want to pass it to the renderer
   const defaultBackend = defaults?.modelBackend ?? "ollama";
 
-  return new Promise<{
-    location: string;
-    packages: PythonPackages;
-    modelBackend: ModelBackend;
-  }>((resolve, reject) => {
+  return new Promise<InstallationSelection>((resolve, reject) => {
     createIpcMainHandler(
       IpcChannels.INSTALL_TO_LOCATION,
       async (
         _event,
-         { location, packages, modelBackend }: InstallToLocationData
+        {
+          location,
+          packages,
+          modelBackend,
+          installOllama,
+          installLlamaCpp,
+        }: InstallToLocationData
       ) => {
         const preferences = persistInstallationPreferences(
           location,
           packages,
           modelBackend
         );
-        resolve(preferences);
+        resolve({
+          ...preferences,
+          installOllama,
+          installLlamaCpp,
+        });
       }
     );
 
     // Send the prompt data to the renderer process
-    const mainWindow = BrowserWindow.getFocusedWindow();
+    let mainWindow = BrowserWindow.getFocusedWindow();
+    
+    if (!mainWindow) {
+      const allWindows = BrowserWindow.getAllWindows();
+      if (allWindows.length > 0) {
+        mainWindow = allWindows[0];
+      }
+    }
+
     if (!mainWindow) {
       reject(new Error("No active window found"));
       return;
@@ -601,7 +620,11 @@ async function provisionPythonEnvironment(
   location: string,
   packages: PythonPackages,
   modelBackend: ModelBackend,
-  options?: { bootMessage?: string }
+  options?: {
+    bootMessage?: string;
+    installOllama?: boolean;
+    installLlamaCpp?: boolean;
+  }
 ): Promise<void> {
   const bootMessage =
     options?.bootMessage ?? "Setting up Python environment...";
@@ -623,9 +646,12 @@ async function provisionPythonEnvironment(
   await updateCondaEnvironment(packages);
 
   const condaEnvPath = location;
-  await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend);
+  await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend, {
+    installOllama: options?.installOllama,
+    installLlamaCpp: options?.installLlamaCpp,
+  });
   
-  if (modelBackend === "llama_cpp") {
+  if (modelBackend === "llama_cpp" && (options?.installLlamaCpp ?? true)) {
     await ensureLlamaCppInstalled(condaEnvPath, modelBackend);
   }
 
@@ -672,10 +698,12 @@ async function installCondaEnvironment(): Promise<void> {
   try {
     logMessage("Prompting for install location");
     const persistedPreferences = readInstallationPreferences();
-    const { location, packages, modelBackend } = await promptForInstallLocation(
-      persistedPreferences
-    );
-    await provisionPythonEnvironment(location, packages, modelBackend);
+    const { location, packages, modelBackend, installOllama, installLlamaCpp } =
+      await promptForInstallLocation(persistedPreferences);
+    await provisionPythonEnvironment(location, packages, modelBackend, {
+      installOllama,
+      installLlamaCpp,
+    });
   } catch (error: any) {
     logMessage(
       `Failed to install Python environment: ${error.message}`,
@@ -715,7 +743,8 @@ createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {
 async function installCondaPackages(
   micromambaExecutable: string,
   envPrefix: string,
-  modelBackend: ModelBackend
+  modelBackend: ModelBackend,
+  options?: { installOllama?: boolean; installLlamaCpp?: boolean }
 ): Promise<void> {
   const prefersCuda =
     process.platform === "win32" || process.platform === "linux";
@@ -724,9 +753,23 @@ async function installCondaPackages(
 
   // Conditional installation based on selected backend
   if (modelBackend === "ollama") {
-    packageSpecs.push(OLLAMA_SPEC);
+    if (options?.installOllama ?? true) {
+      packageSpecs.push(OLLAMA_SPEC);
+    } else {
+      logMessage(
+        "Skipping Ollama conda package installation (external Ollama selected)",
+        "info"
+      );
+    }
   } else if (modelBackend === "llama_cpp") {
-    packageSpecs.push(prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC);
+    if (options?.installLlamaCpp ?? true) {
+      packageSpecs.push(prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC);
+    } else {
+      logMessage(
+        "Skipping llama.cpp conda package installation (external llama.cpp selected)",
+        "info"
+      );
+    }
   } 
   // If "none", we install nothing extra
 
