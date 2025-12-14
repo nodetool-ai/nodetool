@@ -216,9 +216,23 @@ jobs:
           credential_id: ${{ secrets.CREDENTIAL_ID }}
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
           file_path: ${{ env.APP_EXE }}
-          output_path: ${{ env.WIN_UNPACKED_DIR }}
+          output_path: ${{ env.DIST_DIR }}/signed-app
           malware_block: true
           environment_name: PROD
+
+      - name: Move signed app exe back to unpacked directory
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          SIGNED_EXE="${DIST_DIR}/signed-app/$(basename "${APP_EXE}")"
+          if [ ! -f "${SIGNED_EXE}" ]; then
+            echo "Signed exe not found at ${SIGNED_EXE}"
+            ls -la "${DIST_DIR}/signed-app" || true
+            exit 1
+          fi
+          mv -f "${SIGNED_EXE}" "${APP_EXE}"
+          echo "Moved signed exe to ${APP_EXE}"
 
       - name: Build NSIS installer from prepackaged app (Windows)
         if: matrix.os == 'windows-latest'
@@ -243,9 +257,23 @@ jobs:
           credential_id: ${{ secrets.CREDENTIAL_ID }}
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
           file_path: ${{ env.INSTALLER_PATH }}
-          output_path: ${{ env.DIST_DIR }}
+          output_path: ${{ env.DIST_DIR }}/signed-installer
           malware_block: true
           environment_name: PROD
+
+      - name: Move signed installer back to dist directory
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          SIGNED_INSTALLER="${DIST_DIR}/signed-installer/$(basename "${INSTALLER_PATH}")"
+          if [ ! -f "${SIGNED_INSTALLER}" ]; then
+            echo "Signed installer not found at ${SIGNED_INSTALLER}"
+            ls -la "${DIST_DIR}/signed-installer" || true
+            exit 1
+          fi
+          mv -f "${SIGNED_INSTALLER}" "${INSTALLER_PATH}"
+          echo "Moved signed installer to ${INSTALLER_PATH}"
 
       - name: Update latest.yml sha512/size for signed installer (Windows)
         if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
