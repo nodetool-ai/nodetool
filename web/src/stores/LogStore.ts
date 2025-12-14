@@ -2,11 +2,13 @@ import { create } from "zustand";
 
 type Log = {
   workflowId: string;
+  workflowName: string;
   nodeId: string;
   nodeName: string;
   content: string;
   severity: "info" | "warning" | "error";
   timestamp: number;
+  data?: any;
 };
 
 type LogsStore = {

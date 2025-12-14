@@ -16,7 +16,7 @@ import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
-import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
+import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
@@ -29,6 +29,7 @@ const MICROMAMBA_EXECUTABLE_NAME =
   process.platform === "win32" ? "micromamba.exe" : "micromamba";
 const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
 const PYTHON_PACKAGES_SETTING_KEY = "PYTHON_PACKAGES";
+const MODEL_BACKEND_SETTING_KEY = "MODEL_BACKEND";
 const MICROMAMBA_LOCK_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 const MICROMAMBA_LOCK_ERROR_PATTERN = /could not set lock|cannot lock/i;
 const DEFAULT_MAMBA_HOME_DIR = ".mamba";
@@ -36,6 +37,7 @@ const DEFAULT_MAMBA_HOME_DIR = ".mamba";
 interface InstallationPreferences {
   location: string;
   packages: PythonPackages;
+  modelBackend: ModelBackend;
 }
 
 function sanitizePackageSelection(packages: unknown): PythonPackages {
@@ -51,6 +53,14 @@ function sanitizePackageSelection(packages: unknown): PythonPackages {
   return Array.from(new Set(sanitized));
 }
 
+function normalizeModelBackend(backend: unknown): ModelBackend {
+  if (backend === "ollama" || backend === "llama_cpp" || backend === "none") {
+    return backend;
+  }
+  // Default to ollama if not specified, or fallback to safe default
+  return "ollama";
+}
+
 function normalizeInstallLocation(location: unknown): string {
   if (typeof location === "string") {
     const trimmed = location.trim();
@@ -63,18 +73,21 @@ function normalizeInstallLocation(location: unknown): string {
 
 function persistInstallationPreferences(
   location: unknown,
-  packages: unknown
+  packages: unknown,
+  modelBackend: unknown
 ): InstallationPreferences {
   const normalizedLocation = normalizeInstallLocation(location);
   const sanitizedPackages = sanitizePackageSelection(packages);
+  const normalizedBackend = normalizeModelBackend(modelBackend);
 
   try {
     updateSettings({
       CONDA_ENV: normalizedLocation,
       [PYTHON_PACKAGES_SETTING_KEY]: sanitizedPackages,
+      [MODEL_BACKEND_SETTING_KEY]: normalizedBackend,
     });
     logMessage(
-      `Persisted installer preferences: location=${normalizedLocation}, packages=${
+      `Persisted installer preferences: location=${normalizedLocation}, backend=${normalizedBackend}, packages=${
         sanitizedPackages.join(", ") || "none"
       }`
     );
@@ -90,6 +103,7 @@ function persistInstallationPreferences(
   return {
     location: normalizedLocation,
     packages: sanitizedPackages,
+    modelBackend: normalizedBackend,
   };
 }
 
@@ -100,7 +114,10 @@ function readInstallationPreferences(): InstallationPreferences {
     const packages = sanitizePackageSelection(
       settings[PYTHON_PACKAGES_SETTING_KEY as keyof typeof settings]
     );
-    return { location, packages };
+    const modelBackend = normalizeModelBackend(
+      settings[MODEL_BACKEND_SETTING_KEY as keyof typeof settings]
+    );
+    return { location, packages, modelBackend };
   } catch (error) {
     logMessage(
       `Unable to read installer preferences, using defaults: ${
@@ -111,8 +128,56 @@ function readInstallationPreferences(): InstallationPreferences {
     return {
       location: getDefaultInstallLocation(),
       packages: [],
+      modelBackend: "ollama",
     };
   }
+}
+
+/**
+ * Prompt for install location
+ * @returns The path to the install location
+ */
+async function promptForInstallLocation(
+  defaults?: InstallationPreferences
+): Promise<InstallationPreferences> {
+  const defaultLocation = defaults?.location ?? getDefaultInstallLocation();
+  const defaultPackages = defaults?.packages ?? [];
+  // Use defaultBackend if you want to pass it to the renderer
+  const defaultBackend = defaults?.modelBackend ?? "ollama";
+
+  return new Promise<{
+    location: string;
+    packages: PythonPackages;
+    modelBackend: ModelBackend;
+  }>((resolve, reject) => {
+    createIpcMainHandler(
+      IpcChannels.INSTALL_TO_LOCATION,
+      async (
+        _event,
+         { location, packages, modelBackend }: InstallToLocationData
+      ) => {
+        const preferences = persistInstallationPreferences(
+          location,
+          packages,
+          modelBackend
+        );
+        resolve(preferences);
+      }
+    );
+
+    // Send the prompt data to the renderer process
+    const mainWindow = BrowserWindow.getFocusedWindow();
+    if (!mainWindow) {
+      reject(new Error("No active window found"));
+      return;
+    }
+
+    mainWindow.webContents.send(IpcChannels.INSTALL_LOCATION_PROMPT, {
+      defaultPath: defaultLocation,
+      packages: defaultPackages,
+      // Pass backend if/when frontend supports it
+    });
+  });
 }
 
 function getMicromambaRootPrefix(): string {
@@ -523,13 +588,14 @@ async function createEnvironmentWithMicromamba(
 async function provisionPythonEnvironment(
   location: string,
   packages: PythonPackages,
+  modelBackend: ModelBackend,
   options?: { bootMessage?: string }
 ): Promise<void> {
   const bootMessage =
     options?.bootMessage ?? "Setting up Python environment...";
 
   emitBootMessage(bootMessage);
-  logMessage(`Setting up Python environment at: ${location}`);
+  logMessage(`Setting up Python environment at: ${location} (Backend: ${modelBackend})`);
 
   const lockFilePath = getCondaLockFilePath();
   logMessage(`Using micromamba lock file at: ${lockFilePath}`);
@@ -545,8 +611,11 @@ async function provisionPythonEnvironment(
   await updateCondaEnvironment(packages);
 
   const condaEnvPath = location;
-  await installCondaPackages(micromambaExecutable, condaEnvPath);
-  await ensureLlamaCppInstalled(condaEnvPath);
+  await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend);
+  
+  if (modelBackend === "llama_cpp") {
+    await ensureLlamaCppInstalled(condaEnvPath, modelBackend);
+  }
 
   logMessage("Python environment installation completed successfully");
   emitBootMessage("Python environment is ready");
@@ -591,10 +660,10 @@ async function installCondaEnvironment(): Promise<void> {
   try {
     logMessage("Prompting for install location");
     const persistedPreferences = readInstallationPreferences();
-    const { location, packages } = await promptForInstallLocation(
+    const { location, packages, modelBackend } = await promptForInstallLocation(
       persistedPreferences
     );
-    await provisionPythonEnvironment(location, packages);
+    await provisionPythonEnvironment(location, packages, modelBackend);
   } catch (error: any) {
     logMessage(
       `Failed to install Python environment: ${error.message}`,
@@ -631,52 +700,28 @@ createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {
   return path.join(filePaths[0], "nodetool-python");
 });
 
-/**
- * Prompt for install location
- * @returns The path to the install location
- */
-async function promptForInstallLocation(
-  defaults?: InstallationPreferences
-): Promise<InstallationPreferences> {
-  const defaultLocation = defaults?.location ?? getDefaultInstallLocation();
-  const defaultPackages = defaults?.packages ?? [];
-
-  return new Promise<{
-    location: string;
-    packages: PythonPackages;
-  }>((resolve, reject) => {
-    createIpcMainHandler(
-      IpcChannels.INSTALL_TO_LOCATION,
-      async (_event, { location, packages }: InstallToLocationData) => {
-        const preferences = persistInstallationPreferences(location, packages);
-        resolve(preferences);
-      }
-    );
-
-    // Send the prompt data to the renderer process
-    const mainWindow = BrowserWindow.getFocusedWindow();
-    if (!mainWindow) {
-      reject(new Error("No active window found"));
-      return;
-    }
-
-    mainWindow.webContents.send(IpcChannels.INSTALL_LOCATION_PROMPT, {
-      defaultPath: defaultLocation,
-      packages: defaultPackages,
-    });
-  });
-}
-
 async function installCondaPackages(
   micromambaExecutable: string,
-  envPrefix: string
+  envPrefix: string,
+  modelBackend: ModelBackend
 ): Promise<void> {
   const prefersCuda =
     process.platform === "win32" || process.platform === "linux";
-  const packageSpecs = [
-    OLLAMA_SPEC,
-    prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC,
-  ];
+  
+  const packageSpecs: string[] = [];
+
+  // Conditional installation based on selected backend
+  if (modelBackend === "ollama") {
+    packageSpecs.push(OLLAMA_SPEC);
+  } else if (modelBackend === "llama_cpp") {
+    packageSpecs.push(prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC);
+  } 
+  // If "none", we install nothing extra
+
+  if (packageSpecs.length === 0) {
+    logMessage(`No backend-specific packages to install for backend: ${modelBackend}`);
+    return;
+  }
 
   const args = [
     "install",
@@ -703,7 +748,15 @@ async function installCondaPackages(
   );
 }
 
-async function ensureLlamaCppInstalled(envPrefix: string): Promise<void> {
+async function ensureLlamaCppInstalled(
+  envPrefix: string,
+  modelBackend: ModelBackend
+): Promise<void> {
+  // Double check logic: we only run this if backend is llama_cpp
+  if (modelBackend !== "llama_cpp") {
+    return;
+  }
+
   const executableName =
     os.platform() === "win32" ? "llama-server.exe" : "llama-server";
   const condaBinDir =
@@ -719,7 +772,7 @@ async function ensureLlamaCppInstalled(envPrefix: string): Promise<void> {
 
   logMessage("llama.cpp binary missing, reinstalling package via micromamba");
   const micromambaExecutable = await ensureMicromambaAvailable();
-  await installCondaPackages(micromambaExecutable, envPrefix);
+  await installCondaPackages(micromambaExecutable, envPrefix, modelBackend);
 
   if (!(await fileExists(llamaBinaryPath))) {
     throw new Error(

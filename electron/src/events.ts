@@ -31,11 +31,13 @@ function emitServerStarted(): void {
 }
 
 /**
- * Emit a server log message to the renderer process
+ * Emit a server log message to the renderer process and write to log file
  * @param {string} message - The log message to emit
  */
 function emitServerLog(message: string): void {
   serverState.logs.push(message);
+  // Note: Writing to log file is handled by the Watchdog onOutput callback
+  // We don't call logMessage here to avoid circular dependency
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IpcChannels.SERVER_LOG, message);

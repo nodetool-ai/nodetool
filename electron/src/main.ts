@@ -36,7 +36,7 @@ import {
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { setupAutoUpdater } from "./updater";
 import { setupWorkflowShortcuts } from "./shortcuts";
-import { logMessage } from "./logger";
+import { logMessage, closeLogStream } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
 import { installCondaEnvironment } from "./installer";
@@ -367,6 +367,7 @@ process.on(
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
+  closeLogStream();
 });
 
 export { mainWindow, isAppQuitting };

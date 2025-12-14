@@ -1,13 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Chip, IconButton, Paper, Tooltip, Typography } from "@mui/material";
+import { Chip, IconButton, Paper, Tooltip, Typography, Popover, Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList, ListChildComponentProps } from "react-window";
-import { CopyToClipboardButton } from "./CopyToClipboardButton";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import DataObjectIcon from "@mui/icons-material/DataObject";
 
 export type Severity = "info" | "warning" | "error";
 
@@ -16,6 +17,7 @@ export type LogRow = {
   workflowName?: string;
   timestamp: number;
   content: string;
+  data?: any;
 };
 
 export type LogsTableProps = {
@@ -92,6 +94,10 @@ const tableStyles = (theme: Theme) =>
       },
       "&:hover .copy-btn": {
         opacity: 1
+      },
+      // Show timestamp on hover
+      "&:hover .timestamp": {
+        opacity: 1
       }
     },
 
@@ -125,25 +131,6 @@ const tableStyles = (theme: Theme) =>
       gap: 4
     },
 
-    ".copy-btn": {
-      padding: 4,
-      borderRadius: 4,
-      "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)"
-      }
-    },
-
-    ".copied-indicator": {
-      fontSize: "0.65rem",
-      color: theme.vars.palette.success.main,
-      fontWeight: 500,
-      opacity: 0,
-      transition: "opacity 0.2s ease",
-      "&.visible": {
-        opacity: 1
-      }
-    },
-
     ".severity-badge": {
       display: "inline-flex",
       alignItems: "center",
@@ -165,7 +152,9 @@ const tableStyles = (theme: Theme) =>
     ".timestamp": {
       fontFamily: theme.fontFamily2,
       fontSize: "0.7rem",
-      color: theme.vars.palette.grey[500]
+      color: theme.vars.palette.grey[500],
+      opacity: 0,
+      transition: "opacity 0.2s ease"
     },
 
     ".empty": {
@@ -213,26 +202,24 @@ const formatTime = (ts: number) => {
 const RowItem = memo(({ index, style, data }: ListChildComponentProps<LogRow[]>) => {
   const r = data[index];
   const colors = SEVERITY_COLORS[r.severity];
-  const [copied, setCopied] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+    event.stopPropagation();
+  };
+
+  const handleClose = (event: React.MouseEvent) => {
+      setAnchorEl(null);
+      event.stopPropagation();
+  };
   
-  const copyText = `${formatTime(r.timestamp)} [${r.severity.toUpperCase()}] ${r.content}`;
-  
-  const handleRowClick = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(copyText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch (err) {
-      console.error("Failed to copy log:", err);
-    }
-  }, [copyText]);
+  const open = Boolean(anchorEl);
   
   return (
     <div style={style}>
       <div 
         className={`row row-${r.severity}`}
-        onClick={handleRowClick}
-        title="Click to copy"
       >
         <div className="cell">
           <span 
@@ -250,17 +237,47 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<LogRow[]>)
           {r.content}
         </div>
         <div className="cell timestamp">{formatTime(r.timestamp)}</div>
-        <div className="cell actions" onClick={(e) => e.stopPropagation()}>
-          {copied ? (
-            <span className="copied-indicator visible">Copied!</span>
-          ) : (
-            <CopyToClipboardButton
-              className="copy-btn"
-              title="Copy log entry"
-              tooltipPlacement="left"
-              copyValue={copyText}
-              size="small"
-            />
+        <div className="cell actions">
+          {r.data !== undefined && r.data !== null && (
+            <>
+              <IconButton 
+                size="small" 
+                onClick={handleClick}
+                sx={{ padding: "2px" }}
+              >
+                <DataObjectIcon fontSize="inherit" />
+              </IconButton>
+              <Popover
+                open={open}
+                anchorEl={anchorEl}
+                onClose={() => setAnchorEl(null)}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "left",
+                }}
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+              >
+                 <Box sx={{ p: 2, maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+                    <pre style={{ margin: 0, fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                        {JSON.stringify(r.data, null, 2)}
+                    </pre>
+                 </Box>
+                 {/* Close button inside popover just in case */}
+                 <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end', borderTop: 1, borderColor: 'divider' }}>
+                    <Typography 
+                        component="span" 
+                        variant="caption" 
+                        sx={{ cursor: 'pointer', color: 'primary.main' }}
+                        onClick={handleClose}
+                    >
+                        Close
+                    </Typography>
+                 </Box>
+              </Popover>
+            </>
           )}
         </div>
       </div>
@@ -351,8 +368,6 @@ export const LogsTable: React.FC<LogsTableProps> = ({
             <div className="empty">
               <Typography variant="body2">{emptyText}</Typography>
             </div>
-          ) : height ? (
-            renderList(height - 32, 100)
           ) : (
             <AutoSizer>
               {({ height: h, width }) => renderList(h, width)}

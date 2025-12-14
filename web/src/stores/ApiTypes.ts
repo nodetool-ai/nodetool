@@ -135,6 +135,7 @@ export type LogUpdate = components["schemas"]["LogUpdate"];
 export type SecretResponse = components["schemas"]["SecretResponse"];
 export type JobResponse = components["schemas"]["JobResponse"];
 export type JobListResponse = components["schemas"]["JobListResponse"];
+export type CalendarEvent = components["schemas"]["CalendarEvent"];
 
 // Job types
 export type Job = JobResponse;

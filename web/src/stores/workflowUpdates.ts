@@ -133,6 +133,18 @@ export const handleUpdate = (
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
     setResult(workflow.id, update.node_id, update.value, true);
+    appendLog({
+      workflowId: workflow.id,
+      nodeId: update.node_id,
+      nodeName: update.node_id, // We don't have node_name here, reusing node_id
+      content: `Output: ${
+        typeof update.value === "string"
+          ? update.value
+          : JSON.stringify(update.value)
+      }`,
+      severity: "info",
+      timestamp: Date.now()
+    });
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
@@ -251,6 +263,7 @@ export const handleUpdate = (
       setError(workflow.id, update.node_id, update.error);
       appendLog({
         workflowId: workflow.id,
+        workflowName: workflow.name,
         nodeId: update.node_id,
         nodeName: update.node_name || update.node_id,
         content: `${update.node_name || update.node_id} error: ${update.error}`,
@@ -262,6 +275,16 @@ export const handleUpdate = (
         statusMessage: `${update.node_name} ${update.status}`
       });
       setStatus(workflow.id, update.node_id, update.status);
+      appendLog({
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        nodeId: update.node_id,
+        nodeName: update.node_name || update.node_id,
+        content: `${update.node_name || update.node_id} status: ${update.status}`,
+        severity: "info",
+        timestamp: Date.now(),
+        data: update.result
+      });
     }
 
     // if (update.properties) {

@@ -123,9 +123,22 @@ export const MessageView: React.FC<
 
   // Add error class if message has error flag
   const baseClass = getMessageClass(message.role);
-  const messageClass = message.error_type
-    ? `${baseClass} error-message`
-    : baseClass;
+  const hasToolCalls =
+    message.role === "assistant" &&
+    Array.isArray(message.tool_calls) &&
+    message.tool_calls.length > 0;
+  const hasNonEmptyContent =
+    (typeof message.content === "string" && message.content.trim().length > 0) ||
+    (Array.isArray(message.content) && message.content.length > 0);
+
+  const messageClass = [
+    baseClass,
+    message.error_type ? "error-message" : null,
+    hasToolCalls ? "has-tool-calls" : null,
+    hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const handleCopy = () => {
     let textToCopy = "";

@@ -136,6 +136,16 @@ const getOllamaPath = (): string => {
 };
 
 /**
+ * Retrieves the path to the llama-server executable from the conda environment.
+ */
+const getLlamaServerPath = (): string => {
+  const condaPath: string = getCondaEnvPath();
+  return process.platform === "win32"
+    ? path.join(condaPath, "Library", "bin", "llama-server.exe")
+    : path.join(condaPath, "bin", "llama-server");
+};
+
+/**
  * Returns the per-OS models directory to use for Ollama.
  * macOS/Linux: ~/.ollama/models
  * Windows: C:\\Users\\<User>\\.ollama\\models
@@ -275,6 +285,7 @@ export {
   getPythonPath,
   getUVPath,
   getOllamaPath,
+  getLlamaServerPath,
   getOllamaModelsPath,
   getCondaLockFilePath,
   getProcessEnv,

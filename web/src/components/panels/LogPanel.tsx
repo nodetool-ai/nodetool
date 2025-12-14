@@ -158,10 +158,11 @@ const LogPanel: React.FC = () => {
       return {
         key,
         workflowId,
-        workflowName: wfName[workflowId] ?? workflowId,
+        workflowName: log.workflowName || wfName[workflowId] || workflowId,
         severity: log.severity,
         timestamp: log.timestamp,
-        content: log.content
+        content: log.content,
+        data: log.data
       } as Row;
     });
   }, [logs, wfName]);
@@ -180,9 +181,6 @@ const LogPanel: React.FC = () => {
     setSelectedSeverities(
       (e.target.value as string[]).map((v) => v as Severity)
     );
-  };
-  const handleWorkflowChange = (e: SelectChangeEvent<string[]>) => {
-    setSelectedWorkflows(e.target.value as string[]);
   };
 
   const filtered = useMemo(() => {
@@ -235,10 +233,22 @@ const LogPanel: React.FC = () => {
               labelId="workflow-label"
               multiple
               value={selectedWorkflows}
-              onChange={handleWorkflowChange}
+              onChange={(e) => {
+                const val = e.target.value as string[];
+                if (val.includes("__all__")) {
+                  setSelectedWorkflows([]);
+                } else {
+                  setSelectedWorkflows(val);
+                }
+              }}
               input={<OutlinedInput label="Workflow" />}
-              renderValue={(selected) => (selected as string[]).join(", ")}
+              renderValue={(selected) => 
+                (selected as string[]).length === 0 ? "All Workflows" : (selected as string[]).join(", ")
+              }
             >
+              <MenuItem value="__all__">
+                <em>All Workflows</em>
+              </MenuItem>
               {workflowOptions.map((w) => (
                 <MenuItem key={w} value={w}>
                   {w}
