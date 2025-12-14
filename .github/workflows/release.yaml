@@ -136,20 +136,6 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build Apps
-        shell: bash -l {0}
-        env:
-          NODE_OPTIONS: "--max_old_space_size=4096"
-        run: |
-          # Debug: Verify Python environment variables are correctly set
-          echo "DEBUG: npm_config_python = $npm_config_python"
-          echo "DEBUG: NODE_GYP_FORCE_PYTHON = $NODE_GYP_FORCE_PYTHON" 
-          echo "DEBUG: which python = $(which python)"
-
-          cd apps
-          npm ci
-          npm run build
-
       # -------------------------
       # Windows release: build + (optional) SSL.com signing + upload assets
       # -------------------------
