@@ -504,10 +504,16 @@ export const createNodeStore = (
               targetHandle: connection.targetHandle || null
             } as Edge;
 
-            // Optimization: Avoid unnecessary map operation if handles are already normalized
-            // The filteredEdges already have the correct handle structure in most cases
+            // Normalize handles to null if undefined for consistency
+            // This is necessary because edge comparison and serialization expect null, not undefined
+            const normalizedEdges = filteredEdges.map((edge) => ({
+              ...edge,
+              sourceHandle: edge.sourceHandle || null,
+              targetHandle: edge.targetHandle || null
+            }));
+
             set({
-              edges: addEdge(newEdge, filteredEdges)
+              edges: addEdge(newEdge, normalizedEdges)
             });
             get().setWorkflowDirty(true);
           },
@@ -776,6 +782,8 @@ export const createNodeStore = (
 
             // Optimization: Calculate bounds in single pass instead of 4 separate iterations
             const getBounds = (nodes: Node<NodeData>[]) => {
+              // Note: In practice, this is never called with empty arrays since autoLayout
+              // only runs when there are nodes. Return zero bounds for consistency.
               if (nodes.length === 0) {
                 return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
               }
