@@ -211,8 +211,10 @@ export default function FileBrowserDialog({
   // Filter files
   const filteredFiles = useMemo(() => {
     if (!searchQuery) return files;
+    // Optimization: Convert search query to lowercase once
+    const searchQueryLower = searchQuery.toLowerCase();
     return files.filter((f) =>
-      f.name.toLowerCase().includes(searchQuery.toLowerCase())
+      f.name.toLowerCase().includes(searchQueryLower)
     );
   }, [files, searchQuery]);
 
