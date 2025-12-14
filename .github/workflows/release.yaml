@@ -208,7 +208,7 @@ jobs:
       - name: Sign main app exe (SSL.com eSigner)
         if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
         # Guide: https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
-        uses: sslcom/actions-codesigner@develop
+        uses: sslcom/esigner-codesign@develop
         with:
           command: sign
           username: ${{ secrets.ES_USERNAME }}
@@ -217,6 +217,8 @@ jobs:
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
           file_path: ${{ env.APP_EXE }}
           output_path: ${{ env.WIN_UNPACKED_DIR }}
+          malware_block: true
+          environment_name: PROD
 
       - name: Build NSIS installer from prepackaged app (Windows)
         if: matrix.os == 'windows-latest'
@@ -233,7 +235,7 @@ jobs:
       - name: Sign installer exe (SSL.com eSigner)
         if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
         # Guide: https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
-        uses: sslcom/actions-codesigner@develop
+        uses: sslcom/esigner-codesign@develop
         with:
           command: sign
           username: ${{ secrets.ES_USERNAME }}
@@ -242,6 +244,8 @@ jobs:
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
           file_path: ${{ env.INSTALLER_PATH }}
           output_path: ${{ env.DIST_DIR }}
+          malware_block: true
+          environment_name: PROD
 
       - name: Update latest.yml sha512/size for signed installer (Windows)
         if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
