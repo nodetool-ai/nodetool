@@ -197,8 +197,17 @@ export const createStyles = (theme: Theme) => ({
       border: "1px solid rgba(255, 255, 255, 0.05)",
       borderRadius: 12,
       background: "rgba(0, 0, 0, 0.2)",
-      padding: "6px 10px",
-      marginBottom: 3
+      padding: "4px 8px",
+      marginBottom: 2
+    },
+
+    "li.chat-message.tool-calls-only": {
+      marginBottom: "0.4em",
+      padding: "0.25em 0"
+    },
+
+    "li.chat-message.tool-calls-only .tool-call-card:last-child": {
+      marginBottom: 0
     },
 
     ".tool-call-header": {

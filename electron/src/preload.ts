@@ -103,12 +103,14 @@ contextBridge.exposeInMainWorld("api", {
   installToLocation: (
     location: string,
     packages: PythonPackages,
+    modelBackend?: "ollama" | "llama_cpp" | "none", // Explicit string union for renderer safety
     installOllama?: boolean,
     installLlamaCpp?: boolean
   ) => {
     return ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
       location,
       packages,
+      modelBackend,
       installOllama,
       installLlamaCpp,
     });
@@ -118,6 +120,7 @@ contextBridge.exposeInMainWorld("api", {
   continueToApp: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
   startServer: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
   restartServer: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
+  restartLlamaServer: () => ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
   showPackageManager: (nodeSearch?: string) =>
     ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER, nodeSearch),
   runApp: (workflowId: string) =>
@@ -165,6 +168,8 @@ contextBridge.exposeInMainWorld("api", {
   // Log viewer methods
   getLogs: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
   clearLogs: () => ipcRenderer.invoke(IpcChannels.CLEAR_LOGS),
+  checkOllamaInstalled: () =>
+    ipcRenderer.invoke(IpcChannels.CHECK_OLLAMA_INSTALLED),
 });
 // Package manager API
 contextBridge.exposeInMainWorld("electronAPI", {

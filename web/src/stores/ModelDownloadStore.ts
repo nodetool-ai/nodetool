@@ -28,6 +28,7 @@ interface Download {
   speed: number | null;
   speedHistory: SpeedDataPoint[];
   abortController?: AbortController;
+  modelType?: string;
 }
 
 interface ModelDownloadStore {
@@ -105,6 +106,15 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             const queryClient = get().queryClient;
             queryClient?.invalidateQueries({ queryKey: ["allModels"] });
             queryClient?.invalidateQueries({ queryKey: ["image-models"] });
+            
+            // Restart llama-server if a llama_cpp model was downloaded
+            const download = get().downloads[id];
+            if (download?.modelType === "llama_cpp_model" && window.api?.restartLlamaServer) {
+              console.log("Restarting llama-server after model download");
+              window.api.restartLlamaServer().catch((e: unknown) => {
+                console.error("Failed to restart llama-server:", e);
+              });
+            }
           }
         }
       };
@@ -234,7 +244,9 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
     const id = path ? repoId + "/" + path : repoId;
 
-    const additionalProps: Partial<Download> = {};
+    const additionalProps: Partial<Download> = {
+      modelType: modelType
+    };
     let abortController: AbortController | undefined;
 
     if (modelType === "llama_model") {
@@ -311,7 +323,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           repo_id: repoId,
           path: path,
           allow_patterns: allowPatterns,
-          ignore_patterns: ignorePatterns
+          ignore_patterns: ignorePatterns,
+          model_type: modelType
         })
       );
     }

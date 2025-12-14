@@ -4,7 +4,7 @@ import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
 import { createPackageManagerWindow, createWindow, createLogViewerWindow } from "./window";
 import { execSync } from "child_process";
-import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning } from "./server";
+import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning, isLlamaServerRunning } from "./server";
 import { fetchWorkflows } from "./api";
 
 let trayInstance: Electron.Tray | null = null;
@@ -164,6 +164,7 @@ async function updateTrayMenu(): Promise<void> {
   const connected = await isServerRunning();
   const statusIndicator = connected ? "🟢" : "🔴";
   const ollamaRunning = isOllamaRunning();
+  const llamaServerRunning = isLlamaServerRunning();
   const state = getServerState();
   const backendLabel = connected
     ? `${statusIndicator} NodeTool: ${state.serverPort ?? "unknown"}`
@@ -173,6 +174,11 @@ async function updateTrayMenu(): Promise<void> {
     : state.ollamaExternalManaged
       ? `🟢 Ollama (external): ${state.ollamaPort ?? "unknown"}`
       : "🔴 Ollama: stopped";
+  const llamaLabel = llamaServerRunning
+    ? `🟢 Llama.cpp: ${state.llamaPort ?? "unknown"}`
+    : state.llamaExternalManaged
+      ? `🟢 Llama.cpp (external): ${state.llamaPort ?? "unknown"}`
+      : "🔴 Llama.cpp: stopped";
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -181,6 +187,10 @@ async function updateTrayMenu(): Promise<void> {
     },
     {
       label: ollamaLabel,
+      enabled: false,
+    },
+    {
+      label: llamaLabel,
       enabled: false,
     },
     {

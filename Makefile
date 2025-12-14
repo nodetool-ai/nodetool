@@ -50,7 +50,17 @@ install-electron:
 	@echo "Installing electron dependencies..."
 	cd electron && npm install
 
-electron: build-web
+# Web build optimization
+WEB_DIR := web
+WEB_BUILD_MARKER := $(WEB_DIR)/dist/.build_marker
+WEB_SOURCES := $(shell find $(WEB_DIR)/src -type f 2>/dev/null) $(WEB_DIR)/package.json $(WEB_DIR)/vite.config.ts $(WEB_DIR)/index.html
+
+$(WEB_BUILD_MARKER): $(WEB_SOURCES)
+	@echo "Building web package (sources changed)..."
+	cd web && npm run build
+	@touch $(WEB_BUILD_MARKER)
+
+electron: $(WEB_BUILD_MARKER)
 	@echo "Building electron vite..."
 	cd electron && npm run vite:build
 	@echo "Starting electron app..."
@@ -59,9 +69,7 @@ electron: build-web
 # Build targets
 build: build-web build-electron
 
-build-web:
-	@echo "Building web package..."
-	cd web && npm run build
+build-web: $(WEB_BUILD_MARKER)
 
 build-electron:
 	@echo "Building electron package..."

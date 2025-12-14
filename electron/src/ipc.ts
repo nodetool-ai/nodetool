@@ -12,6 +12,7 @@ import {
   runApp,
   initializeBackendServer,
   stopServer,
+  restartLlamaServer,
 } from "./server";
 import { logMessage } from "./logger";
 import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
@@ -214,6 +215,12 @@ export function initializeIpcHandlers(): void {
     await setupWorkflowShortcuts();
   });
 
+  // Restart llama-server handler (used after downloading new models)
+  createIpcMainHandler(IpcChannels.RESTART_LLAMA_SERVER, async () => {
+    logMessage("Restarting llama-server to pick up new models");
+    await restartLlamaServer();
+  });
+
   // App control handlers
   createIpcMainHandler(IpcChannels.RUN_APP, async (_event, workflowId) => {
     logMessage(`Running app with workflow ID: ${workflowId}`);
@@ -384,5 +391,11 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.CLEAR_LOGS, async () => {
     logMessage("Clearing server logs");
     getServerState().logs = [];
+  });
+
+  createIpcMainHandler(IpcChannels.CHECK_OLLAMA_INSTALLED, async () => {
+    // Lazy import to avoid circular deps if any
+    const { isOllamaInstalled } = await import("./python");
+    return await isOllamaInstalled();
   });
 }

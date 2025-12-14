@@ -10,6 +10,8 @@ export interface ServerState {
   serverPort?: number;
   ollamaPort?: number;
   ollamaExternalManaged?: boolean;
+  llamaPort?: number;
+  llamaExternalManaged?: boolean;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -24,6 +26,8 @@ const serverState: ServerState = {
   serverPort: 7777,
   ollamaPort: 11435,
   ollamaExternalManaged: false,
+  llamaPort: 8080,
+  llamaExternalManaged: false,
 };
 
 export function getMainWindow(): BrowserWindow | null {

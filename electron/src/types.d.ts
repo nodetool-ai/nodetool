@@ -39,10 +39,12 @@ declare global {
       unregisterMenuEvent: (callback: (data: any) => void) => void;
       startServer: () => Promise<void>;
       restartServer: () => Promise<void>;
+      restartLlamaServer: () => Promise<void>;
       showPackageManager: (nodeSearch?: string) => void;
       installToLocation: (
         location: string,
         packages: PythonPackages,
+        modelBackend?: ModelBackend,
         installOllama?: boolean,
         installLlamaCpp?: boolean
       ) => Promise<void>;
@@ -55,6 +57,7 @@ declare global {
       removeListener: (event: string) => void;
       getLogs: () => Promise<string[]>;
       clearLogs: () => Promise<void>;
+      checkOllamaInstalled: () => Promise<boolean>;
     };
     electronAPI: {
       packages: {
@@ -215,6 +218,7 @@ export enum IpcChannels {
   SELECT_CUSTOM_LOCATION = "select-custom-location",
   START_SERVER = "start-server",
   RESTART_SERVER = "restart-server",
+  RESTART_LLAMA_SERVER = "restart-llama-server",
   RUN_APP = "run-app",
   BOOT_MESSAGE = "boot-message",
   SERVER_STARTED = "server-started",
@@ -247,11 +251,16 @@ export enum IpcChannels {
   // Log viewer channels
   GET_LOGS = "get-logs",
   CLEAR_LOGS = "clear-logs",
+  CHECK_OLLAMA_INSTALLED = "check-ollama-installed",
 }
+
+export type ModelBackend = "ollama" | "llama_cpp" | "none";
 
 export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
+  modelBackend?: ModelBackend;
+  // Deprecated: kept for backward compatibility if needed
   installOllama?: boolean;
   installLlamaCpp?: boolean;
 }
@@ -271,6 +280,7 @@ export interface IpcRequest {
   [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
+  [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.SHOW_PACKAGE_MANAGER]: string | undefined;
   [IpcChannels.WINDOW_CLOSE]: void;
@@ -293,6 +303,7 @@ export interface IpcRequest {
   // Log viewer
   [IpcChannels.GET_LOGS]: void;
   [IpcChannels.CLEAR_LOGS]: void;
+  [IpcChannels.CHECK_OLLAMA_INSTALLED]: void;
 }
 
 export interface IpcResponse {
@@ -305,6 +316,7 @@ export interface IpcResponse {
   [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
+  [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
   [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
@@ -327,6 +339,7 @@ export interface IpcResponse {
   // Log viewer
   [IpcChannels.GET_LOGS]: string[];
   [IpcChannels.CLEAR_LOGS]: void;
+  [IpcChannels.CHECK_OLLAMA_INSTALLED]: boolean;
 }
 
 // Event types for each IPC channel
@@ -415,4 +428,9 @@ export interface PackageInstallRequest {
 
 export interface PackageUninstallRequest {
   repo_id: string;
+}
+
+declare module "*.png" {
+  const value: string;
+  export default value;
 }

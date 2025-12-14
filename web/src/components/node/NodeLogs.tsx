@@ -181,7 +181,8 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
                 severity: l.severity as LogRow["severity"],
                 timestamp: l.timestamp,
                 content: l.content,
-                workflowName: undefined
+                workflowName: undefined,
+                data: l.data
               }))}
               height={400}
               severities={selectedSeverities}

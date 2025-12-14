@@ -4,6 +4,7 @@ import { logMessage } from "./logger";
 import {
   getPythonPath,
   getOllamaPath,
+  getLlamaServerPath,
   getOllamaModelsPath,
   getProcessEnv,
   PID_FILE_PATH,
@@ -20,10 +21,13 @@ import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
+import { readSettings } from "./settings";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
+let llamaWatchdog: Watchdog | null = null;
 const OLLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "ollama.pid");
+const LLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "llama-server.pid");
 
 /**
  * Server Management Module
@@ -181,6 +185,118 @@ async function startOllamaServer(): Promise<void> {
 }
 
 /**
+ * Checks if a llama-server is already running on a specific port
+ */
+async function isLlamaServerResponsive(
+  port: number,
+  timeoutMs = 2000
+): Promise<boolean> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/health`, {
+      signal: controller.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+/**
+ * Starts the llama-server using Watchdog
+ */
+async function startLlamaServer(): Promise<void> {
+  const defaultPort = 8080;
+
+  // Check if an external llama-server is already running
+  if (await isLlamaServerResponsive(defaultPort)) {
+    serverState.llamaPort = defaultPort;
+    serverState.llamaExternalManaged = true;
+    logMessage(`Detected running llama-server instance on port ${defaultPort}`);
+    return;
+  }
+
+  const basePort = serverState.llamaPort ?? defaultPort;
+  const selectedPort = await findAvailablePort(basePort);
+  serverState.llamaPort = selectedPort;
+  serverState.llamaExternalManaged = false;
+
+  const llamaExecutablePath = getLlamaServerPath();
+  logMessage(`Llama-server executable path: ${llamaExecutablePath}`);
+
+  // Check if the executable exists
+  try {
+    await fs.access(llamaExecutablePath);
+  } catch {
+    logMessage(
+      `llama-server executable not found at ${llamaExecutablePath}. Skipping llama-server startup.`,
+      "warn"
+    );
+    return;
+  }
+
+  const args = [
+    "--host", "127.0.0.1",
+    "--port", String(selectedPort),
+  ];
+
+  llamaWatchdog = new Watchdog({
+    name: "llama-server",
+    command: llamaExecutablePath,
+    args,
+    env: {
+      ...process.env,
+    },
+    pidFilePath: LLAMA_PID_FILE_PATH,
+    healthUrl: `http://127.0.0.1:${selectedPort}/health`,
+    onOutput: (line) => emitServerLog(line),
+  });
+
+  try {
+    await llamaWatchdog.start();
+    logMessage(`llama-server started on port ${selectedPort}`);
+  } catch (error) {
+    logMessage(
+      `Failed to start llama-server watchdog: ${(error as Error).message}`,
+      "error"
+    );
+    llamaWatchdog = null;
+    // Don't throw - llama-server is optional
+  }
+}
+
+/**
+ * Restarts the llama-server (used after downloading new models)
+ */
+async function restartLlamaServer(): Promise<void> {
+  logMessage("Restarting llama-server to pick up new models...");
+
+  // Stop existing server if running
+  if (llamaWatchdog) {
+    try {
+      await llamaWatchdog.stopGracefully();
+      logMessage("Stopped existing llama-server");
+    } catch (error) {
+      logMessage(
+        `Error stopping llama-server: ${(error as Error).message}`,
+        "warn"
+      );
+    }
+    llamaWatchdog = null;
+  }
+
+  // Small delay to ensure port is released
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Start fresh
+  await startLlamaServer();
+  logMessage("llama-server restarted successfully");
+}
+
+/**
  * Attempts to kill any existing server process using the stored PID
  */
 async function killExistingServer(): Promise<void> {
@@ -257,20 +373,54 @@ async function startServer(): Promise<void> {
     throw error;
   }
 
-  // Attempt to start Ollama, but continue even if it fails
+  // Determine model backend preference
+  let modelBackend = "ollama";
   try {
-    logMessage("Starting Ollama server...");
-    await startOllamaServer();
-    logMessage("Ollama server started successfully");
-  } catch (error) {
-    logMessage(
-      `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
-      "warn"
-    );
-    // Set default port even if Ollama failed to start
-    if (!serverState.ollamaPort) {
-      serverState.ollamaPort = 11435;
+    const settings = readSettings();
+    const configuredBackend = settings["MODEL_BACKEND"];
+    if (typeof configuredBackend === "string" && (configuredBackend === "ollama" || configuredBackend === "llama_cpp" || configuredBackend === "none")) {
+        modelBackend = configuredBackend;
     }
+  } catch (error) {
+    logMessage(`Failed to read settings for model backend, defaulting to ${modelBackend}: ${error}`, "warn");
+  }
+  
+  logMessage(`Model Backend Priority: ${modelBackend}`);
+
+  // Attempt to start Ollama if selected (default)
+  if (modelBackend === "ollama") {
+    try {
+        logMessage("Starting Ollama server...");
+        await startOllamaServer();
+        logMessage("Ollama server started successfully");
+    } catch (error) {
+        logMessage(
+        `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
+        "warn"
+        );
+        // Set default port even if Ollama failed to start
+        if (!serverState.ollamaPort) {
+        serverState.ollamaPort = 11435;
+        }
+    }
+  } else {
+    logMessage("Skipping Ollama server startup (backend not set to 'ollama')");
+  }
+
+  // Attempt to start llama-server if selected
+  if (modelBackend === "llama_cpp") {
+    try {
+        logMessage("Starting llama-server...");
+        await startLlamaServer();
+        logMessage("llama-server started successfully");
+    } catch (error) {
+        logMessage(
+        `Failed to start llama-server: ${(error as Error).message}. Continuing without llama-server.`,
+        "warn"
+        );
+    }
+  } else {
+    logMessage("Skipping llama-server startup (backend not set to 'llama_cpp')");
   }
 
   const basePort = 7777;
@@ -300,6 +450,7 @@ async function startServer(): Promise<void> {
     env: {
       ...getProcessEnv(),
       OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
+      LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
     },
     pidFilePath: PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/health`,
@@ -368,6 +519,14 @@ async function isServerRunning(): Promise<boolean> {
  */
 function isOllamaRunning(): boolean {
   return ollamaWatchdog !== null;
+}
+
+/**
+ * Checks if the llama-server process is currently running
+ * @returns true if llama-server is running, false otherwise
+ */
+function isLlamaServerRunning(): boolean {
+  return llamaWatchdog !== null;
 }
 
 /**
@@ -510,6 +669,11 @@ async function stopServer(): Promise<void> {
       await ollamaWatchdog.stopGracefully();
       ollamaWatchdog = null;
     }
+    if (llamaWatchdog) {
+      logMessage("Stopping llama-server (watchdog)");
+      await llamaWatchdog.stopGracefully();
+      llamaWatchdog = null;
+    }
   } catch (error) {
     logMessage(`Error during shutdown: ${(error as Error).message}`, "error");
   }
@@ -554,7 +718,9 @@ export {
   serverState,
   initializeBackendServer,
   stopServer,
+  restartLlamaServer,
   webPath,
   isServerRunning,
   isOllamaRunning,
+  isLlamaServerRunning,
 };

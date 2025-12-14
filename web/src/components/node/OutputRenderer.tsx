@@ -16,11 +16,13 @@ import {
   NPArray,
   TaskPlan,
   PlotlyConfig,
-  Task
+  Task,
+  CalendarEvent
 } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
+import CalendarEventView from "./CalendarEventView";
 import { Container, List, ListItem, ListItemText } from "@mui/material";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
@@ -231,6 +233,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         return <TaskView task={value as Task} />;
       case "task_plan":
         return <TaskPlanView data={value as TaskPlan} />;
+      case "calendar_event":
+        return <CalendarEventView event={value as CalendarEvent} />;
       case "array":
         if (value.length > 0) {
           if (value[0] === undefined || value[0] === null) {

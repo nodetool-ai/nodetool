@@ -248,4 +248,24 @@ export {
   updateCondaEnvironment,
   getDefaultInstallLocation,
   runCommand,
+  isOllamaInstalled,
 };
+
+/**
+ * Check if Ollama is installed on the system by running 'ollama --version'
+ * @returns true if installed, false otherwise
+ */
+async function isOllamaInstalled(): Promise<boolean> {
+  const { exec } = await import("child_process");
+  return new Promise((resolve) => {
+    exec("ollama --version", (error) => {
+      if (error) {
+        // Command failed or not found
+        resolve(false);
+      } else {
+        // Command succeeded, ollama is in PATH
+        resolve(true);
+      }
+    });
+  });
+}

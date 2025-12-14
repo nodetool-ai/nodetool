@@ -34,6 +34,7 @@ declare global {
       onUpdateWorkflow: (workflow: Workflow) => void;
       onDeleteWorkflow: (workflow: Workflow) => void;
       showPackageManager: (nodeSearch?: string) => void;
+      restartLlamaServer?: () => Promise<void>;
       windowControls: WindowControls;
       platform: string;
     };
