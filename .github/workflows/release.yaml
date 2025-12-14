@@ -192,14 +192,14 @@ jobs:
           echo "APP_EXE=${APP_EXE}" >> "${GITHUB_ENV}"
           echo "INSTALLER_PATH=${INSTALLER_PATH}" >> "${GITHUB_ENV}"
 
-      - name: Decide whether to sign (skip rc/test tags)
+      - name: Decide whether to sign (skip test tags)
         if: matrix.os == 'windows-latest'
         shell: bash -l {0}
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
           SHOULD_SIGN="true"
-          if echo "${TAG}" | grep -Eiq -- '-rc|-test'; then
+          if echo "${TAG}" | grep -Eiq -- '-test'; then
             SHOULD_SIGN="false"
           fi
           echo "SHOULD_SIGN=${SHOULD_SIGN}" >> "${GITHUB_ENV}"
