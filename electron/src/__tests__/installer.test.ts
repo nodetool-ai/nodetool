@@ -60,8 +60,13 @@ describe("installer promptForInstallLocation", () => {
     expect(updateSettings).toHaveBeenCalledWith({
       CONDA_ENV: "/chosen",
       PYTHON_PACKAGES: ["pkg"],
+      MODEL_BACKEND: "ollama",
     });
-    expect(result).toEqual({ location: "/chosen", packages: ["pkg"] });
+    expect(result).toMatchObject({
+      location: "/chosen",
+      packages: ["pkg"],
+      modelBackend: "ollama",
+    });
   });
 
   it("registers install handler", async () => {

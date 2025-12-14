@@ -212,35 +212,59 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
 
   // Check for running Ollama instance or existing installation
   useEffect(() => {
-    if (currentStep === "runtime") {
-      const checkOllama = async () => {
-        // Check for running instance
-        try {
-          const controller = new AbortController();
-          const id = setTimeout(() => controller.abort(), 1000);
-          await fetch("http://127.0.0.1:11434", {
-            signal: controller.signal,
-          });
-          clearTimeout(id);
-          setIsOllamaRunning(true);
-          if (selectedRuntime === "ollama") {
-            handleRuntimeSelection("skip");
-          }
-        } catch (e) {
-          setIsOllamaRunning(false);
-        }
+    let cancelled = false;
 
-        // Check for installed binary
-        try {
-          const installed = await window.api.checkOllamaInstalled();
-          setIsOllamaInstalled(installed);
-        } catch (e) {
-          console.error("Failed to check for Ollama installation:", e);
-        }
-      };
-      checkOllama();
+    const checkOllama = async () => {
+      let running = false;
+      let installed = false;
+
+      // Check for running instance on default Ollama port.
+      try {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 1000);
+        const res = await fetch("http://127.0.0.1:11434/api/tags", {
+          signal: controller.signal,
+        });
+        clearTimeout(id);
+        running = res.ok;
+      } catch {
+        running = false;
+      }
+
+      // Check for installed binary (available on PATH).
+      try {
+        installed = await window.api.checkOllamaInstalled();
+      } catch (e) {
+        console.error("Failed to check for Ollama installation:", e);
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      setIsOllamaRunning(running);
+      setIsOllamaInstalled(installed);
+    };
+
+    void checkOllama();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Prefer Ollama when it's detected (avoid leaving the user on "skip" due to prior runs).
+  useEffect(() => {
+    const detected = isOllamaRunning || isOllamaInstalled;
+    if (currentStep === "runtime" && detected && selectedRuntime === "skip") {
+      setSelectedRuntime("ollama");
+      try {
+        localStorage.setItem(RUNTIME_STORAGE_KEY, "ollama");
+      } catch {
+        // ignore
+      }
     }
-  }, [currentStep, selectedRuntime]);
+  }, [currentStep, isOllamaRunning, isOllamaInstalled, selectedRuntime]);
 
 
   const validatePath = useCallback((path: string) => {
@@ -319,7 +343,29 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     }
 
     // Determine what to install based on runtime selection
-    const installOllama = selectedRuntime === "ollama";
+    let ollamaDetected = isOllamaRunning || isOllamaInstalled;
+    if (selectedRuntime === "ollama" && !ollamaDetected) {
+      try {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 1000);
+        const res = await fetch("http://127.0.0.1:11434/api/tags", {
+          signal: controller.signal,
+        });
+        clearTimeout(id);
+        ollamaDetected = res.ok;
+      } catch {
+        // ignore
+      }
+
+      if (!ollamaDetected) {
+        try {
+          ollamaDetected = await window.api.checkOllamaInstalled();
+        } catch {
+          // ignore
+        }
+      }
+    }
+    const installOllama = selectedRuntime === "ollama" && !ollamaDetected;
     const installLlamaCpp = selectedRuntime === "llamacpp";
 
     // Map UI runtime option to backend type
@@ -572,7 +618,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
               <div id="step-runtime" className="setup-step active">
                 <div className="step-header">
                   <h3>Step 2: Choose AI Runtime</h3>
-                  <p>Select the AI runtime you'd like to install:</p>
+                  <p>Select the AI runtime you'd like to use:</p>
                   <p role="note" style={{ marginTop: 8, color: "#7a7a7a" }}>
                     Installing to: <code>{selectedPath}</code>
                   </p>
@@ -585,8 +631,8 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   <div
                     className={`runtime-card ${
                       selectedRuntime === "ollama" ? "selected" : ""
-                    } ${isOllamaRunning ? "disabled" : ""}`}
-                    onClick={() => !isOllamaRunning && handleRuntimeSelection("ollama")}
+                    }`}
+                    onClick={() => handleRuntimeSelection("ollama")}
                   >
                     <div className="runtime-icon">
                       <TerminalIcon />
@@ -596,33 +642,28 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                         <h4 className="runtime-title">Ollama</h4>
                         <span
                           className={`runtime-badge ${
-                            isOllamaRunning ? "running" : "recommended"
+                            isOllamaRunning || isOllamaInstalled
+                              ? "running"
+                              : "recommended"
                           }`}
                         >
-                          {isOllamaRunning ? "Running" : "Recommended"}
+                          {isOllamaRunning || isOllamaInstalled
+                            ? "Detected"
+                            : "Recommended"}
                         </span>
                       </div>
                       <p className="runtime-description">
                         Easy to use, recommended for most users. Includes model management and a simple API.
                       </p>
                       
-                      {isOllamaRunning ? (
-                        <div className="runtime-warning">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="8" x2="12" y2="12"></line>
-                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                          </svg>
-                          <span>Port 11434 is in use. Please use existing instance (Skip) or stop it.</span>
-                        </div>
-                      ) : isOllamaInstalled && (
+                      {(isOllamaRunning || isOllamaInstalled) && (
                         <div className="runtime-note">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="10"></circle>
                             <line x1="12" y1="16" x2="12" y2="12"></line>
                             <line x1="12" y1="8" x2="12.01" y2="8"></line>
                           </svg>
-                          <span>Ollama detected on system. You can use it (Skip) or install bundled version.</span>
+                          <span>Ollama detected. NodeTool will use your existing Ollama and will not download it.</span>
                         </div>
                       )}
                     </div>
@@ -631,7 +672,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                       name="runtime"
                       value="ollama"
                       checked={selectedRuntime === "ollama"}
-                      disabled={isOllamaRunning}
                       onChange={() => {}} // Handle click on parent
                       style={{ marginLeft: "auto", marginRight: 0 }}
                     />
@@ -684,7 +724,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                         <h4 className="runtime-title">Skip Runtime Installation</h4>
                       </div>
                       <p className="runtime-description">
-                        I have Ollama installed separately or don't need an AI runtime right now.
+                        Don't configure a local LLM engine right now.
                       </p>
                     </div>
                     <input
@@ -707,7 +747,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   </button>
                   <button
                     className="nav-button next"
-                    onClick={() => setCurrentStep("packages")}
+                    onClick={() => handleRuntimeSelection(selectedRuntime)}
                   >
                     Next →
                   </button>
