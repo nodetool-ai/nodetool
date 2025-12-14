@@ -71,6 +71,7 @@ export interface GlobalChatState {
   progress: { current: number; total: number };
   error: string | null;
   workflowId: string | null;
+  threadWorkflowId: Record<string, string | null>;
 
   // Tool call runtime UI state
   currentRunningToolCallId: string | null;
@@ -172,6 +173,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       progress: { current: 0, total: 0 },
       error: null,
       workflowId: null,
+      threadWorkflowId: {},
       wsManager: null,
       socket: null,
       currentRunningToolCallId: null,
@@ -407,6 +409,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadId = await get().createNewThread();
         }
 
+        set((state) => ({
+          threadWorkflowId: {
+            ...state.threadWorkflowId,
+            [threadId as string]: workflowId ?? null
+          }
+        }));
+
         // Prepare messages for cache and wire (workflow_id only on wire)
         const messageForCache: Message = {
           ...(message as any),
@@ -550,6 +559,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           },
           currentThreadId: id,
           lastUsedThreadId: id,
+          threadWorkflowId: {
+            ...state.threadWorkflowId,
+            [id]: state.workflowId ?? null
+          },
           messageCache: {
             ...state.messageCache,
             [id]: []
@@ -562,7 +575,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
       switchThread: (threadId: string) => {
         const exists = !!get().threads[threadId];
         if (!exists) return;
-        set({ currentThreadId: threadId, lastUsedThreadId: threadId });
+        set((state) => ({
+          currentThreadId: threadId,
+          lastUsedThreadId: threadId,
+          workflowId: state.threadWorkflowId[threadId] ?? state.workflowId
+        }));
         get().loadMessages(threadId);
       },
 

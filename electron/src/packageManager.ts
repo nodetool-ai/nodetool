@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import { logMessage } from "./logger";
 import { getProcessEnv, getUVPath } from "./config";
+import { emitServerLog } from "./events";
 import {
   PackageInfo,
   PackageModel,
@@ -503,13 +504,27 @@ async function runUvCommand(
     process.stdout?.on("data", (data: Buffer) => {
       const output = data.toString();
       stdout += output;
-      logMessage(output.trim());
+      const lines = output
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        logMessage(line);
+        emitServerLog(line);
+      }
     });
 
     process.stderr?.on("data", (data: Buffer) => {
       const output = data.toString();
       stderr += output;
-      logMessage(output.trim(), "warn");
+      const lines = output
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        logMessage(line, "warn");
+        emitServerLog(line);
+      }
     });
 
     process.on("exit", (code: number | null) => {

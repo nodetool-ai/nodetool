@@ -92,6 +92,7 @@ import "./lib/tools/builtin/alignNodes";
 import "./lib/tools/builtin/duplicateNode";
 import "./lib/tools/builtin/selectNodes";
 import "./lib/tools/builtin/fitView";
+import "./lib/tools/builtin/graph";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
 (window as any).log = log;

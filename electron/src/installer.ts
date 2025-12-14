@@ -10,7 +10,7 @@ import {
 import { logMessage } from "./logger";
 import path from "path";
 import { readSettings, updateSettings } from "./settings";
-import { emitBootMessage, emitUpdateProgress } from "./events";
+import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
 import os from "os";
 import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
@@ -509,17 +509,29 @@ async function executeMicromambaCommand(
 
   return new Promise<void>((resolve, reject) => {
     micromambaProcess.stdout?.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      if (message) {
-        logMessage(`micromamba stdout: ${message}`);
+      const lines = data
+        .toString()
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        const message = `micromamba stdout: ${line}`;
+        logMessage(message);
+        emitServerLog(message);
       }
     });
 
     micromambaProcess.stderr?.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      if (message) {
-        logMessage(`micromamba stderr: ${message}`, "error");
-        if (MICROMAMBA_LOCK_ERROR_PATTERN.test(message)) {
+      const lines = data
+        .toString()
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        const message = `micromamba stderr: ${line}`;
+        logMessage(message, "error");
+        emitServerLog(message);
+        if (MICROMAMBA_LOCK_ERROR_PATTERN.test(line)) {
           lockErrorDetected = true;
         }
       }

@@ -56,4 +56,47 @@ describe("chatProtocol", () => {
       })
     );
   });
+
+  it("returns structured tool_result on tool failure", async () => {
+    (FrontendToolRegistry.has as jest.Mock).mockReturnValue(true);
+    (FrontendToolRegistry.call as jest.Mock).mockRejectedValue(new Error("nope"));
+
+    const send = jest.fn();
+    const set = jest.fn();
+    const get = () =>
+      ({
+        status: "connected",
+        wsManager: { send },
+        workflowId: null,
+        threadWorkflowId: {},
+        frontendToolState: { fetchWorkflow: jest.fn().mockResolvedValue(undefined) },
+        currentThreadId: null,
+        threads: {},
+        messageCache: {},
+        selectedModel: { provider: "", id: "" },
+        summarizeThread: jest.fn()
+      }) as any;
+
+    await handleChatWebSocketMessage(
+      {
+        type: "tool_call",
+        tool_call_id: "tc_fail",
+        name: "ui_fail",
+        args: {},
+        thread_id: "thread-1"
+      } as any,
+      set,
+      get
+    );
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "tool_result",
+        tool_call_id: "tc_fail",
+        ok: false,
+        error: "nope",
+        result: { error: "nope" }
+      })
+    );
+  });
 });

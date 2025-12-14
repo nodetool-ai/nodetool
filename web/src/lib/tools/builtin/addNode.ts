@@ -1,9 +1,11 @@
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
+import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_add_node",
   description: "Add a node to the current workflow graph.",
+  hidden: true,
   parameters: {
     type: "object",
     properties: {
@@ -24,14 +26,13 @@ FrontendToolRegistry.register({
         },
         required: ["id", "position"]
       },
-      workflow_id: { type: "string" }
+      workflow_id: optionalWorkflowIdSchema
     },
     required: ["node"]
   },
   async execute({ node, workflow_id }, ctx) {
     const state = ctx.getState();
-    const workflowId = workflow_id ?? state.currentWorkflowId;
-    if (!workflowId) throw new Error("No current workflow selected");
+    const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
     if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
 
