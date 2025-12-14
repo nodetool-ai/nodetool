@@ -1,9 +1,11 @@
 import { FrontendToolRegistry } from "../frontendTools";
+import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_connect_nodes",
   description:
     "Connect two nodes by handles. Requires source/target ids and handles.",
+  hidden: true,
   parameters: {
     type: "object",
     properties: {
@@ -11,14 +13,16 @@ FrontendToolRegistry.register({
       source_handle: { type: "string" },
       target_id: { type: "string" },
       target_handle: { type: "string" },
-      workflow_id: { type: "string" }
+      workflow_id: optionalWorkflowIdSchema
     },
     required: ["source_id", "source_handle", "target_id", "target_handle"]
   },
-  async execute({ source_id, source_handle, target_id, target_handle, workflow_id }, ctx) {
+  async execute(
+    { source_id, source_handle, target_id, target_handle, workflow_id },
+    ctx
+  ) {
     const state = ctx.getState();
-    const workflowId = workflow_id ?? state.currentWorkflowId;
-    if (!workflowId) throw new Error("No current workflow selected");
+    const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
     if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
 

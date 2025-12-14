@@ -8,6 +8,11 @@ export interface FrontendToolDefinition<Args = any, Result = any> {
   name: `ui_${string}`;
   description: string;
   parameters: JsonSchema;
+  /**
+   * Excludes the tool from the LLM-facing manifest (token savings) while still
+   * allowing direct calls by name for backwards compatibility.
+   */
+  hidden?: boolean;
   requireUserConsent?: boolean;
   execute: (args: Args, ctx: FrontendToolContext) => Promise<Result>;
 }
@@ -46,9 +51,13 @@ export const FrontendToolRegistry = {
     return () => registry.delete(tool.name);
   },
   getManifest() {
-    return Array.from(registry.values()).map(
-      ({ name, description, parameters }) => ({ name, description, parameters })
-    );
+    return Array.from(registry.values())
+      .filter((tool) => !tool.hidden)
+      .map(({ name, description, parameters }) => ({
+        name,
+        description,
+        parameters
+      }));
   },
   has(name: string) {
     return registry.has(name);

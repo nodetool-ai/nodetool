@@ -7,7 +7,7 @@ import * as path from "path";
 import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions } from "./utils";
-import { emitBootMessage } from "./events";
+import { emitBootMessage, emitServerLog } from "./events";
 
 /**
  * Python environment manager for the Electron shell.
@@ -196,16 +196,26 @@ async function runCommand(command: string[]): Promise<void> {
   logMessage(`Running command: ${command.join(" ")}`);
 
   updateProcess.stdout?.on("data", (data: Buffer) => {
-    const message = data.toString().trim();
-    if (message) {
-      logMessage(message);
+    const lines = data
+      .toString()
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    for (const line of lines) {
+      logMessage(line);
+      emitServerLog(line);
     }
   });
 
   updateProcess.stderr?.on("data", (data: Buffer) => {
-    const message = data.toString().trim();
-    if (message) {
-      logMessage(message);
+    const lines = data
+      .toString()
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    for (const line of lines) {
+      logMessage(line);
+      emitServerLog(line);
     }
   });
 

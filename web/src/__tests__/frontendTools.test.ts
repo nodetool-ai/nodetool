@@ -20,6 +20,22 @@ describe("FrontendToolRegistry", () => {
     unregister();
   });
 
+  it("omits hidden tools from the manifest", () => {
+    const unregister = FrontendToolRegistry.register({
+      name: "ui_hidden",
+      description: "Hidden tool",
+      hidden: true,
+      parameters: { type: "object", properties: {}, required: [] },
+      async execute() {
+        return { ok: true } as any;
+      }
+    });
+
+    const manifest = FrontendToolRegistry.getManifest();
+    expect(manifest.some((t) => t.name === "ui_hidden")).toBe(false);
+    unregister();
+  });
+
   it("executes a registered tool and returns its result", async () => {
     const unregister = FrontendToolRegistry.register({
       name: "ui_echo",

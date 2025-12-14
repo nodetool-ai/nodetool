@@ -153,7 +153,7 @@ export const MessageView: React.FC<
     return textToCopy;
   };
 
-  const renderTextContent = (content: string, index: number) => {
+  const renderTextContent = (content: string, index: string | number) => {
     // Check if content contains Harmony format tokens
     if (hasHarmonyTokens(content)) {
       const { messages, rawText } = parseHarmonyContent(content);
@@ -344,7 +344,7 @@ export const MessageView: React.FC<
             {typeof message.content === "string" &&
               renderTextContent(
                 message.content,
-                typeof message.id === "string" ? parseInt(message.id) || 0 : 0
+                message.id || 0
               )}
             {Array.isArray(content) &&
               content.map((c: MessageContent, i: number) => (

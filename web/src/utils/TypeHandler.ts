@@ -144,8 +144,11 @@ export const valueMatchesType = (
       case "str":
         return typeof v === "string";
       case "number":
+      case "int":
+      case "float":
         return typeof v === "number" && Number.isFinite(v);
       case "boolean":
+      case "bool":
         return typeof v === "boolean";
       case "enum":
         if (!t.values || t.values.length === 0) {
