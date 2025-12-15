@@ -15,7 +15,10 @@ jest.mock("../types.d", () => ({
 const browserWindowMock = { webContents: { send: jest.fn() } };
 
 jest.mock("electron", () => ({
-  BrowserWindow: { getFocusedWindow: jest.fn(() => browserWindowMock) },
+  BrowserWindow: { 
+    getFocusedWindow: jest.fn(() => browserWindowMock),
+    getAllWindows: jest.fn(() => [])
+  },
   dialog: { showErrorBox: jest.fn() },
   app: { getPath: jest.fn().mockReturnValue("/tmp") },
 }));
