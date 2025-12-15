@@ -16,7 +16,7 @@ const LogContainer: React.FC<LogContainerProps> = ({ logs, isExpanded, onToggle 
   }, [logs]);
 
   const handleOpenLogFile = async () => {
-    await window.api.openLogFile();
+    await window.api.system.openLogFile();
   };
 
   return (

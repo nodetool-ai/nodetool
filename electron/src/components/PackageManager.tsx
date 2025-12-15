@@ -30,13 +30,13 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
 
       // Load available packages
       const availableResponse: PackageListResponse =
-        await window.electronAPI.packages.listAvailable();
+        await window.api.packages.listAvailable();
       console.log("availableResponse", availableResponse);
       setAvailablePackages(availableResponse.packages || []);
 
       // Load installed packages
       const installedResponse: InstalledPackageListResponse =
-        await window.electronAPI.packages.listInstalled();
+        await window.api.packages.listInstalled();
       setInstalledPackages(installedResponse.packages || []);
       console.log("installedPackages", installedResponse.packages);
     } catch (err) {
@@ -51,7 +51,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     async (repoId: string) => {
       setInstalling((prev) => new Set(prev).add(repoId));
       try {
-        const result = await window.electronAPI.packages.install(repoId);
+        const result = await window.api.packages.install(repoId);
         if (result.success) {
           // Notify user first to avoid blocking UI before reload
           alert(
@@ -61,7 +61,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
           await loadPackages();
           // Trigger restart without awaiting to avoid UI hang
           try {
-            window.api?.restartServer?.();
+            window.api.server.restart();
           } catch (e) {
             console.warn("Restart server failed:", e);
           }
@@ -86,7 +86,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     async (repoId: string) => {
       setInstalling((prev) => new Set(prev).add(repoId));
       try {
-        const result = await window.electronAPI.packages.uninstall(repoId);
+        const result = await window.api.packages.uninstall(repoId);
         if (result.success) {
           await loadPackages(); // Refresh the package lists
         } else {
@@ -110,14 +110,14 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     async (repoId: string) => {
       setInstalling((prev) => new Set(prev).add(repoId));
       try {
-        const result = await window.electronAPI.packages.update(repoId);
+        const result = await window.api.packages.update(repoId);
         if (result.success) {
           alert(
             "Package updated successfully. The server will restart to apply changes."
           );
           await loadPackages();
           try {
-            window.api?.restartServer?.();
+            window.api.server.restart();
           } catch (e) {
             console.warn("Restart server failed:", e);
           }

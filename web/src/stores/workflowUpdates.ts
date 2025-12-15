@@ -79,6 +79,7 @@ export const handleUpdate = (
     const logUpdate = data as LogUpdate;
     appendLog({
       workflowId: workflow.id,
+      workflowName: workflow.name,
       nodeId: logUpdate.node_id,
       nodeName: logUpdate.node_name,
       content: logUpdate.content,
@@ -135,6 +136,7 @@ export const handleUpdate = (
     setResult(workflow.id, update.node_id, update.value, true);
     appendLog({
       workflowId: workflow.id,
+      workflowName: workflow.name,
       nodeId: update.node_id,
       nodeName: update.node_id, // We don't have node_name here, reusing node_id
       content: `Output: ${
@@ -212,6 +214,7 @@ export const handleUpdate = (
     const pred = data as Prediction;
     appendLog({
       workflowId: workflow.id,
+      workflowName: workflow.name,
       nodeId: pred.node_id,
       nodeName: "",
       content: pred.logs || "",
