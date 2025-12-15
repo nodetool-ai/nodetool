@@ -95,15 +95,27 @@ const DictTable: React.FC<DictTableProps> = ({
 
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
-      const { key: oldKey } = cell.getOldValue() || cell.getInitialValue();
-      const { key, value } = cell.getData();
-      const newData = Object.keys(data).reduce((acc, k) => {
-        if (k !== oldKey) {
-          acc[k] = data[k];
+      const field = cell.getField();
+      const { key: currentKey, value: currentValue } = cell.getData();
+      const oldValue = cell.getOldValue();
+
+      let oldKey: string;
+
+      if (field === "key") {
+        oldKey = oldValue;
+      } else {
+        oldKey = currentKey;
+      }
+
+      const newData: Record<string, any> = {};
+      Object.keys(data).forEach((k) => {
+        if (k === oldKey) {
+          newData[currentKey] = currentValue;
+        } else {
+          newData[k] = data[k];
         }
-        return acc;
-      }, {} as Record<string, any>);
-      newData[key] = value;
+      });
+
       if (onDataChange) {
         onDataChange(newData);
       }
