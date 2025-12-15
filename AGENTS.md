@@ -2,6 +2,38 @@
 
 This file provides guidance to Agents when working with code in this repository.
 
+## 📚 Quick Navigation to Specialized Guides
+
+This repository has multiple AGENTS.md files organized by directory to help you quickly find relevant information:
+
+### Web Application (`/web/src/`)
+- **[Web UI Overview](web/src/AGENTS.md)** - React application structure and patterns
+- **[Components](web/src/components/AGENTS.md)** - UI component architecture and best practices  
+- **[Stores](web/src/stores/AGENTS.md)** - Zustand state management patterns
+- **[Contexts](web/src/contexts/AGENTS.md)** - React context integration with stores
+- **[Hooks](web/src/hooks/AGENTS.md)** - Custom React hooks and patterns
+- **[Utils](web/src/utils/AGENTS.md)** - Utility functions and helpers
+- **[ServerState](web/src/serverState/AGENTS.md)** - TanStack Query and API integration
+- **[Lib](web/src/lib/AGENTS.md)** - Third-party library integrations (WebSocket, Supabase, Frontend Tools)
+- **[Config](web/src/config/AGENTS.md)** - Configuration management and constants
+
+### Desktop Application
+- **[Electron](electron/src/AGENTS.md)** - Electron desktop app, IPC, and system integration
+
+### Documentation & Build
+- **[Documentation](docs/AGENTS.md)** - Documentation structure and writing guidelines
+- **[Scripts](scripts/AGENTS.md)** - Build and release scripts
+- **[Workflow Runner](workflow_runner/AGENTS.md)** - Standalone workflow execution app
+
+### Additional Resources
+- **[GitHub Copilot Instructions](.github/copilot-instructions.md)** - GitHub Copilot-specific patterns and examples
+- **[Web README](web/README.md)** - Web application setup and development
+- **[Web Testing Guide](web/TESTING.md)** - Comprehensive testing documentation
+
+> **💡 Tip**: When working on a specific area, consult the relevant AGENTS.md file first for specialized guidance. Each file includes cross-references to related documentation.
+
+---
+
 ## Project Overview
 
 NodeTool is an open-source, privacy-first, no-code platform for rapidly building and automating AI workflows. It enables users to create sophisticated AI solutions visually through a drag-and-drop interface with no coding required.
