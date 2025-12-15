@@ -1,4 +1,4 @@
-# NodeTool: Visual AI Workflow Builder
+# NodeTool: Local-First AI Workflow Builder
 
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
 [![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
