@@ -75,10 +75,10 @@ const generateUUID = (): string => {
   }
 
   // Fallback implementation for environments without crypto.randomUUID
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (char) {
+    const randomValue = (Math.random() * 16) | 0;
+    const hexValue = char === "x" ? randomValue : (randomValue & 0x3) | 0x8;
+    return hexValue.toString(16);
   });
 };
 
@@ -793,16 +793,16 @@ export const createNodeStore = (
               let maxX = -Infinity;
               let maxY = -Infinity;
               
-              for (const n of nodes) {
-                const x = n.position.x;
-                const y = n.position.y;
-                const width = n.measured?.width ?? n.width ?? 100;
-                const height = n.measured?.height ?? n.height ?? 100;
+              for (const node of nodes) {
+                const nodeX = node.position.x;
+                const nodeY = node.position.y;
+                const width = node.measured?.width ?? node.width ?? 100;
+                const height = node.measured?.height ?? node.height ?? 100;
                 
-                if (x < minX) minX = x;
-                if (y < minY) minY = y;
-                if (x + width > maxX) maxX = x + width;
-                if (y + height > maxY) maxY = y + height;
+                if (nodeX < minX) minX = nodeX;
+                if (nodeY < minY) minY = nodeY;
+                if (nodeX + width > maxX) maxX = nodeX + width;
+                if (nodeY + height > maxY) maxY = nodeY + height;
               }
               
               return { minX, minY, maxX, maxY };

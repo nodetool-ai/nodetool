@@ -174,12 +174,12 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
 
   const recentModels = React.useMemo(() => {
     const byKey = new Map<string, TModel>(
-      (models ?? []).map((m) => [`${m.provider ?? ""}:${m.id ?? ""}`, m])
+      (models ?? []).map((model) => [`${model.provider ?? ""}:${model.id ?? ""}`, model])
     );
     const mapped: TModel[] = [];
-    recentsList.forEach((r) => {
-      const m = byKey.get(`${r.provider}:${r.id}`);
-      if (m) mapped.push(m);
+    recentsList.forEach((recentItem) => {
+      const model = byKey.get(`${recentItem.provider}:${recentItem.id}`);
+      if (model) mapped.push(model);
     });
     return mapped;
   }, [models, recentsList]);
