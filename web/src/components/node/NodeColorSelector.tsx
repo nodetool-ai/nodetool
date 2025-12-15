@@ -110,8 +110,10 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
 
   const dataTypesFiltered = useMemo(() => {
     if (searchTerm === "") return DATA_TYPES;
+    // Optimization: Convert search term to lowercase once
+    const searchTermLower = searchTerm.toLowerCase();
     return DATA_TYPES.filter((datatype) =>
-      datatype.label.toLowerCase().includes(searchTerm.toLowerCase())
+      datatype.label.toLowerCase().includes(searchTermLower)
     );
   }, [searchTerm]);
 

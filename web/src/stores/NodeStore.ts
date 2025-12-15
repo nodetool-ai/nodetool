@@ -504,15 +504,16 @@ export const createNodeStore = (
               targetHandle: connection.targetHandle || null
             } as Edge;
 
+            // Normalize handles to null if undefined for consistency
+            // This is necessary because edge comparison and serialization expect null, not undefined
+            const normalizedEdges = filteredEdges.map((edge) => ({
+              ...edge,
+              sourceHandle: edge.sourceHandle || null,
+              targetHandle: edge.targetHandle || null
+            }));
+
             set({
-              edges: addEdge(
-                newEdge,
-                filteredEdges.map((edge) => ({
-                  ...edge,
-                  sourceHandle: edge.sourceHandle || null,
-                  targetHandle: edge.targetHandle || null
-                }))
-              )
+              edges: addEdge(newEdge, normalizedEdges)
             });
             get().setWorkflowDirty(true);
           },
@@ -632,14 +633,17 @@ export const createNodeStore = (
             ) {
               return;
             }
-            const nodes: Node<NodeData>[] = get()
-              .nodes.filter((node) => node.id !== id)
-              .map((node) => {
-                return {
-                  ...node,
-                  parentId: node.parentId === id ? undefined : node.parentId
-                };
-              });
+            // Optimization: Use single pass to filter and update parentId
+            const nodes: Node<NodeData>[] = [];
+            for (const node of get().nodes) {
+              if (node.id !== id) {
+                if (node.parentId === id) {
+                  nodes.push({ ...node, parentId: undefined });
+                } else {
+                  nodes.push(node);
+                }
+              }
+            }
 
             useErrorStore.getState().clearErrors(id);
             useResultsStore.getState().clearResults(id);
@@ -725,11 +729,20 @@ export const createNodeStore = (
           getWorkflow: (): Workflow => {
             const workflow = get().workflow;
             const edges = get().edges;
+            
+            // Optimization: Build a set of connected handles for O(1) lookups
+            // instead of checking all edges for each property (O(n*m*e) -> O(n*m))
+            const connectedHandles = new Set<string>();
+            for (const edge of edges) {
+              if (edge.target && edge.targetHandle) {
+                connectedHandles.add(`${edge.target}:${edge.targetHandle}`);
+              }
+            }
+            
             const isHandleConnected = (nodeId: string, handle: string) => {
-              return edges.some(
-                (edge) => edge.target === nodeId && edge.targetHandle === handle
-              );
+              return connectedHandles.has(`${nodeId}:${handle}`);
             };
+            
             const unconnectedProperties = (node: Node<NodeData>) => {
               const properties: Record<string, any> = {};
               for (const name in node.data.properties) {
@@ -767,19 +780,31 @@ export const createNodeStore = (
               selectedNodes = allNodes;
             }
 
+            // Optimization: Calculate bounds in single pass instead of 4 separate iterations
             const getBounds = (nodes: Node<NodeData>[]) => {
-              const minX = Math.min(...nodes.map((n) => n.position.x));
-              const minY = Math.min(...nodes.map((n) => n.position.y));
-              const maxX = Math.max(
-                ...nodes.map(
-                  (n) => n.position.x + (n.measured?.width ?? n.width ?? 100)
-                )
-              );
-              const maxY = Math.max(
-                ...nodes.map(
-                  (n) => n.position.y + (n.measured?.height ?? n.height ?? 100)
-                )
-              );
+              // Note: In practice, this is never called with empty arrays since autoLayout
+              // only runs when there are nodes. Return zero bounds for consistency.
+              if (nodes.length === 0) {
+                return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+              }
+              
+              let minX = Infinity;
+              let minY = Infinity;
+              let maxX = -Infinity;
+              let maxY = -Infinity;
+              
+              for (const n of nodes) {
+                const x = n.position.x;
+                const y = n.position.y;
+                const width = n.measured?.width ?? n.width ?? 100;
+                const height = n.measured?.height ?? n.height ?? 100;
+                
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x + width > maxX) maxX = x + width;
+                if (y + height > maxY) maxY = y + height;
+              }
+              
               return { minX, minY, maxX, maxY };
             };
 
@@ -790,8 +815,13 @@ export const createNodeStore = (
             const dx = originalBounds.minX - layoutBounds.minX;
             const dy = originalBounds.minY - layoutBounds.minY;
 
+            // Optimization: Use Map for O(1) lookups instead of O(n) find operations
+            const layoutedNodeMap = new Map(
+              layoutedNodes.map((n) => [n.id, n])
+            );
+
             const updatedNodes = allNodes.map((node) => {
-              const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
+              const layoutedNode = layoutedNodeMap.get(node.id);
               if (layoutedNode) {
                 return {
                   ...node,
