@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   ListItem,
   Typography,
@@ -16,7 +16,7 @@ import {
   useQueryClient
 } from "@tanstack/react-query";
 import WorkflowSelect from "./WorkflowSelect";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { client } from "../../stores/ApiClient";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
@@ -36,11 +36,11 @@ interface CollectionItemProps {
   deleteMutation: UseMutationResult<void, Error, string>;
 }
 
-const IndexingProgress = ({
+const IndexingProgress = memo(function IndexingProgress({
   indexProgress
 }: {
   indexProgress: CollectionItemProps["indexProgress"];
-}) => {
+}) {
   if (!indexProgress) return null;
 
   return (
@@ -81,7 +81,7 @@ const IndexingProgress = ({
       </Typography>
     </>
   );
-};
+});
 
 const CollectionItem = ({
   collection,
@@ -144,28 +144,53 @@ const CollectionItem = ({
       },
     [updateMutation, queryClient]
   );
+  
+  const handleDeleteClick = useCallback(() => {
+    onDelete(collection.name);
+  }, [onDelete, collection.name]);
+  
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    onDragOver(e, collection.name);
+  }, [onDragOver, collection.name]);
+  
+  const handleEditWorkflow = useCallback(() => {
+    setIsEditingWorkflow(true);
+  }, []);
+  
+  const handleBlurWorkflow = useCallback(() => {
+    setIsEditingWorkflow(false);
+  }, []);
+  
+  const listItemSx = useMemo(() => ({
+    borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+    cursor: "copy",
+    ...(dragOverCollection === collection.name && {
+      borderStyle: "dashed",
+      borderWidth: 2,
+      borderColor: "primary.main"
+    }),
+    transition: "all 0.2s",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    py: 2.5,
+    px: 3
+  }), [dragOverCollection, collection.name]);
+  
+  const containerStyle = useMemo(() => ({
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    width: "100%"
+  }), []);
 
   return (
     <ListItem
       component="div"
       onDrop={onDrop}
-      onDragOver={(e) => onDragOver(e, collection.name)}
+      onDragOver={handleDragOver}
       onDragLeave={onDragLeave}
-      sx={{
-        borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
-        cursor: "copy",
-        ...(dragOverCollection === collection.name && {
-          borderStyle: "dashed",
-          borderWidth: 2,
-          borderColor: "primary.main"
-        }),
-        transition: "all 0.2s",
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        py: 2.5,
-        px: 3
-      }}
+      sx={listItemSx}
       secondaryAction={
         <Tooltip title="Delete this collection">
           <span>
@@ -173,7 +198,7 @@ const CollectionItem = ({
               edge="end"
               aria-label="delete"
               sx={{ mt: -10 }}
-              onClick={() => onDelete(collection.name)}
+              onClick={handleDeleteClick}
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending &&
@@ -187,14 +212,7 @@ const CollectionItem = ({
         </Tooltip>
       }
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          width: "100%"
-        }}
-      >
+      <div style={containerStyle}>
         <Tooltip title={`Collection: ${collection.name}`}>
           <Typography
             variant="body1"
@@ -217,14 +235,7 @@ const CollectionItem = ({
         )}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          width: "100%"
-        }}
-      >
+      <div style={containerStyle}>
         <Tooltip title="Number of documents in this collection">
           <Typography
             variant="body2"
@@ -264,7 +275,7 @@ const CollectionItem = ({
             }
             loading={updateMutation.isPending}
             open={isEditingWorkflow}
-            onBlur={() => setIsEditingWorkflow(false)}
+            onBlur={handleBlurWorkflow}
             sx={{
               minWidth: "120px",
               maxWidth: "120px"
@@ -283,7 +294,7 @@ const CollectionItem = ({
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap"
               }}
-              onClick={() => setIsEditingWorkflow(true)}
+              onClick={handleEditWorkflow}
             >
               {collection.workflow_name || "No workflow"}
             </Button>
@@ -294,4 +305,4 @@ const CollectionItem = ({
   );
 };
 
-export default CollectionItem;
+export default memo(CollectionItem);

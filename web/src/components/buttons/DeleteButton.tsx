@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import React from "react";
+import React, { memo, useCallback } from "react";
 import Button from "@mui/material/Button";
 import type { ButtonProps } from "@mui/material/Button";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -57,6 +57,12 @@ function DeleteButton<T>({
   onClick
 }: DeleteButtonProps<T>): JSX.Element {
   const theme = useTheme();
+  
+  const handleClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    onClick(e, item ? item : ({} as T));
+  }, [onClick, item]);
+  
   return (
     <Tooltip
       title={tooltip || ""}
@@ -69,10 +75,7 @@ function DeleteButton<T>({
         css={styles(theme)}
         className={`${className} delete-button`}
         tabIndex={-1}
-        onClick={(e: React.MouseEvent<HTMLElement>) => {
-          e.stopPropagation();
-          onClick(e, item ? item : ({} as T));
-        }}
+        onClick={handleClick}
       >
         <ClearIcon />
       </Button>
@@ -80,4 +83,4 @@ function DeleteButton<T>({
   );
 }
 
-export default DeleteButton;
+export default memo(DeleteButton);

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import React from "react";
+import React, { memo, useCallback } from "react";
 import Button from "@mui/material/Button";
 import ClearIcon from "@mui/icons-material/Clear";
 
@@ -31,14 +31,17 @@ function CloseButton<T>({
   onClick
 }: CloseButtonProps<T>): JSX.Element {
   const theme = useTheme();
+  
+  const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onClick(e);
+  }, [onClick]);
+  
   return (
     <div css={styles(theme)}>
       <Button
         className={`${className} close-button`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick(e);
-        }}
+        onClick={handleClick}
       >
         <ClearIcon />
       </Button>
@@ -46,4 +49,4 @@ function CloseButton<T>({
   );
 }
 
-export default CloseButton;
+export default memo(CloseButton);
