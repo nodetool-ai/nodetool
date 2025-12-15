@@ -39,18 +39,18 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
       onlyAvailable: false,
       enabledProviders: {},
       toggleFavorite: (provider: string, id: string) => {
-        const k = keyFor(provider, id);
+        const preferenceKey = keyFor(provider, id);
         const favorites = new Set(get().favorites);
-        if (favorites.has(k)) {
-          favorites.delete(k);
+        if (favorites.has(preferenceKey)) {
+          favorites.delete(preferenceKey);
         } else {
-          favorites.add(k);
+          favorites.add(preferenceKey);
         }
         set({ favorites });
         console.log("[ModelMenu] toggleFavorite", {
           provider,
           id,
-          isFavorite: favorites.has(k)
+          isFavorite: favorites.has(preferenceKey)
         });
       },
       isFavorite: (provider: string, id: string) => {

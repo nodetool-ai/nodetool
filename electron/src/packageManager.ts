@@ -290,35 +290,35 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
 
   const sequentialMatchScore = (needle: string, haystack: string): number => {
     // Returns a score in [0, 0.6] based on sequential char match and gap penalty
-    const n = normalize(needle);
-    const h = normalize(haystack);
-    if (!n || !h) return 0;
-    let qi = 0;
+    const normalizedNeedle = normalize(needle);
+    const normalizedHaystack = normalize(haystack);
+    if (!normalizedNeedle || !normalizedHaystack) return 0;
+    let queryIndex = 0;
     let lastIndex = -1;
     let gaps = 0;
-    for (let i = 0; i < h.length && qi < n.length; i++) {
-      if (h[i] === n[qi]) {
+    for (let i = 0; i < normalizedHaystack.length && queryIndex < normalizedNeedle.length; i++) {
+      if (normalizedHaystack[i] === normalizedNeedle[queryIndex]) {
         if (lastIndex >= 0) gaps += i - lastIndex - 1;
         lastIndex = i;
-        qi += 1;
+        queryIndex += 1;
       }
     }
-    const ratio = qi / n.length;
+    const ratio = queryIndex / normalizedNeedle.length;
     if (ratio === 0) return 0;
-    const gapPenalty = Math.min(gaps / Math.max(n.length, 1), 1);
+    const gapPenalty = Math.min(gaps / Math.max(normalizedNeedle.length, 1), 1);
     return 0.6 * ratio * (1 - 0.5 * gapPenalty);
   };
 
   const substringScore = (needle: string, haystack: string): number => {
     // Returns a score in [0, 1] with boosts for prefix and word-boundary matches
-    const n = normalize(needle);
-    const h = normalize(haystack);
-    if (!n || !h) return 0;
-    const idx = h.indexOf(n);
-    if (idx < 0) return 0;
-    const isPrefix = idx === 0;
-    const isWordBoundary = idx > 0 ? /[^a-z0-9]/.test(h[idx - 1]) : true;
-    const lengthBoost = Math.min(n.length / Math.max(h.length, n.length), 1);
+    const normalizedNeedle = normalize(needle);
+    const normalizedHaystack = normalize(haystack);
+    if (!normalizedNeedle || !normalizedHaystack) return 0;
+    const indexFound = normalizedHaystack.indexOf(normalizedNeedle);
+    if (indexFound < 0) return 0;
+    const isPrefix = indexFound === 0;
+    const isWordBoundary = indexFound > 0 ? /[^a-z0-9]/.test(normalizedHaystack[indexFound - 1]) : true;
+    const lengthBoost = Math.min(normalizedNeedle.length / Math.max(normalizedHaystack.length, normalizedNeedle.length), 1);
     let score = 0.7 + 0.3 * lengthBoost;
     if (isPrefix) score += 0.15;
     else if (isWordBoundary) score += 0.05;
