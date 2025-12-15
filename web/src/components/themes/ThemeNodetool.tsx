@@ -207,6 +207,24 @@ const ThemeNodetool = createTheme({
           fontSize: theme.fontSizeBig
         })
       }
+    },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: ({ theme }) => ({
+          backgroundColor: "rgba(10, 12, 16, 0.95)", // Very dark, slight transparency
+          backdropFilter: "blur(8px)",
+          border: `1px solid ${theme.vars.palette.grey[800]}`,
+          color: theme.vars.palette.grey[50],
+          maxWidth: 300,
+          fontSize: theme.fontSizeSmall,
+          borderRadius: "8px",
+          padding: "8px 12px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)"
+        }),
+        arrow: ({ theme }) => ({
+          color: "rgba(10, 12, 16, 0.95)"
+        })
+      }
     }
   }
 });

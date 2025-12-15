@@ -69,8 +69,18 @@ const styles = (theme: Theme) =>
       padding: "0",
       top: "80px",
       height: "calc(100vh - 80px)",
-      backgroundColor: "rgba(18, 18, 18, 0.6)",
-      borderRight: "1px solid rgba(255, 255, 255, 0.08)"
+      // Light mode defaults
+      borderRight: "1px solid rgba(0, 0, 0, 0.06)",
+      borderTop: "1px solid rgba(0, 0, 0, 0.06)",
+      boxShadow: "0 8px 24px rgba(16,24,40,0.14), 0 2px 8px rgba(16,24,40,0.08)",
+
+      // Dark mode overrides
+      "[data-mui-color-scheme='dark'] &": {
+        backgroundColor: "rgba(18, 18, 18, 0.6)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: `0 14px 32px rgba(0,0,0,0.85), 0 4px 14px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14), 0 0 24px ${theme.vars.palette.primary.main}33`
+      }
     },
     ".panel-button": {
       position: "absolute",
@@ -100,7 +110,6 @@ const styles = (theme: Theme) =>
 
       "& svg": {
         fontSize: "0.8em !important",
-        color: "var(--palette-grey-200)",
         opacity: 0,
         marginLeft: "1px",
         transition: "all 0.5s ease"
@@ -121,7 +130,10 @@ const styles = (theme: Theme) =>
       minHeight: "2em"
     },
     ".panel-tabs button:hover:not(.Mui-selected)": {
-      color: theme.vars.palette.grey[100]
+      color: theme.vars.palette.grey[700],
+      "[data-mui-color-scheme='dark'] &": {
+        color: theme.vars.palette.grey[100]
+      }
     },
     ".messages": {
       overflowY: "auto"
@@ -151,7 +163,9 @@ const styles = (theme: Theme) =>
         // Make icons smaller within toolbar buttons
         "& svg": {
           fontSize: "1.125rem",
-          color: theme.vars.palette.grey[100]
+          "[data-mui-color-scheme='dark'] &": {
+            color: theme.vars.palette.grey[100]
+          }
         },
 
         "&.active": {
@@ -194,11 +208,17 @@ const styles = (theme: Theme) =>
       padding: "14px 10px",
       marginTop: "8px",
       borderRadius: "20px",
-      background: "rgba(10, 12, 18, 0.3)",
-      border: `1px solid rgba(255, 255, 255, 0.06)`,
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.03)",
+      backgroundColor: "rgba(255, 255, 255, 0.4)",
+      border: "1px solid rgba(0, 0, 0, 0.05)",
+      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.5)",
       backdropFilter: "blur(16px)",
-      WebkitBackdropFilter: "blur(16px)"
+      WebkitBackdropFilter: "blur(16px)",
+
+      "[data-mui-color-scheme='dark'] &": {
+        backgroundColor: "rgba(10, 12, 18, 0.3)",
+        border: "1px solid rgba(255, 255, 255, 0.06)",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.03)"
+      }
     },
     ".quick-actions-group .quick-add-button": {
       width: "42px",
@@ -207,11 +227,11 @@ const styles = (theme: Theme) =>
       padding: "0",
       position: "relative",
       overflow: "hidden",
-      background: "var(--quick-gradient, rgba(255, 255, 255, 0.03))",
-      border: `1px solid rgba(255, 255, 255, 0.08)`,
-      boxShadow:
-        "var(--quick-shadow, 0 2px 8px rgba(0, 0, 0, 0.16))",
-      color: theme.vars.palette.grey[100],
+      background: "var(--quick-gradient, rgba(255, 255, 255, 0.4))",
+      border: "1px solid rgba(0, 0, 0, 0.06)",
+      boxShadow: "var(--quick-shadow, 0 2px 8px rgba(0, 0, 0, 0.06))",
+      color: theme.vars.palette.grey[800],
+
       transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
       display: "flex",
       alignItems: "center",
@@ -219,13 +239,24 @@ const styles = (theme: Theme) =>
       backdropFilter: "blur(8px)",
       WebkitBackdropFilter: "blur(8px)",
 
+      "[data-mui-color-scheme='dark'] &": {
+        background: "var(--quick-gradient, rgba(255, 255, 255, 0.03))",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "var(--quick-shadow, 0 2px 8px rgba(0, 0, 0, 0.16))",
+        color: theme.vars.palette.grey[100]
+      },
+
       "& svg": {
         fontSize: "1.4rem",
-        color: "var(--quick-icon-color, #fff)",
+        color: `var(--quick-icon-color, ${theme.vars.palette.grey[800]})`,
         position: "relative",
         zIndex: 1,
         filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
-        transition: "transform 0.3s ease"
+        transition: "transform 0.3s ease",
+
+        "[data-mui-color-scheme='dark'] &": {
+          color: "var(--quick-icon-color, #fff)"
+        }
       },
 
       "&::before": {
@@ -279,8 +310,11 @@ const styles = (theme: Theme) =>
       width: "24px",
       height: "1px",
       margin: "4px auto",
-      background: theme.vars.palette.grey[800],
-      opacity: 0.6
+      background: theme.vars.palette.grey[300],
+      opacity: 0.6,
+      "[data-mui-color-scheme='dark'] &": {
+        background: theme.vars.palette.grey[800]
+      }
     },
     ".help-chat": {
       "& .MuiButton-root": {
@@ -288,10 +322,16 @@ const styles = (theme: Theme) =>
         wordWrap: "break-word",
         textTransform: "none",
         maxWidth: "160px",
-        borderColor: theme.vars.palette.grey[200],
-        color: theme.vars.palette.grey[200],
+        borderColor: theme.vars.palette.grey[400],
+        color: theme.vars.palette.grey[700],
         margin: "0.5em",
         padding: "0.5em 1em",
+
+        "[data-mui-color-scheme='dark'] &": {
+          borderColor: theme.vars.palette.grey[200],
+          color: theme.vars.palette.grey[200]
+        },
+
         "&:hover": {
           borderColor: "var(--palette-primary-main)",
           color: "var(--palette-primary-main)"
@@ -683,21 +723,11 @@ const PanelLeft: React.FC = () => {
           ref: panelRef,
           className: `panel panel-left ${isDragging ? "dragging" : ""}`,
           style: {
-            boxShadow: isVisible
-              ? theme.palette.mode === "dark"
-                ? `0 14px 32px rgba(0,0,0,0.85), 0 4px 14px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14), 0 0 24px ${theme.vars.palette.primary.main}33`
-                : "0 8px 24px rgba(16,24,40,0.14), 0 2px 8px rgba(16,24,40,0.08)"
-              : "none",
             backdropFilter: isVisible ? "blur(12px)" : "none",
-            backgroundColor: isVisible
-              ? "rgba(18, 18, 18, 0.6)"
-              : "transparent",
-            borderRight: isVisible
-              ? `1px solid ${theme.vars.palette.grey[800]}`
-              : "none",
-            borderTop: isVisible
-              ? `1px solid ${theme.vars.palette.grey[800]}`
-              : "none",
+            backgroundColor: isVisible ? undefined : "transparent",
+            borderRight: isVisible ? undefined : "none",
+            borderTop: isVisible ? undefined : "none",
+            boxShadow: isVisible ? undefined : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
             width: isVisible

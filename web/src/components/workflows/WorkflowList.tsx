@@ -289,53 +289,36 @@ const WorkflowList = () => {
             onClick={handleCreateWorkflowTop}
             aria-label="New Workflow"
             sx={{
-              width: "calc(100% - 20px)",
-              margin: "10px",
+              width: "calc(100% - 32px)",
+              margin: "16px",
+              height: "48px",
               textAlign: "center",
               position: "relative",
               overflow: "hidden",
-              borderRadius: 12,
-              color: (theme as any).vars.palette.grey[200],
-              backgroundColor: "transparent",
-              border: `1px solid ${(theme as any).vars.palette.grey[600]}`,
-              boxShadow: "none",
+              borderRadius: "16px",
+              color: "#fff",
+              background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.main}, ${(theme as any).vars.palette.primary.dark})`,
+              boxShadow: `0 4px 20px ${(theme as any).vars.palette.primary.main}40`,
               textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              letterSpacing: "0.02em",
               justifyContent: "center",
-              transition:
-                "all 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease",
+              border: "1px solid rgba(255,255,255,0.1)",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              
               "&:hover": {
-                backgroundColor: `${
-                  (theme as any).vars.palette.primary.main
-                }14`,
-                borderColor: (theme as any).vars.palette.primary.main,
-                boxShadow: `0 2px 8px rgba(0, 0, 0, 0.25)`
+                background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.light}, ${(theme as any).vars.palette.primary.main})`,
+                boxShadow: `0 8px 30px ${(theme as any).vars.palette.primary.main}60`,
+                transform: "translateY(-2px)",
+                border: "1px solid rgba(255,255,255,0.2)",
               },
               "&:active": {
-                transform: "scale(0.99)"
+                transform: "scale(0.98) translateY(0)",
+                boxShadow: `0 2px 10px ${(theme as any).vars.palette.primary.main}40`,
               },
               "& svg": {
-                position: "relative",
-                zIndex: 1
-              },
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "55%",
-                background:
-                  "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
-                pointerEvents: "none",
-                zIndex: 0
-              },
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                inset: 0,
-                borderRadius: "inherit",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
-                pointerEvents: "none"
+                 fontSize: "1.3rem",
               }
             }}
           >
