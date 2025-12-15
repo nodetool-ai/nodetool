@@ -44,18 +44,21 @@ const styles = (theme: Theme) =>
       appearance: "none",
       color: "#ffffff",
       backgroundColor: "var(--palette-grey-800)",
-      borderRadius: "5px",
+      borderRadius: "8px",
       transition: "all 0.2s"
     },
     "input[type='text']:focus": {
       backgroundColor: "var(--palette-grey-700)",
       borderColor: "var(--palette-primary-main)",
-      outline: "none"
+      outline: "none",
+      "& + .clear-search-btn": {
+        display: "flex"
+      }
     },
     ".clear-search-btn": {
       position: "absolute",
       cursor: "pointer",
-      display: "flex",
+      display: "none",
       alignItems: "center",
       justifyContent: "center",
       width: "2em",

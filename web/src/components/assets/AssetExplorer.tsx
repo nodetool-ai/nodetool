@@ -41,9 +41,6 @@ const styles = (theme: Theme) =>
       marginLeft: "1em",
       marginBottom: "1em"
     },
-    "& .dv-split-view-container .dv-view-container .dv-view": {
-      padding: "0.5em 1em !important"
-    },
     ".audio-controls-container": {
       padding: "2em"
     },
@@ -69,6 +66,7 @@ const styles = (theme: Theme) =>
     },
     ".dropzone": {
       outline: "none",
+      margin: 0,
       maxHeight: "calc(-100px + 100vh) !important"
     },
     ".infinite-scroll-component": {
