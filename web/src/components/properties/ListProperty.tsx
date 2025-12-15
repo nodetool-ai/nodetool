@@ -1,13 +1,7 @@
 import { PropertyProps } from "../node/PropertyInput";
 import ListTable, { ListDataType } from "../node/DataTable/ListTable";
-import { memo, useCallback, useState } from "react";
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  SelectChangeEvent
-} from "@mui/material";
+import { memo, useCallback, useState, useMemo } from "react";
+import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import { isEqual } from "lodash";
 
@@ -31,7 +25,7 @@ const detectTypeFromList = (list: any[]) => {
 
 const ListProperty = (props: PropertyProps) => {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
-  const dataTypes = ["int", "string", "datetime", "float"];
+  const dataTypes = useMemo(() => ["int", "string", "datetime", "float"], []);
 
   const value = props.value || [];
   const [dataType, setDataType] = useState<ListDataType>(
@@ -39,46 +33,34 @@ const ListProperty = (props: PropertyProps) => {
   );
 
   const handleDataTypeChange = useCallback(
-    (event: SelectChangeEvent<ListDataType>) => {
-      setDataType(event.target.value as ListDataType);
+    (newValue: string) => {
+      setDataType(newValue as ListDataType);
     },
     []
+  );
+
+  const options = useMemo(
+    () =>
+      dataTypes.map((type) => ({
+        label: type,
+        value: type
+      })),
+    [dataTypes]
   );
 
   if (props.nodeType === "nodetool.constant.List") {
     return (
       <>
-        <FormControl
-          fullWidth
-          style={{ marginBottom: "8px" }}
-          className="list-property-form-control"
-        >
-          <InputLabel id={id}>Data Type</InputLabel>
+        <div style={{ marginBottom: "8px" }}>
+          <PropertyLabel name="Data Type" id={id} />
           <Select
-            labelId={id}
             value={dataType}
             onChange={handleDataTypeChange}
-            variant="standard"
-            className="mui-select nodrag"
-            disableUnderline={true}
-            MenuProps={{
-              anchorOrigin: {
-                vertical: "bottom",
-                horizontal: "left"
-              },
-              transformOrigin: {
-                vertical: "top",
-                horizontal: "left"
-              }
-            }}
-          >
-            {dataTypes.map((dataType) => (
-              <MenuItem key={dataType} value={dataType}>
-                {dataType}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            options={options}
+            label="Data Type"
+            placeholder="Select type..."
+          />
+        </div>
         <ListTable
           data={value}
           onDataChange={props.onChange}
