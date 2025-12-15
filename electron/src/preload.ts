@@ -457,6 +457,63 @@ const api = {
     /** Subscribe to menu events (cut, copy, paste, etc.) */
     onEvent: createEventSubscription(IpcChannels.MENU_EVENT),
   },
+
+  // ============================================================================
+  // shell: Desktop integration (Electron shell module)
+  // ============================================================================
+  shell: {
+    /** Show a file in the file manager */
+    showItemInFolder: (fullPath: string) =>
+      ipcRenderer.invoke(IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER, validatePath(fullPath)),
+
+    /** Open a file in the desktop's default manner */
+    openPath: (path: string) =>
+      ipcRenderer.invoke(IpcChannels.SHELL_OPEN_PATH, validatePath(path)),
+
+    /** Open an external URL in the default browser */
+    openExternal: (url: string, options?: {
+      activate?: boolean;
+      workingDirectory?: string;
+      logUsage?: boolean;
+    }) =>
+      ipcRenderer.invoke(IpcChannels.SHELL_OPEN_EXTERNAL, {
+        url: validateUrl(url),
+        options,
+      }),
+
+    /** Move a file to the OS trash */
+    trashItem: (path: string) =>
+      ipcRenderer.invoke(IpcChannels.SHELL_TRASH_ITEM, validatePath(path)),
+
+    /** Play the system beep sound */
+    beep: () =>
+      ipcRenderer.invoke(IpcChannels.SHELL_BEEP),
+
+    /** Create or update a Windows shortcut (Windows only) */
+    writeShortcutLink: (
+      shortcutPath: string,
+      operation?: "create" | "update" | "replace",
+      options?: {
+        target: string;
+        cwd?: string;
+        args?: string;
+        description?: string;
+        icon?: string;
+        iconIndex?: number;
+        appUserModelId?: string;
+        toastActivatorClsid?: string;
+      }
+    ) =>
+      ipcRenderer.invoke(IpcChannels.SHELL_WRITE_SHORTCUT_LINK, {
+        shortcutPath: validatePath(shortcutPath),
+        operation,
+        options,
+      }),
+
+    /** Read a Windows shortcut (Windows only) */
+    readShortcutLink: (shortcutPath: string) =>
+      ipcRenderer.invoke(IpcChannels.SHELL_READ_SHORTCUT_LINK, validatePath(shortcutPath)),
+  },
 };
 
 contextBridge.exposeInMainWorld("api", api);

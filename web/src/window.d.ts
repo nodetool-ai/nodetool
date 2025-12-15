@@ -62,6 +62,43 @@ declare global {
       restartLlamaServer?: () => Promise<void>;
       windowControls: WindowControls;
       platform: string;
+      
+      // Shell module - Desktop integration
+      shell?: {
+        showItemInFolder: (fullPath: string) => Promise<void>;
+        openPath: (path: string) => Promise<string>;
+        openExternal: (url: string, options?: {
+          activate?: boolean;
+          workingDirectory?: string;
+          logUsage?: boolean;
+        }) => Promise<void>;
+        trashItem: (path: string) => Promise<void>;
+        beep: () => Promise<void>;
+        writeShortcutLink: (
+          shortcutPath: string,
+          operation?: "create" | "update" | "replace",
+          options?: {
+            target: string;
+            cwd?: string;
+            args?: string;
+            description?: string;
+            icon?: string;
+            iconIndex?: number;
+            appUserModelId?: string;
+            toastActivatorClsid?: string;
+          }
+        ) => Promise<boolean>;
+        readShortcutLink: (shortcutPath: string) => Promise<{
+          target: string;
+          cwd?: string;
+          args?: string;
+          description?: string;
+          icon?: string;
+          iconIndex?: number;
+          appUserModelId?: string;
+          toastActivatorClsid?: string;
+        }>;
+      };
     };
     process: {
       type: string;

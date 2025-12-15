@@ -20,6 +20,7 @@ export interface Settings {
   alertBeforeTabClose: boolean;
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
+  soundNotifications: boolean;
 }
 
 interface SettingsStore {
@@ -40,6 +41,7 @@ interface SettingsStore {
   setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
+  setSoundNotifications: (value: boolean) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -53,7 +55,8 @@ export const defaultSettings: Settings = {
   timeFormat: "12h",
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
-  showWelcomeOnStartup: true
+  showWelcomeOnStartup: true,
+  soundNotifications: true
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -154,6 +157,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             showWelcomeOnStartup: value
+          }
+        })),
+      setSoundNotifications: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            soundNotifications: value
           }
         }))
     }),

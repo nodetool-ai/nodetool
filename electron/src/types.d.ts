@@ -149,6 +149,25 @@ declare global {
       menu: {
         onEvent: (callback: (data: MenuEventData) => void) => () => void;
       };
+
+      // Shell module - Desktop integration
+      shell: {
+        showItemInFolder: (fullPath: string) => Promise<void>;
+        openPath: (path: string) => Promise<string>;
+        openExternal: (url: string, options?: {
+          activate?: boolean;
+          workingDirectory?: string;
+          logUsage?: boolean;
+        }) => Promise<void>;
+        trashItem: (path: string) => Promise<void>;
+        beep: () => void;
+        writeShortcutLink: (
+          shortcutPath: string,
+          operation?: "create" | "update" | "replace",
+          options?: ShortcutDetails
+        ) => boolean;
+        readShortcutLink: (shortcutPath: string) => ShortcutDetails;
+      };
     };
 
     // Alias exposed by preload for legacy pages.
@@ -290,6 +309,18 @@ export interface FileExplorerResult {
   message?: string;
 }
 
+export interface ShortcutDetails {
+  target: string;
+  cwd?: string;
+  args?: string;
+  description?: string;
+  icon?: string;
+  iconIndex?: number;
+  appUserModelId?: string;
+  toastActivatorClsid?: string;
+}
+
+
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
@@ -346,7 +377,16 @@ export enum IpcChannels {
   GET_LOGS = "get-logs",
   CLEAR_LOGS = "clear-logs",
   CHECK_OLLAMA_INSTALLED = "check-ollama-installed",
+  // Shell module channels
+  SHELL_SHOW_ITEM_IN_FOLDER = "shell-show-item-in-folder",
+  SHELL_OPEN_PATH = "shell-open-path",
+  SHELL_OPEN_EXTERNAL = "shell-open-external",
+  SHELL_TRASH_ITEM = "shell-trash-item",
+  SHELL_BEEP = "shell-beep",
+  SHELL_WRITE_SHORTCUT_LINK = "shell-write-shortcut-link",
+  SHELL_READ_SHORTCUT_LINK = "shell-read-shortcut-link",
 }
+
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
 
@@ -409,7 +449,27 @@ export interface IpcRequest {
   [IpcChannels.GET_LOGS]: void;
   [IpcChannels.CLEAR_LOGS]: void;
   [IpcChannels.CHECK_OLLAMA_INSTALLED]: void;
+  // Shell module
+  [IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER]: string; // fullPath
+  [IpcChannels.SHELL_OPEN_PATH]: string; // path
+  [IpcChannels.SHELL_OPEN_EXTERNAL]: {
+    url: string;
+    options?: {
+      activate?: boolean;
+      workingDirectory?: string;
+      logUsage?: boolean;
+    };
+  };
+  [IpcChannels.SHELL_TRASH_ITEM]: string; // path
+  [IpcChannels.SHELL_BEEP]: void;
+  [IpcChannels.SHELL_WRITE_SHORTCUT_LINK]: {
+    shortcutPath: string;
+    operation?: "create" | "update" | "replace";
+    options?: ShortcutDetails;
+  };
+  [IpcChannels.SHELL_READ_SHORTCUT_LINK]: string; // shortcutPath
 }
+
 
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
@@ -456,7 +516,16 @@ export interface IpcResponse {
   [IpcChannels.GET_LOGS]: string[];
   [IpcChannels.CLEAR_LOGS]: void;
   [IpcChannels.CHECK_OLLAMA_INSTALLED]: boolean;
+  // Shell module
+  [IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER]: void;
+  [IpcChannels.SHELL_OPEN_PATH]: string; // error message or empty string
+  [IpcChannels.SHELL_OPEN_EXTERNAL]: void;
+  [IpcChannels.SHELL_TRASH_ITEM]: void;
+  [IpcChannels.SHELL_BEEP]: void;
+  [IpcChannels.SHELL_WRITE_SHORTCUT_LINK]: boolean;
+  [IpcChannels.SHELL_READ_SHORTCUT_LINK]: ShortcutDetails;
 }
+
 
 // Event types for each IPC channel
 export interface IpcEvents {

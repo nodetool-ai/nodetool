@@ -390,6 +390,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setTimeFormat,
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
+    setSoundNotifications,
     settings
   } = useSettingsStore((state) => ({
     isMenuOpen: state.isMenuOpen,
@@ -402,7 +403,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setSelectionMode: state.setSelectionMode,
     setTimeFormat: state.setTimeFormat,
     setSelectNodesOnDrag: state.setSelectNodesOnDrag,
-    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup
+    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
+    setSoundNotifications: state.setSoundNotifications
   }));
 
   const [activeSection, setActiveSection] = useState("editor");
@@ -493,7 +495,17 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         alert: true
       });
       setLastExportPath(data.file_path);
-      if (typeof window.api?.showItemInFolder === "function") {
+      
+      // Show in folder using the new shell API
+      if (typeof window.api?.shell?.showItemInFolder === "function") {
+        window.api.shell.showItemInFolder(data.file_path);
+        
+        // Play notification sound if enabled
+        if (settings.soundNotifications && typeof window.api.shell.beep === "function") {
+          window.api.shell.beep();
+        }
+      } else if (typeof window.api?.showItemInFolder === "function") {
+        // Fallback to legacy API
         window.api.showItemInFolder(data.file_path);
       } else {
         addNotification({
@@ -737,6 +749,32 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           <br />
                           If disabled, nodes can still be selected by clicking
                           on them.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor={id}>
+                            Sound Notifications
+                          </InputLabel>
+                          <Switch
+                            sx={{
+                              "&.MuiSwitch-root": {
+                                margin: "16px 0 0"
+                              }
+                            }}
+                            checked={!!settings.soundNotifications}
+                            onChange={(e) =>
+                              setSoundNotifications(e.target.checked ?? true)
+                            }
+                            inputProps={{ "aria-label": id }}
+                          />
+                        </FormControl>
+                        <Typography className="description">
+                          Play a system beep sound when workflows complete,
+                          exports finish, or other important events occur.
+                          <br />
+                          Only works in Electron app.
                         </Typography>
                       </div>
                     </div>

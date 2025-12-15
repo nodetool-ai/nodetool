@@ -457,4 +457,64 @@ export function initializeIpcHandlers(): void {
     const { isOllamaInstalled } = await import("./python");
     return await isOllamaInstalled();
   });
+
+  // Shell module handlers
+  createIpcMainHandler(
+    IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER,
+    async (_event, fullPath) => {
+      logMessage(`Showing item in folder: ${fullPath}`);
+      shell.showItemInFolder(fullPath);
+    }
+  );
+
+  createIpcMainHandler(IpcChannels.SHELL_OPEN_PATH, async (_event, path) => {
+    logMessage(`Opening path: ${path}`);
+    const errorMessage = await shell.openPath(path);
+    return errorMessage;
+  });
+
+  createIpcMainHandler(
+    IpcChannels.SHELL_OPEN_EXTERNAL,
+    async (_event, request) => {
+      logMessage(`Opening external URL: ${request.url}`);
+      await shell.openExternal(request.url, request.options);
+    }
+  );
+
+  createIpcMainHandler(IpcChannels.SHELL_TRASH_ITEM, async (_event, path) => {
+    logMessage(`Moving to trash: ${path}`);
+    await shell.trashItem(path);
+  });
+
+  createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {
+    shell.beep();
+  });
+
+  createIpcMainHandler(
+    IpcChannels.SHELL_WRITE_SHORTCUT_LINK,
+    async (_event, request) => {
+      if (process.platform !== "win32") {
+        logMessage("Shortcut links are only supported on Windows", "warn");
+        return false;
+      }
+      logMessage(`Writing shortcut: ${request.shortcutPath}`);
+      return shell.writeShortcutLink(
+        request.shortcutPath,
+        request.operation || "create",
+        request.options || { target: "" }
+      );
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.SHELL_READ_SHORTCUT_LINK,
+    async (_event, shortcutPath) => {
+      if (process.platform !== "win32") {
+        logMessage("Shortcut links are only supported on Windows", "warn");
+        throw new Error("Shortcut links are only supported on Windows");
+      }
+      logMessage(`Reading shortcut: ${shortcutPath}`);
+      return shell.readShortcutLink(shortcutPath);
+    }
+  );
 }
