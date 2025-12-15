@@ -1,4 +1,5 @@
 import { constants, promises as fs } from "fs";
+import { serverState } from "./state";
 
 /**
  * Result of file/directory permission check
@@ -47,4 +48,39 @@ async function fileExists(filePath: string): Promise<boolean> {
   return accessible;
 }
 
-export { checkPermissions, fileExists, PermissionResult };
+/**
+ * Gets the server port, falling back to default port 7777
+ * @returns {number} The server port
+ */
+function getServerPort(): number {
+  return serverState.serverPort ?? 7777;
+}
+
+/**
+ * Constructs an HTTP URL for the server
+ * @param {string} path - The path to append to the base URL (should start with /)
+ * @returns {string} The complete HTTP URL
+ */
+function getServerUrl(path: string = ""): string {
+  const port = getServerPort();
+  return `http://127.0.0.1:${port}${path}`;
+}
+
+/**
+ * Constructs a WebSocket URL for the server
+ * @param {string} path - The path to append to the base URL (should start with /)
+ * @returns {string} The complete WebSocket URL
+ */
+function getServerWebSocketUrl(path: string = ""): string {
+  const port = getServerPort();
+  return `ws://127.0.0.1:${port}${path}`;
+}
+
+export {
+  checkPermissions,
+  fileExists,
+  PermissionResult,
+  getServerPort,
+  getServerUrl,
+  getServerWebSocketUrl,
+};

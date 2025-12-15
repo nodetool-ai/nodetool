@@ -2,11 +2,10 @@ import { encode, decode } from "@msgpack/msgpack";
 import { create } from "zustand";
 import WebSocket from "ws";
 import { Notification } from "electron";
-import { serverState } from "./state";
+import { getServerWebSocketUrl } from "./utils";
 import { Workflow } from "./types";
 
-const getWorkerUrl = () =>
-  `ws://127.0.0.1:${serverState.serverPort ?? 7777}/predict`;
+const getWorkerUrl = () => getServerWebSocketUrl("/predict");
 
 interface WorkflowRunnerState {
   workflow: Workflow | null;

@@ -12,7 +12,7 @@
  */
 
 import { app, shell } from "electron";
-import { serverState } from "./state";
+import { getServerPort } from "./utils";
 import * as path from "path";
 import { promises as fsPromises } from "fs";
 import { logMessage } from "./logger";
@@ -94,7 +94,7 @@ async function createLaunchAgent(
 ): Promise<void> {
   const logPath: string = await getLaunchAgentLogPath(workflowId);
 
-  const port = serverState.serverPort ?? 7777;
+  const port = getServerPort();
   const plistContent: string = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
