@@ -178,8 +178,8 @@ function showLogs(): void {
  * Initializes the application by checking server state and setting up the UI
  */
 function initializeApp(): void {
-  window.api
-    .getServerState()
+  window.api.server
+    .getState()
     .then(({ isStarted, bootMsg, logs, initialURL }) => {
       logMessage(
         `Server state: ${JSON.stringify({ isStarted, bootMsg, logs })}`
@@ -202,15 +202,15 @@ function initializeApp(): void {
     });
 }
 
-window.api.onUpdateProgress(({ componentName, progress, action, eta }) => {
+window.api.installer.onProgress(({ componentName, progress, action, eta }) => {
   updateProgress(componentName, progress, action, eta);
 });
 
-window.api.onServerStarted(() => {
+window.api.server.onStarted(() => {
   initializeApp();
 });
 
-window.api.onBootMessage((message) => {
+window.api.server.onBootMessage((message) => {
   const bootTextElement = document.querySelector(".boot-text");
   if (bootTextElement) {
     bootTextElement.textContent = message;
@@ -221,17 +221,17 @@ window.api.onBootMessage((message) => {
   }
 });
 
-window.api.onServerLog((message) => {
+window.api.server.onLog((message) => {
   simpleLogger.log(message);
 });
 
 logToggle.addEventListener("click", toggleLog);
 openLogFileButton.addEventListener("click", async () => {
-  await window.api.openLogFile();
+  await window.api.system.openLogFile();
 });
 initializeApp();
 
-window.api.onUpdateAvailable((info) => {
+window.api.updates.onAvailable((info) => {
   const updateNotification = document.getElementById("update-notification");
   const releaseLink = document.getElementById(
     "release-link"
@@ -246,7 +246,7 @@ window.api.onUpdateAvailable((info) => {
   releaseLink.href = info.releaseUrl;
   releaseLink.onclick = (e) => {
     e.preventDefault();
-    window.api.openExternal(info.releaseUrl);
+    window.api.system.openExternal(info.releaseUrl);
   };
 });
 
@@ -330,7 +330,7 @@ function startIconAnimations(): void {
   }, 10 * 60000 + 2500);
 }
 
-window.api.onInstallLocationPrompt(async ({ defaultPath, packages }) => {
+window.api.installer.onLocationPrompt(async ({ defaultPath, packages }) => {
   const defaultLocationPath = document.querySelector(".location-path");
   const stepLocation = document.getElementById("step-location");
   const stepPackages = document.getElementById("step-packages");
@@ -415,7 +415,7 @@ window.api.onInstallLocationPrompt(async ({ defaultPath, packages }) => {
     });
 
     customLocationButton.addEventListener("click", async () => {
-      const result = await window.api.selectCustomInstallLocation();
+      const result = await window.api.installer.selectLocation();
       if (result) {
         applySelection(result);
       }
@@ -438,7 +438,7 @@ window.api.onInstallLocationPrompt(async ({ defaultPath, packages }) => {
 
   nextButton.addEventListener("click", async () => {
     const selectedModules = getSelectedModules();
-    await window.api.installToLocation(selectedPath, selectedModules);
+    await window.api.installer.install(selectedPath, selectedModules);
     hideInstallLocationPrompt();
     showBootMessage();
   });

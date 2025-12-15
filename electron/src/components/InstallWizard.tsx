@@ -233,7 +233,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
 
       // Check for installed binary (available on PATH).
       try {
-        installed = await window.api.checkOllamaInstalled();
+        installed = await window.api.system.checkOllamaInstalled();
       } catch (e) {
         console.error("Failed to check for Ollama installation:", e);
       }
@@ -359,7 +359,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
 
       if (!ollamaDetected) {
         try {
-          ollamaDetected = await window.api.checkOllamaInstalled();
+          ollamaDetected = await window.api.system.checkOllamaInstalled();
         } catch {
           // ignore
         }
@@ -376,7 +376,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
       modelBackend = "none";
     }
 
-    await window.api.installToLocation(
+    await window.api.installer.install(
       selectedPath,
       sanitizedSelection,
       modelBackend,
@@ -434,7 +434,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
   };
 
   const handleCustomLocation = async () => {
-    const result = await window.api.selectCustomInstallLocation();
+    const result = await window.api.installer.selectLocation();
     if (result) {
       applyPathSelection(result);
     }

@@ -1,75 +1,158 @@
+type ClipboardType = "clipboard" | "selection";
+
 declare global {
   export interface Window {
     api: {
       platform: string;
-      getServerState: () => Promise<ServerState>;
-      clipboardWriteText: (text: string) => void;
-      clipboardReadText: () => string;
+
+      // Backwards-compatible (flat) API surface (used by some legacy pages)
+      runApp: (workflowId: string) => Promise<void>;
+
+      clipboardWriteText: (text: string) => Promise<void>;
+      clipboardReadText: () => Promise<string>;
+      clipboardWriteImage: (dataUrl: string) => Promise<void>;
+
       openLogFile: () => Promise<void>;
       showItemInFolder: (fullPath: string) => Promise<void>;
-      openExternal: (url: string) => void;
       openModelDirectory: (
         target: ModelDirectory
       ) => Promise<FileExplorerResult>;
       openModelPath: (path: string) => Promise<FileExplorerResult>;
-      onUpdateProgress: (
-        callback: (data: {
-          componentName: string;
-          progress: number;
-          action: string;
-          eta?: string;
-        }) => void
-      ) => void;
-      onPackageUpdatesAvailable: (
-        callback: (packages: PackageUpdateInfo[]) => void
-      ) => void;
-      onCreateWorkflow: (workflow: Workflow) => void;
-      onUpdateWorkflow: (workflow: Workflow) => void;
-      onDeleteWorkflow: (workflow: Workflow) => void;
-      onServerStarted: (callback: () => void) => void;
-      onBootMessage: (callback: (message: string) => void) => void;
-      onServerLog: (callback: (message: string) => void) => void;
-      onServerError: (callback: (data: { message: string }) => void) => void;
-      onUpdateAvailable: (callback: (info: UpdateInfo) => void) => void;
-      onInstallLocationPrompt: (
-        callback: (data: InstallLocationData) => void
-      ) => void;
-      onShowPackageManager: (callback: () => void) => void;
-      onMenuEvent: (callback: (data: MenuEventData) => void) => void;
-      unregisterMenuEvent: (callback: (data: any) => void) => void;
-      startServer: () => Promise<void>;
+      openExternal: (url: string) => Promise<void>;
+
+      onCreateWorkflow: (workflow: Workflow) => Promise<void>;
+      onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
+      onDeleteWorkflow: (workflow: Workflow) => Promise<void>;
+
+      showPackageManager: (nodeSearch?: string) => Promise<void>;
+
       restartServer: () => Promise<void>;
+      onServerLog: (callback: (message: string) => void) => () => void;
+
       restartLlamaServer: () => Promise<void>;
-      showPackageManager: (nodeSearch?: string) => void;
-      installToLocation: (
-        location: string,
-        packages: PythonPackages,
-        modelBackend?: ModelBackend,
-        installOllama?: boolean,
-        installLlamaCpp?: boolean
-      ) => Promise<void>;
-      selectCustomInstallLocation: () => Promise<string | null>;
+
+      getLogs: () => Promise<string[]>;
+      clearLogs: () => Promise<void>;
+
+      onMenuEvent: (callback: (data: MenuEventData) => void) => void;
+      unregisterMenuEvent: (callback: (data: MenuEventData) => void) => void;
+
       windowControls: {
         close: () => void;
         minimize: () => void;
         maximize: () => void;
       };
-      removeListener: (event: string) => void;
-      getLogs: () => Promise<string[]>;
-      clearLogs: () => Promise<void>;
-      checkOllamaInstalled: () => Promise<boolean>;
-    };
-    electronAPI: {
+
+      // Server lifecycle, logs, and status
+      server: {
+        getState: () => Promise<ServerState>;
+        start: () => Promise<void>;
+        restart: () => Promise<void>;
+        restartLlama: () => Promise<void>;
+        onStarted: (callback: () => void) => () => void;
+        onLog: (callback: (message: string) => void) => () => void;
+        onError: (callback: (data: { message: string }) => void) => () => void;
+        onBootMessage: (callback: (message: string) => void) => () => void;
+      };
+
+      // Workflow CRUD operations
+      workflows: {
+        create: (workflow: Workflow) => Promise<void>;
+        update: (workflow: Workflow) => Promise<void>;
+        delete: (workflow: Workflow) => Promise<void>;
+        run: (workflowId: string) => Promise<void>;
+      };
+
+      // Package management
       packages: {
         listAvailable: () => Promise<PackageListResponse>;
         listInstalled: () => Promise<InstalledPackageListResponse>;
         install: (repoId: string) => Promise<PackageResponse>;
         uninstall: (repoId: string) => Promise<PackageResponse>;
         update: (repoId: string) => Promise<PackageResponse>;
-        searchNodes?: (query: string) => Promise<PackageNode[]>;
+        searchNodes: (query: string) => Promise<PackageNode[]>;
+        showManager: (nodeSearch?: string) => void;
+        onUpdatesAvailable: (
+          callback: (packages: PackageUpdateInfo[]) => void
+        ) => () => void;
       };
-      openExternal: (url: string) => void;
+
+      // Window controls
+      window: {
+        close: () => void;
+        minimize: () => void;
+        maximize: () => void;
+      };
+
+      // System integration
+      system: {
+        openLogFile: () => Promise<void>;
+        showItemInFolder: (fullPath: string) => Promise<void>;
+        openModelDirectory: (
+          target: ModelDirectory
+        ) => Promise<FileExplorerResult>;
+        openModelPath: (path: string) => Promise<FileExplorerResult>;
+        openExternal: (url: string) => Promise<void>;
+        checkOllamaInstalled: () => Promise<boolean>;
+      };
+
+      // Clipboard operations
+      clipboard: {
+        readText: (type?: ClipboardType) => Promise<string>;
+        writeText: (text: string, type?: ClipboardType) => Promise<void>;
+        readHTML: (type?: ClipboardType) => Promise<string>;
+        writeHTML: (markup: string, type?: ClipboardType) => Promise<void>;
+        readImage: (type?: ClipboardType) => Promise<string>;
+        writeImage: (dataUrl: string, type?: ClipboardType) => Promise<void>;
+        readRTF: (type?: ClipboardType) => Promise<string>;
+        writeRTF: (text: string, type?: ClipboardType) => Promise<void>;
+        readBookmark: () => Promise<{ title: string; url: string }>;
+        writeBookmark: (
+          title: string,
+          url: string,
+          type?: ClipboardType
+        ) => Promise<void>;
+        readFindText: () => Promise<string>;
+        writeFindText: (text: string) => Promise<void>;
+        clear: (type?: ClipboardType) => Promise<void>;
+        availableFormats: (type?: ClipboardType) => Promise<string[]>;
+      };
+
+      // Log viewer
+      logs: {
+        getAll: () => Promise<string[]>;
+        clear: () => Promise<void>;
+      };
+
+      // Installation
+      installer: {
+        selectLocation: () => Promise<string | null>;
+        install: (
+          location: string,
+          packages: PythonPackages,
+          modelBackend?: ModelBackend,
+          installOllama?: boolean,
+          installLlamaCpp?: boolean
+        ) => Promise<void>;
+        onLocationPrompt: (
+          callback: (data: InstallLocationData) => void
+        ) => () => void;
+        onProgress: (callback: (data: UpdateProgressData) => void) => () => void;
+      };
+
+      // Updates
+      updates: {
+        onAvailable: (callback: (info: UpdateInfo) => void) => () => void;
+      };
+
+      // Menu events
+      menu: {
+        onEvent: (callback: (data: MenuEventData) => void) => () => void;
+      };
     };
+
+    // Alias exposed by preload for legacy pages.
+    electronAPI: Window["api"];
   }
 }
 
@@ -235,6 +318,17 @@ export enum IpcChannels {
   CLIPBOARD_WRITE_TEXT = "clipboard-write-text",
   CLIPBOARD_READ_TEXT = "clipboard-read-text",
   CLIPBOARD_WRITE_IMAGE = "clipboard-write-image",
+  CLIPBOARD_READ_IMAGE = "clipboard-read-image",
+  CLIPBOARD_READ_HTML = "clipboard-read-html",
+  CLIPBOARD_WRITE_HTML = "clipboard-write-html",
+  CLIPBOARD_READ_RTF = "clipboard-read-rtf",
+  CLIPBOARD_WRITE_RTF = "clipboard-write-rtf",
+  CLIPBOARD_READ_BOOKMARK = "clipboard-read-bookmark",
+  CLIPBOARD_WRITE_BOOKMARK = "clipboard-write-bookmark",
+  CLIPBOARD_READ_FIND_TEXT = "clipboard-read-find-text",
+  CLIPBOARD_WRITE_FIND_TEXT = "clipboard-write-find-text",
+  CLIPBOARD_CLEAR = "clipboard-clear",
+  CLIPBOARD_AVAILABLE_FORMATS = "clipboard-available-formats",
   MENU_EVENT = "menu-event",
   ON_CREATE_WORKFLOW = "on-create-workflow",
   ON_UPDATE_WORKFLOW = "on-update-workflow",
@@ -286,9 +380,20 @@ export interface IpcRequest {
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
-  [IpcChannels.CLIPBOARD_WRITE_TEXT]: string;
-  [IpcChannels.CLIPBOARD_READ_TEXT]: void;
-  [IpcChannels.CLIPBOARD_WRITE_IMAGE]: string; // data URL or file path
+  [IpcChannels.CLIPBOARD_WRITE_TEXT]: { text: string; type?: ClipboardType };
+  [IpcChannels.CLIPBOARD_READ_TEXT]: ClipboardType | undefined;
+  [IpcChannels.CLIPBOARD_WRITE_IMAGE]: { dataUrl: string; type?: ClipboardType };
+  [IpcChannels.CLIPBOARD_READ_IMAGE]: ClipboardType | undefined;
+  [IpcChannels.CLIPBOARD_READ_HTML]: ClipboardType | undefined;
+  [IpcChannels.CLIPBOARD_WRITE_HTML]: { markup: string; type?: ClipboardType };
+  [IpcChannels.CLIPBOARD_READ_RTF]: ClipboardType | undefined;
+  [IpcChannels.CLIPBOARD_WRITE_RTF]: { text: string; type?: ClipboardType };
+  [IpcChannels.CLIPBOARD_READ_BOOKMARK]: void;
+  [IpcChannels.CLIPBOARD_WRITE_BOOKMARK]: { title: string; url: string; type?: ClipboardType };
+  [IpcChannels.CLIPBOARD_READ_FIND_TEXT]: void;
+  [IpcChannels.CLIPBOARD_WRITE_FIND_TEXT]: string;
+  [IpcChannels.CLIPBOARD_CLEAR]: ClipboardType | undefined;
+  [IpcChannels.CLIPBOARD_AVAILABLE_FORMATS]: ClipboardType | undefined;
   [IpcChannels.ON_CREATE_WORKFLOW]: Workflow;
   [IpcChannels.ON_UPDATE_WORKFLOW]: Workflow;
   [IpcChannels.ON_DELETE_WORKFLOW]: Workflow;
@@ -325,6 +430,17 @@ export interface IpcResponse {
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: void;
   [IpcChannels.CLIPBOARD_READ_TEXT]: string;
   [IpcChannels.CLIPBOARD_WRITE_IMAGE]: void;
+  [IpcChannels.CLIPBOARD_READ_IMAGE]: string; // data URL
+  [IpcChannels.CLIPBOARD_READ_HTML]: string;
+  [IpcChannels.CLIPBOARD_WRITE_HTML]: void;
+  [IpcChannels.CLIPBOARD_READ_RTF]: string;
+  [IpcChannels.CLIPBOARD_WRITE_RTF]: void;
+  [IpcChannels.CLIPBOARD_READ_BOOKMARK]: { title: string; url: string };
+  [IpcChannels.CLIPBOARD_WRITE_BOOKMARK]: void;
+  [IpcChannels.CLIPBOARD_READ_FIND_TEXT]: string;
+  [IpcChannels.CLIPBOARD_WRITE_FIND_TEXT]: void;
+  [IpcChannels.CLIPBOARD_CLEAR]: void;
+  [IpcChannels.CLIPBOARD_AVAILABLE_FORMATS]: string[];
   [IpcChannels.ON_CREATE_WORKFLOW]: void;
   [IpcChannels.ON_UPDATE_WORKFLOW]: void;
   [IpcChannels.ON_DELETE_WORKFLOW]: void;

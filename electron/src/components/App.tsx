@@ -64,7 +64,7 @@ const App: React.FC = () => {
         error,
         logs: serverLogs,
         initialURL,
-      } = await window.api.getServerState();
+      } = await window.api.server.getState();
 
       setServerStatus(status ?? "idle");
       setServerError(error ?? null);
@@ -217,16 +217,19 @@ const App: React.FC = () => {
   useEffect(() => {
     // Initialize platform class
     document.body.classList.add(`platform-${window.api.platform}`);
-    // Register event listeners FIRST
-    window.api.onUpdateProgress(handleUpdateProgress);
-    window.api.onServerStarted(handleServerStarted);
-    window.api.onBootMessage(handleBootMessage);
-    window.api.onServerLog(handleServerLog);
-    window.api.onServerError(handleServerError);
-    window.api.onInstallLocationPrompt(handleInstallLocationPrompt);
-    window.api.onUpdateAvailable(handleUpdateAvailable);
-    window.api.onPackageUpdatesAvailable(handlePackageUpdatesAvailable);
-    (window as any).api.onMenuEvent(handleMenuEvent);
+    
+    // Register event listeners and collect unsubscribe functions
+    const unsubs: (() => void)[] = [];
+    
+    unsubs.push(window.api.installer.onProgress(handleUpdateProgress));
+    unsubs.push(window.api.server.onStarted(handleServerStarted));
+    unsubs.push(window.api.server.onBootMessage(handleBootMessage));
+    unsubs.push(window.api.server.onLog(handleServerLog));
+    unsubs.push(window.api.server.onError(handleServerError));
+    unsubs.push(window.api.installer.onLocationPrompt(handleInstallLocationPrompt));
+    unsubs.push(window.api.updates.onAvailable(handleUpdateAvailable));
+    unsubs.push(window.api.packages.onUpdatesAvailable(handlePackageUpdatesAvailable));
+    unsubs.push(window.api.menu.onEvent(handleMenuEvent));
 
     // Initialize app after listeners are in place (skip when showing package manager)
     if (!showPackageManager) {
@@ -236,12 +239,7 @@ const App: React.FC = () => {
     // Cleanup on unmount
     return () => {
       clearAllAnimations();
-      if ((window as any).api.unregisterMenuEvent) {
-        (window as any).api.unregisterMenuEvent(handleMenuEvent);
-      }
-
-      // Note: Event listeners are managed by the preload script
-      // and don't need explicit cleanup in the renderer
+      unsubs.forEach(unsub => unsub());
     };
   }, [
     clearAllAnimations,
@@ -269,7 +267,7 @@ const App: React.FC = () => {
     setBootMessage("Retrying backend start...");
     setShowBootMessage(true);
     setShowLogs(true);
-    void window.api.restartServer().catch((error: any) => {
+    void window.api.server.restart().catch((error: any) => {
       const message = error?.message ?? "Failed to restart backend server.";
       setServerStatus("error");
       setServerError(message);
@@ -279,7 +277,7 @@ const App: React.FC = () => {
 
   const handleOpenLogs = useCallback(() => {
     setShowLogs(true);
-    window.api.openLogFile();
+    window.api.system.openLogFile();
   }, []);
 
   const handleReinstallEnvironment = useCallback(() => {
@@ -288,7 +286,7 @@ const App: React.FC = () => {
       setShowInstallPrompt(true);
       return;
     }
-    window.api.showPackageManager?.(undefined);
+    window.api.packages.showManager?.(undefined);
   }, [installLocationData]);
 
   const handleSkipPackageManager = useCallback(() => {
@@ -297,7 +295,7 @@ const App: React.FC = () => {
     setServerStatus("starting");
     setServerError(null);
     clearAllAnimations();
-    void window.api.startServer().catch((error: any) => {
+    void window.api.server.start().catch((error: any) => {
       const message = error?.message ?? "Failed to start backend server.";
       setServerStatus("error");
       setServerError(message);
@@ -349,7 +347,7 @@ const App: React.FC = () => {
         <PackageUpdatesNotification
           updates={packageUpdates}
           onDismiss={() => setShowPackageUpdates(false)}
-          onManagePackages={() => window.api.showPackageManager?.(undefined)}
+          onManagePackages={() => window.api.packages.showManager?.(undefined)}
         />
       )}
     </div>

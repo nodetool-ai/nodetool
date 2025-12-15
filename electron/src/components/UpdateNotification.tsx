@@ -8,7 +8,7 @@ interface UpdateNotificationProps {
 const UpdateNotification: React.FC<UpdateNotificationProps> = ({ releaseUrl, onClose }) => {
   const handleReleaseClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    window.api.openExternal(releaseUrl);
+    window.api.system.openExternal(releaseUrl);
   };
 
   return (

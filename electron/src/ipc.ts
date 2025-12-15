@@ -142,25 +142,84 @@ export function createIpcOnceHandler<T extends keyof IpcEvents>(
 export function initializeIpcHandlers(): void {
   logMessage("Initializing IPC handlers", "info");
 
+  // Clipboard handlers
   createIpcMainHandler(
     IpcChannels.CLIPBOARD_WRITE_TEXT,
-    async (event, text) => {
-      clipboard.writeText(text);
+    async (_event, data) => {
+      clipboard.writeText(data.text, data.type);
     }
   );
 
-  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_TEXT, async () => {
-    return clipboard.readText();
+  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_TEXT, async (_event, type) => {
+    return clipboard.readText(type);
   });
 
   createIpcMainHandler(
     IpcChannels.CLIPBOARD_WRITE_IMAGE,
-    async (_event, dataUrl) => {
-      // Import nativeImage from electron
+    async (_event, data) => {
       const { nativeImage } = await import("electron");
-      // Create image from data URL and write to clipboard
-      const image = nativeImage.createFromDataURL(dataUrl);
-      clipboard.writeImage(image);
+      const image = nativeImage.createFromDataURL(data.dataUrl);
+      clipboard.writeImage(image, data.type);
+    }
+  );
+
+  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_IMAGE, async (_event, type) => {
+    const image = clipboard.readImage(type);
+    return image.toDataURL();
+  });
+
+  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_HTML, async (_event, type) => {
+    return clipboard.readHTML(type);
+  });
+
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_WRITE_HTML,
+    async (_event, data) => {
+      clipboard.writeHTML(data.markup, data.type);
+    }
+  );
+
+  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_RTF, async (_event, type) => {
+    return clipboard.readRTF(type);
+  });
+
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_WRITE_RTF,
+    async (_event, data) => {
+      clipboard.writeRTF(data.text, data.type);
+    }
+  );
+
+  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_BOOKMARK, async () => {
+    return clipboard.readBookmark();
+  });
+
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_WRITE_BOOKMARK,
+    async (_event, data) => {
+      clipboard.writeBookmark(data.title, data.url, data.type);
+    }
+  );
+
+  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_FIND_TEXT, async () => {
+    return clipboard.readFindText();
+  });
+
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_WRITE_FIND_TEXT,
+    async (_event, text) => {
+      clipboard.writeFindText(text);
+    }
+  );
+
+  createIpcMainHandler(IpcChannels.CLIPBOARD_CLEAR, async (_event, type) => {
+    clipboard.clear(type);
+  });
+
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_AVAILABLE_FORMATS,
+    async (_event, type) => {
+      return clipboard.availableFormats(type);
     }
   );
 

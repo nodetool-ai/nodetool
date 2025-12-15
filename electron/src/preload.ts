@@ -1,27 +1,17 @@
 /**
  * Preload Script for NodeTool Electron Application
  *
- * This script serves as a secure bridge between the renderer process (web content)
- * and the main process of the Electron application. It implements three core IPC
- * (Inter-Process Communication) patterns:
+ * This script serves as a secure bridge between the renderer process and the main process.
+ * It exposes a single, namespaced API via contextBridge that follows SDK design principles:
  *
- * 1. Request-Response Pattern (invoke/handle):
- *    - Renderer calls api.method() -> returns Promise
- *    - Main process handles request and sends response
- *    Example: getServerState()
- *
- * 2. Event Pattern (on/emit):
- *    - Main process emits events
- *    - Renderer listens via api.onEvent(callback)
- *    Example: onServerStarted()
- *
- * 3. Direct Message Pattern (send):
- *    - Renderer sends one-way messages to main
- *    - No response expected
- *    Example: windowControls.close()
+ * - Single global entry point: window.api
+ * - Namespaced by capability (server, packages, workflows, etc.)
+ * - Events return unsubscribe functions
+ * - IPC semantics are completely hidden from renderer
+ * - Input validation at the trust boundary
  */
 
-import { contextBridge, ipcRenderer, shell } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 
 import {
   InstallLocationData,
@@ -36,95 +26,139 @@ import {
   ModelDirectory,
 } from "./types.d";
 
-/**
- * IpcEventHandler: Handles event pattern
- * - T: The specific event channel
- * - Takes callback function that handles event data
- * - No return value (void)
- */
-type IpcEventHandler<T extends keyof IpcEvents> = (
-  callback: (data: IpcEvents[T]) => void
-) => void;
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+type ClipboardType = "clipboard" | "selection";
+
+// ============================================================================
+// Event Handler Factory
+// ============================================================================
 
 /**
- * Creates type-safe wrapper for event pattern
- *
- * Usage in main process:
- * mainWindow.webContents.send(channel, data);
- *
- * Usage in renderer:
- * window.api.onEvent(data => {
- *   // Handle event data
- * });
+ * Creates an event subscription that returns an unsubscribe function.
+ * This pattern ensures all event listeners can be properly cleaned up.
  */
-function createEventHandler<T extends keyof IpcEvents>(
+function createEventSubscription<T extends keyof IpcEvents>(
   channel: T
-): IpcEventHandler<T> {
+): (callback: (data: IpcEvents[T]) => void) => () => void {
   return (callback: (data: IpcEvents[T]) => void) => {
-    ipcRenderer.on(channel as string, (_event, data: IpcEvents[T]) =>
-      callback(data)
-    );
+    const listener = (_event: Electron.IpcRendererEvent, data: IpcEvents[T]) =>
+      callback(data);
+    ipcRenderer.on(channel as string, listener);
+
+    // Return unsubscribe function
+    return () => {
+      ipcRenderer.removeListener(channel as string, listener);
+    };
   };
 }
 
-function unregisterEventHandler<T extends keyof IpcEvents>(
-  channel: T,
-  callback: (data: any) => void
-): () => void {
-  return () => {
-    ipcRenderer.removeListener(channel as string, callback);
-  };
+// ============================================================================
+// Backwards-compat event unsubscription support
+// ============================================================================
+
+const menuEventUnsubscribers = new Map<
+  (data: MenuEventData) => void,
+  () => void
+>();
+
+// ============================================================================
+// Input Validation Helpers
+// ============================================================================
+
+/**
+ * Validates that a path string is safe (no null bytes, reasonable length)
+ */
+function validatePath(path: string): string {
+  if (typeof path !== "string") {
+    throw new Error("Path must be a string");
+  }
+  if (path.includes("\0")) {
+    throw new Error("Path contains invalid characters");
+  }
+  if (path.length > 4096) {
+    throw new Error("Path exceeds maximum length");
+  }
+  return path;
 }
 
 /**
- * Expose the API to renderer process through contextBridge
- * This creates the window.api object in the renderer
- *
- * Security:
- * - Renderer can only access these specific methods
- * - No direct access to Node.js or Electron APIs
- * - All communication is type-safe and controlled
+ * Validates that a URL string is safe
  */
-contextBridge.exposeInMainWorld("api", {
-  // Request-response methods
-  getServerState: () => ipcRenderer.invoke(IpcChannels.GET_SERVER_STATE),
+function validateUrl(url: string): string {
+  if (typeof url !== "string") {
+    throw new Error("URL must be a string");
+  }
+  if (url.length > 8192) {
+    throw new Error("URL exceeds maximum length");
+  }
+  // Only allow http, https, and file protocols
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:", "file:"].includes(parsed.protocol)) {
+      throw new Error("Invalid URL protocol");
+    }
+  } catch {
+    throw new Error("Invalid URL format");
+  }
+  return url;
+}
+
+/**
+ * Validates repository ID format (owner/repo)
+ */
+function validateRepoId(repoId: string): string {
+  if (typeof repoId !== "string") {
+    throw new Error("Repository ID must be a string");
+  }
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repoId)) {
+    throw new Error("Invalid repository ID format");
+  }
+  return repoId;
+}
+
+// ============================================================================
+// API Definition
+// ============================================================================
+
+/**
+ * Expose the unified API to renderer process through contextBridge.
+ * This creates the window.api object with namespaced capabilities.
+ */
+const api = {
+  // Platform information (exposed as static value)
+  platform: process.platform,
+
+  // ============================================================================
+  // Backwards-compatible (flat) API surface
+  // ============================================================================
+
+  /** Run a workflow as an app */
+  runApp: (workflowId: string) => ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
+
+  /** Clipboard helpers (legacy names) */
   clipboardWriteText: (text: string) =>
-    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, text),
+    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, { text }),
   clipboardReadText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT),
   clipboardWriteImage: (dataUrl: string) =>
-    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_IMAGE, dataUrl),
+    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_IMAGE, { dataUrl }),
+
+  /** OS integration (legacy names) */
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
   showItemInFolder: (fullPath: string) =>
-    ipcRenderer.invoke(IpcChannels.SHOW_ITEM_IN_FOLDER, fullPath),
+    ipcRenderer.invoke(IpcChannels.SHOW_ITEM_IN_FOLDER, validatePath(fullPath)),
   openModelDirectory: (target: ModelDirectory) =>
     ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_DIRECTORY, target),
   openModelPath: (path: string) =>
-    ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_PATH, { path }),
-  installToLocation: (
-    location: string,
-    packages: PythonPackages,
-    modelBackend?: "ollama" | "llama_cpp" | "none", // Explicit string union for renderer safety
-    installOllama?: boolean,
-    installLlamaCpp?: boolean
-  ) => {
-    return ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
-      location,
-      packages,
-      modelBackend,
-      installOllama,
-      installLlamaCpp,
-    });
-  },
-  selectCustomInstallLocation: () =>
-    ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
-  continueToApp: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
-  startServer: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
-  restartServer: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
-  restartLlamaServer: () => ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
-  showPackageManager: (nodeSearch?: string) =>
-    ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER, nodeSearch),
-  runApp: (workflowId: string) =>
-    ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
+    ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_PATH, {
+      path: validatePath(path),
+    }),
+  openExternal: (url: string) =>
+    ipcRenderer.invoke(IpcChannels.PACKAGE_OPEN_EXTERNAL, validateUrl(url)),
+
+  /** Workflow notifications (legacy names) */
   onCreateWorkflow: (workflow: Workflow) =>
     ipcRenderer.invoke(IpcChannels.ON_CREATE_WORKFLOW, workflow),
   onUpdateWorkflow: (workflow: Workflow) =>
@@ -132,60 +166,299 @@ contextBridge.exposeInMainWorld("api", {
   onDeleteWorkflow: (workflow: Workflow) =>
     ipcRenderer.invoke(IpcChannels.ON_DELETE_WORKFLOW, workflow),
 
-  // Event listeners
-  onServerStarted: (callback: () => void) =>
-    createEventHandler(IpcChannels.SERVER_STARTED)(callback),
-  onBootMessage: (callback: (data: string) => void) =>
-    createEventHandler(IpcChannels.BOOT_MESSAGE)(callback),
-  onServerLog: (callback: (data: string) => void) =>
-    createEventHandler(IpcChannels.SERVER_LOG)(callback),
-  onServerError: (callback: (data: { message: string }) => void) =>
-    createEventHandler(IpcChannels.SERVER_ERROR)(callback),
-  onUpdateProgress: (callback: (data: UpdateProgressData) => void) =>
-    createEventHandler(IpcChannels.UPDATE_PROGRESS)(callback),
-  onUpdateAvailable: (callback: (data: UpdateInfo) => void) =>
-    createEventHandler(IpcChannels.UPDATE_AVAILABLE)(callback),
-  onPackageUpdatesAvailable: (
-    callback: (data: PackageUpdateInfo[]) => void
-  ) => createEventHandler(IpcChannels.PACKAGE_UPDATES_AVAILABLE)(callback),
-  onInstallLocationPrompt: (callback: (data: InstallLocationData) => void) =>
-    createEventHandler(IpcChannels.INSTALL_LOCATION_PROMPT)(callback),
-  onShowPackageManager: (callback: () => void) =>
-    createEventHandler(IpcChannels.SHOW_PACKAGE_MANAGER)(callback),
-  onMenuEvent: (callback: (data: MenuEventData) => void) =>
-    createEventHandler(IpcChannels.MENU_EVENT)(callback),
-  unregisterMenuEvent: (callback: (data: any) => void) =>
-    unregisterEventHandler(IpcChannels.MENU_EVENT, callback),
+  /** Package manager (legacy name) */
+  showPackageManager: (nodeSearch?: string) =>
+    ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER, nodeSearch),
 
-  // Direct message methods
+  /** Server (legacy names) */
+  restartServer: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
+  onServerLog: createEventSubscription(IpcChannels.SERVER_LOG),
+
+  /** Restart llama server (legacy name) */
+  restartLlamaServer: () => ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
+
+  /** Log viewer (legacy names) */
+  getLogs: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
+  clearLogs: () => ipcRenderer.invoke(IpcChannels.CLEAR_LOGS),
+
+  /** Window controls (legacy name) */
   windowControls: {
     close: () => ipcRenderer.send(IpcChannels.WINDOW_CLOSE),
     minimize: () => ipcRenderer.send(IpcChannels.WINDOW_MINIMIZE),
     maximize: () => ipcRenderer.send(IpcChannels.WINDOW_MAXIMIZE),
   },
-  platform: process.platform,
 
-  // Log viewer methods
-  getLogs: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
-  clearLogs: () => ipcRenderer.invoke(IpcChannels.CLEAR_LOGS),
-  checkOllamaInstalled: () =>
-    ipcRenderer.invoke(IpcChannels.CHECK_OLLAMA_INSTALLED),
-});
-// Package manager API
-contextBridge.exposeInMainWorld("electronAPI", {
+  /** Menu events (legacy names) */
+  onMenuEvent: (callback: (data: MenuEventData) => void) => {
+    const existingUnsubscribe = menuEventUnsubscribers.get(callback);
+    if (existingUnsubscribe) existingUnsubscribe();
+    const unsubscribe = createEventSubscription(IpcChannels.MENU_EVENT)(callback);
+    menuEventUnsubscribers.set(callback, unsubscribe);
+  },
+  unregisterMenuEvent: (callback: (data: MenuEventData) => void) => {
+    const unsubscribe = menuEventUnsubscribers.get(callback);
+    if (!unsubscribe) return;
+    unsubscribe();
+    menuEventUnsubscribers.delete(callback);
+  },
+
+  // ============================================================================
+  // server: Server lifecycle, logs, and status
+  // ============================================================================
+  server: {
+    /** Get current server state */
+    getState: () => ipcRenderer.invoke(IpcChannels.GET_SERVER_STATE),
+
+    /** Start the backend server */
+    start: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
+
+    /** Restart the backend server */
+    restart: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
+
+    /** Restart the llama server (for model updates) */
+    restartLlama: () => ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
+
+    /** Subscribe to server started event */
+    onStarted: createEventSubscription(IpcChannels.SERVER_STARTED),
+
+    /** Subscribe to server log messages */
+    onLog: createEventSubscription(IpcChannels.SERVER_LOG),
+
+    /** Subscribe to server error events */
+    onError: createEventSubscription(IpcChannels.SERVER_ERROR),
+
+    /** Subscribe to boot messages */
+    onBootMessage: createEventSubscription(IpcChannels.BOOT_MESSAGE),
+  },
+
+  // ============================================================================
+  // workflows: Workflow CRUD operations
+  // ============================================================================
+  workflows: {
+    /** Notify main process of workflow creation */
+    create: (workflow: Workflow) =>
+      ipcRenderer.invoke(IpcChannels.ON_CREATE_WORKFLOW, workflow),
+
+    /** Notify main process of workflow update */
+    update: (workflow: Workflow) =>
+      ipcRenderer.invoke(IpcChannels.ON_UPDATE_WORKFLOW, workflow),
+
+    /** Notify main process of workflow deletion */
+    delete: (workflow: Workflow) =>
+      ipcRenderer.invoke(IpcChannels.ON_DELETE_WORKFLOW, workflow),
+
+    /** Run a workflow as an app */
+    run: (workflowId: string) =>
+      ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
+  },
+
+  // ============================================================================
+  // packages: Package management
+  // ============================================================================
   packages: {
+    /** List all available packages from registry */
     listAvailable: () => ipcRenderer.invoke(IpcChannels.PACKAGE_LIST_AVAILABLE),
+
+    /** List all installed packages */
     listInstalled: () => ipcRenderer.invoke(IpcChannels.PACKAGE_LIST_INSTALLED),
-    install: (repo_id: string) =>
-      ipcRenderer.invoke(IpcChannels.PACKAGE_INSTALL, { repo_id }),
-    uninstall: (repo_id: string) =>
-      ipcRenderer.invoke(IpcChannels.PACKAGE_UNINSTALL, { repo_id }),
-    update: (repo_id: string) =>
-      ipcRenderer.invoke(IpcChannels.PACKAGE_UPDATE, repo_id),
+
+    /** Install a package by repository ID */
+    install: (repoId: string) =>
+      ipcRenderer.invoke(IpcChannels.PACKAGE_INSTALL, {
+        repo_id: validateRepoId(repoId),
+      }),
+
+    /** Uninstall a package by repository ID */
+    uninstall: (repoId: string) =>
+      ipcRenderer.invoke(IpcChannels.PACKAGE_UNINSTALL, {
+        repo_id: validateRepoId(repoId),
+      }),
+
+    /** Update a package by repository ID */
+    update: (repoId: string) =>
+      ipcRenderer.invoke(IpcChannels.PACKAGE_UPDATE, validateRepoId(repoId)),
+
+    /** Search for nodes across packages */
     searchNodes: (query: string) =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_SEARCH_NODES, query),
+
+    /** Open the package manager window */
+    showManager: (nodeSearch?: string) =>
+      ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER, nodeSearch),
+
+    /** Subscribe to package updates available event */
+    onUpdatesAvailable: createEventSubscription(
+      IpcChannels.PACKAGE_UPDATES_AVAILABLE
+    ),
   },
-  openExternal: (url: string) => {
-    ipcRenderer.invoke(IpcChannels.PACKAGE_OPEN_EXTERNAL, url);
+
+  // ============================================================================
+  // window: Window controls
+  // ============================================================================
+  window: {
+    /** Close the current window */
+    close: () => ipcRenderer.send(IpcChannels.WINDOW_CLOSE),
+
+    /** Minimize the current window */
+    minimize: () => ipcRenderer.send(IpcChannels.WINDOW_MINIMIZE),
+
+    /** Maximize/restore the current window */
+    maximize: () => ipcRenderer.send(IpcChannels.WINDOW_MAXIMIZE),
   },
-});
+
+  // ============================================================================
+  // system: OS integration, file explorer, external links
+  // ============================================================================
+  system: {
+    /** Open the application log file */
+    openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
+
+    /** Show an item in the file explorer */
+    showItemInFolder: (fullPath: string) =>
+      ipcRenderer.invoke(IpcChannels.SHOW_ITEM_IN_FOLDER, validatePath(fullPath)),
+
+    /** Open a model directory (huggingface or ollama) */
+    openModelDirectory: (target: ModelDirectory) =>
+      ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_DIRECTORY, target),
+
+    /** Open a specific path in the file explorer */
+    openModelPath: (path: string) =>
+      ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_PATH, {
+        path: validatePath(path),
+      }),
+
+    /** Open a URL in the system browser */
+    openExternal: (url: string) =>
+      ipcRenderer.invoke(IpcChannels.PACKAGE_OPEN_EXTERNAL, validateUrl(url)),
+
+    /** Check if Ollama is installed */
+    checkOllamaInstalled: () =>
+      ipcRenderer.invoke(IpcChannels.CHECK_OLLAMA_INSTALLED),
+  },
+
+  // ============================================================================
+  // clipboard: Clipboard operations
+  // ============================================================================
+  clipboard: {
+    /** Read text from clipboard */
+    readText: (type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT, type),
+
+    /** Write text to clipboard */
+    writeText: (text: string, type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, { text, type }),
+
+    /** Read HTML from clipboard */
+    readHTML: (type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_HTML, type),
+
+    /** Write HTML to clipboard */
+    writeHTML: (markup: string, type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_HTML, { markup, type }),
+
+    /** Read image from clipboard (returns data URL) */
+    readImage: (type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_IMAGE, type),
+
+    /** Write image to clipboard from data URL */
+    writeImage: (dataUrl: string, type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_IMAGE, { dataUrl, type }),
+
+    /** Read RTF from clipboard */
+    readRTF: (type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_RTF, type),
+
+    /** Write RTF to clipboard */
+    writeRTF: (text: string, type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_RTF, { text, type }),
+
+    /** Read bookmark from clipboard (macOS/Windows) */
+    readBookmark: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_BOOKMARK),
+
+    /** Write bookmark to clipboard (macOS/Windows) */
+    writeBookmark: (title: string, url: string, type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_BOOKMARK, {
+        title,
+        url: validateUrl(url),
+        type,
+      }),
+
+    /** Read find pasteboard text (macOS only) */
+    readFindText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_FIND_TEXT),
+
+    /** Write to find pasteboard (macOS only) */
+    writeFindText: (text: string) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_FIND_TEXT, text),
+
+    /** Clear clipboard contents */
+    clear: (type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_CLEAR, type),
+
+    /** Get available clipboard formats */
+    availableFormats: (type?: ClipboardType) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_AVAILABLE_FORMATS, type),
+  },
+
+  // ============================================================================
+  // logs: Log viewer operations
+  // ============================================================================
+  logs: {
+    /** Get all server logs */
+    getAll: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
+
+    /** Clear all server logs */
+    clear: () => ipcRenderer.invoke(IpcChannels.CLEAR_LOGS),
+  },
+
+  // ============================================================================
+  // installer: Installation operations
+  // ============================================================================
+  installer: {
+    /** Select a custom install location */
+    selectLocation: () => ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
+
+    /** Install to a specific location */
+    install: (
+      location: string,
+      packages: PythonPackages,
+      modelBackend?: "ollama" | "llama_cpp" | "none",
+      installOllama?: boolean,
+      installLlamaCpp?: boolean
+    ) =>
+      ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
+        location: validatePath(location),
+        packages,
+        modelBackend,
+        installOllama,
+        installLlamaCpp,
+      }),
+
+    /** Subscribe to install location prompt */
+    onLocationPrompt: createEventSubscription(
+      IpcChannels.INSTALL_LOCATION_PROMPT
+    ),
+
+    /** Subscribe to update/install progress */
+    onProgress: createEventSubscription(IpcChannels.UPDATE_PROGRESS),
+  },
+
+  // ============================================================================
+  // updates: Application update events
+  // ============================================================================
+  updates: {
+    /** Subscribe to update available event */
+    onAvailable: createEventSubscription(IpcChannels.UPDATE_AVAILABLE),
+  },
+
+  // ============================================================================
+  // menu: Menu event handling
+  // ============================================================================
+  menu: {
+    /** Subscribe to menu events (cut, copy, paste, etc.) */
+    onEvent: createEventSubscription(IpcChannels.MENU_EVENT),
+  },
+};
+
+contextBridge.exposeInMainWorld("api", api);
+// Some pages (e.g. `electron/pages/*`) still refer to `window.electronAPI`.
+contextBridge.exposeInMainWorld("electronAPI", api);
