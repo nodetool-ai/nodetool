@@ -83,4 +83,4 @@ function DeleteButton<T>({
   );
 }
 
-export default memo(DeleteButton) as typeof DeleteButton;
+export default memo(DeleteButton);

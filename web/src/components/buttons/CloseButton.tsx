@@ -49,4 +49,4 @@ function CloseButton<T>({
   );
 }
 
-export default memo(CloseButton) as typeof CloseButton;
+export default memo(CloseButton);
