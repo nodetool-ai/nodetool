@@ -2,6 +2,38 @@
 
 This file provides guidance to Agents when working with code in this repository.
 
+## 📚 Quick Navigation to Specialized Guides
+
+This repository has multiple AGENTS.md files organized by directory to help you quickly find relevant information:
+
+### Web Application (`/web/src/`)
+- **[Web UI Overview](web/src/AGENTS.md)** - React application structure and patterns
+- **[Components](web/src/components/AGENTS.md)** - UI component architecture and best practices  
+- **[Stores](web/src/stores/AGENTS.md)** - Zustand state management patterns
+- **[Contexts](web/src/contexts/AGENTS.md)** - React context integration with stores
+- **[Hooks](web/src/hooks/AGENTS.md)** - Custom React hooks and patterns
+- **[Utils](web/src/utils/AGENTS.md)** - Utility functions and helpers
+- **[ServerState](web/src/serverState/AGENTS.md)** - TanStack Query and API integration
+- **[Lib](web/src/lib/AGENTS.md)** - Third-party library integrations (WebSocket, Supabase, Frontend Tools)
+- **[Config](web/src/config/AGENTS.md)** - Configuration management and constants
+
+### Desktop Application
+- **[Electron](electron/src/AGENTS.md)** - Electron desktop app, IPC, and system integration
+
+### Documentation & Build
+- **[Documentation](docs/AGENTS.md)** - Documentation structure and writing guidelines
+- **[Scripts](scripts/AGENTS.md)** - Build and release scripts
+- **[Workflow Runner](workflow_runner/AGENTS.md)** - Standalone workflow execution app
+
+### Additional Resources
+- **[GitHub Copilot Instructions](.github/copilot-instructions.md)** - GitHub Copilot-specific patterns and examples
+- **[Web README](web/README.md)** - Web application setup and development
+- **[Web Testing Guide](web/TESTING.md)** - Comprehensive testing documentation
+
+> **💡 Tip**: When working on a specific area, consult the relevant AGENTS.md file first for specialized guidance. Each file includes cross-references to related documentation.
+
+---
+
 ## Project Overview
 
 NodeTool is an open-source, privacy-first, no-code platform for rapidly building and automating AI workflows. It enables users to create sophisticated AI solutions visually through a drag-and-drop interface with no coding required.
@@ -1268,12 +1300,100 @@ At `web/src`:
 
 ---
 
-## AI Agent Documentation
+## AI Agent Documentation System
 
-The repository includes several AGENTS.md files to guide AI coding assistants through the codebase structure:
+This repository includes a comprehensive AGENTS.md documentation system to guide AI coding assistants through the codebase:
 
-- `/AGENTS.md`: Root documentation for OpenAI's coding agents (this file)
-- `/web/src/AGENTS.md`: Overview of the React web application structure
-- `/web/src/components/AGENTS.md`: Detailed guide to React UI components
-- `/web/src/stores/AGENTS.md`: Documentation for Zustand state management stores
-- `/web/src/contexts/AGENTS.md`: Guide to React contexts and their integration with stores
+### Documentation Structure
+
+```
+📁 nodetool/
+├── 📄 AGENTS.md (this file)           # Root guide with navigation to all specialized guides
+├── 📁 web/src/
+│   ├── 📄 AGENTS.md                   # Web application overview
+│   ├── 📁 components/
+│   │   └── 📄 AGENTS.md               # UI component architecture
+│   ├── 📁 stores/
+│   │   └── 📄 AGENTS.md               # Zustand state management
+│   ├── 📁 contexts/
+│   │   └── 📄 AGENTS.md               # React contexts integration
+│   ├── 📁 hooks/
+│   │   └── 📄 AGENTS.md               # Custom React hooks guide
+│   ├── 📁 utils/
+│   │   └── 📄 AGENTS.md               # Utility functions reference
+│   ├── 📁 serverState/
+│   │   └── 📄 AGENTS.md               # TanStack Query patterns
+│   ├── 📁 lib/
+│   │   └── 📄 AGENTS.md               # Library integrations
+│   └── 📁 config/
+│       └── 📄 AGENTS.md               # Configuration management
+├── 📁 electron/src/
+│   └── 📄 AGENTS.md                   # Electron desktop app
+├── 📁 docs/
+│   └── 📄 AGENTS.md                   # Documentation guidelines
+├── 📁 scripts/
+│   └── 📄 AGENTS.md                   # Build and release scripts
+└── 📁 workflow_runner/
+    └── 📄 AGENTS.md                   # Standalone workflow runner
+```
+
+### Complete File List
+
+**Root Level:**
+- `/AGENTS.md` - Main entry point with quick navigation (this file)
+- `/.github/copilot-instructions.md` - GitHub Copilot-specific patterns
+
+**Web Application (9 files):**
+- `/web/src/AGENTS.md` - React app overview
+- `/web/src/components/AGENTS.md` - Component architecture (detailed)
+- `/web/src/stores/AGENTS.md` - State management with Zustand
+- `/web/src/contexts/AGENTS.md` - React contexts and providers
+- `/web/src/hooks/AGENTS.md` - Custom hooks patterns
+- `/web/src/utils/AGENTS.md` - Utility functions guide
+- `/web/src/serverState/AGENTS.md` - Server state with TanStack Query
+- `/web/src/lib/AGENTS.md` - Third-party integrations
+- `/web/src/config/AGENTS.md` - Configuration and constants
+
+**Other Components (4 files):**
+- `/electron/src/AGENTS.md` - Desktop application
+- `/docs/AGENTS.md` - Documentation writing
+- `/scripts/AGENTS.md` - Build automation
+- `/workflow_runner/AGENTS.md` - Standalone runner
+
+**Total: 14 AGENTS.md files** providing comprehensive guidance across the entire codebase.
+
+### Navigation Features
+
+1. **Breadcrumb Navigation**: Each AGENTS.md file includes breadcrumbs showing its location in the hierarchy
+2. **Cross-References**: Files link to related documentation
+3. **Quick Navigation**: This root file provides a quick navigation index at the top
+4. **Consistent Structure**: All files follow similar organization patterns
+5. **Related Documentation**: Each specialized guide links to relevant resources
+
+### When to Use Which Guide
+
+- **Starting a new feature?** → Check the root AGENTS.md Quick Navigation
+- **Working on UI components?** → `/web/src/components/AGENTS.md`
+- **Adding state management?** → `/web/src/stores/AGENTS.md`
+- **Creating custom hooks?** → `/web/src/hooks/AGENTS.md`
+- **Writing utilities?** → `/web/src/utils/AGENTS.md`
+- **API integration?** → `/web/src/serverState/AGENTS.md`
+- **Third-party library?** → `/web/src/lib/AGENTS.md`
+- **Configuration changes?** → `/web/src/config/AGENTS.md`
+- **Electron features?** → `/electron/src/AGENTS.md`
+- **Documentation updates?** → `/docs/AGENTS.md`
+- **Build scripts?** → `/scripts/AGENTS.md`
+
+### Contributing to AGENTS.md Files
+
+When adding new sections or directories:
+
+1. Create an `AGENTS.md` file in the new directory
+2. Add breadcrumb navigation at the top
+3. Include cross-references to related guides
+4. Follow the established structure and patterns
+5. Update this root file's Quick Navigation section
+6. Keep content focused on what AI agents need to know
+7. Include practical examples and code patterns
+
+---
