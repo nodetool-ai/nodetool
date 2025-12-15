@@ -59,6 +59,7 @@ header_pages:
   - global-chat.md
   - models.md
   - providers.md
+  - huggingface.md
   - asset-management.md
   - nodes/index.md
   - agents.md
