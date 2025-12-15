@@ -94,14 +94,14 @@ export const useCopyPaste = () => {
         return;
       }
 
-      const filteredNodes = nodes.filter(
-        (node) => !nodesToCopy.some((n) => n.id === node.id)
-      );
+      // Optimization: Use Set for O(n) filtering instead of O(n*m) with nested some()
+      const nodesToCopyIds = new Set(nodesToCopy.map((n) => n.id));
+      const connectedEdgeIds = new Set(connectedEdges.map((e) => e.id));
+
+      const filteredNodes = nodes.filter((node) => !nodesToCopyIds.has(node.id));
       setNodes(filteredNodes);
 
-      const filteredEdges = edges.filter(
-        (edge) => !connectedEdges.some((e) => e.id === edge.id)
-      );
+      const filteredEdges = edges.filter((edge) => !connectedEdgeIds.has(edge.id));
       setEdges(filteredEdges);
     },
     [handleCopy, nodes, edges, setNodes, setEdges]

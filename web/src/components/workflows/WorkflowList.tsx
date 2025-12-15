@@ -144,8 +144,10 @@ const WorkflowList = () => {
 
   const workflows = useMemo(() => {
     if (filterValue === "") return data?.workflows || [];
+    // Optimization: Convert filter value to lowercase once instead of for each workflow
+    const filterValueLower = filterValue.toLowerCase();
     return (data?.workflows || []).filter((workflow) =>
-      workflow.name.toLowerCase().includes(filterValue.toLowerCase())
+      workflow.name.toLowerCase().includes(filterValueLower)
     );
   }, [data?.workflows, filterValue]);
 

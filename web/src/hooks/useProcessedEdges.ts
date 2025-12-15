@@ -72,27 +72,29 @@ export function useProcessedEdges({
     const REROUTE_INPUT = "input_value";
     const REROUTE_OUTPUT = "output";
 
+    // Optimization: Build maps for O(1) dataType lookups instead of repeated find() calls
+    const dataTypeBySlug = new Map(dataTypes.map((dt) => [dt.slug, dt]));
+    const dataTypeByValue = new Map(dataTypes.map((dt) => [dt.value, dt]));
+    const dataTypeByName = new Map(dataTypes.map((dt) => [dt.name, dt]));
+    const anyType = dataTypeBySlug.get("any");
+    const defaultColor = anyType?.color || "#888";
+
     function typeInfoFromTypeString(typeString: string | undefined): {
       slug: string;
       color: string;
     } {
       if (!typeString) {
-        const anyType = dataTypes.find((dt) => dt.slug === "any");
         return {
           slug: anyType?.slug || "any",
-          color: anyType?.color || "#888"
+          color: defaultColor
         };
       }
-      const t = dataTypes.find(
-        (dt) =>
-          dt.value === typeString ||
-          dt.name === typeString ||
-          dt.slug === typeString
-      );
+      const t = dataTypeByValue.get(typeString) || 
+                dataTypeByName.get(typeString) || 
+                dataTypeBySlug.get(typeString);
       return {
         slug: t?.slug || "any",
-        color:
-          t?.color || dataTypes.find((dt) => dt.slug === "any")?.color || "#888"
+        color: t?.color || defaultColor
       };
     }
 
@@ -142,8 +144,7 @@ export function useProcessedEdges({
       const targetNode = getNode(edge.target);
 
       let sourceTypeSlug = "any";
-      let sourceColor =
-        dataTypes.find((dt) => dt.slug === "any")?.color || "#888";
+      let sourceColor = defaultColor;
       let targetTypeSlug = "any";
 
       if (sourceNode && edge.sourceHandle) {
@@ -171,12 +172,10 @@ export function useProcessedEdges({
             );
             if (inputHandle?.type?.type) {
               const typeString = inputHandle.type.type;
-              const t = dataTypes.find(
-                (dt) =>
-                  dt.value === typeString ||
-                  dt.name === typeString ||
-                  dt.slug === typeString
-              );
+              // Optimization: Use map lookup instead of find
+              const t = dataTypeByValue.get(typeString) || 
+                        dataTypeByName.get(typeString) || 
+                        dataTypeBySlug.get(typeString);
               if (t) {
                 targetTypeSlug = t.slug;
               }
