@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, memo, useCallback } from "react";
 import { Typography, Tooltip, Chip, Box, Link, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -52,6 +52,14 @@ const ModelListItem: React.FC<
       total: compatibility.recommended.length + compatibility.compatible.length
     };
   }, [compatibility]);
+  
+  const handleDialogOpen = useCallback(() => {
+    setDialogOpen(true);
+  }, []);
+  
+  const handleDialogClose = useCallback(() => {
+    setDialogOpen(false);
+  }, []);
 
   if (downloadId && downloads[downloadId]) {
     return (
@@ -265,7 +273,7 @@ const ModelListItem: React.FC<
       {compatibility && (
         <ModelCompatibilityDialog
           open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
+          onClose={handleDialogClose}
           model={model}
           compatibility={compatibility}
         />
@@ -274,4 +282,4 @@ const ModelListItem: React.FC<
   );
 };
 
-export default ModelListItem;
+export default memo(ModelListItem);

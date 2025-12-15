@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   AssetOrDivider,
   DIVIDER_HEIGHT,
@@ -52,7 +52,8 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const theme = useTheme();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
-  const handleContextMenu = (event: React.MouseEvent) => {
+  
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -79,7 +80,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         event.clientY
       );
     }
-  };
+  }, [openContextMenu, rowItems]);
 
   if (rowItems.length === 0) {
     return null;
@@ -96,6 +97,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
       count: number;
     };
     const isExpanded = expandedTypes.has(divider.type);
+    
     return (
       <Tooltip
         title={`${isExpanded ? "Collapse" : "Expand"} ${divider.type} files`}
