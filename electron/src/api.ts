@@ -1,6 +1,6 @@
 import { Workflow } from "./types";
 import { logMessage } from "./logger";
-import { serverState } from "./state";
+import { getServerUrl } from "./utils";
 
 export let isConnected = false;
 let healthCheckTimer: NodeJS.Timeout | null = null;
@@ -12,8 +12,7 @@ let healthCheckTimer: NodeJS.Timeout | null = null;
 export async function fetchWorkflows(): Promise<Workflow[]> {
   logMessage("Fetching workflows from server...");
   try {
-    const port = serverState.serverPort ?? 7777;
-    const response = await fetch(`http://127.0.0.1:${port}/api/workflows/`, {
+    const response = await fetch(getServerUrl("/api/workflows/"), {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -35,8 +34,7 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
 
 async function checkHealth(): Promise<boolean> {
   try {
-    const port = serverState.serverPort ?? 7777;
-    const response = await fetch(`http://127.0.0.1:${port}/health/`);
+    const response = await fetch(getServerUrl("/health/"));
     logMessage(`Health check response: ${response.ok}`);
     return response.ok;
   } catch (error) {
