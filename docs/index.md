@@ -152,6 +152,7 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
     <li><a href="{{ '/workflows/' | relative_url }}">Example gallery →</a></li>
     <li><a href="{{ '/cookbook' | relative_url }}">Workflow cookbook →</a></li>
     <li><a href="{{ '/models-and-providers' | relative_url }}">Models & providers →</a></li>
+    <li><a href="{{ '/huggingface' | relative_url }}">HuggingFace integration →</a></li>
     <li><a href="{{ '/global-chat-agents' | relative_url }}">Global Chat & agents →</a></li>
     <li><a href="{{ '/deployment' | relative_url }}">Deploy to RunPod / Cloud Run →</a></li>
     <li><a href="{{ '/developer/' | relative_url }}">Developer guide →</a></li>

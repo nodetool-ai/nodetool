@@ -10,6 +10,7 @@ NodeTool lets you combine **local inference engines, downloaded checkpoints, and
 
 - **[Supported Models](models.md)** — Full breakdown of llama.cpp, MLX, Whisper, Flux, Stable Diffusion, and more local engines.
 - **[Providers Guide](providers.md)** — Configure OpenAI, Anthropic, Gemini, Groq, Together, RunPod, Fal.ai, and custom endpoints.
+- **[HuggingFace Integration](huggingface.md)** — Comprehensive guide to 27+ HuggingFace node categories with 500,000+ models for text, image, audio, and multimodal processing.
 - **[Models Manager](models-manager.md)** — Download queues, disk usage tracking, and quick model switching.
 - **[Proxy & Self-Hosted Deployments](proxy.md)** — Route remote workers securely and expose GPU hosts without leaking secrets.
 
