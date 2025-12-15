@@ -104,18 +104,15 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-i
 uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
 ```
 
-### Desktop App (Electron)
+### Electron App
 
 Configure `settings.yaml` with your Conda path and run `make electron`.
 
-## Testing & Quality
+## Testing
 
 ```bash
-# Web
+cd electron && npm test && npm run lint
 cd web && npm test && npm run lint
-
-# Pre-commit
-pip install pre-commit && pre-commit install && pre-commit run --all-files
 ```
 
 ## Contributing
