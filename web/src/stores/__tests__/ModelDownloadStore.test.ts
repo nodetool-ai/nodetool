@@ -134,7 +134,8 @@ describe("ModelDownloadStore", () => {
         repo_id: "repo1",
         path: undefined,
         allow_patterns: undefined,
-        ignore_patterns: undefined
+        ignore_patterns: undefined,
+        model_type: "hf.model"
       })
     );
 
