@@ -1,12 +1,6 @@
 import { PropertyProps } from "../node/PropertyInput";
-import { memo, useCallback, useState } from "react";
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  SelectChangeEvent
-} from "@mui/material";
+import { memo, useCallback, useState, useMemo } from "react";
+import Select from "../inputs/Select";
 import DictTable, { DictDataType } from "../node/DataTable/DictTable";
 import PropertyLabel from "../node/PropertyLabel";
 import { isEqual } from "lodash";
@@ -31,16 +25,26 @@ const detectTypeFromDict = (dict: any) => {
 
 const DictProperty = (props: PropertyProps) => {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
-  const dataTypes = ["int", "string", "datetime", "float"];
+  const dataTypes = useMemo(() => ["int", "string", "datetime", "float"], []);
+  
   const [dataType, setDataType] = useState<DictDataType>(
     detectTypeFromDict(props.value)
   );
 
   const handleDataTypeChange = useCallback(
-    (event: SelectChangeEvent<DictDataType>) => {
-      setDataType(event.target.value as DictDataType);
+    (newValue: string) => {
+      setDataType(newValue as DictDataType);
     },
     []
+  );
+
+  const options = useMemo(
+    () =>
+      dataTypes.map((type) => ({
+        label: type,
+        value: type
+      })),
+    [dataTypes]
   );
 
   const property = props.property;
@@ -57,33 +61,16 @@ const DictProperty = (props: PropertyProps) => {
 
   return (
     <>
-      <FormControl fullWidth style={{ marginBottom: "8px" }}>
-        <InputLabel id={id}>Data Type</InputLabel>
+      <div style={{ marginBottom: "8px" }}>
+        <PropertyLabel name="Data Type" id={id} />
         <Select
-          labelId={id}
           value={dataType}
           onChange={handleDataTypeChange}
-          variant="standard"
-          className="mui-select nodrag"
-          disableUnderline={true}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "left"
-            },
-            transformOrigin: {
-              vertical: "top",
-              horizontal: "left"
-            }
-          }}
-        >
-          {dataTypes.map((dataType) => (
-            <MenuItem key={dataType} value={dataType}>
-              {dataType}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          options={options}
+          label="Data Type"
+          placeholder="Select type..."
+        />
+      </div>
       <DictTable
         data={props.value}
         onDataChange={props.onChange}

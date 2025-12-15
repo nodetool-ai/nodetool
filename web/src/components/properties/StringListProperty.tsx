@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import { Autocomplete, TextField, Chip } from "@mui/material";
+import { Autocomplete, TextField, Chip, Box } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
@@ -16,7 +16,7 @@ const StringListProperty = (props: PropertyProps) => {
   );
 
   return (
-    <>
+    <Box sx={{ mb: 1, width: "100%" }}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
@@ -31,24 +31,57 @@ const StringListProperty = (props: PropertyProps) => {
         value={strings}
         sx={{
           "& .MuiInputBase-root": {
-            padding: "2px 2px",
-            minHeight: "18px"
+            padding: "2px 6px",
+            minHeight: "32px",
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            borderRadius: "6px",
+            border: "1px solid var(--palette-grey-700)",
+            color: "var(--palette-grey-100)",
+            fontSize: "var(--fontSizeSmall)",
+            transition: "all 0.2s",
+            "&:hover": {
+              borderColor: "var(--palette-grey-600)",
+              backgroundColor: "rgba(0, 0, 0, 0.3)"
+            },
+            "&.Mui-focused": {
+              borderColor: "var(--palette-grey-500)",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderWidth: 0
+              }
+            }
+          },
+          "& .MuiOutlinedInput-notchedOutline": {
+            border: "none"
+          },
+          "& .MuiAutocomplete-tag": {
+            margin: "2px"
           }
         }}
         onChange={(_, newValue) => onChange(newValue as string[])}
         renderTags={(value: readonly string[], getTagProps) =>
           value.map((option: string, index: number) => (
             <Chip
-              variant="outlined"
+              variant="filled"
               size="small"
               label={option}
               {...getTagProps({ index })}
               key={option}
               sx={{
-                height: "20px",
+                height: "22px",
+                backgroundColor: "var(--palette-grey-700)",
+                color: "var(--palette-grey-100)",
+                border: "1px solid var(--palette-grey-600)",
                 "& .MuiChip-label": {
                   fontSize: "0.75rem",
-                  padding: "0 6px"
+                  padding: "0 8px"
+                },
+                "& .MuiChip-deleteIcon": {
+                  color: "var(--palette-grey-400)",
+                  fontSize: "14px",
+                  "&:hover": {
+                    color: "var(--palette-grey-200)"
+                  }
                 }
               }}
             />
@@ -62,16 +95,21 @@ const StringListProperty = (props: PropertyProps) => {
             placeholder={strings.length === 0 ? "Enter values..." : ""}
             fullWidth
             sx={{
-              "& .MuiOutlinedInput-root": {
-                padding: "2px 4px",
-                minHeight: "32px"
+              "& .MuiInputBase-input": {
+                padding: "2px 4px !important",
+                fontSize: "var(--fontSizeSmall)",
+                color: "var(--palette-grey-100)",
+                "&::placeholder": {
+                  color: "var(--palette-grey-500)",
+                  opacity: 1
+                }
               }
             }}
           />
         )}
         className="nodrag"
       />
-    </>
+    </Box>
   );
 };
 

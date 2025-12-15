@@ -1,5 +1,3 @@
-import { Select } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
 import { useQuery } from "@tanstack/react-query";
 import { CollectionList } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
@@ -8,6 +6,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import { memo, useMemo } from "react";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
+import Select from "../inputs/Select";
 
 const CollectionProperty = (props: PropertyProps) => {
   const id = `collection-${props.property.name}-${props.propertyIndex}`;
@@ -33,6 +32,15 @@ const CollectionProperty = (props: PropertyProps) => {
 
   const selectValue = props.value?.name || "";
 
+  const options = useMemo(() => {
+    return (
+      data?.collections.map((collection) => ({
+        label: collection.name,
+        value: collection.name
+      })) || []
+    );
+  }, [data]);
+
   return (
     <>
       <PropertyLabel
@@ -44,33 +52,14 @@ const CollectionProperty = (props: PropertyProps) => {
       {error && <p>Error: {error.message}</p>}
       {!isConnected && (
         <Select
-          id={id}
-          labelId={id}
-          name=""
           value={selectValue}
-          variant="standard"
-          onChange={(e) =>
-            props.onChange({ type: "collection", name: e.target.value })
+          options={options}
+          onChange={(newValue) =>
+            props.onChange({ type: "collection", name: newValue })
           }
-          className="mui-select nodrag"
-          disableUnderline={true}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "left"
-            },
-            transformOrigin: {
-              vertical: "top",
-              horizontal: "left"
-            }
-          }}
-        >
-          {data?.collections.map((collection) => (
-            <MenuItem key={collection.name} value={collection.name}>
-              {collection.name}
-            </MenuItem>
-          ))}
-        </Select>
+          placeholder="Select collection..."
+          label={props.property.name}
+        />
       )}
     </>
   );
