@@ -496,12 +496,12 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
           type: response.headers["content-type"]
         });
         const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        const anchorElement = document.createElement("a");
+        anchorElement.href = downloadUrl;
+        anchorElement.download = filename;
+        document.body.appendChild(anchorElement);
+        anchorElement.click();
+        anchorElement.remove();
         window.URL.revokeObjectURL(downloadUrl);
       }
 

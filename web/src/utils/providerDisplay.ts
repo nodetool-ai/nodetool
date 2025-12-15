@@ -19,14 +19,14 @@ export const isHuggingFaceLocalProvider = (provider?: string): boolean => {
 
 export const isLocalProvider = (provider?: string): boolean => {
   if (!provider) return false;
-  const p = provider.toLowerCase().trim();
+  const providerLower = provider.toLowerCase().trim();
   return (
-    p === "huggingface" ||
-    p.includes("ollama") ||
-    p.includes("llama_cpp") ||
-    p.includes("llama-cpp") ||
-    p.includes("llamacpp") ||
-    p === "mlx"
+    providerLower === "huggingface" ||
+    providerLower.includes("ollama") ||
+    providerLower.includes("llama_cpp") ||
+    providerLower.includes("llama-cpp") ||
+    providerLower.includes("llamacpp") ||
+    providerLower === "mlx"
   );
 };
 
@@ -38,8 +38,8 @@ export const isCloudProvider = (provider?: string): boolean => {
 
 export const isHuggingFaceInferenceProvider = (provider?: string): boolean => {
   if (!provider) return false;
-  const p = provider.toLowerCase().trim();
-  return p.includes("hf_inference") || p.includes("huggingface_inference");
+  const providerLower = provider.toLowerCase().trim();
+  return providerLower.includes("hf_inference") || providerLower.includes("huggingface_inference");
 };
 
 const insertSpacesBeforeCapitals = (value: string): string => {
@@ -86,11 +86,11 @@ export const getProviderBaseName = (provider?: string): string => {
 export const formatGenericProviderName = (provider?: string): string => {
   if (!provider) return "";
   // Normalize common aliases for display
-  const p = provider.toLowerCase();
-  if (p === "llama_cpp" || p === "llama-cpp" || p === "llamacpp")
+  const providerLower = provider.toLowerCase();
+  if (providerLower === "llama_cpp" || providerLower === "llama-cpp" || providerLower === "llamacpp")
     return "Llama.cpp";
-  if (p === "google") return "Gemini";
-  if (p === "fal_ai" || p === "fal-ai" || p === "falai") return "FAL AI";
+  if (providerLower === "google") return "Gemini";
+  if (providerLower === "fal_ai" || providerLower === "fal-ai" || providerLower === "falai") return "FAL AI";
   const withSpaces = insertSpacesBeforeCapitals(
     provider.replace(/_/g, " ").replace(/-/g, " ")
   );
@@ -126,26 +126,26 @@ const getHuggingFaceSlug = (provider?: string): string | null => {
 /** Returns an external URL for a given provider name when known; otherwise null. */
 export const getProviderUrl = (provider?: string): string | null => {
   if (!provider) return null;
-  const p = provider.toLowerCase();
+  const providerLower = provider.toLowerCase();
   if (isHuggingFaceProvider(provider)) {
     const slug = getHuggingFaceSlug(provider);
     return slug ? `https://huggingface.co/${slug}` : "https://huggingface.co";
   }
   if (
-    p.includes("llama_cpp") ||
-    p.includes("llama-cpp") ||
-    p.includes("llamacpp")
+    providerLower.includes("llama_cpp") ||
+    providerLower.includes("llama-cpp") ||
+    providerLower.includes("llamacpp")
   )
     return "https://github.com/ggerganov/llama.cpp";
-  if (p.includes("ollama")) return "https://ollama.com";
-  if (p.includes("lmstudio")) return "https://lmstudio.ai";
-  if (p.includes("openai")) return "https://platform.openai.com";
-  if (p.includes("anthropic")) return "https://console.anthropic.com";
-  if (p.includes("gemini") || p.includes("google"))
+  if (providerLower.includes("ollama")) return "https://ollama.com";
+  if (providerLower.includes("lmstudio")) return "https://lmstudio.ai";
+  if (providerLower.includes("openai")) return "https://platform.openai.com";
+  if (providerLower.includes("anthropic")) return "https://console.anthropic.com";
+  if (providerLower.includes("gemini") || providerLower.includes("google"))
     return "https://ai.google.dev";
-  if (p.includes("fal")) return "https://fal.ai";
-  if (p.includes("replicate")) return "https://replicate.com";
-  if (p.includes("aime")) return "https://www.aime.info/en/";
+  if (providerLower.includes("fal")) return "https://fal.ai";
+  if (providerLower.includes("replicate")) return "https://replicate.com";
+  if (providerLower.includes("aime")) return "https://www.aime.info/en/";
   // Unknown
   return null;
 };
