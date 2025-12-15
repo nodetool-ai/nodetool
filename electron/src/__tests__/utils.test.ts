@@ -1,5 +1,11 @@
 import { constants } from 'fs';
-import { checkPermissions, fileExists } from '../utils';
+import {
+  checkPermissions,
+  fileExists,
+  getServerPort,
+  getServerUrl,
+  getServerWebSocketUrl
+} from '../utils';
 
 // Mock fs module
 jest.mock('fs', () => {
@@ -14,7 +20,15 @@ jest.mock('fs', () => {
   };
 });
 
+// Mock state module
+jest.mock('../state', () => ({
+  serverState: {
+    serverPort: undefined,
+  },
+}));
+
 import { promises as fs } from 'fs';
+import { serverState } from '../state';
 
 describe('Utils', () => {
   const mockFs = fs as jest.Mocked<typeof fs>;
@@ -90,6 +104,76 @@ describe('Utils', () => {
       const result = await fileExists('/path/to/non-existent-file');
       
       expect(result).toBe(false);
+    });
+  });
+
+  describe('getServerPort', () => {
+    it('should return the configured port when set', () => {
+      serverState.serverPort = 8080;
+      
+      const port = getServerPort();
+      
+      expect(port).toBe(8080);
+    });
+
+    it('should return default port 7777 when not set', () => {
+      serverState.serverPort = undefined;
+      
+      const port = getServerPort();
+      
+      expect(port).toBe(7777);
+    });
+  });
+
+  describe('getServerUrl', () => {
+    beforeEach(() => {
+      serverState.serverPort = undefined;
+    });
+
+    it('should construct HTTP URL with default port', () => {
+      const url = getServerUrl('/api/workflows/');
+      
+      expect(url).toBe('http://127.0.0.1:7777/api/workflows/');
+    });
+
+    it('should construct HTTP URL with custom port', () => {
+      serverState.serverPort = 8080;
+      
+      const url = getServerUrl('/health');
+      
+      expect(url).toBe('http://127.0.0.1:8080/health');
+    });
+
+    it('should handle empty path', () => {
+      const url = getServerUrl();
+      
+      expect(url).toBe('http://127.0.0.1:7777');
+    });
+  });
+
+  describe('getServerWebSocketUrl', () => {
+    beforeEach(() => {
+      serverState.serverPort = undefined;
+    });
+
+    it('should construct WebSocket URL with default port', () => {
+      const url = getServerWebSocketUrl('/predict');
+      
+      expect(url).toBe('ws://127.0.0.1:7777/predict');
+    });
+
+    it('should construct WebSocket URL with custom port', () => {
+      serverState.serverPort = 9090;
+      
+      const url = getServerWebSocketUrl('/predict');
+      
+      expect(url).toBe('ws://127.0.0.1:9090/predict');
+    });
+
+    it('should handle empty path', () => {
+      const url = getServerWebSocketUrl();
+      
+      expect(url).toBe('ws://127.0.0.1:7777');
     });
   });
 });

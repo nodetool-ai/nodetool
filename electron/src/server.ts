@@ -14,6 +14,7 @@ import {
 } from "./config";
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
+import { getServerUrl, getServerPort } from "./utils";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
@@ -560,13 +561,13 @@ async function initializeBackendServer(): Promise<void> {
     if (pidFileExists) {
       // PID file exists, do a quick health check (500ms timeout for fast failure)
       try {
-        logMessage(`PID file found, checking if server is healthy on port ${serverState.serverPort ?? 7777}...`);
+        logMessage(`PID file found, checking if server is healthy on port ${getServerPort()}...`);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms timeout for fast startup
         
         try {
           const response = await fetch(
-            `http://127.0.0.1:${serverState.serverPort ?? 7777}/health`,
+            getServerUrl("/health"),
             { signal: controller.signal }
           );
           clearTimeout(timeoutId);
@@ -633,15 +634,13 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
       
       try {
         const response = await fetch(
-          `http://127.0.0.1:${serverState.serverPort ?? 7777}/health`,
+          getServerUrl("/health"),
           { signal: controller.signal }
         );
         clearTimeout(timeoutId);
         if (response.ok) {
           logMessage(
-            `Server endpoint is available at http://127.0.0.1:${
-              serverState.serverPort ?? 7777
-            }/health`
+            `Server endpoint is available at ${getServerUrl("/health")}`
           );
           emitServerStarted();
           return;
