@@ -8,6 +8,7 @@ import {
   useTheme,
   Chip
 } from "@mui/material";
+import { memo, useCallback, useMemo } from "react";
 import { chipsContainerSx, chipSx } from "./WorkflowCard.styles";
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
@@ -30,10 +31,23 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   onClick
 }) => {
   const theme = useTheme();
+  
+  const handleClick = useCallback(() => {
+    onClick(workflow);
+  }, [onClick, workflow]);
+  
+  const imageUrl = useMemo(() => {
+    return `${BASE_URL}/api/assets/packages/${workflow.package_name}/${workflow.name}.jpg`;
+  }, [workflow.package_name, workflow.name]);
+  
+  const packageNameDisplay = useMemo(() => {
+    return workflow.package_name?.replace("nodetool-", "")?.toUpperCase() || "N/A";
+  }, [workflow.package_name]);
+  
   return (
     <Box
       className={`workflow ${isLoading ? "loading" : ""}`}
-      onClick={() => onClick(workflow)}
+      onClick={handleClick}
     >
       {isLoading && (
         <Fade in={true}>
@@ -51,14 +65,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
       <Box className="image-wrapper">
         <img
           width="200px"
-          src={
-            BASE_URL +
-            "/api/assets/packages/" +
-            workflow.package_name +
-            "/" +
-            workflow.name +
-            ".jpg"
-          }
+          src={imageUrl}
           alt={" "}
         />
         <Tooltip
@@ -85,8 +92,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
           }}
         >
           <Typography className="package-name" component={"p"}>
-            {workflow.package_name?.replace("nodetool-", "")?.toUpperCase() ||
-              "N/A"}
+            {packageNameDisplay}
           </Typography>
         </Tooltip>
         {nodesOnlySearch && matchedNodes.length > 0 && (
@@ -156,4 +162,4 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   );
 };
 
-export default WorkflowCard;
+export default memo(WorkflowCard);
