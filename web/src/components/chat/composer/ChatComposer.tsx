@@ -59,11 +59,11 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     })
   );
 
-  const { droppedFiles, addFiles, removeFile, clearFiles, getFileContents } =
+  const { droppedFiles, addFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
     useFileHandling();
 
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
-    useDragAndDrop(addFiles);
+    useDragAndDrop(addFiles, addDroppedFiles);
 
   // Clear the prompt and files when disconnected
   useEffect(() => {

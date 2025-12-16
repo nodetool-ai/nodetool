@@ -1,208 +1,342 @@
----
-layout: page
-title: "NodeTool Agent System"
----
+# Documentation Guide
 
-## Key Features
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Docs**
 
-- **Smart Task Planning**: Automatically breaks down complex goals into clear, executable subtasks.
-- **LLM-Driven Execution**: Leverages LLMs to reason through subtasks, deciding when and how to use available tools.
-- **Step-by-Step Reasoning**: Uses a structured approach to solve problems, ensuring clarity and accuracy.
-- **Rich Tool Integration**: Comes equipped with tools for web browsing, file handling, code execution, data searching,
-  PDF processing, and more.
-- **Clear Data Management**: Ensures subtasks communicate clearly through structured inputs and outputs.
-- **Independent Task Contexts**: Each subtask runs in isolation, preventing interference and ensuring reliability.
-- **Parallel Processing**: Executes independent subtasks simultaneously, speeding up workflows.
-- **Real-Time Progress Updates**: Provides live feedback during task execution.
-- **Easy to Extend**: Allows developers to add custom tools and agents.
-- **Robust Validation**: Checks task plans thoroughly to avoid errors and ensure smooth execution.
+This guide helps AI agents understand the documentation structure and conventions for NodeTool.
 
-## How It Works
+## Overview
 
-Here's a simple overview of how NodeTool operates:
+The `docs` directory contains user-facing documentation served at [docs.nodetool.ai](https://docs.nodetool.ai). It uses Jekyll for static site generation with a custom theme.
 
-1. **Define Your Objective**: You start by giving NodeTool a clear goal.
-1. **Planning Phase**: NodeTool analyzes your goal and creates a detailed plan, breaking it down into smaller subtasks.
-1. **Execution Phase**: Each subtask is executed independently within its own context (`SubTaskContext`). The LLM drives
-   the execution, deciding whether to use tools or generate content based on the subtask's objective.
-1. **Completion**: Results from subtasks are combined to achieve your original objective.
+## Documentation Structure
 
-## Architecture Overview
-
-NodeTool consists of several key components working together:
-
-- **Agent**: Coordinates the entire process, from planning to execution.
-- **Task Planner**: Breaks down your objective into a structured plan of subtasks.
-- **Task Executor**: Manages the execution of subtasks, handling dependencies and parallel execution.
-- **SubTask Context**: Provides an isolated environment for each subtask, managing interactions with tools and the LLM.
-- **Tools**: A collection of specialized utilities that subtasks can use to perform actions like web browsing, file
-  handling, and more.
-- **Workspace**: A dedicated space where subtasks store and retrieve files.
-
-## Execution Flow
-
-```ascii
-+-----------------------+
-| Agent Initialization  |
-| (Objective, Tools...) |
-+-----------+-----------+
-            |
-            V
-+-----------+-----------+
-|    Task Planner       |
-| (LLM Interaction)     |
-|  - Analysis           |
-|  - Data Flow          |
-|  - Plan Creation      |
-|  (Generates Task DAG) |
-+-----------+-----------+
-            | Task (DAG)
-            V
-+-----------+-----------+
-|    Task Executor      |
-| (Manages Subtasks)    |
-+-----------+-----------+
-      | Loop Until Done
-      V
-+-------------------------+   Yes   +-----------------------+
-| Get Executable Subtasks |-------->| Any Executable Tasks? |
-| (Check Dependencies)    |         +-----------+-----------+
-+-------------------------+                    | No
-            | Yes                              V
-            V                              +-----------+-----------+
-+-------------------------+                | All Tasks Complete?   |
-| Create SubTaskContext   |                +-----------+-----------+
-| For Each Executable Task|                            | No (Error?) / Yes
-+-----------+-------------+                            V
-            | Spawn Execution (Parallel/Sequential)    |
-            V                                          V
-+-----------+-------------+                 +-----------------------+
-| SubTaskContext.execute()|                 | Agent.get_results()   |
-+-----------+-------------+                 +-----------------------+
-            | (Enters LLM Interaction Loop)
-            V
-+-------------------------+        +-----------+-------------+
-|   LLM Interaction Loop  |<-------| Tool Execution/Response |
-|   - Call LLM            |        +-----------+-------------+
-|   - Handle Tool Calls   |                    ^
-|   - Check Limits        |                    | Tool Call?
-|   - Completion JSON?    |--------------------/ Yes
-+-----------+-----------+
-            | Yes (completion JSON emitted or forced)
-            V
-+-------------------------+
-| Save Result (Content or |
-| File Pointer)           |
-+-------------------------+
-            | Task Complete
-            V Update Executor State
-+-------------------------+
-| Executor Monitors State |
-| (Updates DAG, finds next)|
-+-----------+-----------+
-            | Back to Loop
-            -------------------
+```
+/docs
+├── /_includes          # Reusable HTML snippets
+├── /_layouts           # Page templates
+├── /assets             # CSS, JavaScript, images
+├── /cookbook           # Tutorial examples
+├── /developer          # Developer guides
+├── /nodes              # Node-specific documentation
+├── /workflows          # Workflow examples
+└── *.md                # Documentation pages
 ```
 
-1. **Initialization**: You provide an objective and select available tools.
-1. **Planning**: NodeTool creates a detailed plan, identifying subtasks and their dependencies.
-1. **Execution**: Subtasks are executed in order, respecting dependencies. Independent subtasks run in parallel. Each
-   subtask runs within a `SubTaskContext`, where an LLM interaction loop determines the necessary steps, potentially
-   involving tool calls.
-1. **Completion**: Each subtask explicitly finishes by emitting a JSON block with `{"status":"completed","result":{...}}`.
-   NodeTool stores these results and combines them to fulfill your original objective.
+## Key Documentation Files
 
-## Tools Available
+### Getting Started
+- `index.md` - Homepage
+- `getting-started.md` - Quick start guide
+- `installation.md` - Installation instructions
+- `key-concepts.md` - Core concepts
 
-NodeTool includes a variety of built-in tools:
+### User Guides
+- `workflow-editor.md` - Workflow editor usage
+- `user-interface.md` - UI overview
+- `asset-management.md` - Managing assets
+- `models-manager.md` - Model management
 
-- **Web Browsing**: Navigate and extract information from websites.
-- **File Management**: Read, write, and manage files within the workspace.
-- **Code Execution**: Run Python scripts or shell commands.
-- **Data Search**: Perform searches using Google or semantic databases.
-- **PDF Processing**: Extract text and tables from PDFs or convert PDFs to markdown.
-- **API Integration**: Interact with external APIs seamlessly.
+### Node Documentation
+- `/nodes/comfy/` - ComfyUI nodes
+- `/nodes/huggingface/` - HuggingFace nodes
+- `/nodes/openai/` - OpenAI nodes
+- `/nodes/nodetool/` - NodeTool core nodes
 
-## Advanced Capabilities
+### Developer Documentation
+- `/developer/` - Developer-focused guides
+- `api-reference.md` - API documentation
+- `deployment.md` - Deployment guides
 
-- **Multi-Phase Planning**: NodeTool uses a structured approach (Analysis, Data Flow, Plan Creation) to ensure robust
-  task plans.
-- **Structured Output**: Leverages structured outputs from LLMs to reliably generate task plans.
-- **Parallel Execution**: Runs independent subtasks simultaneously, significantly speeding up workflows.
-- **Formal Task Completion**: Ensures each subtask explicitly finishes, clearly defining outputs and metadata.
-- **Live Progress Visualization**: Provides real-time updates and visual feedback during execution.
-- **Token Management**: Monitors and manages token usage to prevent exceeding LLM limits.
+### Cookbooks & Examples
+- `/cookbook/` - Step-by-step tutorials
+- `/workflows/` - Example workflows
 
-## Example Usage
+## Writing Documentation
 
-Here's a quick example of how you might use NodeTool:
+### Markdown Format
+
+Use GitHub Flavored Markdown:
+
+```markdown
+# Page Title
+
+Brief introduction paragraph.
+
+## Section Heading
+
+Content goes here.
+
+### Subsection
+
+More detailed content.
+
+#### Code Examples
 
 ```python
-from nodetool.agents.agent import Agent
-from nodetool.providers import get_provider, Provider
-from nodetool.agents.tools import (
-    GoogleSearchTool,
-    BrowserTool,
-)
-from nodetool.workflows.processing_context import ProcessingContext
-import os
-import asyncio
-
-# Set up your provider and model
-provider = get_provider(Provider.GEMINI)
-model = "gemini-2.0-flash"
-
-# Define available tools
-tools = [
-    GoogleSearchTool(),
-    BrowserTool(),
-]
-
-# Create your agent
-agent = Agent(
-    name="Researcher",
-    objective="Compare llamas and alpacas using Google Search and write the comparison to 'comparison.md'",
-    provider=provider,
-    model=model,
-    tools=tools,
-    output_type="markdown",
-)
-
-# Set up workspace
-processing_context = ProcessingContext()
-
-# Run the agent asynchronously
-async def run_agent():
-    async for update in agent.execute(processing_context):
-        print(update)
-
-asyncio.run(run_agent())
+# Python example
+def my_function():
+    return "Hello"
 ```
 
-### Running in Docker
+```typescript
+// TypeScript example
+const myFunction = (): string => {
+  return "Hello";
+};
+```
 
-Set the `docker_image` parameter when creating an `Agent` to execute the entire plan inside a Docker container. The
-workspace will be mounted at `/workspace` inside the container and input files are copied there automatically. Results
-are written back to the same workspace on the host.
+### Tables
 
-Environment variables required by the selected provider and tools will be passed through to the container automatically.
+| Column 1 | Column 2 |
+|----------|----------|
+| Data 1   | Data 2   |
 
-## Limitations and Considerations
+### Lists
 
-- **Token Limits**: Complex tasks may hit token limits, requiring careful management within each `SubTaskContext`.
-- **Planning Complexity**: Extremely complex objectives might require refining or simplifying.
-- **Tool Reliability**: External tools can fail due to network issues or API limitations.
-- **Security**: Running code or interacting with external systems carries inherent risks. Always use sandboxed
-  environments.
-- **Cost**: Extensive LLM interactions within subtasks can incur significant costs.
+- Unordered item 1
+- Unordered item 2
 
-## Next Steps
+1. Ordered item 1
+2. Ordered item 2
 
-- Explore built-in tools and their capabilities.
-- Create custom agents tailored to your specific needs.
-- Develop new tools to integrate with your own APIs or workflows.
-- Experiment with different LLM providers and models to find the best fit for your tasks.
+### Links
 
-______________________________________________________________________
+[Link text](https://example.com)
+[Internal link](./other-page.md)
 
-Happy building with NodeTool Agents! 🚀
+### Images
+
+![Alt text](/assets/images/screenshot.png)
+
+### Admonitions
+
+> **Note**: This is a note.
+
+> **Warning**: This is a warning.
+
+> **Tip**: This is a helpful tip.
+```
+
+### Frontmatter
+
+Every page should have frontmatter:
+
+```markdown
+---
+layout: default
+title: Page Title
+description: Brief description for SEO
+nav_order: 2
+parent: Parent Page Name
+---
+```
+
+## Documentation Best Practices
+
+### 1. Structure
+- Start with overview/introduction
+- Use clear hierarchical headings
+- Break content into digestible sections
+- Include practical examples
+
+### 2. Writing Style
+- Use present tense
+- Be concise and clear
+- Avoid jargon when possible
+- Define technical terms
+- Use active voice
+
+### 3. Code Examples
+- Include complete, runnable examples
+- Add comments to explain non-obvious code
+- Show both input and expected output
+- Test all code examples
+
+### 4. Images & Screenshots
+- Use descriptive alt text
+- Keep images up-to-date with UI
+- Annotate screenshots when helpful
+- Optimize image sizes
+
+### 5. Cross-References
+- Link to related documentation
+- Use relative links for internal pages
+- Keep links up-to-date
+- Provide context for external links
+
+## Node Documentation Template
+
+When documenting nodes:
+
+```markdown
+---
+layout: default
+title: Node Name
+parent: Node Category
+---
+
+# Node Name
+
+Brief description of what the node does.
+
+## Inputs
+
+| Input | Type | Description | Required |
+|-------|------|-------------|----------|
+| input_name | string | Input description | Yes |
+
+## Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| output_name | image | Output description |
+
+## Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| prop_name | int | 10 | Property description |
+
+## Usage Example
+
+```python
+# Example usage
+node = NodeName(
+    input_name="value",
+    prop_name=20
+)
+```
+
+## Common Use Cases
+
+1. Use case 1
+2. Use case 2
+
+## Tips
+
+- Tip 1
+- Tip 2
+
+## Related Nodes
+
+- [OtherNode](./other-node.md)
+- [SimilarNode](./similar-node.md)
+```
+
+## Workflow Documentation Template
+
+```markdown
+---
+layout: default
+title: Workflow Name
+parent: Workflows
+---
+
+# Workflow Name
+
+Brief description of the workflow.
+
+## Overview
+
+What this workflow does and why it's useful.
+
+## Prerequisites
+
+- Prerequisite 1
+- Prerequisite 2
+
+## Steps
+
+### 1. Step One
+
+Description and instructions.
+
+![Step 1](/assets/workflows/step1.png)
+
+### 2. Step Two
+
+Description and instructions.
+
+### 3. Step Three
+
+Description and instructions.
+
+## Result
+
+Expected output description.
+
+![Final result](/assets/workflows/result.png)
+
+## Variations
+
+- Variation 1
+- Variation 2
+
+## Troubleshooting
+
+- Problem 1: Solution
+- Problem 2: Solution
+```
+
+## Building and Testing Docs Locally
+
+### Prerequisites
+```bash
+gem install jekyll bundler
+```
+
+### Build and Serve
+```bash
+cd docs
+bundle install
+bundle exec jekyll serve
+# Visit http://localhost:4000
+```
+
+### Check for Broken Links
+```bash
+bundle exec jekyll build
+# Use link checker tool
+```
+
+## SEO Best Practices
+
+1. **Title Tags**: 50-60 characters
+2. **Meta Descriptions**: 150-160 characters
+3. **Headings**: Use H1-H6 hierarchically
+4. **Alt Text**: Describe images for accessibility
+5. **Internal Links**: Connect related content
+6. **URLs**: Use descriptive, lowercase, hyphenated slugs
+
+## Accessibility
+
+1. **Alt Text**: Provide for all images
+2. **Heading Hierarchy**: Don't skip levels
+3. **Link Text**: Make it descriptive ("Learn more" vs "Click here")
+4. **Color Contrast**: Ensure readable text
+5. **Code Blocks**: Specify language for syntax highlighting
+
+## Related Documentation
+
+- [Root AGENTS.md](../AGENTS.md) - Project overview
+- [Web UI Guide](../web/src/AGENTS.md) - Web application
+
+## Quick Reference
+
+### Common Tasks
+- Add new page: Create `.md` file with frontmatter
+- Add to navigation: Set `nav_order` and `parent` in frontmatter
+- Add images: Place in `/assets/images/` and reference
+- Add code examples: Use fenced code blocks with language
+- Update navigation: Modify `_config.yml` or page frontmatter
+
+### File Locations
+- User guides: Root `/docs` directory
+- API docs: `/docs/api-reference.md`
+- Node docs: `/docs/nodes/<category>/`
+- Tutorials: `/docs/cookbook/`
+- Dev guides: `/docs/developer/`
+
+---
+
+**Note**: This guide is for AI coding assistants. For user-facing documentation, see [docs.nodetool.ai](https://docs.nodetool.ai).

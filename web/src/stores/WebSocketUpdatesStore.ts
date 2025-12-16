@@ -39,7 +39,7 @@ export const createWebSocketUpdatesStore = () =>
         return;
       }
 
-      const socket = new WebSocket(getWebSocketUrl("/updates"));
+      const socket = new WebSocket(getWebSocketUrl("/ws/updates"));
 
       socket.onopen = () => {
         console.log("WebSocket Updates: Connected");

@@ -29,13 +29,13 @@ const getWebSocketUrl = (path: string): string => {
 };
 
 /** WebSocket URL for the prediction worker endpoint. */
-export const WORKER_URL = getWebSocketUrl("/predict");
+export const WORKER_URL = getWebSocketUrl("/ws/predict");
 
 /** WebSocket URL for the chat endpoint. */
-export const CHAT_URL = getWebSocketUrl("/chat");
+export const CHAT_URL = getWebSocketUrl("/ws/chat");
 
 /** WebSocket URL for the HuggingFace model download endpoint. */
-export const DOWNLOAD_URL = getWebSocketUrl("/hf/download");
+export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");
 
 /** WebSocket URL for the terminal endpoint. */
-export const TERMINAL_URL = getWebSocketUrl("/terminal");
+export const TERMINAL_URL = getWebSocketUrl("/ws/terminal");
