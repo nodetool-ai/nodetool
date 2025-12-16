@@ -125,13 +125,27 @@ The capability system uses introspection to automatically detect which features 
 
 #### HuggingFace (`huggingface_provider.py`)
 
-**Capabilities:** Diverse model ecosystem, Multiple hosted services
+**Capabilities:** Diverse model ecosystem, Multiple hosted services, 500,000+ models
 
 **Features:**
 
+- 27+ node categories for comprehensive AI workflows
 - Supports multiple sub-providers (FAL.ai, Together, Replicate, etc.)
-- Text-to-image generation
-- Image-to-image transformation
+- Text generation with streaming support
+- Text-to-image and image-to-image generation
+- Speech recognition and text-to-speech
+- Audio and video generation
+- Image classification and object detection
+- Zero-shot learning capabilities
+- LoRA model support for Stable Diffusion
+- Quantization support (FP16, FP4, INT4)
+- CPU offload for memory-constrained environments
+
+**Configuration:**
+
+Set `HF_TOKEN` environment variable for authentication. Some models require accepting terms on HuggingFace Hub.
+
+For detailed information on all HuggingFace nodes, model recommendations, and usage examples, see the [HuggingFace Integration Guide](huggingface.md).
 
 ### Video Generation Providers
 

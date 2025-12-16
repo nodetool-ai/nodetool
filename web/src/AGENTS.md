@@ -1,6 +1,23 @@
 # Web UI - React App Navigation
 
-This guide helps OpenAI's coding agents navigate the React web application structure.
+**Navigation**: [Root AGENTS.md](../../AGENTS.md) → **Web**
+
+This guide helps AI agents navigate the React web application structure.
+
+## Specialized Guides
+
+For detailed information on specific areas, see these specialized guides:
+
+- **[Components](components/AGENTS.md)** - UI component architecture and patterns
+- **[Stores](stores/AGENTS.md)** - Zustand state management
+- **[Contexts](contexts/AGENTS.md)** - React context providers
+- **[Hooks](hooks/AGENTS.md)** - Custom React hooks
+- **[Utils](utils/AGENTS.md)** - Utility functions and helpers
+- **[ServerState](serverState/AGENTS.md)** - TanStack Query and API integration
+- **[Lib](lib/AGENTS.md)** - Third-party library integrations
+- **[Config](config/AGENTS.md)** - Configuration and constants
+
+---
 
 ## Application Overview
 
