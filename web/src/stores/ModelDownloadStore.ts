@@ -100,7 +100,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             totalFiles: data.total_files ?? 0,
             downloadedFiles: data.downloaded_files ?? 0,
             currentFiles: data.current_files,
-            message: data.message
+            message: data.error || data.message
           });
           if (data.status === "completed") {
             const queryClient = get().queryClient;

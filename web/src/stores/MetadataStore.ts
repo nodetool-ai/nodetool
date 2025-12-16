@@ -5,7 +5,7 @@
  */
 
 import { create } from "zustand";
-import { UnifiedModel, NodeMetadata } from "./ApiTypes";
+import { UnifiedModel, NodeMetadata, ModelPack } from "./ApiTypes";
 import { NodeTypes } from "@xyflow/react";
 
 type MetadataStore = {
@@ -14,6 +14,8 @@ type MetadataStore = {
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
   recommendedModels: UnifiedModel[];
   setRecommendedModels: (models: UnifiedModel[]) => void;
+  modelPacks: ModelPack[];
+  setModelPacks: (packs: ModelPack[]) => void;
   nodeTypes: NodeTypes;
   setNodeTypes: (nodeTypes: NodeTypes) => void;
   addNodeType: (nodeType: string, nodeTypeComponent: any) => void;
@@ -21,6 +23,7 @@ type MetadataStore = {
 const useMetadataStore = create<MetadataStore>((set, get) => ({
   metadata: {},
   recommendedModels: [],
+  modelPacks: [],
   nodeTypes: {},
   setNodeTypes: (nodeTypes) => set({ nodeTypes }),
   addNodeType: (nodeType: string, nodeTypeComponent: any) =>
@@ -31,7 +34,8 @@ const useMetadataStore = create<MetadataStore>((set, get) => ({
   getMetadata: (nodeType) => {
     return get().metadata[nodeType];
   },
-  setRecommendedModels: (models) => set({ recommendedModels: models })
+  setRecommendedModels: (models) => set({ recommendedModels: models }),
+  setModelPacks: (packs) => set({ modelPacks: packs })
 }));
 
 export default useMetadataStore;
