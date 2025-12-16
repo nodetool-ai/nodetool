@@ -38,12 +38,14 @@ NodeTool follows a client-server architecture with multiple components:
 
 ### Development Setup
 
-1. **Environment Activation:**
-   Before running python commands always do:
+1. **Environment Activation (Local Development Only):**
+   When running Python commands locally, use conda:
 
    ```bash
    conda activate nodetool
    ```
+
+   **Note:** GitHub CI and Copilot Agent use a different setup via `.github/workflows/copilot-setup-steps.yml` - no conda needed there.
 
 2. **Web UI Development:**
 
