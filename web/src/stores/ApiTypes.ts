@@ -50,6 +50,7 @@ export interface NodeMetadata extends BaseNodeMetadata {
       indices: number[][];
     }>;
   };
+  model_packs?: ModelPack[];
 }
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
 export type Message = components["schemas"]["Message"] & {
@@ -140,3 +141,15 @@ export type Datetime = components["schemas"]["Datetime"];
 
 // Job types
 export type Job = JobResponse;
+
+// Model Pack - curated bundle of models that work together
+export interface ModelPack {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  tags: string[];
+  models: UnifiedModel[];
+  total_size: number | null;
+  downloaded: boolean;
+}

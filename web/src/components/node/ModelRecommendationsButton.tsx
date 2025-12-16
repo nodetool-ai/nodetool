@@ -3,16 +3,18 @@ import { Button, Tooltip } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { UnifiedModel } from "../../stores/ApiTypes";
+import { UnifiedModel, ModelPack } from "../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { isEqual } from "lodash";
 
 interface ModelRecommendationsButtonProps {
   recommendedModels: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
-  recommendedModels
+  recommendedModels,
+  modelPacks
 }) => {
   const [openModelDialog, setOpenModelDialog] = useState(false);
   const { startDownload, openDialog } = useModelDownloadStore();
@@ -37,7 +39,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
     [startDownload, openDialog]
   );
 
-  if (recommendedModels.length === 0) {
+  if (recommendedModels.length === 0 && (!modelPacks || modelPacks.length === 0)) {
     return null;
   }
 
@@ -66,6 +68,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
         open={openModelDialog}
         onClose={handleCloseModelDialog}
         recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
         startDownload={onStartDownload}
       />
     </>

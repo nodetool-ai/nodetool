@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
     },
     ".download-message": {
       fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.info.main
+      // Color is handled via dynamic style prop or class
     },
     ".header-row": {
       display: "flex",
@@ -270,7 +270,16 @@ export const DownloadProgress: React.FC<{
         </Tooltip>
       </Box>
       {download.message && (
-        <Typography className="download-message" variant="body2">
+        <Typography
+          className="download-message"
+          variant="body2"
+          sx={{
+            color:
+              download.status === "error"
+                ? "var(--palette-error-main)"
+                : "var(--palette-info-main)"
+          }}
+        >
           {download.message}
         </Typography>
       )}

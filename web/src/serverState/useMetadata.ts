@@ -77,6 +77,8 @@ export const loadMetadata = async () => {
   useMetadataStore.getState().setRecommendedModels(uniqueRecommendedModels);
   useMetadataStore.getState().setNodeTypes(nodeTypes);
 
+
+
   createConnectabilityMatrix(Object.values(metadataByType));
 
   return "success";

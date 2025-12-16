@@ -71,7 +71,15 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
     return baseMetadata?.recommended_models || [];
   }, [endpoint, apiModels, getMetadata, nodeType]);
 
-  return <ModelRecommendationsButton recommendedModels={recommendedModels} />;
+  const modelPacks = useMemo(() => {
+    // We only show model packs for specific nodes, not generic endpoints currently
+    if (endpoint) return [];
+    
+    const baseMetadata = getMetadata(nodeType);
+    return baseMetadata?.model_packs || [];
+  }, [endpoint, getMetadata, nodeType]);
+
+  return <ModelRecommendationsButton recommendedModels={recommendedModels} modelPacks={modelPacks} />;
 };
 
 export default ModelRecommendations;
