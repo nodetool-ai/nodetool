@@ -114,6 +114,9 @@ export const useFileHandling = () => {
     addFiles,
     removeFile,
     clearFiles,
-    getFileContents
+    getFileContents,
+    addDroppedFiles: useCallback((files: DroppedFile[]) => {
+      setDroppedFiles((prev) => [...prev, ...files]);
+    }, [])
   };
 };

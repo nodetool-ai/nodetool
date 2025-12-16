@@ -14,31 +14,31 @@ export default defineConfig(async ({ mode }) => {
       changeOrigin: true,
       secure: false
     },
-    "/predict": {
+    "/ws/predict": {
       target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     },
-    "/chat": {
+    "/ws/chat": {
       target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     },
-    "/hf/download": {
+    "/ws/download": {
       target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     },
-    "/updates": {
+    "/ws/updates": {
       target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
     },
-    "/terminal": {
+    "/ws/terminal": {
       target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
-    }
+    },
   };
 
   return {
