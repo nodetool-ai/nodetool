@@ -261,7 +261,7 @@ export const MessageView: React.FC<
     const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
     const hasArgs =
       (tc as any)?.args && Object.keys((tc as any).args).length > 0;
-    const hasDetails = !!(hasArgs || tc.message || result);
+    const hasDetails = !!hasArgs;
     const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
     return (
       <Box
@@ -302,14 +302,7 @@ export const MessageView: React.FC<
               <PrettyJson value={(tc as any).args} />
             </Box>
           )}
-          {result && (
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="caption" className="tool-section-title">
-                Result
-              </Typography>
-              <PrettyJson value={result.content} />
-            </Box>
-          )}
+
         </Collapse>
       </Box>
     );

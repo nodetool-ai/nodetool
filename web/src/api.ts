@@ -4172,6 +4172,43 @@ export interface components {
              *     } */
             video: components["schemas"]["VideoRef"];
         };
+        /**
+         * ModelPack
+         * @description A curated bundle of models that work together.
+         *
+         *     Model packs group related models (e.g., Flux checkpoint + CLIP + T5 + VAE)
+         *     into a single downloadable unit with a clear title and description.
+         */
+        ModelPack: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /**
+             * Category
+             * @default image_generation
+             */
+            category: string;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Models
+             * @default []
+             */
+            models: components["schemas"]["UnifiedModel"][];
+            /** Total Size */
+            total_size?: number | null;
+            /**
+             * Downloaded
+             * @default false
+             */
+            downloaded: boolean;
+        };
         /** ModelRef */
         ModelRef: {
             /**
@@ -4353,6 +4390,11 @@ export interface components {
              * @default false
              */
             supports_dynamic_outputs: boolean;
+            /**
+             * Model Packs
+             * @description Model packs associated with this node
+             */
+            model_packs?: components["schemas"]["ModelPack"][];
         };
         /**
          * NodeProgress

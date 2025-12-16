@@ -59,6 +59,13 @@ const GlobalChat: React.FC = () => {
   );
   const theme = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [alertDismissed, setAlertDismissed] = useState(false);
+
+  // Reset dismissed state when status or error changes
+  useEffect(() => {
+    setAlertDismissed(false);
+  }, [status, error]);
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -293,39 +300,41 @@ const GlobalChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        {(error ||
-          status === "reconnecting" ||
-          status === "disconnected" ||
-          status === "failed") && (
-          <Alert
-            className="global-chat-status-alert"
-            severity={
-              status === "reconnecting"
-                ? "info"
+        {!alertDismissed &&
+          (error ||
+            status === "reconnecting" ||
+            status === "disconnected" ||
+            status === "failed") && (
+            <Alert
+              className="global-chat-status-alert"
+              severity={
+                status === "reconnecting"
+                  ? "info"
+                  : status === "disconnected"
+                  ? "warning"
+                  : "error"
+              }
+              onClose={() => setAlertDismissed(true)}
+              sx={{
+                position: "absolute",
+                top: "5rem",
+                left: "50%",
+                transform: "translateX(-50%)",
+                maxWidth: "600px",
+                width: "100%",
+                zIndex: 1001,
+                flexShrink: 0
+              }}
+            >
+              {status === "reconnecting"
+                ? statusMessage || "Reconnecting to chat service..."
                 : status === "disconnected"
-                ? "warning"
-                : "error"
-            }
-            sx={{
-              position: "absolute",
-              top: "5rem",
-              left: "50%",
-              transform: "translateX(-50%)",
-              maxWidth: "600px",
-              width: "100%",
-              zIndex: 1001,
-              flexShrink: 0
-            }}
-          >
-            {status === "reconnecting"
-              ? statusMessage || "Reconnecting to chat service..."
-              : status === "disconnected"
-              ? "Connection lost. Reconnecting automatically..."
-              : status === "failed"
-              ? "Connection failed. Retrying automatically..."
-              : error}
-          </Alert>
-        )}
+                ? "Connection lost. Reconnecting automatically..."
+                : status === "failed"
+                ? "Connection failed. Retrying automatically..."
+                : error}
+            </Alert>
+          )}
 
         {/* Controls row */}
         <Box

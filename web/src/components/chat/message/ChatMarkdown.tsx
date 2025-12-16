@@ -60,7 +60,29 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
         rehypePlugins={[rehypeRaw]}
         components={{
           code: (props) => <CodeBlock {...props} onInsert={onInsertCode} />,
-          pre: (props) => <PreRenderer {...props} onInsert={onInsertCode} />
+          pre: (props) => <PreRenderer {...props} onInsert={onInsertCode} />,
+          a: ({ node, ...props }) => {
+            const { href, children } = props;
+            const isAudio =
+              href &&
+              (href.toLowerCase().endsWith(".mp3") ||
+                href.toLowerCase().endsWith(".wav") ||
+                href.toLowerCase().endsWith(".ogg") ||
+                href.toLowerCase().endsWith(".m4a") ||
+                href.toLowerCase().endsWith(".webm"));
+
+            if (isAudio && href) {
+              return (
+                <span css={{ display: "inline-flex", alignItems: "center", gap: "8px", verticalAlign: "middle" }}>
+                  <audio controls src={href} css={{ height: "32px" }} />
+                  <a {...props} target="_blank" rel="noopener noreferrer">
+                    {children}
+                  </a>
+                </span>
+              );
+            }
+            return <a {...props} target="_blank" rel="noopener noreferrer" />;
+          }
         }}
       >
         {content || ""}
