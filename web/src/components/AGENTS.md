@@ -1,6 +1,16 @@
 # Components Directory Guide
 
-This guide helps OpenAI's coding agents understand the React components structure of NodeTool's web application.
+**Navigation**: [Root AGENTS.md](../../../AGENTS.md) → [Web AGENTS.md](../AGENTS.md) → **Components**
+
+This guide helps AI agents understand the React components structure of NodeTool's web application.
+
+## Related Documentation
+- [Hooks Guide](../hooks/AGENTS.md) - React hooks used in components
+- [Stores Guide](../stores/AGENTS.md) - State management for components
+- [Contexts Guide](../contexts/AGENTS.md) - Context providers
+- [Utils Guide](../utils/AGENTS.md) - Utility functions
+
+---
 
 ## Root Components
 

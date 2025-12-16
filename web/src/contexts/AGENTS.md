@@ -1,6 +1,15 @@
 # React Contexts Guide
 
-This guide helps OpenAI's coding agents understand the React context system in NodeTool's web application.
+**Navigation**: [Root AGENTS.md](../../../AGENTS.md) → [Web AGENTS.md](../AGENTS.md) → **Contexts**
+
+This guide helps AI agents understand the React context system in NodeTool's web application.
+
+## Related Documentation
+- [Stores Guide](../stores/AGENTS.md) - Zustand stores wrapped by contexts
+- [Hooks Guide](../hooks/AGENTS.md) - Hooks for accessing contexts
+- [Components Guide](../components/AGENTS.md) - Components using contexts
+
+---
 
 ## Overview
 

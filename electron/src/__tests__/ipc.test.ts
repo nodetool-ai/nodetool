@@ -231,8 +231,8 @@ describe('initializeIpcHandlers', () => {
       ([channel]) => channel === Channels.OPEN_LOG_FILE
     )?.[1] as any;
 
-    await writeHandler({}, 'text');
-    expect(clipboardMock.writeText).toHaveBeenCalledWith('text');
+    await writeHandler({}, { text: 'text' });
+    expect(clipboardMock.writeText).toHaveBeenCalledWith('text', undefined);
 
     const text = await readHandler({});
     expect(clipboardMock.readText).toHaveBeenCalled();

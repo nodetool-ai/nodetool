@@ -1,6 +1,16 @@
 # Stores Directory Guide
 
-This guide helps OpenAI's coding agents understand the state management stores in NodeTool's web application. The application uses Zustand for state management.
+**Navigation**: [Root AGENTS.md](../../../AGENTS.md) → [Web AGENTS.md](../AGENTS.md) → **Stores**
+
+This guide helps AI agents understand the state management stores in NodeTool's web application. The application uses Zustand for state management.
+
+## Related Documentation
+- [Contexts Guide](../contexts/AGENTS.md) - React contexts that wrap stores
+- [Hooks Guide](../hooks/AGENTS.md) - Hooks that access stores
+- [ServerState Guide](../serverState/AGENTS.md) - TanStack Query for server state
+- [Components Guide](../components/AGENTS.md) - Components using stores
+
+---
 
 ## Core API and Types
 
