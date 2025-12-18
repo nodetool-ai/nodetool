@@ -362,6 +362,34 @@ describe("GlobalChatStore", () => {
       expect(messages[0].content).toBe("New message");
     });
 
+    it("reconciles streamed assistant chunks with final assistant message", async () => {
+      const chunk: Chunk = {
+        type: "chunk",
+        content: "Hello",
+        content_type: "text",
+        content_metadata: {},
+        done: true
+      };
+      simulateServerMessage(mockServer, chunk);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const finalMessage: Message = {
+        id: "server-msg-1",
+        role: "assistant",
+        type: "message",
+        content: "Hello\n",
+        workflow_id: "test"
+      };
+      simulateServerMessage(mockServer, finalMessage);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const threadId = store.getState().currentThreadId!;
+      const messages = store.getState().messageCache[threadId];
+      expect(messages).toHaveLength(1);
+      expect(messages[0].id).toBe("server-msg-1");
+      expect(messages[0].content).toBe("Hello\n");
+    });
+
     it("handles job update - completed", async () => {
       store.setState({
         status: "loading" as any,
