@@ -193,7 +193,11 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
     };
     updatedMessages = [...messages.slice(0, -1), updatedMessage];
   } else {
+    const localStreamId = `local-stream-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`;
     const message: Message = {
+      id: localStreamId,
       role: "assistant",
       type: "message",
       content: chunk.content
@@ -409,32 +413,102 @@ const applyAssistantMessage = (
   messages: Message[],
   msg: Message
 ) => {
+  const normalizeTextForComparison = (text: string) =>
+    text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
+
+  const extractTextContent = (message: Message): string => {
+    if (typeof message.content === "string") return message.content;
+    if (Array.isArray(message.content)) {
+      return message.content
+        .map((c: any) => (c?.type === "text" ? c.text : ""))
+        .join("");
+    }
+    return "";
+  };
+
   const incomingText =
     typeof msg.content === "string"
       ? msg.content
       : Array.isArray(msg.content)
       ? msg.content.map((c: any) => (c?.type === "text" ? c.text : "")).join("")
       : "";
+  const incomingNormalized = normalizeTextForComparison(incomingText);
+
+  const findStreamPlaceholderIndex = (): number => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const candidate = messages[i];
+      if (candidate?.role !== "assistant") continue;
+      if ((candidate as any).type !== "message") continue;
+
+      const candidateId = candidate.id ?? null;
+      const isLocalStream =
+        typeof candidateId === "string" && candidateId.startsWith("local-stream-");
+      const isServerAuthored = !!candidate.created_at || (!!candidateId && !isLocalStream);
+
+      if (isServerAuthored) continue;
+
+      const candidateText = extractTextContent(candidate);
+      const candidateNormalized = normalizeTextForComparison(candidateText);
+      if (!candidateNormalized || !incomingNormalized) continue;
+
+      if (
+        candidateNormalized === incomingNormalized ||
+        incomingNormalized.startsWith(candidateNormalized) ||
+        candidateNormalized.startsWith(incomingNormalized)
+      ) {
+        return i;
+      }
+
+      // If we were streaming and the most recent assistant message looks local,
+      // prefer replacing it even if trailing whitespace differs.
+      if (
+        i === messages.length - 1 &&
+        (state.status === "streaming" || isLocalStream) &&
+        candidateText &&
+        incomingText
+      ) {
+        const candidateTrimmed = candidateText.trimEnd();
+        const incomingTrimmed = incomingText.trimEnd();
+        if (
+          candidateTrimmed === incomingTrimmed ||
+          incomingTrimmed.startsWith(candidateTrimmed)
+        ) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  };
+
+  const streamPlaceholderIndex = findStreamPlaceholderIndex();
 
   return {
     update: {
       messageCache: {
         ...state.messageCache,
         [threadId]: (() => {
-          const currentLast = messages[messages.length - 1];
-          const currentLastText =
-            currentLast &&
-            currentLast.role === "assistant" &&
-            typeof currentLast.content === "string"
-              ? (currentLast.content as string)
-              : null;
+          if (streamPlaceholderIndex >= 0) {
+            const existing = messages[streamPlaceholderIndex];
+            const replacement: Message = {
+              ...existing,
+              ...msg,
+              content: msg.content ?? existing.content
+            };
+            return [
+              ...messages.slice(0, streamPlaceholderIndex),
+              replacement,
+              ...messages.slice(streamPlaceholderIndex + 1)
+            ];
+          }
 
-          if (
-            currentLast &&
-            currentLast.role === "assistant" &&
-            currentLastText === incomingText
-          ) {
-            return messages;
+          const currentLast = messages[messages.length - 1];
+          if (currentLast?.role === "assistant") {
+            const currentLastNormalized = normalizeTextForComparison(
+              extractTextContent(currentLast)
+            );
+            if (currentLastNormalized && currentLastNormalized === incomingNormalized) {
+              return messages;
+            }
           }
 
           return [...messages, msg];
