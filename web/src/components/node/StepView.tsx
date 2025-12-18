@@ -10,11 +10,11 @@ import {
   Box,
   CircularProgress
 } from "@mui/material";
-import { SubTask } from "../../stores/ApiTypes";
+import { Step } from "../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
-    ".subtask-item": {
+    ".step-item": {
       padding: "0.625rem 0.75rem",
       marginBottom: "0.5rem",
       borderRadius: "6px",
@@ -26,25 +26,25 @@ const styles = (theme: Theme) =>
         borderColor: theme.vars.palette.grey[600]
       }
     },
-    ".subtask-content": {
+    ".step-content": {
       display: "flex",
       alignItems: "center",
       gap: "0.5rem"
     },
-    ".subtask-completed": {
+    ".step-completed": {
       color: theme.vars.palette.grey[500],
       textDecoration: "line-through",
       opacity: 0.7
     },
-    ".subtask-text": {
+    ".step-text": {
       fontSize: "0.875rem",
       lineHeight: "1.5",
       color: theme.vars.palette.grey[200]
     },
-    ".subtask-tool svg": {
+    ".step-tool svg": {
       fontSize: "0.5rem"
     },
-    ".subtask-tool": {
+    ".step-tool": {
       marginLeft: "0.5rem",
       fontSize: "0.5rem"
     },
@@ -69,21 +69,21 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface SubTaskViewProps {
-  subtask: SubTask;
+interface StepViewProps {
+  step: Step;
 }
 
-const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
+const StepView: React.FC<StepViewProps> = ({ step }) => {
   const theme = useTheme();
-  const hasDependencies = (subtask as any).input_tasks
-    ? (subtask as any).input_tasks.length > 0
+  const hasDependencies = step.depends_on
+    ? step.depends_on.length > 0
     : false;
-  const isRunning = subtask.start_time > 0 && !subtask.completed;
+  const isRunning = step.start_time > 0 && !step.completed;
 
   return (
     <div css={styles(theme)}>
-      <Paper className="subtask-item" elevation={0}>
-        <div className="subtask-content">
+      <Paper className="step-item" elevation={0}>
+        <div className="step-content">
           <Box
             sx={{
               width: 24,
@@ -98,11 +98,11 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
               <CircularProgress size={18} />
             ) : (
               <Checkbox
-                checked={subtask.completed}
+                checked={step.completed}
                 disabled
                 size="small"
                 sx={
-                  subtask.completed
+                  step.completed
                     ? {
                         color: (theme) => theme.vars.palette.success.main,
                         "&.Mui-disabled": {
@@ -115,15 +115,15 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
             )}
           </Box>
           <Typography
-            className={`subtask-text ${
-              subtask.completed
-                ? "subtask-completed"
+            className={`step-text ${
+              step.completed
+                ? "step-completed"
                 : isRunning
                 ? "shine-effect"
                 : ""
             }`}
           >
-            {subtask.content}
+            {step.instructions}
           </Typography>
         </div>
       </Paper>
@@ -131,4 +131,4 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
   );
 };
 
-export default SubTaskView;
+export default StepView;

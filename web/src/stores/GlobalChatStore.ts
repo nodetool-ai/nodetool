@@ -25,8 +25,9 @@ import {
   Chunk,
   TaskUpdate,
   PlanningUpdate,
+  LogUpdate,
   Prediction,
-  SubTaskResult,
+  StepResult,
   MessageList,
   Thread,
   ThreadUpdateRequest,
@@ -112,6 +113,10 @@ export interface GlobalChatState {
   // Task updates
   currentTaskUpdate: TaskUpdate | null;
   setTaskUpdate: (update: TaskUpdate | null) => void;
+
+  // Log updates
+  currentLogUpdate: LogUpdate | null;
+  setLogUpdate: (update: LogUpdate | null) => void;
 
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
@@ -237,6 +242,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
       currentTaskUpdate: null,
       setTaskUpdate: (update: TaskUpdate | null) =>
         set({ currentTaskUpdate: update }),
+
+      // Log updates
+      currentLogUpdate: null,
+      setLogUpdate: (update: LogUpdate | null) =>
+        set({ currentLogUpdate: update }),
 
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,

@@ -10,6 +10,7 @@ import {
   MessageContent,
   PlanningUpdate,
   TaskUpdate,
+  LogUpdate,
   LanguageModel
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
@@ -85,6 +86,7 @@ type ChatViewProps = {
   workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
+  currentLogUpdate?: LogUpdate | null;
   runningToolCallId?: string | null;
   runningToolMessage?: string | null;
   /**
@@ -116,6 +118,7 @@ const ChatView = ({
   helpMode = false,
   currentPlanningUpdate,
   currentTaskUpdate,
+  currentLogUpdate,
   noMessagesPlaceholder,
   graph,
   onInsertCode,
@@ -188,6 +191,7 @@ const ChatView = ({
             runningToolMessage={runningToolMessage}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
+            currentLogUpdate={currentLogUpdate}
             onInsertCode={onInsertCode}
             scrollContainer={scrollContainer}
           />
