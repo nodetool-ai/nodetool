@@ -18,9 +18,10 @@ import {
   NodeProgress,
   NodeUpdate,
   OutputUpdate,
+  LogUpdate,
   PlanningUpdate,
   Prediction,
-  SubTaskResult,
+  StepResult,
   TaskUpdate,
   ToolCallUpdate
 } from "../../stores/ApiTypes";
@@ -66,7 +67,7 @@ export type MsgpackData =
   | TaskUpdate
   | PlanningUpdate
   | OutputUpdate
-  | SubTaskResult
+  | StepResult
   | WorkflowCreatedUpdate
   | GenerationStoppedUpdate
   | ToolCallMessage
@@ -234,7 +235,8 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
     update: {
       ...baseUpdate,
       currentPlanningUpdate: null,
-      currentTaskUpdate: null
+      currentTaskUpdate: null,
+      currentLogUpdate: null
     },
     postAction
   };
@@ -346,15 +348,33 @@ const applyAgentExecutionMessage = (
     threads: updateThreadTimestamp(threadId, state.threads)
   };
 
-  if (msg.execution_event_type === "planning_update") {
-    const content = msg.content;
+  // Debug logging for agent execution messages
+  const anyMsg = msg as any;
+  log.debug("applyAgentExecutionMessage:", {
+    execution_event_type: anyMsg.execution_event_type,
+    content_type: typeof anyMsg.content,
+    content_is_array: Array.isArray(anyMsg.content),
+    has_content: !!anyMsg.content
+  });
+
+  if (anyMsg.execution_event_type === "planning_update") {
+    const content = anyMsg.content;
+    log.debug("PlanningUpdate content:", content);
     if (content && typeof content === "object" && !Array.isArray(content)) {
       update.currentPlanningUpdate = content as PlanningUpdate;
+      log.info("Set currentPlanningUpdate:", content);
+    } else {
+      log.warn("PlanningUpdate content is invalid:", content);
     }
-  } else if (msg.execution_event_type === "task_update") {
-    const content = msg.content;
+  } else if (anyMsg.execution_event_type === "task_update") {
+    const content = anyMsg.content;
     if (content && typeof content === "object" && !Array.isArray(content)) {
       update.currentTaskUpdate = content as TaskUpdate;
+    }
+  } else if (anyMsg.execution_event_type === "log_update") {
+    const content = anyMsg.content;
+    if (content && typeof content === "object" && !Array.isArray(content)) {
+      update.currentLogUpdate = content as LogUpdate;
     }
   }
 
@@ -478,7 +498,8 @@ const applyGenerationStopped = (): ReducerResult => ({
     progress: { current: 0, total: 0 },
     statusMessage: null,
     currentPlanningUpdate: null,
-    currentTaskUpdate: null
+    currentTaskUpdate: null,
+    currentLogUpdate: null
   }
 });
 

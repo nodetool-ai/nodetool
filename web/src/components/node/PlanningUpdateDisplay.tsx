@@ -12,96 +12,74 @@ interface PlanningUpdateDisplayProps {
 
 const styles = (theme: Theme) =>
   css({
-    "@keyframes aiColorShift": {
-      "0%": { color: "#00FFFF" } /* Aqua */,
-      "25%": { color: "#7B68EE" } /* MediumSlateBlue */,
-      "50%": { color: "#AFEEEE" } /* PaleTurquoise */,
-      "75%": { color: "#48D1CC" } /* MediumTurquoise */,
-      "100%": { color: "#00FFFF" } /* Aqua */
-    },
-
     ".planning-update-container": {
-      marginBottom: "0.75rem",
+      marginBottom: "0.25rem",
       padding: "1rem",
-      borderRadius: "8px",
-      backgroundColor: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.secondary.dark}`,
-      borderLeft: `3px solid ${theme.vars.palette.secondary.main}`
+      borderRadius: "12px",
+      backgroundColor: `rgba(25, 25, 30, 0.5)`,
+      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      transition: "all 0.2s ease",
+      "&:hover": {
+        backgroundColor: `rgba(35, 35, 40, 0.7)`,
+        borderColor: theme.vars.palette.secondary.dark
+      }
     },
 
     ".planning-header": {
       display: "flex",
       alignItems: "center",
+      justifyContent: "space-between",
       gap: "0.75rem",
-      marginBottom: "0.75rem"
+      marginBottom: "0.5rem"
     },
 
-    ".ai-animated-heading": {
-      animation: "aiColorShift 4s infinite",
+    ".ai-label": {
       fontFamily: theme.fontFamily1,
-      fontSize: "0.75rem",
-      fontWeight: 600,
-      letterSpacing: "0.5px",
+      fontSize: "0.65rem",
+      fontWeight: 700,
+      letterSpacing: "1px",
       textTransform: "uppercase",
-      flex: 1
+      color: theme.vars.palette.secondary.light,
+      opacity: 0.8
     },
 
     ".planning-status-badge": {
       display: "inline-flex",
       alignItems: "center",
-      padding: "0.25rem 0.625rem",
-      borderRadius: "12px",
-      fontSize: "0.6875rem",
-      fontWeight: 600,
-      fontStyle: "normal",
+      padding: "0.15rem 0.6rem",
+      borderRadius: "15px",
+      fontSize: "0.6rem",
+      fontWeight: 700,
       textTransform: "uppercase",
-      letterSpacing: "0.3px",
-      backgroundColor: theme.vars.palette.secondary.dark,
+      letterSpacing: "0.5px",
+      backgroundColor: `${theme.vars.palette.secondary.main}15`,
       color: theme.vars.palette.secondary.light,
-      border: `1px solid ${theme.vars.palette.secondary.main}`
+      border: `1px solid ${theme.vars.palette.secondary.main}30`
     },
 
     ".planning-status-badge.failed": {
-      backgroundColor: theme.vars.palette.error.dark,
+      backgroundColor: `${theme.vars.palette.error.main}15`,
       color: theme.vars.palette.error.light,
-      border: `1px solid ${theme.vars.palette.error.main}`
+      border: `1px solid ${theme.vars.palette.error.main}30`
     },
 
     ".planning-content": {
-      fontSize: "0.875rem",
+      fontSize: "0.85rem",
       lineHeight: "1.6",
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.grey[300],
       "& p": {
-        margin: "0.5em 0",
-        "&:first-of-type": {
-          marginTop: 0
-        },
-        "&:last-of-type": {
-          marginBottom: 0
-        }
-      },
-      "& ul, & ol": {
-        margin: "0.5em 0",
-        paddingLeft: "1.5em"
-      },
-      "& li": {
-        margin: "0.25em 0"
-      },
-      "& code": {
-        backgroundColor: theme.vars.palette.grey[800],
-        padding: "0.125em 0.375em",
-        borderRadius: "3px",
-        fontSize: "0.875em",
-        fontFamily: theme.fontFamily2 || "monospace"
+        margin: "0.5em 0"
       }
     },
 
     ".show-more-button": {
-      marginTop: "0.75rem",
-      fontSize: "0.75rem",
+      marginTop: "0.5rem",
+      fontSize: "0.65rem",
+      height: "24px",
       textTransform: "uppercase",
-      fontWeight: 600,
-      letterSpacing: "0.5px"
+      fontWeight: 700,
+      borderRadius: "6px",
+      borderOpacity: 0.3
     }
   });
 
@@ -132,7 +110,7 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
   return (
     <div className="planning-update-container noscroll" css={styles(theme)}>
       <div className="planning-header">
-        <Typography className="ai-animated-heading">
+        <Typography className="ai-label">
           {planningUpdate.phase}
         </Typography>
         <span className={`planning-status-badge ${isFailed ? "failed" : ""}`}>

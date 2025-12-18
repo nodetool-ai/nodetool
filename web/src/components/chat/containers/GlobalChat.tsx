@@ -38,6 +38,7 @@ const GlobalChat: React.FC = () => {
     setAgentMode,
     currentPlanningUpdate,
     currentTaskUpdate,
+    currentLogUpdate,
     threadsLoaded
   } = useGlobalChatStore();
   const runningToolCallId = useGlobalChatStore(
@@ -373,6 +374,7 @@ const GlobalChat: React.FC = () => {
             onAgentModeToggle={setAgentMode}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
+            currentLogUpdate={currentLogUpdate}
           />
         </Box>
       </Box>

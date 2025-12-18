@@ -3951,7 +3951,7 @@ export interface components {
         };
         /**
          * LogEntry
-         * @description A log entry for a subtask.
+         * @description A log entry for a step.
          */
         LogEntry: {
             /**
@@ -4948,111 +4948,76 @@ export interface components {
             };
         };
         /**
-         * SubTask
-         * @description A subtask item with completion status, dependencies, and tools.
+         * Step
+         * @description A step item with completion status, dependencies, and tools.
          */
-        SubTask: {
+        Step: {
             /**
              * Type
-             * @default subtask
+             * @default step
              * @constant
              */
-            type: "subtask";
+            type: "step";
             /**
              * Id
-             * @description Unique identifier for the subtask
+             * @description Unique identifier for the step
              * @default
              */
             id: string;
             /**
-             * Content
-             * @description Instructions for the subtask
+             * Instructions
+             * @description Instructions for the step to execute
              */
-            content: string;
+            instructions: string;
             /**
              * Logs
-             * @description The logs of the subtask
+             * @description The logs of the step
              * @default []
              */
             logs: components["schemas"]["LogEntry"][];
             /**
-             * Tools
-             * @description The tools available to the subtask
-             * @default []
-             */
-            tools: string[];
-            /**
              * Completed
-             * @description Whether the subtask is completed
+             * @description Whether the step is completed
              * @default false
              */
             completed: boolean;
             /**
              * Start Time
-             * @description The start time of the subtask
+             * @description The start time of the step
              * @default 0
              */
             start_time: number;
             /**
              * End Time
-             * @description The end time of the subtask
+             * @description The end time of the step
              * @default 0
              */
             end_time: number;
             /**
-             * Input Tasks
-             * @description The input tasks for the subtask
+             * Depends On
+             * @description The IDs of steps this step depends on
              * @default []
              */
-            input_tasks: string[];
-            /**
-             * Input Files
-             * @description The input files required for the subtask
-             * @default []
-             */
-            input_files: string[];
-            /**
-             * Output File
-             * @description The output file produced by the subtask
-             * @default
-             */
-            output_file: string;
+            depends_on: string[];
             /**
              * Output Schema
-             * @description The JSON schema of the output of the subtask
+             * @description The JSON schema of the output of the step
              * @default
              */
             output_schema: string;
-            /**
-             * Mode
-             * @description Optional execution mode hint (discover/process/aggregate).
-             */
-            mode?: ("discover" | "process" | "aggregate") | null;
-            /**
-             * Item Template
-             * @description The template for the item of the subtask. The template is a string with placeholders for the item. The placeholders are the fields of the item.
-             * @default
-             */
-            item_template: string;
-            /**
-             * Item Output Schema
-             * @description The JSON schema of the output of the item of the subtask.
-             * @default
-             */
-            item_output_schema: string;
         };
         /**
-         * SubTaskResult
-         * @description A message representing a result from a subtask.
+         * StepResult
+         * @description A message representing a result from a step.
          */
-        SubTaskResult: {
+        StepResult: {
             /**
              * Type
-             * @default subtask_result
+             * @default step_result
              * @constant
              */
-            type: "subtask_result";
-            subtask: components["schemas"]["SubTask"];
+            type: "step_result";
+            step: components["schemas"]["Step"];
             /** Result */
             result: unknown;
             /** Error */
@@ -5133,7 +5098,7 @@ export interface components {
         };
         /**
          * Task
-         * @description A task containing a title, description, and list of subtasks.
+         * @description A task containing a title, description, and list of steps.
          */
         Task: {
             /**
@@ -5161,18 +5126,18 @@ export interface components {
              */
             description: string;
             /**
-             * Subtasks
-             * @description The subtasks of the task, a list of subtask IDs
+             * Steps
+             * @description The steps of the task, a list of step IDs
              * @default []
              */
-            subtasks: components["schemas"]["SubTask"][];
+            steps: components["schemas"]["Step"][];
         };
         /**
          * TaskPlan
          * @description A plan for an agent to achieve a specific objective.
          *     The plan is a list of tasks that are executed in order.
-         *     The tasks are a list of subtasks that are executed in order.
-         *     Each task has a title, description, and list of subtasks.
+         *     The tasks are a list of steps that are executed in order.
+         *     Each task has a title, description, and list of steps.
          */
         TaskPlan: {
             /**
@@ -5211,7 +5176,7 @@ export interface components {
             /** Node Id */
             node_id?: string | null;
             task: components["schemas"]["Task"];
-            subtask?: components["schemas"]["SubTask"] | null;
+            step?: components["schemas"]["Step"] | null;
             event: components["schemas"]["TaskUpdateEvent"];
         };
         /**
@@ -5219,7 +5184,7 @@ export interface components {
          * @description Enum for different task update event types.
          * @enum {string}
          */
-        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "subtask_completed" | "subtask_failed" | "task_completed";
+        TaskUpdateEvent: "task_created" | "step_started" | "entered_conclusion_stage" | "step_completed" | "step_failed" | "task_completed";
         /** TextRef */
         TextRef: {
             /**
@@ -5316,8 +5281,8 @@ export interface components {
             };
             /** Result */
             result?: unknown;
-            /** Subtask Id */
-            subtask_id?: string | null;
+            /** Step Id */
+            step_id?: string | null;
             /** Message */
             message?: string | null;
         };
@@ -7199,7 +7164,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["CalendarEvent"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFFlux"] | components["schemas"]["HFFluxKontext"] | components["schemas"]["HFFluxRedux"] | components["schemas"]["HFFluxDepth"] | components["schemas"]["HFFluxFill"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["SaveUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["SaveUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["StepResult"] | components["schemas"]["RunJobRequest"];
                 };
             };
         };

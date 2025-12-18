@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Message, PlanningUpdate, TaskUpdate } from "../../../stores/ApiTypes";
+import { Message, PlanningUpdate, TaskUpdate, LogUpdate } from "../../../stores/ApiTypes";
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
@@ -38,6 +38,7 @@ interface ChatThreadViewProps {
   runningToolMessage?: string | null;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
+  currentLogUpdate?: LogUpdate | null;
   onInsertCode?: (text: string, language?: string) => void;
   scrollContainer?: HTMLDivElement | null;
 }
@@ -54,6 +55,7 @@ interface MemoizedMessageListContentProps
   // Add componentStyles if needed directly, or rely on ChatThreadView's styles
   componentStyles: ReturnType<typeof createStyles>;
   toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
+  theme: Theme;
 }
 
 const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
@@ -67,12 +69,14 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     runningToolMessage,
     currentPlanningUpdate,
     currentTaskUpdate,
+    currentLogUpdate,
     expandedThoughts,
     onToggleThought,
     bottomRef,
     componentStyles,
     onInsertCode,
-    toolResultsByCallId
+    toolResultsByCallId,
+    theme
   }) => {
     // Track which agent_execution_ids have been rendered to avoid duplicates
     const renderedExecutionIds = new Set<string>();
@@ -130,6 +134,43 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
             <TaskUpdateDisplay taskUpdate={currentTaskUpdate} />
           </li>
         )}
+        {currentLogUpdate && (
+          <li key="log-update" className="chat-message-list-item">
+             <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+                <div style={{ 
+                  position: "absolute",
+                  left: "4px",
+                  top: "10px",
+                  bottom: "10px",
+                  width: "2px",
+                  background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
+                  borderRadius: "1px"
+                }} />
+                <div style={{ 
+                  position: "absolute",
+                  left: "-21px",
+                  top: "12px",
+                  width: "10px",
+                  height: "10px",
+                  borderRadius: "50%",
+                  backgroundColor: theme.vars.palette.primary.main,
+                  border: `2px solid ${theme.vars.palette.background.default}`,
+                  boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
+                  zIndex: 2
+                }} />
+                <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
+                  fontSize: "0.8rem",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(30, 35, 40, 0.4)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
+                }}>
+                  {currentLogUpdate.content}
+                </div>
+            </div>
+          </li>
+        )}
         <div ref={bottomRef} style={{ height: 1 }} />
       </ul>
     );
@@ -147,6 +188,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   runningToolMessage,
   currentPlanningUpdate,
   currentTaskUpdate,
+  currentLogUpdate,
   onInsertCode,
   scrollContainer
 }) => {
@@ -345,12 +387,14 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           runningToolMessage={runningToolMessage}
           currentPlanningUpdate={currentPlanningUpdate}
           currentTaskUpdate={currentTaskUpdate}
+          currentLogUpdate={currentLogUpdate}
           expandedThoughts={expandedThoughts}
           onToggleThought={handleToggleThought}
           bottomRef={bottomRef}
           componentStyles={componentStyles}
           onInsertCode={onInsertCode}
           toolResultsByCallId={toolResultsByCallId}
+          theme={theme}
         />
       </div>
       <ScrollToBottomButton

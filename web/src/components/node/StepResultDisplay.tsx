@@ -6,68 +6,72 @@ import type { Theme } from "@mui/material/styles";
 import { Typography, Box, Collapse, IconButton } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import { SubTaskResult } from "../../stores/ApiTypes";
+import { StepResult } from "../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
-    ".subtask-result-container": {
-      marginBottom: "0.75rem",
-      borderRadius: "8px",
-      backgroundColor: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.success.dark}`,
+    ".step-result-container": {
+      marginBottom: "0.5rem",
+      borderRadius: "12px",
+      backgroundColor: `rgba(40, 45, 50, 0.3)`,
+      backdropFilter: "blur(4px)",
+      border: `1px solid ${theme.vars.palette.success.main}33`,
       overflow: "hidden",
-      transition: "all 0.2s ease"
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     },
 
-    ".subtask-result-header": {
+    ".step-result-header": {
       display: "flex",
       alignItems: "center",
       gap: "0.75rem",
-      padding: "0.875rem 1rem",
+      padding: "0.75rem 1rem",
       cursor: "pointer",
       userSelect: "none",
       transition: "background-color 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: `rgba(50, 60, 70, 0.4)`
       }
     },
 
-    ".subtask-result-icon": {
-      color: theme.vars.palette.success.main,
-      fontSize: "1.25rem",
-      flexShrink: 0
+    ".step-result-icon": {
+      color: theme.vars.palette.success.light,
+      fontSize: "1.1rem",
+      flexShrink: 0,
+      filter: `drop-shadow(0 0 3px ${theme.vars.palette.success.main})`
     },
 
-    ".subtask-result-title": {
-      fontWeight: 600,
-      fontSize: "0.875rem",
+    ".step-result-title": {
+      fontWeight: 700,
+      fontSize: "0.8rem",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
       color: theme.vars.palette.success.light,
       flex: 1
     },
 
     ".expand-button": {
       padding: "4px",
-      transition: "transform 0.2s ease",
+      transition: "transform 0.3s ease",
       color: theme.vars.palette.grey[400],
       "&.expanded": {
         transform: "rotate(180deg)"
       }
     },
 
-    ".subtask-result-content": {
-      padding: "0 1rem 1rem 1rem",
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`
+    ".step-result-content": {
+      padding: "0.5rem 1rem 1rem 1rem",
+      borderTop: `1px solid ${theme.vars.palette.grey[800]}33`
     },
 
     ".result-value": {
       marginTop: "0.5rem",
       padding: "1rem",
-      borderRadius: "6px",
-      backgroundColor: theme.vars.palette.grey[1000] || "#0a0a0a",
+      borderRadius: "8px",
+      backgroundColor: `rgba(0, 0, 0, 0.4)`,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
-      fontSize: "0.8125rem",
+      fontSize: "0.8rem",
       lineHeight: "1.5",
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.grey[300],
       overflowX: "auto",
       fontFamily: theme.fontFamily2 || "monospace",
       whiteSpace: "pre-wrap",
@@ -75,35 +79,36 @@ const styles = (theme: Theme) =>
     },
 
     ".result-primitive": {
-      color: theme.vars.palette.grey[100],
-      fontSize: "0.875rem",
+      color: theme.vars.palette.grey[200],
+      fontSize: "0.85rem",
       padding: "0.5rem 1rem",
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
+      backgroundColor: `rgba(0, 0, 0, 0.2)`
     },
 
     ".result-type-label": {
       display: "inline-block",
-      fontSize: "0.6875rem",
-      fontWeight: 600,
+      fontSize: "0.6rem",
+      fontWeight: 700,
       textTransform: "uppercase",
       color: theme.vars.palette.grey[500],
-      letterSpacing: "0.5px",
-      marginBottom: "0.5rem"
+      letterSpacing: "1px",
+      marginBottom: "0.25rem"
     }
   });
 
-interface SubTaskResultDisplayProps {
-  subtaskResult: SubTaskResult;
+interface StepResultDisplayProps {
+  stepResult: StepResult;
 }
 
-const SubTaskResultDisplay: React.FC<SubTaskResultDisplayProps> = ({
-  subtaskResult
+const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
+  stepResult
 }) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const { displayValue, isPrimitive, resultType } = useMemo(() => {
-    const result = subtaskResult.result;
+    const result = stepResult.result;
 
     // Handle null or undefined
     if (result === null || result === undefined) {
@@ -153,7 +158,7 @@ const SubTaskResultDisplay: React.FC<SubTaskResultDisplayProps> = ({
         resultType: "unknown"
       };
     }
-  }, [subtaskResult.result]);
+  }, [stepResult.result]);
 
   const handleToggle = () => {
     setExpanded(!expanded);
@@ -162,11 +167,11 @@ const SubTaskResultDisplay: React.FC<SubTaskResultDisplayProps> = ({
   // For primitive types, show inline without expand
   if (isPrimitive && displayValue.length < 100) {
     return (
-      <div className="subtask-result-container" css={styles(theme)}>
-        <div className="subtask-result-header">
-          <CheckCircleOutlineIcon className="subtask-result-icon" />
-          <Typography className="subtask-result-title">
-            Subtask Completed
+      <div className="step-result-container" css={styles(theme)}>
+        <div className="step-result-header">
+          <CheckCircleOutlineIcon className="step-result-icon" />
+          <Typography className="step-result-title">
+            Step Completed
           </Typography>
         </div>
         <div className="result-primitive">
@@ -178,11 +183,11 @@ const SubTaskResultDisplay: React.FC<SubTaskResultDisplayProps> = ({
   }
 
   return (
-    <div className="subtask-result-container" css={styles(theme)}>
-      <div className="subtask-result-header" onClick={handleToggle}>
-        <CheckCircleOutlineIcon className="subtask-result-icon" />
-        <Typography className="subtask-result-title">
-          Subtask Completed
+    <div className="step-result-container" css={styles(theme)}>
+      <div className="step-result-header" onClick={handleToggle}>
+        <CheckCircleOutlineIcon className="step-result-icon" />
+        <Typography className="step-result-title">
+          Step Completed
         </Typography>
         <IconButton
           size="small"
@@ -192,7 +197,7 @@ const SubTaskResultDisplay: React.FC<SubTaskResultDisplayProps> = ({
         </IconButton>
       </div>
       <Collapse in={expanded}>
-        <div className="subtask-result-content">
+        <div className="step-result-content">
           <Typography className="result-type-label">{resultType}</Typography>
           <pre className="result-value">{displayValue}</pre>
         </div>
@@ -201,4 +206,4 @@ const SubTaskResultDisplay: React.FC<SubTaskResultDisplayProps> = ({
   );
 };
 
-export default React.memo(SubTaskResultDisplay);
+export default React.memo(StepResultDisplay);

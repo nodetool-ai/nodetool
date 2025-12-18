@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Typography, Box } from "@mui/material";
 import { TaskUpdate } from "../../stores/ApiTypes";
-import SubTaskView from "./SubTaskView";
+import StepView from "./StepView";
 
 const styles = (theme: Theme) =>
   css({
@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
       borderLeft: `2px solid ${theme.vars.palette.grey[700]}`
     },
 
-    ".subtask-wrapper": {
+    ".step-wrapper": {
       marginTop: "0.75rem",
       paddingTop: "0.75rem",
       borderTop: `1px solid ${theme.vars.palette.grey[800]}`
@@ -94,18 +94,18 @@ const getEventDisplayText = (event: string): string => {
   switch (event) {
     case "task_created":
       return "Task Created";
-    case "subtask_started":
-      return "Subtask Started";
+    case "step_started":
+      return "Step Started";
     case "entered_conclusion_stage":
       return "Entering Conclusion";
     case "max_iterations_reached":
       return "Max Iterations Reached";
     case "max_tool_calls_reached":
       return "Max Tool Calls Reached";
-    case "subtask_completed":
-      return "Subtask Completed";
-    case "subtask_failed":
-      return "Subtask Failed";
+    case "step_completed":
+      return "Step Completed";
+    case "step_failed":
+      return "Step Failed";
     case "task_completed":
       return "Task Completed";
     default:
@@ -141,9 +141,9 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
         </Box>
       )}
 
-      {taskUpdate.subtask && (
-        <Box className="subtask-wrapper">
-          <SubTaskView subtask={taskUpdate.subtask} />
+      {taskUpdate.step && (
+        <Box className="step-wrapper">
+          <StepView step={taskUpdate.step} />
         </Box>
       )}
     </div>

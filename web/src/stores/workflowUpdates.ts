@@ -11,7 +11,7 @@ import {
   PreviewUpdate,
   EdgeUpdate,
   LogUpdate,
-  SubTaskResult,
+  StepResult,
   Message,
   Chunk
 } from "./ApiTypes";
@@ -46,7 +46,7 @@ export type MsgpackData =
   | TaskUpdate
   | PlanningUpdate
   | OutputUpdate
-  | SubTaskResult
+  | StepResult
   | PreviewUpdate
   | EdgeUpdate
   | Notification;

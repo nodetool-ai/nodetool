@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Paper, Typography, List, Divider } from "@mui/material";
 import { Task } from "../../stores/ApiTypes";
-import SubTaskView from "./SubTaskView";
+import StepView from "./StepView";
 
 const styles = (theme: Theme) =>
   css({
@@ -42,11 +42,11 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
             {task.description}
           </Typography>
         )}
-        {task.subtasks.length > 0 && (
+        {task.steps.length > 0 && (
           <>
             <List disablePadding>
-              {task.subtasks.map((subtask) => (
-                <SubTaskView key={subtask.output_file} subtask={subtask} />
+              {task.steps.map((step) => (
+                <StepView key={step.id} step={step} />
               ))}
             </List>
           </>

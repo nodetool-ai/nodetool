@@ -7,7 +7,7 @@ import {
   ToolCall,
   PlanningUpdate,
   TaskUpdate,
-  SubTaskResult
+  StepResult
 } from "../../../stores/ApiTypes";
 import ChatMarkdown from "./ChatMarkdown";
 import { useEditorInsertion } from "../../../contexts/EditorInsertionContext";
@@ -34,7 +34,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
-import SubTaskResultDisplay from "../../node/SubTaskResultDisplay";
+import StepResultDisplay from "../../node/StepResultDisplay";
 import AgentExecutionView from "./AgentExecutionView";
 
 interface MessageViewProps {
@@ -83,11 +83,27 @@ export const MessageView: React.FC<
             <TaskUpdateDisplay taskUpdate={executionContent as TaskUpdate} />
           </li>
         );
-      } else if (message.execution_event_type === "subtask_result") {
-        const subtaskResult = executionContent as SubTaskResult;
+      } else if (message.execution_event_type === "step_result") {
+        const stepResult = executionContent as StepResult;
         return (
           <li className="chat-message-list-item execution-event">
-            <SubTaskResultDisplay subtaskResult={subtaskResult} />
+            <StepResultDisplay stepResult={stepResult} />
+          </li>
+        );
+      } else if (message.execution_event_type === "log_update") {
+        return (
+          <li className="chat-message-list-item execution-event">
+            <Box sx={{ 
+              fontSize: "0.8rem", 
+              padding: "0.5rem 0.75rem", 
+              borderRadius: "8px", 
+              backgroundColor: "rgba(30, 35, 40, 0.4)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              color: executionContent.severity === "error" ? "error.light" : executionContent.severity === "warning" ? "warning.light" : "grey.300",
+              mb: 1
+            }}>
+              {executionContent.content}
+            </Box>
           </li>
         );
       }
