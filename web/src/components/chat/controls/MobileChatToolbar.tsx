@@ -88,6 +88,7 @@ interface MobileChatToolbarProps {
   onAgentModeToggle?: (enabled: boolean) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
+  allowedProviders?: string[];
 }
 
 const MobileChatToolbar: React.FC<MobileChatToolbarProps> = memo(
@@ -99,7 +100,8 @@ const MobileChatToolbar: React.FC<MobileChatToolbarProps> = memo(
     agentMode,
     onAgentModeToggle,
     selectedCollections,
-    onCollectionsChange
+    onCollectionsChange,
+    allowedProviders
   }) => {
     const theme = useTheme();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -141,6 +143,7 @@ const MobileChatToolbar: React.FC<MobileChatToolbarProps> = memo(
                 onAgentModeToggle={onAgentModeToggle}
                 selectedCollections={selectedCollections}
                 onCollectionsChange={onCollectionsChange}
+                allowedProviders={allowedProviders}
               />
             </Collapse>
           </div>

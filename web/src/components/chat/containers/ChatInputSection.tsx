@@ -67,6 +67,7 @@ type ChatInputSectionProps = {
   onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  allowedProviders?: string[];
 };
 
 const ChatInputSection = ({
@@ -82,7 +83,8 @@ const ChatInputSection = ({
   onModelChange,
   agentMode,
   onAgentModeToggle,
-  showToolbar = true
+  showToolbar = true,
+  allowedProviders
 }: ChatInputSectionProps) => {
   const isDisconnected = status === "disconnected" || status === "connecting";
   const theme = useTheme();
@@ -101,6 +103,7 @@ const ChatInputSection = ({
               onModelChange={onModelChange}
               agentMode={agentMode}
               onAgentModeToggle={onAgentModeToggle}
+              allowedProviders={allowedProviders}
             />
           ) : (
             <ChatToolBar
@@ -112,6 +115,7 @@ const ChatInputSection = ({
               onModelChange={onModelChange}
               agentMode={agentMode}
               onAgentModeToggle={onAgentModeToggle}
+              allowedProviders={allowedProviders}
             />
           )}
         </div>
