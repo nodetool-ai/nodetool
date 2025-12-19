@@ -31,14 +31,20 @@ const styles = (theme: Theme) =>
       paddingTop: "64px",
       paddingLeft: "48px",
       boxSizing: "border-box",
-      overflow: "scroll"
+      overflowY: "auto",
+      overflowX: "hidden",
+      flex: "1 1 auto",
+      minHeight: 0
     },
     "&": {
       position: "relative",
       width: "100%",
+      height: "100%",
       overflow: "hidden",
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      flex: "1 1 auto",
+      minHeight: 0
     },
     ".container": {
       display: "flex",
