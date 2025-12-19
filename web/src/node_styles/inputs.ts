@@ -57,7 +57,7 @@ export const inputStyles = (theme: Theme) =>
 
       ".MuiInputBase-inputMultiline": {
         fontSize: theme.fontSizeTiny,
-        lineHeight: "1.5em",
+        lineHeight: "1.2em",
         cursor: "auto"
       },
 
