@@ -83,6 +83,32 @@ const styles = (theme: Theme) =>
       marginTop: "0.75rem",
       paddingTop: "0.75rem",
       borderTop: `1px solid ${theme.vars.palette.grey[800]}`
+    },
+
+    ".steps-section": {
+      marginTop: "0.75rem",
+      paddingTop: "0.75rem",
+      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.75rem"
+    },
+
+    ".steps-header": {
+      fontSize: "0.7rem",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      color: theme.vars.palette.grey[500],
+      letterSpacing: "1px",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      "&::after": {
+        content: '""',
+        flex: 1,
+        height: "1px",
+        backgroundColor: theme.vars.palette.grey[800]
+      }
     }
   });
 
@@ -117,6 +143,16 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
   taskUpdate
 }) => {
   const theme = useTheme();
+  const task = taskUpdate.task;
+  const currentStep = taskUpdate.step;
+  const currentStepInPlan =
+    !!currentStep &&
+    !!task?.steps &&
+    task.steps.some((step) =>
+      currentStep.id
+        ? step.id === currentStep.id
+        : step.instructions === currentStep.instructions
+    );
   return (
     <div className="task-update-container noscroll" css={styles(theme)}>
       <div className="task-header">
@@ -128,22 +164,45 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
         </span>
       </div>
 
-      {taskUpdate.task && (
+      {task && (
         <Box className="task-content">
           <Typography className="task-title">
-            {taskUpdate.task.title}
+            {task.title}
           </Typography>
-          {taskUpdate.task.description && (
+          {task.description && (
             <Typography className="task-description">
-              {taskUpdate.task.description}
+              {task.description}
             </Typography>
           )}
         </Box>
       )}
 
-      {taskUpdate.step && (
+      {task?.steps && task.steps.length > 0 && (
+        <Box className="steps-section">
+          <Typography className="steps-header">Execution Plan</Typography>
+          {task.steps.map((step, idx) => {
+            const isCurrent =
+              currentStep &&
+              (currentStep.id
+                ? currentStep.id === step.id
+                : currentStep.instructions === step.instructions);
+            return (
+              <StepView
+                key={`${step.id || step.instructions}-${idx}`}
+                step={{
+                  ...step,
+                  start_time:
+                    step.start_time || (isCurrent && !step.completed ? 1 : 0)
+                }}
+              />
+            );
+          })}
+        </Box>
+      )}
+
+      {currentStep && (!task?.steps || !currentStepInPlan) && (
         <Box className="step-wrapper">
-          <StepView step={taskUpdate.step} />
+          <StepView step={currentStep} />
         </Box>
       )}
     </div>

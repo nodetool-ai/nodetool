@@ -6,66 +6,78 @@ import type { Theme } from "@mui/material/styles";
 import {
   Paper,
   Typography,
-  Checkbox,
   Box,
   CircularProgress
 } from "@mui/material";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import { Step } from "../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
     ".step-item": {
-      padding: "0.625rem 0.75rem",
-      marginBottom: "0.5rem",
-      borderRadius: "6px",
-      backgroundColor: theme.vars.palette.grey[800],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      padding: "0.85rem 1rem",
+      borderRadius: "10px",
+      backgroundColor: "rgba(255, 255, 255, 0.03)",
+      border: `1px solid ${theme.vars.palette.grey[800]}44`,
       transition: "all 0.2s ease",
+      position: "relative",
+      overflow: "hidden",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[750],
-        borderColor: theme.vars.palette.grey[600]
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        borderColor: theme.vars.palette.grey[700]
+      },
+      "&.running": {
+        backgroundColor: `rgba(25, 30, 40, 0.5)`,
+        borderColor: `${theme.vars.palette.primary.main}44`,
+        boxShadow: `0 0 15px ${theme.vars.palette.primary.main}11`
+      },
+      "&.completed": {
+        backgroundColor: `rgba(20, 25, 20, 0.3)`,
+        borderColor: `${theme.vars.palette.success.main}22`
       }
     },
     ".step-content": {
       display: "flex",
-      alignItems: "center",
-      gap: "0.5rem"
+      alignItems: "flex-start",
+      gap: "0.85rem"
     },
-    ".step-completed": {
-      color: theme.vars.palette.grey[500],
-      textDecoration: "line-through",
-      opacity: 0.7
+    ".step-status-icon": {
+      marginTop: "2px",
+      color: theme.vars.palette.grey[600],
+      fontSize: "1.1rem",
+      flexShrink: 0
+    },
+    ".step-completed-icon": {
+      color: theme.vars.palette.success.main,
+      filter: `drop-shadow(0 0 2px ${theme.vars.palette.success.main}66)`
+    },
+    ".step-running-spinner": {
+      color: theme.vars.palette.primary.main
     },
     ".step-text": {
-      fontSize: "0.875rem",
+      fontSize: "0.85rem",
       lineHeight: "1.5",
-      color: theme.vars.palette.grey[200]
+      color: theme.vars.palette.grey[300],
+      transition: "color 0.2s ease"
     },
-    ".step-tool svg": {
-      fontSize: "0.5rem"
-    },
-    ".step-tool": {
-      marginLeft: "0.5rem",
-      fontSize: "0.5rem"
-    },
-    ".dependency-marker": {
-      display: "flex",
-      color: theme.vars.palette.text.secondary,
-      marginLeft: "-.5em",
-      paddingLeft: "0",
-      fontSize: "0.8em",
-      wordBreak: "break-all"
+    ".step-text.completed": {
+      color: theme.vars.palette.grey[500],
+      textDecoration: "line-through",
+      opacity: 0.8
     },
     "@keyframes shine": {
-      "0%": { backgroundPosition: "-200%" },
-      "100%": { backgroundPosition: "200%" }
+      "0%": { backgroundPosition: "200% center" },
+      "100%": { backgroundPosition: "-200% center" }
     },
     ".shine-effect": {
-      background: `linear-gradient(90deg, ${"var(--palette-primary-main)"}, ${"var(--palette-secondary-main)"}, ${"var(--palette-primary-main)"})`,
-      backgroundSize: "200%",
+      background: `linear-gradient(90deg, ${theme.vars.palette.grey[300]} 0%, #fff 20%, ${theme.vars.palette.grey[300]} 40%)`,
+      backgroundSize: "200% auto",
+      backgroundClip: "text",
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",
-      animation: "shine 5s infinite"
+      animation: "shine 3s linear infinite",
+      fontWeight: 500
     }
   });
 
@@ -75,49 +87,36 @@ interface StepViewProps {
 
 const StepView: React.FC<StepViewProps> = ({ step }) => {
   const theme = useTheme();
-  const hasDependencies = step.depends_on
-    ? step.depends_on.length > 0
-    : false;
+  // Simple heuristic for running state: has start time but not completed
   const isRunning = step.start_time > 0 && !step.completed;
 
   return (
     <div css={styles(theme)}>
-      <Paper className="step-item" elevation={0}>
+      <Paper 
+        className={`step-item ${isRunning ? "running" : ""} ${step.completed ? "completed" : ""}`} 
+        elevation={0}
+      >
         <div className="step-content">
           <Box
             sx={{
-              width: 24,
-              height: 24,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0
+              height: "20px" 
             }}
           >
             {isRunning ? (
-              <CircularProgress size={18} />
+              <CircularProgress size={16} className="step-running-spinner" thickness={5} />
+            ) : step.completed ? (
+              <CheckCircleRoundedIcon className="step-status-icon step-completed-icon" />
             ) : (
-              <Checkbox
-                checked={step.completed}
-                disabled
-                size="small"
-                sx={
-                  step.completed
-                    ? {
-                        color: (theme) => theme.vars.palette.success.main,
-                        "&.Mui-disabled": {
-                          color: (theme) => theme.vars.palette.success.main
-                        }
-                      }
-                    : {}
-                }
-              />
+              <RadioButtonUncheckedRoundedIcon className="step-status-icon" />
             )}
           </Box>
           <Typography
             className={`step-text ${
               step.completed
-                ? "step-completed"
+                ? "completed"
                 : isRunning
                 ? "shine-effect"
                 : ""

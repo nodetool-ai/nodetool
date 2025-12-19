@@ -1,15 +1,18 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Collapse, IconButton } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {
   Message,
   PlanningUpdate,
   TaskUpdate,
   StepResult
 } from "../../../stores/ApiTypes";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import StepView from "../../node/StepView";
 import StepResultDisplay from "../../node/StepResultDisplay";
@@ -17,49 +20,42 @@ import StepResultDisplay from "../../node/StepResultDisplay";
 const styles = (theme: Theme) =>
   css({
     "@keyframes aiGlow": {
-      "0%": { boxShadow: `0 0 5px ${theme.vars.palette.primary.main}44` },
-      "50%": { boxShadow: `0 0 15px ${theme.vars.palette.primary.main}88` },
-      "100%": { boxShadow: `0 0 5px ${theme.vars.palette.primary.main}44` }
+      "0%": { boxShadow: `0 0 5px ${theme.vars.palette.primary.main}22` },
+      "50%": { boxShadow: `0 0 20px ${theme.vars.palette.primary.main}44` },
+      "100%": { boxShadow: `0 0 5px ${theme.vars.palette.primary.main}22` }
     },
 
     ".agent-execution-container": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.25rem",
+      gap: "0",
       position: "relative",
-      paddingLeft: "1.5rem",
+      paddingLeft: "1.75rem",
       "&::before": {
         content: '""',
         position: "absolute",
-        left: "4px",
-        top: "10px",
-        bottom: "10px",
+        left: "6px",
+        top: "14px",
+        bottom: "14px",
         width: "2px",
-        background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
+        background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}88, ${theme.vars.palette.secondary.main}44, transparent)`,
         borderRadius: "1px"
       }
     },
 
-    ".planning-phases-section": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5rem",
-      marginBottom: "0.5rem"
-    },
-
     ".consolidated-task-card": {
       position: "relative",
-      marginBottom: "1rem",
-      padding: "1.25rem",
-      borderRadius: "12px",
-      backgroundColor: `rgba(15, 15, 20, 0.7)`,
-      backdropFilter: "blur(8px)",
+      marginBottom: "1.5rem",
+      borderRadius: "16px",
+      backgroundColor: `rgba(20, 22, 28, 0.7)`,
+      backdropFilter: "blur(12px)",
       border: `1px solid ${theme.vars.palette.grey[800]}`,
-      boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
-      transition: "all 0.3s ease",
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+      overflow: "hidden",
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       "&.executing": {
-        animation: "aiGlow 3s infinite ease-in-out",
-        borderColor: `${theme.vars.palette.primary.main}66`
+        animation: "aiGlow 4s infinite ease-in-out",
+        borderColor: `${theme.vars.palette.primary.main}55`
       },
       "&::after": {
         content: '""',
@@ -67,145 +63,337 @@ const styles = (theme: Theme) =>
         top: 0,
         left: 0,
         right: 0,
-        height: "2px",
-        background: `linear-gradient(90deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
-        borderRadius: "12px 12px 0 0"
+        height: "1px",
+        background: `linear-gradient(90deg, transparent, ${theme.vars.palette.primary.main}88, transparent)`,
+        opacity: 0.5
       }
     },
 
-    ".task-header": {
+    ".task-header-section": {
+      padding: "1rem 1.25rem",
+      borderBottom: `1px solid ${theme.vars.palette.grey[800]}88`,
+      background: `linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)`
+    },
+
+    ".task-header-top": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
       gap: "0.75rem",
-      marginBottom: "1rem"
+      marginBottom: "0.5rem"
     },
 
     ".task-label": {
       fontFamily: theme.fontFamily1,
-      fontSize: "0.7rem",
+      fontSize: "0.65rem",
       fontWeight: 700,
-      letterSpacing: "1px",
+      letterSpacing: "1.5px",
       textTransform: "uppercase",
-      color: theme.vars.palette.primary.light,
-      opacity: 0.8
+      color: theme.vars.palette.primary.main,
+      opacity: 0.9,
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      "&::before": {
+        content: '""',
+        width: "6px",
+        height: "6px",
+        borderRadius: "50%",
+        backgroundColor: "currentColor",
+        boxShadow: "0 0 8px currentColor"
+      }
     },
 
     ".task-status-badge": {
       display: "inline-flex",
       alignItems: "center",
-      padding: "0.2rem 0.75rem",
-      borderRadius: "20px",
-      fontSize: "0.65rem",
+      padding: "0.15rem 0.6rem",
+      borderRadius: "12px",
+      fontSize: "0.6rem",
       fontWeight: 700,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
-      backgroundColor: `${theme.vars.palette.primary.main}22`,
+      backgroundColor: `${theme.vars.palette.primary.main}15`,
       color: theme.vars.palette.primary.light,
-      border: `1px solid ${theme.vars.palette.primary.main}44`
+      border: `1px solid ${theme.vars.palette.primary.main}33`,
+      boxShadow: `0 0 10px ${theme.vars.palette.primary.main}11`
     },
 
     ".task-status-badge.completed": {
-      backgroundColor: `${theme.vars.palette.success.main}22`,
+      backgroundColor: `${theme.vars.palette.success.main}15`,
       color: theme.vars.palette.success.light,
-      border: `1px solid ${theme.vars.palette.success.main}44`
+      border: `1px solid ${theme.vars.palette.success.main}33`,
+      boxShadow: `0 0 10px ${theme.vars.palette.success.main}11`
     },
 
     ".task-status-badge.failed": {
-      backgroundColor: `${theme.vars.palette.error.main}22`,
+      backgroundColor: `${theme.vars.palette.error.main}15`,
       color: theme.vars.palette.error.light,
-      border: `1px solid ${theme.vars.palette.error.main}44`
-    },
-
-    ".task-content": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5rem"
+      border: `1px solid ${theme.vars.palette.error.main}33`,
+      boxShadow: `0 0 10px ${theme.vars.palette.error.main}11`
     },
 
     ".task-title": {
-      fontWeight: 700,
-      fontSize: "1.1rem",
-      lineHeight: "1.3",
+      fontWeight: 600,
+      fontSize: "1rem",
+      lineHeight: "1.4",
       color: "#fff",
-      textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+      letterSpacing: "0.2px",
+      marginBottom: "0.25rem"
     },
 
     ".task-description": {
-      fontSize: "0.85rem",
+      fontSize: "0.8rem",
       lineHeight: "1.5",
       color: theme.vars.palette.grey[400],
-      fontStyle: "italic",
-      marginBottom: "0.5rem"
+      fontStyle: "normal",
+      maxWidth: "95%"
     },
 
-    ".steps-section": {
-      marginTop: "1.25rem",
-      paddingTop: "1.25rem",
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+    ".steps-container": {
+      padding: "1rem 1.25rem",
+      display: "flex",
+      flexDirection: "column",
+      gap: "1rem"
+    },
+
+    ".section-label": {
+      fontSize: "0.65rem",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      color: theme.vars.palette.grey[600],
+      letterSpacing: "1px",
+      marginBottom: "0.75rem",
+      display: "block"
+    },
+
+    ".step-wrapper": {
       display: "flex",
       flexDirection: "column",
       gap: "0.75rem"
     },
 
-    ".steps-header": {
-      fontSize: "0.7rem",
-      fontWeight: 700,
-      textTransform: "uppercase",
-      color: theme.vars.palette.grey[500],
-      letterSpacing: "1px",
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5rem",
-      marginBottom: "0.25rem",
-      "&::after": {
-        content: '""',
-        flex: 1,
-        height: "1px",
-        backgroundColor: theme.vars.palette.grey[800]
+    ".timeline-dot": {
+      position: "absolute",
+      left: "-22px",
+      top: "24px",
+      width: "12px",
+      height: "12px",
+      borderRadius: "50%",
+      backgroundColor: theme.vars.palette.background.default,
+      border: `2px solid ${theme.vars.palette.primary.main}`,
+      boxShadow: `0 0 12px ${theme.vars.palette.primary.main}66`,
+      zIndex: 2,
+      "&.completed": {
+        borderColor: theme.vars.palette.success.main,
+        boxShadow: `0 0 12px ${theme.vars.palette.success.main}66`
+      },
+      "&.failed": {
+        borderColor: theme.vars.palette.error.main,
+        boxShadow: `0 0 12px ${theme.vars.palette.error.main}66`
       }
     },
 
-    ".step-with-result": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5rem",
-      transition: "transform 0.2s ease"
-    },
-
-    ".timeline-dot": {
-      position: "absolute",
-      left: "-21px",
-      top: "12px",
-      width: "10px",
-      height: "10px",
-      borderRadius: "50%",
-      backgroundColor: theme.vars.palette.primary.main,
-      border: `2px solid ${theme.vars.palette.background.default}`,
-      boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
-      zIndex: 2
-    },
     ".log-entry": {
-      fontSize: "0.8rem",
+      fontSize: "0.75rem",
       padding: "0.5rem 0.75rem",
       borderRadius: "8px",
-      backgroundColor: `rgba(30, 35, 40, 0.4)`,
+      backgroundColor: `rgba(0, 0, 0, 0.2)`,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
-      color: theme.vars.palette.grey[300],
+      color: theme.vars.palette.grey[400],
       fontFamily: theme.fontFamily2 || "monospace",
-      marginBottom: "0.5rem"
+      marginBottom: "0.5rem",
+      marginLeft: "0.5rem",
+      borderLeft: `2px solid ${theme.vars.palette.grey[700]}`
     },
 
-    ".log-severity-error": {
-      borderColor: `${theme.vars.palette.error.main}44`,
-      color: theme.vars.palette.error.light
+    ".tool-calls-container": {
+      marginLeft: "1rem",
+      borderRadius: "8px",
+      border: `1px solid ${theme.vars.palette.grey[800]}66`,
+      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      overflow: "hidden"
     },
 
-    ".log-severity-warning": {
-      borderColor: `${theme.vars.palette.warning.main}44`,
-      color: theme.vars.palette.warning.light
+    ".tool-calls-header": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "0.4rem 0.75rem",
+      cursor: "pointer",
+      userSelect: "none",
+      transition: "background-color 0.2s",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.03)"
+      }
+    },
+
+    ".tool-calls-title": {
+      fontSize: "0.65rem",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: "0.8px",
+      color: theme.vars.palette.grey[500],
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem"
+    },
+
+    ".tool-calls-count": {
+      padding: "1px 6px",
+      borderRadius: "4px",
+      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[400],
+      fontSize: "0.6rem"
+    },
+
+    ".tool-calls-list": {
+      padding: "0.5rem",
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.4rem",
+      borderTop: `1px solid ${theme.vars.palette.grey[800]}66`
+    },
+
+    ".tool-call-item": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.35rem",
+      padding: "0.5rem 0.6rem",
+      borderRadius: "6px",
+      backgroundColor: "rgba(255, 255, 255, 0.02)",
+      border: `1px solid ${theme.vars.palette.grey[800]}44`,
+      transition: "all 0.2s ease",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        borderColor: `${theme.vars.palette.grey[700]}`
+      }
+    },
+
+    ".tool-call-header-row": {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "0.6rem",
+      width: "100%"
+    },
+
+    ".tool-call-status-dot": {
+      width: "6px",
+      height: "6px",
+      borderRadius: "50%",
+      marginTop: "5px",
+      flexShrink: 0,
+      backgroundColor: theme.vars.palette.grey[600],
+      "&.running": {
+        backgroundColor: theme.vars.palette.info.main,
+        boxShadow: `0 0 6px ${theme.vars.palette.info.main}66`
+      },
+      "&.completed": {
+        backgroundColor: theme.vars.palette.success.main,
+        opacity: 0.6
+      }
+    },
+
+    ".tool-call-content": {
+      flex: 1,
+      minWidth: 0
+    },
+
+    ".tool-name": {
+      fontSize: "0.7rem",
+      fontWeight: 700,
+      color: theme.vars.palette.info.light,
+      letterSpacing: "0.3px",
+      display: "block",
+      marginBottom: "2px"
+    },
+
+    ".tool-message": {
+      fontSize: "0.7rem",
+      color: theme.vars.palette.grey[400],
+      lineHeight: "1.3"
+    },
+
+    ".tool-args": {
+      marginTop: "0.25rem",
+      padding: "0.4rem",
+      borderRadius: "4px",
+      backgroundColor: "rgba(0, 0, 0, 0.3)",
+      border: `1px solid ${theme.vars.palette.grey[900]}`,
+      fontSize: "0.65rem",
+      lineHeight: "1.4",
+      color: theme.vars.palette.grey[400],
+      fontFamily: theme.fontFamily2 || "monospace",
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word"
     }
   });
+
+const formatToolArgs = (args: any): string => {
+  if (args === null || args === undefined) return "";
+  try {
+    const obj = typeof args === "string" ? JSON.parse(args) : args;
+    // If it's a simple object with few keys, simpler display? For now just indent
+    return JSON.stringify(obj, null, 2);
+  } catch (err) {
+    return String(args);
+  }
+};
+
+interface ToolCallsSectionProps {
+  toolCalls: any[];
+}
+
+const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
+  const [expanded, setExpanded] = useState(false);
+  const theme = useTheme();
+
+  if (!toolCalls || toolCalls.length === 0) return null;
+
+  return (
+    <div className="tool-calls-container">
+      <div 
+        className="tool-calls-header"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="tool-calls-title">
+          <KeyboardArrowDownIcon 
+            sx={{ 
+              fontSize: 16, 
+              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s"
+            }} 
+          />
+          Tool Activity
+          <span className="tool-calls-count">{toolCalls.length}</span>
+        </div>
+      </div>
+      <Collapse in={expanded}>
+        <div className="tool-calls-list">
+          {toolCalls.map((tc) => (
+            <div key={tc.id} className="tool-call-item">
+              <div className="tool-call-header-row">
+                <div className={`tool-call-status-dot ${tc.status || (tc.message ? "running" : "completed")}`} />
+                <div className="tool-call-content">
+                  <span className="tool-name">{tc.name}</span>
+                  {tc.message && (
+                    <div className="tool-message">{tc.message}</div>
+                  )}
+                  {tc.args && Object.keys(tc.args).length > 0 && (
+                     <details style={{ marginTop: "4px" }}>
+                       <summary style={{ fontSize: "0.65rem", color: theme.vars.palette.grey[500], cursor: "pointer" }}>Arguments</summary>
+                       <pre className="tool-args">{formatToolArgs(tc.args)}</pre>
+                     </details>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Collapse>
+    </div>
+  );
+};
 
 interface AgentExecutionViewProps {
   messages: Message[];
@@ -223,17 +411,38 @@ interface ConsolidatedExecution {
   status: "planning" | "executing" | "completed" | "failed";
 }
 
-/**
- * Consolidates all agent execution messages by agent_execution_id into a single view.
- * This component groups planning updates, task updates, and subtask results together
- * to provide a clean, unified view of agent task execution.
- * 
- * All planning phases are displayed persistently to show the full execution history.
- */
+const normalizeExecutionMessage = (msg: Message) => {
+  let content = msg.content as any;
+  let eventType = msg.execution_event_type;
+
+  if (typeof content === "string") {
+    try {
+      content = JSON.parse(content);
+      if (typeof content === "string") {
+        try { content = JSON.parse(content); } catch (error) {}
+      }
+    } catch (error) {}
+  }
+
+  if (!eventType && content && typeof content === "object") {
+    eventType = content.type;
+  }
+
+  return { content, eventType };
+};
+
 export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
   messages
 }) => {
   const theme = useTheme();
+  
+  const agentExecutionId = useMemo(() => {
+    return messages.find(m => m.agent_execution_id)?.agent_execution_id;
+  }, [messages]);
+
+  const toolCallsByStep = useGlobalChatStore((state) =>
+    agentExecutionId ? state.agentExecutionToolCalls[agentExecutionId] : undefined
+  );
 
   const execution = useMemo<ConsolidatedExecution>(() => {
     const result: ConsolidatedExecution = {
@@ -243,18 +452,16 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
     };
 
     const seenPlanningPhases = new Set<string>();
-    const seenTasks = new Map<string, number>(); // task_id or instructions -> index in timeline
+    const seenTasks = new Map<string, number>();
 
     messages.forEach((msg, msgIndex) => {
       if (msg.role !== "agent_execution") return;
 
-      const eventType = msg.execution_event_type;
-      const content = msg.content as any;
+      const { eventType, content } = normalizeExecutionMessage(msg);
 
       if (eventType === "planning_update") {
         const planningUpdate = content as PlanningUpdate;
         const phaseKey = `planning-${planningUpdate.phase}-${planningUpdate.status}`;
-        
         if (!seenPlanningPhases.has(phaseKey)) {
           seenPlanningPhases.add(phaseKey);
           result.timeline.push({
@@ -263,20 +470,17 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
             key: `planning-${msgIndex}`
           });
         }
-        
         if (planningUpdate.status === "Failed") result.status = "failed";
       } else if (eventType === "task_update") {
         const taskUpdate = content as TaskUpdate;
         const task = taskUpdate.task;
-        const taskIdentifier = task?.id || task?.title || (taskUpdate.step?.instructions);
+        const taskIdentifier = task?.id || task?.title || taskUpdate.step?.instructions;
         
         if (taskIdentifier) {
           if (seenTasks.has(taskIdentifier)) {
-            // Update existing task entry
             const index = seenTasks.get(taskIdentifier)!;
             result.timeline[index].data = taskUpdate;
           } else {
-            // New task entry
             seenTasks.set(taskIdentifier, result.timeline.length);
             result.timeline.push({
               type: "task",
@@ -286,16 +490,14 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
           }
         }
 
-        const taskEvent = taskUpdate.event;
-        if (taskEvent === "task_completed") result.status = "completed";
-        else if (taskEvent === "step_failed") result.status = "failed";
-        else if (taskEvent === "step_started") result.status = "executing";
+        if (taskUpdate.event === "task_completed") result.status = "completed";
+        else if (taskUpdate.event === "step_failed") result.status = "failed";
+        else if (taskUpdate.event === "step_started") result.status = "executing";
       } else if (eventType === "step_result") {
         const stepResult = content as StepResult;
-        // Collect all step results to be merged into task views
-        const stepId = stepResult?.step?.id || stepResult?.step?.instructions;
+        const stepId = stepResult?.step?.id || (stepResult as any)?.step_id || (stepResult as any)?.stepId || stepResult?.step?.instructions;
         if (stepId) {
-           result.stepResults.set(stepId, stepResult);
+          result.stepResults.set(stepId, stepResult);
         }
       } else if (eventType === "log_update") {
         result.timeline.push({
@@ -313,16 +515,27 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
     switch (item.type) {
       case "planning":
         return (
-          <div key={item.key} style={{ position: "relative" }}>
-            <div className="timeline-dot" />
+          <div key={item.key} style={{ position: "relative", marginBottom: "0.5rem" }}>
+            <div className={`timeline-dot ${item.data.status === "Success" ? "completed" : ""}`} />
             <PlanningUpdateDisplay planningUpdate={item.data} />
           </div>
         );
       case "log":
         return (
           <div key={item.key} style={{ position: "relative" }}>
-            <div className="timeline-dot" style={{ width: 6, height: 6, left: -19, top: 14, opacity: 0.6 }} />
-            <div className={`log-entry log-severity-${item.data.severity || "info"}`}>
+             <div 
+              className="timeline-dot" 
+              style={{
+                width: 6,
+                height: 6,
+                left: "-19px",
+                top: "14px",
+                backgroundColor: theme.vars.palette.grey[700],
+                border: "none",
+                boxShadow: "none"
+              }} 
+            />
+            <div className="log-entry">
               {item.data.content}
             </div>
           </div>
@@ -331,7 +544,18 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
         const taskUpdate = item.data as TaskUpdate;
         const task = taskUpdate.task;
         const currentStep = taskUpdate.step;
+        const currentStepId = currentStep?.id || currentStep?.instructions;
         
+        // Find if current step is part of the plan
+        const currentStepInPlan =
+          !!currentStep &&
+          !!task?.steps &&
+          task.steps.some((step) =>
+            currentStep.id
+              ? step.id === currentStep.id
+              : step.instructions === currentStep.instructions
+          );
+
         const getStatusBadgeClass = () => {
           if (taskUpdate.event === "task_completed") return "completed";
           if (taskUpdate.event === "step_failed") return "failed";
@@ -345,52 +569,71 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
         };
 
         return (
-          <div key={item.key} className={`consolidated-task-card noscroll ${execution.status === "executing" ? "executing" : ""}`}>
-            <div className="timeline-dot" />
-            <div className="task-header">
-              <Typography className="task-label">Agent Task</Typography>
-              <span className={`task-status-badge ${getStatusBadgeClass()}`}>
-                {getStatusText()}
-              </span>
-            </div>
-
-            {task && (
-              <Box className="task-content">
-                <Typography className="task-title">{task.title}</Typography>
-                {task.description && (
-                  <Typography className="task-description">{task.description}</Typography>
+          <div key={item.key} style={{ position: "relative" }}>
+             <div className={`timeline-dot ${taskUpdate.event === "task_completed" ? "completed" : execution.status === "failed" ? "failed" : ""}`} />
+             
+             <div className={`consolidated-task-card noscroll ${execution.status === "executing" ? "executing" : ""}`} css={styles(theme)}>
+              
+              <div className="task-header-section">
+                <div className="task-header-top">
+                  <div className="task-label">Agent Task</div>
+                  <span className={`task-status-badge ${getStatusBadgeClass()}`}>
+                    {getStatusText()}
+                  </span>
+                </div>
+                {task && (
+                  <>
+                    <Typography className="task-title">{task.title}</Typography>
+                    {task.description && (
+                      <Typography className="task-description">{task.description}</Typography>
+                    )}
+                  </>
                 )}
-              </Box>
-            )}
+              </div>
 
-            {task?.steps && task.steps.length > 0 && (
-              <Box className="steps-section">
-                <Typography className="steps-header">Execution Plan</Typography>
-                {task.steps.map((step, idx) => {
-                  const stepResult = execution.stepResults.get(step.id || step.instructions);
-                  const isCurrent = currentStep && currentStep.instructions === step.instructions;
-
-                  return (
-                    <div key={idx} className="step-with-result">
-                      <StepView
-                        step={{
-                          ...step,
-                          start_time: isCurrent && !step.completed ? 1 : 0
-                        }}
-                      />
-                      {stepResult && <StepResultDisplay stepResult={stepResult} />}
+              <div className="steps-container">
+                {task?.steps && task.steps.length > 0 && (
+                  <div className="step-group">
+                    <span className="section-label">Execution Plan</span>
+                    <div className="step-wrapper">
+                      {task.steps.map((step, idx) => {
+                        const stepKey = step.id || step.instructions;
+                        const stepResult = execution.stepResults.get(stepKey);
+                        const isCurrent = currentStep && (currentStep.id ? currentStep.id === step.id : currentStep.instructions === step.instructions);
+                        const isRunning = (step.start_time > 0 && !step.completed) || (isCurrent && !step.completed);
+                        const stepToolCalls = stepKey ? toolCallsByStep?.[stepKey] || [] : [];
+                        
+                        return (
+                          <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                            <StepView
+                              step={{
+                                ...step,
+                                start_time: step.start_time || (isCurrent && !step.completed ? 1 : 0)
+                              }}
+                            />
+                            <ToolCallsSection toolCalls={stepToolCalls} />
+                            {stepResult && <StepResultDisplay stepResult={stepResult} />}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </Box>
-            )}
+                  </div>
+                )}
 
-            {currentStep && (!task?.steps || !task.steps.some(s => s.instructions === currentStep.instructions)) && (
-              <Box className="steps-section">
-                <Typography className="steps-header">Internal Step</Typography>
-                <StepView step={currentStep} />
-              </Box>
-            )}
+                {/* Handle internal steps that aren't in the original plan */}
+                {currentStep && (!task?.steps || !currentStepInPlan) && (
+                  <div className="step-group" style={{ marginTop: "1rem" }}>
+                    <span className="section-label">Additional Steps</span>
+                    <div className="step-wrapper">
+                      <StepView step={currentStep} />
+                      {currentStepId && (
+                         <ToolCallsSection toolCalls={toolCallsByStep?.[currentStepId] || []} />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         );
       }
@@ -402,7 +645,18 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
   return (
     <li className="chat-message-list-item execution-event">
       <div className="agent-execution-container" css={styles(theme)}>
-        {execution.timeline.map(renderTimelineItem)}
+        {execution.timeline
+          .filter((item) => {
+            // If we have a task, only show the task. Logs and planning are noisy.
+            const hasTask = execution.timeline.some((i) => i.type === "task");
+            if (hasTask) {
+              return item.type === "task";
+            }
+            // If no task yet, show planning updates (so the user knows it's working)
+            // but still skip logs which are usually too technical/noisy.
+            return item.type === "planning";
+          })
+          .map(renderTimelineItem)}
       </div>
     </li>
   );

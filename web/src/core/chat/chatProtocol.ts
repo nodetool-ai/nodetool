@@ -29,7 +29,7 @@ import {
   FrontendToolRegistry,
   FrontendToolState
 } from "../../lib/tools/frontendTools";
-import type { GlobalChatState } from "../../stores/GlobalChatStore";
+import type { GlobalChatState, StepToolCall } from "../../stores/GlobalChatStore";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -240,6 +240,7 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
       ...baseUpdate,
       currentPlanningUpdate: null,
       currentTaskUpdate: null,
+      currentTaskUpdateThreadId: null,
       currentLogUpdate: null
     },
     postAction
@@ -326,21 +327,70 @@ const applyOutputUpdate = (
   return noopUpdate;
 };
 
+type ToolCallUpdateWithMeta = ToolCallUpdate & {
+  tool_call_id?: string | number | null;
+  step_id?: string | null;
+  agent_execution_id?: string | null;
+};
+
 const applyToolCallUpdate = (
-  _state: GlobalChatState,
+  state: GlobalChatState,
   update: ToolCallUpdate
-) => ({
-  update: {
-    statusMessage: update.message,
-    currentRunningToolCallId: (update as any).tool_call_id || null,
-    currentToolMessage: update.message || null
+): ReducerResult => {
+  const updateWithMeta = update as ToolCallUpdateWithMeta;
+  const toolCallId =
+    updateWithMeta.tool_call_id != null
+      ? String(updateWithMeta.tool_call_id)
+      : null;
+  const agentExecutionId = updateWithMeta.agent_execution_id ?? null;
+  const stepId = updateWithMeta.step_id ?? null;
+
+  let agentExecutionToolCalls: GlobalChatState["agentExecutionToolCalls"] | undefined;
+
+  if (toolCallId && agentExecutionId && stepId) {
+    const existingExecution =
+      state.agentExecutionToolCalls[agentExecutionId] || {};
+    const existingCalls = existingExecution[stepId] || [];
+    const existingIndex = existingCalls.findIndex(
+      (call) => call.id === toolCallId
+    );
+    const nextCall: StepToolCall = {
+      id: toolCallId,
+      name: update.name || "Tool",
+      args: update.args ?? null,
+      message: update.message ?? null,
+      startedAt:
+        existingIndex >= 0 ? existingCalls[existingIndex].startedAt : Date.now()
+    };
+    const nextCalls =
+      existingIndex >= 0
+        ? existingCalls.map((call, index) =>
+            index === existingIndex ? { ...call, ...nextCall } : call
+          )
+        : [...existingCalls, nextCall];
+
+    agentExecutionToolCalls = {
+      ...state.agentExecutionToolCalls,
+      [agentExecutionId]: {
+        ...existingExecution,
+        [stepId]: nextCalls
+      }
+    };
   }
-});
+
+  return {
+    update: {
+      statusMessage: update.message,
+      currentRunningToolCallId: toolCallId || null,
+      currentToolMessage: update.message || null,
+      ...(agentExecutionToolCalls ? { agentExecutionToolCalls } : {})
+    }
+  };
+};
 
 const applyAgentExecutionMessage = (
   state: GlobalChatState,
   threadId: string,
-  thread: any,
   messages: Message[],
   msg: Message
 ): ReducerResult => {
@@ -349,7 +399,9 @@ const applyAgentExecutionMessage = (
       ...state.messageCache,
       [threadId]: [...messages, msg]
     },
-    threads: updateThreadTimestamp(threadId, state.threads)
+    threads: state.threads[threadId]
+      ? updateThreadTimestamp(threadId, state.threads)
+      : state.threads
   };
 
   // Debug logging for agent execution messages
@@ -374,6 +426,11 @@ const applyAgentExecutionMessage = (
     const content = anyMsg.content;
     if (content && typeof content === "object" && !Array.isArray(content)) {
       update.currentTaskUpdate = content as TaskUpdate;
+      update.currentTaskUpdateThreadId = threadId;
+      update.lastTaskUpdatesByThread = {
+        ...state.lastTaskUpdatesByThread,
+        [threadId]: content as TaskUpdate
+      };
     }
   } else if (anyMsg.execution_event_type === "log_update") {
     const content = anyMsg.content;
@@ -396,7 +453,9 @@ const applyToolMessage = (
       ...state.messageCache,
       [threadId]: [...messages, msg]
     },
-    threads: updateThreadTimestamp(threadId, state.threads),
+    threads: state.threads[threadId]
+      ? updateThreadTimestamp(threadId, state.threads)
+      : state.threads,
     ...(msg.role === "tool"
       ? {
           currentRunningToolCallId: null,
@@ -514,22 +573,20 @@ const applyAssistantMessage = (
           return [...messages, msg];
         })()
       },
-      threads: updateThreadTimestamp(threadId, state.threads)
+      threads: state.threads[threadId]
+        ? updateThreadTimestamp(threadId, state.threads)
+        : state.threads
     }
   };
 };
 
 const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
-  const threadId = state.currentThreadId;
+  const threadId = msg.thread_id ?? state.currentThreadId;
   if (!threadId) return noopUpdate;
-
-  const thread = state.threads[threadId];
-  if (!thread) return noopUpdate;
-
   const messages = state.messageCache[threadId] || [];
 
   if (msg.role === "agent_execution") {
-    return applyAgentExecutionMessage(state, threadId, thread, messages, msg);
+    return applyAgentExecutionMessage(state, threadId, messages, msg);
   }
 
   const isAssistantToolCall =
@@ -573,6 +630,7 @@ const applyGenerationStopped = (): ReducerResult => ({
     statusMessage: null,
     currentPlanningUpdate: null,
     currentTaskUpdate: null,
+    currentTaskUpdateThreadId: null,
     currentLogUpdate: null
   }
 });
@@ -591,6 +649,8 @@ export async function handleChatWebSocketMessage(
   get: ChatStateGetter
 ) {
   const currentState = get();
+
+  console.log("handleChatWebSocketMessage", data);
 
   if (currentState.status === "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {

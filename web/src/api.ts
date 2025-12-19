@@ -4034,7 +4034,9 @@ export interface components {
             /** Name */
             name?: string | null;
             /** Content */
-            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
+            content?: string | {
+                [key: string]: unknown;
+            } | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Error Type */
             error_type?: string | null;
             /** Tool Calls */
@@ -4056,6 +4058,10 @@ export interface components {
             workflow_assistant?: boolean | null;
             /** Help Mode */
             help_mode?: boolean | null;
+            /** Agent Execution Id */
+            agent_execution_id?: string | null;
+            /** Execution Event Type */
+            execution_event_type?: string | null;
         };
         /** MessageAudioContent */
         MessageAudioContent: {
@@ -5302,6 +5308,8 @@ export interface components {
             type: "tool_call_update";
             /** Node Id */
             node_id?: string | null;
+            /** Tool Call Id */
+            tool_call_id?: string | null;
             /** Name */
             name: string;
             /** Args */
@@ -5310,6 +5318,10 @@ export interface components {
             };
             /** Message */
             message?: string | null;
+            /** Step Id */
+            step_id?: string | null;
+            /** Agent Execution Id */
+            agent_execution_id?: string | null;
         };
         /**
          * ToolResultUpdate
