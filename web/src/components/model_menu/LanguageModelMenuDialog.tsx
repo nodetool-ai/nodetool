@@ -8,14 +8,16 @@ export interface LanguageModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: LanguageModel) => void;
+  allowedProviders?: string[];
 }
 
 export default function LanguageModelMenuDialog({
   open,
   onClose,
-  onModelChange
+  onModelChange,
+  allowedProviders
 }: LanguageModelMenuDialogProps) {
-  const modelData = useLanguageModelsByProvider();
+  const modelData = useLanguageModelsByProvider({ allowedProviders });
   return (
     <ModelMenuDialogBase<LanguageModel>
       open={open}

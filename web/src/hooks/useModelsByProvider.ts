@@ -38,8 +38,19 @@ import {
  * Hook to fetch language models from all providers that support language models.
  * Queries each provider in parallel for better performance.
  */
-export const useLanguageModelsByProvider = () => {
-  const { providers, isLoading: providersLoading } = useLanguageModelProviders();
+export const useLanguageModelsByProvider = (options?: {
+  allowedProviders?: string[];
+}) => {
+  const { providers: allProviders, isLoading: providersLoading } =
+    useLanguageModelProviders();
+
+  const providers = useMemo(() => {
+    if (!options?.allowedProviders) return allProviders;
+    const lowerAllowed = options.allowedProviders.map((p) => p.toLowerCase());
+    return allProviders.filter((p) =>
+      lowerAllowed.includes(p.provider.toLowerCase())
+    );
+  }, [allProviders, options?.allowedProviders]);
 
   const queries = useQueries({
     queries: providers.map((provider) => ({
@@ -77,7 +88,8 @@ export const useLanguageModelsByProvider = () => {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    allowedProviders: options?.allowedProviders
   };
 };
 

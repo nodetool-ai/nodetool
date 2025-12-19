@@ -58,6 +58,7 @@ interface ChatToolBarProps {
   onAgentModeToggle?: (enabled: boolean) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
+  allowedProviders?: string[];
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
@@ -68,7 +69,8 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   agentMode,
   onAgentModeToggle,
   selectedCollections,
-  onCollectionsChange
+  onCollectionsChange,
+  allowedProviders
 }) => {
   const theme = useTheme();
 
@@ -79,6 +81,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
         <LanguageModelSelect
           onChange={(model) => onModelChange(model)}
           value={selectedModel?.id || ""}
+          allowedProviders={allowedProviders}
         />
       )}
       {onToolsChange && (

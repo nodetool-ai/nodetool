@@ -11,12 +11,14 @@ import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 interface LanguageModelSelectProps {
   onChange: (value: any) => void;
   value: string;
+  allowedProviders?: string[];
 }
 
 
 const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   onChange,
-  value
+  value,
+  allowedProviders
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -24,7 +26,9 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   const theme = useTheme();
 
   // Use the same hook as the dialog to fetch models
-  const { models: fetchedModels } = useLanguageModelsByProvider();
+  const { models: fetchedModels } = useLanguageModelsByProvider({
+    allowedProviders
+  });
 
   const currentSelectedModelDetails = useMemo(() => {
     if (!fetchedModels || !value) return null;
@@ -114,6 +118,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         open={dialogOpen}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
+        allowedProviders={allowedProviders}
       />
     </>
   );

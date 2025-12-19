@@ -94,6 +94,7 @@ type ChatViewProps = {
    */
   noMessagesPlaceholder?: React.ReactNode;
   onInsertCode?: (text: string, language?: string) => void;
+  allowedProviders?: string[];
 };
 
 const ChatView = ({
@@ -123,7 +124,8 @@ const ChatView = ({
   graph,
   onInsertCode,
   runningToolCallId,
-  runningToolMessage
+  runningToolMessage,
+  allowedProviders
 }: ChatViewProps) => {
   const theme = useTheme();
   const chatThreadContainerRef = useRef<HTMLDivElement | null>(null);
@@ -214,6 +216,7 @@ const ChatView = ({
         onModelChange={onModelChange}
         agentMode={agentMode}
         onAgentModeToggle={onAgentModeToggle}
+        allowedProviders={allowedProviders}
       />
     </div>
   );

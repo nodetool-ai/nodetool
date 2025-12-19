@@ -13,6 +13,7 @@ import ListIcon from "@mui/icons-material/List";
 import ThreadList from "../chat/thread/ThreadList";
 import type { ThreadInfo } from "../chat/thread";
 import { useNodes, NodeContext } from "../../contexts/NodeContext";
+import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
@@ -71,7 +72,9 @@ const WorkflowAssistantChat: React.FC = () => {
     threads,
     switchThread,
     deleteThread,
-    messageCache
+    messageCache,
+    currentRunningToolCallId,
+    currentToolMessage
   } = useGlobalChatStore();
 
   // Get the node store from context
@@ -179,6 +182,34 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Modal state for thread list
   const [isThreadListOpen, setIsThreadListOpen] = useState(false);
+
+  const { models: approvedModels } = useLanguageModelsByProvider({
+    allowedProviders: ["OpenAI"]
+  });
+
+  useEffect(() => {
+    if (approvedModels.length > 0) {
+      const isApproved = approvedModels.some(
+        (m: LanguageModel) =>
+          m.id === selectedModel.id &&
+          m.provider.toLowerCase() === selectedModel.provider?.toLowerCase()
+      );
+      if (!isApproved) {
+        // Fallback to first approved model (usually gpt-4o if available)
+        const fallback =
+          approvedModels.find((m: LanguageModel) => m.id === "gpt-4o") ||
+          approvedModels[0];
+        if (fallback) {
+          setSelectedModel({
+            type: "language_model",
+            id: fallback.id,
+            provider: fallback.provider,
+            name: fallback.name || fallback.id
+          });
+        }
+      }
+    }
+  }, [approvedModels, selectedModel.id, selectedModel.provider]);
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
@@ -316,6 +347,16 @@ const WorkflowAssistantChat: React.FC = () => {
         OPERATOR
       </h2>
       <p>Ask questions about your workflow or describe what you want to do.</p>
+      <p
+        style={{
+          fontSize: "0.85em",
+          color: "var(--palette-grey-400)",
+          marginTop: "1em",
+          maxWidth: "280px"
+        }}
+      >
+        This assistant uses OpenAI models for optimal workflow assistance.
+      </p>
     </div>
   );
 
@@ -414,6 +455,9 @@ const WorkflowAssistantChat: React.FC = () => {
         onStop={stopGeneration}
         onNewChat={handleNewChat}
         noMessagesPlaceholder={<AssistantWelcome />}
+        allowedProviders={["OpenAI"]}
+        runningToolCallId={currentRunningToolCallId}
+        runningToolMessage={currentToolMessage}
         graph={{
           nodes: nodes.map(reactFlowNodeToGraphNode),
           edges: edges.map(reactFlowEdgeToGraphEdge)
