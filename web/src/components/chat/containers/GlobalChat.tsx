@@ -30,14 +30,18 @@ const GlobalChat: React.FC = () => {
     statusMessage,
     error,
     currentThreadId,
+    threads,
     getCurrentMessagesSync,
     createNewThread,
     switchThread,
+    fetchThread,
     stopGeneration,
     agentMode,
     setAgentMode,
     currentPlanningUpdate,
     currentTaskUpdate,
+    currentTaskUpdateThreadId,
+    lastTaskUpdatesByThread,
     currentLogUpdate,
     threadsLoaded
   } = useGlobalChatStore();
@@ -77,6 +81,21 @@ const GlobalChat: React.FC = () => {
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
+  const taskUpdateForDisplay = useMemo(() => {
+    if (!currentThreadId) return null;
+    if (
+      currentTaskUpdate &&
+      currentTaskUpdateThreadId === currentThreadId
+    ) {
+      return currentTaskUpdate;
+    }
+    return lastTaskUpdatesByThread[currentThreadId] ?? null;
+  }, [
+    currentThreadId,
+    currentTaskUpdate,
+    currentTaskUpdateThreadId,
+    lastTaskUpdatesByThread
+  ]);
 
   // Ensure chat connection while GlobalChat is visible (do not disconnect on unmount)
   useEnsureChatConnected();
@@ -94,19 +113,37 @@ const GlobalChat: React.FC = () => {
       abortControllerRef.current = abortController;
 
       try {
-        // Wait for threads to be loaded before attempting to switch
-        if (!threadsLoaded || isLoadingThreads) {
-          return;
-        }
-
         // Check if operation was cancelled
         if (abortController.signal.aborted) {
           return;
         }
 
-        if (thread_id && thread_id !== currentThreadId) {
+        if (thread_id) {
+          if (thread_id === currentThreadId) {
+            return;
+          }
+
+          if (!threads[thread_id]) {
+            const fetched = await fetchThread(thread_id);
+            if (abortController.signal.aborted) {
+              return;
+            }
+            if (fetched) {
+              switchThread(thread_id);
+            }
+            return;
+          }
+
           switchThread(thread_id);
-        } else if (!currentThreadId && !thread_id) {
+          return;
+        }
+
+        // Wait for threads to be loaded before attempting to switch
+        if (!threadsLoaded || isLoadingThreads) {
+          return;
+        }
+
+        if (!currentThreadId) {
           // Create new thread if none exists
           const newThreadId = await createNewThread();
 
@@ -137,6 +174,8 @@ const GlobalChat: React.FC = () => {
     currentThreadId,
     switchThread,
     createNewThread,
+    fetchThread,
+    threads,
     threadsLoaded,
     isLoadingThreads
   ]);
@@ -373,7 +412,7 @@ const GlobalChat: React.FC = () => {
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}
             currentPlanningUpdate={currentPlanningUpdate}
-            currentTaskUpdate={currentTaskUpdate}
+            currentTaskUpdate={taskUpdateForDisplay}
             currentLogUpdate={currentLogUpdate}
           />
         </Box>

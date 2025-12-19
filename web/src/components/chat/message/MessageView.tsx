@@ -19,6 +19,7 @@ import {
   stripContextContent
 } from "../utils/messageUtils";
 import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -31,7 +32,6 @@ import {
   Typography
 } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
-import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import StepResultDisplay from "../../node/StepResultDisplay";
@@ -43,7 +43,7 @@ interface MessageViewProps {
   onToggleThought: (key: string) => void;
   onInsertCode?: (text: string, language?: string) => void;
   toolResultsByCallId?: Record<string, { name?: string | null; content: any }>;
-  renderedExecutionIds?: Set<string>;
+  executionMessagesById?: Map<string, Message[]>;
 }
 
 export const MessageView: React.FC<
@@ -55,13 +55,40 @@ export const MessageView: React.FC<
   onInsertCode,
   toolResultsByCallId,
   componentStyles,
-  renderedExecutionIds
+  executionMessagesById
 }) => {
   const insertIntoEditor = useEditorInsertion();
-  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
-  const getAgentExecutionMessages = useGlobalChatStore(
-    (state) => state.getAgentExecutionMessages
-  );
+
+  const normalizeExecutionPayload = (rawMessage: Message) => {
+    let executionContent = rawMessage.content as any;
+    let executionEventType = rawMessage.execution_event_type;
+
+    if (typeof executionContent === "string") {
+      try {
+        executionContent = JSON.parse(executionContent);
+        if (typeof executionContent === "string") {
+          try {
+            executionContent = JSON.parse(executionContent);
+          } catch (error) {
+            // Keep intermediate string if nested JSON parsing fails.
+          }
+        }
+      } catch (error) {
+        // Keep original string if JSON parsing fails.
+      }
+    }
+
+    if (
+      !executionEventType &&
+      executionContent &&
+      typeof executionContent === "object" &&
+      "type" in executionContent
+    ) {
+      executionEventType = (executionContent as any).type;
+    }
+
+    return { executionContent, executionEventType };
+  };
 
   // Handle agent execution messages with consolidation
   if (message.role === "agent_execution") {
@@ -69,28 +96,29 @@ export const MessageView: React.FC<
 
     // If no agent_execution_id, fall back to old behavior
     if (!agentExecutionId) {
-      const executionContent = message.content as any;
+      const { executionContent, executionEventType } =
+        normalizeExecutionPayload(message);
 
-      if (message.execution_event_type === "planning_update") {
+      if (executionEventType === "planning_update") {
         return (
           <li className="chat-message-list-item execution-event">
             <PlanningUpdateDisplay planningUpdate={executionContent as PlanningUpdate} />
           </li>
         );
-      } else if (message.execution_event_type === "task_update") {
+      } else if (executionEventType === "task_update") {
         return (
           <li className="chat-message-list-item execution-event">
             <TaskUpdateDisplay taskUpdate={executionContent as TaskUpdate} />
           </li>
         );
-      } else if (message.execution_event_type === "step_result") {
+      } else if (executionEventType === "step_result") {
         const stepResult = executionContent as StepResult;
         return (
           <li className="chat-message-list-item execution-event">
             <StepResultDisplay stepResult={stepResult} />
           </li>
         );
-      } else if (message.execution_event_type === "log_update") {
+      } else if (executionEventType === "log_update") {
         return (
           <li className="chat-message-list-item execution-event">
             <Box sx={{ 
@@ -111,27 +139,49 @@ export const MessageView: React.FC<
       return null;
     }
 
-    // Check if this agent_execution_id has already been rendered
-    if (renderedExecutionIds && renderedExecutionIds.has(agentExecutionId)) {
-      // Skip rendering - this execution is already shown in consolidated view
-      return null;
+    const executionMessages = executionMessagesById?.get(agentExecutionId) ?? [];
+    if (executionMessages.length > 0) {
+      return <AgentExecutionView messages={executionMessages} />;
     }
 
-    // Mark this execution as rendered
-    if (renderedExecutionIds) {
-      renderedExecutionIds.add(agentExecutionId);
-    }
+    const { executionContent, executionEventType } =
+      normalizeExecutionPayload(message);
 
-    // Get all messages for this agent execution and render consolidated view
-    if (currentThreadId) {
-      const executionMessages = getAgentExecutionMessages(
-        currentThreadId,
-        agentExecutionId
+    if (executionEventType === "planning_update") {
+      return (
+        <li className="chat-message-list-item execution-event">
+          <PlanningUpdateDisplay planningUpdate={executionContent as PlanningUpdate} />
+        </li>
       );
-
-      if (executionMessages.length > 0) {
-        return <AgentExecutionView messages={executionMessages} />;
-      }
+    } else if (executionEventType === "task_update") {
+      return (
+        <li className="chat-message-list-item execution-event">
+          <TaskUpdateDisplay taskUpdate={executionContent as TaskUpdate} />
+        </li>
+      );
+    } else if (executionEventType === "step_result") {
+      const stepResult = executionContent as StepResult;
+      return (
+        <li className="chat-message-list-item execution-event">
+          <StepResultDisplay stepResult={stepResult} />
+        </li>
+      );
+    } else if (executionEventType === "log_update") {
+      return (
+        <li className="chat-message-list-item execution-event">
+          <Box sx={{ 
+            fontSize: "0.8rem", 
+            padding: "0.5rem 0.75rem", 
+            borderRadius: "8px", 
+            backgroundColor: "rgba(30, 35, 40, 0.4)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            color: executionContent.severity === "error" ? "error.light" : executionContent.severity === "warning" ? "warning.light" : "grey.300",
+            mb: 1
+          }}>
+            {executionContent.content}
+          </Box>
+        </li>
+      );
     }
 
     return null;
@@ -286,7 +336,6 @@ export const MessageView: React.FC<
       >
         <Box className="tool-call-header">
           <Chip
-            label={tc.name || "Tool"}
             color="default"
             size="small"
             variant="outlined"
@@ -337,6 +386,7 @@ export const MessageView: React.FC<
         )}
         {message.role === "assistant" &&
           Array.isArray(message.tool_calls) &&
+          !message.agent_execution_id && // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
           (message.tool_calls as ToolCall[]).map((tc, i) => (
             <ToolCallCard
               key={tc.id || i}

@@ -65,6 +65,19 @@ type ChatStatus =
   | "error"
   | "stopping";
 
+export type StepToolCall = {
+  id: string;
+  name: string;
+  args: Record<string, any> | null;
+  message?: string | null;
+  startedAt: number;
+};
+
+export type AgentExecutionToolCalls = Record<
+  string,
+  Record<string, StepToolCall[]>
+>;
+
 export interface GlobalChatState {
   // Connection state
   status: ChatStatus;
@@ -98,6 +111,9 @@ export interface GlobalChatState {
   agentMode: boolean;
   setAgentMode: (enabled: boolean) => void;
 
+  // Agent execution trace
+  agentExecutionToolCalls: AgentExecutionToolCalls;
+
   // Selections
   selectedModel: LanguageModel;
   setSelectedModel: (model: LanguageModel) => void;
@@ -113,6 +129,8 @@ export interface GlobalChatState {
   // Task updates
   currentTaskUpdate: TaskUpdate | null;
   setTaskUpdate: (update: TaskUpdate | null) => void;
+  currentTaskUpdateThreadId: string | null;
+  lastTaskUpdatesByThread: Record<string, TaskUpdate | null>;
 
   // Log updates
   currentLogUpdate: LogUpdate | null;
@@ -133,6 +151,7 @@ export interface GlobalChatState {
 
   // Thread actions
   fetchThreads: () => Promise<void>;
+  fetchThread: (threadId: string) => Promise<Thread | null>;
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
@@ -200,6 +219,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
       agentMode: false,
       setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
 
+      // Agent execution trace
+      agentExecutionToolCalls: {},
+
       // Selections
       selectedModel: buildDefaultLanguageModel(),
       setSelectedModel: (model: LanguageModel) => {
@@ -242,6 +264,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
       currentTaskUpdate: null,
       setTaskUpdate: (update: TaskUpdate | null) =>
         set({ currentTaskUpdate: update }),
+      currentTaskUpdateThreadId: null,
+      lastTaskUpdatesByThread: {},
 
       // Log updates
       currentLogUpdate: null,
@@ -490,20 +514,21 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Safety timeout - reset status if no response after 60 seconds
           setTimeout(() => {
             const currentState = get();
-            if (
-              currentState.status === "loading" ||
-              currentState.status === "streaming"
-            ) {
-              log.warn("Generation timeout - resetting status to connected");
-              set({
-                status: "connected",
-                progress: { current: 0, total: 0 },
-                statusMessage: null,
-                currentPlanningUpdate: null,
-                currentTaskUpdate: null
-              });
-            }
-          }, 60000);
+              if (
+                currentState.status === "loading" ||
+                currentState.status === "streaming"
+              ) {
+                log.warn("Generation timeout - resetting status to connected");
+                set({
+                  status: "connected",
+                  progress: { current: 0, total: 0 },
+                  statusMessage: null,
+                  currentPlanningUpdate: null,
+                  currentTaskUpdate: null,
+                  currentTaskUpdateThreadId: null
+                });
+              }
+            }, 60000);
         } catch (error) {
           log.error("Failed to send message:", error);
           set({
@@ -548,6 +573,31 @@ const useGlobalChatStore = create<GlobalChatState>()(
           set({ threadsLoaded: true }); // Ensure threadsLoaded is true even on error
         } finally {
           set({ isLoadingThreads: false });
+        }
+      },
+
+      fetchThread: async (threadId: string) => {
+        try {
+          const { data, error } = await client.GET("/api/threads/{thread_id}", {
+            params: { path: { thread_id: threadId } }
+          });
+          if (error) {
+            throw new Error(
+              error.detail?.[0]?.msg || "Failed to fetch thread"
+            );
+          }
+
+          set((state) => ({
+            threads: {
+              ...state.threads,
+              [threadId]: data
+            }
+          }));
+
+          return data;
+        } catch (error) {
+          log.error("Failed to fetch thread:", error);
+          return null;
         }
       },
 
@@ -901,7 +951,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             progress: { current: 0, total: 0 },
             statusMessage: null,
             currentPlanningUpdate: null,
-            currentTaskUpdate: null
+            currentTaskUpdate: null,
+            currentTaskUpdateThreadId: null
           });
         } catch (error) {
           log.error("Failed to send stop signal:", error);
