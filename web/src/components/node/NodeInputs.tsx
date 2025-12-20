@@ -3,7 +3,7 @@ import { memo, useCallback, useMemo } from "react";
 import PropertyField from "./PropertyField";
 import { NodeMetadata, Property, TypeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";

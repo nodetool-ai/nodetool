@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 

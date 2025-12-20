@@ -1,7 +1,7 @@
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const NonEditableProperty = (props: PropertyProps) => {
   const id = `non-editable-${props.property.name}-${props.propertyIndex}`;

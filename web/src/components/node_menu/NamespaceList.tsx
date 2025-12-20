@@ -14,7 +14,7 @@ import {
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
 import NodeInfo from "./NodeInfo";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
 import { usePanelStore } from "../../stores/PanelStore";

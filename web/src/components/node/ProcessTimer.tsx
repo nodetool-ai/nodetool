@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useState } from "react";
 import { Box } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 export const ProcessTimer = ({ status }: { status: string }) => {
   const [seconds, setSeconds] = useState("");

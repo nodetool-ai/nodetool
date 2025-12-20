@@ -10,7 +10,7 @@ import ColumnsManager from "../node/ColumnsManager";
 import { Button, ButtonGroup } from "@mui/material";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
   css({

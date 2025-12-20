@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { memo, useCallback, useMemo, useState } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";

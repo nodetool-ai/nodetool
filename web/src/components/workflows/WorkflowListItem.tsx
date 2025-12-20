@@ -8,7 +8,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import LaunchIcon from "@mui/icons-material/Launch";
 import { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface WorkflowListItemProps {
   workflow: Workflow;

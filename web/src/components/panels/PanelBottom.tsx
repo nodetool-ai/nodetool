@@ -6,7 +6,7 @@ import { Drawer, IconButton, Tooltip, Typography } from "@mui/material";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import Terminal from "../terminal/Terminal";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";

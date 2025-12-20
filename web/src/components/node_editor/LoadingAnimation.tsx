@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, memo } from "react";
 import "../../styles/loading_animation.css";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const gradients = ["gradient1", "gradient2", "gradient3", "gradient4"];
 

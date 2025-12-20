@@ -13,7 +13,7 @@ import {
   AccordionSummary,
   AccordionDetails
 } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";

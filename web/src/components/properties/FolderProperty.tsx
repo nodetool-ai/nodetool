@@ -20,7 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useRef, useEffect, useMemo } from "react";
 import dialogStyles from "../../styles/DialogStyles";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const FolderProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;

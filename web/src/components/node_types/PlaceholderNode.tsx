@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useState, useMemo, useCallback, useEffect } from "react";
 import { Node, NodeProps } from "@xyflow/react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { Container, Tooltip, Button, CircularProgress } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";

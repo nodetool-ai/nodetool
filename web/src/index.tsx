@@ -9,7 +9,7 @@ import type {} from "./window";
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -24,8 +24,8 @@ import ErrorBoundary from "./ErrorBoundary";
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
 import PanelBottom from "./components/panels/PanelBottom";
-import { CircularProgress, useMediaQuery } from "@mui/material";
-import { ThemeProvider, useTheme } from "@mui/material/styles";
+import { CircularProgress } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 import { CssBaseline } from "@mui/material";
 
@@ -38,42 +38,57 @@ import "./styles/command_menu.css";
 import "./styles/mobile.css";
 import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
-import AssetExplorer from "./components/assets/AssetExplorer";
-import CollectionsExplorer from "./components/collections/CollectionsExplorer";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./queryClient";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
-import TemplateGrid from "./components/workflows/ExampleGrid";
-import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
-import TabsNodeEditor from "./components/editor/TabsNodeEditor";
 import { useSettingsStore } from "./stores/SettingsStore";
 import {
   FetchCurrentWorkflow,
-  WorkflowManagerProvider,
-  useWorkflowManager
+  WorkflowManagerProvider
 } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
-import ModelListIndex from "./components/hugging_face/model_list/ModelListIndex";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
-import MiniAppPage from "./components/miniapps/MiniAppPage";
 import { useJobReconnection } from "./hooks/useJobReconnection";
 
 import log from "loglevel";
-import GlobalChat from "./components/chat/containers/GlobalChat";
-// Dev-only component for UI testing
-import LayoutTest from "./components/LayoutTest";
-import Dashboard from "./components/dashboard/Dashboard";
 import Alert from "./components/node_editor/Alert";
 import MobileClassProvider from "./components/MobileClassProvider";
 import AppHeader from "./components/panels/AppHeader";
+
+// Lazy-loaded route components for code splitting
+const Dashboard = React.lazy(
+  () => import("./components/dashboard/Dashboard")
+);
+const GlobalChat = React.lazy(
+  () => import("./components/chat/containers/GlobalChat")
+);
+const MiniAppPage = React.lazy(
+  () => import("./components/miniapps/MiniAppPage")
+);
+const ModelListIndex = React.lazy(
+  () => import("./components/hugging_face/model_list/ModelListIndex")
+);
+const TabsNodeEditor = React.lazy(
+  () => import("./components/editor/TabsNodeEditor")
+);
+const AssetExplorer = React.lazy(
+  () => import("./components/assets/AssetExplorer")
+);
+const CollectionsExplorer = React.lazy(
+  () => import("./components/collections/CollectionsExplorer")
+);
+const TemplateGrid = React.lazy(
+  () => import("./components/workflows/ExampleGrid")
+);
+const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
@@ -335,7 +350,23 @@ const AppWrapper = () => {
                   {/* Render RouterProvider only when metadata is successfully loaded */}
                   {status !== "pending" && status !== "error" && (
                     <>
-                      <RouterProvider router={router} />
+                      <Suspense
+                        fallback={
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "center",
+                              alignItems: "center",
+                              height: "100vh",
+                              width: "100%"
+                            }}
+                          >
+                            <CircularProgress />
+                          </div>
+                        }
+                      >
+                        <RouterProvider router={router} />
+                      </Suspense>
                       <DownloadManagerDialog />
                     </>
                   )}

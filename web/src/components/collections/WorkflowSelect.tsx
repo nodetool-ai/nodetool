@@ -2,7 +2,7 @@ import { Autocomplete, SxProps, TextField, Typography } from "@mui/material";
 import { WorkflowList } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 interface WorkflowSelectProps {

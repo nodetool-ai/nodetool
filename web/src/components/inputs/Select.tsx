@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import React, {
   useCallback,
   useMemo,

@@ -8,7 +8,7 @@ import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { memo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";

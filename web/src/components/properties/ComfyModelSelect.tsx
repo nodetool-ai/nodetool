@@ -1,6 +1,6 @@
 import { useMemo, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
 import { client } from "../../stores/ApiClient";
 import { RepoPath } from "../../stores/ApiTypes";

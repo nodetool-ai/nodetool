@@ -7,7 +7,7 @@ import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { FixedSizeList } from "react-window";
 
 interface WorkflowListViewProps {

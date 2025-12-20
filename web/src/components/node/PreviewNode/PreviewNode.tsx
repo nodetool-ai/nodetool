@@ -7,7 +7,7 @@ import { Container, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import log from "loglevel";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";

@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef, memo } from "react";
 import { Grid, InputLabel } from "@mui/material";
 import log from "loglevel";
 import { ColumnDef } from "../../stores/ApiTypes";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import Column from "./Column";
 
 const styles = (theme: Theme) =>

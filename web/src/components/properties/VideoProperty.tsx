@@ -6,7 +6,7 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { memo } from "react";
 
 const styles = (theme: Theme) =>

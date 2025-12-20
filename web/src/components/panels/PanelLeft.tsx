@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { memo, useCallback, useContext } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type { XYPosition, Node as ReactFlowNode } from "@xyflow/react";

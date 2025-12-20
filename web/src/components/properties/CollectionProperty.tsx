@@ -4,7 +4,7 @@ import { client } from "../../stores/ApiClient";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useMemo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import Select from "../inputs/Select";
 

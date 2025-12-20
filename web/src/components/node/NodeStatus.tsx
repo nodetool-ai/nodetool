@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { Typography } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface NodeStatusProps {
   status: string;

@@ -5,7 +5,7 @@ import { useTheme, alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
   css({

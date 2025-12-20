@@ -5,7 +5,7 @@ import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { UnifiedModel, ModelPack } from "../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface ModelRecommendationsButtonProps {
   recommendedModels: UnifiedModel[];

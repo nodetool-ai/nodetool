@@ -14,7 +14,7 @@ import {
   Position,
   ResizeParams
 } from "@xyflow/react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";

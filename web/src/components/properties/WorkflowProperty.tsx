@@ -5,7 +5,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 const WorkflowProperty = (props: PropertyProps) => {
   const id = `workflow-${props.property.name}-${props.propertyIndex}`;

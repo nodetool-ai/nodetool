@@ -8,7 +8,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { Button } from "@mui/material";
 import { useState } from "react";
 import { useNodes } from "../../contexts/NodeContext";

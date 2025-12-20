@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import Select from "../inputs/Select";

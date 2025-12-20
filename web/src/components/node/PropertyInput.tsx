@@ -24,7 +24,7 @@ import DataframeProperty from "../properties/DataframeProperty";
 import DictProperty from "../properties/DictProperty";
 import RecordTypeProperty from "../properties/RecordTypeProperty";
 import ModelProperty from "../properties/ModelProperty";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import ColorProperty from "../properties/ColorProperty";
 import FilePathProperty from "../properties/FilePathProperty";
 import CollectionProperty from "../properties/CollectionProperty";

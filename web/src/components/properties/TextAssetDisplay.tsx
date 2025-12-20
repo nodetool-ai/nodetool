@@ -5,7 +5,7 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { Typography, Tooltip } from "@mui/material";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const MAX_TEXT_LENGTH = 1000;
 const MAX_TEXT_HEIGHT = 50;
