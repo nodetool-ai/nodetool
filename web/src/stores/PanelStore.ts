@@ -1,9 +1,5 @@
-/**
- * PanelStore manages the state and behavior of resizable panels in the application.
- * It handles panel dimensions, visibility, dragging state, and view management using Zustand.
- */
-
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type LeftPanelView =
   | "chat"
@@ -57,105 +53,119 @@ const createInitialState = (): PanelState => {
   };
 };
 
-export const usePanelStore = create<ResizePanelState>()((set, get) => ({
-  panel: createInitialState(),
+export const usePanelStore = create<ResizePanelState>()(
+  persist(
+    (set, get) => ({
+      panel: createInitialState(),
 
-  setSize: (newSize) =>
-    set((state) => {
-      // Allow collapsing to MIN_DRAG_SIZE
-      if (newSize <= MIN_DRAG_SIZE) {
-        return {
+      setSize: (newSize: number) =>
+        set((state: ResizePanelState) => {
+          // Allow collapsing to MIN_DRAG_SIZE
+          if (newSize <= MIN_DRAG_SIZE) {
+            return {
+              panel: {
+                ...state.panel,
+                panelSize: MIN_DRAG_SIZE
+              }
+            };
+          }
+
+          const validSize = Math.min(newSize, MAX_PANEL_SIZE);
+          return {
+            panel: {
+              ...state.panel,
+              panelSize: validSize
+            }
+          };
+        }),
+
+      setIsDragging: (isDragging: boolean) => {
+        set((state: ResizePanelState) => ({
+          panel: { ...state.panel, isDragging }
+        }));
+      },
+
+      setHasDragged: (hasDragged: boolean) => {
+        set((state: ResizePanelState) => ({
+          panel: { ...state.panel, hasDragged }
+        }));
+      },
+
+      initializePanelSize: (size?: number) => {
+        // When initializing, ensure we don't go below MIN_PANEL_SIZE
+        const validSize = Math.max(
+          MIN_PANEL_SIZE,
+          Math.min(size || DEFAULT_PANEL_SIZE, MAX_PANEL_SIZE)
+        );
+        set((state: ResizePanelState) => ({
           panel: {
             ...state.panel,
-            panelSize: MIN_DRAG_SIZE
+            panelSize: validSize
           }
-        };
-      }
+        }));
+      },
 
-      const validSize = Math.min(newSize, MAX_PANEL_SIZE);
-      return {
-        panel: {
-          ...state.panel,
-          panelSize: validSize
+      setActiveView: (view: PanelView) => {
+        set((state: ResizePanelState) => ({
+          panel: {
+            ...state.panel,
+            activeView: view
+          }
+        }));
+      },
+
+      closePanel: () => {
+        set((state: ResizePanelState) => ({
+          panel: { ...state.panel, panelSize: MIN_DRAG_SIZE, isVisible: false }
+        }));
+      },
+
+      setVisibility: (isVisible: boolean) => {
+        set((state: ResizePanelState) => ({
+          panel: { ...state.panel, isVisible }
+        }));
+      },
+
+      handleViewChange: (view: PanelView) => {
+        const { panel } = get();
+
+        if (panel.activeView === view) {
+          if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
+            set((state: ResizePanelState) => ({
+              panel: {
+                ...state.panel,
+                panelSize: MIN_PANEL_SIZE,
+                isVisible: true
+              }
+            }));
+          } else {
+            set((state: ResizePanelState) => ({
+              panel: {
+                ...state.panel,
+                isVisible: !state.panel.isVisible
+              }
+            }));
+          }
+        } else {
+          set((state: ResizePanelState) => ({
+            panel: {
+              ...state.panel,
+              activeView: view,
+              isVisible: true
+            }
+          }));
         }
-      };
+      }
     }),
-
-  setIsDragging: (isDragging) => {
-    set((state) => ({
-      panel: { ...state.panel, isDragging }
-    }));
-  },
-
-  setHasDragged: (hasDragged) => {
-    set((state) => ({
-      panel: { ...state.panel, hasDragged }
-    }));
-  },
-
-  initializePanelSize: (size) => {
-    // When initializing, ensure we don't go below MIN_PANEL_SIZE
-    const validSize = Math.max(
-      MIN_PANEL_SIZE,
-      Math.min(size || DEFAULT_PANEL_SIZE, MAX_PANEL_SIZE)
-    );
-    set((state) => ({
-      panel: {
-        ...state.panel,
-        panelSize: validSize
-      }
-    }));
-  },
-
-  setActiveView: (view) => {
-    set((state) => ({
-      panel: {
-        ...state.panel,
-        activeView: view
-      }
-    }));
-  },
-
-  closePanel: () => {
-    set((state) => ({
-      panel: { ...state.panel, panelSize: MIN_DRAG_SIZE, isVisible: false }
-    }));
-  },
-
-  setVisibility: (isVisible: boolean) => {
-    set((state) => ({
-      panel: { ...state.panel, isVisible }
-    }));
-  },
-
-  handleViewChange: (view: PanelView) => {
-    const { panel } = get();
-
-    if (panel.activeView === view) {
-      if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
-        set((state) => ({
-          panel: {
-            ...state.panel,
-            panelSize: MIN_PANEL_SIZE,
-            isVisible: true
-          }
-        }));
-      } else {
-        set((state) => ({
-          panel: {
-            ...state.panel,
-            isVisible: !state.panel.isVisible
-          }
-        }));
-      }
-    } else {
-      set((state) => ({
+    {
+      name: "left-panel-storage",
+      partialize: (state: ResizePanelState) => ({
         panel: {
           ...state.panel,
-          activeView: view,
-          isVisible: true
+          isDragging: false,
+          hasDragged: false
         }
-      }));
+      })
     }
-  }
-}));
+  )
+);
