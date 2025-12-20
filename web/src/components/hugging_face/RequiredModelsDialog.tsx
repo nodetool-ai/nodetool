@@ -16,6 +16,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ModelCard from "./model_card/ModelCard";
+import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 
@@ -59,11 +60,14 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
   repos
 }) => {
   const theme = useTheme();
-  const { startDownload, downloads } = useModelDownloadStore((state) => ({
-    startDownload: state.startDownload,
-    openDialog: state.openDialog,
-    downloads: state.downloads
-  }));
+  const { startDownload, downloads } = useModelDownloadStore(
+    (state) => ({
+      startDownload: state.startDownload,
+      openDialog: state.openDialog,
+      downloads: state.downloads
+    }),
+    shallow
+  );
 
   return (
     <Dialog

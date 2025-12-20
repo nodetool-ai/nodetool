@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Button, Tooltip } from "@mui/material";
+import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -28,10 +29,13 @@ const moveRight = keyframes`
 
 const OverallDownloadProgress: React.FC = () => {
   const PROGRESS_BAR_WIDTH = "160px";
-  const { downloads, openDialog } = useModelDownloadStore((state) => ({
-    downloads: state.downloads,
-    openDialog: state.openDialog
-  }));
+  const { downloads, openDialog } = useModelDownloadStore(
+    (state) => ({
+      downloads: state.downloads,
+      openDialog: state.openDialog
+    }),
+    shallow
+  );
 
   const totalBytes = Object.values(downloads).reduce(
     (sum, download) =>

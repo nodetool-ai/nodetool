@@ -1,15 +1,19 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { shallow } from "zustand/shallow";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 export const useAssetSelection = (sortedAssets: Asset[]) => {
   const { selectedAssetIds, setSelectedAssetIds, setSelectedAssets } =
-    useAssetGridStore((state) => ({
-      selectedAssetIds: state.selectedAssetIds,
-      setSelectedAssetIds: state.setSelectedAssetIds,
-      setSelectedAssets: state.setSelectedAssets
-    }));
+    useAssetGridStore(
+      (state) => ({
+        selectedAssetIds: state.selectedAssetIds,
+        setSelectedAssetIds: state.setSelectedAssetIds,
+        setSelectedAssets: state.setSelectedAssets
+      }),
+      shallow
+    );
   const [lastSelectedAssetId, setLastSelectedAssetId] = useState<string | null>(
     null
   );

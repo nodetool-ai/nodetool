@@ -22,6 +22,7 @@ import assetGridStyles from "./assetGridStyles";
 import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
 
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { shallow } from "zustand/shallow";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
@@ -117,10 +118,13 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const { user } = useAuth();
 
-  const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore((state) => ({
-    F2KeyPressed: state.isKeyPressed("F2"),
-    spaceKeyPressed: state.isKeyPressed(" ")
-  }));
+  const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore(
+    (state) => ({
+      F2KeyPressed: state.isKeyPressed("F2"),
+      spaceKeyPressed: state.isKeyPressed(" ")
+    }),
+    shallow
+  );
 
   const { uploadAsset, isUploading } = useAssetUpload();
 
