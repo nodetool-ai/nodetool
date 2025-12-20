@@ -29,6 +29,7 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 // constants
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import isEqual from "lodash/isEqual";
+import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
@@ -104,12 +105,15 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     documentationPosition,
     showDocumentation,
     closeDocumentation
-  } = useNodeMenuStore((state) => ({
-    selectedNodeType: state.selectedNodeType,
-    documentationPosition: state.documentationPosition,
-    showDocumentation: state.showDocumentation,
-    closeDocumentation: state.closeDocumentation
-  }));
+  } = useNodeMenuStore(
+    (state) => ({
+      selectedNodeType: state.selectedNodeType,
+      documentationPosition: state.documentationPosition,
+      showDocumentation: state.showDocumentation,
+      closeDocumentation: state.closeDocumentation
+    }),
+    shallow
+  );
 
   return (
     <>

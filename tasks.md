@@ -331,7 +331,7 @@ export default memo(TemplateGrid, (prevProps, nextProps) => {
 | 1. React.lazy routes | 🔴 High | ✅ Done | | Lazy-loaded 9 route components |
 | 2. Tree-shake lodash | 🔴 High | ✅ Done | | Converted 110 files to tree-shakeable imports |
 | 3. Virtualize grids | 🟠 Medium | ⬜ Todo | | |
-| 4. Shallow equality | 🟠 Medium | ⬜ Todo | | |
+| 4. Shallow equality | 🟠 Medium | ✅ Done | | Added shallow to 16 files + default in hooks |
 | 5. Batch cache API | 🟠 Medium | ⬜ Todo | | |
 | 6. Split OutputRenderer | 🟠 Medium | ⬜ Todo | | |
 | 7. Extract static CSS | 🟠 Medium | ⬜ Todo | | |

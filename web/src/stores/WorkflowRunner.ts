@@ -39,6 +39,7 @@ import { supabase } from "../lib/supabaseClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import { shallow } from "zustand/shallow";
 import { queryClient } from "../queryClient";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
 
@@ -489,7 +490,7 @@ export function useWebsocketRunner<T>(
 
   const store = getWorkflowRunnerStore(currentWorkflowId);
 
-  return useStoreWithEqualityFn(store, selector, equalityFn);
+  return useStoreWithEqualityFn(store, selector, equalityFn ?? shallow);
 }
 
 export default useWebsocketRunner;

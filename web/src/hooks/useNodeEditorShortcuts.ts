@@ -11,6 +11,7 @@ import { useCopyPaste } from "./handlers/useCopyPaste";
 import useAlignNodes from "./useAlignNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
+import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
@@ -54,9 +55,12 @@ export const useNodeEditorShortcuts = (
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
 
-  const nodeMenuStore = useNodeMenuStore((state) => ({
-    openNodeMenu: state.openNodeMenu
-  }));
+  const nodeMenuStore = useNodeMenuStore(
+    (state) => ({
+      openNodeMenu: state.openNodeMenu
+    }),
+    shallow
+  );
   const handleFitView = useFitView();
   const navigate = useNavigate();
   const addNotification = useNotificationStore(

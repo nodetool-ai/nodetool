@@ -49,6 +49,7 @@ import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
 import isEqual from "lodash/isEqual";
+import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
@@ -138,11 +139,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const reactFlowInstance = useReactFlow();
   const { pendingNodeType, cancelPlacement, placementLabel } =
-    useNodePlacementStore((state) => ({
-      pendingNodeType: state.pendingNodeType,
-      cancelPlacement: state.cancelPlacement,
-      placementLabel: state.label
-    }));
+    useNodePlacementStore(
+      (state) => ({
+        pendingNodeType: state.pendingNodeType,
+        cancelPlacement: state.cancelPlacement,
+        placementLabel: state.label
+      }),
+      shallow
+    );
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
     y: number;
@@ -261,7 +265,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       documentationPosition: state.documentationPosition,
       showDocumentation: state.showDocumentation,
       closeDocumentation: state.closeDocumentation
-    })
+    }),
+    shallow
   );
 
   useEffect(() => {

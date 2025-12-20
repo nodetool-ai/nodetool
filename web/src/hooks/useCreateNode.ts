@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { NodeMetadata } from "../stores/ApiTypes";
+import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
@@ -10,10 +11,13 @@ import { useNodes } from "../contexts/NodeContext";
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined
 ) => {
-  const { clickPosition, closeNodeMenu } = useNodeMenuStore((state) => ({
-    clickPosition: state.clickPosition,
-    closeNodeMenu: state.closeNodeMenu
-  }));
+  const { clickPosition, closeNodeMenu } = useNodeMenuStore(
+    (state) => ({
+      clickPosition: state.clickPosition,
+      closeNodeMenu: state.closeNodeMenu
+    }),
+    shallow
+  );
   const reactFlowInstance = useReactFlow();
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,

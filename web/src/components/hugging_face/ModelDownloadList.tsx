@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Grid, Box } from "@mui/material";
+import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { UnifiedModel } from "../../stores/ApiTypes";
@@ -28,10 +29,13 @@ interface ModelDownloadListProps {
 
 const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   const theme = useTheme();
-  const { downloads } = useModelDownloadStore((state) => ({
-    startDownload: state.startDownload,
-    downloads: state.downloads
-  }));
+  const { downloads } = useModelDownloadStore(
+    (state) => ({
+      startDownload: state.startDownload,
+      downloads: state.downloads
+    }),
+    shallow
+  );
 
   return (
     <Box css={styles(theme)}>
