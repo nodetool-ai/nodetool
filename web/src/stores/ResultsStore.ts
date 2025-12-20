@@ -4,7 +4,7 @@ import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
 type ResultsStore = {
   results: Record<string, any>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
-  edges: Record<string, string>;
+  edges: Record<string, { status: string; counter?: number }>;
   chunks: Record<string, string>;
   tasks: Record<string, Task>;
   toolCalls: Record<string, ToolCallUpdate>;
@@ -19,8 +19,16 @@ type ResultsStore = {
   clearPlanningUpdates: (workflowId: string) => void;
   clearPreviews: (workflowId: string) => void;
   clearEdges: (workflowId: string) => void;
-  setEdge: (workflowId: string, edgeId: string, status: string) => void;
-  getEdge: (workflowId: string, edgeId: string) => string | undefined;
+  setEdge: (
+    workflowId: string,
+    edgeId: string,
+    status: string,
+    counter?: number
+  ) => void;
+  getEdge: (
+    workflowId: string,
+    edgeId: string
+  ) => { status: string; counter?: number } | undefined;
   setPreview: (
     workflowId: string,
     nodeId: string,
@@ -154,11 +162,16 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * Set the status for an edge.
    * The edge is stored in the edges map.
    */
-  setEdge: (workflowId: string, edgeId: string, status: string) => {
+  setEdge: (
+    workflowId: string,
+    edgeId: string,
+    status: string,
+    counter?: number
+  ) => {
     set({
       edges: {
         ...get().edges,
-        [hashKey(workflowId, edgeId)]: status
+        [hashKey(workflowId, edgeId)]: { status, counter }
       }
     });
   },

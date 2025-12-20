@@ -11,7 +11,7 @@ interface ProcessedEdgesOptions {
   dataTypes: DataType[];
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
   workflowId?: string;
-  edgeStatuses?: Record<string, string>;
+  edgeStatuses?: Record<string, { status: string; counter?: number }>;
   /** true while the selection rectangle is being dragged */
   isSelecting?: boolean;
 }
@@ -201,13 +201,29 @@ export function useProcessedEdges({
 
       const statusKey =
         workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
-      const status = statusKey ? edgeStatuses?.[statusKey] : undefined;
+      const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
+      const status = statusObj?.status;
+      const counter = statusObj?.counter;
       if (status === "message_sent") {
         classes.push("message-sent");
       }
 
+      const edgeLabel = counter && counter > 0 ? `${counter}` : undefined;
       return {
         ...edge,
+        label: edgeLabel,
+        labelStyle: {
+          fill: "white",
+          fontWeight: 600,
+          fontSize: "10px"
+        },
+        labelBgStyle: {
+          fill: "rgba(0, 0, 0, 0.4)",
+          fillOpacity: 1,
+          rx: 10,
+          ry: 10
+        },
+        labelBgPadding: [6, 2] as [number, number],
         className: [edge.className, ...classes].filter(Boolean).join(" "),
         style: {
           ...edge.style,
@@ -216,7 +232,8 @@ export function useProcessedEdges({
         },
         data: {
           ...edge.data,
-          status: status || null
+          status: status || null,
+          counter: counter || null
         }
       };
     });

@@ -101,7 +101,12 @@ export const handleUpdate = (
     // Don't update edges if workflow is cancelled or in error state
     const currentState = runnerStore.getState().state;
     if (currentState !== "cancelled" && currentState !== "error") {
-      setEdge(workflow.id, edgeUpdate.edge_id, edgeUpdate.status);
+      setEdge(
+        workflow.id,
+        edgeUpdate.edge_id,
+        edgeUpdate.status,
+        edgeUpdate.counter ?? undefined
+      );
     }
   }
 

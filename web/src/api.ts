@@ -2299,6 +2299,8 @@ export interface components {
             edge_id: string;
             /** Status */
             status: string;
+            /** Counter */
+            counter?: number | null;
         };
         /** Email */
         Email: {
