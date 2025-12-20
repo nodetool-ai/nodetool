@@ -16,7 +16,7 @@ import {
 } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";

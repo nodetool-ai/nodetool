@@ -16,7 +16,7 @@ import {
   Checkbox,
   Box
 } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";

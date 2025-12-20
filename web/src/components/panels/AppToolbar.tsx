@@ -19,7 +19,7 @@ import { memo, useCallback, useEffect, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";

@@ -16,7 +16,7 @@ import {
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
 import { useTheme, alpha } from "@mui/material/styles";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";

@@ -2,7 +2,7 @@ import { memo, useCallback } from "react";
 import { Autocomplete, TextField, Chip, Box } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const StringListProperty = (props: PropertyProps) => {
   const id = `string-list-${props.property.name}-${props.propertyIndex}`;

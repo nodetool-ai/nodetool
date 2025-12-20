@@ -15,7 +15,7 @@ import {
   DialogContent,
   DialogTitle
 } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { AccountTree, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";

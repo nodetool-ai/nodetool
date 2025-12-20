@@ -21,7 +21,7 @@ import Draggable from "react-draggable";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const treeStyles = (theme: Theme) =>
   css({

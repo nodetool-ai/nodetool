@@ -12,7 +12,7 @@ import { Button, ButtonGroup } from "@mui/material";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import { tableStyles } from "../../styles/TableStyles";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
   css([

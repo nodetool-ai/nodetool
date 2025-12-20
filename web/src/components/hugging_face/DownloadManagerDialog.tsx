@@ -19,7 +19,7 @@ import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
 import { type Theme } from "@mui/material/styles";
 
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { FolderOutlined } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadingIcon from "@mui/icons-material/Downloading";

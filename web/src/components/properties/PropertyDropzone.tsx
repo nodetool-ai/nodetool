@@ -10,7 +10,7 @@ import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;

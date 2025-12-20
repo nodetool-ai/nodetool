@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useState } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import PropertyLabel from "../../node/PropertyLabel";
 import { PropertyProps } from "../../node/PropertyInput";
 import { Typography } from "@mui/material";

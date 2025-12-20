@@ -5,7 +5,7 @@ import { NodeProps, Handle, Position } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { Container } from "@mui/material";
 import useMetadataStore from "../../stores/MetadataStore";
 import { hexToRgba } from "../../utils/ColorUtils";

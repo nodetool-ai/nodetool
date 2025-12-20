@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import Tooltip from "@mui/material/Tooltip";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 

@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo } from "react";
 import { Box } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
   css({

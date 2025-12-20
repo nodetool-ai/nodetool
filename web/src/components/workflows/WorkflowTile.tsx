@@ -7,7 +7,7 @@ import { truncateString } from "../../utils/truncateString";
 import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface WorkflowTileProps {
   workflow: Workflow;

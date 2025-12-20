@@ -13,7 +13,7 @@ import {
   DialogContent,
   DialogTitle
 } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { Extension, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useNodeToolsMenuStore } from "../../../stores/NodeMenuStore";

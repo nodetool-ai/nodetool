@@ -13,7 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import { LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import DashboardHeader from "./DashboardHeader";
 import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
 import AddPanelDropdown from "./AddPanelDropdown";

@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { NPArray } from "../../stores/ApiTypes";
 import { Typography, Paper, Box } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface ArrayViewProps {
   array: NPArray;

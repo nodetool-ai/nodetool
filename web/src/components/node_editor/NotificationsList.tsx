@@ -6,7 +6,7 @@ import { useTheme } from "@mui/material/styles";
 import { NOTIFICATIONS_LIST_MAX_ITEMS } from "../../config/constants";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 

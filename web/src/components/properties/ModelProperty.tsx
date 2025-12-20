@@ -3,7 +3,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import ComfyModelSelect from "./ComfyModelSelect";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
 import ImageModelSelect from "./ImageModelSelect";

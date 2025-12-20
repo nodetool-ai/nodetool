@@ -14,7 +14,7 @@ import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";

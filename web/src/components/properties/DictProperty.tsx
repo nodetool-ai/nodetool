@@ -3,7 +3,7 @@ import { memo, useCallback, useState, useMemo } from "react";
 import Select from "../inputs/Select";
 import DictTable, { DictDataType } from "../node/DataTable/DictTable";
 import PropertyLabel from "../node/PropertyLabel";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const detectTypeFromDict = (dict: any) => {
   if (!Array.isArray(dict) || dict.length === 0) {

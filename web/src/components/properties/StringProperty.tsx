@@ -2,7 +2,7 @@ import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { useFocusPan } from "../../hooks/useFocusPan";
 import { TextField, IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";

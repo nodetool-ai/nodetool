@@ -15,7 +15,7 @@ import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useReactFlow } from "@xyflow/react";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeInfo from "../node_menu/NodeInfo";

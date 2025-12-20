@@ -3,7 +3,7 @@ import React, { useCallback, memo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import ColorPicker from "../inputs/ColorPicker";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";

@@ -17,7 +17,7 @@ import {
   Box
 } from "@mui/material";
 import useLogsStore from "../../stores/LogStore";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CloseIcon from "@mui/icons-material/Close";
 import ListAltIcon from "@mui/icons-material/ListAlt";

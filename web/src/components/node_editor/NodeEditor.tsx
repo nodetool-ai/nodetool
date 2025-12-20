@@ -28,7 +28,7 @@ import "../../styles/handle_edge_tooltip.css";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 // constants
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";

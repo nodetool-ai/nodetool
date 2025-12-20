@@ -8,7 +8,7 @@ import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { TemporalState } from "zundo";
 import { Box } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface NodeContextValue {
   store: NodeStore;

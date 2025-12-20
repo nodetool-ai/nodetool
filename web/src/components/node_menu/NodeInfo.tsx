@@ -13,7 +13,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;

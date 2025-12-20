@@ -15,7 +15,8 @@ import React, {
 } from "react";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
-import { set, throttle } from "lodash";
+import set from "lodash/set";
+import throttle from "lodash/throttle";
 import AudioControls from "./AudioControls";
 import log from "loglevel";
 

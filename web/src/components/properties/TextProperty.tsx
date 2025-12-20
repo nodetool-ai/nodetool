@@ -7,7 +7,7 @@ import React, { memo, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextAssetDisplay from "./TextAssetDisplay";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
   css({

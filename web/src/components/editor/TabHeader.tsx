@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import CloseIcon from "@mui/icons-material/Close";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import {
   DragEvent,
   MouseEvent,

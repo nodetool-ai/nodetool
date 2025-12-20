@@ -1,7 +1,7 @@
 import { Select, MenuItem, TextField, IconButton } from "@mui/material";
 import { ColumnDef } from "../../stores/ApiTypes";
 import CloseIcon from "@mui/icons-material/Close";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { memo } from "react";
 
 interface ColumnProps {

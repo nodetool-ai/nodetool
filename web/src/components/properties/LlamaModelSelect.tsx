@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import {
   Menu,
   MenuItem,

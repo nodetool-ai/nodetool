@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import BasePathProperty from "./shared/BasePathProperty";
 
 const FilePathProperty = (props: PropertyProps) => (

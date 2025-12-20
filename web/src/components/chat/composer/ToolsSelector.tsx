@@ -16,7 +16,7 @@ import {
   DialogContent,
   DialogTitle
 } from "@mui/material";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import {
   MailOutline,
   Search,

@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import { ChatHeader } from "../containers/ChatHeader";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 interface ChatControlsProps {
   onMinimize: () => void;

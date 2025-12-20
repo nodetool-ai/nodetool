@@ -5,7 +5,7 @@ import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { css } from "@emotion/react";

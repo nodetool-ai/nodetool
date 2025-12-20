@@ -6,7 +6,7 @@ import { ProcessTimer } from "./ProcessTimer";
 import { NodeLogs } from "./NodeLogs";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";

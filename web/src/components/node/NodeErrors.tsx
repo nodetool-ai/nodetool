@@ -7,7 +7,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { IconButton } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import useErrorStore from "../../stores/ErrorStore";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 export const errorStyles = (theme: Theme) =>
   css({

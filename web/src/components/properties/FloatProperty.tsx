@@ -1,7 +1,7 @@
 import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const FloatProperty = (props: PropertyProps) => {
   const id = `slider-${props.property.name}-${props.propertyIndex}`;

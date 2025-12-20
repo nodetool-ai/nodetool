@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { Typography, Tooltip, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";

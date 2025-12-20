@@ -5,7 +5,7 @@ import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/EditOutlined";
 import NodeOutput from "./NodeOutput";
 import { Property, TypeMetadata } from "../../stores/ApiTypes";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 type OutputItem = Property & { isDynamic?: boolean };
 

@@ -2,7 +2,7 @@ import { Typography } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo } from "react";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const FileProperty = (props: PropertyProps) => {
   const id = `file-${props.property.name}-${props.propertyIndex}`;

@@ -16,7 +16,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import useDynamicOutput from "../../hooks/nodes/useDynamicOutput";
 
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 export interface NodeOutputsProps {
   id: string;

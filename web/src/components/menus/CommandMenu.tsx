@@ -12,7 +12,7 @@ import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 import React from "react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";

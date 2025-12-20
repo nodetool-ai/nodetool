@@ -16,7 +16,7 @@ import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { typesAreEqual } from "../utils/TypeHandler";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
   css({

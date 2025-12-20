@@ -2,7 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
 import { NodeData } from "../stores/NodeData";
 import ELK from "elkjs";
-import { zip } from "lodash";
+import zip from "lodash/zip";
 
 /**
  * Graph utilities for workflow layout and traversal.

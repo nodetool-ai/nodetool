@@ -8,7 +8,7 @@ import {
 } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const ConnectionLine: ConnectionLineComponent = ({
   fromX,
