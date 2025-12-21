@@ -4,7 +4,8 @@ import {
   toTitleCase,
   getProviderBaseName,
   formatGenericProviderName,
-  getProviderUrl
+  getProviderUrl,
+  getModelUrl
 } from "../providerDisplay";
 
 describe("providerDisplay", () => {
@@ -187,6 +188,77 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("huggingface/Test Provider")).toBe("https://huggingface.co/test-provider");
       expect(getProviderUrl("huggingface_test_provider")).toBe("https://huggingface.co/test-provider");
       expect(getProviderUrl("HuggingFaceTestProvider")).toBe("https://huggingface.co/testprovider");
+    });
+  });
+
+  describe("getModelUrl", () => {
+    it("should return HuggingFace URLs for HF models with repo_id format", () => {
+      expect(getModelUrl("huggingface", "stabilityai/stable-diffusion-xl-base-1.0")).toBe(
+        "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0"
+      );
+      expect(getModelUrl("huggingface", "black-forest-labs/FLUX.1-dev")).toBe(
+        "https://huggingface.co/black-forest-labs/FLUX.1-dev"
+      );
+    });
+
+    it("should infer HuggingFace provider for models with / separator", () => {
+      expect(getModelUrl(undefined, "stabilityai/stable-diffusion-xl-base-1.0")).toBe(
+        "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0"
+      );
+      expect(getModelUrl("", "black-forest-labs/FLUX.1-dev")).toBe(
+        "https://huggingface.co/black-forest-labs/FLUX.1-dev"
+      );
+    });
+
+    it("should return Ollama URLs for llama_model type", () => {
+      expect(getModelUrl(undefined, "llama3:8b", "llama_model")).toBe(
+        "https://ollama.com/library/llama3"
+      );
+      expect(getModelUrl("", "gemma:2b", "llama_model")).toBe(
+        "https://ollama.com/library/gemma"
+      );
+    });
+
+    it("should infer Ollama provider for models with : separator", () => {
+      expect(getModelUrl(undefined, "llama3:8b")).toBe(
+        "https://ollama.com/library/llama3"
+      );
+      expect(getModelUrl("", "mistral:7b")).toBe(
+        "https://ollama.com/library/mistral"
+      );
+    });
+
+    it("should return null when modelId is empty", () => {
+      expect(getModelUrl("huggingface", "")).toBeNull();
+      expect(getModelUrl("huggingface", undefined)).toBeNull();
+    });
+
+    it("should return correct URLs for cloud providers", () => {
+      expect(getModelUrl("openai", "gpt-4")).toBe(
+        "https://platform.openai.com/docs/models"
+      );
+      expect(getModelUrl("anthropic", "claude-3")).toBe(
+        "https://docs.anthropic.com/claude/docs/models-overview"
+      );
+      expect(getModelUrl("google", "gemini-pro")).toBe(
+        "https://ai.google.dev/models"
+      );
+      expect(getModelUrl("mistral", "mistral-large")).toBe(
+        "https://docs.mistral.ai/getting-started/models/"
+      );
+    });
+
+    it("should handle HuggingFace inference providers", () => {
+      expect(getModelUrl("hf_inference", "stabilityai/stable-diffusion-xl-base-1.0")).toBe(
+        "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0"
+      );
+      expect(getModelUrl("huggingface_inference", "black-forest-labs/FLUX.1-dev")).toBe(
+        "https://huggingface.co/black-forest-labs/FLUX.1-dev"
+      );
+    });
+
+    it("should return null for unknown providers", () => {
+      expect(getModelUrl("unknown", "some-model")).toBeNull();
     });
   });
 });
