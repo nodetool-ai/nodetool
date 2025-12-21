@@ -24,6 +24,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import OutputRenderer from "./OutputRenderer";
 import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
+import InputNodeNameWarning from "./InputNodeNameWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
@@ -377,6 +378,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <ModelRecommendations nodeType={type} />
       )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
+      <InputNodeNameWarning nodeType={type} name={data.properties?.name} />
       <NodeContent
         id={id}
         nodeType={type}
