@@ -19,6 +19,8 @@ import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
 import AppHeader from "../panels/AppHeader";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeGrid as Grid, GridChildComponentProps } from "react-window";
 
 const styles = (theme: Theme) =>
   css({
@@ -31,8 +33,10 @@ const styles = (theme: Theme) =>
       paddingTop: "64px",
       paddingLeft: "48px",
       boxSizing: "border-box",
-      overflowY: "auto",
+      overflowY: "hidden",
       overflowX: "hidden",
+      display: "flex",
+      flexDirection: "column",
       flex: "1 1 auto",
       minHeight: 0
     },
@@ -52,7 +56,14 @@ const styles = (theme: Theme) =>
       alignItems: "flex-start",
       overflowY: "auto",
       padding: "2em",
-      gap: "1em"
+      gap: "1em",
+      flex: "1 1 auto",
+      minHeight: 0
+    },
+    ".virtualized-container": {
+      flex: "1 1 auto",
+      minHeight: 0,
+      padding: "0 1em"
     },
     ".workflow": {
       position: "relative",
@@ -68,15 +79,45 @@ const styles = (theme: Theme) =>
       height: "auto",
       overflow: "hidden",
       borderRadius: "16px",
-      background: "rgba(255, 255, 255, 0.03)",
-      border: "1px solid rgba(255, 255, 255, 0.08)",
+      background: theme.vars.palette.grey[900],
+      border: `1px solid ${theme.vars.palette.grey[800]}`,
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
       boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
       "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: "0 12px 24px rgba(0, 0, 0, 0.2)",
-        background: "rgba(255, 255, 255, 0.05)",
-        borderColor: "rgba(255, 255, 255, 0.2)"
+        transform: "translateY(-4px) scale(1.02)",
+        boxShadow: `
+          0 0 5px ${"var(--palette-primary-main)"},
+          0 0 15px ${"var(--palette-primary-main)"}90,
+          0 0 30px ${"var(--palette-primary-main)"}60,
+          0 0 60px ${"var(--palette-primary-main)"}30,
+          inset 0 0 20px ${"var(--palette-primary-main)"}10
+        `,
+        background: theme.vars.palette.grey[850],
+        borderColor: "var(--palette-primary-main)",
+        outline: `1px solid ${"var(--palette-primary-main)"}80`,
+        outlineOffset: "2px",
+        zIndex: 10,
+        animation: "sciFiGlow 2s ease-in-out infinite"
+      },
+      "@keyframes sciFiGlow": {
+        "0%, 100%": {
+          boxShadow: `
+            0 0 5px ${"var(--palette-primary-main)"},
+            0 0 15px ${"var(--palette-primary-main)"}90,
+            0 0 30px ${"var(--palette-primary-main)"}60,
+            0 0 60px ${"var(--palette-primary-main)"}30,
+            inset 0 0 20px ${"var(--palette-primary-main)"}10
+          `
+        },
+        "50%": {
+          boxShadow: `
+            0 0 8px ${"var(--palette-primary-main)"},
+            0 0 25px ${"var(--palette-primary-main)"}95,
+            0 0 50px ${"var(--palette-primary-main)"}70,
+            0 0 80px ${"var(--palette-primary-main)"}40,
+            inset 0 0 30px ${"var(--palette-primary-main)"}15
+          `
+        }
       }
     },
     ".workflow.loading": {
@@ -111,7 +152,7 @@ const styles = (theme: Theme) =>
     },
     ".workflow h3": {
       color: theme.vars.palette.text.primary,
-      marginTop: "12px",
+      marginTop: "1em",
       marginBottom: "4px",
       padding: "0 16px",
       fontSize: "1.1rem",
@@ -139,29 +180,32 @@ const styles = (theme: Theme) =>
       margin: "0",
       zIndex: 110,
       fontWeight: 600,
-      letterSpacing: "0.5px"
+      letterSpacing: "0.5px",
+      opacity: 0,
+      transition: "opacity 0.2s ease"
+    },
+    ".workflow:hover .package-name": {
+      opacity: 1
+    },
+    ".workflow .chips-container": {
+      display: "none",
+      padding: "0 0.75em 0.75em"
+    },
+    ".workflow:hover .chips-container": {
+      display: "flex"
     },
     ".workflow .description": {
       fontSize: "0.875rem",
       color: theme.vars.palette.text.secondary,
       lineHeight: "1.4",
-      display: "-webkit-box",
-      WebkitBoxOrient: "vertical",
-      WebkitLineClamp: 3,
-      overflow: "hidden",
+      display: "none",
       width: "100%",
       position: "relative",
-      maxHeight: "4.5em",
-      margin: "0.75em 1.25em",
-      paddingRight: "1.25em",
-      backgroundColor: "transparent",
-      transition: "color 0.3s ease"
+      margin: "0",
+      padding: "0.75em 0.75em 0.75em"
     },
     ".workflow:hover .description": {
-      // Expand without changing layout position
-      WebkitLineClamp: "unset",
-      maxHeight: "none",
-      height: "auto",
+      display: "block",
       color: theme.vars.palette.text.primary
     },
     ".loading-indicator": {
@@ -181,12 +225,11 @@ const styles = (theme: Theme) =>
       borderTopRightRadius: "16px",
       background: `linear-gradient(0deg, ${"var(--palette-primary-main)"}20, ${
         theme.vars.palette.grey[800]
-      }22)`
+      }22)`,
+      transition: "height 0.3s ease"
     },
-    ".image-wrapper:hover": {
-      animation: "sciFiPulse 2s infinite",
-      boxShadow: `0 0 10px ${"var(--palette-primary-main)"}`,
-      outline: `2px solid ${"var(--palette-primary-main)"}`
+    ".workflow:hover .image-wrapper": {
+      height: "200px"
     },
 
     "@keyframes sciFiPulse": {
@@ -314,12 +357,15 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: "2px",
       left: "2px",
-      display: "flex",
+      display: "none",
       flexDirection: "column",
       gap: "2px",
       width: "fit-content",
       height: "100%",
       zIndex: 100
+    },
+    ".workflow:hover .matched-nodes": {
+      display: "flex"
     },
     ".matched-item": {
       width: "fit-content",
@@ -439,6 +485,17 @@ const TemplateGrid = () => {
       {} as Record<string, Workflow[]>
     );
   }, [data]);
+
+  // Filter tags to only show those with at least 2 workflows
+  const filteredTags = useMemo(() => {
+    const result: Record<string, Workflow[]> = {};
+    for (const [tag, workflows] of Object.entries(groupedWorkflows)) {
+      if (workflows.length >= 2) {
+        result[tag] = workflows;
+      }
+    }
+    return result;
+  }, [groupedWorkflows]);
 
   useEffect(() => {
     if (
@@ -574,6 +631,87 @@ const TemplateGrid = () => {
   };
   const theme = useTheme();
 
+  // Grid configuration
+  const CARD_WIDTH = 240;
+  const CARD_HEIGHT = 220; // Reduced since description/chips hidden by default
+  const GAP = 16;
+
+  // Calculate grid dimensions based on container width
+  const calculateColumns = useCallback((width: number) => {
+    if (width <= 0) return 1;
+    return Math.max(1, Math.floor((width + GAP) / (CARD_WIDTH + GAP)));
+  }, []);
+
+  // Grid item data for virtualization
+  const gridItemData = useMemo(
+    () => ({
+      filteredWorkflows,
+      searchResults,
+      nodesOnlySearch,
+      loadingWorkflowId,
+      onClickWorkflow,
+      columns: 1 // Will be updated dynamically
+    }),
+    [
+      filteredWorkflows,
+      searchResults,
+      nodesOnlySearch,
+      loadingWorkflowId,
+      onClickWorkflow
+    ]
+  );
+
+  // Grid cell renderer
+  const GridCell = useCallback(
+    ({
+      columnIndex,
+      rowIndex,
+      style,
+      data
+    }: GridChildComponentProps<typeof gridItemData & { columns: number }>) => {
+      const index = rowIndex * data.columns + columnIndex;
+      const workflow = data.filteredWorkflows[index];
+
+      if (!workflow) return null;
+
+      const searchResult = data.searchResults.find(
+        (r: FrontendSearchResult) => r.workflow.id === workflow.id
+      );
+      const matchedNodes = searchResult?.matches?.length
+        ? searchResult.matches
+        : [];
+      const isLoading = data.loadingWorkflowId === workflow.id;
+
+      return (
+        <div
+          style={{
+            ...style,
+            padding: GAP / 2
+          }}
+        >
+          <WorkflowCard
+            workflow={workflow}
+            matchedNodes={matchedNodes}
+            nodesOnlySearch={data.nodesOnlySearch}
+            isLoading={isLoading}
+            onClick={data.onClickWorkflow}
+          />
+        </div>
+      );
+    },
+    []
+  );
+
+  // Show loading state
+  const showLoading = isLoadingTemplates || isFetchingSearchData;
+  const showGrid =
+    !((isLoadingSearchData || isFetchingSearchData) && nodesOnlySearch) &&
+    filteredWorkflows.length > 0;
+  const showNoResults =
+    filteredWorkflows.length === 0 &&
+    searchQuery.trim().length > 1 &&
+    !((isLoadingSearchData || isFetchingSearchData) && nodesOnlySearch);
+
   return (
     <Box css={styles(theme)}>
       <Box
@@ -590,7 +728,7 @@ const TemplateGrid = () => {
       </Box>
       <Box className="workflow-grid">
         <TagFilter
-          tags={groupedWorkflows}
+          tags={filteredTags}
           selectedTag={selectedTag}
           onSelectTag={setSelectedTag}
         />
@@ -601,112 +739,108 @@ const TemplateGrid = () => {
           onToggleNodeSearch={setNodesOnlySearch}
           onClear={handleClearSearch}
         />
-        <Box className="container">
-          {(isLoadingTemplates || isFetchingSearchData) && (
-            <div className="loading-indicator">
-              <CircularProgress />
-              <Typography variant="h4">
-                {isFetchingSearchData && nodesOnlySearch
-                  ? "Searching for Templates"
-                  : "Loading Templates"}
-              </Typography>
-            </div>
-          )}
-          {isError && (
+        {showLoading && (
+          <div className="loading-indicator">
+            <CircularProgress />
+            <Typography variant="h4">
+              {isFetchingSearchData && nodesOnlySearch
+                ? "Searching for Templates"
+                : "Loading Templates"}
+            </Typography>
+          </div>
+        )}
+        {isError && (
+          <Box className="container">
             <ErrorOutlineRounded>
               <Typography>{error?.message}</Typography>
             </ErrorOutlineRounded>
-          )}
-          {/* Hide workflows while searching */}
-          {!(
-            (isLoadingSearchData || isFetchingSearchData) &&
-            nodesOnlySearch
-          ) &&
-            filteredWorkflows.map((workflow) => {
-              const searchResult = searchResults.find(
-                (r) => r.workflow.id === workflow.id
-              );
-              const matchedNodes = searchResult?.matches?.length
-                ? searchResult.matches
-                : [];
-              const isLoading = loadingWorkflowId === workflow.id;
+          </Box>
+        )}
+        {showGrid && (
+          <Box className="virtualized-container">
+            <AutoSizer>
+              {({ height, width }: { height: number; width: number }) => {
+                const columns = calculateColumns(width);
+                const rowCount = Math.ceil(filteredWorkflows.length / columns);
+                const columnWidth = Math.floor(width / columns);
 
-              return (
-                <WorkflowCard
-                  key={workflow.id}
-                  workflow={workflow}
-                  matchedNodes={matchedNodes}
-                  nodesOnlySearch={nodesOnlySearch}
-                  isLoading={isLoading}
-                  onClick={onClickWorkflow}
-                />
-              );
-            })}
-          {filteredWorkflows.length === 0 &&
-            searchQuery.trim().length > 1 &&
-            !(
-              (isLoadingSearchData || isFetchingSearchData) &&
-              nodesOnlySearch
-            ) && (
-              <Box className="no-results">
-                <Typography variant="body1" sx={{ marginBottom: "1em" }}>
-                  Nothing found for
-                  <strong style={{ color: theme.vars.palette.primary.main }}>
-                    {" "}
-                    &quot;{searchQuery}&quot;
-                  </strong>
-                </Typography>
+                return (
+                  <Grid
+                    columnCount={columns}
+                    columnWidth={columnWidth}
+                    height={height}
+                    rowCount={rowCount}
+                    rowHeight={CARD_HEIGHT + GAP}
+                    width={width}
+                    itemData={{ ...gridItemData, columns }}
+                  >
+                    {GridCell}
+                  </Grid>
+                );
+              }}
+            </AutoSizer>
+          </Box>
+        )}
+        {showNoResults && (
+          <Box className="container">
+            <Box className="no-results">
+              <Typography variant="body1" sx={{ marginBottom: "1em" }}>
+                Nothing found for
+                <strong style={{ color: theme.vars.palette.primary.main }}>
+                  {" "}
+                  &quot;{searchQuery}&quot;
+                </strong>
+              </Typography>
 
-                <Typography variant="h4" sx={{ margin: "1em 0 0.5em 0" }}>
-                  Help us improve the templates
-                </Typography>
-                <Typography variant="body1" sx={{ marginBottom: "1em" }}>
-                  Let us know what you&apos;re missing!
-                </Typography>
-                <ul
-                  style={{
-                    listStyleType: "none",
-                    padding: 0,
-                    margin: 0
-                    // "& li": { marginBottom: "0.5em" }
-                  }}
-                >
-                  <li>
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.open(
-                          "https://discord.gg/WmQTWZRcYE",
-                          "_blank",
-                          "noopener,noreferrer"
-                        );
-                      }}
-                      style={{ color: "#61dafb" }}
-                    >
-                      Join our Discord
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.open(
-                          "https://forum.nodetool.ai",
-                          "_blank",
-                          "noopener,noreferrer"
-                        );
-                      }}
-                      style={{ color: "#61dafb" }}
-                    >
-                      Join the Nodetool Forum
-                    </a>
-                  </li>
-                </ul>
-              </Box>
-            )}
-        </Box>
+              <Typography variant="h4" sx={{ margin: "1em 0 0.5em 0" }}>
+                Help us improve the templates
+              </Typography>
+              <Typography variant="body1" sx={{ marginBottom: "1em" }}>
+                Let us know what you&apos;re missing!
+              </Typography>
+              <ul
+                style={{
+                  listStyleType: "none",
+                  padding: 0,
+                  margin: 0
+                }}
+              >
+                <li>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open(
+                        "https://discord.gg/WmQTWZRcYE",
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
+                    style={{ color: "#61dafb" }}
+                  >
+                    Join our Discord
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open(
+                        "https://forum.nodetool.ai",
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
+                    style={{ color: "#61dafb" }}
+                  >
+                    Join the Nodetool Forum
+                  </a>
+                </li>
+              </ul>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

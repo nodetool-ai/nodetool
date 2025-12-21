@@ -121,7 +121,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
       <Typography className="description">{workflow.description}</Typography>
 
       {/* Required providers/models chips */}
-      <Box sx={chipsContainerSx}>
+      <Box className="chips-container" sx={chipsContainerSx}>
         {Array.isArray((workflow as any).required_providers) &&
           (workflow as any).required_providers.map((prov: string) => (
             <Chip
