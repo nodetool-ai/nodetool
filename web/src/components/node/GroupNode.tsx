@@ -111,7 +111,34 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       minHeight: "unset",
       color: "white",
       opacity: 0.6,
-      transition: "all 0.2s ease"
+      transition: "all 0.2s ease",
+      position: "relative",
+      overflow: "hidden"
+    },
+    ".action-buttons button.running": {
+      opacity: 1,
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        inset: "0",
+        borderRadius: "inherit",
+        padding: "2px",
+        background: `conic-gradient(from 0deg, transparent 50%, ${theme.vars.palette.primary.main} 95%, ${theme.vars.palette.primary.main})`,
+        WebkitMask:
+          "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+        WebkitMaskComposite: "destination-out",
+        maskComposite: "exclude",
+        animation: "spin 2.5s linear infinite",
+        pointerEvents: "none",
+        zIndex: 1
+      }
+    },
+    "@keyframes spin": {
+      "0%": { transform: "rotate(0deg)" },
+      "25%": { transform: "rotate(85deg)" },
+      "50%": { transform: "rotate(180deg)" },
+      "75%": { transform: "rotate(280deg)" },
+      "100%": { transform: "rotate(360deg)" }
     },
     ".action-buttons button:hover": {
       opacity: 1,

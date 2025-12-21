@@ -17,20 +17,24 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
   return (
     <Tooltip
       title={
-        <div
-          className="tooltip-span"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.1em"
-          }}
-        >
-          <span style={{ fontSize: "1.2em", color: "white" }}>Run Group</span>
-          {/* <span style={{ fontSize: ".9em", color: "white" }}>
+        isWorkflowRunning ? (
+          "Group is currently running..."
+        ) : (
+          <div
+            className="tooltip-span"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "0.1em"
+            }}
+          >
+            <span style={{ fontSize: "1.2em", color: "white" }}>Run Group</span>
+            {/* <span style={{ fontSize: ".9em", color: "white" }}>
             CTRL+Enter
           </span> */}
-        </div>
+          </div>
+        )
       }
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
