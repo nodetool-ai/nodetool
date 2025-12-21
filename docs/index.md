@@ -96,7 +96,7 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
 
 - **I'm new to NodeTool:** [Getting Started](getting-started.md), [Workflow Editor](workflow-editor.md), [Tips & Tricks](tips-and-tricks.md), [Example gallery](/workflows/).
 - **I deploy NodeTool:** [Deployment Guide](deployment.md), [Self-Hosted Deployment](self_hosted.md), [Proxy Reference](proxy.md), [Security Hardening](security-hardening.md), [Terminal WebSocket](terminal-websocket.md), [Storage](storage.md).
-- **I build or integrate:** [Developer Guide](developer/index.md), [Workflow API](workflow-api.md), [Chat Module](chat.md) + [Chat API](chat-api.md), [CLI Reference](cli.md), [Architecture](architecture.md), [Testing Process](TESTING_PROCESS.md).
+- **I build or integrate:** [Developer Guide](developer/index.md), [Workflow API](workflow-api.md), [Chat Module](chat.md) + [Chat API](chat-api.md), [CLI Reference](cli.md), [Architecture](architecture.md).
 - **Reference shortcuts:** [Cookbook Patterns]({{ '/cookbook/patterns' | relative_url }}), [Glossary](glossary.md), [Indexing](indexing.md), [Asset Management](asset-management.md), [Node Packs](node-packs.md).
 
 ### Local-first or cloud-augmented

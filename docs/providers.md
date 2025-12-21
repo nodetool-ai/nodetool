@@ -429,5 +429,5 @@ async def test_generate_message():
 
 - [Chat API](chat-api.md) - WebSocket API for chat interactions and provider routing
 - [Global Chat](global-chat.md) - UI reference for multi-turn chat threads
-- [Agents](agents.md) - Using providers with the agent system
+- [Agents](global-chat.md#agent-mode) - Using providers with the agent system
 - [Workflow API](workflow-api.md) - Building workflows with providers
