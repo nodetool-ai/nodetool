@@ -66,6 +66,37 @@ import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 
 /**
+ * Generates a default name for input nodes based on their type.
+ * For example, "nodetool.input.StringInput" becomes "string_input_1"
+ */
+const generateInputNodeName = (nodeType: string, existingNodes: Node<NodeData>[]): string => {
+  // Extract the input type from the node type (e.g., "StringInput" from "nodetool.input.StringInput")
+  const match = nodeType.match(/nodetool\.input\.(\w+)Input$/);
+  if (!match) {
+    // Handle special cases like Folder
+    const folderMatch = nodeType.match(/nodetool\.input\.(\w+)$/);
+    if (folderMatch) {
+      const baseName = folderMatch[1].toLowerCase();
+      const existingCount = existingNodes.filter(
+        (n) => n.type === nodeType
+      ).length;
+      return `${baseName}_${existingCount + 1}`;
+    }
+    return "input_1";
+  }
+
+  const inputType = match[1].toLowerCase();
+  const baseName = `${inputType}_input`;
+  
+  // Count existing input nodes of the same type
+  const existingCount = existingNodes.filter(
+    (n) => n.type === nodeType
+  ).length;
+  
+  return `${baseName}_${existingCount + 1}`;
+};
+
+/**
  * Generates a UUID v4 string
  * Falls back to a simple implementation if crypto.randomUUID is not available
  */
@@ -977,6 +1008,13 @@ export const createNodeStore = (
                 defaults[key] = properties[key];
               }
             }
+            
+            // Generate default name for input nodes if name property exists but is empty
+            const isInputNode = metadata.node_type.startsWith("nodetool.input.");
+            if (isInputNode && "name" in defaults && !defaults.name) {
+              defaults.name = generateInputNodeName(metadata.node_type, get().nodes);
+            }
+            
             const nodeId = get().generateNodeId();
             useResultsStore.getState().clearResults(nodeId);
 
