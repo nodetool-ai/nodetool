@@ -15,10 +15,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useLocation } from "react-router-dom";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -224,9 +225,8 @@ const styles = (theme: Theme) =>
       },
       "&.running": {
         "& svg": {
-          animation:
-            "spin 2s linear infinite, rainbow-rotate 3s linear infinite",
-          color: "var(--palette-primary-main)"
+          animation: "pulse-scale 1s ease-in-out infinite",
+          color: theme.vars.palette.grey[400]
         }
       },
       "&::before": {
@@ -254,21 +254,40 @@ const styles = (theme: Theme) =>
         "&::before": { left: "120%" }
       },
       "&.running": {
-        animation: "pulse-glow 1.8s ease-in-out infinite",
-        boxShadow: `0 0 16px 2px ${"var(--palette-primary-main)"}55, 0 0 36px ${"var(--palette-secondary-main)"}40`,
+        backgroundColor: theme.vars.palette.grey[700],
+        color: theme.vars.palette.grey[400],
+        boxShadow: "none",
         "&::after": {
           content: '""',
           position: "absolute",
-          inset: 0,
+          inset: "0",
           borderRadius: "inherit",
-          boxShadow: `0 0 10px ${"var(--palette-primary-main)"}70, 0 0 20px ${"var(--palette-secondary-main)"}50`,
+          padding: "2px",
+          background: `conic-gradient(from 0deg, transparent 50%, ${"var(--palette-primary-main)"} 95%, ${"var(--palette-primary-main)"})`,
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "destination-out",
+          maskComposite: "exclude",
+          animation: "spin 2.5s linear infinite",
           pointerEvents: "none",
-          animation: "sparkle 1.6s linear infinite"
+          zIndex: 1
         }
       }
     },
+    ".run-stop-button.run-workflow.Mui-disabled.running": {
+      opacity: 1
+    },
     ".stop-workflow": {
-      marginRight: "0.7em"
+      marginRight: "0.7em",
+      "&.running": {
+        backgroundColor: theme.vars.palette.warning.main,
+        color: theme.vars.palette.warning.contrastText,
+        boxShadow: `0 0 8px ${theme.vars.palette.warning.main}60`,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.warning.dark,
+          boxShadow: `0 0 12px ${theme.vars.palette.warning.main}80`
+        }
+      }
     },
     ".run-status": {
       position: "absolute",
@@ -277,6 +296,11 @@ const styles = (theme: Theme) =>
       padding: "0.2em 0.8em",
       color: theme.vars.palette.grey[100],
       boxShadow: `0 2px 8px ${theme.vars.palette.grey[800]}40`
+    },
+    "@keyframes pulse-scale": {
+      "0%": { transform: "scale(1)" },
+      "50%": { transform: "scale(1.15)" },
+      "100%": { transform: "scale(1)" }
     },
     "@keyframes pulse": {
       "0%": { opacity: 0.4 },
@@ -287,22 +311,11 @@ const styles = (theme: Theme) =>
       animation: "pulse 1.5s infinite ease-in-out",
       color: "var(--palette-primary-main)"
     },
-    "@keyframes rainbow-rotate": {
-      "0%": { filter: "hue-rotate(0deg)" },
-      "100%": { filter: "hue-rotate(360deg)" }
-    },
-    "@keyframes pulse-glow": {
-      "0%": { boxShadow: `0 0 8px ${"var(--palette-primary-main)"}30` },
-      "50%": { boxShadow: `0 0 24px ${"var(--palette-primary-main)"}70` },
-      "100%": { boxShadow: `0 0 8px ${"var(--palette-primary-main)"}30` }
-    },
-    "@keyframes sparkle": {
-      "0%": { filter: "brightness(0.9)" },
-      "50%": { filter: "brightness(1.3)" },
-      "100%": { filter: "brightness(0.9)" }
-    },
     "@keyframes spin": {
       "0%": { transform: "rotate(0deg)" },
+      "25%": { transform: "rotate(85deg)" },
+      "50%": { transform: "rotate(180deg)" },
+      "75%": { transform: "rotate(280deg)" },
       "100%": { transform: "rotate(360deg)" }
     },
     "@keyframes dashboardPulse": {
@@ -326,23 +339,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Custom hook for global hotkeys
-const useGlobalHotkeys = (callback: () => void) => {
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-        event.preventDefault();
-        callback();
-      }
-    },
-    [callback]
-  );
-
-  useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-};
 const NodeMenuButton = memo(function NodeMenuButton() {
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
@@ -534,11 +530,17 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
     saveWorkflow
   ]);
 
-  useGlobalHotkeys(handleRun);
+  // Keyboard shortcuts for run (Ctrl+Enter / Cmd+Enter)
+  useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
+  useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
 
   return (
     <Tooltip
-      title={getShortcutTooltip("runWorkflow")}
+      title={
+        isWorkflowRunning
+          ? "Workflow is currently running..."
+          : getShortcutTooltip("runWorkflow")
+      }
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <span>
@@ -577,6 +579,10 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
     isWorkflowRunning: state.state === "running",
     cancel: state.cancel
   }));
+
+  // Keyboard shortcut for stop (Escape)
+  useCombo(["escape"], cancel, true, isWorkflowRunning);
+
   return (
     <Tooltip
       title={getShortcutTooltip("stopWorkflow")}
@@ -584,7 +590,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
     >
       <Button
         className={`action-button run-stop-button stop-workflow ${
-          !isWorkflowRunning ? "disabled" : ""
+          !isWorkflowRunning ? "disabled" : "running"
         }`}
         onClick={() => cancel()}
         tabIndex={-1}
