@@ -34,7 +34,7 @@ const InputNodesSubmenu: React.FC<InputNodesSubmenuProps> = ({
 }) => {
   const addInputNode = React.useCallback(
     (nodeType: string, event: React.MouseEvent | undefined) => {
-      if (!event) return;
+      if (!event) {return;}
       const metadata = useMetadataStore
         .getState()
         .getMetadata(`nodetool.nodes.nodetool.input.${nodeType}`);

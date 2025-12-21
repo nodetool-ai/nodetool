@@ -111,14 +111,14 @@ export const useFileStore = create<FileStore>((set, get) => ({
 
         const fileItems: TreeViewItem[] = [];
         for (const file of nonDirectories) {
-          if (budget.remaining <= 0) break;
+          if (budget.remaining <= 0) {break;}
           budget.remaining -= 1;
           fileItems.push(fileToTreeItem(file));
         }
 
         const dirItems: TreeViewItem[] = [];
         for (const dir of directories) {
-          if (budget.remaining <= 0) break;
+          if (budget.remaining <= 0) {break;}
           budget.remaining -= 1;
           const children = await buildTreeRecursively(
             dir.path,

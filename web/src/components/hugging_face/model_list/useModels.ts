@@ -30,7 +30,7 @@ export const useModels = () => {
     queryKey: ["allModels"],
     queryFn: async () => {
       const { data, error } = await client.GET("/api/models/all", {});
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     },
     refetchOnWindowFocus: false
@@ -54,17 +54,17 @@ export const useModels = () => {
       const typeMatches =
         selectedModelType === "All" || model.type === selectedModelType;
 
-      if (!matchesText) return false;
-      if (!typeMatches) return false;
+      if (!matchesText) {return false;}
+      if (!typeMatches) {return false;}
       if (
         maxModelSizeGB &&
         model.size_on_disk &&
         model.size_on_disk > maxModelSizeGB * 1024 ** 3
       )
-        return false;
+        {return false;}
 
-      if (filterStatus === "downloaded" && !model.downloaded) return false;
-      if (filterStatus === "not_downloaded" && model.downloaded) return false;
+      if (filterStatus === "downloaded" && !model.downloaded) {return false;}
+      if (filterStatus === "not_downloaded" && model.downloaded) {return false;}
 
       return true;
     };
@@ -104,16 +104,16 @@ export const useModels = () => {
           model.name?.toLowerCase().includes(searchTerm) ||
           model.repo_id?.toLowerCase().includes(searchTerm);
 
-        if (!matchesText) return false;
+        if (!matchesText) {return false;}
         if (
           maxModelSizeGB &&
           model.size_on_disk &&
           model.size_on_disk > maxModelSizeGB * 1024 ** 3
         )
-          return false;
+          {return false;}
 
-        if (filterStatus === "downloaded" && !model.downloaded) return false;
-        if (filterStatus === "not_downloaded" && model.downloaded) return false;
+        if (filterStatus === "downloaded" && !model.downloaded) {return false;}
+        if (filterStatus === "not_downloaded" && model.downloaded) {return false;}
 
         return true;
       }) || [];
@@ -128,10 +128,10 @@ export const useModels = () => {
   }, [allModels, modelSearchTerm, maxModelSizeGB, filterStatus]);
 
   const handleShowInExplorer = async (modelId: string) => {
-    if (!modelId) return;
+    if (!modelId) {return;}
 
     const model = allModels?.find((m) => m.id === modelId);
-    if (!model) return;
+    if (!model) {return;}
 
     const isOllama = model.type === "llama_model";
 

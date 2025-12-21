@@ -202,10 +202,10 @@ export async function openOllamaPath(): Promise<void> {
 
 export function isPathValid(path: string): boolean {
   // Reject empty strings early
-  if (!path) return false;
+  if (!path) {return false;}
 
   // Disallow path traversal sequences
-  if (path.includes("..")) return false;
+  if (path.includes("..")) {return false;}
 
   // Accept typical absolute paths:
   // 1. POSIX absolute path starting with '/'

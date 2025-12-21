@@ -89,7 +89,7 @@ const Select: React.FC<SelectProps> = ({
 
   const updateDropdownPosition = useCallback(() => {
     if (!selectRef.current || !optionsRef.current || activeSelect !== id)
-      return;
+      {return;}
 
     const selectRect = selectRef.current.getBoundingClientRect();
     const optionsHeight = optionsRef.current.offsetHeight;
@@ -150,7 +150,7 @@ const Select: React.FC<SelectProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (activeSelect !== id) return;
+      if (activeSelect !== id) {return;}
 
       const filteredOptions = searchQuery
         ? fuse.search(searchQuery).map(({ item }) => item)

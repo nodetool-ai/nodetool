@@ -58,7 +58,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   };
 
   const memoizedDocumentation = useMemo(() => {
-    if (!selectedNodeType) return null;
+    if (!selectedNodeType) {return null;}
     return createPortal(
       <DraggableNodeDocumentation
         nodeType={selectedNodeType}

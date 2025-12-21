@@ -143,7 +143,7 @@ const WorkflowList = () => {
   );
 
   const workflows = useMemo(() => {
-    if (filterValue === "") return data?.workflows || [];
+    if (filterValue === "") {return data?.workflows || [];}
     // Optimization: Convert filter value to lowercase once instead of for each workflow
     const filterValueLower = filterValue.toLowerCase();
     return (data?.workflows || []).filter((workflow) =>
@@ -187,7 +187,7 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyPressed || shiftKeyPressed) return;
+      if (controlKeyPressed || shiftKeyPressed) {return;}
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -255,7 +255,7 @@ const WorkflowList = () => {
   );
 
   const finalWorkflows = useMemo(() => {
-    if (!selectedTag) return workflows;
+    if (!selectedTag) {return workflows;}
     return workflows.filter((wf) => wf.tags?.includes(selectedTag));
   }, [workflows, selectedTag]);
 

@@ -240,7 +240,7 @@ const ExampleCommands = memo(function ExampleCommands() {
     [copy, navigate]
   );
 
-  if (!examples) return null;
+  if (!examples) {return null;}
 
   return (
     <Command.Group heading="Templates">

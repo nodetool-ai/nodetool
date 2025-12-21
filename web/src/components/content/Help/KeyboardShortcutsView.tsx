@@ -55,9 +55,9 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     useState<HTMLElement | null>(null);
 
   const filtered = useMemo(() => {
-    if (categoryFilter === "all") return shortcuts;
+    if (categoryFilter === "all") {return shortcuts;}
     if (categoryFilter === "assets")
-      return shortcuts.filter((s) => s.category === "assets");
+      {return shortcuts.filter((s) => s.category === "assets");}
     return shortcuts.filter((s) => s.category === categoryFilter);
   }, [shortcuts, categoryFilter]);
 
@@ -72,7 +72,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         return low === " " ? "space" : low;
       });
       combo.forEach((key) => {
-        if (!map[key]) map[key] = [];
+        if (!map[key]) {map[key] = [];}
         map[key].push(sc.title);
       });
     });
@@ -109,11 +109,11 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   const inactiveButtons = inactiveKeys.join(" ");
 
   const handleOsToggle = (_: any, value: "mac" | "win") => {
-    if (value) setOs(value);
+    if (value) {setOs(value);}
   };
 
   const handleLayoutToggle = (_: any, value: "english" | "german") => {
-    if (value) setLayoutName(value);
+    if (value) {setLayoutName(value);}
   };
 
   const layout = keyboardLayouts;
@@ -167,17 +167,17 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     activeShortcuts.forEach((s) => {
       s.keyCombo.forEach((k) => {
         const lowKey = k.toLowerCase() === " " ? "space" : k.toLowerCase();
-        if (!m[lowKey]) m[lowKey] = [];
+        if (!m[lowKey]) {m[lowKey] = [];}
         m[lowKey].push(s.slug);
       });
     });
     // For ctrl/meta, group switchToTab shortcuts into one
     if (os === "mac") {
-      if (!m["meta"]) m["meta"] = [];
+      if (!m["meta"]) {m["meta"] = [];}
       m["meta"] = m["meta"].filter((slug) => !/^switchToTab\d+$/.test(slug));
       m["meta"].push("switchToTabGroup");
     } else {
-      if (!m["control"]) m["control"] = [];
+      if (!m["control"]) {m["control"] = [];}
       m["control"] = m["control"].filter(
         (slug) => !/^switchToTab\d+$/.test(slug)
       );
@@ -187,7 +187,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   }, [activeShortcuts, os]);
 
   const handleButtonMouseEnter = (button: string, e: React.MouseEvent) => {
-    if (isKeyPressedRef.current) return;
+    if (isKeyPressedRef.current) {return;}
     const key = button.toLowerCase();
     if (keySlugMap[key]) {
       setHoverSlugs(keySlugMap[key]);
@@ -202,7 +202,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 
   // After render, attach title attributes to every button
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {return;}
     const btns =
       containerRef.current.querySelectorAll<HTMLButtonElement>(".hg-button");
     btns.forEach((btn) => {
@@ -210,7 +210,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       if (key && keyTitleMap[key]) {
         // add hover listeners once
         const handleEnter = (event: MouseEvent) => {
-          if (isKeyPressedRef.current) return;
+          if (isKeyPressedRef.current) {return;}
           setHoverSlugs(keySlugMap[key]);
           setTooltipAnchorEl(event.currentTarget as HTMLElement);
         };

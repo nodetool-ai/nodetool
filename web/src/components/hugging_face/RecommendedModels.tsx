@@ -76,10 +76,10 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         });
 
       const results = await Promise.all(tasks);
-      if (cancelled) return;
+      if (cancelled) {return;}
       setDownloadedMap((prev) => {
         const next = { ...prev };
-        for (const r of results) next[r.id] = r.downloaded;
+        for (const r of results) {next[r.id] = r.downloaded;}
         return next;
       });
     };
@@ -91,7 +91,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   }, [recommendedModels, completedDownloadsKey]);
 
   const filteredModels = useMemo(() => {
-    if (!searchQuery) return recommendedModels;
+    if (!searchQuery) {return recommendedModels;}
     const query = searchQuery.toLowerCase();
     return recommendedModels.filter((model) => {
       const matches =

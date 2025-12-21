@@ -11,7 +11,7 @@ export const useOllamaModels = () => {
     queryKey: ["ollamaModels"],
     queryFn: async () => {
       const { data, error } = await client.GET("/api/models/ollama", {});
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     },
     refetchOnWindowFocus: false

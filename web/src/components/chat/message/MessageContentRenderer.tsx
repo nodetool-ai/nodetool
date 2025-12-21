@@ -20,8 +20,8 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
 
   const createObjectUrl = useCallback(
     (source: string | Uint8Array | undefined, type: string): string | undefined => {
-      if (!source) return undefined;
-      if (typeof source === "string") return source;
+      if (!source) {return undefined;}
+      if (typeof source === "string") {return source;}
 
       // Revoke previous object URL if it exists
       if (objectUrlRef.current) {

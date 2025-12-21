@@ -77,7 +77,7 @@ const JSONProperty = (props: PropertyProps) => {
   const highlightWithErrors = useCallback(
     (code: string) => {
       const highlighted = Prism.highlight(code, Prism.languages.json, "json");
-      if (!error) return highlighted;
+      if (!error) {return highlighted;}
 
       const lines = highlighted.split("\n");
       return lines

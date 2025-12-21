@@ -10,7 +10,7 @@ export function useCodeLanguage(options: {
   const getInitialCodeLanguage = useCallback(() => {
     try {
       const saved = localStorage.getItem(storageKey);
-      if (saved && typeof saved === "string") return saved;
+      if (saved && typeof saved === "string") {return saved;}
     } catch {
       /* empty */
     }

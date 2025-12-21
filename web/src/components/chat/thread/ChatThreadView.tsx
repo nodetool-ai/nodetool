@@ -84,7 +84,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     const executionMessagesById = useMemo(() => {
       const map = new Map<string, Message[]>();
       for (const msg of messages) {
-        if (msg.role !== "agent_execution" || !msg.agent_execution_id) continue;
+        if (msg.role !== "agent_execution" || !msg.agent_execution_id) {continue;}
         const list = map.get(msg.agent_execution_id) || [];
         list.push(msg);
         map.set(msg.agent_execution_id, list);
@@ -267,7 +267,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const handleScroll = useCallback(() => {
     lastUserScrollTimeRef.current = Date.now();
     const element = scrollHost;
-    if (!element) return;
+    if (!element) {return;}
 
     const calculatedIsNearBottom =
       element.scrollHeight - element.scrollTop - element.clientHeight <
@@ -311,7 +311,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   useEffect(() => {
     const scrollElement = scrollHost;
     const bottomElement = bottomRef.current;
-    if (!scrollElement || !bottomElement) return;
+    if (!scrollElement || !bottomElement) {return;}
 
     const observer = new IntersectionObserver(
       ([entry]) => {

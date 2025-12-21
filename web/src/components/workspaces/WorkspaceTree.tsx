@@ -163,10 +163,10 @@ const findItemInTree = (
   id: string
 ): TreeViewItem | undefined => {
   for (const item of items) {
-    if (item.id === id) return item;
+    if (item.id === id) {return item;}
     if (item.children) {
       const found = findItemInTree(item.children, id);
-      if (found) return found;
+      if (found) {return found;}
     }
   }
   return undefined;
@@ -231,7 +231,7 @@ const WorkspaceTree: React.FC = () => {
 
   const handleItemClick = useCallback(
     async (event: React.MouseEvent, itemId: string) => {
-      if (!workspaceId) return;
+      if (!workspaceId) {return;}
 
       setSelectedFilePath(itemId);
       try {
@@ -256,7 +256,7 @@ const WorkspaceTree: React.FC = () => {
   );
 
   const handleDownload = useCallback(async () => {
-    if (!selectedFilePath || !workspaceId) return;
+    if (!selectedFilePath || !workspaceId) {return;}
 
     try {
       const url = `/api/files/workspaces/${workspaceId}/download/${selectedFilePath}`;

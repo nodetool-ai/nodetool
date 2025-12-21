@@ -15,7 +15,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const objectUrlRef = useRef<string | null>(null);
 
   const imageUrl = useMemo(() => {
-    if (!source) return undefined;
+    if (!source) {return undefined;}
     if (typeof source === "string") {
       // If it's already a URL string (data URL, blob URL, or http URL), return it directly
       if (
@@ -52,7 +52,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   // }, []);
 
   const handleCopyToClipboard = useCallback(async () => {
-    if (!imageUrl) return;
+    if (!imageUrl) {return;}
 
     try {
       // Fetch image as blob to avoid CORS issues with canvas

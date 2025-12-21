@@ -10,21 +10,21 @@ import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
 const determineCodeLanguage = (nodeType: string) => {
-  if (nodeType == "nodetool.code.ExecutePython") {
+  if (nodeType === "nodetool.code.ExecutePython") {
     return "python";
   }
-  if (nodeType == "nodetool.code.ExecuteJavaScript") {
+  if (nodeType === "nodetool.code.ExecuteJavaScript") {
     return "javascript";
   }
-  if (nodeType == "nodetool.code.ExecuteBash") {
+  if (nodeType === "nodetool.code.ExecuteBash") {
     return "bash";
   }
-  if (nodeType == "nodetool.code.ExecuteRuby") {
+  if (nodeType === "nodetool.code.ExecuteRuby") {
     return "ruby";
   }
   if (
-    nodeType == "nodetool.code.ExecuteLua" ||
-    nodeType == "nodetool.code.EvaluateExpression"
+    nodeType === "nodetool.code.ExecuteLua" ||
+    nodeType === "nodetool.code.EvaluateExpression"
   ) {
     return "lua";
   }

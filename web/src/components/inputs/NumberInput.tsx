@@ -253,7 +253,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
   }, [props.value, inputIsFocused, state.isDragging]);
 
   useEffect(() => {
-    if (!state.isDragging) return;
+    if (!state.isDragging) {return;}
 
     // Capture the current handler references once. Using local constants keeps the
     // effect dependency array minimal and prevents re-running this effect on every

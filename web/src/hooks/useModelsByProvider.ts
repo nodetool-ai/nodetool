@@ -45,7 +45,7 @@ export const useLanguageModelsByProvider = (options?: {
     useLanguageModelProviders();
 
   const providers = useMemo(() => {
-    if (!options?.allowedProviders) return allProviders;
+    if (!options?.allowedProviders) {return allProviders;}
     const lowerAllowed = options.allowedProviders.map((p) => p.toLowerCase());
     return allProviders.filter((p) =>
       lowerAllowed.includes(p.provider.toLowerCase())
@@ -64,7 +64,7 @@ export const useLanguageModelsByProvider = (options?: {
             }
           }
         });
-        if (error) throw error;
+        if (error) {throw error;}
         return {
           provider: providerValue,
           models: (data || []) as LanguageModel[]
@@ -180,7 +180,7 @@ export const useTTSModelsByProvider = () => {
             }
           }
         });
-        if (error) throw error;
+        if (error) {throw error;}
         return {
           provider: providerValue,
           models: (data || []) as TTSModel[]
@@ -227,7 +227,7 @@ export const useASRModelsByProvider = () => {
             }
           }
         });
-        if (error) throw error;
+        if (error) {throw error;}
         return {
           provider: providerValue,
           models: (data || []) as ASRModel[]
@@ -274,7 +274,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
             }
           }
         });
-        if (error) throw error;
+        if (error) {throw error;}
         return {
           provider: providerValue,
           models: (data || []) as VideoModel[]

@@ -9,7 +9,7 @@ export const fetchWorkflowById = async (id: string): Promise<Workflow> => {
     params: { path: { id } }
   });
   if (error) {
-    throw error as Error;
+    throw new Error(JSON.stringify(error));
   }
   return data as Workflow;
 };

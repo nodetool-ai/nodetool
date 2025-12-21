@@ -106,7 +106,7 @@ export const useCollectionStore = create<CollectionStore>()(
         const { error } = await client.DELETE("/api/collections/{name}", {
           params: { path: { name: collectionName } }
         });
-        if (error) throw error;
+        if (error) {throw error;}
         
         await get().fetchCollections();
       },
@@ -138,7 +138,7 @@ export const useCollectionStore = create<CollectionStore>()(
         set({ dragOverCollection: null, indexErrors: [] });
 
         const files = Array.from(event.dataTransfer.files);
-        if (files.length === 0) return;
+        if (files.length === 0) {return;}
 
         set({
           indexProgress: {

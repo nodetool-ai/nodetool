@@ -121,7 +121,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
   // );
 
-  if (!menuPosition) return null;
+  if (!menuPosition) {return null;}
   return (
     <Menu
       className="context-menu selection-context-menu"

@@ -77,7 +77,7 @@ const KeyboardGrid: React.FC<Props> = ({ shortcuts, os }) => {
     activeShortcuts.forEach((s) => {
       const combo = s.keyCombo.map((k) => k.toLowerCase());
       combo.forEach((k) => {
-        if (!map[k]) map[k] = [];
+        if (!map[k]) {map[k] = [];}
         map[k].push(s.slug);
       });
     });

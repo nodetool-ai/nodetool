@@ -4,7 +4,7 @@ import { SVGElement } from "../../../stores/ApiTypes";
 const convertStyleStringToObject = (
   styleString: string
 ): React.CSSProperties => {
-  if (!styleString) return {};
+  if (!styleString) {return {};}
   return styleString
     .split(";")
     .filter((style) => style.trim())

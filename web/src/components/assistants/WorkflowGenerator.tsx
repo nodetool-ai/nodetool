@@ -23,7 +23,7 @@ const WorkflowGenerator: React.FC = () => {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!prompt.trim() || isLoading) return;
+      if (!prompt.trim() || isLoading) {return;}
 
       setIsLoading(true);
       try {

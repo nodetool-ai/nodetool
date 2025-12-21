@@ -12,7 +12,7 @@ const ControlsShortcutsTab: React.FC = () => {
 
   // dynamic filter
   const filteredShortcuts = NODE_EDITOR_SHORTCUTS.filter((s) => {
-    if (!lower) return true;
+    if (!lower) {return true;}
     return (
       s.title.toLowerCase().includes(lower) ||
       (s.description && s.description.toLowerCase().includes(lower))
@@ -43,7 +43,7 @@ const ControlsShortcutsTab: React.FC = () => {
       <Box sx={{ overflowY: "auto", pr: 1 }}>
         {categories.map((cat) => {
           const list = filteredShortcuts.filter((s) => s.category === cat);
-          if (!list.length) return null;
+          if (!list.length) {return null;}
           return (
             <Box key={cat} sx={{ mb: 3 }}>
               <Typography variant="h2" color="#999" sx={{ mb: 4 }}>

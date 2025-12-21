@@ -43,8 +43,8 @@ export function graphNodeToReactFlowNode(
       height: defaultHeight
     },
     zIndex:
-      node.type == "nodetool.group.Loop" ||
-      node.type == "nodetool.workflows.base_node.Group"
+      node.type === "nodetool.group.Loop" ||
+      node.type === "nodetool.workflows.base_node.Group"
         ? -10
         : ui_properties?.zIndex
   };

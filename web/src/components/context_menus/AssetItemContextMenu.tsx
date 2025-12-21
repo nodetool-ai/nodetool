@@ -55,7 +55,7 @@ const AssetItemContextMenu = () => {
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
 
   const handleCopyImageToClipboard = useCallback(async () => {
-    if (!isSingleImage || !selectedAssets[0]?.get_url) return;
+    if (!isSingleImage || !selectedAssets[0]?.get_url) {return;}
 
     try {
       // Fetch image as blob to avoid CORS issues with canvas
@@ -131,7 +131,7 @@ const AssetItemContextMenu = () => {
     await handleCopyImageToClipboard();
   });
 
-  if (!menuPosition) return null;
+  if (!menuPosition) {return null;}
   return (
     <>
       <Menu

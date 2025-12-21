@@ -32,7 +32,7 @@ const useNamespaceTree = (): NamespaceTree => {
   // Check if a namespace should be disabled
   const isNamespaceDisabled = useCallback(
     (namespace: string) => {
-      if (isProduction) return false;
+      if (isProduction) {return false;}
 
       const apiKeyChecks: Record<string, () => boolean> = {
         calendly: () => !isApiKeySet("CALENDLY_API_TOKEN"),
@@ -48,7 +48,7 @@ const useNamespaceTree = (): NamespaceTree => {
 
       // Check if this root namespace requires an API key
       for (const [prefix, check] of Object.entries(apiKeyChecks)) {
-        if (rootNamespace === prefix) return check();
+        if (rootNamespace === prefix) {return check();}
       }
 
       return false;

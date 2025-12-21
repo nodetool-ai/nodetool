@@ -50,7 +50,7 @@ export function ConnectableNodesProvider({
 
   const showMenu = useCallback(
     (position: { x: number; y: number }) => {
-      if (!active) return;
+      if (!active) {return;}
       setIsVisible(true);
       setMenuPosition(position);
     },

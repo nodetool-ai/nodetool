@@ -58,7 +58,7 @@ export const convertSlateToLexical = (slateData: any): string => {
  * Detects if a string contains markdown-like syntax
  */
 export const isMarkdownText = (text: string): boolean => {
-  if (!text || typeof text !== "string") return false;
+  if (!text || typeof text !== "string") {return false;}
 
   // Check for common markdown patterns
   return (

@@ -174,7 +174,7 @@ export const DownloadProgress: React.FC<{
     }
   };
 
-  if (!download) return null;
+  if (!download) {return null;}
 
   // Minimal inline variant for compact contexts (e.g., model variant buttons)
   if (minimal) {
@@ -194,7 +194,7 @@ export const DownloadProgress: React.FC<{
         : "…";
 
     const formatBytes = (bytes: number) => {
-      if (!bytes || bytes < 0) return "-";
+      if (!bytes || bytes < 0) {return "-";}
       const units = ["B", "KB", "MB", "GB", "TB"] as const;
       let value = bytes;
       let unitIndex = 0;

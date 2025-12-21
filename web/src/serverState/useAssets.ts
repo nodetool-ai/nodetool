@@ -107,7 +107,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
 
   // Process assets (sort by type and exclude folders)
   const processedAssets = useMemo(() => {
-    if (!currentFolderAssets || !currentFolderAssets.assets) return [];
+    if (!currentFolderAssets || !currentFolderAssets.assets) {return [];}
 
     const assetsArray = currentFolderAssets.assets;
 

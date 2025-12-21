@@ -178,7 +178,7 @@ describe("GlobalChatStore", () => {
         agent_mode: false
       });
     } finally {
-      if (mockServer) mockServer.stop(); // Clean up server for this test
+      if (mockServer) {mockServer.stop();} // Clean up server for this test
     }
   });
 
@@ -202,7 +202,7 @@ describe("GlobalChatStore", () => {
     });
 
     afterEach(() => {
-      if (mockServer) mockServer.stop();
+      if (mockServer) {mockServer.stop();}
     });
 
     it("connect establishes WebSocket connection", async () => {
@@ -679,7 +679,7 @@ describe("GlobalChatStore", () => {
     });
 
     afterEach(() => {
-      if (mockServer) mockServer.stop(); // Clean up server
+      if (mockServer) {mockServer.stop();} // Clean up server
     });
 
     it("sendMessage creates thread if none exists", async () => {
@@ -800,7 +800,7 @@ describe("GlobalChatStore", () => {
     });
 
     afterEach(() => {
-      if (mockServer) mockServer.stop(); // Clean up server
+      if (mockServer) {mockServer.stop();} // Clean up server
     });
 
     it("sends stop signal and resets state", async () => {
@@ -859,7 +859,7 @@ describe("GlobalChatStore", () => {
     });
 
     afterEach(() => {
-      if (mockServer) mockServer.stop(); // Clean up server
+      if (mockServer) {mockServer.stop();} // Clean up server
     });
 
     it("adds authentication token to WebSocket URL when session exists", async () => {
@@ -928,7 +928,7 @@ describe("GlobalChatStore", () => {
     });
 
     afterEach(() => {
-      if (mockServer) mockServer.stop(); // Clean up server
+      if (mockServer) {mockServer.stop();} // Clean up server
     });
 
     it.skip("handles message for non-existent thread", async () => {
