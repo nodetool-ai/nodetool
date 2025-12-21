@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useState, useEffect } from "react";
+import React, { memo, useCallback, useState } from "react";
 import {
   Fab,
   Box,
@@ -22,6 +22,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useCombo } from "../../stores/KeyPressedStore";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
@@ -322,23 +323,10 @@ const FloatingToolBar: React.FC<{
     cancel();
   }, [cancel]);
 
-  // Add global keyboard handlers for run (Ctrl+Enter) and stop (ESC)
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-        event.preventDefault();
-        if (!isWorkflowRunning) {
-          handleRun();
-        }
-      } else if (event.key === "Escape" && isWorkflowRunning) {
-        event.preventDefault();
-        handleStop();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isWorkflowRunning, handleRun, handleStop]);
+  // Keyboard shortcuts for run (Ctrl+Enter / Cmd+Enter) and stop (ESC)
+  useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
+  useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
+  useCombo(["escape"], handleStop, true, isWorkflowRunning);
 
   const handleSave = useCallback(() => {
     if (!workflow) {
