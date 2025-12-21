@@ -7,7 +7,10 @@ import { Datetime } from "../../../stores/ApiTypes";
 
 /**
  * Format a Datetime object into a human-readable string.
- * Note: Month is 1-indexed in the API but 0-indexed in JS Date
+ * Note: Month is 1-indexed in the API but 0-indexed in JS Date.
+ * Note: Timezone information (tzinfo/utc_offset) and microseconds are not
+ * included in the display for simplicity. The date is shown in the user's
+ * local timezone. This matches the behavior in CalendarEventView.
  */
 const formatDatetime = (dt: Datetime): string => {
   const date = new Date(
