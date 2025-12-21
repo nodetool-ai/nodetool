@@ -262,8 +262,12 @@ const EditorButton = memo(function EditorButton({
       navigate(`/editor/${currentWorkflowId}`);
     } else {
       // Create a new workflow if none exists
-      const workflow = await createNewWorkflow();
-      navigate(`/editor/${workflow.id}`);
+      try {
+        const workflow = await createNewWorkflow();
+        navigate(`/editor/${workflow.id}`);
+      } catch (error) {
+        console.error("Failed to create new workflow:", error);
+      }
     }
   }, [navigate, currentWorkflowId, createNewWorkflow]);
 
