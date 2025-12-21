@@ -9,6 +9,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import DataObjectIcon from "@mui/icons-material/DataObject";
+import { CopyToClipboardButton } from "./CopyToClipboardButton";
 
 export type Severity = "info" | "warning" | "error";
 
@@ -56,7 +57,7 @@ const tableStyles = (theme: Theme) =>
 
     ".header": {
       display: "grid",
-      gridTemplateColumns: "72px 1fr 80px 40px",
+      gridTemplateColumns: "72px 1fr 80px 60px",
       gap: 8,
       alignItems: "center",
       height: 32,
@@ -72,7 +73,7 @@ const tableStyles = (theme: Theme) =>
 
     ".row": {
       display: "grid",
-      gridTemplateColumns: "72px 1fr 80px 40px",
+      gridTemplateColumns: "72px 1fr 80px 60px",
       gap: 8,
       alignItems: "center",
       height: 36,
@@ -233,11 +234,20 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<LogRow[]>)
             {r.severity}
           </span>
         </div>
-        <div className="cell content">
-          {r.content}
-        </div>
+        <Tooltip title={r.content} placement="top-start" enterDelay={500}>
+          <div className="cell content">
+            {r.content}
+          </div>
+        </Tooltip>
         <div className="cell timestamp">{formatTime(r.timestamp)}</div>
         <div className="cell actions">
+          <CopyToClipboardButton
+            copyValue={r.content}
+            title="Copy log to clipboard"
+            tooltipPlacement="top"
+            className="copy-btn"
+            sx={{ padding: "2px" }}
+          />
           {r.data !== undefined && r.data !== null && (
             <>
               <IconButton 
