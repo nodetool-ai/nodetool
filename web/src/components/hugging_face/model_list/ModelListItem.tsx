@@ -61,7 +61,14 @@ const ModelListItem: React.FC<
     setDialogOpen(false);
   }, []);
 
-  if (downloadId && downloads[downloadId]) {
+  // Only show download progress for active downloads (not completed, cancelled, or error)
+  const download = downloadId ? downloads[downloadId] : undefined;
+  const isActiveDownload = download && 
+    download.status !== "completed" && 
+    download.status !== "cancelled" && 
+    download.status !== "error";
+
+  if (isActiveDownload) {
     return (
       <Box
         css={modelListItemStyles(theme)}
