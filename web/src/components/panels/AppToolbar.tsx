@@ -15,10 +15,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useLocation } from "react-router-dom";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -338,23 +339,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Custom hook for global hotkeys
-const useGlobalHotkeys = (callback: () => void) => {
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-        event.preventDefault();
-        callback();
-      }
-    },
-    [callback]
-  );
-
-  useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-};
 const NodeMenuButton = memo(function NodeMenuButton() {
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
@@ -546,7 +530,9 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
     saveWorkflow
   ]);
 
-  useGlobalHotkeys(handleRun);
+  // Keyboard shortcuts for run (Ctrl+Enter / Cmd+Enter)
+  useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
+  useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
 
   return (
     <Tooltip
@@ -594,20 +580,8 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
     cancel: state.cancel
   }));
 
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isWorkflowRunning) {
-        event.preventDefault();
-        cancel();
-      }
-    },
-    [isWorkflowRunning, cancel]
-  );
-
-  useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+  // Keyboard shortcut for stop (Escape)
+  useCombo(["escape"], cancel, true, isWorkflowRunning);
 
   return (
     <Tooltip
