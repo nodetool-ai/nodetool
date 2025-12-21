@@ -340,6 +340,11 @@ app.on("before-quit", (event) => {
 
 app.on("window-all-closed", () => {
   logMessage("All windows closed");
+  // On macOS, apps typically stay open until explicitly quit
+  // On Windows and Linux, quit the app when all windows are closed
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
 
 app.on("activate", handleActivation);
