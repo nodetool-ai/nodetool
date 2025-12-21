@@ -269,41 +269,47 @@ const FoldersSettings = () => {
           {isSuccess && settingsByGroup && settingsByGroup.size > 0 && (
             <>
               {Array.from(settingsByGroup.entries()).map(
-                ([groupName, groupSettings]) => (
-                  <div key={groupName} className="settings-section">
-                    <Typography
-                      variant="h2"
-                      id={groupName.toLowerCase().replace(/\s+/g, "-")}
-                    >
-                      Custom {groupName}
-                    </Typography>
-                    {groupSettings.map((setting) => (
-                      <div key={setting.env_var} className="settings-item large">
-                        <Box sx={{ display: "flex", alignItems: "flex-end", width: "100%" }}>
-                          <TextField
-                            type={setting.is_secret ? "text" : "text"}
-                            autoComplete="off"
-                            id={`${setting.env_var.toLowerCase()}-input`}
-                            label={setting.env_var.replace(/_/g, " ")}
-                            value={settingValues[setting.env_var] || ""}
-                            onChange={(e) =>
-                              handleChange(setting.env_var, e.target.value)
-                            }
-                            variant="standard"
-                            onKeyDown={(e) => e.stopPropagation()}
-                            sx={{ flex: 1 }}
-                          />
-                          {renderOpenButton(settingValues[setting.env_var])}
-                        </Box>
-                        {setting.description && (
-                          <Typography className="description">
-                            {setting.description}
-                          </Typography>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )
+                ([groupName, groupSettings]) => {
+                  // Only add "Custom" prefix if system or model folders are visible, to differentiate
+                  const showCustomPrefix = canOpenFolders || canOpenSystemFolders;
+                  const sectionTitle = showCustomPrefix ? `Custom ${groupName}` : groupName;
+                  
+                  return (
+                    <div key={groupName} className="settings-section">
+                      <Typography
+                        variant="h2"
+                        id={groupName.toLowerCase().replace(/\s+/g, "-")}
+                      >
+                        {sectionTitle}
+                      </Typography>
+                      {groupSettings.map((setting) => (
+                        <div key={setting.env_var} className="settings-item large">
+                          <Box sx={{ display: "flex", alignItems: "flex-end", width: "100%" }}>
+                            <TextField
+                              type={setting.is_secret ? "text" : "text"}
+                              autoComplete="off"
+                              id={`${setting.env_var.toLowerCase()}-input`}
+                              label={setting.env_var.replace(/_/g, " ")}
+                              value={settingValues[setting.env_var] || ""}
+                              onChange={(e) =>
+                                handleChange(setting.env_var, e.target.value)
+                              }
+                              variant="standard"
+                              onKeyDown={(e) => e.stopPropagation()}
+                              sx={{ flex: 1 }}
+                            />
+                            {renderOpenButton(settingValues[setting.env_var])}
+                          </Box>
+                          {setting.description && (
+                            <Typography className="description">
+                              {setting.description}
+                            </Typography>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
               )}
 
               <div className="save-button-container">
@@ -321,12 +327,18 @@ const FoldersSettings = () => {
           )}
           
           {/* Show message if no settings available and no folder buttons */}
-          {isSuccess && (!settingsByGroup || settingsByGroup.size === 0) && !canOpenFolders && !canOpenSystemFolders && (
-            <Typography sx={{ textAlign: "center", padding: "2em" }}>
-              No folder settings available or defined in the &apos;Folders&apos;
-              group.
-            </Typography>
-          )}
+          {(() => {
+            const hasNoSettings = isSuccess && (!settingsByGroup || settingsByGroup.size === 0);
+            const hasNoFolderButtons = !canOpenFolders && !canOpenSystemFolders;
+            const showNoSettingsMessage = hasNoSettings && hasNoFolderButtons;
+            
+            return showNoSettingsMessage ? (
+              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+                No folder settings available or defined in the &apos;Folders&apos;
+                group.
+              </Typography>
+            ) : null;
+          })()}
         </div>
       </div>
     </>

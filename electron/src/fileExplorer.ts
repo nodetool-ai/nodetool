@@ -324,6 +324,7 @@ export async function openSystemDirectory(
   );
   
   try {
+    // shell.openPath returns an empty string on success, or an error message on failure
     const result = await shell.openPath(dir);
     if (result) {
       throw new Error(result);
