@@ -1,192 +1,280 @@
 ---
 layout: page
 title: "NodeTool User Interface"
+description: "Navigate the NodeTool interface with confidence – a visual guide for new users."
 ---
 
-This handbook covers the NodeTool interface, helping you navigate the desktop and web versions efficiently.
+This guide introduces you to the NodeTool interface. Whether you're using the desktop app or web version, you'll learn where everything is and how to use it effectively.
 
-<!-- Screenshot: Full application interface showing the dashboard -->
-
----
-
-## Contents
-
-1. [Top-level layout](#top-level-layout)
-2. [Dashboard](#dashboard)
-3. [Panels and layout management](#panels-and-layout-management)
-4. [Workflow Editor](#workflow-editor)
-5. [Global Chat](#global-chat)
-6. [Mini-Apps](#mini-apps)
-7. [Assets](#assets)
-8. [Models Manager](#models-manager)
-9. [Command Menu](#command-menu)
-10. [Keyboard shortcuts](#keyboard-shortcuts)
+> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md) for a hands-on tutorial.
 
 ---
 
-## Top-level layout
+## At a Glance
 
-NodeTool is divided into a fixed **App Header** and a flexible workspace.
+NodeTool has five main areas you'll work with:
 
-### App Header
+| Area | What It's For | When You'll Use It |
+|------|---------------|-------------------|
+| **Dashboard** | Your home base | Starting point, finding workflows |
+| **Workflow Editor** | Building AI workflows | Creating and editing workflows |
+| **Global Chat** | Conversational AI | Running workflows through chat, getting help |
+| **Mini-Apps** | Simplified workflow UIs | Sharing workflows with others |
+| **Assets** | Managing files | Organizing images, audio, documents |
 
-- Navigation and App Title
-- Quick access to Models, Assets, Templates, and Chat
-- User account and Settings
-- Download status indicator
+---
 
-### Work surfaces
+## The App Header
 
-- **Dashboard**: Your home base for workflows, templates, and chat.
-- **Workflow Editor**: The visual graph builder.
-- **Global Chat**: Full-screen AI assistant.
-- **Mini-Apps**: Simplified interface for running workflows.
-- **Assets**: File explorer for your media and documents.
+The header bar at the top is always visible:
+
+- **Logo/Title** – Click to return to Dashboard
+- **Models** – Quick access to Model Manager
+- **Assets** – Open your file library
+- **Templates** – Browse pre-made workflows
+- **Chat** – Open Global Chat
+- **Settings** – Preferences, API keys, account
+- **Download indicator** – Shows when files are downloading
 
 ---
 
 ## Dashboard
 
-The Dashboard is the default view, hosting panels for **Workflows**, **Recent chats**, **Templates**, and **Setup**.
+The Dashboard is your starting point when you open NodeTool.
 
-<!-- Screenshot: Dashboard view with multiple panels open -->
+### What You'll Find
 
-### Key actions
+- **Your Workflows** – Saved projects you've created
+- **Templates** – Pre-built workflows ready to use
+- **Recent Chats** – Past conversations with Global Chat
+- **Setup Guide** – Getting started tips (for new users)
 
-- Open workflows or launch templates
-- Create new workflows or chat threads
-- Customize your workspace layout
+### Common Actions
 
----
-
-## Panels and layout management
-
-You can customize the interface by moving and resizing panels.
-
-- **Drag tabs** to re-order or split the view (horizontally/vertically)
-- **Resize** panels by dragging borders
-- **Close** panels with the `X` icon
-- **Add panels** from the "Add Panel" dropdown
-- **Save/Restore layouts** using the Layout menu
+| Task | How to Do It |
+|------|--------------|
+| Start a new workflow | Click "New Workflow" button |
+| Open a saved workflow | Click the workflow card |
+| Try a template | Browse Templates panel, click to open |
+| Resume a chat | Click a recent chat thread |
 
 ---
 
 ## Workflow Editor
 
-The editor is where you build your logic graphs.
+This is where you build AI workflows by connecting nodes (building blocks).
 
-<!-- Screenshot: Workflow editor with nodes and connections -->
+### The Canvas
 
-### Canvas controls
+The large center area is your **canvas** – an infinite workspace where you place and connect nodes.
 
-- **Pan**: Space + drag or right-mouse drag
-- **Zoom**: Ctrl/⌘ + scroll
-- **Fit view**: `F` or `Ctrl/⌘+0`
-- **Auto layout**: Automatically tidy the graph
+**Moving Around:**
+- **Pan** (scroll the view): Hold `Space` and drag, or right-click and drag
+- **Zoom**: `Ctrl/⌘` + scroll wheel
+- **Fit everything in view**: Press `F`
 
-### Nodes and connections
+### Adding Nodes
 
-- **Add Node**: Press Space or double-click the canvas to open the search menu.
-- **Connect**: Drag from an output handle to an input handle.
-- **Smart Connect**: Drop a connection on empty space to see compatible nodes.
+Nodes are the building blocks of your workflow. To add one:
 
-### Selection and editing
+1. Press `Space` anywhere on the canvas, **OR**
+2. Double-click an empty area
 
-- **Select**: Click or drag a box. Shift-click for multi-select.
-- **Duplicate**: `Ctrl/⌘+D`
-- **Group**: `Ctrl/⌘+G`
-- **History**: `Ctrl/⌘+Z` (Undo) and `Ctrl/⌘+Shift+Z` (Redo)
+This opens the **Node Menu** where you can:
+- **Search** by typing what you want (e.g., "image generation")
+- **Browse** categories on the left side
+- **Click** a node to add it to your canvas
 
-### Properties
+### Connecting Nodes
 
-Select a node to view its **Properties** panel on the right. This is where you configure inputs, view outputs, and see validation errors.
+Data flows between nodes through connections:
+
+1. Find the small **circles** on nodes (outputs on the right, inputs on the left)
+2. **Click and drag** from an output circle
+3. **Release** on an input circle of another node
+
+> **Pro tip**: Drop a connection on empty space to see a list of compatible nodes!
+
+### The Properties Panel
+
+When you select a node, the right panel shows its **Properties** (settings):
+
+- **Inputs** – What the node needs (text, images, etc.)
+- **Settings** – Configuration options
+- **Output** – What the node produces
 
 ---
 
 ## Global Chat
 
-Global Chat is your AI assistant for help and automation.
+Global Chat is your AI assistant built into NodeTool.
 
-<!-- Screenshot: Chat interface with an active conversation -->
+### What You Can Do
 
-- **Threads**: Create, rename, and manage multiple conversation histories.
-- **Agent Mode**: Enable this to let the AI use tools and modify your workflows directly.
-- **Rich Media**: Supports text, images, audio, and video interactions.
+- **Chat** with AI models about anything
+- **Run workflows** directly from conversation
+- **Enable Agent Mode** to let AI build and modify workflows
+- **Share files** – images, audio, documents
+
+### Chat Features
+
+| Feature | Description |
+|---------|-------------|
+| **Threads** | Multiple conversations, each with its own history |
+| **Model Selector** | Choose which AI model to chat with |
+| **Workflow Menu** | Attach and run your saved workflows |
+| **Agent Mode** | Let the AI use tools and modify your canvas |
 
 ---
 
 ## Mini-Apps
 
-The **Mini-App Runner** transforms a workflow into a clean user interface.
+Transform any workflow into a simple app that anyone can use.
 
-<!-- Screenshot: A mini-app running with input forms and results -->
+### Why Use Mini-Apps?
 
-- **Input Form**: Automatically generated from your workflow inputs.
-- **Progress**: Real-time status updates.
-- **Results**: View generated outputs without seeing the underlying graph.
+- **Hide complexity** – Users see only inputs and outputs
+- **Share easily** – No NodeTool knowledge required
+- **Focused experience** – Just what they need, nothing more
+
+### How It Works
+
+1. Build your workflow in the Editor
+2. Click **Mini-App** in the top-right
+3. See a clean interface with just:
+   - Input fields (from your Input nodes)
+   - Run button
+   - Output results
 
 ---
 
 ## Assets
 
-The **Asset Explorer** lets you manage files within NodeTool.
+The Asset Explorer manages all your files.
 
-<!-- Screenshot: Asset explorer grid view -->
+### Supported Files
 
-- **Browse**: Grid and table views.
-- **Preview**: Built-in viewers for audio, video, images, and text.
-- **Drag & Drop**: Drag files directly into the editor to create reference nodes.
+- **Images**: PNG, JPG, GIF, WebP
+- **Audio**: MP3, WAV, M4A
+- **Video**: MP4, MOV, WebM
+- **Documents**: PDF, TXT, Markdown
+
+### Working with Assets
+
+| Action | How |
+|--------|-----|
+| Upload files | Drag & drop into Assets panel |
+| Use in workflow | Drag asset onto the canvas |
+| Preview | Click any asset to preview |
+| Organize | Create folders, rename files |
 
 ---
 
 ## Models Manager
 
-Manage your local and cloud AI models.
+Download, organize, and configure AI models.
 
-<!-- Screenshot: Models manager dialog -->
+### Finding Models
 
-- **Search & Filter**: Find models by name, provider, or capability.
-- **Download**: One-click downloads with background progress tracking.
-- **Configuration**: Set up API keys and preferences in Settings.
+- **Search** by name or task type
+- **Filter** by provider (local, OpenAI, etc.)
+- **Sort** by size or popularity
+
+### Managing Downloads
+
+- **One-click install** for any supported model
+- **Progress tracking** in the header
+- **Space usage** shown per model
+- **Easy uninstall** to free space
+
+---
+
+## Panels and Layout
+
+NodeTool's interface is flexible – customize it to your workflow.
+
+### Rearranging Panels
+
+- **Move**: Drag a panel tab to a new location
+- **Split**: Drag a tab to the edge of another panel
+- **Resize**: Drag the borders between panels
+- **Close**: Click the X on any tab
+- **Restore**: Use View menu to add closed panels back
+
+### Saving Layouts
+
+Your layout is saved automatically. To reset:
+- **View → Reset Layout** restores defaults
 
 ---
 
 ## Command Menu
 
-Press `Alt+K` or `⌘+K` to open the **Command Menu**. It's the fastest way to:
+Press `Alt+K` (Windows/Linux) or `⌘+K` (Mac) to open the **Command Menu**.
 
-- Open workflows
-- Switch layouts
-- Create nodes
-- Navigate to different sections
+This is the fastest way to:
+- Open any workflow
+- Switch between sections
+- Search for anything
+- Access settings
+
+Just start typing what you want!
 
 ---
 
-## Keyboard shortcuts
+## Keyboard Shortcuts
 
-### Global
+### Essentials (Learn These First!)
 
-- `Alt+K` / `⌘+K`: Command Menu
-- `Ctrl/⌘+N`: New workflow
-- `Ctrl/⌘+O`: Open workflow
-- `Ctrl/⌘+S`: Save
-- `Ctrl/⌘+Z`: Undo
-- `Ctrl/⌘+Shift+Z`: Redo
-- `Ctrl/⌘+1…9`: Switch editor tabs
+| Shortcut | Action |
+|----------|--------|
+| `Space` | Open node menu |
+| `Ctrl/⌘ + Enter` | Run workflow |
+| `Ctrl/⌘ + S` | Save |
+| `Ctrl/⌘ + Z` | Undo |
+| `F` | Fit view |
+| `Esc` | Stop running workflow |
 
-### Editor
+### All Shortcuts
 
-- `Space + Drag`: Pan
-- `Ctrl/⌘+Scroll`: Zoom
-- `F`: Fit to screen
-- `Ctrl/⌘+Enter`: Run workflow
-- `Esc`: Stop workflow
-- `Ctrl/⌘+D`: Duplicate
-- `Ctrl/⌘+G`: Group
-- `A`: Align nodes
+#### Global
 
-### Chat
+| Shortcut | Action |
+|----------|--------|
+| `Alt+K` / `⌘+K` | Command Menu |
+| `Ctrl/⌘+N` | New workflow |
+| `Ctrl/⌘+O` | Open workflow |
+| `Ctrl/⌘+S` | Save |
+| `Ctrl/⌘+Z` | Undo |
+| `Ctrl/⌘+Shift+Z` | Redo |
+| `Ctrl/⌘+1…9` | Switch tabs |
 
-- `Enter`: Send message
-- `Shift+Enter`: New line
-- `Esc`: Stop generation
+#### Editor
+
+| Shortcut | Action |
+|----------|--------|
+| `Space + Drag` | Pan |
+| `Ctrl/⌘ + Scroll` | Zoom |
+| `F` | Fit to screen |
+| `Ctrl/⌘+Enter` | Run workflow |
+| `Esc` | Stop workflow |
+| `Ctrl/⌘+D` | Duplicate |
+| `Ctrl/⌘+G` | Group |
+| `A` | Align nodes |
+| `Delete` / `Backspace` | Delete selection |
+
+#### Chat
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Send message |
+| `Shift+Enter` | New line |
+| `Esc` | Stop generation |
+
+---
+
+## Next Steps
+
+- **[Workflow Editor deep dive](workflow-editor.md)** – Master the canvas
+- **[Tips & Tricks](tips-and-tricks.md)** – Power user secrets
+- **[Cookbook](cookbook.md)** – Learn workflow patterns
