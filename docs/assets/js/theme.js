@@ -10,6 +10,9 @@
 
   if (mobileMenuToggle) {
     mobileMenuToggle.addEventListener('click', function() {
+      // Toggle the active class on the button itself for hamburger animation
+      mobileMenuToggle.classList.toggle('active');
+      
       if (sidebar) {
         sidebar.classList.toggle('active');
       }
@@ -473,6 +476,14 @@
       if (sidebar && sidebar.classList.contains('active')) {
         if (!sidebar.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
           sidebar.classList.remove('active');
+        }
+      }
+      
+      // Close mobile nav menu when clicking outside
+      if (navList && navList.classList.contains('active')) {
+        if (!navList.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+          navList.classList.remove('active');
+          mobileMenuToggle.classList.remove('active');
         }
       }
     });
