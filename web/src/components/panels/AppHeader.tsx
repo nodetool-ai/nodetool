@@ -252,22 +252,28 @@ const EditorButton = memo(function EditorButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback(async () => {
     if (currentWorkflowId) {
       navigate(`/editor/${currentWorkflowId}`);
     } else {
-      navigate("/editor");
+      // Create a new workflow if none exists
+      try {
+        const workflow = await createNewWorkflow();
+        navigate(`/editor/${workflow.id}`);
+      } catch (error) {
+        console.error("Failed to create new workflow:", error);
+      }
     }
-  }, [navigate, currentWorkflowId]);
+  }, [navigate, currentWorkflowId, createNewWorkflow]);
 
   return (
     <Tooltip
-      title="Open Editor"
+      title={currentWorkflowId ? "Open Editor" : "Create New Workflow"}
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement="bottom"
     >
@@ -276,7 +282,6 @@ const EditorButton = memo(function EditorButton({
         onClick={handleClick}
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
-        disabled={!currentWorkflowId}
       >
         <EditIcon />
         <span className="nav-button-text">Editor</span>
