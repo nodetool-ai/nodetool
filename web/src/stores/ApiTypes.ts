@@ -53,10 +53,7 @@ export interface NodeMetadata extends BaseNodeMetadata {
   model_packs?: ModelPack[];
 }
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
-export type Message = components["schemas"]["Message"] & {
-  execution_event_type?: string;
-  agent_execution_id?: string;
-};
+export type Message = components["schemas"]["Message"];
 export type Prediction = components["schemas"]["Prediction"];
 export type MessageCreateRequest =
   components["schemas"]["MessageCreateRequest"];
@@ -143,13 +140,4 @@ export type Datetime = components["schemas"]["Datetime"];
 export type Job = JobResponse;
 
 // Model Pack - curated bundle of models that work together
-export interface ModelPack {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  tags: string[];
-  models: UnifiedModel[];
-  total_size: number | null;
-  downloaded: boolean;
-}
+export type ModelPack = components["schemas"]["ModelPack"];

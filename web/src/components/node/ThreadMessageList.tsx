@@ -176,8 +176,8 @@ const MessageView = (msg: Message) => {
       {typeof msg.content === "string" && (
         <MarkdownRenderer key={msg.id} content={msg.content} />
       )}
-      {typeof msg.content === "object" &&
-        msg.content?.map((c) => {
+      {Array.isArray(msg.content) &&
+        msg.content.map((c) => {
           if (c.type === "text") {
             return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
           } else if (c.type === "image_url") {

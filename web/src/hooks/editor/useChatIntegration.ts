@@ -47,8 +47,8 @@ export function useChatIntegration(params: {
       if (typeof message.content === "string") {
         message.content =
           "<context>" + currentText + "</context>\n\n" + message.content;
-      } else {
-        message.content = message.content?.map((content) => {
+      } else if (Array.isArray(message.content)) {
+        message.content = message.content.map((content) => {
           if (content.type === "text") {
             return {
               ...content,

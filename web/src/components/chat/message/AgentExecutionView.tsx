@@ -419,9 +419,15 @@ const normalizeExecutionMessage = (msg: Message) => {
     try {
       content = JSON.parse(content);
       if (typeof content === "string") {
-        try { content = JSON.parse(content); } catch (error) {}
+        try { 
+          content = JSON.parse(content); 
+        } catch (error) {
+          // Double-encoded JSON parse failed, keep as string
+        }
       }
-    } catch (error) {}
+    } catch (error) {
+      // JSON parse failed, keep content as string
+    }
   }
 
   if (!eventType && content && typeof content === "object") {

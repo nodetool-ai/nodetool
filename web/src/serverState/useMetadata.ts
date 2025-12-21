@@ -40,20 +40,13 @@ export const loadMetadata = async () => {
     return "error";
   }
 
-  const nodeTypes = data.reduce((prev: NodeTypes, md: NodeMetadata) => {
-    prev[md.node_type] = BaseNode;
-    return prev;
-  }, {});
-
-  useMetadataStore.getState().setNodeTypes(nodeTypes);
-
-  const metadataByType = data.reduce<Record<string, NodeMetadata>>(
-    (result, md) => ({
-      ...result,
-      [md.node_type]: md
-    }),
-    defaultMetadata
-  );
+  const nodeTypes: NodeTypes = {};
+  const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata };
+  
+  data.forEach((md: NodeMetadata) => {
+    nodeTypes[md.node_type] = BaseNode;
+    metadataByType[md.node_type] = md;
+  });
 
   const recommendedModels = data.reduce<UnifiedModel[]>(
     (result, md) => [...result, ...md.recommended_models],
@@ -76,8 +69,6 @@ export const loadMetadata = async () => {
   useMetadataStore.getState().setMetadata(metadataByType);
   useMetadataStore.getState().setRecommendedModels(uniqueRecommendedModels);
   useMetadataStore.getState().setNodeTypes(nodeTypes);
-
-
 
   createConnectabilityMatrix(Object.values(metadataByType));
 
