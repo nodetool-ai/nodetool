@@ -385,6 +385,9 @@ export enum IpcChannels {
   SHELL_BEEP = "shell-beep",
   SHELL_WRITE_SHORTCUT_LINK = "shell-write-shortcut-link",
   SHELL_READ_SHORTCUT_LINK = "shell-read-shortcut-link",
+  // Settings channels
+  SETTINGS_GET_CLOSE_BEHAVIOR = "settings-get-close-behavior",
+  SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
 }
 
 
@@ -468,8 +471,12 @@ export interface IpcRequest {
     options?: ShortcutDetails;
   };
   [IpcChannels.SHELL_READ_SHORTCUT_LINK]: string; // shortcutPath
+  // Settings
+  [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: void;
+  [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
 }
 
+export type WindowCloseAction = "ask" | "quit" | "background";
 
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
@@ -524,6 +531,9 @@ export interface IpcResponse {
   [IpcChannels.SHELL_BEEP]: void;
   [IpcChannels.SHELL_WRITE_SHORTCUT_LINK]: boolean;
   [IpcChannels.SHELL_READ_SHORTCUT_LINK]: ShortcutDetails;
+  // Settings
+  [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: WindowCloseAction;
+  [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
 }
 
 
