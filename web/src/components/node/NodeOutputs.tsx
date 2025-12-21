@@ -79,7 +79,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
 
   const onSubmitEdit = useCallback(() => {
     const newName = renameValue.trim();
-    if (!newName || renameTarget === null) return;
+    if (!newName || renameTarget === null) {return;}
 
     const currentDynamic: Record<string, any> = {
       ...(node?.data?.dynamic_outputs || {})
@@ -156,7 +156,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") onSubmitEdit();
+                if (e.key === "Enter") {onSubmitEdit();}
               }}
               sx={{ flex: 1 }}
             />

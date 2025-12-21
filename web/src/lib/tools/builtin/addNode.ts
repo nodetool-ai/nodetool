@@ -34,10 +34,10 @@ FrontendToolRegistry.register({
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
-    if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
+    if (!nodeStore) {throw new Error(`No node store for workflow ${workflowId}`);}
 
     const metadata = state.nodeMetadata[node.type];
-    if (!metadata) throw new Error(`Node type not found: ${node.type}`);
+    if (!metadata) {throw new Error(`Node type not found: ${node.type}`);}
     if (node.id === undefined) {
       throw new Error("Node is missing id");
     }

@@ -95,7 +95,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
   };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLImageElement>) => {
-    if (event.buttons !== 1) return;
+    if (event.buttons !== 1) {return;}
     const { clientX, clientY } = event;
     const deltaX = clientX - position.x;
     const deltaY = clientY - position.y;

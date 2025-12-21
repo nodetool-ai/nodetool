@@ -9,7 +9,7 @@ export function useAssetDownload(params: {
 
   const handleDownload = useCallback(() => {
     const downloadUrl = url || (currentAsset && currentAsset.get_url);
-    if (!downloadUrl) return;
+    if (!downloadUrl) {return;}
 
     const link = document.createElement("a");
     link.href = downloadUrl;

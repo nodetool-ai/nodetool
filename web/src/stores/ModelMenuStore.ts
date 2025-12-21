@@ -39,13 +39,13 @@ export interface ModelMenuState<
 
 export const requiredSecretForProvider = (provider?: string): string | null => {
   const p = (provider || "").toLowerCase();
-  if (p.includes("openai")) return "OPENAI_API_KEY";
-  if (p.includes("anthropic")) return "ANTHROPIC_API_KEY";
-  if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
-  if (p.includes("huggingface") || p.includes("hf_")) return "HF_TOKEN";
-  if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
-  if (p.includes("fal")) return "FAL_API_KEY";
-  if (p.includes("aime")) return "AIME_API_KEY";
+  if (p.includes("openai")) {return "OPENAI_API_KEY";}
+  if (p.includes("anthropic")) {return "ANTHROPIC_API_KEY";}
+  if (p.includes("gemini") || p.includes("google")) {return "GEMINI_API_KEY";}
+  if (p.includes("huggingface") || p.includes("hf_")) {return "HF_TOKEN";}
+  if (p.includes("replicate")) {return "REPLICATE_API_TOKEN";}
+  if (p.includes("fal")) {return "FAL_API_KEY";}
+  if (p.includes("aime")) {return "AIME_API_KEY";}
   return null;
 };
 
@@ -142,7 +142,7 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
 
     const merged: TModel[] = [...tokenMatches];
     for (const it of fuseItems) {
-      if (!merged.includes(it)) merged.push(it);
+      if (!merged.includes(it)) {merged.push(it);}
     }
     return merged;
   }
@@ -179,7 +179,7 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
     const mapped: TModel[] = [];
     recentsList.forEach((recentItem) => {
       const model = byKey.get(`${recentItem.provider}:${recentItem.id}`);
-      if (model) mapped.push(model);
+      if (model) {mapped.push(model);}
     });
     return mapped;
   }, [models, recentsList]);
@@ -196,7 +196,7 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
     const isEnabled = (p?: string) => enabledProviders?.[p || ""] !== false;
     const isEnvOk = (p?: string) => {
       const env = requiredSecretForProvider(p);
-      if (!env) return true;
+      if (!env) {return true;}
       return isApiKeySet(env);
     };
     return (

@@ -14,7 +14,7 @@ export const useRecommendedModels = () => {
     queryKey: ["recommendedModels"],
     queryFn: async () => {
       const { data, error } = await client.GET("/api/models/recommended", {});
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     },
     refetchOnWindowFocus: false

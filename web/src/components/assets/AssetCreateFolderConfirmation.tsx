@@ -49,7 +49,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
   // Derive selectedAssets from selectedAssetIds and current assets to ensure they're in sync
   const selectedAssets = useMemo(() => {
-    if (selectedAssetIds.length === 0) return [];
+    if (selectedAssetIds.length === 0) {return [];}
     return selectedAssetIds
       .map((id) => folderFilesFiltered.find((asset) => asset.id === id))
       .filter(Boolean) as Asset[];

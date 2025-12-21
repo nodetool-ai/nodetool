@@ -54,7 +54,7 @@ export function useEditorActions(params: {
   const handleFind = useCallback(
     (searchTerm: string) => {
       const results = findFnRef.current?.(searchTerm);
-      if (results) setSearchResults(results);
+      if (results) {setSearchResults(results);}
     },
     [findFnRef, setSearchResults]
   );
@@ -68,12 +68,12 @@ export function useEditorActions(params: {
 
   const handleNavigateNext = useCallback(() => {
     const results = navigateFnRef.current?.("next");
-    if (results) setSearchResults(results);
+    if (results) {setSearchResults(results);}
   }, [navigateFnRef, setSearchResults]);
 
   const handleNavigatePrevious = useCallback(() => {
     const results = navigateFnRef.current?.("previous");
-    if (results) setSearchResults(results);
+    if (results) {setSearchResults(results);}
   }, [navigateFnRef, setSearchResults]);
 
   return {

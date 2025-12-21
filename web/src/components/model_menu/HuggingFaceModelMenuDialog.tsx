@@ -85,8 +85,8 @@ export default function HuggingFaceModelMenuDialog({
       const bIsRecommended = recommendedModelIds.has(b.id || "");
 
       // Recommended models come first
-      if (aIsRecommended && !bIsRecommended) return -1;
-      if (!aIsRecommended && bIsRecommended) return 1;
+      if (aIsRecommended && !bIsRecommended) {return -1;}
+      if (!aIsRecommended && bIsRecommended) {return 1;}
 
       // Within same category, sort alphabetically by name
       return (a.name || "").localeCompare(b.name || "");

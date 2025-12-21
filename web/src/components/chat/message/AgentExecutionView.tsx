@@ -330,7 +330,7 @@ const styles = (theme: Theme) =>
   });
 
 const formatToolArgs = (args: any): string => {
-  if (args === null || args === undefined) return "";
+  if (args === null || args === undefined) {return "";}
   try {
     const obj = typeof args === "string" ? JSON.parse(args) : args;
     // If it's a simple object with few keys, simpler display? For now just indent
@@ -348,7 +348,7 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
 
-  if (!toolCalls || toolCalls.length === 0) return null;
+  if (!toolCalls || toolCalls.length === 0) {return null;}
 
   return (
     <div className="tool-calls-container">
@@ -461,7 +461,7 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
     const seenTasks = new Map<string, number>();
 
     messages.forEach((msg, msgIndex) => {
-      if (msg.role !== "agent_execution") return;
+      if (msg.role !== "agent_execution") {return;}
 
       const { eventType, content } = normalizeExecutionMessage(msg);
 
@@ -476,7 +476,7 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
             key: `planning-${msgIndex}`
           });
         }
-        if (planningUpdate.status === "Failed") result.status = "failed";
+        if (planningUpdate.status === "Failed") {result.status = "failed";}
       } else if (eventType === "task_update") {
         const taskUpdate = content as TaskUpdate;
         const task = taskUpdate.task;
@@ -496,9 +496,9 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
           }
         }
 
-        if (taskUpdate.event === "task_completed") result.status = "completed";
-        else if (taskUpdate.event === "step_failed") result.status = "failed";
-        else if (taskUpdate.event === "step_started") result.status = "executing";
+        if (taskUpdate.event === "task_completed") {result.status = "completed";}
+        else if (taskUpdate.event === "step_failed") {result.status = "failed";}
+        else if (taskUpdate.event === "step_started") {result.status = "executing";}
       } else if (eventType === "step_result") {
         const stepResult = content as StepResult;
         const stepId = stepResult?.step?.id || (stepResult as any)?.step_id || (stepResult as any)?.stepId || stepResult?.step?.instructions;
@@ -563,14 +563,14 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
           );
 
         const getStatusBadgeClass = () => {
-          if (taskUpdate.event === "task_completed") return "completed";
-          if (taskUpdate.event === "step_failed") return "failed";
+          if (taskUpdate.event === "task_completed") {return "completed";}
+          if (taskUpdate.event === "step_failed") {return "failed";}
           return "";
         };
 
         const getStatusText = () => {
-          if (taskUpdate.event === "task_completed") return "Completed";
-          if (taskUpdate.event === "step_failed") return "Failed";
+          if (taskUpdate.event === "task_completed") {return "Completed";}
+          if (taskUpdate.event === "step_failed") {return "Failed";}
           return "In Progress";
         };
 

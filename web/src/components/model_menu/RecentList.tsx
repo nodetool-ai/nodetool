@@ -29,11 +29,11 @@ export interface RecentListProps<TModel extends ModelSelectorModel> {
 
 const requiredSecretForProvider = (provider?: string): string | null => {
   const p = (provider || "").toLowerCase();
-  if (p.includes("openai")) return "OPENAI_API_KEY";
-  if (p.includes("anthropic")) return "ANTHROPIC_API_KEY";
-  if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
-  if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
-  if (p.includes("aime")) return "AIME_API_KEY";
+  if (p.includes("openai")) {return "OPENAI_API_KEY";}
+  if (p.includes("anthropic")) {return "ANTHROPIC_API_KEY";}
+  if (p.includes("gemini") || p.includes("google")) {return "GEMINI_API_KEY";}
+  if (p.includes("replicate")) {return "REPLICATE_API_TOKEN";}
+  if (p.includes("aime")) {return "AIME_API_KEY";}
   return null;
 };
 
@@ -57,7 +57,7 @@ function RecentList<TModel extends ModelSelectorModel>({
     return map;
   }, [models]);
 
-  if (models.length === 0) return null;
+  if (models.length === 0) {return null;}
 
   return (
     <List

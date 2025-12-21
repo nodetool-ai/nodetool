@@ -210,7 +210,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   }, [source]);
 
   const loadWaveSurfer = useCallback(async () => {
-    if (audioUrl === "" || lastLoadedUrlRef.current === audioUrl) return;
+    if (audioUrl === "" || lastLoadedUrlRef.current === audioUrl) {return;}
 
     const abortCtrl = new AbortController();
 

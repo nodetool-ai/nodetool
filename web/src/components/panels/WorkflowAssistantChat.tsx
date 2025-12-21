@@ -242,7 +242,7 @@ const WorkflowAssistantChat: React.FC = () => {
 
   const getThreadPreview = useCallback(
     (threadId: string) => {
-      if (!threads) return "Loading...";
+      if (!threads) {return "Loading...";}
       const thread = threads[threadId];
       if (!thread) {
         return "Empty conversation";
@@ -303,7 +303,7 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Map status to ChatView compatible status
   const getChatViewStatus = () => {
-    if (status === "stopping") return "loading";
+    if (status === "stopping") {return "loading";}
     return status;
   };
 

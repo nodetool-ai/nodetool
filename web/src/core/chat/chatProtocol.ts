@@ -82,9 +82,9 @@ export interface ToolResultMessage {
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   let mimeType = "application/octet-stream";
-  if (type === "image") mimeType = "image/png";
-  else if (type === "audio") mimeType = "audio/mp3";
-  else if (type === "video") mimeType = "video/mp4";
+  if (type === "image") {mimeType = "image/png";}
+  else if (type === "audio") {mimeType = "audio/mp3";}
+  else if (type === "video") {mimeType = "video/mp4";}
 
   const dataUri = URL.createObjectURL(new Blob([data], { type: mimeType }));
 
@@ -177,10 +177,10 @@ const applyNodeUpdate = (
 
 const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   const threadId = state.currentThreadId;
-  if (!threadId) return noopUpdate;
+  if (!threadId) {return noopUpdate;}
 
   const thread = state.threads[threadId];
-  if (!thread) return noopUpdate;
+  if (!thread) {return noopUpdate;}
 
   const messages = state.messageCache[threadId] || [];
   const lastMessage = messages[messages.length - 1];
@@ -252,10 +252,10 @@ const applyOutputUpdate = (
   update: OutputUpdate
 ): ReducerResult => {
   const threadId = state.currentThreadId;
-  if (!threadId) return noopUpdate;
+  if (!threadId) {return noopUpdate;}
 
   const thread = state.threads[threadId];
-  if (!thread) return noopUpdate;
+  if (!thread) {return noopUpdate;}
 
   if (update.output_type === "string") {
     const messages = state.messageCache[threadId] || [];
@@ -476,7 +476,7 @@ const applyAssistantMessage = (
     text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
 
   const extractTextContent = (message: Message): string => {
-    if (typeof message.content === "string") return message.content;
+    if (typeof message.content === "string") {return message.content;}
     if (Array.isArray(message.content)) {
       return message.content
         .map((c: any) => (c?.type === "text" ? c.text : ""))
@@ -496,19 +496,19 @@ const applyAssistantMessage = (
   const findStreamPlaceholderIndex = (): number => {
     for (let i = messages.length - 1; i >= 0; i--) {
       const candidate = messages[i];
-      if (candidate?.role !== "assistant") continue;
-      if ((candidate as any).type !== "message") continue;
+      if (candidate?.role !== "assistant") {continue;}
+      if ((candidate as any).type !== "message") {continue;}
 
       const candidateId = candidate.id ?? null;
       const isLocalStream =
         typeof candidateId === "string" && candidateId.startsWith("local-stream-");
       const isServerAuthored = !!candidate.created_at || (!!candidateId && !isLocalStream);
 
-      if (isServerAuthored) continue;
+      if (isServerAuthored) {continue;}
 
       const candidateText = extractTextContent(candidate);
       const candidateNormalized = normalizeTextForComparison(candidateText);
-      if (!candidateNormalized || !incomingNormalized) continue;
+      if (!candidateNormalized || !incomingNormalized) {continue;}
 
       if (
         candidateNormalized === incomingNormalized ||
@@ -582,7 +582,7 @@ const applyAssistantMessage = (
 
 const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
   const threadId = msg.thread_id ?? state.currentThreadId;
-  if (!threadId) return noopUpdate;
+  if (!threadId) {return noopUpdate;}
   const messages = state.messageCache[threadId] || [];
 
   if (msg.role === "agent_execution") {

@@ -41,7 +41,7 @@ const IndexingProgress = memo(function IndexingProgress({
 }: {
   indexProgress: CollectionItemProps["indexProgress"];
 }) {
-  if (!indexProgress) return null;
+  if (!indexProgress) {return null;}
 
   return (
     <>

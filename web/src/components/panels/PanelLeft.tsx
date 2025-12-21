@@ -349,9 +349,9 @@ const styles = (theme: Theme) =>
 const RunningJobsList = () => {
   const { data: jobs, isLoading, error } = useRunningJobs();
 
-  if (isLoading) return <div style={{ padding: "1em" }}>Loading...</div>;
-  if (error) return <div style={{ padding: "1em" }}>Error loading jobs</div>;
-  if (!jobs?.length) return <div style={{ padding: "1em" }}>No running jobs</div>;
+  if (isLoading) {return <div style={{ padding: "1em" }}>Loading...</div>;}
+  if (error) {return <div style={{ padding: "1em" }}>Error loading jobs</div>;}
+  if (!jobs?.length) {return <div style={{ padding: "1em" }}>No running jobs</div>;}
 
   return (
     <List>
@@ -540,7 +540,7 @@ const PanelContent = memo(function PanelContent({
   };
 
   const getThreadPreview = (threadId: string) => {
-    if (!threads) return "Loading...";
+    if (!threads) {return "Loading...";}
     const thread = threads[threadId];
     if (!thread) {
       return "Empty conversation";

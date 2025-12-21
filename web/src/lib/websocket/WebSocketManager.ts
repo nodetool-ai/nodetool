@@ -205,7 +205,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   private setupEventHandlers(): void {
-    if (!this.ws) return;
+    if (!this.ws) {return;}
 
     this.ws.onopen = this.handleOpen.bind(this);
     this.ws.onmessage = this.handleMessage.bind(this);
@@ -457,7 +457,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   private processMessageQueue(): void {
-    if (this.messageQueue.length === 0) return;
+    if (this.messageQueue.length === 0) {return;}
 
     log.info(`Processing ${this.messageQueue.length} queued messages`);
     const queue = [...this.messageQueue];

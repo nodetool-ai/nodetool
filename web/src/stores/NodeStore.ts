@@ -799,10 +799,10 @@ export const createNodeStore = (
                 const width = node.measured?.width ?? node.width ?? 100;
                 const height = node.measured?.height ?? node.height ?? 100;
                 
-                if (nodeX < minX) minX = nodeX;
-                if (nodeY < minY) minY = nodeY;
-                if (nodeX + width > maxX) maxX = nodeX + width;
-                if (nodeY + height > maxY) maxY = nodeY + height;
+                if (nodeX < minX) {minX = nodeX;}
+                if (nodeY < minY) {minY = nodeY;}
+                if (nodeX + width > maxX) {maxX = nodeX + width;}
+                if (nodeY + height > maxY) {maxY = nodeY + height;}
               }
               
               return { minX, minY, maxX, maxY };

@@ -74,7 +74,7 @@ const InputContextMenu: React.FC = () => {
   );
   const createConstantNode = useCallback(
     (event: React.MouseEvent) => {
-      if (!constantNodeMetadata) return;
+      if (!constantNodeMetadata) {return;}
       const newNode = createNode(
         constantNodeMetadata,
         reactFlowInstance.screenToFlowPosition({
@@ -131,7 +131,7 @@ const InputContextMenu: React.FC = () => {
 
   const createInputNode = useCallback(
     (event: React.MouseEvent) => {
-      if (!inputNodeMetadata) return;
+      if (!inputNodeMetadata) {return;}
       const newNode = createNode(
         inputNodeMetadata,
         reactFlowInstance.screenToFlowPosition({
@@ -204,7 +204,7 @@ const InputContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
-  if (!menuPosition) return null;
+  if (!menuPosition) {return null;}
   return (
     <>
       <Menu

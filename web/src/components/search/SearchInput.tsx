@@ -178,7 +178,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         (focusOnTyping &&
           !document.activeElement?.classList.contains("search-input"));
 
-      if (!shouldHandleEvent) return;
+      if (!shouldHandleEvent) {return;}
 
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
@@ -195,7 +195,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       }
 
       if (focusOnTyping) {
-        if (isControlOrMetaPressed) return;
+        if (isControlOrMetaPressed) {return;}
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
           if (document.activeElement !== inputRef.current) {
             event.preventDefault();

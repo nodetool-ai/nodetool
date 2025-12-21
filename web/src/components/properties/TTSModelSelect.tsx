@@ -87,12 +87,12 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   });
 
   const sortedModels = useMemo(() => {
-    if (!models || isLoading || isError) return [];
+    if (!models || isLoading || isError) {return [];}
     return models.sort((a: TTSModel, b: TTSModel) => a.name.localeCompare(b.name));
   }, [models, isLoading, isError]);
 
   const groupedModels = useMemo(() => {
-    if (!sortedModels || isLoading || isError) return {};
+    if (!sortedModels || isLoading || isError) {return {};}
     return sortedModels.reduce<GroupedModels>((acc, model: TTSModel) => {
       const provider = model.provider || "Other";
       if (!acc[provider]) {
@@ -109,12 +109,12 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
 
   // Extract model ID from value (can be string or TTSModel object)
   const modelId = useMemo(() => {
-    if (typeof value === 'string') return value;
+    if (typeof value === 'string') {return value;}
     return value?.id || '';
   }, [value]);
 
   const currentSelectedModelDetails = useMemo(() => {
-    if (!models || !modelId) return null;
+    if (!models || !modelId) {return null;}
     return models.find((m) => m.id === modelId);
   }, [models, modelId]);
 
@@ -191,7 +191,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   const hasVoices = currentSelectedModelDetails?.voices && currentSelectedModelDetails.voices.length > 0;
 
   const voiceOptions = useMemo(() => {
-    if (!currentSelectedModelDetails?.voices) return [];
+    if (!currentSelectedModelDetails?.voices) {return [];}
     return currentSelectedModelDetails.voices.map((voice) => ({
       value: voice,
       label: voice

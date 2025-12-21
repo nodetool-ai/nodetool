@@ -13,7 +13,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
     const missingAPIKey = useApiKeyValidation(nodeNamespace);
 
     const content = useMemo(() => {
-      if (!missingAPIKey) return null;
+      if (!missingAPIKey) {return null;}
 
       return (
         <>

@@ -16,7 +16,11 @@
     "isolatedModules": true,
     "noEmit": true,
     "lib": ["dom", "dom.iterable", "esnext"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    // Additional strict options - commented for gradual adoption
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["src", "eslint.config.mjs"],
   "exclude": ["node_modules", "dist"],

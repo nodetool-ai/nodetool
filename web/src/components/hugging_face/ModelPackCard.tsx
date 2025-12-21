@@ -58,7 +58,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
     const checkDownloaded = async () => {
       const downloaded = new Set<string>();
       for (const model of pack.models) {
-        if (!model.repo_id || !model.path) continue;
+        if (!model.repo_id || !model.path) {continue;}
         try {
           const res = await checkHfCache({
             repo_id: model.repo_id,
@@ -82,7 +82,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
   const isDownloading = activeDownloads.length > 0;
 
   const downloadProgress = useMemo(() => {
-    if (!isDownloading) return 0;
+    if (!isDownloading) {return 0;}
     const total = pack.models.length;
     const completed = downloadedModels.size;
     return (completed / total) * 100;

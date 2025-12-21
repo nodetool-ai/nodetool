@@ -13,7 +13,7 @@ const styles = (theme: Theme) => ({
 const GoogleAuthButton = () => {
   const { signInWithProvider, state } = useAuth();
   const handleClick = async () => {
-    if (state === "loading" || state === "logged_in") return;
+    if (state === "loading" || state === "logged_in") {return;}
     await signInWithProvider("google");
   };
   const theme = useTheme();

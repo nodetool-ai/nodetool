@@ -16,21 +16,21 @@ export function useAssetDisplay(params: {
   const component = useMemo(() => {
     const type = asset?.content_type || contentType || "";
     if (asset) {
-      if (type.startsWith("image/")) return <ImageViewer asset={asset} />;
-      if (type.startsWith("audio/")) return <AudioViewer asset={asset} />;
-      if (type.startsWith("text/")) return <TextViewer asset={asset} />;
-      if (type.startsWith("video/")) return <VideoViewer asset={asset} />;
+      if (type.startsWith("image/")) {return <ImageViewer asset={asset} />;}
+      if (type.startsWith("audio/")) {return <AudioViewer asset={asset} />;}
+      if (type.startsWith("text/")) {return <TextViewer asset={asset} />;}
+      if (type.startsWith("video/")) {return <VideoViewer asset={asset} />;}
       if (type.startsWith("application/pdf"))
-        return <PDFViewer asset={asset} />;
+        {return <PDFViewer asset={asset} />;}
     }
     if (url) {
-      if (type.startsWith("image/")) return <ImageViewer url={url} />;
-      if (type.startsWith("audio/")) return <AudioViewer url={url} />;
-      if (type.startsWith("text/")) return <TextViewer asset={asset} />;
-      if (type.startsWith("video/")) return <VideoViewer url={url} />;
-      if (type.startsWith("application/pdf")) return <PDFViewer url={url} />;
+      if (type.startsWith("image/")) {return <ImageViewer url={url} />;}
+      if (type.startsWith("audio/")) {return <AudioViewer url={url} />;}
+      if (type.startsWith("text/")) {return <TextViewer asset={asset} />;}
+      if (type.startsWith("video/")) {return <VideoViewer url={url} />;}
+      if (type.startsWith("application/pdf")) {return <PDFViewer url={url} />;}
       if (type === "document" && url?.endsWith(".pdf"))
-        return <PDFViewer url={url} />;
+        {return <PDFViewer url={url} />;}
     }
     return null;
   }, [asset, url, contentType]);

@@ -10,7 +10,7 @@ const StatusMessage = memo(function StatusMessage() {
     isWorkflowRunning: state.state === "running"
   }));
 
-  if (!isWorkflowRunning) return null;
+  if (!isWorkflowRunning) {return null;}
 
   return (
     <Typography

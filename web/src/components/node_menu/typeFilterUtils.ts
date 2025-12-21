@@ -170,9 +170,9 @@ export const typeTreeContains = (
   meta: TypeMetadata | undefined,
   targetType: TypeName
 ): boolean => {
-  if (!meta) return false;
+  if (!meta) {return false;}
 
-  if (meta.type === targetType) return true;
+  if (meta.type === targetType) {return true;}
 
   if (meta.type_args && meta.type_args.length > 0) {
     return meta.type_args.some((arg) => typeTreeContains(arg, targetType));
@@ -189,7 +189,7 @@ export const filterTypesByInputExact = (
   metadata: NodeMetadata[],
   inputType: TypeName
 ): NodeMetadata[] => {
-  if (!inputType) return metadata;
+  if (!inputType) {return metadata;}
 
   if (inputType === "any") {
     return metadata.filter((node) =>
@@ -206,7 +206,7 @@ export const filterTypesByOutputExact = (
   metadata: NodeMetadata[],
   outputType: TypeName
 ): NodeMetadata[] => {
-  if (!outputType) return metadata;
+  if (!outputType) {return metadata;}
 
   if (outputType === "any") {
     return metadata.filter((node) =>

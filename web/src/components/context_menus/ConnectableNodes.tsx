@@ -189,7 +189,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
 
   const createConnectableNode = useCallback(
     (metadata: NodeMetadata) => {
-      if (!metadata) return;
+      if (!metadata) {return;}
 
       const newNode = createNode(
         metadata,
@@ -214,7 +214,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
           const property = properties.find((property) =>
             isConnectable(typeMetadata, property.type, true)
           );
-          if (!property) return;
+          if (!property) {return;}
           const edge = {
             id: generateEdgeId(),
             source: nodeId, // FROM existing node
@@ -232,7 +232,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         if (filterType === "output" && typeMetadata) {
           const output =
             metadata.outputs.length > 0 ? metadata.outputs[0] : null;
-          if (!output) return;
+          if (!output) {return;}
           const edge = {
             id: generateEdgeId(),
             source: newNode.id, // FROM new node
@@ -261,7 +261,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     ]
   );
 
-  if (!menuPosition || !isVisible) return null;
+  if (!menuPosition || !isVisible) {return null;}
 
   return (
     <Menu

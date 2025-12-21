@@ -20,7 +20,7 @@ export function useEnsureChatConnected(
 
   // Effect 1: ensure connection when needed
   useEffect(() => {
-    if (!autoConnect) return;
+    if (!autoConnect) {return;}
 
     if (status === "disconnected" || status === "failed") {
       connect().catch((error) => {

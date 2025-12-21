@@ -103,7 +103,7 @@ const RemoteSettings = () => {
     }
 
     // Otherwise compute from data
-    if (!data || !Array.isArray(data)) return new Map<string, SettingWithValue[]>();
+    if (!data || !Array.isArray(data)) {return new Map<string, SettingWithValue[]>();}
 
     const groups = new Map<string, SettingWithValue[]>();
     data.forEach((setting: SettingWithValue) => {

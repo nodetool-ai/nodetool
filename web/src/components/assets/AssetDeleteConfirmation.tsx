@@ -69,7 +69,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   const theme = useTheme();
 
   useEffect(() => {
-    if (!dialogOpen) return; // Only process when dialog is actually open
+    if (!dialogOpen) {return;} // Only process when dialog is actually open
 
     const countAssetTypes = () => {
       setIsPreparingDelete(true);

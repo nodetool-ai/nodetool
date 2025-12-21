@@ -2,8 +2,8 @@ import React from "react";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
 
 export const isLikelyMarkdown = (text: string): boolean => {
-  if (!text) return false;
-  if (text.length < 6) return false;
+  if (!text) {return false;}
+  if (text.length < 6) {return false;}
   const patterns = [
     /(^|\n)\s{0,3}#{1,6}\s+\S/,
     /(^|\n)```/,

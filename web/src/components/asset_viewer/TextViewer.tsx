@@ -48,7 +48,7 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
   const [document, setDocument] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!asset?.get_url) return;
+    if (!asset?.get_url) {return;}
     axios
       .get(asset?.get_url, {
         responseType: "text"

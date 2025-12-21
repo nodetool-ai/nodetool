@@ -141,7 +141,7 @@ const DictTable: React.FC<DictTableProps> = ({
   );
 
   useEffect(() => {
-    if (!tableRef.current) return;
+    if (!tableRef.current) {return;}
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "300px",

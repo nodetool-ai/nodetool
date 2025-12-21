@@ -171,7 +171,7 @@ const fetchFileList = async (path: string) => {
 };
 
 const formatBytes = (bytes: number, decimals = 2) => {
-  if (!+bytes) return "0 Bytes";
+  if (!+bytes) {return "0 Bytes";}
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB"];
@@ -210,7 +210,7 @@ export default function FileBrowserDialog({
 
   // Filter files
   const filteredFiles = useMemo(() => {
-    if (!searchQuery) return files;
+    if (!searchQuery) {return files;}
     // Optimization: Convert search query to lowercase once
     const searchQueryLower = searchQuery.toLowerCase();
     return files.filter((f) =>
@@ -267,7 +267,7 @@ export default function FileBrowserDialog({
 
   // Auto-scroll to selected item in tree
   useEffect(() => {
-    if (!treeScrollRef.current) return;
+    if (!treeScrollRef.current) {return;}
 
     // Allow some time for expansion/rendering
     const timeoutId = setTimeout(() => {
@@ -330,7 +330,7 @@ export default function FileBrowserDialog({
 
   // Load ancestors of currentPath to ensure it is visible in tree
   useEffect(() => {
-    if (!open || treeItems.length === 0) return;
+    if (!open || treeItems.length === 0) {return;}
 
     const loadMissingAncestors = async () => {
       // Find ancestors that are in the tree but have "Loading..." children
@@ -345,10 +345,10 @@ export default function FileBrowserDialog({
         id: string
       ): ExtendedTreeItem | undefined => {
         for (const item of items) {
-          if (item.id === id) return item;
+          if (item.id === id) {return item;}
           if (item.children) {
             const found = findNode(item.children, id);
-            if (found) return found;
+            if (found) {return found;}
           }
         }
         return undefined;
@@ -358,7 +358,7 @@ export default function FileBrowserDialog({
       // We do one at a time per effect run (since state update triggers re-run)
       for (const breadcrumb of breadcrumbs) {
         // Skip Root/Home placeholders if they aren't in tree (tree roots are their children)
-        if (breadcrumb.path === "~" || breadcrumb.path === "/") continue;
+        if (breadcrumb.path === "~" || breadcrumb.path === "/") {continue;}
 
         const node = findNode(treeItems, breadcrumb.path);
         if (node) {
@@ -399,7 +399,7 @@ export default function FileBrowserDialog({
   // Sync expansion when navigating
   useEffect(() => {
     if (currentPath === "~" || currentPath === "/" || currentPath === "")
-      return;
+      {return;}
 
     // Expand all ancestor paths derived from breadcrumbs
     const ancestorPaths = breadcrumbs.map((b) => b.path);
@@ -419,7 +419,7 @@ export default function FileBrowserDialog({
         const fileList = await fetchFileList(currentPath);
         // Sort: Folders first, then files
         const sorted = fileList.sort((a, b) => {
-          if (a.is_dir === b.is_dir) return a.name.localeCompare(b.name);
+          if (a.is_dir === b.is_dir) {return a.name.localeCompare(b.name);}
           return a.is_dir ? -1 : 1;
         });
         setFiles(sorted);
@@ -454,8 +454,8 @@ export default function FileBrowserDialog({
           let parent = parts.join(separator);
 
           // Handle root/drive cases
-          if (path.startsWith("/") && parent === "") parent = "/";
-          if (parent.endsWith(":")) parent += separator;
+          if (path.startsWith("/") && parent === "") {parent = "/";}
+          if (parent.endsWith(":")) {parent += separator;}
 
           setCurrentPath(parent);
           setSelectedPath(path);
@@ -481,15 +481,15 @@ export default function FileBrowserDialog({
   };
 
   const handleUp = () => {
-    if (currentPath === "~" || currentPath === "/") return;
+    if (currentPath === "~" || currentPath === "/") {return;}
     // Naive parent path
     const separator = currentPath.includes("\\") ? "\\" : "/";
     const parts = currentPath.split(/[/\\]/);
     parts.pop();
 
     let parent = parts.join(separator);
-    if (currentPath.startsWith("/") && parent === "") parent = "/";
-    if (parent.endsWith(":")) parent += "\\"; // Windows drive root often needs backslash
+    if (currentPath.startsWith("/") && parent === "") {parent = "/";}
+    if (parent.endsWith(":")) {parent += "\\";} // Windows drive root often needs backslash
 
     handleNavigate(parent || "~");
   };
@@ -536,10 +536,10 @@ export default function FileBrowserDialog({
         items: ExtendedTreeItem[]
       ): ExtendedTreeItem | undefined => {
         for (const item of items) {
-          if (item.id === itemId) return item;
+          if (item.id === itemId) {return item;}
           if (item.children) {
             const found = findNode(item.children);
-            if (found) return found;
+            if (found) {return found;}
           }
         }
         return undefined;
@@ -585,7 +585,7 @@ export default function FileBrowserDialog({
   };
 
   const handleTreeItemClick = (event: React.MouseEvent, itemId: string) => {
-    if (itemId.endsWith("_loading")) return;
+    if (itemId.endsWith("_loading")) {return;}
     handleNavigate(itemId);
   };
 
@@ -693,7 +693,7 @@ export default function FileBrowserDialog({
                 value={pathInputValue}
                 onChange={(e) => setPathInputValue(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handlePathSubmit();
+                  if (e.key === "Enter") {handlePathSubmit();}
                   if (e.key === "Escape") {
                     setPathInputValue(currentPath);
                     setIsEditingPath(false);

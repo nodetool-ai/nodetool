@@ -22,7 +22,7 @@ const WorkflowListProperty = (props: PropertyProps) => {
 
   const findWorkflow = useCallback(
     (id: string) => {
-      if (data?.workflows === undefined) return { name: "" };
+      if (data?.workflows === undefined) {return { name: "" };}
       return (
         data.workflows.find((workflow) => workflow.id === id) || { name: "" }
       );

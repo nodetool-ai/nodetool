@@ -127,7 +127,7 @@ type ChatViewProps = {
 };
 
 const formatToolName = (name?: string) => {
-  if (!name) return "Agent Task";
+  if (!name) {return "Agent Task";}
   return name
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
@@ -138,7 +138,7 @@ const formatToolName = (name?: string) => {
 const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = ({
   toolCalls
 }) => {
-  if (!toolCalls || toolCalls.length === 0) return null;
+  if (!toolCalls || toolCalls.length === 0) {return null;}
   return (
     <div className="tool-calls">
       {toolCalls.map((tc, idx) => (

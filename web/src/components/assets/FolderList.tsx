@@ -200,7 +200,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
 
   const handleRowDoubleClick = useCallback(
     (folderId: string, isRoot: boolean) => {
-      if (isRoot) return;
+      if (isRoot) {return;}
       setExpandedFolderIds((previousExpandedIds) => {
         const nextExpandedIds = new Set(previousExpandedIds);
         if (nextExpandedIds.has(folderId)) {
@@ -219,7 +219,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     level = 0,
     isRoot = false
   ) => {
-    if (!folder || !folder.id) return null;
+    if (!folder || !folder.id) {return null;}
     const hasChildren = hasChildNodes(folder);
 
     return hasChildren ? (

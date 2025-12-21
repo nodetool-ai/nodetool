@@ -97,7 +97,7 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 function debounce<T extends (...args: any[]) => void>(fn: T, wait: number) {
   let t: number | undefined;
   const debounced = (...args: Parameters<T>) => {
-    if (t) window.clearTimeout(t);
+    if (t) {window.clearTimeout(t);}
     t = window.setTimeout(() => fn(...args), wait);
   };
   (debounced as any).cancel = () => {

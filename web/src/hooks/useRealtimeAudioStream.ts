@@ -73,7 +73,7 @@ export const useRealtimeAudioStream = (
   }, []);
 
   useEffect(() => {
-    if (!isStreaming) return;
+    if (!isStreaming) {return;}
     let activeStream: MediaStream | null = null;
     const targetSampleRate = 22000; // 22 kHz per updated realtime session config
     navigator.mediaDevices

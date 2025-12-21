@@ -31,7 +31,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   });
 
   const currentSelectedModelDetails = useMemo(() => {
-    if (!fetchedModels || !value) return null;
+    if (!fetchedModels || !value) {return null;}
     return fetchedModels.find((m) => m.id === value);
   }, [fetchedModels, value]);
 

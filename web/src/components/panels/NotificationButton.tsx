@@ -40,7 +40,7 @@ const NotificationButton: React.FC = React.memo(() => {
   const { writeClipboard } = useClipboard();
   const theme = useTheme();
   const unreadCount = useMemo(() => {
-    if (!lastDisplayedTimestamp) return notifications.length;
+    if (!lastDisplayedTimestamp) {return notifications.length;}
     return notifications.filter((n) => n.timestamp > lastDisplayedTimestamp)
       .length;
   }, [notifications, lastDisplayedTimestamp]);

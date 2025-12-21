@@ -181,7 +181,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
   const [hoveredToolName, setHoveredToolName] = useState<string | null>(null);
 
   const filteredSortedTools = useMemo(() => {
-    if (!workflowTools) return [] as typeof workflowTools;
+    if (!workflowTools) {return [] as typeof workflowTools;}
     const q = searchTerm.trim().toLowerCase();
     const filtered = q
       ? workflowTools.filter((w) => {
@@ -193,7 +193,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
     return [...filtered].sort((a, b) => {
       const aSelected = selectedTools.includes(`workflow_${a.tool_name}`);
       const bSelected = selectedTools.includes(`workflow_${b.tool_name}`);
-      if (aSelected !== bSelected) return aSelected ? -1 : 1;
+      if (aSelected !== bSelected) {return aSelected ? -1 : 1;}
       return (a.name ?? "").localeCompare(b.name ?? "");
     });
   }, [workflowTools, searchTerm, selectedTools]);
@@ -341,7 +341,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
                     (workflow) => {
                       const toolId = `workflow_${workflow.tool_name}`;
                       const isSelected = selectedTools.includes(toolId);
-                      if (workflow.tool_name === null) return null;
+                      if (workflow.tool_name === null) {return null;}
                       return (
                         <Box
                           key={workflow.tool_name}
@@ -403,7 +403,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
                   const t = workflowTools?.find(
                     (w) => w.tool_name === hoveredToolName
                   );
-                  if (!t) return null;
+                  if (!t) {return null;}
                   return (
                     <Box sx={{ p: 1.5 }}>
                       <Typography

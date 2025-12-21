@@ -31,7 +31,7 @@ export function hexToRgba(hex: string, alpha: number): string {
 }
 
 export function darkenHexColor(hex: string, amount: number): string {
-  if (isCssVar(hex)) return hex;
+  if (isCssVar(hex)) {return hex;}
 
   return chroma(hex)
     .darken(amount / 100)
@@ -39,7 +39,7 @@ export function darkenHexColor(hex: string, amount: number): string {
 }
 
 export function lightenHexColor(hex: string, amount: number): string {
-  if (isCssVar(hex)) return hex;
+  if (isCssVar(hex)) {return hex;}
 
   return chroma(hex)
     .brighten(amount / 100)
@@ -47,7 +47,7 @@ export function lightenHexColor(hex: string, amount: number): string {
 }
 
 export function adjustSaturation(hex: string, amount: number): string {
-  if (isCssVar(hex)) return hex;
+  if (isCssVar(hex)) {return hex;}
 
   return chroma(hex)
     .set("hsl.s", `*${1 + amount / 100}`)
@@ -55,13 +55,13 @@ export function adjustSaturation(hex: string, amount: number): string {
 }
 
 export function adjustHue(hex: string, amount: number): string {
-  if (isCssVar(hex)) return hex;
+  if (isCssVar(hex)) {return hex;}
 
   return chroma(hex).set("hsl.h", `+${amount}`).hex();
 }
 
 export function adjustLightness(hex: string, amount: number): string {
-  if (isCssVar(hex)) return hex;
+  if (isCssVar(hex)) {return hex;}
 
   return chroma(hex)
     .set("hsl.l", `*${1 + amount / 100}`)

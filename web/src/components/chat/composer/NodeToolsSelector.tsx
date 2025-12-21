@@ -184,11 +184,11 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     // Selected first to preserve order preference when rendered
     selectedNodeMetadatas.forEach((node) => {
       if (!nodeTypeToNode.has(node.node_type))
-        nodeTypeToNode.set(node.node_type, node);
+        {nodeTypeToNode.set(node.node_type, node);}
     });
     searchResults.forEach((node) => {
       if (!nodeTypeToNode.has(node.node_type))
-        nodeTypeToNode.set(node.node_type, node);
+        {nodeTypeToNode.set(node.node_type, node);}
     });
     return Array.from(nodeTypeToNode.values());
   }, [selectedNodeMetadatas, searchResults]);

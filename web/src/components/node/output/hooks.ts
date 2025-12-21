@@ -90,7 +90,7 @@ export function useRevokeBlobUrls(urls: string[]) {
     return () => {
       urls.forEach((u) => {
         try {
-          if (u && u.startsWith("blob:")) URL.revokeObjectURL(u);
+          if (u && u.startsWith("blob:")) {URL.revokeObjectURL(u);}
         } catch {
           console.error("Error revoking blob URL", u);
         }

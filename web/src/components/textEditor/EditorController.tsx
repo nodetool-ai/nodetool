@@ -94,7 +94,7 @@ const EditorController = ({
   const createRangeForMatch = useCallback(
     (matchStart: number, matchLength: number): Range | null => {
       const rootElement = editor.getRootElement();
-      if (!rootElement) return null;
+      if (!rootElement) {return null;}
 
       // We need to account for implicit "\n" characters that appear in
       // root.textContent(). Besides the newline inserted between top-level
@@ -113,8 +113,8 @@ const EditorController = ({
         NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
         {
           acceptNode: (n) => {
-            if (n.nodeType === Node.TEXT_NODE) return NodeFilter.FILTER_ACCEPT;
-            if (n.nodeName === "BR") return NodeFilter.FILTER_ACCEPT;
+            if (n.nodeType === Node.TEXT_NODE) {return NodeFilter.FILTER_ACCEPT;}
+            if (n.nodeName === "BR") {return NodeFilter.FILTER_ACCEPT;}
             return NodeFilter.FILTER_SKIP;
           }
         }
@@ -126,7 +126,7 @@ const EditorController = ({
       // Helper to obtain the immediate child of rootElement that contains a
       // given node. Used to detect transitions between top-level blocks.
       const getTopLevelContainer = (n: Node | null): Node | null => {
-        if (!n) return null;
+        if (!n) {return null;}
         let current: Node | null = n;
         while (current && current.parentNode !== rootElement) {
           current = current.parentNode;
@@ -197,7 +197,7 @@ const EditorController = ({
         const ranges: Range[] = [];
         for (const start of matchIndexes) {
           const r = createRangeForMatch(start, matchLength);
-          if (r) ranges.push(r);
+          if (r) {ranges.push(r);}
         }
         if (ranges.length > 0) {
           hs.set(highlightAllName, new (window as any).Highlight(...ranges));
@@ -218,7 +218,7 @@ const EditorController = ({
         const rootElement = editor.getRootElement();
         const text = rootElement?.textContent ?? "";
 
-        if (!text) return;
+        if (!text) {return;}
 
         const fragments = matchIndexes.map((start) => {
           const end = start + matchLength;
@@ -463,10 +463,10 @@ const EditorController = ({
 
       if (direction === "next") {
         newIndex = currentMatchIndex + 1;
-        if (newIndex >= currentMatches.length) newIndex = 0; // wrap
+        if (newIndex >= currentMatches.length) {newIndex = 0;} // wrap
       } else {
         newIndex = currentMatchIndex - 1;
-        if (newIndex < 0) newIndex = currentMatches.length - 1; // wrap
+        if (newIndex < 0) {newIndex = currentMatches.length - 1;} // wrap
       }
 
       setCurrentMatchIndex(newIndex);
@@ -506,7 +506,7 @@ const EditorController = ({
 
         while (stack.length > 0) {
           const node = stack.pop();
-          if (!node) continue;
+          if (!node) {continue;}
 
           if (node instanceof TextNode) {
             textNodes.push(node);

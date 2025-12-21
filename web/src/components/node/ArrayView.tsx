@@ -11,7 +11,7 @@ const ArrayView: React.FC<ArrayViewProps> = ({ array }) => {
   const { value, dtype, shape } = array;
 
   const formattedValue = useMemo(() => {
-    if (!value) return "No data";
+    if (!value) {return "No data";}
     if (value.length > 100) {
       return JSON.stringify(value.slice(0, 100)) + "...";
     }
