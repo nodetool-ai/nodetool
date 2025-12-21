@@ -9,6 +9,7 @@ export { ArrayRenderer } from "./ArrayRenderer";
 export { ChunkRenderer } from "./ChunkRenderer";
 export { AssetGrid } from "./AssetGrid";
 export { BooleanRenderer } from "./BooleanRenderer";
+export { DatetimeRenderer } from "./DatetimeRenderer";
 export { EmailRenderer } from "./EmailRenderer";
 export { TextRenderer } from "./TextRenderer";
 export { default as RealtimeAudioOutput } from "./RealtimeAudioOutput";
