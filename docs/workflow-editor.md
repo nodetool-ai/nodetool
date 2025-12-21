@@ -154,7 +154,7 @@ If a node needs an AI model you haven't installed:
 
 ### Auto Layout
 
-Click the **Auto Layout** button (or press `L`) to automatically arrange your nodes in a clean, readable layout. The editor also auto-layouts when Global Chat creates or modifies workflows.
+Click the **Auto Layout** button (or press `L`) to automatically arrange your nodes in a clean, readable layout. The editor also auto-arranges nodes when Global Chat creates or modifies workflows.
 
 ### Grouping Nodes
 
