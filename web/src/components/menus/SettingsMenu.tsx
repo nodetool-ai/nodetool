@@ -411,6 +411,23 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
   const [, setSecretsUpdated] = useState({});
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
+  const [closeBehavior, setCloseBehavior] = useState<"ask" | "quit" | "background">("ask");
+
+  // Load close behavior setting on mount (Electron only)
+  useEffect(() => {
+    if (isElectron && window.api?.settings?.getCloseBehavior) {
+      window.api.settings.getCloseBehavior().then((action: "ask" | "quit" | "background") => {
+        setCloseBehavior(action);
+      });
+    }
+  }, []);
+
+  const handleCloseBehaviorChange = useCallback((action: "ask" | "quit" | "background") => {
+    setCloseBehavior(action);
+    if (window.api?.settings?.setCloseBehavior) {
+      window.api.settings.setCloseBehavior(action);
+    }
+  }, []);
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -777,6 +794,42 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           Only works in Electron app.
                         </Typography>
                       </div>
+
+                      {isElectron && (
+                        <div className="settings-item">
+                          <FormControl>
+                            <InputLabel htmlFor="close-behavior-select">
+                              On Close Behavior
+                            </InputLabel>
+                            <Select
+                              id="close-behavior-select"
+                              value={closeBehavior}
+                              variant="standard"
+                              onChange={(e) =>
+                                handleCloseBehaviorChange(
+                                  e.target.value as "ask" | "quit" | "background"
+                                )
+                              }
+                            >
+                              <MenuItem value="ask">Ask Every Time</MenuItem>
+                              <MenuItem value="quit">Quit Application</MenuItem>
+                              <MenuItem value="background">
+                                Keep Running in Background
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+                          <Typography className="description">
+                            Choose what happens when you close the main window.
+                            <br />
+                            <b>Ask Every Time:</b> Shows a dialog with options.
+                            <br />
+                            <b>Quit:</b> Closes the application completely.
+                            <br />
+                            <b>Background:</b> Keeps the app running in the
+                            system tray.
+                          </Typography>
+                        </div>
+                      )}
                     </div>
 
                     <Typography variant="h3" id="navigation">

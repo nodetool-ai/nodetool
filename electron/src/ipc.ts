@@ -15,7 +15,8 @@ import {
   restartLlamaServer,
 } from "./server";
 import { logMessage } from "./logger";
-import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
+import { IpcChannels, IpcEvents, IpcResponse, WindowCloseAction } from "./types.d";
+import { readSettings, updateSetting } from "./settings";
 import { createPackageManagerWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
@@ -515,6 +516,25 @@ export function initializeIpcHandlers(): void {
       }
       logMessage(`Reading shortcut: ${shortcutPath}`);
       return shell.readShortcutLink(shortcutPath);
+    }
+  );
+
+  // Settings handlers
+  createIpcMainHandler(
+    IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR,
+    async () => {
+      const settings = readSettings();
+      const action = settings.windowCloseAction as WindowCloseAction | undefined;
+      return action || "ask";
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR,
+    async (_event, action) => {
+      logMessage(`Setting window close behavior to: ${action}`);
+      updateSetting("windowCloseAction", action);
+      updateTrayMenu();
     }
   );
 }

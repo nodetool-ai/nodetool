@@ -6,6 +6,7 @@ import { createPackageManagerWindow, createWindow, createLogViewerWindow } from 
 import { execSync } from "child_process";
 import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning, isLlamaServerRunning } from "./server";
 import { fetchWorkflows } from "./api";
+import { readSettings, updateSetting } from "./settings";
 
 let trayInstance: Electron.Tray | null = null;
 
@@ -154,6 +155,54 @@ function focusNodeTool(): void {
 }
 
 /**
+ * Gets menu items for the close behavior settings.
+ * @returns {Electron.MenuItemConstructorOptions[]} Menu items for close behavior
+ */
+function getCloseBehaviorMenuItems(): Electron.MenuItemConstructorOptions[] {
+  const settings = readSettings();
+  const currentAction = settings.windowCloseAction;
+
+  return [
+    { type: "separator" },
+    {
+      label: "On Close Behavior",
+      submenu: [
+        {
+          label: "Ask Every Time",
+          type: "radio",
+          checked: !currentAction || currentAction === "ask",
+          click: () => {
+            updateSetting("windowCloseAction", "ask");
+            logMessage("Close behavior set to: ask");
+            void updateTrayMenu();
+          },
+        },
+        {
+          label: "Quit Application",
+          type: "radio",
+          checked: currentAction === "quit",
+          click: () => {
+            updateSetting("windowCloseAction", "quit");
+            logMessage("Close behavior set to: quit");
+            void updateTrayMenu();
+          },
+        },
+        {
+          label: "Keep Running in Background",
+          type: "radio",
+          checked: currentAction === "background",
+          click: () => {
+            updateSetting("windowCloseAction", "background");
+            logMessage("Close behavior set to: background");
+            void updateTrayMenu();
+          },
+        },
+      ],
+    },
+  ];
+}
+
+/**
  * Updates the tray menu with current application state and available workflows.
  * Includes service status, workflow list, and application controls.
  * @returns {Promise<void>}
@@ -236,6 +285,7 @@ async function updateTrayMenu(): Promise<void> {
         shell.openPath(LOG_FILE);
       },
     },
+    ...getCloseBehaviorMenuItems(),
     { type: "separator" },
     { label: "Quit NodeTool", role: "quit" },
   ]);
