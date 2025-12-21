@@ -257,9 +257,24 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.grey[400],
         boxShadow: "none",
         "&::after": {
-          display: "none"
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          borderRadius: "inherit",
+          padding: "2px",
+          background: `conic-gradient(from 0deg, transparent 50%, ${"var(--palette-primary-main)"} 95%, ${"var(--palette-primary-main)"})`,
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "destination-out",
+          maskComposite: "exclude",
+          animation: "spin 2.5s linear infinite",
+          pointerEvents: "none",
+          zIndex: 1
         }
       }
+    },
+    ".run-stop-button.run-workflow.Mui-disabled.running": {
+      opacity: 1
     },
     ".stop-workflow": {
       marginRight: "0.7em",
@@ -295,22 +310,11 @@ const styles = (theme: Theme) =>
       animation: "pulse 1.5s infinite ease-in-out",
       color: "var(--palette-primary-main)"
     },
-    "@keyframes rainbow-rotate": {
-      "0%": { filter: "hue-rotate(0deg)" },
-      "100%": { filter: "hue-rotate(360deg)" }
-    },
-    "@keyframes pulse-glow": {
-      "0%": { boxShadow: `0 0 8px ${"var(--palette-primary-main)"}30` },
-      "50%": { boxShadow: `0 0 24px ${"var(--palette-primary-main)"}70` },
-      "100%": { boxShadow: `0 0 8px ${"var(--palette-primary-main)"}30` }
-    },
-    "@keyframes sparkle": {
-      "0%": { filter: "brightness(0.9)" },
-      "50%": { filter: "brightness(1.3)" },
-      "100%": { filter: "brightness(0.9)" }
-    },
     "@keyframes spin": {
       "0%": { transform: "rotate(0deg)" },
+      "25%": { transform: "rotate(85deg)" },
+      "50%": { transform: "rotate(180deg)" },
+      "75%": { transform: "rotate(280deg)" },
       "100%": { transform: "rotate(360deg)" }
     },
     "@keyframes dashboardPulse": {
@@ -546,7 +550,11 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 
   return (
     <Tooltip
-      title={getShortcutTooltip("runWorkflow")}
+      title={
+        isWorkflowRunning
+          ? "Workflow is currently running..."
+          : getShortcutTooltip("runWorkflow")
+      }
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <span>

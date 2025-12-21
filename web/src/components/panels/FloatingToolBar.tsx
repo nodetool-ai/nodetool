@@ -30,7 +30,6 @@ import SaveIcon from "@mui/icons-material/Save";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import AppsIcon from "@mui/icons-material/Apps";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
@@ -140,7 +139,19 @@ const styles = (theme: Theme) =>
           display: "none"
         },
         "&::after": {
-          display: "none"
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          borderRadius: "inherit",
+          padding: "3px",
+          background: `conic-gradient(from 0deg, transparent 50%, ${"var(--palette-primary-main)"} 95%, ${"var(--palette-primary-main)"})`,
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "destination-out",
+          maskComposite: "exclude",
+          animation: "spin 2.5s linear infinite",
+          pointerEvents: "none",
+          zIndex: 1
         },
         "& .MuiSvgIcon-root": {
           filter: "none",
@@ -227,120 +238,10 @@ const styles = (theme: Theme) =>
     },
     "@keyframes spin": {
       "0%": { transform: "rotate(0deg)" },
+      "25%": { transform: "rotate(85deg)" },
+      "50%": { transform: "rotate(180deg)" },
+      "75%": { transform: "rotate(280deg)" },
       "100%": { transform: "rotate(360deg)" }
-    },
-    "@keyframes core-pulse": {
-      "0%": {
-        boxShadow:
-          "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
-      },
-      "50%": {
-        boxShadow:
-          "0 0 30px var(--palette-primary-main)100, 0 0 60px var(--palette-primary-main)60, inset 0 0 30px var(--palette-primary-light)80"
-      },
-      "100%": {
-        boxShadow:
-          "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
-      }
-    },
-    "@keyframes glass-ball-pulse": {
-      "0%": {
-        boxShadow: `
-          0 0 30px var(--palette-primary-main)80,
-          0 0 50px var(--palette-primary-main)40,
-          inset 0 -15px 30px var(--palette-primary-dark)60,
-          inset 0 -5px 15px var(--palette-primary-dark)80,
-          inset 0 15px 30px var(--palette-primary-light)30
-        `
-      },
-      "50%": {
-        boxShadow: `
-          0 0 40px var(--palette-primary-main)100,
-          0 0 70px var(--palette-primary-main)60,
-          inset 0 -20px 40px var(--palette-primary-dark)80,
-          inset 0 -8px 20px var(--palette-primary-dark)100,
-          inset 0 20px 40px var(--palette-primary-light)50
-        `
-      },
-      "100%": {
-        boxShadow: `
-          0 0 30px var(--palette-primary-main)80,
-          0 0 50px var(--palette-primary-main)40,
-          inset 0 -15px 30px var(--palette-primary-dark)60,
-          inset 0 -5px 15px var(--palette-primary-dark)80,
-          inset 0 15px 30px var(--palette-primary-light)30
-        `
-      }
-    },
-    "@keyframes energy-swirl": {
-      "0%": { transform: "rotate(0deg)" },
-      "100%": { transform: "rotate(360deg)" }
-    },
-    "@keyframes icon-float": {
-      "0%": {
-        transform: "translateY(0px) scale(1)",
-        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))"
-      },
-      "50%": {
-        transform: "translateY(-3px) scale(1.05)",
-        filter: "drop-shadow(0 5px 8px rgba(0,0,0,0.3))"
-      },
-      "100%": {
-        transform: "translateY(0px) scale(1)",
-        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))"
-      }
-    },
-    "@keyframes highlight-shift": {
-      "0%": {
-        transform: "scale(1)",
-        opacity: 1
-      },
-      "50%": {
-        transform: "scale(2)",
-        opacity: 0.3
-      },
-      "100%": {
-        transform: "scale(1)",
-        opacity: 1
-      }
-    },
-    "@keyframes energy-ring-spin": {
-      "0%": { transform: "rotate(0deg)" },
-      "100%": { transform: "rotate(360deg)" }
-    },
-    "@keyframes icon-glow": {
-      "0%": {
-        filter: "drop-shadow(0 0 4px rgba(255,255,255,0.8))"
-      },
-      "50%": {
-        filter: "drop-shadow(0 0 8px rgba(255,255,255,1))"
-      },
-      "100%": {
-        filter: "drop-shadow(0 0 4px rgba(255,255,255,0.8))"
-      }
-    },
-    "@keyframes pulse-glow": {
-      "0%": { boxShadow: `0 0 14px ${"var(--palette-primary-main)"}60` },
-      "50%": { boxShadow: `0 0 40px ${"var(--palette-primary-main)"}90` },
-      "100%": { boxShadow: `0 0 14px ${"var(--palette-primary-main)"}60` }
-    },
-    "@keyframes theme-shift": {
-      "0%": { backgroundSize: "80% 120%", backgroundPosition: "50% 50%" },
-      "50%": { backgroundSize: "120% 120%", backgroundPosition: "50% 50%" },
-      "100%": { backgroundSize: "80% 120%", backgroundPosition: "50% 50%" }
-    },
-    "@keyframes rotate-halo": {
-      "0%": { transform: "rotate(0deg)" },
-      "100%": { transform: "rotate(360deg)" }
-    },
-    "@keyframes shine-sweep": {
-      "0%": { left: "-150%" },
-      "100%": { left: "120%" }
-    },
-    "@keyframes twinkle-shift": {
-      "0%": { backgroundPosition: "center, 0 0, 60px 40px, 0 0" },
-      "50%": { backgroundPosition: "center, 20px 10px, 70px 55px, 20px 20px" },
-      "100%": { backgroundPosition: "center, 40px 20px, 80px 70px, 40px 40px" }
     }
   });
 
@@ -368,8 +269,6 @@ const FloatingToolBar: React.FC<{
   const toggleBottomPanel = useBottomPanelStore(
     (state) => state.handleViewChange
   );
-
-
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
@@ -442,13 +341,19 @@ const FloatingToolBar: React.FC<{
   }, [isWorkflowRunning, handleRun, handleStop]);
 
   const handleSave = useCallback(() => {
-    if (!workflow) {return;}
+    if (!workflow) {
+      return;
+    }
     const w = getWorkflowById(workflow.id);
-    if (w) {saveWorkflow(w);}
+    if (w) {
+      saveWorkflow(w);
+    }
   }, [getWorkflowById, saveWorkflow, workflow]);
 
   const handleDownload = useCallback(() => {
-    if (!workflow) {return;}
+    if (!workflow) {
+      return;
+    }
     const blob = new Blob([workflowJSON()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -539,8 +444,6 @@ const FloatingToolBar: React.FC<{
     return null;
   }
 
-
-
   return (
     <>
       <Box
@@ -567,8 +470,6 @@ const FloatingToolBar: React.FC<{
             : "20px"
         }}
       >
-
-
         {isMobile && (
           <Tooltip
             title="Open canvas menu"
@@ -681,7 +582,11 @@ const FloatingToolBar: React.FC<{
           </Fab>
         </Tooltip>
         <Tooltip
-          title={getShortcutTooltip("runWorkflow")}
+          title={
+            isWorkflowRunning
+              ? "Workflow is currently running..."
+              : getShortcutTooltip("runWorkflow")
+          }
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
