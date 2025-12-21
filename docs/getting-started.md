@@ -1,79 +1,173 @@
 ---
 layout: page
 title: "Getting Started"
+description: "Build your first AI workflow in 10 minutes – no coding or AI experience required."
 ---
 
-This is the hands-on tutorial that walks you through installing NodeTool, running your first workflow, and reusing it from both Global Chat and a Mini-App. If you need a high-level overview first, read the [Start Here flow](index.md#start-here); otherwise jump right in.
+Welcome! This hands-on tutorial guides you through installing NodeTool and running your first AI workflow. **No prior experience with AI or coding is required** – we'll explain everything as we go.
+
+> **What you'll accomplish**: In about 10 minutes, you'll install NodeTool, run a template workflow, and learn how to trigger it from chat and as a standalone app.
+
+If you'd like a high-level overview first, read the [Start Here guide](index.md#start-here).
+
+---
+
+## Before You Begin
+
+**What is a workflow?** Think of it as a recipe that NodeTool follows automatically. Each step (called a "node") does one thing – like generating text or processing an image – and passes its result to the next step.
+
+**What are AI models?** Pre-trained programs that have learned to do specific tasks. You don't need to train them – just pick one and use it. NodeTool handles all the technical details.
 
 ---
 
 ## Step 1 — Install NodeTool
 
-1. **Download** the desktop build from [nodetool.ai](https://nodetool.ai) for macOS, Windows, or Linux.
-2. **Follow the platform instructions** in the [Installation Guide](installation.md) for prerequisites (GPU/VRAM, drivers, Apple Silicon tips).
-3. **Launch NodeTool** after installation. Sign in with Supabase, or use Localhost Mode for offline testing (`Settings → Authentication`).
-4. **Install the recommended starter models** so the templates run instantly:
-   - Open **Models → Model Manager** from the top navigation.
-   - Install **GPT-OSS** (agentic LLM) and **Flux** (image generation). Each download shows disk usage; plan for ~20 GB of free space.
-   - You can always switch a node to a cloud provider later by pressing the **Models** button on that node.
+### Download and Install
 
-You now have a fresh workspace with working models and access to the template gallery.
+1. **Download** the desktop app from [nodetool.ai](https://nodetool.ai) for your system:
+   - **macOS** – Intel or Apple Silicon (M1/M2/M3)
+   - **Windows** – Requires Windows 10 or later
+   - **Linux** – AppImage or Debian package
 
----
+2. **Run the installer** – it will set up everything automatically, including Python and AI engines
 
-## Step 2 — Run a beginner workflow end to end
+3. **Launch NodeTool** – on first run, choose where to install (the default location works for most people)
 
-Pick one of these templates to learn how nodes connect and stream results. Both live in the Dashboard **Templates** panel, so you can open them with a single click.
+> **Need help?** See the detailed [Installation Guide](installation.md) for GPU requirements, troubleshooting, and platform-specific tips.
 
-### Option A: Creative Story Ideas (text generation)
+### Sign In (Optional)
 
-1. **Open** the template from the dashboard and click **Open in Editor**. The canvas shows:
-   - `StringInput` (prompt)
-   - `Agent` (LLM with planning)
-   - `Preview` (streams the generated ideas)
-2. **Customize the input** — double-click the `StringInput` node and enter a few guiding details such as “write story prompts for sci-fi explorers visiting ocean worlds.”
-3. **Run the workflow** — press the **Run** button in the lower-right corner or use <kbd>⌘/Ctrl + Enter</kbd>. The Preview node streams each idea as the agent produces them.
-4. **Experiment** — duplicate the Preview node (right-click → Duplicate) or swap the agent’s model via the **Model** field to compare outputs.
+- **Sign in with Supabase** to sync your workflows and assets across devices
+- **Use Localhost Mode** for fully offline, private operation (`Settings → Authentication`)
 
-### Option B: Transcribe Audio (speech-to-text)
+### Install Your First AI Models
 
-1. **Open** the “Transcribe Audio” template. You’ll see:
-   - `AudioInput` → `Automatic Speech Recognition` (transcription) → `StringOutput`.
-2. **Add audio** — click the `AudioInput` node, choose **Upload**, and select a short `.wav` or `.mp3` file (a voice memo works great). The asset lands in the Assets panel for reuse.
-3. **Set ASR to your preferred model** — use the node’s **Model** menu to switch between a local Whisper build or a hosted provider such as OpenAI.
-4. **Run** the workflow and watch text stream through the `StringOutput` panel. Use **Preview** nodes on the edge between ASR and StringOutput if you want to see intermediate chunks.
-5. **Tidy the canvas** — choose **Layout → Reset Layout** if you experiment with additional nodes and need the Dockview panels back in place.
+For the tutorials to work, you'll need some AI models:
 
-Whichever option you chose, you now have a working workflow that you can save and trigger from other parts of the app.
+1. Open **Models → Model Manager** from the top navigation
+2. Install these recommended starter models:
+   - **GPT-OSS** – for text generation and chat
+   - **Flux** – for image generation
+3. Wait for downloads to complete (~20 GB total)
+
+> **Tip**: You can skip local models and use cloud providers instead (like OpenAI or Anthropic). Just add your API key in `Settings → Providers`.
+
+✅ **Checkpoint**: You should now see the NodeTool Dashboard with Templates and Recent Workflows panels.
 
 ---
 
-## Step 3 — Save and re-run it from Global Chat
+## Step 2 — Run Your First Workflow
 
-1. **Save** the Creative Story Ideas workflow with a meaningful name (`File → Save` or <kbd>⌘/Ctrl + S</kbd>). Saved workflows appear on the dashboard.
-2. **Open Global Chat** (left nav → **Chat**). This brings up the full-screen assistant described in the [Global Chat guide](global-chat.md).
-3. Inside chat, click **Workflow Menu** in the composer, select your saved workflow.
-4. **Prompt it** — write a prompt that will trigger the workflow from the agent automatically. For example, you could write "write a story about exploring ocean worlds".
-5. **Run it** — press the **Send** button in the lower-right corner or use <kbd>⌘/Ctrl + Enter</kbd>. The Preview node streams each idea as the agent produces them.
+Let's run a pre-built template to see how workflows work. Pick **one** of these options:
 
-Use this loop whenever you want to mix structured workflows with conversational prompting.
+### Option A: Creative Story Ideas (Text Generation)
+
+*Best for: Seeing how AI generates text based on your prompts*
+
+1. **Find the template**: On the Dashboard, look for "Creative Story Ideas" in the Templates panel and click it
+2. **Open in Editor**: Click **Open in Editor** to see the workflow canvas
+3. **Understand what you see**:
+   - **StringInput** node (left) – where you type your prompt
+   - **Agent** node (middle) – the AI that generates ideas
+   - **Preview** node (right) – where results appear
+
+4. **Customize the prompt**: Click the `StringInput` node and enter something like:
+   > "Generate story prompts for sci-fi adventures on alien ocean worlds"
+
+5. **Run it**: Click the **Run** button (bottom-right) or press <kbd>Ctrl/⌘ + Enter</kbd>
+6. **Watch the magic**: The Preview node will stream ideas as the AI generates them!
+
+**What just happened?** You sent a text prompt to an AI language model, which generated creative story ideas based on your input.
+
+### Option B: Transcribe Audio (Speech-to-Text)
+
+*Best for: Converting spoken audio into written text*
+
+1. **Find the template**: Look for "Transcribe Audio" in Templates and open it in the Editor
+2. **Understand what you see**:
+   - **AudioInput** – where you upload an audio file
+   - **Automatic Speech Recognition** – the AI that converts speech to text
+   - **StringOutput** – where the transcription appears
+
+3. **Add an audio file**: Click the `AudioInput` node, choose **Upload**, and select a `.wav` or `.mp3` file (a voice memo from your phone works great!)
+
+4. **Run it**: Click **Run** or press <kbd>Ctrl/⌘ + Enter</kbd>
+5. **Read the results**: Your transcribed text appears in the StringOutput panel
+
+**What just happened?** You fed audio to an AI speech recognition model (like Whisper), which converted the spoken words into written text.
+
+✅ **Checkpoint**: You've successfully run your first AI workflow! The results appeared in the output node.
 
 ---
 
-## Step 4 — Turn it into a Mini-App
+## Step 3 — Save and Run from Chat
 
-1. Navigate to a workflow.
-2. Click on the **Mini-App** button in the top-right corner.
-3. **Run the Mini-App** to verify it behaves the same as the editor version.
+Now let's save your workflow and run it from NodeTool's chat interface.
 
-Now you have a single workflow that runs identically in the editor, in Global Chat, and as a Mini-App.
+1. **Save your workflow**: Press <kbd>Ctrl/⌘ + S</kbd> or use `File → Save`. Give it a memorable name like "My Story Generator"
+
+2. **Open Global Chat**: Click **Chat** in the left sidebar to open the full-screen AI assistant
+
+3. **Attach your workflow**: In the chat composer (bottom), click the **Workflow Menu** and select your saved workflow
+
+4. **Run it conversationally**: Type a prompt like "write a story about exploring ocean worlds" and press **Send**
+
+5. **Watch it stream**: The AI will run your workflow and stream results directly into the chat!
+
+**Why is this useful?** Chat mode lets you run workflows conversationally without opening the editor. Great for quick iterations or sharing with teammates who don't want to see the technical details.
+
+✅ **Checkpoint**: Your workflow now runs from both the editor and chat interface.
 
 ---
 
-## Next steps
+## Step 4 — Create a Mini-App
 
-- Follow the [Start Here](index.md#start-here) golden-path outline if you skipped it.
-- Browse the [Workflow Cookbook](cookbook.md) and [Workflow Examples Gallery](/workflows/) for more patterns.
-- Learn the [User Interface](user-interface.md) to master Dockview panels, Mini-Apps, and assets.
-- Ready to share or deploy? Jump to the [Deployment Guide](deployment.md) or [Deployment Journeys](deployment-journeys.md) when it’s time to ship.
-- Join the [Discord community](https://discord.gg/26m5xBwe) to share what you build.
+Turn your workflow into a simple app that anyone can use – no knowledge of NodeTool required.
+
+1. **Open your workflow** in the editor
+2. **Click Mini-App** in the top-right corner
+3. **Run the Mini-App**: You'll see a clean interface with just the inputs and outputs
+4. **Share it**: Mini-Apps hide all the complexity – perfect for teammates or clients
+
+**What just happened?** NodeTool generated a simplified user interface from your workflow. The same workflow runs underneath, but users only see what they need to interact with.
+
+✅ **Checkpoint**: You now have **three ways** to run the same workflow: Editor, Chat, and Mini-App.
+
+---
+
+## Recap: What You Learned
+
+🎉 **Congratulations!** You've completed the NodeTool basics:
+
+- ✅ Installed NodeTool and AI models
+- ✅ Ran a template workflow
+- ✅ Understood nodes, connections, and data flow
+- ✅ Saved and ran workflows from chat
+- ✅ Created a Mini-App for easy sharing
+
+---
+
+## Next Steps
+
+### Learn More
+- **[Key Concepts](key-concepts.md)** – Deeper understanding of workflows and AI
+- **[User Interface](user-interface.md)** – Master the NodeTool interface
+- **[Workflow Editor](workflow-editor.md)** – Build your own workflows from scratch
+
+### Explore Examples
+- **[Workflow Cookbook](cookbook.md)** – Patterns and best practices
+- **[Example Gallery](workflows/)** – 19+ ready-to-use workflows
+- **[Tips & Tricks](tips-and-tricks.md)** – Power user shortcuts
+
+### Go Further
+- **[Models & Providers](models-and-providers.md)** – Set up cloud AI or local models
+- **[Global Chat](global-chat.md)** – Advanced chat and agent features
+- **[Deployment Guide](deployment.md)** – Share workflows with the world
+
+---
+
+## Need Help?
+
+- **[Glossary](glossary.md)** – Plain-English definitions of all terms
+- **[Discord Community](https://discord.gg/26m5xBwe)** – Get help from other users
+- **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** – Report bugs or request features
