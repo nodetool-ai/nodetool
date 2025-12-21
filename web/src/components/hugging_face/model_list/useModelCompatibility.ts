@@ -405,9 +405,6 @@ export const useModelCompatibility = () => {
       };
 
       const repoKeys = expandRepoKeys(model.repo_id, model.id, model.path);
-      const recommendedMatches = repoKeys.filter((key) =>
-        nodesByRepoId.has(key)
-      );
       if (repoKeys.length > 0) {
         collectMatches(repoKeys, nodesByRepoId, recommendedMap);
       }
