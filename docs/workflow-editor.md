@@ -1,76 +1,302 @@
 ---
 layout: page
 title: "Workflow Editor"
+description: "Build AI workflows visually – a complete guide to the NodeTool canvas."
 ---
 
-The workflow editor is where you design and run AI pipelines. Nodes represent tasks and edges define how data flows between them.
+The Workflow Editor is where you build AI workflows by connecting visual building blocks. This guide covers everything you need to know to create powerful automations.
 
-### Creating nodes
+> **First time here?** Start with the [Getting Started guide](getting-started.md) to run your first workflow in 10 minutes.
 
-- Press the **Space** key or double‑click the canvas to open the node menu.
-- Search or browse the namespaces tree on the left side to find the node you need.
-- Click or Drag nodes onto the canvas and connect their inputs and outputs.
+---
 
-### Managing the graph
+## Understanding the Editor
 
-- Use the toolbar to **save** your workflow or arrange nodes automatically with **Auto Layout**.
-- Undo and redo changes using <kbd>Ctrl/⌘+Z</kbd> / <kbd>Ctrl/⌘+Shift+Z</kbd>.
-- Right‑click to open context menus for nodes, input + output handles, and the canvas.
+The editor has three main areas:
 
-The Auto Layout button arranges nodes using ELK. The editor reruns Auto Layout automatically when workflows are created
-or updated by Global Chat.
+| Area | Location | Purpose |
+|------|----------|---------|
+| **Canvas** | Center | Where you place and connect nodes |
+| **Side Panels** | Left/Right | Workflows, assets, settings |
+| **Toolbar** | Bottom | Run, save, layout controls |
 
-### Running workflows
+---
 
-- Click the **Run** button or press <kbd>Ctrl/⌘+Enter</kbd> to execute the workflow.
-- Click the **Stop** button or press <kbd>ESC</kbd> to cancel the execution.
-- Status updates and results stream back in real time.
-- Workflows can run locally or dispatch jobs to remote workers.
+## The Canvas
 
-Nodes that require models you haven't installed show a “Missing Models” prompt. Click it to open the Recommended Models
-dialog with one-click install.
+The canvas is your infinite workspace. Here's how to navigate:
 
-### Tabs and panels
+### Moving Around
 
-- Multiple workflows can be open in tabs at once.
-- Panel icons on the left provide access to Chat, Workflows, Assets, RAG Collections and Packs.
-- The right panel shows the Inspector <kbd>i</kbd> that offers an alternative way to change the parameters of a selected node.
+| Action | How |
+|--------|-----|
+| **Pan** (scroll view) | `Space` + drag, or right-click drag |
+| **Zoom** | `Ctrl/⌘` + scroll wheel |
+| **Fit everything** | Press `F` |
+| **Reset zoom** | `Ctrl/⌘ + 0` |
 
-### Node menu
+### The Grid
 
-- Press **Space** or double‑click the canvas to open the floating menu.
-- Search by just starting to type or browse the namespace tree on the left. The menu is draggable.
-- Filter nodes by their input or output types by clicking the filter icon.
-- Press **Esc** or click outside to close the menu.
+The faint grid helps you align nodes. Enable **Snap to Grid** in the View menu for perfect alignment.
 
-### Keyboard shortcuts
+---
 
-- <kbd>F</kbd> fits the graph to the window or focuses on the selection.
-- <kbd>Ctrl/⌘+0</kbd> zooms the canvas to 100%.
-- <kbd>Ctrl/⌘+C</kbd>, <kbd>Ctrl/⌘+V</kbd> and <kbd>Ctrl/⌘+X</kbd> copy, paste or cut nodes.
-- <kbd>Ctrl/⌘+S</kbd> to save the current workflow.
-- <kbd>Ctrl/⌘+D</kbd> duplicates nodes horizontally; <kbd>Ctrl/⌘+Shift+D</kbd> stacks them vertically.
-- <kbd>Ctrl/⌘+G</kbd> groups the current selection.
-- <kbd>A</kbd> to align selected nodes, <kbd>Shift+A</kbd> to align and evenly arrange nodes.
-- <kbd>Arrow keys</kbd> nudge nodes in any direction.
-- <kbd>Ctrl/⌘+Z</kbd> / <kbd>Ctrl/⌘+Shift+Z</kbd> undo and redo.
-- <kbd>Ctrl/⌘+1</kbd>…<kbd>Ctrl/⌘+9</kbd> jump directly between open tabs.
-- <kbd>Key 1</kbd>…<kbd>Key 5</kbd> opens the left panel menus.
-- <kbd>Key i</kbd> toggles the Inspector on the right side.
+## Working with Nodes
 
-### Context menus
+Nodes are the building blocks of your workflow. Each node does one specific thing.
 
-- Right‑click on node headers, node parameters, input + output handles, or the canvas for extra options.
-- Release a connection on empty space to open a connection helper menu with auto-create options and to show compatible nodes.
-When dragging an edge and dropping onto empty canvas, the Connection Menu shows:
-– auto-create nodes that match the required type
-– compatible node list filtered by input/output type
+### Adding Nodes
 
-### Documentation and help
+**Method 1: Node Menu**
+1. Press `Space` anywhere on the canvas
+2. Search by typing what you want (e.g., "image" or "text")
+3. Click a node to add it
 
-- Hover a node in the Node Menu to see its description, inputs and outputs.
-- Hover the ? at the bottom-right of a node on the canvas
-- Select a node and click the documentation icon (?) or open the draggable document panel. Many nodes include examples,
-  parameters, and best practices.
+**Method 2: Double-Click**
+1. Double-click empty space on the canvas
+2. Opens the same Node Menu
 
-For a quick introduction see the [Getting Started guide](getting-started.md).
+**Method 3: Smart Connect**
+1. Drag a connection from a node's output
+2. Drop it on empty space
+3. See a list of compatible nodes that can receive this data
+
+### Understanding Nodes
+
+Every node has:
+
+- **Header** (top): Node name, drag here to move
+- **Inputs** (left side circles): Where data comes in
+- **Outputs** (right side circles): Where data goes out
+- **Properties**: Settings you can adjust in the node or Properties panel
+
+### Selecting Nodes
+
+| Action | How |
+|--------|-----|
+| Select one | Click the node |
+| Select multiple | `Shift` + click, or drag a box |
+| Select all | `Ctrl/⌘ + A` |
+| Deselect | Click empty canvas |
+
+### Moving Nodes
+
+- **Drag** the header bar to move
+- **Arrow keys** for precise nudging
+- **Auto Layout** button to organize automatically
+
+---
+
+## Making Connections
+
+Connections show how data flows between nodes.
+
+### Creating Connections
+
+1. Click and hold on an **output** circle (right side of a node)
+2. Drag the line to an **input** circle (left side of another node)
+3. Release to connect
+
+### Connection Rules
+
+- **Types must match**: You can only connect compatible types (text to text, image to image)
+- **One input, multiple outputs**: Each input accepts one connection; outputs can connect to many
+- **Color coding**: Connection colors indicate data type
+
+### Removing Connections
+
+- Click a connection line, then press `Delete`
+- Right-click a connection for options
+- Drag the connection away from its target and release
+
+### Smart Connections
+
+When you drag a connection and release on **empty space**, the **Connection Menu** appears:
+
+- **Auto-create** common nodes for that data type
+- **Browse compatible nodes** filtered by what can receive the data
+- **Cancel** by pressing `Esc`
+
+---
+
+## Running Workflows
+
+### Starting a Run
+
+| Method | How |
+|--------|-----|
+| Button | Click **Run** in the bottom toolbar |
+| Keyboard | `Ctrl/⌘ + Enter` |
+
+### Watching Progress
+
+- **Streaming nodes** show output as it's generated
+- **Preview nodes** display intermediate results
+- **Node borders** indicate status (running, complete, error)
+
+### Stopping a Run
+
+| Method | How |
+|--------|-----|
+| Button | Click **Stop** |
+| Keyboard | `Esc` |
+
+### Missing Models
+
+If a node needs an AI model you haven't installed:
+1. Click the **"Missing Model"** indicator on the node
+2. The **Recommended Models** dialog opens
+3. Click to install – runs in background while you work
+
+---
+
+## Organizing Your Workflow
+
+### Auto Layout
+
+Click the **Auto Layout** button (or press `L`) to automatically arrange your nodes in a clean, readable layout. The editor also auto-arranges nodes when Global Chat creates or modifies workflows.
+
+### Grouping Nodes
+
+Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
+- Keep related nodes together
+- Can be collapsed to save space
+- Move as a unit
+
+### Aligning Nodes
+
+| Shortcut | Action |
+|----------|--------|
+| `A` | Align selected nodes |
+| `Shift + A` | Align and distribute evenly |
+
+---
+
+## Panels and Tabs
+
+### Multiple Workflows
+
+- Open multiple workflows in **tabs** at the top
+- Switch with `Ctrl/⌘ + 1-9` or click the tab
+- Drag tabs to reorder
+
+### Left Panel
+
+Access these views by clicking icons on the left:
+
+| Icon | Panel | Purpose |
+|------|-------|---------|
+| 📂 | Workflows | Your saved workflows |
+| 💬 | Chat | Global Chat |
+| 📁 | Assets | Your files |
+| 📚 | Collections | RAG document collections |
+| 📦 | Packs | Installed node packs |
+
+### Right Panel (Inspector)
+
+Press `i` to toggle the **Inspector** panel, which shows:
+- Detailed properties for selected nodes
+- Input/output documentation
+- Validation errors and warnings
+
+---
+
+## Finding Nodes
+
+### The Node Menu
+
+Press `Space` to open, then:
+
+- **Search**: Just start typing ("whisper", "image", "agent")
+- **Browse**: Explore the category tree on the left
+- **Filter**: Click the filter icon to show only nodes with specific input/output types
+- **Move**: Drag the menu to reposition it
+- **Close**: `Esc` or click outside
+
+### Node Documentation
+
+Get help on any node:
+
+1. **In the Node Menu**: Hover over a node to see its description
+2. **On the canvas**: Hover over the `?` icon at the bottom-right of any node
+3. **Inspector**: Select a node and view full documentation in the right panel
+
+---
+
+## Context Menus
+
+Right-click for options anywhere:
+
+| Location | Options |
+|----------|---------|
+| **Canvas** | Add node, paste, select all |
+| **Node header** | Copy, duplicate, delete, group |
+| **Input/Output** | Disconnect, add compatible node |
+| **Connection** | Delete, add node in middle |
+
+---
+
+## Keyboard Shortcuts
+
+### Essential Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Space` | Open node menu |
+| `Ctrl/⌘ + Enter` | Run workflow |
+| `Ctrl/⌘ + S` | Save |
+| `Ctrl/⌘ + Z` | Undo |
+| `F` | Fit view |
+| `Esc` | Stop / Cancel |
+
+### All Editor Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl/⌘ + C` | Copy |
+| `Ctrl/⌘ + V` | Paste |
+| `Ctrl/⌘ + X` | Cut |
+| `Ctrl/⌘ + D` | Duplicate horizontally |
+| `Ctrl/⌘ + Shift + D` | Duplicate vertically |
+| `Ctrl/⌘ + G` | Group selection |
+| `Ctrl/⌘ + 0` | Reset zoom to 100% |
+| `Ctrl/⌘ + 1-9` | Switch to tab 1-9 |
+| `A` | Align selected nodes |
+| `Shift + A` | Align and distribute |
+| `Arrow keys` | Nudge selected nodes |
+| `Delete` / `Backspace` | Delete selection |
+| `i` | Toggle Inspector |
+| `1-5` | Open left panel menus |
+
+---
+
+## Tips for Better Workflows
+
+### Design Principles
+
+1. **Left to right**: Data generally flows left to right
+2. **Preview often**: Add Preview nodes to see intermediate results
+3. **Name clearly**: Rename nodes to describe their purpose
+4. **Group logically**: Keep related nodes together
+
+### Debugging
+
+- **Add Preview nodes** between steps to see what's happening
+- **Check connections** – wrong data type is a common issue
+- **Look at errors** – nodes show error messages when something goes wrong
+- **Test incrementally** – run partial workflows before adding complexity
+
+### Performance
+
+- **Local models** may be slower but work offline
+- **Cloud models** are faster but require internet
+- **Streaming nodes** show progress; non-streaming wait until complete
+
+---
+
+## Next Steps
+
+- **[Cookbook](cookbook.md)** – Workflow patterns and best practices
+- **[Workflow Examples](workflows/)** – Ready-to-use workflows
+- **[Tips & Tricks](tips-and-tricks.md)** – Power user features
+- **[Node Reference](nodes/)** – All available nodes
