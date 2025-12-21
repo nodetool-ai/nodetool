@@ -64,43 +64,6 @@
   background-color: transparent;
 }
 
-/* Loading styles */
-.base-node.loading {
-  position: relative;
-  --glow-offset: -4px;
-}
-
-.base-node.loading::before {
-  opacity: 0;
-  content: "";
-  position: absolute;
-  top: var(--glow-offset);
-  left: var(--glow-offset);
-  right: var(--glow-offset);
-  bottom: var(--glow-offset);
-  background: conic-gradient(
-    from var(--gradient-angle),
-    var(--color-1),
-    var(--color-2),
-    var(--color-3),
-    var(--color-4),
-    var(--color-5),
-    var(--color-1)
-  );
-  z-index: -20;
-  animation: gradientAnimation 5s ease-in-out infinite;
-  transition: opacity 0.5s ease-in-out;
-}
-
-.base-node.loading.is-loading::before {
-  opacity: 1;
-}
-
-@keyframes gradientAnimation {
-  from {
-    --gradient-angle: 90deg;
-  }
-  to {
-    --gradient-angle: 450deg;
-  }
-}
+/* Loading styles are handled by Emotion in BaseNode.tsx
+   The animation uses dynamic colors from node metadata and requires
+   mask properties for the ring effect that are better expressed in JS */
