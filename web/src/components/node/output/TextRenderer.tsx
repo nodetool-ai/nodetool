@@ -16,7 +16,7 @@ type Props = {
 type Section = { type: "text" | "think"; content: string };
 
 const parseThinkSections = (input: string): Section[] => {
-  if (!input) return [];
+  if (!input) {return [];}
   const sections: Section[] = [];
   const regex = /<think>([\s\S]*?)<\/think>/g;
   let lastIndex = 0;
@@ -27,13 +27,13 @@ const parseThinkSections = (input: string): Section[] => {
     const start = match.index;
     const end = regex.lastIndex;
     const before = input.slice(lastIndex, start);
-    if (before) sections.push({ type: "text", content: before });
+    if (before) {sections.push({ type: "text", content: before });}
     sections.push({ type: "think", content: match[1] || "" });
     lastIndex = end;
   }
   const tail = input.slice(lastIndex);
-  if (tail) sections.push({ type: "text", content: tail });
-  if (sections.length === 0) return [{ type: "text", content: input }];
+  if (tail) {sections.push({ type: "text", content: tail });}
+  if (sections.length === 0) {return [{ type: "text", content: input }];}
   return sections;
 };
 
@@ -78,7 +78,7 @@ export const TextRenderer: React.FC<Props> = ({
 }) => {
   const theme = useTheme();
   const sections = useMemo(() => parseThinkSections(text), [text]);
-  if (!text) return null;
+  if (!text) {return null;}
   return (
     <div className="output value noscroll" css={outputStyles(theme)}>
       {showActions && <Actions onCopy={() => onCopy(text)} />}

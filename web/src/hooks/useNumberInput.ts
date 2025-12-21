@@ -39,7 +39,7 @@ export const useDragHandling = (
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!dragStateRef.current.isDragging) return;
+      if (!dragStateRef.current.isDragging) {return;}
 
       const { dragStartX, currentDragValue, decimalPlaces, lastClientX } =
         dragStateRef.current;
@@ -59,7 +59,7 @@ export const useDragHandling = (
         return;
       }
 
-      if (!containerRef.current) return;
+      if (!containerRef.current) {return;}
 
       const rect = containerRef.current.getBoundingClientRect();
 

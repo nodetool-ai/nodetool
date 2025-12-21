@@ -17,7 +17,7 @@ const useAlignNodes = () => {
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {
       const selectedNodes = getSelectedNodes();
-      if (selectedNodes.length < 2) return;
+      if (selectedNodes.length < 2) {return;}
 
       // Create a map to store the changes for each node
       const nodeUpdates = new Map<

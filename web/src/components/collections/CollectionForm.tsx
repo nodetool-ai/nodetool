@@ -99,7 +99,7 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
       const { data, error } = await client.POST("/api/collections/", {
         body: body
       });
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     },
     onSuccess: () => {

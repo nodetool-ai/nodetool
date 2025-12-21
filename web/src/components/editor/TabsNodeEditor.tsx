@@ -297,11 +297,11 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const hasHydratedRef = useRef(false);
   useEffect(() => {
     const isHydrating = openWorkflows.length === 0 && !currentWorkflowId;
-    if (!hasHydratedRef.current && isHydrating) return;
+    if (!hasHydratedRef.current && isHydrating) {return;}
 
     const ids = new Set<string>();
     openWorkflows.forEach((w) => ids.add(w.id));
-    if (currentWorkflowId) ids.add(currentWorkflowId);
+    if (currentWorkflowId) {ids.add(currentWorkflowId);}
     setStorageOpenIds(Array.from(ids));
 
     if (!hasHydratedRef.current && !isHydrating) {
@@ -313,7 +313,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     const ids = new Set<string>();
     storageOpenIds.forEach((id) => ids.add(id));
     openWorkflows.forEach((w) => ids.add(w.id));
-    if (currentWorkflowId) ids.add(currentWorkflowId);
+    if (currentWorkflowId) {ids.add(currentWorkflowId);}
     return Array.from(ids);
   }, [storageOpenIds, openWorkflows, currentWorkflowId]);
 
@@ -348,7 +348,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const tabsToRender = useMemo(() => {
     return idsForTabs.map((id, index) => {
       const loaded = openMap.get(id);
-      if (loaded) return loaded;
+      if (loaded) {return loaded;}
       const res = queryResults[index];
       if (res && res.data) {
         const { graph, ...attrs } = res.data as any;

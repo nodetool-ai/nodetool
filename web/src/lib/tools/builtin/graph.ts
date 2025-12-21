@@ -27,11 +27,11 @@ function assertObject(
 }
 
 function assertString(value: any, message: string): asserts value is string {
-  if (typeof value !== "string" || value.length === 0) throw new Error(message);
+  if (typeof value !== "string" || value.length === 0) {throw new Error(message);}
 }
 
 function assertNumber(value: any, message: string): asserts value is number {
-  if (typeof value !== "number" || Number.isNaN(value)) throw new Error(message);
+  if (typeof value !== "number" || Number.isNaN(value)) {throw new Error(message);}
 }
 
 FrontendToolRegistry.register({
@@ -86,7 +86,7 @@ FrontendToolRegistry.register({
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, w);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
-    if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
+    if (!nodeStore) {throw new Error(`No node store for workflow ${workflowId}`);}
 
     const addedNodeIds: string[] = [];
     const addedEdgeIds: string[] = [];
@@ -97,7 +97,7 @@ FrontendToolRegistry.register({
       assertString(node.type, "Node missing type");
 
       const metadata = state.nodeMetadata[node.type];
-      if (!metadata) throw new Error(`Node type not found: ${node.type}`);
+      if (!metadata) {throw new Error(`Node type not found: ${node.type}`);}
 
       const rawData = (node.data ?? {}) as Record<string, any>;
       const properties = (rawData.properties ?? {}) as Record<string, any>;
@@ -150,8 +150,8 @@ FrontendToolRegistry.register({
 
       const src = nodeStore.findNode(edge.source);
       const tgt = nodeStore.findNode(edge.target);
-      if (!src) throw new Error(`Source node not found: ${edge.source}`);
-      if (!tgt) throw new Error(`Target node not found: ${edge.target}`);
+      if (!src) {throw new Error(`Source node not found: ${edge.source}`);}
+      if (!tgt) {throw new Error(`Target node not found: ${edge.target}`);}
 
       const connection = {
         source: edge.source,
@@ -161,7 +161,7 @@ FrontendToolRegistry.register({
       } as any;
 
       const ok = nodeStore.validateConnection(connection, src as any, tgt as any);
-      if (!ok) throw new Error("Invalid connection");
+      if (!ok) {throw new Error("Invalid connection");}
 
       const edgeId = edge.id ?? nodeStore.generateEdgeId();
       nodeStore.addEdge({

@@ -267,7 +267,7 @@ const Dashboard: React.FC = () => {
   // Remove automatic debounced saving - layouts should be saved explicitly
   // Keep this function for explicit saves when needed
   const saveLayout = useCallback(() => {
-    if (!isMountedRef.current || !dockviewApi) return;
+    if (!isMountedRef.current || !dockviewApi) {return;}
 
     try {
       const { activeLayoutId, updateActiveLayout } = useLayoutStore.getState();
@@ -290,14 +290,14 @@ const Dashboard: React.FC = () => {
 
   // Ensure welcome panel is shown when showWelcomeOnStartup is enabled
   useEffect(() => {
-    if (!dockviewApi || !settings.showWelcomeOnStartup) return;
+    if (!dockviewApi || !settings.showWelcomeOnStartup) {return;}
 
     // Check if welcome panel already exists
-    if (dockviewApi.getPanel("welcome")) return;
+    if (dockviewApi.getPanel("welcome")) {return;}
 
     // Small delay to ensure layout is fully applied
     const timeoutId = setTimeout(() => {
-      if (!dockviewApi) return;
+      if (!dockviewApi) {return;}
 
       // Find the first panel to position welcome to its left
       const panels = dockviewApi.panels;
@@ -334,7 +334,7 @@ const Dashboard: React.FC = () => {
 
 
   useEffect(() => {
-    if (!dockviewApi) return;
+    if (!dockviewApi) {return;}
 
     const allPanelIds = Object.keys(PANEL_CONFIG);
 
@@ -363,7 +363,7 @@ const Dashboard: React.FC = () => {
   }, [dockviewApi]);
 
   useEffect(() => {
-    if (!dockviewApi) return;
+    if (!dockviewApi) {return;}
 
     Object.entries(panelParams).forEach(([id, params]) => {
       const panel = dockviewApi.getPanel(id);
@@ -375,7 +375,7 @@ const Dashboard: React.FC = () => {
 
   const handleAddPanel = useCallback(
     (panelId: string) => {
-      if (!dockviewApi) return;
+      if (!dockviewApi) {return;}
       
       // Position welcome panel to the left of the first panel if it exists
       if (panelId === "welcome") {

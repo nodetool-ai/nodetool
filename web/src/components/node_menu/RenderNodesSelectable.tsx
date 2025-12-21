@@ -204,7 +204,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
 
   const toggleNamespace = useCallback(
     (namespace: string, nextChecked: boolean) => {
-      if (!onSetSelection) return;
+      if (!onSetSelection) {return;}
       const allInNamespace = nodesByNamespaceAll[namespace] || [];
       const typesInNamespace = new Set(allInNamespace.map((n) => n.node_type));
       let nextSelection: string[];

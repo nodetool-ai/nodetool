@@ -89,7 +89,7 @@ export const getShortcutTooltip = (
   showDescription = false
 ): React.ReactElement | string => {
   const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug === slug);
-  if (!sc) return slug;
+  if (!sc) {return slug;}
 
   const winCombo = sc.keyCombo.join(" + ");
   const macCombo = (sc.keyComboMac ?? sc.keyCombo.map(mapKeyForMac)).join(
@@ -134,7 +134,7 @@ export const getShortcutTooltip = (
       const nodes: React.ReactNode[] = [
         React.createElement("kbd", { key: `k-${idx}` }, humanizeKey(part))
       ];
-      if (idx < parts.length - 1) nodes.push("+");
+      if (idx < parts.length - 1) {nodes.push("+");}
       return nodes;
     });
   };

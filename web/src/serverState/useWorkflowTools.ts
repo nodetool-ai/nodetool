@@ -8,7 +8,7 @@ export const useWorkflowTools = () => {
     queryFn: async (): Promise<WorkflowTool[]> => {
       const { data, error } = await client.GET("/api/workflows/tools");
       if (error) {
-        throw error as Error;
+        throw new Error(JSON.stringify(error));
       }
       return (data?.workflows as WorkflowTool[]) || [];
     },

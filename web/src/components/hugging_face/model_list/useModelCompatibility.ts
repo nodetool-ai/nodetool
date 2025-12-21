@@ -134,7 +134,7 @@ const upsert = (
   key: string,
   info: NodeCompatibilityInfo
 ) => {
-  if (!key) return;
+  if (!key) {return;}
   const existing = map.get(key) ?? [];
   map.set(key, [...existing, info]);
 };
@@ -147,7 +147,7 @@ const expandRepoKeys = (
   const keys = new Set<string>();
   const add = (value?: string | null) => {
     const key = normalize(value);
-    if (!key) return;
+    if (!key) {return;}
     keys.add(key);
     if (key.includes(":")) {
       keys.add(key.split(":")[0]);
@@ -177,7 +177,7 @@ const expandRepoKeys = (
 
 const expandTypeVariants = (typeName: string): string[] => {
   const normalized = normalize(typeName);
-  if (!normalized) return [];
+  if (!normalized) {return [];}
 
   const variants = new Set<string>();
   variants.add(normalized);
@@ -230,7 +230,7 @@ const expandModelTypeCandidates = (model: UnifiedModel) => {
   const candidates = new Set<string>();
   const add = (key?: string | null) => {
     const normalized = normalize(key);
-    if (normalized) candidates.add(normalized);
+    if (normalized) {candidates.add(normalized);}
   };
 
   add(model.type);
@@ -312,7 +312,7 @@ export const useModelCompatibility = () => {
 
       node.properties.forEach((property) => {
         const propertyType = isModelPropertyType(property);
-        if (!propertyType) return;
+        if (!propertyType) {return;}
         const variants = expandTypeVariants(propertyType);
         variants.forEach((key) =>
           upsert(
@@ -405,7 +405,7 @@ export const useModelCompatibility = () => {
         targetMap: Map<string, NodeCompatibilityInfo>
       ) => {
         keys.forEach((key) => {
-          if (!key) return;
+          if (!key) {return;}
           sourceMap.get(key)?.forEach((info) => {
             if (targetMap === compatibleMap && recommendedMap.has(info.nodeType)) {
               return;

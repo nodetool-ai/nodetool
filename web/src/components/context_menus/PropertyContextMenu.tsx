@@ -40,7 +40,7 @@ const PropertyContextMenu: React.FC = () => {
   );
   const metadata = useMetadataStore((state) => state.metadata);
 
-  if (!menuPosition) return null;
+  if (!menuPosition) {return null;}
 
   const handleRemoveDynamicProperty = (
     event?: React.MouseEvent<HTMLElement>
@@ -68,7 +68,7 @@ const PropertyContextMenu: React.FC = () => {
 
     if (nodeId && handleId) {
       const node = findNode(nodeId);
-      if (!node) return;
+      if (!node) {return;}
 
       if (isDynamicProperty) {
         // For dynamic properties, we need to find the property definition from metadata

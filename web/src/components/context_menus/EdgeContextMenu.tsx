@@ -116,7 +116,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
     closeContextMenu
   ]);
 
-  if (!menuPosition) return null;
+  if (!menuPosition) {return null;}
 
   return (
     <Menu

@@ -23,7 +23,7 @@ export const useWorkflowActions = () => {
 
   const handleExampleClick = useCallback(
     async (example: Workflow) => {
-      if (loadingExampleId) return;
+      if (loadingExampleId) {return;}
 
       setLoadingExampleId(example.id);
       try {

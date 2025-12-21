@@ -14,7 +14,7 @@ jest.mock("../useAssetActions", () => ({
       _onClickParent?: (id: string) => void,
       isParent?: boolean
     ) => {
-      if (!isParent && onSelect) onSelect();
+      if (!isParent && onSelect) {onSelect();}
     },
     handleDrag: jest.fn(),
     handleDragOver: jest.fn(),

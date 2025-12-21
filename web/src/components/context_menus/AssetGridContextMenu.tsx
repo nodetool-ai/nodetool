@@ -39,7 +39,7 @@ const AssetGridContextMenu = () => {
   const handleSortByDate = withMenuClose(() => setAssetsOrder("date"));
   const handleSortBySize = withMenuClose(() => setAssetsOrder("size"));
 
-  if (!menuPosition) return null;
+  if (!menuPosition) {return null;}
 
   return (
     <Menu

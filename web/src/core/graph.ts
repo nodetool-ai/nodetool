@@ -38,7 +38,7 @@ export function topologicalSort(
   // initialize the queue with nodes that have no incoming edges
   const queue: string[] = [];
   Object.keys(indegree).forEach((nodeId) => {
-    if (indegree[nodeId] === 0) queue.push(nodeId);
+    if (indegree[nodeId] === 0) {queue.push(nodeId);}
   });
 
   // initialize the sorted nodes which will be returned

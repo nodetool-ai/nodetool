@@ -47,7 +47,7 @@ const ModelListItem: React.FC<
   const tags = (model.tags || []).filter((tag) => importantTags.includes(tag));
   const [dialogOpen, setDialogOpen] = useState(false);
   const compatibilityCounts = useMemo(() => {
-    if (!compatibility) return { total: 0 };
+    if (!compatibility) {return { total: 0 };}
     return {
       total: compatibility.recommended.length + compatibility.compatible.length
     };

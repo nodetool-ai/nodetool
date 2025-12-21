@@ -7,7 +7,7 @@ interface NodeStatusProps {
 }
 
 const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {
-  if (status !== "booting") return null;
+  if (status !== "booting") {return null;}
 
   return (
     <Typography className="node-status">

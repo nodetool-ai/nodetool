@@ -32,7 +32,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
 
   const sortedModels = useMemo(() => {
     if (!ollamaModels || ollamaLoading || ollamaIsFetching || ollamaError)
-      return [] as Array<{ name: string; repo_id: string }>;
+      {return [] as Array<{ name: string; repo_id: string }>;}
 
     return ollamaModels
       .map((m) => ({
@@ -43,7 +43,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
   }, [ollamaModels, ollamaLoading, ollamaIsFetching, ollamaError]);
 
   const currentSelectedModelDetails = useMemo(() => {
-    if (!ollamaModels || !value) return null;
+    if (!ollamaModels || !value) {return null;}
     return ollamaModels.find((m) => m.repo_id === value) ?? null;
   }, [ollamaModels, value]);
 

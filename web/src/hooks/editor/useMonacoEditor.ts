@@ -24,7 +24,7 @@ export function useMonacoEditor() {
   }, []);
 
   const loadMonacoIfNeeded = useCallback(async () => {
-    if (MonacoEditor || monacoLoadError) return;
+    if (MonacoEditor || monacoLoadError) {return;}
     try {
       const mod = await import("@monaco-editor/react");
       setMonacoEditor(() => mod.default as unknown as MonacoComponent);

@@ -65,14 +65,14 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
     const incoming = edges.find(
       (e) => e.target === id && e.targetHandle === "input_value"
     );
-    if (!incoming) return fallback;
+    if (!incoming) {return fallback;}
 
     const sourceNode = findNode(incoming.source);
-    if (!sourceNode) return fallback;
+    if (!sourceNode) {return fallback;}
     const sourceMeta = useMetadataStore
       .getState()
       .getMetadata(sourceNode.type || "");
-    if (!sourceMeta) return fallback;
+    if (!sourceMeta) {return fallback;}
     const outHandle = findOutputHandle(
       sourceNode as any,
       incoming.sourceHandle || "",
@@ -82,7 +82,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
     const match = DATA_TYPES.find(
       (dt) => dt.value === typeStr || dt.name === typeStr || dt.slug === typeStr
     );
-    if (match) return { slug: match.slug, color: match.color };
+    if (match) {return { slug: match.slug, color: match.color };}
     return fallback;
   }, [edges, findNode, id]);
 

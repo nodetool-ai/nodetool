@@ -38,7 +38,7 @@ const emitUploadProgress = (
   loaded: number,
   total: number
 ) => {
-  if (!onUploadProgress) return;
+  if (!onUploadProgress) {return;}
   onUploadProgress({
     loaded,
     total,
@@ -334,10 +334,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       const headers = await authHeader();
       const params = new URLSearchParams();
       params.append("query", query.query);
-      if (query.content_type) params.append("content_type", query.content_type);
+      if (query.content_type) {params.append("content_type", query.content_type);}
       if (query.page_size)
-        params.append("page_size", query.page_size.toString());
-      if (query.cursor) params.append("cursor", query.cursor);
+        {params.append("page_size", query.page_size.toString());}
+      if (query.cursor) {params.append("cursor", query.cursor);}
 
       const response = await axios.get(
         `${BASE_URL}/api/assets/search?${params.toString()}`,

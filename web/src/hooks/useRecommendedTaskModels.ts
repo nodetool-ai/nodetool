@@ -7,10 +7,10 @@ type TaskType = "image" | "language" | "tts" | "asr";
 const inferProvider = (m: UnifiedModel): string => {
   const t = (m.type || "").toLowerCase();
   const tags = (m.tags || []).map((x) => (x || "").toLowerCase());
-  if (t === "mlx" || tags.includes("mlx") || tags.includes("mflux")) return "mlx";
-  if (t.startsWith("hf.")) return "huggingface";
-  if (t === "llama_cpp") return "llama_cpp";
-  if (t === "vllm") return "vllm";
+  if (t === "mlx" || tags.includes("mlx") || tags.includes("mflux")) {return "mlx";}
+  if (t.startsWith("hf.")) {return "huggingface";}
+  if (t === "llama_cpp") {return "llama_cpp";}
+  if (t === "vllm") {return "vllm";}
   return "huggingface";
 };
 

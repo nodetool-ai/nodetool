@@ -73,7 +73,7 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
 
   const modelPacks = useMemo(() => {
     // We only show model packs for specific nodes, not generic endpoints currently
-    if (endpoint) return [];
+    if (endpoint) {return [];}
     
     const baseMetadata = getMetadata(nodeType);
     return baseMetadata?.model_packs || [];

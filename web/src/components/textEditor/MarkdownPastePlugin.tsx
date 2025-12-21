@@ -18,10 +18,10 @@ export function MarkdownPastePlugin(): null {
       PASTE_COMMAND,
       (event: ClipboardEvent) => {
         const clipboardData = event.clipboardData;
-        if (!clipboardData) return false;
+        if (!clipboardData) {return false;}
 
         const text = clipboardData.getData("text/plain");
-        if (!text) return false;
+        if (!text) {return false;}
 
         // Check if the text looks like markdown
         if (!isMarkdownText(text)) {

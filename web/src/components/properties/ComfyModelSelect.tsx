@@ -37,7 +37,7 @@ const ComfyModelSelect = ({
   });
 
   const options = useMemo(() => {
-    if (!models || isLoading || isError) return [];
+    if (!models || isLoading || isError) {return [];}
     return (models as Array<RepoPath | { name?: string }>).map((model) => ({
       value: (model as any).name ?? (model as RepoPath).path,
       label: (model as any).name ?? (model as RepoPath).path ?? ""

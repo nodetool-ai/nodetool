@@ -59,7 +59,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     });
   }, [node?.type, openDocumentation]);
 
-  if (!nodeId) return null;
+  if (!nodeId) {return null;}
 
   return (
     <Toolbar

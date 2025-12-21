@@ -473,11 +473,11 @@ const TemplateGrid = () => {
   }, [inputValue]);
 
   const groupedWorkflows = useMemo(() => {
-    if (!data) return {};
+    if (!data) {return {};}
     return data.workflows.reduce(
       (acc: Record<string, Workflow[]>, workflow: Workflow) => {
         workflow.tags?.forEach((tag: string) => {
-          if (!acc[tag]) acc[tag] = [];
+          if (!acc[tag]) {acc[tag] = [];}
           acc[tag].push(workflow);
         });
         return acc;
@@ -588,7 +588,7 @@ const TemplateGrid = () => {
 
   const onClickWorkflow = useCallback(
     async (workflow: Workflow) => {
-      if (loadingWorkflowId) return; // Prevent multiple clicks
+      if (loadingWorkflowId) {return;} // Prevent multiple clicks
 
       setLoadingWorkflowId(workflow.id);
       try {
@@ -638,7 +638,7 @@ const TemplateGrid = () => {
 
   // Calculate grid dimensions based on container width
   const calculateColumns = useCallback((width: number) => {
-    if (width <= 0) return 1;
+    if (width <= 0) {return 1;}
     return Math.max(1, Math.floor((width + GAP) / (CARD_WIDTH + GAP)));
   }, []);
 
@@ -672,7 +672,7 @@ const TemplateGrid = () => {
       const index = rowIndex * data.columns + columnIndex;
       const workflow = data.filteredWorkflows[index];
 
-      if (!workflow) return null;
+      if (!workflow) {return null;}
 
       const searchResult = data.searchResults.find(
         (r: FrontendSearchResult) => r.workflow.id === workflow.id

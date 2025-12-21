@@ -118,7 +118,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
 
   const content = useMemo(() => {
     if (!nodeMetadata)
-      return (
+      {return (
         <div className="warning">
           {nodeType} <br />
           <span style={{ color: theme.vars.palette.grey[100] }}>
@@ -133,7 +133,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
             Search for similar nodes
           </Button>
         </div>
-      );
+      );}
     return (
       <>
         <NodeInfo nodeMetadata={nodeMetadata} />

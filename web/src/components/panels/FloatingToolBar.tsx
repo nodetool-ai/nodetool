@@ -443,13 +443,13 @@ const FloatingToolBar: React.FC<{
   }, [cancel]);
 
   const handleSave = useCallback(() => {
-    if (!workflow) return;
+    if (!workflow) {return;}
     const w = getWorkflowById(workflow.id);
-    if (w) saveWorkflow(w);
+    if (w) {saveWorkflow(w);}
   }, [getWorkflowById, saveWorkflow, workflow]);
 
   const handleDownload = useCallback(() => {
-    if (!workflow) return;
+    if (!workflow) {return;}
     const blob = new Blob([workflowJSON()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

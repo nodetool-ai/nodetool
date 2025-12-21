@@ -16,7 +16,7 @@ export const useProviders = () => {
     queryKey: ["providers"],
     queryFn: async () => {
       const { data, error } = await client.GET("/api/models/providers", {});
-      if (error) throw error;
+      if (error) {throw error;}
       return data || [];
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes

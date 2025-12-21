@@ -31,7 +31,7 @@ import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
-  if (!hexColor) return "#000000"; // Default to black if no color
+  if (!hexColor) {return "#000000";} // Default to black if no color
   let hex = hexColor.replace("#", "");
 
   if (hex.length === 3) {
@@ -269,7 +269,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       const editorDiv = editorRef.current.querySelector(
         ".editor-input"
       ) as HTMLDivElement;
-      if (!editorDiv) return;
+      if (!editorDiv) {return;}
 
       const containerDiv = containerRef.current;
 

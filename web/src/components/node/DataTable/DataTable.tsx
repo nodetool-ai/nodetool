@@ -83,7 +83,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const [showRowNumbers, setShowRowNumbers] = useState(true);
 
   const data = useMemo(() => {
-    if (!dataframe.data) return [];
+    if (!dataframe.data) {return [];}
     return dataframe.data.map((row, index) => {
       return coerceRow(index, row, dataframe.columns || []);
     });
@@ -104,7 +104,7 @@ const DataTable: React.FC<DataTableProps> = ({
   );
 
   const columns: ColumnDefinition[] = useMemo(() => {
-    if (!dataframe.columns) return [];
+    if (!dataframe.columns) {return [];}
     const cols: ColumnDefinition[] = [
       ...(showSelect
         ? [
@@ -193,7 +193,7 @@ const DataTable: React.FC<DataTableProps> = ({
   );
 
   useEffect(() => {
-    if (!tableRef.current) return;
+    if (!tableRef.current) {return;}
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "100%",

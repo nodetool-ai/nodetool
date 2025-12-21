@@ -155,7 +155,7 @@ const ListTable: React.FC<ListTableProps> = ({
   );
 
   useEffect(() => {
-    if (!tableRef.current) return;
+    if (!tableRef.current) {return;}
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "100%",

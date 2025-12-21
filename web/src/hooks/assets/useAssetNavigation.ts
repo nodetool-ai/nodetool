@@ -27,7 +27,7 @@ export function useAssetNavigation(params: {
 
   const changeAsset = useCallback(
     (direction: "left" | "right", controlKeyPressed: boolean) => {
-      if (currentIndex === null) return;
+      if (currentIndex === null) {return;}
       if (direction === "left" && currentIndex > 0) {
         const delta = controlKeyPressed ? prevNextAmount : 1;
         handleChangeAsset(Math.max(0, currentIndex - delta));
@@ -41,7 +41,7 @@ export function useAssetNavigation(params: {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open) return;
+      if (!open) {return;}
       if (e.key === "ArrowLeft") {
         changeAsset("left", e.ctrlKey);
       } else if (e.key === "ArrowRight") {

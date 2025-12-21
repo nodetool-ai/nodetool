@@ -250,7 +250,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [copied, setCopied] = useState(false);
   const handleCopyToClipboard = useCallback(async () => {
     const imageSrc = currentAsset?.get_url || url;
-    if (!imageSrc || !isImage) return;
+    if (!imageSrc || !isImage) {return;}
 
     try {
       const response = await fetch(imageSrc);
@@ -273,7 +273,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const handleChangeAsset = useCallback(
     (index: number) => {
-      if (!assetsToUse) return;
+      if (!assetsToUse) {return;}
       const newAsset = assetsToUse[index];
       setTimeout(() => {
         setCurrentAsset(newAsset);
@@ -348,7 +348,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   });
 
   const navigation = useMemo(() => {
-    if (currentIndex === null) return null;
+    if (currentIndex === null) {return null;}
     const prevAssets =
       assetsToUse?.slice(
         Math.max(0, currentIndex - prevNextAmount),

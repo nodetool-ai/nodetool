@@ -43,7 +43,7 @@ export const useCollectionDragAndDrop = () => {
         // Use File objects directly from the event
         const files = Array.from(event.dataTransfer.files);
 
-        if (files.length === 0) return;
+        if (files.length === 0) {return;}
 
         setIndexProgress({
           collection: collectionName,

@@ -42,7 +42,7 @@ export function useProcessedEdges({
 
   // Structural key: only things that affect edge typing / gradients
   const nodesStructureKey = useMemo(() => {
-    if (isSelecting) return ""; // we’ll reuse cache while dragging
+    if (isSelecting) {return "";} // we’ll reuse cache while dragging
     return nodes
       .map((n) => {
         const dynamicOutputs = n.data.dynamic_outputs
@@ -111,14 +111,14 @@ export function useProcessedEdges({
         currentNode.type === REROUTE_TYPE &&
         currentHandle === REROUTE_OUTPUT
       ) {
-        if (visited.has(currentNode.id)) break;
+        if (visited.has(currentNode.id)) {break;}
         visited.add(currentNode.id);
 
         const incoming = edges.find(
           (e) =>
             e.target === currentNode!.id && e.targetHandle === REROUTE_INPUT
         );
-        if (!incoming) break;
+        if (!incoming) {break;}
         currentNode = getNode(incoming.source);
         currentHandle = incoming.sourceHandle || "";
       }
@@ -194,7 +194,7 @@ export function useProcessedEdges({
       }
 
       const classes: string[] = [];
-      if (sourceTypeSlug) classes.push(sourceTypeSlug);
+      if (sourceTypeSlug) {classes.push(sourceTypeSlug);}
       if (targetTypeSlug && targetTypeSlug !== sourceTypeSlug) {
         classes.push(targetTypeSlug);
       }

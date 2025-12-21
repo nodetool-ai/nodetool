@@ -321,7 +321,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
     scrollOffset: number; 
     scrollUpdateWasRequested: boolean 
   }) => {
-    if (scrollUpdateWasRequested) return;
+    if (scrollUpdateWasRequested) {return;}
     
     // Calculate if we're near the bottom
     const listHeight = listRef.current?.props.height as number || 0;

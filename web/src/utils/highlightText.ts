@@ -9,7 +9,7 @@ export const escapeHtml = (text: string): string => {
 // Convert hex color to RGB values
 export const hexToRgb = (hex: string) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return null;
+  if (!result) {return null;}
   return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
     result[3],
     16
@@ -77,9 +77,9 @@ export const highlightText = (
   const nonOverlappingMatches = matches
     .sort((a, b) => {
       // First sort by relevance (descending)
-      if (b.relevance !== a.relevance) return b.relevance - a.relevance;
+      if (b.relevance !== a.relevance) {return b.relevance - a.relevance;}
       // Then by length (descending)
-      if (b.length !== a.length) return b.length - a.length;
+      if (b.length !== a.length) {return b.length - a.length;}
       // Then by start position (ascending)
       return a.start - b.start;
     })
@@ -125,7 +125,7 @@ export const highlightText = (
       (0.1 + 0.9 * (match.length / bestMatch.length)) * 100
     );
     const shouldColor = !hasColoredMatch && match === bestMatch;
-    if (shouldColor) hasColoredMatch = true;
+    if (shouldColor) {hasColoredMatch = true;}
     const borderWidth = shouldColor ? "0px" : "1px";
     parts.push(
       `<span class="highlight" style="border-bottom: ${borderWidth} solid rgba(${

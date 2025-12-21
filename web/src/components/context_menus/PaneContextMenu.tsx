@@ -82,7 +82,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   const addInputNode = useCallback(
     (nodeType: string, event: React.MouseEvent | undefined) => {
-      if (!event) return;
+      if (!event) {return;}
       const metadata = useMetadataStore
         .getState()
         .getMetadata(`nodetool.input.${nodeType}`);
@@ -101,7 +101,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   const addAgentNode = useCallback(
     (event: React.MouseEvent | undefined) => {
-      if (!event) return;
+      if (!event) {return;}
       const metadata = useMetadataStore
         .getState()
         .getMetadata(`nodetool.agents.Agent`);
@@ -120,7 +120,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   const addToolResultNode = useCallback(
     (event: React.MouseEvent | undefined) => {
-      if (!event) return;
+      if (!event) {return;}
       const metadata = useMetadataStore
         .getState()
         .getMetadata(`nodetool.workflows.base_node.ToolResult`);

@@ -69,7 +69,7 @@ export const FrontendToolRegistry = {
     ctx: Omit<FrontendToolContext, "abortSignal">
   ) {
     const tool = registry.get(name);
-    if (!tool) throw new Error(`Unknown tool: ${name}`);
+    if (!tool) {throw new Error(`Unknown tool: ${name}`);}
     const controller = new AbortController();
     active.set(toolCallId, { controller });
     try {
@@ -82,7 +82,7 @@ export const FrontendToolRegistry = {
     }
   },
   abortAll() {
-    for (const { controller } of active.values()) controller.abort();
+    for (const { controller } of active.values()) {controller.abort();}
     active.clear();
   }
 };

@@ -161,7 +161,7 @@ const InferenceProviderModelSelect = ({
     }, [onChange, property.type, provider]);
 
     const modelOptions = useMemo(() => {
-        if (!models) return [];
+        if (!models) {return [];}
         return models.map((model) => ({
             value: model.id,
             label: model.id

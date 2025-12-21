@@ -203,12 +203,12 @@ export const useNodeEditorShortcuts = (
   }, []);
 
   const handleShowKeyboardShortcuts = useCallback(() => {
-    if (onShowShortcuts) onShowShortcuts();
+    if (onShowShortcuts) {onShowShortcuts();}
   }, [onShowShortcuts]);
 
   const handleMenuEvent = useCallback(
     (data: any) => {
-      if (!active) return;
+      if (!active) {return;}
       console.log("menu-event", data);
       switch (data.type) {
         case "copy":
@@ -430,11 +430,11 @@ export const useNodeEditorShortcuts = (
     const registered: string[] = [];
 
     NODE_EDITOR_SHORTCUTS.forEach((sc) => {
-      if (!sc.registerCombo) return;
-      if (sc.electronOnly && !electronDetails.isElectron) return;
+      if (!sc.registerCombo) {return;}
+      if (sc.electronOnly && !electronDetails.isElectron) {return;}
 
       const meta = shortcutMeta[sc.slug];
-      if (!meta) return;
+      if (!meta) {return;}
 
       const combos = [sc.keyCombo, ...(sc.altKeyCombos ?? [])];
 

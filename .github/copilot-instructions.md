@@ -310,6 +310,99 @@ const saveData = async (data: Data): Promise<void> => {
     throw error; // Re-throw for caller to handle
   }
 };
+
+// ✅ Good - Always add comments for intentionally empty catch blocks
+try {
+  const parsed = JSON.parse(jsonString);
+  return parsed;
+} catch (error) {
+  // JSON parse failed, return original string
+  return jsonString;
+}
+
+// ❌ Bad - Empty catch blocks without explanation
+try {
+  JSON.parse(jsonString);
+} catch (error) {}
+
+// ✅ Good - Throw proper Error objects, not strings
+if (!data) {
+  throw new Error("Data is required");
+}
+
+// ❌ Bad - Throwing non-Error objects
+if (!data) {
+  throw "Data is required";
+}
+```
+
+## Code Quality Best Practices
+
+### Equality Checks
+
+Always use strict equality (`===` and `!==`) instead of loose equality (`==` and `!=`):
+
+```typescript
+// ✅ Good
+if (value === null) { }
+if (count === 0) { }
+if (nodeType === "nodetool.group.Loop") { }
+
+// ❌ Bad
+if (value == null) { }
+if (count == 0) { }
+if (nodeType == "nodetool.group.Loop") { }
+
+// Exception: null checks can use == for brevity (checks both null and undefined)
+if (value == null) { } // Acceptable for null/undefined check
+```
+
+### Control Flow
+
+Always use curly braces for control statements, even single-line ones:
+
+```typescript
+// ✅ Good
+if (condition) {
+  doSomething();
+}
+
+// ⚠️ Acceptable but discouraged
+if (condition) doSomething();
+
+// ❌ Never do this
+if (condition)
+  doSomething();
+```
+
+### Array Type Checking
+
+Use `Array.isArray()` instead of typeof when checking for arrays:
+
+```typescript
+// ✅ Good
+if (Array.isArray(message.content)) {
+  message.content.map(item => /* ... */);
+}
+
+// ❌ Bad - typeof returns "object" for arrays
+if (typeof message.content === "object") {
+  message.content.map(item => /* ... */); // TypeScript error
+}
+```
+
+### Variable Declarations
+
+Use `const` by default, `let` when reassignment is needed. Never use `var`:
+
+```typescript
+// ✅ Good
+const maxRetries = 3;
+let retryCount = 0;
+
+// ❌ Bad
+var maxRetries = 3;
+var retryCount = 0;
 ```
 
 ## Accessibility

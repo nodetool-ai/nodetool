@@ -12,7 +12,7 @@ export function useClickOutsideDeselect(
         !target.classList.contains("selected-asset-info") &&
         classNames.some((cn) => target.classList.contains(cn))
       ) {
-        if (isSelected) onDeselect();
+        if (isSelected) {onDeselect();}
       }
     },
     [classNames, isSelected, onDeselect]

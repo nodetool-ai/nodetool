@@ -82,7 +82,7 @@ const GlobalChat: React.FC = () => {
   // Get messages from store
   const messages = getCurrentMessagesSync();
   const taskUpdateForDisplay = useMemo(() => {
-    if (!currentThreadId) return null;
+    if (!currentThreadId) {return null;}
     if (
       currentTaskUpdate &&
       currentTaskUpdateThreadId === currentThreadId
@@ -190,7 +190,7 @@ const GlobalChat: React.FC = () => {
 
   // Handle mobile keyboard behavior and maintain scroll position
   useEffect(() => {
-    if (!isMobile) return;
+    if (!isMobile) {return;}
 
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
@@ -232,7 +232,7 @@ const GlobalChat: React.FC = () => {
 
   // Map status to ChatView compatible status
   const getChatViewStatus = () => {
-    if (status === "stopping") return "loading";
+    if (status === "stopping") {return "loading";}
     return status;
   };
 

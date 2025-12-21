@@ -14,8 +14,8 @@ export function useInputStream(inputName: string) {
 
   const send = useCallback(
     (value: any, handle?: string) => {
-      if (!inputName) return;
-      if (state !== "running") return;
+      if (!inputName) {return;}
+      if (state !== "running") {return;}
       streamInput(inputName, value, handle);
     },
     [inputName, streamInput, state]
@@ -23,8 +23,8 @@ export function useInputStream(inputName: string) {
 
   const end = useCallback(
     (handle?: string) => {
-      if (!inputName) return;
-      if (state !== "running") return;
+      if (!inputName) {return;}
+      if (state !== "running") {return;}
       endInputStream(inputName, handle);
     },
     [inputName, endInputStream, state]

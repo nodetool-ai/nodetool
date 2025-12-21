@@ -65,7 +65,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   );
 
   const onCopy = useCallback(() => {
-    if (!copyText) return;
+    if (!copyText) {return;}
     navigator.clipboard?.writeText(copyText).catch(() => {});
   }, [copyText]);
 
@@ -75,7 +75,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
     }
   }, [logs]);
 
-  if (count === 0) return null;
+  if (count === 0) {return null;}
 
   return (
     <div className="node-logs-container" css={styles(theme)}>

@@ -156,19 +156,19 @@ export const valueMatchesType = (
         }
         return typeof v === "string" && t.values.includes(v);
       case "list": {
-        if (!Array.isArray(v)) return false;
+        if (!Array.isArray(v)) {return false;}
         const elementType = t.type_args && t.type_args[0];
-        if (!elementType) return true; // untyped list
+        if (!elementType) {return true;} // untyped list
         return v.every((item) => matches(item, elementType));
       }
       case "tuple": {
-        if (!Array.isArray(v)) return false;
+        if (!Array.isArray(v)) {return false;}
         const argCount = t.type_args?.length ?? 0;
-        if (argCount === 0) return true; // treat as any[]
-        if (v.length !== argCount) return false;
+        if (argCount === 0) {return true;} // treat as any[]
+        if (v.length !== argCount) {return false;}
         for (let i = 0; i < argCount; i++) {
           const argType = t.type_args![i];
-          if (!matches(v[i], argType)) return false;
+          if (!matches(v[i], argType)) {return false;}
         }
         return true;
       }
@@ -180,21 +180,21 @@ export const valueMatchesType = (
         if (v instanceof Map) {
           for (const [k, val] of v.entries()) {
             const keyStr = String(k);
-            if (keyType && !matchesKeyType(keyStr, keyType)) return false;
-            if (valueType && !matches(val, valueType)) return false;
+            if (keyType && !matchesKeyType(keyStr, keyType)) {return false;}
+            if (valueType && !matches(val, valueType)) {return false;}
           }
           return true;
         }
 
-        if (!isPlainObject(v)) return false;
+        if (!isPlainObject(v)) {return false;}
         for (const [k, val] of Object.entries(v)) {
-          if (keyType && !matchesKeyType(k, keyType)) return false;
-          if (valueType && !matches(val, valueType)) return false;
+          if (keyType && !matchesKeyType(k, keyType)) {return false;}
+          if (valueType && !matches(val, valueType)) {return false;}
         }
         return true;
       }
       case "union": {
-        if (!t.type_args || t.type_args.length === 0) return false;
+        if (!t.type_args || t.type_args.length === 0) {return false;}
         return t.type_args.some((opt) => matches(v, opt));
       }
       case "object":

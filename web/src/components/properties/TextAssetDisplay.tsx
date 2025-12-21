@@ -26,7 +26,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
     queryKey: ["textAsset", assetId],
     queryFn: async () => {
       const asset = await getAsset(assetId);
-      if (!asset?.get_url) throw new Error("Asset has no get_url");
+      if (!asset?.get_url) {throw new Error("Asset has no get_url");}
       const response = await axios.get(asset.get_url, { responseType: "text" });
       return response.data;
     }

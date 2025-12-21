@@ -100,7 +100,7 @@ export const Terminal: React.FC = () => {
   }, [isAutoScroll]);
 
   useEffect(() => {
-    if (!terminalRef.current) return;
+    if (!terminalRef.current) {return;}
 
     let fitTimeout: NodeJS.Timeout | null = null;
 
@@ -258,13 +258,13 @@ export const Terminal: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!isTerminalReady || !xtermRef.current) return;
+    if (!isTerminalReady || !xtermRef.current) {return;}
 
     let disposable: { dispose: () => void } | null = null;
 
     const connectWebSocket = async () => {
       const term = xtermRef.current;
-      if (!term) return;
+      if (!term) {return;}
 
       // Build WebSocket URL
       // In production, add auth token as query param

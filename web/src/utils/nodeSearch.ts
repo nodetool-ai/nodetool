@@ -271,7 +271,7 @@ export function filterNodesUtil(
   selectedOutputType: string,
   searchResults: NodeMetadata[]
 ): NodeMetadata[] {
-  if (!nodes) return [];
+  if (!nodes) {return [];}
 
   const selectedPathString = selectedPath.join(".");
   const minSearchTermLength =

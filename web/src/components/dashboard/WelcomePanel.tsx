@@ -83,7 +83,7 @@ const InlineModelDownload: React.FC<{
 };
 
 const extractText = (node: ReactNode): string => {
-  if (typeof node === "string") return node;
+  if (typeof node === "string") {return node;}
   if (React.isValidElement(node)) {
     return React.Children.toArray(node.props.children)
       .map(extractText)
@@ -243,7 +243,7 @@ const WelcomePanel: React.FC = () => {
   };
 
   const highlightText = (text: string, term: string) => {
-    if (!term) return text;
+    if (!term) {return text;}
     const parts = text.split(new RegExp(`(${term})`, "gi"));
     return parts.map((part, index) =>
       part.toLowerCase() === term.toLowerCase() ? (

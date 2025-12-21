@@ -11,7 +11,7 @@ export const useRemoveFromGroup = () => {
 
   const removeFromGroup = useCallback(
     (nodesToRemove?: Node<NodeData>[]) => {
-      if (!nodesToRemove || nodesToRemove.length === 0) return;
+      if (!nodesToRemove || nodesToRemove.length === 0) {return;}
 
       try {
         // Process nodes grouped by their parent

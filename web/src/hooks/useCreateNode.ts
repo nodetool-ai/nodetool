@@ -26,7 +26,7 @@ export const useCreateNode = (
 
   const handleCreateNode = useCallback(
     (metadata: NodeMetadata) => {
-      if (!reactFlowInstance) return;
+      if (!reactFlowInstance) {return;}
 
       const position = centerPosition ?? clickPosition;
       const rfPos = reactFlowInstance.screenToFlowPosition(position);

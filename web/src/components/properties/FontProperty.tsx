@@ -50,7 +50,7 @@ const FontProperty: React.FC<PropertyProps> = ({
   // Prepare options for Select component
   const options = useMemo(() => {
     if (!fonts || isLoading || isError)
-      return [{ value: "", label: "Select a font" }];
+      {return [{ value: "", label: "Select a font" }];}
 
     return [
       { value: "", label: "Select a font" },

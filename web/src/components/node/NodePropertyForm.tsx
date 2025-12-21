@@ -48,7 +48,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   const [newInputName, setNewInputName] = useState("");
   const onSubmitAdd = useCallback(() => {
     const name = newOutputName.trim();
-    if (!name) return;
+    if (!name) {return;}
     handleAddOutput(name, {
       type: newOutputType,
       type_args: [],
@@ -188,7 +188,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                   value={newOutputName}
                   onChange={(e) => setNewOutputName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") onSubmitAdd();
+                    if (e.key === "Enter") {onSubmitAdd();}
                   }}
                   sx={{ flex: 1 }}
                 />
@@ -253,7 +253,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   const name = newInputName.trim();
-                  if (!name) return;
+                  if (!name) {return;}
                   onAddProperty(name);
                   setNewInputName("");
                   setShowInputDialog(false);
@@ -274,7 +274,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           <Button
             onClick={() => {
               const name = newInputName.trim();
-              if (!name) return;
+              if (!name) {return;}
               onAddProperty(name);
               setNewInputName("");
               setShowInputDialog(false);

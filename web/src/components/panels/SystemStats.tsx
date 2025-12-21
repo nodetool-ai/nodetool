@@ -38,7 +38,7 @@ const SystemStatsDisplay: React.FC = () => {
     setAnchorEl(null);
   }, []);
 
-  if (!systemStats) return null;
+  if (!systemStats) {return null;}
 
   return (
     <Box className="system-stats" sx={{ mr: 2 }}>

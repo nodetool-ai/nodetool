@@ -92,7 +92,7 @@ const styles = (theme: Theme, gap: number) =>
 function revokeAll(urls: string[]) {
   urls.forEach((u) => {
     try {
-      if (u && u.startsWith("blob:")) URL.revokeObjectURL(u);
+      if (u && u.startsWith("blob:")) {URL.revokeObjectURL(u);}
     } catch {
       console.error("Error revoking blob URL", u);
     }
@@ -155,7 +155,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       }
     }
 
-    if (changed) setVersion((v) => v + 1);
+    if (changed) {setVersion((v) => v + 1);}
 
     // Cleanup all on unmount
     return () => {
@@ -178,7 +178,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
   // Lightweight resize observer to trigger reflow on container changes, if needed later.
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {return;}
     const ro = new ResizeObserver(() => {
       // no-op for now; grid is auto-fill and responds via CSS
     });

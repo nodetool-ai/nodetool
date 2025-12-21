@@ -50,7 +50,7 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
   const formattedReadme = useMemo(() => {
     const lines = readmeData?.split("\n");
     const start = lines?.findIndex((line) => line.startsWith("#"));
-    if (!start || start === -1) return "";
+    if (!start || start === -1) {return "";}
     return lines?.slice(start).join("\n");
   }, [readmeData]);
 

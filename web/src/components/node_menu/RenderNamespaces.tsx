@@ -29,7 +29,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   }));
 
   const minSearchTermLength = useMemo(() => {
-    if (!searchTerm) return 1;
+    if (!searchTerm) {return 1;}
     return searchTerm.includes("+") ||
       searchTerm.includes("-") ||
       searchTerm.includes("*") ||

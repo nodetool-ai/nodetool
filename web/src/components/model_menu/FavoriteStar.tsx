@@ -48,7 +48,7 @@ const FavoriteStar: React.FC<FavoriteStarProps> = ({
   }, [favorites, provider, id]);
 
   const handleClick: React.MouseEventHandler<HTMLSpanElement> = (e) => {
-    if (stopPropagation) e.stopPropagation();
+    if (stopPropagation) {e.stopPropagation();}
     toggleFavorite(provider, id);
   };
   const theme = useTheme();

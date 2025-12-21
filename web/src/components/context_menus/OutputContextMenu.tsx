@@ -353,7 +353,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
-  if (!menuPosition) return null;
+  if (!menuPosition) {return null;}
   return (
     <>
       <Menu

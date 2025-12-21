@@ -335,7 +335,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   const handleShortcutKeyDown = (event: React.KeyboardEvent) => {
     event.preventDefault();
 
-    if (!isCapturing) return;
+    if (!isCapturing) {return;}
 
     const pressedKey = event.key;
     if (pressedKey === "Escape") {
@@ -344,14 +344,14 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     }
 
     // Skip if only modifier keys are pressed
-    if (MODIFIER_KEYS.includes(pressedKey)) return;
+    if (MODIFIER_KEYS.includes(pressedKey)) {return;}
 
     // Build the shortcut string
     const parts: string[] = [];
-    if (event.ctrlKey) parts.push("CommandOrControl");
-    if (event.altKey) parts.push("Alt");
-    if (event.shiftKey) parts.push("Shift");
-    if (event.metaKey) parts.push("Meta");
+    if (event.ctrlKey) {parts.push("CommandOrControl");}
+    if (event.altKey) {parts.push("Alt");}
+    if (event.shiftKey) {parts.push("Shift");}
+    if (event.metaKey) {parts.push("Meta");}
 
     // Add the main key
     parts.push(pressedKey.length === 1 ? pressedKey.toUpperCase() : pressedKey);

@@ -20,7 +20,7 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const handleScroll = useCallback(() => {
-        if (!scrollRef.current || !hasMore) return;
+        if (!scrollRef.current || !hasMore) {return;}
 
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
         if (scrollHeight - scrollTop - clientHeight < threshold) {

@@ -24,12 +24,12 @@ FrontendToolRegistry.register({
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
-    if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
+    if (!nodeStore) {throw new Error(`No node store for workflow ${workflowId}`);}
 
     const src = nodeStore.findNode(source_id);
     const tgt = nodeStore.findNode(target_id);
-    if (!src) throw new Error(`Source node not found: ${source_id}`);
-    if (!tgt) throw new Error(`Target node not found: ${target_id}`);
+    if (!src) {throw new Error(`Source node not found: ${source_id}`);}
+    if (!tgt) {throw new Error(`Target node not found: ${target_id}`);}
 
     const connection = {
       source: source_id,
@@ -39,7 +39,7 @@ FrontendToolRegistry.register({
     } as any;
 
     const ok = nodeStore.validateConnection(connection, src as any, tgt as any);
-    if (!ok) throw new Error("Invalid connection");
+    if (!ok) {throw new Error("Invalid connection");}
 
     const edgeId = nodeStore.generateEdgeId();
     nodeStore.addEdge({

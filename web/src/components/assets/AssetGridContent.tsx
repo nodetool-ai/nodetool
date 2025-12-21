@@ -87,7 +87,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
 
   // Base asset list (without dividers)
   const assets = useMemo(() => {
-    if (propAssets) return propAssets;
+    if (propAssets) {return propAssets;}
     return folderFilesFiltered || [];
   }, [propAssets, folderFilesFiltered]);
 

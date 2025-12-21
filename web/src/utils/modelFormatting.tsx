@@ -4,7 +4,7 @@ import ModelIcon from "../icons/model.svg";
 import PetsIcon from "@mui/icons-material/Pets";
 
 export const prettifyModelType = (type: string) => {
-  if (type === "All") return type;
+  if (type === "All") {return type;}
 
   if (type === "llama_model") {
     return (
@@ -74,7 +74,7 @@ export const prettifyModelType = (type: string) => {
 };
 
 export const getShortModelName = (fullName: string | undefined): string => {
-  if (!fullName) return "";
+  if (!fullName) {return "";}
   const lastSlashIndex = fullName.lastIndexOf("/");
   if (lastSlashIndex !== -1 && lastSlashIndex < fullName.length - 1) {
     return fullName.substring(lastSlashIndex + 1);
@@ -86,7 +86,7 @@ export const formatBytes = (bytes?: number): string => {
   if (bytes === undefined || bytes === null || isNaN(bytes)) {
     return "";
   }
-  if (bytes === 0) return "0 Bytes";
+  if (bytes === 0) {return "0 Bytes";}
   const bytesPerKilobyte = 1024;
   const decimalPlaces = 2;
   const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];

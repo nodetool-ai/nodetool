@@ -634,7 +634,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       switchThread: (threadId: string) => {
         const exists = !!get().threads[threadId];
-        if (!exists) return;
+        if (!exists) {return;}
         set((state) => ({
           currentThreadId: threadId,
           lastUsedThreadId: threadId,
@@ -1014,12 +1014,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
             }, 0);
           }
           // Ensure selection defaults are present
-          if (!state.selectedTools) state.selectedTools = [];
-          if (!state.selectedCollections) state.selectedCollections = [];
+          if (!state.selectedTools) {state.selectedTools = [];}
+          if (!state.selectedCollections) {state.selectedCollections = [];}
           if (!state.selectedModel)
-            state.selectedModel = buildDefaultLanguageModel();
+            {state.selectedModel = buildDefaultLanguageModel();}
           if (typeof state.lastUsedThreadId === "undefined")
-            state.lastUsedThreadId = null;
+            {state.lastUsedThreadId = null;}
         }
       }
     }

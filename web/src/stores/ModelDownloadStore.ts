@@ -55,7 +55,7 @@ interface ModelDownloadStore {
 }
 
 const calculateSpeed = (speedHistory: SpeedDataPoint[]): number | null => {
-  if (speedHistory.length < 2) return null;
+  if (speedHistory.length < 2) {return null;}
   const oldestPoint = speedHistory[0];
   const newestPoint = speedHistory[speedHistory.length - 1];
   const bytesDiff = newestPoint.bytes - oldestPoint.bytes;
@@ -282,7 +282,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             done: true,
             value: undefined
           };
-          if (done) break;
+          if (done) {break;}
 
           buffer += decoder.decode(value, { stream: true });
           let newlineIndex;

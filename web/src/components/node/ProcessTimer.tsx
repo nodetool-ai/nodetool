@@ -18,11 +18,11 @@ export const ProcessTimer = ({ status }: { status: string }) => {
         setSeconds(diffInSeconds.toFixed(1) + "s");
       }, 100);
     } else if (status === "completed" || status === "failed") {
-      if (interval) clearInterval(interval);
+      if (interval) {clearInterval(interval);}
     }
 
     return () => {
-      if (interval) clearInterval(interval);
+      if (interval) {clearInterval(interval);}
     };
   }, [status]);
 

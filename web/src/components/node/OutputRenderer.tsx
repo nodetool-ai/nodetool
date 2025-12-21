@@ -58,7 +58,7 @@ const useDraggableScroll = () => {
   const scrollTop = useRef(0);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!scrollRef.current) return;
+    if (!scrollRef.current) {return;}
     isDragging.current = true;
     startY.current = e.clientY;
     scrollTop.current = scrollRef.current.scrollTop;
@@ -66,14 +66,14 @@ const useDraggableScroll = () => {
   }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging.current || !scrollRef.current) return;
+    if (!isDragging.current || !scrollRef.current) {return;}
     e.preventDefault();
     const deltaY = e.clientY - startY.current;
     scrollRef.current.scrollTop = scrollTop.current - deltaY;
   }, []);
 
   const handleMouseUp = useCallback(() => {
-    if (!scrollRef.current) return;
+    if (!scrollRef.current) {return;}
     isDragging.current = false;
     scrollRef.current.style.cursor = "grab";
   }, []);

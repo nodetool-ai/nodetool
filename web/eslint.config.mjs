@@ -50,6 +50,7 @@ export default [
       }
     },
     rules: {
+      // React rules
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
       "react/no-unknown-property": [
@@ -58,15 +59,33 @@ export default [
           ignore: ["css"]
         }
       ],
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/explicit-module-boundary-types": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "no-console": "off",
       "react/jsx-uses-react": "off",
       "react/jsx-uses-vars": "warn",
       "react/jsx-no-target-blank": "warn",
+      "react/jsx-key": "error",
+      "react/no-array-index-key": "warn",
+      
+      // React Hooks rules
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn"
+      "react-hooks/exhaustive-deps": "warn",
+      
+      // TypeScript rules - relaxed for gradual improvement
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      
+      // General code quality rules
+      "no-console": "off", // Allow console for logging
+      "no-empty": ["error", { "allowEmptyCatch": false }], // Prevent empty blocks
+      "no-debugger": "error",
+      "no-alert": "warn",
+      "no-eval": "error",
+      "no-implied-eval": "error",
+      "prefer-const": "error",
+      "no-var": "error",
+      "eqeqeq": ["error", "always", { "null": "ignore" }], // Require === and !==
+      "curly": ["warn", "all"], // Encourage curly braces for all control statements
+      "no-throw-literal": "error"
     }
   }
 ];

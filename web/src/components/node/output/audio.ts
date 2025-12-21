@@ -4,12 +4,12 @@ let sharedAudioContext: AudioContext | null = null;
 let sharedNextStartTime = 0;
 
 export function getAudioContext(): AudioContext {
-  if (typeof window === "undefined") throw new Error("No window");
+  if (typeof window === "undefined") {throw new Error("No window");}
   const Ctx =
     (window as any).AudioContext || (window as any).webkitAudioContext;
   if (!sharedAudioContext) {
     sharedAudioContext = new Ctx();
-    if (!sharedAudioContext) throw new Error("Failed to create AudioContext");
+    if (!sharedAudioContext) {throw new Error("Failed to create AudioContext");}
   }
   return sharedAudioContext;
 }
@@ -21,7 +21,7 @@ export function base64ToUint8Array(base64: string): Uint8Array {
   const binaryString = atob(cleaned);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+  for (let i = 0; i < len; i++) {bytes[i] = binaryString.charCodeAt(i);}
   return bytes;
 }
 

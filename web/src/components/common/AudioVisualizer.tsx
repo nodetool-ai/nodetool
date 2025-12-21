@@ -18,7 +18,7 @@ const AudioVisualizer = ({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!stream || !canvas) return;
+    if (!stream || !canvas) {return;}
 
     const AudioCtx =
       (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -37,7 +37,7 @@ const AudioVisualizer = ({
     const dataArray = new Uint8Array(bufferLength);
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {return;}
 
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const resize = () => {
@@ -63,7 +63,7 @@ const AudioVisualizer = ({
 
     let rafId = 0;
     const draw = () => {
-      if (!canvas || !ctx) return;
+      if (!canvas || !ctx) {return;}
       analyser.getByteFrequencyData(dataArray);
       const width = canvas.clientWidth;
       const h = canvas.clientHeight;
@@ -97,8 +97,8 @@ const AudioVisualizer = ({
         const v = timeArray[i] / 128.0 - 1.0;
         const x = i * slice;
         const y = h * 0.25 + v * (h * 0.2);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        if (i === 0) {ctx.moveTo(x, y);}
+        else {ctx.lineTo(x, y);}
       }
       ctx.stroke();
 

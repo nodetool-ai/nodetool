@@ -526,7 +526,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   });
 
   const handleExport = useCallback(() => {
-    if (exportMutation.isPending) return;
+    if (exportMutation.isPending) {return;}
     exportMutation.mutate();
   }, [exportMutation]);
 

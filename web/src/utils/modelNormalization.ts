@@ -23,12 +23,12 @@ export type NormalizedModelMeta = {
 };
 
 const bucketSizeByB = (b?: number) => {
-  if (b == null) return undefined;
-  if (b <= 2) return "1-2B";
-  if (b <= 7) return "3-7B";
-  if (b <= 15) return "8-15B";
-  if (b <= 34) return "16-34B";
-  if (b <= 70) return "35-70B";
+  if (b == null) {return undefined;}
+  if (b <= 2) {return "1-2B";}
+  if (b <= 7) {return "3-7B";}
+  if (b <= 15) {return "8-15B";}
+  if (b <= 34) {return "16-34B";}
+  if (b <= 70) {return "35-70B";}
   return "70B+";
 };
 
@@ -112,17 +112,17 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
       const hasMatchingType = selectedTypes.some((t) =>
         meta.typeTags.includes(t)
       );
-      if (!hasMatchingType) return false;
+      if (!hasMatchingType) {return false;}
     }
 
     // Check size bucket
     if (sizeBucket !== null) {
-      if (meta.sizeBucket !== sizeBucket) return false;
+      if (meta.sizeBucket !== sizeBucket) {return false;}
     }
 
     // Check families
     if (families.length > 0) {
-      if (!meta.family || !families.includes(meta.family)) return false;
+      if (!meta.family || !families.includes(meta.family)) {return false;}
     }
 
     return true;

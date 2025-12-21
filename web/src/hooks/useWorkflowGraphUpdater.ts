@@ -30,10 +30,10 @@ export const useWorkflowGraphUpdater = () => {
       const prevUpdate = prevState.lastWorkflowGraphUpdate;
       
       // Only process if there's a new update
-      if (!update || update === prevUpdate) return;
+      if (!update || update === prevUpdate) {return;}
       
       // Check if this is a new update (not the same as last processed)
-      if (lastProcessedUpdate.current === update) return;
+      if (lastProcessedUpdate.current === update) {return;}
       lastProcessedUpdate.current = update;
 
       // Get current workflow within the React component context

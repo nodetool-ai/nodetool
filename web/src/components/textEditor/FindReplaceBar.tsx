@@ -187,7 +187,7 @@ const FindReplaceBar = ({
     }
   }, [onReplace, searchTerm, replaceTerm]);
 
-  if (!isVisible) return null;
+  if (!isVisible) {return null;}
 
   const isValidSearch = isValidInput(searchTerm);
 

@@ -60,7 +60,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
         const { data, error } = await client.GET("/api/workflows/", {
           params: { query: { limit: 100 } }
         });
-        if (error) throw error;
+        if (error) {throw error;}
         console.log("Fetched workflows for MiniApp:", data);
         return data;
       }

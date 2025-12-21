@@ -86,12 +86,12 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
   });
 
   const sortedModels = useMemo(() => {
-    if (!models || isLoading || isError) return [];
+    if (!models || isLoading || isError) {return [];}
     return models.sort((a: ASRModel, b: ASRModel) => a.name.localeCompare(b.name));
   }, [models, isLoading, isError]);
 
   const groupedModels = useMemo(() => {
-    if (!sortedModels || isLoading || isError) return {};
+    if (!sortedModels || isLoading || isError) {return {};}
     return sortedModels.reduce<GroupedModels>((acc, model: ASRModel) => {
       const provider = model.provider || "Other";
       if (!acc[provider]) {
@@ -107,7 +107,7 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
   }, [sortedModels, isLoading, isError]);
 
   const currentSelectedModelDetails = useMemo(() => {
-    if (!models || !value) return null;
+    if (!models || !value) {return null;}
     return models.find((m) => m.id === value);
   }, [models, value]);
 

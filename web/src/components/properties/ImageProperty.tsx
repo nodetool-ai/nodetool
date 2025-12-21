@@ -14,7 +14,7 @@ const ImageProperty = (props: PropertyProps) => {
   const isConnected = useNodes((state) => {
     return state.edges.some(
       (edge) =>
-        edge.target == props.nodeId && edge.targetHandle === props.property.name
+        edge.target === props.nodeId && edge.targetHandle === props.property.name
     );
   });
 

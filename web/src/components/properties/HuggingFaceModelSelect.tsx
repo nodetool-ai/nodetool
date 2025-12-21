@@ -86,7 +86,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
   // Sort models: recommended first, then alphabetically
   // Also deduplicate based on provider:id to avoid showing duplicates
   const sortedModels = useMemo(() => {
-    if (!fetchedModels) return fetchedModels;
+    if (!fetchedModels) {return fetchedModels;}
 
     // Deduplicate first using provider:id as key
     const uniqueModelsMap = new Map<string, (typeof fetchedModels)[0]>();
@@ -103,8 +103,8 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
       const bIsRecommended = recommendedModelIds.has(b.id || "");
 
       // Recommended models come first
-      if (aIsRecommended && !bIsRecommended) return -1;
-      if (!aIsRecommended && bIsRecommended) return 1;
+      if (aIsRecommended && !bIsRecommended) {return -1;}
+      if (!aIsRecommended && bIsRecommended) {return 1;}
 
       // Within same category, sort alphabetically by name
       return (a.name || "").localeCompare(b.name || "");
@@ -114,12 +114,12 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
   // Convert value format: value might be { repo_id, path, type } or { id, provider, name, path }
   // We need to find the matching model by repo_id/id and path
   const currentSelectedModelDetails = useMemo(() => {
-    if (!sortedModels || !value) return null;
+    if (!sortedModels || !value) {return null;}
 
     // Handle both old format (repo_id) and new format (id)
     const searchId = value?.repo_id || value?.id;
     const searchPath = value?.path;
-    if (!searchId) return null;
+    if (!searchId) {return null;}
 
     return sortedModels.find((m) => {
       // ImageModel.id might be in format "repo_id:path" or just "repo_id"

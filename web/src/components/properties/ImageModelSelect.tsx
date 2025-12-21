@@ -29,7 +29,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   const { models: fetchedModels } = useImageModelsByProvider();
 
   const currentSelectedModelDetails = useMemo(() => {
-    if (!fetchedModels || !value) return null;
+    if (!fetchedModels || !value) {return null;}
     return fetchedModels.find((m) => m.id === value);
   }, [fetchedModels, value]);
 

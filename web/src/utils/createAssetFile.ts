@@ -70,7 +70,7 @@ const decodeBase64 = (value: string): Uint8Array => {
 };
 
 const toUint8Array = (input: any): Uint8Array => {
-  if (!input) return new Uint8Array();
+  if (!input) {return new Uint8Array();}
   if (input instanceof Uint8Array) {
     return input;
   }

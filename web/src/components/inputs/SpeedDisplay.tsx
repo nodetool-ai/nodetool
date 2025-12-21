@@ -13,7 +13,7 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
   isDragging
 }) => {
   // Hide entirely if not dragging or if slowdown is not active (speedFactor ~ 1)
-  if (!isDragging || speedFactor >= 0.999) return null;
+  if (!isDragging || speedFactor >= 0.999) {return null;}
 
   const speedDisplay = (
     <div

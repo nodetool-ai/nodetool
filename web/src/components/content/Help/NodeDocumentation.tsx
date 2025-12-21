@@ -32,7 +32,7 @@ const NodeDocumentation: React.FC = () => {
   );
   const renderContent = () => {
     if (!nodeMetadata)
-      return <div className="error">No data available for this node type.</div>;
+      {return <div className="error">No data available for this node type.</div>;}
     return <NodeInfo nodeMetadata={nodeMetadata} />;
   };
 

@@ -317,7 +317,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
           disabled={!menuProvider || !getProviderUrl(menuProvider)}
           onClick={() => {
             const url = getProviderUrl(menuProvider || undefined);
-            if (url) window.open(url, "_blank");
+            if (url) {window.open(url, "_blank");}
             setMenuAnchor(null);
             setMenuProvider(null);
           }}

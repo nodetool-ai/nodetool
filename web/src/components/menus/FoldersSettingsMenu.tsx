@@ -74,7 +74,7 @@ const FoldersSettings = () => {
   const settingsByGroup = useMemo(() => {
     let baseSettingsByGroup = storeSettingsByGroup;
     if (!baseSettingsByGroup || baseSettingsByGroup.size === 0) {
-      if (!data || !Array.isArray(data)) return new Map<string, any[]>();
+      if (!data || !Array.isArray(data)) {return new Map<string, any[]>();}
       const groups = new Map<string, any[]>();
       data.forEach((setting: any) => {
         const group = setting.group || "General";

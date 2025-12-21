@@ -7,7 +7,7 @@ type ActionsProps = {
 };
 
 const Actions: React.FC<ActionsProps> = ({ onCopy }) => {
-  if (!onCopy) return null;
+  if (!onCopy) {return null;}
   return (
     <ButtonGroup className="actions">
       <Tooltip title="Copy to Clipboard" enterDelay={TOOLTIP_ENTER_DELAY}>

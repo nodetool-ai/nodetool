@@ -71,7 +71,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       } = await supabase.auth.getSession();
 
       if (error)
-        throw new Error("Failed to get initial session: " + error.message);
+        {throw new Error("Failed to get initial session: " + error.message);}
 
       set({
         session,
@@ -130,7 +130,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
           redirectTo: window.location.origin + "/dashboard"
         }
       });
-      if (error) throw error;
+      if (error) {throw error;}
       // State update (to 'logged_in') is handled by the onAuthStateChange listener.
     } catch (error: any) {
       log.info(`Auth: Sign in with ${provider} error`, error);
@@ -149,7 +149,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
     set({ state: "loading", error: null });
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {throw error;}
       // Explicitly set state to logged_out here, although onAuthStateChange
       // will also fire and update the state.
       set({ session: null, user: null, state: "logged_out", error: null });
