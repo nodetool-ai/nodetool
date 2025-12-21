@@ -11,8 +11,7 @@ export type CompatibilityMatchKind =
   | "recommendation"
   | "property"
   | "recommended_type"
-  | "pipeline"
-  | "tag";
+  | "pipeline";
 
 export interface NodeCompatibilityInfo {
   nodeType: string;
@@ -270,14 +269,12 @@ export const useModelCompatibility = () => {
     nodesByRepoId,
     nodesByModelType,
     nodesByRecommendedType,
-    nodesByPipelineTag,
-    nodesByTag
+    nodesByPipelineTag
   } = useMemo(() => {
     const repoMap: CompatibilityMap = new Map();
     const typeMap: CompatibilityMap = new Map();
     const recommendedTypeMap: CompatibilityMap = new Map();
     const pipelineMap: CompatibilityMap = new Map();
-    const tagMap: CompatibilityMap = new Map();
 
     Object.values(metadata).forEach((node) => {
       node.recommended_models.forEach((model) => {
@@ -300,14 +297,9 @@ export const useModelCompatibility = () => {
           upsert(pipelineMap, pipeline, toInfo(node, "pipeline"));
         }
 
-        (model.tags || [])
-          .map((tag) => normalize(tag))
-          .filter(Boolean)
-          .forEach((tag) => {
-            if (tag) {
-              upsert(tagMap, tag, toInfo(node, "tag"));
-            }
-          });
+        // Note: Tag-based matching removed due to too many false positives.
+        // Generic tags like "pytorch", "diffusion", etc., are shared across many
+        // different model types, causing unrelated nodes to appear as compatible.
       });
 
       node.properties.forEach((property) => {
@@ -328,8 +320,7 @@ export const useModelCompatibility = () => {
       nodesByRepoId: repoMap,
       nodesByModelType: typeMap,
       nodesByRecommendedType: recommendedTypeMap,
-      nodesByPipelineTag: pipelineMap,
-      nodesByTag: tagMap
+      nodesByPipelineTag: pipelineMap
     };
   }, [metadata]);
 
@@ -339,16 +330,14 @@ export const useModelCompatibility = () => {
       repoKeys: nodesByRepoId.size,
       propertyTypeKeys: nodesByModelType.size,
       recommendedTypeKeys: nodesByRecommendedType.size,
-      pipelineKeys: nodesByPipelineTag.size,
-      tagKeys: nodesByTag.size
+      pipelineKeys: nodesByPipelineTag.size
     });
   }, [
     metadata,
     nodesByRepoId,
     nodesByModelType,
     nodesByRecommendedType,
-    nodesByPipelineTag,
-    nodesByTag
+    nodesByPipelineTag
   ]);
 
   useMemo(() => {
@@ -435,12 +424,11 @@ export const useModelCompatibility = () => {
         collectMatches([pipelineKey], nodesByPipelineTag, compatibleMap);
       }
 
-      const tagKeys = (model.tags || [])
-        .map((tag) => normalize(tag))
-        .filter(Boolean) as string[];
-      if (tagKeys.length > 0) {
-        collectMatches(tagKeys, nodesByTag, compatibleMap);
-      }
+      // Note: Tag-based matching removed due to too many false positives.
+      // Generic tags like "pytorch", "diffusion", etc., are shared across many
+      // different model types, causing unrelated nodes to appear as compatible.
+      // The type-based, pipeline-based, and recommended type matching provide
+      // more accurate compatibility results.
 
       const recommended = Array.from(recommendedMap.values());
       const compatible = Array.from(compatibleMap.values());
@@ -453,20 +441,6 @@ export const useModelCompatibility = () => {
         !loggedHfModelIds.has(model.id)
       ) {
         loggedHfModelIds.add(model.id);
-
-        const repoKeysMatched = repoKeys.filter((key) =>
-          nodesByRepoId.has(key)
-        );
-        const typeKeysMatched = expandedTypeKeys.filter((key) =>
-          nodesByModelType.has(key)
-        );
-        const recTypeKeysMatched = expandedTypeKeys.filter((key) =>
-          nodesByRecommendedType.has(key)
-        );
-        const pipelineMatched = pipelineKey
-          ? nodesByPipelineTag.has(pipelineKey)
-          : false;
-        const tagKeysMatched = tagKeys.filter((key) => nodesByTag.has(key));
 
         const summaryKey = normalize(model.type) || "unknown";
         const summaryEntry =
@@ -502,8 +476,7 @@ export const useModelCompatibility = () => {
       nodesByRepoId,
       nodesByModelType,
       nodesByRecommendedType,
-      nodesByPipelineTag,
-      nodesByTag
+      nodesByPipelineTag
     ]
   );
 
