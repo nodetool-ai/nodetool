@@ -9,7 +9,7 @@ Global Chat is the always-on assistant that can run any workflow, stream results
 ## Core guides
 
 - **[Global Chat](global-chat.md)** — Interface layout, thread management, and how chat invokes workflows or tools.
-- **[NodeTool Agent System](agents.md)** — How planning, tool usage, and execution loops work under the hood.
+- **[NodeTool Agent System](global-chat.md#agent-mode)** — How planning, tool usage, and execution loops work under the hood.
 - **[Global Chat CLI](chat-cli.md)** & **[Chat Server](chat-server.md)** — Automate conversations or integrate with custom frontends.
 - **[Chat API](chat-api.md)** — Programmatic access for running chats, streaming outputs, and issuing tool calls.
 
@@ -19,7 +19,7 @@ Global Chat is the always-on assistant that can run any workflow, stream results
    Save the workflow in the editor, open Global Chat, and choose **Run workflow** in the composer—perfect for ad-hoc runs or sharing with non-builders.
 
 2. **Enable Agent Mode for planning tasks**  
-   Switch to Agent Mode to let the LLM break goals into subtasks, call frontend tools (add nodes, align graphs), and update the workflow automatically. See the [Agent guide](agents.md#key-features).
+   Switch to Agent Mode to let the LLM break goals into subtasks, call frontend tools (add nodes, align graphs), and update the workflow automatically. See the [Agent guide](global-chat.md#agent-mode).
 
 3. **Expose agents via APIs or CLI**  
    Use the [Chat CLI](chat-cli.md) for automation scripts, or call the [Chat API](chat-api.md) from backend services so agents can operate in headless environments.
