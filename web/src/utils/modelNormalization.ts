@@ -57,10 +57,18 @@ export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
 
   // context, modality, quant removed
 
-  const familyMatch = text.match(
-    /\b(llama|mistral|mixtral|qwen|gemma|phi|yi|deepseek|qwq|granite)\b/
-  );
-  const family = familyMatch ? familyMatch[1].toLowerCase() : undefined;
+  // Priority-based family detection: DeepSeek models should be categorized as "deepseek"
+  // even if they contain other model family names (e.g., distilled versions like
+  // "deepseek-r1-distill-mistral" or "deepseek-r1-distill-llama")
+  let family: string | undefined;
+  if (/\bdeepseek\b/.test(text)) {
+    family = "deepseek";
+  } else {
+    const familyMatch = text.match(
+      /\b(llama|mistral|mixtral|qwen|gemma|phi|yi|qwq|granite)\b/
+    );
+    family = familyMatch ? familyMatch[1].toLowerCase() : undefined;
+  }
 
   const moeMatch = text.match(/(\d+)\s*[x×]\s*(\d+)\s*b/);
   const moe = moeMatch ? `${moeMatch[1]}x${moeMatch[2]}B` : undefined;

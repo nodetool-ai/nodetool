@@ -253,5 +253,60 @@ describe("modelFilters", () => {
       // qwq-32b-preview doesn't have "instruct" in the name, only "reasoning"
       expect(result).toHaveLength(1);
     });
+
+    it("should categorize DeepSeek distilled models as deepseek family, not by their distillation base", () => {
+      // DeepSeek R1 has distilled variants based on Mistral, Llama, and Qwen architectures
+      // These should all be categorized as "deepseek" family, not "mistral", "llama", or "qwen"
+      const deepseekDistilledModels: LanguageModel[] = [
+        {
+          id: "deepseek-r1-distill-mistral-7b",
+          name: "DeepSeek R1 Distill Mistral 7B",
+          type: "language_model",
+          provider: "local"
+        },
+        {
+          id: "deepseek-r1-distill-llama-8b",
+          name: "DeepSeek R1 Distill Llama 8B",
+          type: "language_model",
+          provider: "local"
+        },
+        {
+          id: "deepseek-r1-distill-qwen-14b",
+          name: "DeepSeek R1 Distill Qwen 14B",
+          type: "language_model",
+          provider: "local"
+        },
+        // Standard mistral model for comparison
+        {
+          id: "mistral-7b",
+          name: "Mistral 7B",
+          type: "language_model",
+          provider: "local"
+        }
+      ];
+
+      // Filter by deepseek family - should include all DeepSeek distilled models
+      const deepseekFilters: ActiveFilters = {
+        selectedTypes: [],
+        sizeBucket: null,
+        families: ["deepseek"]
+      };
+      const deepseekResult = applyAdvancedModelFilters(deepseekDistilledModels, deepseekFilters);
+      expect(deepseekResult).toHaveLength(3);
+      expect(deepseekResult.map(m => m.id)).toContain("deepseek-r1-distill-mistral-7b");
+      expect(deepseekResult.map(m => m.id)).toContain("deepseek-r1-distill-llama-8b");
+      expect(deepseekResult.map(m => m.id)).toContain("deepseek-r1-distill-qwen-14b");
+      expect(deepseekResult.map(m => m.id)).not.toContain("mistral-7b");
+
+      // Filter by mistral family - should NOT include DeepSeek distilled models
+      const mistralFilters: ActiveFilters = {
+        selectedTypes: [],
+        sizeBucket: null,
+        families: ["mistral"]
+      };
+      const mistralResult = applyAdvancedModelFilters(deepseekDistilledModels, mistralFilters);
+      expect(mistralResult).toHaveLength(1);
+      expect(mistralResult[0].id).toBe("mistral-7b");
+    });
   });
 });
