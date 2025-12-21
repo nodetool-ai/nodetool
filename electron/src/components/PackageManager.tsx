@@ -192,16 +192,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
               {installedPackages.map((pkg) => (
                 <div key={pkg.repo_id} className="package-item installed">
                     <div className="package-info">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="package-header-row">
                         <h3>{pkg.name}</h3>
-                        <span style={{ 
-                          fontSize: '10px', 
-                          padding: '2px 6px', 
-                          borderRadius: '4px', 
-                          background: 'rgba(16, 185, 129, 0.1)', 
-                          color: 'var(--c_success)',
-                          border: '1px solid rgba(16, 185, 129, 0.2)'
-                        }}>
+                        <span className="status-badge up-to-date">
                           INSTALLED
                         </span>
                       </div>
@@ -263,29 +256,15 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                     className={`package-item ${installed ? 'installed' : 'available'}`}
                   >
                     <div className="package-info">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="package-header-row">
                         <h3>{pkg.name}</h3>
                         {isUpToDate && (
-                          <span style={{ 
-                            fontSize: '10px', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px', 
-                            background: 'rgba(16, 185, 129, 0.1)', 
-                            color: 'var(--c_success)',
-                            border: '1px solid rgba(16, 185, 129, 0.2)'
-                          }}>
+                          <span className="status-badge up-to-date">
                             UP-TO-DATE
                           </span>
                         )}
                         {hasUpdate && (
-                          <span style={{ 
-                            fontSize: '10px', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px', 
-                            background: 'rgba(245, 158, 11, 0.1)', 
-                            color: 'var(--c_warning)',
-                            border: '1px solid rgba(245, 158, 11, 0.2)'
-                          }}>
+                          <span className="status-badge update-available">
                             UPDATE AVAILABLE
                           </span>
                         )}
@@ -294,7 +273,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                         <p className="package-version">
                           v{installedPkg.version}
                           {hasUpdate && installedPkg.latestVersion && (
-                            <span style={{ color: 'var(--c_warning)', marginLeft: '8px' }}>
+                            <span className="version-arrow">
                               → v{installedPkg.latestVersion}
                             </span>
                           )}
