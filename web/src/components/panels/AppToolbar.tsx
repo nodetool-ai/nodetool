@@ -224,9 +224,8 @@ const styles = (theme: Theme) =>
       },
       "&.running": {
         "& svg": {
-          animation:
-            "spin 2s linear infinite, rainbow-rotate 3s linear infinite",
-          color: "var(--palette-primary-main)"
+          animation: "pulse-scale 1s ease-in-out infinite",
+          color: theme.vars.palette.grey[400]
         }
       },
       "&::before": {
@@ -254,21 +253,25 @@ const styles = (theme: Theme) =>
         "&::before": { left: "120%" }
       },
       "&.running": {
-        animation: "pulse-glow 1.8s ease-in-out infinite",
-        boxShadow: `0 0 16px 2px ${"var(--palette-primary-main)"}55, 0 0 36px ${"var(--palette-secondary-main)"}40`,
+        backgroundColor: theme.vars.palette.grey[700],
+        color: theme.vars.palette.grey[400],
+        boxShadow: "none",
         "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          borderRadius: "inherit",
-          boxShadow: `0 0 10px ${"var(--palette-primary-main)"}70, 0 0 20px ${"var(--palette-secondary-main)"}50`,
-          pointerEvents: "none",
-          animation: "sparkle 1.6s linear infinite"
+          display: "none"
         }
       }
     },
     ".stop-workflow": {
-      marginRight: "0.7em"
+      marginRight: "0.7em",
+      "&.running": {
+        backgroundColor: theme.vars.palette.warning.main,
+        color: theme.vars.palette.warning.contrastText,
+        boxShadow: `0 0 8px ${theme.vars.palette.warning.main}60`,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.warning.dark,
+          boxShadow: `0 0 12px ${theme.vars.palette.warning.main}80`
+        }
+      }
     },
     ".run-status": {
       position: "absolute",
@@ -277,6 +280,11 @@ const styles = (theme: Theme) =>
       padding: "0.2em 0.8em",
       color: theme.vars.palette.grey[100],
       boxShadow: `0 2px 8px ${theme.vars.palette.grey[800]}40`
+    },
+    "@keyframes pulse-scale": {
+      "0%": { transform: "scale(1)" },
+      "50%": { transform: "scale(1.15)" },
+      "100%": { transform: "scale(1)" }
     },
     "@keyframes pulse": {
       "0%": { opacity: 0.4 },
@@ -577,6 +585,22 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
     isWorkflowRunning: state.state === "running",
     cancel: state.cancel
   }));
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isWorkflowRunning) {
+        event.preventDefault();
+        cancel();
+      }
+    },
+    [isWorkflowRunning, cancel]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
     <Tooltip
       title={getShortcutTooltip("stopWorkflow")}
@@ -584,7 +608,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
     >
       <Button
         className={`action-button run-stop-button stop-workflow ${
-          !isWorkflowRunning ? "disabled" : ""
+          !isWorkflowRunning ? "disabled" : "running"
         }`}
         onClick={() => cancel()}
         tabIndex={-1}

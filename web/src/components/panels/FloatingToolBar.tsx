@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useState, useEffect } from "react";
 import {
   Fab,
   Box,
@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
       "&.running": {
         borderColor: "var(--palette-primary-main)",
         "& svg": {
-          animation: "spin 2s linear infinite"
+          animation: "pulse-scale 1s ease-in-out infinite"
         }
       },
 
@@ -132,53 +132,19 @@ const styles = (theme: Theme) =>
         transform: "scale(1.06)"
       },
       "&.running": {
-        position: "relative",
-        overflow: "hidden",
-        background: `radial-gradient(circle at 50% 50%, ${theme.vars.palette.primary.light} 0%, ${theme.vars.palette.primary.main} 40%, ${theme.vars.palette.primary.dark} 100%) !important`,
-        boxShadow: `
-          0 0 30px ${theme.vars.palette.primary.main}80,
-          0 0 50px ${theme.vars.palette.primary.main}40,
-          inset 0 -15px 30px ${theme.vars.palette.primary.dark}60,
-          inset 0 -5px 15px ${theme.vars.palette.primary.dark}80,
-          inset 0 15px 30px ${theme.vars.palette.primary.light}30
-        `,
+        backgroundColor: theme.vars.palette.grey[900],
+        color: theme.vars.palette.grey[400],
+        borderColor: theme.vars.palette.grey[700],
+        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
         "&::before": {
-          content: '""',
-          position: "absolute",
-          top: "10%",
-          left: "15%",
-          right: "40%",
-          height: "35%",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.4) 50%, transparent 70%)",
-          filter: "blur(3px)",
-          pointerEvents: "none",
-          zIndex: 3,
-          animation: "highlight-shift 4s ease-in-out infinite !important"
+          display: "none"
         },
         "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          borderRadius: "50%",
-          background: `conic-gradient(from 0deg at 50% 50%,
-            ${theme.vars.palette.primary.light} 0deg,
-            ${theme.vars.palette.secondary.light} 90deg,
-            ${theme.vars.palette.primary.main} 180deg,
-            ${theme.vars.palette.secondary.main} 270deg,
-            ${theme.vars.palette.primary.light} 360deg)`,
-          animation: "energy-swirl 3s linear infinite !important",
-          pointerEvents: "none",
-          opacity: 0.5,
-          mixBlendMode: "overlay",
-          zIndex: 1
+          display: "none"
         },
         "& .MuiSvgIcon-root": {
-          filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
-          position: "relative",
-          zIndex: 10,
-          animation: "spin 2s linear infinite"
+          filter: "none",
+          animation: "pulse-scale 1s ease-in-out infinite"
         }
       }
     },
@@ -214,6 +180,16 @@ const styles = (theme: Theme) =>
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[200]
+      },
+      "&.stop-running": {
+        backgroundColor: theme.vars.palette.warning.main,
+        color: theme.vars.palette.warning.contrastText,
+        borderColor: theme.vars.palette.warning.main,
+        boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px ${theme.vars.palette.warning.main}40`,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.warning.dark,
+          boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px ${theme.vars.palette.warning.main}50`
+        }
       }
     },
 
@@ -244,6 +220,11 @@ const styles = (theme: Theme) =>
       "&::before": {}
     },
 
+    "@keyframes pulse-scale": {
+      "0%": { transform: "scale(1)" },
+      "50%": { transform: "scale(1.15)" },
+      "100%": { transform: "scale(1)" }
+    },
     "@keyframes spin": {
       "0%": { transform: "rotate(0deg)" },
       "100%": { transform: "rotate(360deg)" }
@@ -441,6 +422,24 @@ const FloatingToolBar: React.FC<{
   const handleStop = useCallback(() => {
     cancel();
   }, [cancel]);
+
+  // Add global keyboard handlers for run (Ctrl+Enter) and stop (ESC)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        if (!isWorkflowRunning) {
+          handleRun();
+        }
+      } else if (event.key === "Escape" && isWorkflowRunning) {
+        event.preventDefault();
+        handleStop();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isWorkflowRunning, handleRun, handleStop]);
 
   const handleSave = useCallback(() => {
     if (!workflow) {return;}
@@ -710,7 +709,7 @@ const FloatingToolBar: React.FC<{
           <span>
             <Fab
               className={`floating-action-button subtle ${
-                !isWorkflowRunning ? "disabled" : ""
+                !isWorkflowRunning ? "disabled" : "stop-running"
               }`}
               onClick={handleStop}
               disabled={!isWorkflowRunning}
