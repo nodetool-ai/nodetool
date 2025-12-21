@@ -265,7 +265,8 @@ export function FloatingTextFormatToolbar(): JSX.Element | null {
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
                 handleLinkSubmit();
               }
             }}
