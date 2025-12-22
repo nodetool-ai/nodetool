@@ -81,14 +81,16 @@ const textProcessorMetadata: NodeMetadata = {
       type: stringType,
       default: "",
       title: "Input Text",
-      description: "Text to process"
+      description: "Text to process",
+      required: false
     },
     {
       name: "case_sensitive",
       type: boolType,
       default: false,
       title: "Case Sensitive",
-      description: "Whether processing is case sensitive"
+      description: "Whether processing is case sensitive",
+      required: false
     }
   ],
   is_dynamic: false,
@@ -119,14 +121,16 @@ const mathCalculatorMetadata: NodeMetadata = {
       type: floatType,
       default: 0.0,
       title: "Operand A",
-      description: "First operand"
+      description: "First operand",
+      required: false
     },
     {
       name: "operand_b",
       type: floatType,
       default: 0.0,
       title: "Operand B",
-      description: "Second operand"
+      description: "Second operand",
+      required: false
     }
   ],
   is_dynamic: false,
@@ -157,7 +161,8 @@ const dynamicProcessorMetadata: NodeMetadata = {
       type: stringType,
       default: "",
       title: "Static Input",
-      description: "Static input property"
+      description: "Static input property",
+      required: false
     }
   ],
   is_dynamic: true,

@@ -80,9 +80,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
         if (cacheStatuses[key]) {
           downloaded.add(model.id);
         }
-        return;
-      }
-      if (model.downloaded) {
+      } else if (model.type === "llama_model") {
         downloaded.add(model.id);
       }
     });

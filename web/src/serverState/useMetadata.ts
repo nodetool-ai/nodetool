@@ -21,7 +21,8 @@ const defaultMetadata: Record<string, NodeMetadata> = {
           type: "any",
           optional: true,
           type_args: []
-        }
+        },
+        required: false
       }
     ],
     outputs: [],

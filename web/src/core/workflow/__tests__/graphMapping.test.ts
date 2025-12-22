@@ -20,7 +20,8 @@ const baseMetadata: NodeMetadata = {
         type_args: [],
         type_name: null
       },
-      description: "input"
+      description: "input",
+      required: false
     }
   ],
   outputs: [
