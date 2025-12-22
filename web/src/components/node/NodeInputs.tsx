@@ -216,7 +216,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           layout={layout}
           property={{
             name,
-            type: resolvedType
+            type: resolvedType,
+            required: false
           }}
           propertyIndex={`dynamic-${index}`}
           data={data}

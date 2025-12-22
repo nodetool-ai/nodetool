@@ -69,14 +69,16 @@ const mockStaticProperties: Property[] = [
     type: mockTypeMetadata,
     default: "",
     title: "Input",
-    description: "Input text"
+    description: "Input text",
+    required: false
   },
   {
     name: "value",
     type: mockFloatTypeMetadata,
     default: 0.0,
     title: "Value",
-    description: "Numeric value"
+    description: "Numeric value",
+    required: false
   }
 ];
 

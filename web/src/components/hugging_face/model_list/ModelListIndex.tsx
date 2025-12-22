@@ -121,7 +121,7 @@ type VisibleRange = {
 const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
-  const { selectedModelType, modelSearchTerm } = useModelManagerStore();
+  const { selectedModelType, modelSearchTerm, filterStatus } = useModelManagerStore();
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
   const cachePending = useHfCacheStatusStore((state) => state.pending);
@@ -224,6 +224,24 @@ const ModelListIndex: React.FC = () => {
 
     void ensureStatuses(requests);
   }, [ensureStatuses, visibleModels, cacheVersion]);
+
+  // When filtering by download status, pre-fetch cache statuses for ALL models
+  // so filtering works correctly even for models not yet visible
+  useEffect(() => {
+    if (filterStatus === "all" || !allModels) {
+      return;
+    }
+
+    const requests = allModels
+      .map((model) => buildHfCacheRequest(model))
+      .filter((request): request is NonNullable<typeof request> => request !== null);
+
+    if (requests.length === 0) {
+      return;
+    }
+
+    void ensureStatuses(requests);
+  }, [ensureStatuses, allModels, filterStatus, cacheVersion]);
 
   const handleItemsRendered = useCallback(
     ({ visibleStartIndex, visibleStopIndex }: VisibleRange) => {
@@ -382,14 +400,13 @@ const ModelListIndex: React.FC = () => {
                     isCacheableHf &&
                     (cachePending[cacheKey] ||
                       cacheStatuses[cacheKey] === undefined);
-                  const cachedDownloaded = cacheStatuses[cacheKey];
-                  const displayModel =
-                    isCacheableHf
-                      ? {
-                          ...item.model,
-                          downloaded: cachedDownloaded ?? false
-                        }
-                      : item.model;
+                  const isDownloaded =
+                    item.model.type === "llama_model" ||
+                    !!cacheStatuses[cacheKey];
+                  const displayModel = {
+                    ...item.model,
+                    downloaded: isDownloaded
+                  } as UnifiedModel & { downloaded: boolean };
                   return (
                     <Box style={style}>
                       <ModelListItem

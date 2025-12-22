@@ -9,6 +9,8 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { useQuery } from "@tanstack/react-query";
 import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
+import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import { getHfCacheKey } from "../../../utils/hfCache";
 
 export const useModels = () => {
   const {
@@ -20,6 +22,7 @@ export const useModels = () => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
 
   const {
     data: allModels,
@@ -63,8 +66,30 @@ export const useModels = () => {
       )
         {return false;}
 
-      if (filterStatus === "downloaded" && !model.downloaded) {return false;}
-      if (filterStatus === "not_downloaded" && model.downloaded) {return false;}
+      const cacheKey = getHfCacheKey(model);
+      const cacheStatus = cacheStatuses[cacheKey];
+      const isOllama = model.type === "llama_model";
+
+      // For Ollama models, they are always considered downloaded if returned by API
+      // For HF models, we check the cache status
+      if (filterStatus === "downloaded") {
+        // Only show if confirmed downloaded
+        if (isOllama) {
+          // Ollama models are always downloaded
+        } else if (cacheStatus !== true) {
+          // HF model not confirmed downloaded (undefined or false)
+          return false;
+        }
+      } else if (filterStatus === "not_downloaded") {
+        // Only show if confirmed NOT downloaded
+        if (isOllama) {
+          // Ollama models are always downloaded, so exclude them
+          return false;
+        } else if (cacheStatus !== false) {
+          // HF model not confirmed as not-downloaded (undefined or true)
+          return false;
+        }
+      }
 
       return true;
     };
@@ -74,7 +99,8 @@ export const useModels = () => {
     modelSearchTerm,
     selectedModelType,
     maxModelSizeGB,
-    filterStatus
+    filterStatus,
+    cacheStatuses
   ]);
 
   const modelTypes = useMemo(() => {
@@ -112,8 +138,23 @@ export const useModels = () => {
         )
           {return false;}
 
-        if (filterStatus === "downloaded" && !model.downloaded) {return false;}
-        if (filterStatus === "not_downloaded" && model.downloaded) {return false;}
+        const cacheKey = getHfCacheKey(model);
+        const cacheStatus = cacheStatuses[cacheKey];
+        const isOllama = model.type === "llama_model";
+
+        if (filterStatus === "downloaded") {
+          if (isOllama) {
+            // Ollama models are always downloaded
+          } else if (cacheStatus !== true) {
+            return false;
+          }
+        } else if (filterStatus === "not_downloaded") {
+          if (isOllama) {
+            return false;
+          } else if (cacheStatus !== false) {
+            return false;
+          }
+        }
 
         return true;
       }) || [];
@@ -125,7 +166,7 @@ export const useModels = () => {
     });
 
     return types;
-  }, [allModels, modelSearchTerm, maxModelSizeGB, filterStatus]);
+  }, [allModels, modelSearchTerm, maxModelSizeGB, filterStatus, cacheStatuses]);
 
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) {return;}

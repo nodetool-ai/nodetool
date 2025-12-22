@@ -100,7 +100,8 @@ const createPropertyFromDefinition = (
     max:
       definition.kind === "integer" || definition.kind === "float"
         ? definition.data.max ?? null
-        : null
+        : null,
+    required: false
   };
 
   // Set json_schema_extra for file_path to trigger FilePathProperty component

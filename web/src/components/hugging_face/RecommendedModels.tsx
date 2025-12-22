@@ -72,15 +72,12 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 
   const displayModels = useMemo(() => {
     return filteredModels.map((model) => {
-      if (!canCheckHfCache(model)) {
-        return model;
-      }
-      const cacheKey = getHfCacheKey(model);
-      const downloaded = cacheStatuses[cacheKey];
+      const isDownloaded =
+        model.type === "llama_model" || !!cacheStatuses[getHfCacheKey(model)];
       return {
         ...model,
-        downloaded: downloaded ?? false
-      };
+        downloaded: isDownloaded
+      } as UnifiedModel & { downloaded: boolean };
     });
   }, [cacheStatuses, filteredModels]);
 

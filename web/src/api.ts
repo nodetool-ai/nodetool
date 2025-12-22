@@ -865,6 +865,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/huggingface/cache_status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Huggingface Cache Status */
+        post: operations["check_huggingface_cache_status_api_models_huggingface_cache_status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/pull_ollama_model": {
         parameters: {
             query?: never;
@@ -1390,6 +1407,86 @@ export interface paths {
          *         Success message
          */
         post: operations["cancel_job_api_jobs__job_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/triggers/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Running Trigger Workflows
+         * @description List all currently running trigger workflows.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         List of running trigger workflows
+         */
+        get: operations["list_running_trigger_workflows_api_jobs_triggers_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/triggers/{workflow_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Trigger Workflow
+         * @description Start a trigger workflow in the background.
+         *
+         *     Args:
+         *         workflow_id: Workflow ID to start
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         Trigger workflow status
+         */
+        post: operations["start_trigger_workflow_api_jobs_triggers__workflow_id__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/triggers/{workflow_id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop Trigger Workflow
+         * @description Stop a running trigger workflow.
+         *
+         *     Args:
+         *         workflow_id: Workflow ID to stop
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         Trigger workflow status
+         */
+        post: operations["stop_trigger_workflow_api_jobs_triggers__workflow_id__stop_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2624,6 +2721,26 @@ export interface components {
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
             ignore_patterns?: string[] | null;
+        };
+        /** HFFastCacheStatusRequest */
+        HFFastCacheStatusRequest: {
+            /** Key */
+            key: string;
+            /** Repo Id */
+            repo_id: string;
+            /** Path */
+            path?: string | null;
+            /** Allow Patterns */
+            allow_patterns?: string | string[] | null;
+            /** Ignore Patterns */
+            ignore_patterns?: string | string[] | null;
+        };
+        /** HFFastCacheStatusResponse */
+        HFFastCacheStatusResponse: {
+            /** Key */
+            key: string;
+            /** Downloaded */
+            downloaded: boolean;
         };
         /** HFFeatureExtraction */
         HFFeatureExtraction: {
@@ -4039,6 +4156,8 @@ export interface components {
             content?: string | {
                 [key: string]: unknown;
             } | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
+            /** Instructions */
+            instructions?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Error Type */
             error_type?: string | null;
             /** Tool Calls */
@@ -4095,7 +4214,9 @@ export interface components {
             /** Name */
             name?: string | null;
             /** Content */
-            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
+            content?: string | {
+                [key: string]: unknown;
+            } | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Created At */
@@ -4705,6 +4826,11 @@ export interface components {
             json_schema_extra?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
         };
         /**
          * Provider
@@ -5007,6 +5133,16 @@ export interface components {
              * @default []
              */
             depends_on: string[];
+            /**
+             * Tools
+             * @description Optional list of allowed tool names for this step (None = no restriction).
+             */
+            tools?: string[] | null;
+            /**
+             * Tool Name
+             * @description Optional deterministic tool name for tool-only steps.
+             */
+            tool_name?: string | null;
             /**
              * Output Schema
              * @description The JSON schema of the output of the step
@@ -5342,6 +5478,22 @@ export interface components {
             result: {
                 [key: string]: unknown;
             };
+        };
+        /** TriggerWorkflowListResponse */
+        TriggerWorkflowListResponse: {
+            /** Workflows */
+            workflows: components["schemas"]["TriggerWorkflowResponse"][];
+        };
+        /** TriggerWorkflowResponse */
+        TriggerWorkflowResponse: {
+            /** Workflow Id */
+            workflow_id: string;
+            /** Job Id */
+            job_id?: string | null;
+            /** Status */
+            status: string;
+            /** Is Running */
+            is_running: boolean;
         };
         /**
          * TypeMetadata
@@ -7097,6 +7249,39 @@ export interface operations {
             };
         };
     };
+    check_huggingface_cache_status_api_models_huggingface_cache_status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HFFastCacheStatusRequest"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HFFastCacheStatusResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pull_ollama_model_api_models_pull_ollama_model_post: {
         parameters: {
             query: {
@@ -8057,6 +8242,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackgroundJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_running_trigger_workflows_api_jobs_triggers_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerWorkflowListResponse"];
+                };
+            };
+        };
+    };
+    start_trigger_workflow_api_jobs_triggers__workflow_id__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerWorkflowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_trigger_workflow_api_jobs_triggers__workflow_id__stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerWorkflowResponse"];
                 };
             };
             /** @description Validation Error */

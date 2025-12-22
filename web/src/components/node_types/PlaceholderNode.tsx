@@ -199,14 +199,16 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       name: key,
       type: typeForValue(value),
       default: value,
-      optional: true
+      optional: true,
+      required: false
     }));
     incomingEdges.forEach((edge) => {
       props.push({
         name: edge.targetHandle || "",
         type: { type: "any", optional: true, type_args: [] },
         default: null,
-        optional: true
+        optional: true,
+        required: false
       });
     });
     return props;

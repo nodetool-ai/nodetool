@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useState, useCallback } from "react";
 import DynamicOutputItem from "./DynamicOutputItem";
-import { Property } from "../../stores/ApiTypes";
+import { Property, OutputSlot } from "../../stores/ApiTypes";
 import {
   Box,
   TextField,
@@ -20,7 +20,7 @@ import isEqual from "lodash/isEqual";
 
 export interface NodeOutputsProps {
   id: string;
-  outputs: Property[];
+  outputs: OutputSlot[];
 }
 
 export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
@@ -46,7 +46,8 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
   const staticOutputs: OutputItem[] = outputs.map((o) => ({
     name: o.name,
     type: o.type,
-    isDynamic: false
+    isDynamic: false,
+    required: false
   }));
 
   const dynamicOutputs: OutputItem[] = Object.entries(
@@ -54,7 +55,8 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
   ).map(([name, typeMetadata]) => ({
     name,
     type: typeMetadata,
-    isDynamic: true
+    isDynamic: true,
+    required: false
   }));
 
   const allOutputs: OutputItem[] = [...staticOutputs, ...dynamicOutputs];
