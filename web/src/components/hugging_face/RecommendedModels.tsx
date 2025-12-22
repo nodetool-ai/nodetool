@@ -19,8 +19,12 @@ import {
   openOllamaPath
 } from "../../utils/fileExplorer";
 import { isLocalhost } from "../../stores/ApiClient";
-import { checkHfCache } from "../../serverState/checkHfCache";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useHfCacheStatusStore } from "../../stores/HfCacheStatusStore";
+import {
+  buildHfCacheRequest,
+  canCheckHfCache,
+  getHfCacheKey
+} from "../../utils/hfCache";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -33,62 +37,12 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const [downloadedMap, setDownloadedMap] = useState<Record<string, boolean>>({});
-  const downloads = useModelDownloadStore((state) => state.downloads);
-
-  const completedDownloadsKey = useMemo(() => {
-    return Object.values(downloads)
-      .filter((download) => download.status === "completed")
-      .map((download) => download.id)
-      .sort()
-      .join("|");
-  }, [downloads]);
-
-  // Resolve download state for HF models by checking local cache
-  useEffect(() => {
-    let cancelled = false;
-
-    const run = async () => {
-      const tasks = recommendedModels
-        .filter((model) => {
-          const isHfModel = model.type?.startsWith("hf") ?? false;
-          const isSingleFileModel = Boolean(model.repo_id && model.path);
-          return isHfModel || isSingleFileModel;
-        })
-        .map(async (model) => {
-          const id = model.id;
-          const repoId = model.repo_id || model.id;
-          const allowPattern = model.path || model.allow_patterns || null;
-          const ignorePattern = model.ignore_patterns || null;
-          if (!repoId || (!allowPattern && !ignorePattern)) {
-            return { id, downloaded: !!model.downloaded };
-          }
-          try {
-            const res = await checkHfCache({
-              repo_id: repoId,
-              allow_pattern: allowPattern as any,
-              ignore_pattern: ignorePattern as any
-            });
-            return { id, downloaded: res.all_present };
-          } catch {
-            return { id, downloaded: !!model.downloaded };
-          }
-        });
-
-      const results = await Promise.all(tasks);
-      if (cancelled) {return;}
-      setDownloadedMap((prev) => {
-        const next = { ...prev };
-        for (const r of results) {next[r.id] = r.downloaded;}
-        return next;
-      });
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [recommendedModels, completedDownloadsKey]);
+  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
+  const cachePending = useHfCacheStatusStore((state) => state.pending);
+  const cacheVersion = useHfCacheStatusStore((state) => state.version);
+  const ensureStatuses = useHfCacheStatusStore(
+    (state) => state.ensureStatuses
+  );
 
   const filteredModels = useMemo(() => {
     if (!searchQuery) {return recommendedModels;}
@@ -104,12 +58,31 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
     });
   }, [recommendedModels, searchQuery]);
 
+  useEffect(() => {
+    const requests = filteredModels
+      .map((model) => buildHfCacheRequest(model))
+      .filter((request): request is NonNullable<typeof request> => request !== null);
+
+    if (requests.length === 0) {
+      return;
+    }
+
+    void ensureStatuses(requests);
+  }, [ensureStatuses, filteredModels, cacheVersion]);
+
   const displayModels = useMemo(() => {
-    return filteredModels.map((m) => ({
-      ...m,
-      downloaded: downloadedMap[m.id] ?? m.downloaded
-    }));
-  }, [filteredModels, downloadedMap]);
+    return filteredModels.map((model) => {
+      if (!canCheckHfCache(model)) {
+        return model;
+      }
+      const cacheKey = getHfCacheKey(model);
+      const downloaded = cacheStatuses[cacheKey];
+      return {
+        ...model,
+        downloaded: downloaded ?? false
+      };
+    });
+  }, [cacheStatuses, filteredModels]);
 
   if (!recommendedModels) {
     return <div>Loading...</div>;
@@ -170,12 +143,18 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       ) : (
         <List>
           {displayModels.map((model) => {
+            const cacheKey = getHfCacheKey(model);
+            const isCacheable = canCheckHfCache(model);
+            const isCheckingCache =
+              isCacheable &&
+              (cachePending[cacheKey] || cacheStatuses[cacheKey] === undefined);
             return (
               <ModelListItem
                 compactView={true}
                 key={model.id}
                 model={model}
                 onDownload={() => startDownload(model)}
+                isCheckingCache={isCheckingCache}
               />
             );
           })}
