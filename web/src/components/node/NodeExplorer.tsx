@@ -275,7 +275,7 @@ const NodeExplorer: React.FC = () => {
       <TextField
         className="filter-input"
         size="medium"
-        placeholder="Filter by name or type"
+        placeholder="Filter by name, type, or node id"
         label=""
         value={filter}
         onChange={(event) => setFilter(event.target.value)}
