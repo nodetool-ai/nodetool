@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { DOWNLOAD_URL } from "./BASE_URL";
 import { BASE_URL } from "./BASE_URL";
 import { QueryClient } from "@tanstack/react-query";
+import { useHfCacheStatusStore } from "./HfCacheStatusStore";
 
 interface SpeedDataPoint {
   bytes: number;
@@ -106,6 +107,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             const queryClient = get().queryClient;
             queryClient?.invalidateQueries({ queryKey: ["allModels"] });
             queryClient?.invalidateQueries({ queryKey: ["image-models"] });
+            useHfCacheStatusStore.getState().invalidate([id]);
             
             // Restart llama-server if a llama_cpp model was downloaded
             const download = get().downloads[id];
