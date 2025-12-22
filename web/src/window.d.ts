@@ -99,6 +99,12 @@ declare global {
           toastActivatorClsid?: string;
         }>;
       };
+
+      // Settings module - Application settings (Windows only)
+      settings?: {
+        getCloseBehavior: () => Promise<"ask" | "quit" | "background">;
+        setCloseBehavior: (action: "ask" | "quit" | "background") => Promise<void>;
+      };
     };
     process: {
       type: string;
