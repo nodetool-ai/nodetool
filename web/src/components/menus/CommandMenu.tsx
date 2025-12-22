@@ -80,7 +80,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   }, [workflowJSON, currentWorkflow]);
 
   const copyWorkflow = useCallback(() => {
-    writeClipboard(JSON.stringify(workflowJSON()), true, true);
+    writeClipboard(workflowJSON(), true, true);
     addNotification({
       type: "info",
       alert: true,
