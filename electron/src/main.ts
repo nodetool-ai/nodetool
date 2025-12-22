@@ -48,6 +48,7 @@ import { buildMenu } from "./menu";
 import assert from "assert";
 import { checkForPackageUpdates } from "./packageManager";
 import { IpcChannels } from "./types.d";
+import { readSettings, updateSetting } from "./settings";
 
 /**
  * Global application state flags and objects
@@ -338,8 +339,51 @@ app.on("before-quit", (event) => {
   }
 });
 
-app.on("window-all-closed", () => {
+app.on("window-all-closed", async () => {
   logMessage("All windows closed");
+
+  const settings = readSettings();
+  const closeAction = settings.windowCloseAction;
+
+  // If user has already made a choice, use it
+  if (closeAction === "quit") {
+    logMessage("User preference: quit on close");
+    app.quit();
+    return;
+  } else if (closeAction === "background") {
+    logMessage("User preference: keep running in background");
+    return; // Keep running in background (tray is still active)
+  }
+
+  // Show dialog to ask user
+  const result = await dialog.showMessageBox({
+    type: "question",
+    title: "Close NodeTool",
+    message: "What would you like to do?",
+    detail: "NodeTool can continue running in the background to keep services available.",
+    buttons: ["Quit", "Keep Running in Background"],
+    defaultId: 1,
+    cancelId: 1,
+    checkboxLabel: "Remember my choice",
+    checkboxChecked: false,
+  });
+
+  const shouldQuit = result.response === 0;
+  const rememberChoice = result.checkboxChecked;
+
+  if (rememberChoice) {
+    const choice = shouldQuit ? "quit" : "background";
+    updateSetting("windowCloseAction", choice);
+    logMessage(`Saved user preference for window close action: ${choice}`);
+  }
+
+  if (shouldQuit) {
+    logMessage("User chose to quit");
+    app.quit();
+  } else {
+    logMessage("User chose to keep running in background");
+    // Keep running - tray icon will remain active
+  }
 });
 
 app.on("activate", handleActivation);
