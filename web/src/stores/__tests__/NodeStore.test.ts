@@ -636,3 +636,140 @@ describe("Graph Sanitization", () => {
     consoleSpy.mockRestore();
   });
 });
+
+describe("Input Node Name Generation", () => {
+  const originalMetadata = useMetadataStore.getState();
+  let store: ReturnType<typeof createNodeStore>;
+
+  const inputNodeMetadata = {
+    node_type: "nodetool.input.StringInput",
+    title: "String Input",
+    description: "A string input node",
+    namespace: "nodetool.input",
+    layout: "default",
+    outputs: [
+      {
+        name: "output",
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        stream: false
+      }
+    ],
+    properties: [
+      {
+        name: "name",
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        default: "",
+        title: "Name",
+        description: "The name of the input"
+      },
+      {
+        name: "value",
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        default: "",
+        title: "Value",
+        description: "The value"
+      }
+    ],
+    is_dynamic: false,
+    supports_dynamic_outputs: false,
+    expose_as_tool: false,
+    the_model_info: {},
+    recommended_models: [],
+    basic_fields: [],
+    is_streaming_output: false
+  };
+
+  const integerInputMetadata = {
+    ...inputNodeMetadata,
+    node_type: "nodetool.input.IntegerInput",
+    title: "Integer Input"
+  };
+
+  beforeEach(() => {
+    store = createNodeStore();
+    useMetadataStore.setState(
+      {
+        ...originalMetadata,
+        metadata: {
+          ...mockMetadata,
+          "nodetool.input.StringInput": inputNodeMetadata,
+          "nodetool.input.IntegerInput": integerInputMetadata
+        }
+      },
+      true
+    );
+  });
+
+  afterEach(() => {
+    useMetadataStore.setState(originalMetadata, true);
+  });
+
+  test("createNode generates default name for input node with empty name property", () => {
+    const node = store.getState().createNode(
+      inputNodeMetadata as any,
+      { x: 0, y: 0 }
+    );
+
+    expect(node.data.properties.name).toBe("string_input_1");
+  });
+
+  test("createNode respects provided name property for input nodes", () => {
+    const node = store.getState().createNode(
+      inputNodeMetadata as any,
+      { x: 0, y: 0 },
+      { name: "my_custom_name" }
+    );
+
+    expect(node.data.properties.name).toBe("my_custom_name");
+  });
+
+  test("createNode increments name counter for multiple input nodes of same type", () => {
+    const node1 = store.getState().createNode(
+      inputNodeMetadata as any,
+      { x: 0, y: 0 }
+    );
+    store.getState().addNode(node1);
+
+    const node2 = store.getState().createNode(
+      inputNodeMetadata as any,
+      { x: 100, y: 0 }
+    );
+
+    expect(node1.data.properties.name).toBe("string_input_1");
+    expect(node2.data.properties.name).toBe("string_input_2");
+  });
+
+  test("createNode generates different names for different input types", () => {
+    const stringNode = store.getState().createNode(
+      inputNodeMetadata as any,
+      { x: 0, y: 0 }
+    );
+    store.getState().addNode(stringNode);
+
+    const integerNode = store.getState().createNode(
+      integerInputMetadata as any,
+      { x: 100, y: 0 }
+    );
+
+    expect(stringNode.data.properties.name).toBe("string_input_1");
+    expect(integerNode.data.properties.name).toBe("integer_input_1");
+  });
+});
