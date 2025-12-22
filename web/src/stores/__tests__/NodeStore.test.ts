@@ -70,7 +70,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
         },
         default: "",
         title: "Input 1",
-        description: "Test input"
+        description: "Test input",
+        required: false
       }
     ],
     is_dynamic: false,
@@ -672,7 +673,8 @@ describe("Input Node Name Generation", () => {
         },
         default: "",
         title: "Name",
-        description: "The name of the input"
+        description: "The name of the input",
+        required: false
       },
       {
         name: "value",
@@ -685,7 +687,8 @@ describe("Input Node Name Generation", () => {
         },
         default: "",
         title: "Value",
-        description: "The value"
+        description: "The value",
+        required: false
       }
     ],
     is_dynamic: false,

@@ -83,7 +83,8 @@ const mockNodeMetadata: NodeMetadata = {
       },
       default: "",
       title: "Input",
-      description: "Test input"
+      description: "Test input",
+      required: false
     }
   ],
   is_dynamic: false,
@@ -121,7 +122,8 @@ const previewNodeMetadata: NodeMetadata = {
       },
       default: undefined,
       title: "Value",
-      description: "Preview value"
+      description: "Preview value",
+      required: false
     }
   ],
   is_dynamic: false,
@@ -164,7 +166,8 @@ const rerouteNodeMetadata: NodeMetadata = {
       },
       default: "",
       title: "Input value",
-      description: "Reroute input"
+      description: "Reroute input",
+      required: false
     }
   ],
   is_dynamic: false,
