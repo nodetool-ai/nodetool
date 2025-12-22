@@ -27,7 +27,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { client, isLocalhost } from "../../stores/ApiClient";
+import { client, isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent, {
   getRemoteSidebarSections as getApiServicesSidebarSections
 } from "./RemoteSettingsMenu";
@@ -185,14 +185,17 @@ export const settingsStyles = (theme: Theme): any =>
       backgroundColor: "transparent",
       backdropFilter: "blur(5px)",
       borderRadius: "8px",
-      padding: "1.2em",
+      padding: "0.5em 1.2em 1.2em 1.2em",
       margin: "1.5em 0 1.5em 0",
       boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       width: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: ".8em"
+      gap: ".8em",
+      "&:first-of-type": {
+        marginTop: "0.5em"
+      }
     },
     ".settings-item.large": {
       ".MuiInputBase-root": {
@@ -411,6 +414,23 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
   const [, setSecretsUpdated] = useState({});
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
+  const [closeBehavior, setCloseBehavior] = useState<"ask" | "quit" | "background">("ask");
+
+  // Load close behavior setting on mount (Electron only)
+  useEffect(() => {
+    if (isElectron && window.api?.settings?.getCloseBehavior) {
+      window.api.settings.getCloseBehavior().then((action: "ask" | "quit" | "background") => {
+        setCloseBehavior(action);
+      });
+    }
+  }, []);
+
+  const handleCloseBehaviorChange = useCallback((action: "ask" | "quit" | "background") => {
+    setCloseBehavior(action);
+    if (window.api?.settings?.setCloseBehavior) {
+      window.api.settings.setCloseBehavior(action);
+    }
+  }, []);
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -478,7 +498,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       const payload: any = {
         workflow_id: currentWorkflowId || undefined,
         errors: [],
-        preferred_save: "desktop"
+        preferred_save: "downloads"
       };
       const { error, data } = await client.POST("/api/debug/export", {
         body: payload
@@ -643,23 +663,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                 <div className="settings-content">
                   <TabPanel value={settingsTab} index={0}>
-                    <Typography variant="h3" id="editor">
-                      Editor
-                    </Typography>
-
                     <div className="settings-section">
+                      <Typography variant="h3" id="debug-tools" style={{ margin: 0, borderBottom: "none" }}>
+                        Debug Tools
+                      </Typography>
                       <div className="settings-item">
-                        <div className="settings-header">
-                          <Typography id="debug-tools" variant="h3">
-                            Debug Tools
-                          </Typography>
-                        </div>
                         <div
                           style={{
                             display: "flex",
-                            alignItems: "center",
-                            gap: "1em",
-                            flexWrap: "wrap"
+                            flexDirection: "column",
+                            gap: "0.75em"
                           }}
                         >
                           <Button
@@ -671,37 +684,56 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             Export Debug Bundle
                           </Button>
                           {lastExportPath && (
-                            <a
-                              href={
-                                (typeof window === "undefined" ||
-                                  !(window as any)?.api ||
-                                  typeof (window as any).api.openPath !==
-                                    "function") &&
-                                lastExportPath
-                                  ? `file://${lastExportPath}`
-                                  : "#"
-                              }
-                              onClick={(e) => {
-                                const api = (window as any)?.api;
-                                if (api && typeof api.openPath === "function") {
-                                  e.preventDefault();
-                                  api.openPath(lastExportPath);
-                                }
-                              }}
+                            <div
                               style={{
-                                color: "var(--palette-primary-main)",
-                                textDecoration: "underline",
-                                wordBreak: "break-all"
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.5em",
+                                padding: "0.5em",
+                                backgroundColor: "var(--palette-background-paper)",
+                                borderRadius: "4px",
+                                border: "1px solid var(--palette-divider)"
                               }}
-                              title={lastExportPath}
                             >
-                              {lastExportPath}
-                            </a>
+                              <Typography
+                                variant="caption"
+                                style={{ color: "var(--palette-text-secondary)" }}
+                              >
+                                Last exported to:
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                style={{
+                                  wordBreak: "break-all",
+                                  fontSize: "0.8em"
+                                }}
+                              >
+                                {lastExportPath}
+                              </Typography>
+                              {/* Only show Open Folder button in Electron */}
+                              {isElectron && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => {
+                                    const api = (window as any)?.api;
+                                    if (api?.shell?.showItemInFolder) {
+                                      api.shell.showItemInFolder(lastExportPath);
+                                    } else if (api?.showItemInFolder) {
+                                      api.showItemInFolder(lastExportPath);
+                                    }
+                                  }}
+                                  style={{ alignSelf: "flex-start" }}
+                                >
+                                  Open Folder
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </div>
                         <Typography className="description">
                           Collect logs, environment info, and the last workflow
-                          context into a ZIP on your Desktop.
+                          context into a ZIP in your Downloads folder.
                         </Typography>
                       </div>
                     </div>
@@ -777,6 +809,42 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           Only works in Electron app.
                         </Typography>
                       </div>
+
+                      {isElectron && (
+                        <div className="settings-item">
+                          <FormControl>
+                            <InputLabel htmlFor="close-behavior-select">
+                              On Close Behavior
+                            </InputLabel>
+                            <Select
+                              id="close-behavior-select"
+                              value={closeBehavior}
+                              variant="standard"
+                              onChange={(e) =>
+                                handleCloseBehaviorChange(
+                                  e.target.value as "ask" | "quit" | "background"
+                                )
+                              }
+                            >
+                              <MenuItem value="ask">Ask Every Time</MenuItem>
+                              <MenuItem value="quit">Quit Application</MenuItem>
+                              <MenuItem value="background">
+                                Keep Running in Background
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+                          <Typography className="description">
+                            Choose what happens when you close the main window.
+                            <br />
+                            <b>Ask Every Time:</b> Shows a dialog with options.
+                            <br />
+                            <b>Quit:</b> Closes the application completely.
+                            <br />
+                            <b>Background:</b> Keeps the app running in the
+                            system tray.
+                          </Typography>
+                        </div>
+                      )}
                     </div>
 
                     <Typography variant="h3" id="navigation">

@@ -12,6 +12,7 @@ import Plot from "react-plotly.js";
 import {
   Asset,
   DataframeRef,
+  Datetime,
   Message,
   NPArray,
   TaskPlan,
@@ -43,6 +44,7 @@ import {
 } from "./output";
 import { TextRenderer } from "./output/TextRenderer";
 import { BooleanRenderer } from "./output/BooleanRenderer";
+import { DatetimeRenderer } from "./output/DatetimeRenderer";
 import { EmailRenderer } from "./output/EmailRenderer";
 import { ArrayRenderer } from "./output/ArrayRenderer";
 import { AssetGrid } from "./output/AssetGrid";
@@ -407,6 +409,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "boolean": {
         return (
           <BooleanRenderer value={value as boolean} onCopy={copyToClipboard} />
+        );
+      }
+      case "datetime": {
+        return (
+          <DatetimeRenderer value={value as Datetime} onCopy={copyToClipboard} />
         );
       }
       case "email":

@@ -514,6 +514,19 @@ const api = {
     readShortcutLink: (shortcutPath: string) =>
       ipcRenderer.invoke(IpcChannels.SHELL_READ_SHORTCUT_LINK, validatePath(shortcutPath)),
   },
+
+  // ============================================================================
+  // settings: Application settings
+  // ============================================================================
+  settings: {
+    /** Get the window close behavior setting (Windows only) */
+    getCloseBehavior: () =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR),
+
+    /** Set the window close behavior setting (Windows only) */
+    setCloseBehavior: (action: "ask" | "quit" | "background") =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR, action),
+  },
 };
 
 contextBridge.exposeInMainWorld("api", api);
