@@ -26,6 +26,7 @@ const ModelListItem: React.FC<
     showModelStats?: boolean;
     showFileExplorerButton?: boolean;
     compatibility?: ModelCompatibilityResult;
+    isCheckingCache?: boolean;
   }
 > = ({
   model,
@@ -35,7 +36,8 @@ const ModelListItem: React.FC<
   compactView = false,
   showModelStats = true,
   showFileExplorerButton = true,
-  compatibility
+  compatibility,
+  isCheckingCache = false
 }) => {
   const downloads = useModelDownloadStore((state) => state.downloads);
   const downloadId = useMemo(() => {
@@ -236,6 +238,7 @@ const ModelListItem: React.FC<
               handleModelDelete={handleModelDelete}
               handleShowInExplorer={handleShowInExplorer}
               showFileExplorerButton={showFileExplorerButton}
+              isCheckingCache={isCheckingCache}
             />
           </div>
         </div>

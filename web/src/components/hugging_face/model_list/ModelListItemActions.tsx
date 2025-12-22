@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Tooltip, Chip } from "@mui/material";
+import { Button, Tooltip, Chip, CircularProgress, Box } from "@mui/material";
 import { Check } from "@mui/icons-material";
 import DeleteButton from "../../buttons/DeleteButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -23,6 +23,7 @@ interface ModelListItemActionsProps {
   handleModelDelete?: (modelId: string) => void;
   handleShowInExplorer?: (modelId: string) => void;
   showFileExplorerButton?: boolean;
+  isCheckingCache?: boolean;
 }
 
 export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
@@ -30,11 +31,12 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   onDownload,
   handleModelDelete,
   handleShowInExplorer,
-  showFileExplorerButton = true
+  showFileExplorerButton = true,
+  isCheckingCache = false
 }) => {
   const isHuggingFace = model.type?.startsWith("hf") ?? false;
   const isOllama = model.type === "llama_model";
-  const downloaded = model.downloaded ?? !!model.path;
+  const downloaded = model.downloaded ?? false;
   const canShowExplorerButton = Boolean(
     handleShowInExplorer && showFileExplorerButton
   );
@@ -42,7 +44,25 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
 
   return (
     <div className="actions-container">
-      {onDownload && !downloaded && (
+      {isCheckingCache && !downloaded && (
+        <Box
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.5em",
+            padding: "2px 8px",
+            borderRadius: "999px",
+            border: "1px solid",
+            borderColor: "divider",
+            color: "text.secondary",
+            fontSize: "0.75rem"
+          }}
+        >
+          <CircularProgress size={12} thickness={5} />
+          Checking cache...
+        </Box>
+      )}
+      {onDownload && !downloaded && !isCheckingCache && (
         <Button
           className="model-download-button"
           onClick={onDownload}

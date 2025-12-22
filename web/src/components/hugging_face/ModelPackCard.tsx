@@ -26,7 +26,12 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import { ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { formatBytes } from "../../utils/modelFormatting";
-import { checkHfCache } from "../../serverState/checkHfCache";
+import { useHfCacheStatusStore } from "../../stores/HfCacheStatusStore";
+import {
+  buildHfCacheRequest,
+  canCheckHfCache,
+  getHfCacheKey
+} from "../../utils/hfCache";
 
 interface ModelPackCardProps {
   pack: ModelPack;
@@ -38,10 +43,12 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
   onDownloadAll
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [downloadedModels, setDownloadedModels] = useState<Set<string>>(
-    new Set()
-  );
   const downloads = useModelDownloadStore((state) => state.downloads);
+  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
+  const cacheVersion = useHfCacheStatusStore((state) => state.version);
+  const ensureStatuses = useHfCacheStatusStore(
+    (state) => state.ensureStatuses
+  );
 
   // Track download progress
   const activeDownloads = useMemo(() => {
@@ -53,28 +60,34 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
     });
   }, [downloads, pack.models]);
 
-  // Check which models are already downloaded
   useEffect(() => {
-    const checkDownloaded = async () => {
-      const downloaded = new Set<string>();
-      for (const model of pack.models) {
-        if (!model.repo_id || !model.path) {continue;}
-        try {
-          const res = await checkHfCache({
-            repo_id: model.repo_id,
-            allow_pattern: model.path as any
-          });
-          if (res.all_present) {
-            downloaded.add(model.id);
-          }
-        } catch {
-          // Ignore errors
+    const requests = pack.models
+      .map((model) => buildHfCacheRequest(model))
+      .filter((request): request is NonNullable<typeof request> => request !== null);
+
+    if (requests.length === 0) {
+      return;
+    }
+
+    void ensureStatuses(requests);
+  }, [ensureStatuses, pack.models, cacheVersion]);
+
+  const downloadedModels = useMemo(() => {
+    const downloaded = new Set<string>();
+    pack.models.forEach((model) => {
+      if (canCheckHfCache(model)) {
+        const key = getHfCacheKey(model);
+        if (cacheStatuses[key]) {
+          downloaded.add(model.id);
         }
+        return;
       }
-      setDownloadedModels(downloaded);
-    };
-    checkDownloaded();
-  }, [pack.models, downloads]);
+      if (model.downloaded) {
+        downloaded.add(model.id);
+      }
+    });
+    return downloaded;
+  }, [cacheStatuses, pack.models]);
 
   const allDownloaded = downloadedModels.size === pack.models.length;
   const someDownloaded =

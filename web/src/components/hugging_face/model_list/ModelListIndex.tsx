@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { VariableSizeList as VirtualList } from "react-window";
 
@@ -17,6 +17,12 @@ import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
 import { isElectron } from "../../../stores/ApiClient";
+import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import {
+  buildHfCacheRequest,
+  canCheckHfCache,
+  getHfCacheKey
+} from "../../../utils/hfCache";
 
 const styles = (theme: Theme) =>
   css({
@@ -107,10 +113,22 @@ type ListItem =
   | { type: "header"; modelType: string }
   | { type: "model"; model: UnifiedModel };
 
+type VisibleRange = {
+  visibleStartIndex: number;
+  visibleStopIndex: number;
+};
+
 const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const { selectedModelType, modelSearchTerm } = useModelManagerStore();
+  const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
+  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
+  const cachePending = useHfCacheStatusStore((state) => state.pending);
+  const cacheVersion = useHfCacheStatusStore((state) => state.version);
+  const ensureStatuses = useHfCacheStatusStore(
+    (state) => state.ensureStatuses
+  );
 
   const {
     modelTypes,
@@ -179,6 +197,47 @@ const ModelListIndex: React.FC = () => {
       return item.type === "header" ? 60 : 180;
     },
     [flattenedList]
+  );
+
+  const visibleModels = useMemo(() => {
+    if (visibleRange.stop < visibleRange.start) {
+      return [];
+    }
+    const models: UnifiedModel[] = [];
+    for (let i = visibleRange.start; i <= visibleRange.stop; i += 1) {
+      const item = flattenedList[i];
+      if (item?.type === "model") {
+        models.push(item.model);
+      }
+    }
+    return models;
+  }, [flattenedList, visibleRange]);
+
+  useEffect(() => {
+    const requests = visibleModels
+      .map((model) => buildHfCacheRequest(model))
+      .filter((request): request is NonNullable<typeof request> => request !== null);
+
+    if (requests.length === 0) {
+      return;
+    }
+
+    void ensureStatuses(requests);
+  }, [ensureStatuses, visibleModels, cacheVersion]);
+
+  const handleItemsRendered = useCallback(
+    ({ visibleStartIndex, visibleStopIndex }: VisibleRange) => {
+      setVisibleRange((prev) => {
+        if (
+          prev.start === visibleStartIndex &&
+          prev.stop === visibleStopIndex
+        ) {
+          return prev;
+        }
+        return { start: visibleStartIndex, stop: visibleStopIndex };
+      });
+    },
+    []
   );
 
   if (isLoading) {
@@ -303,6 +362,7 @@ const ModelListIndex: React.FC = () => {
                   ? `header-${item.modelType}`
                   : `model-${item.model.id}`;
               }}
+              onItemsRendered={handleItemsRendered}
             >
               {({ index, style }) => {
                 const item = flattenedList[index];
@@ -316,25 +376,40 @@ const ModelListIndex: React.FC = () => {
                   );
                 } else {
                   const compatibility = getModelCompatibility(item.model);
+                  const cacheKey = getHfCacheKey(item.model);
+                  const isCacheableHf = canCheckHfCache(item.model);
+                  const isCheckingCache =
+                    isCacheableHf &&
+                    (cachePending[cacheKey] ||
+                      cacheStatuses[cacheKey] === undefined);
+                  const cachedDownloaded = cacheStatuses[cacheKey];
+                  const displayModel =
+                    isCacheableHf
+                      ? {
+                          ...item.model,
+                          downloaded: cachedDownloaded ?? false
+                        }
+                      : item.model;
                   return (
                     <Box style={style}>
                       <ModelListItem
-                        model={item.model}
+                        model={displayModel}
                         handleModelDelete={
-                          item.model.downloaded ? handleDeleteClick : undefined
+                          displayModel.downloaded ? handleDeleteClick : undefined
                         }
                         onDownload={
-                          !item.model.downloaded
+                          !displayModel.downloaded
                             ? () => startDownload(item.model)
                             : undefined
                         }
                         handleShowInExplorer={
-                          item.model.downloaded
+                          displayModel.downloaded
                             ? handleShowInExplorer
                             : undefined
                         }
                         showModelStats={true}
                         compatibility={compatibility}
+                        isCheckingCache={isCheckingCache}
                       />
                     </Box>
                   );
