@@ -38,10 +38,12 @@ const ComfyModelSelect = ({
 
   const options = useMemo(() => {
     if (!models || isLoading || isError) {return [];}
-    return (models as Array<RepoPath | { name?: string }>).map((model) => ({
-      value: (model as any).name ?? (model as RepoPath).path,
-      label: (model as any).name ?? (model as RepoPath).path ?? ""
-    }));
+    return (models as Array<RepoPath | { name?: string }>)
+      .map((model) => ({
+        value: (model as any).name ?? (model as RepoPath).path,
+        label: (model as any).name ?? (model as RepoPath).path ?? ""
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [models, isLoading, isError]);
 
   const handleChange = useCallback(
