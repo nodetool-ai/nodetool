@@ -333,12 +333,11 @@ const SecretsMenu = () => {
       <Dialog
         open={openDialog}
         onClose={handleClose}
-        maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: "12px",
-            backgroundImage: "none"
+            backgroundImage: "none",
           }
         }}
       >
@@ -362,11 +361,9 @@ const SecretsMenu = () => {
             display: "flex",
             flexDirection: "column",
             gap: "1.5em",
-            paddingTop: "1.5em",
-            paddingBottom: "1.5em"
           }}
         >
-          <Box>
+          <Box sx={{ marginTop: "1.5em" }}>
             <TextField
               disabled={true}
               label="Key"
@@ -387,17 +384,8 @@ const SecretsMenu = () => {
               }
               fullWidth
               placeholder="Enter new secret value"
-              multiline
-              rows={4}
               autoFocus
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  fontFamily: "monospace",
-                  fontSize: "0.9em",
-                  letterSpacing: "0.05em"
-                }
-              }}
             />
             <Typography
               variant="caption"
