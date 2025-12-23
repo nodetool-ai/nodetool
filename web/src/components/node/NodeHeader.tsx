@@ -127,9 +127,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const SyncModeIcon = ({ mode }: { mode: string }) => {
     // Minimalistic dot motif: 1 dot for on_any, 2 overlapping dots for zip_all
+    const size = 28;
+    const r = 3;
+    
     if (mode === "zip_all") {
-      const size = 18;
-      const r = 2.2;
       return (
         <svg
           width={size}
@@ -139,14 +140,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           role="img"
           style={{ display: "block" }}
         >
-          <circle cx={size / 2 - 1.5} cy={size / 2} r={r} fill="currentColor" />
-          <circle cx={size / 2 + 1.5} cy={size / 2} r={r} fill="currentColor" />
+          <circle cx={size / 2 - 2.5 - 1} cy={size / 2 - 1} r={r} fill="currentColor" />
+          <circle cx={size / 2 + 2.5 - 1} cy={size / 2 - 1} r={r} fill="currentColor" />
         </svg>
       );
     }
     // Default: on_any → single dot
-    const size = 12;
-    const r = 2.2;
     return (
       <svg
         width={size}
@@ -156,7 +155,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         role="img"
         style={{ display: "block" }}
       >
-        <circle cx={size / 2} cy={size / 2} r={r} fill="currentColor" />
+        <circle cx={size / 2 - 1} cy={size / 2 - 1} r={r} fill="currentColor" />
       </svg>
     );
   };
