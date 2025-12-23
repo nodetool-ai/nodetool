@@ -12,14 +12,12 @@ import {
   Tooltip
 } from "@mui/material";
 import { CollectionCreate, UnifiedModel } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
+import { client, isProduction } from "../../stores/ApiClient";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import LlamaModelSelect from "../properties/LlamaModelSelect";
 import ModelRecommendationsButton from "../node/ModelRecommendationsButton";
 import { getIsElectronDetails } from "../../utils/browser";
-
-const isProduction = process.env.NODE_ENV === "production";
 
 interface CollectionFormProps {
   onClose: () => void;

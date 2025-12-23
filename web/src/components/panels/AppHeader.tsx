@@ -19,8 +19,7 @@ import ModelsButton from "../hugging_face/ModelsButton";
 import { IconForType } from "../../config/data_types";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { getIsElectronDetails } from "../../utils/browser";
-
-const isProduction = process.env.NODE_ENV === "production";
+import { isProduction } from "../../stores/ApiClient";
 
 const styles = (theme: Theme) =>
   css({

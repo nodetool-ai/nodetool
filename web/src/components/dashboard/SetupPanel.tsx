@@ -20,8 +20,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import DownloadIcon from "@mui/icons-material/Download";
 import { getIsElectronDetails } from "../../utils/browser";
-
-const isProduction = process.env.NODE_ENV === "production";
+import { isProduction } from "../../stores/ApiClient";
 
 const InlineModelDownload: React.FC<{
   model: UnifiedModel;
