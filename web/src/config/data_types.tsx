@@ -85,6 +85,13 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   database,
   task,
   language_model: model,
+  thread,
+  model_ref: model,
+  image_model: model,
+  workflow: dataframe,
+  datetime: float,
+  object: dict,
+  np_array: tensor,
   ...comfyIconMap
 };
 
@@ -123,7 +130,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "any",
     label: "Any",
-    description: "Nodes using the TypeScript 'any' datatype",
+    description: "Accepts any data type. Use when a node can handle multiple input types dynamically.",
     color: colour("execution"),
     textColor: "dark",
     name: "",
@@ -134,7 +141,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "notype",
     label: "No Type",
-    description: "No output type",
+    description: "No output produced. Used for nodes that perform actions without returning data.",
     color: "#A7B1BF", // neutral grey
     textColor: "dark",
     name: "",
@@ -145,7 +152,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "asset",
     label: "Asset",
-    description: "Media files or documents",
+    description: "Reference to media files or documents stored in the asset library.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -156,7 +163,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "audio",
     label: "Audio",
-    description: "Audio data",
+    description: "Audio data for playback, processing, or generation. Supports WAV, MP3, and other formats.",
     color: colour("audio"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -167,7 +174,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "video",
     label: "Video",
-    description: "Video data",
+    description: "Video data for playback, editing, or generation. Supports MP4, WebM, and other formats.",
     color: colour("texture"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -178,7 +185,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "bool",
     label: "Boolean",
-    description: "True or false values",
+    description: "Logical true or false value. Used for conditions, toggles, and binary choices.",
     color: colour("boolean"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -189,7 +196,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "chunk",
     label: "Chunk",
-    description: "A chunk of data from a chat message stream",
+    description: "Partial data from a streaming response. Used in real-time chat and generation workflows.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -200,7 +207,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "dataframe",
     label: "Dataframe",
-    description: "Structured data in a tabular format",
+    description: "Tabular data with rows and columns. Used for CSV data, analytics, and data processing.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -211,7 +218,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "document",
     label: "Document",
-    description: "Document file",
+    description: "Structured document with text content and metadata. Supports PDF, DOCX, and text files.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -222,7 +229,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "dict",
     label: "Dictionary",
-    description: "Key‑Value pairs collection",
+    description: "Key-value pairs collection. Used for structured data, configurations, and JSON objects.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -233,7 +240,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "enum",
     label: "Enumeration",
-    description: "A set of named constants",
+    description: "A predefined set of named options. Used for dropdowns and fixed-choice selections.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -244,7 +251,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "file",
     label: "File",
-    description: "Uploaded files",
+    description: "Reference to an uploaded file. Used for file inputs and attachments.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -255,7 +262,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "float",
     label: "Float",
-    description: "Real numbers with fractional parts",
+    description: "Decimal number with fractional precision. Used for measurements, percentages, and ratios.",
     color: colour("scalar"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -266,7 +273,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "folder",
     label: "Folder",
-    description: "Refers to a folder from the asset library",
+    description: "Reference to a folder in the asset library. Used for batch processing multiple files.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -277,7 +284,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "image",
     label: "Image",
-    description: "Image data",
+    description: "Image data for display, editing, or generation. Supports PNG, JPEG, WebP, and other formats.",
     color: colour("texture"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -288,7 +295,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "int",
     label: "Integer",
-    description: "Whole numbers",
+    description: "Whole number without decimals. Used for counts, indices, and discrete quantities.",
     color: "#0891B2",
     textColor: "var(--palette-action-active)",
     name: "",
@@ -299,7 +306,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "list",
     label: "List",
-    description: "An ordered collection of items",
+    description: "Ordered collection of items. Used for arrays, sequences, and batch processing.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -310,7 +317,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "str",
     label: "String",
-    description: "A sequence of characters",
+    description: "Text value for labels, names, and short text. Use Text type for longer content.",
     color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -321,7 +328,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "tensor",
     label: "Tensor",
-    description: "Multi‑dimensional arrays",
+    description: "Multi-dimensional numerical array. Used for ML model inputs, embeddings, and computations.",
     color: colour("matrix"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -332,7 +339,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "text",
     label: "Text",
-    description: "Used for longer blocks of textual data",
+    description: "Extended text content for documents, prompts, and multi-line strings.",
     color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -343,7 +350,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "union",
     label: "Union",
-    description: "Represents a value that could be one of several types",
+    description: "Value that can be one of several specified types. Enables flexible type handling.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -354,7 +361,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "language_model",
     label: "Language Model",
-    description: "Language model",
+    description: "Reference to an LLM for text generation, chat, and language understanding tasks.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -365,7 +372,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "message",
     label: "Message",
-    description: "A Chat Message",
+    description: "Chat message with role and content. Used in conversation flows and chat interfaces.",
     color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -376,7 +383,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "taesd",
     label: "TAESD",
-    description: "Tiny Autoencoder",
+    description: "Tiny Autoencoder for Stable Diffusion. Enables fast image previews during generation.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -387,7 +394,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "database",
     label: "Database",
-    description: "Database",
+    description: "Connection to a database for storing and querying structured data.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -398,13 +405,90 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "task",
     label: "Task",
-    description: "Used for agent tasks",
+    description: "Agent task with goals and context. Used for autonomous AI agent workflows.",
     color: colour("event"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
     namespace: "",
     icon: "Task"
+  },
+  {
+    value: "thread",
+    label: "Thread",
+    description: "Conversation thread containing a sequence of messages for chat interactions.",
+    color: colour("textual"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "thread"
+  },
+  {
+    value: "model_ref",
+    label: "Model Reference",
+    description: "Reference to a machine learning model file or repository for inference.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "model"
+  },
+  {
+    value: "image_model",
+    label: "Image Model",
+    description: "Reference to an image generation or processing model for visual AI tasks.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "model"
+  },
+  {
+    value: "workflow",
+    label: "Workflow",
+    description: "Reference to another workflow. Used for nesting and composing complex pipelines.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "datetime",
+    label: "DateTime",
+    description: "Date and time value with timezone support. Used for scheduling and timestamps.",
+    color: colour("scalar"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "object",
+    label: "Object",
+    description: "Generic structured object. Used for complex data that doesn't fit other types.",
+    color: colour("collection"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "np_array",
+    label: "NumPy Array",
+    description: "NumPy array for numerical computing. Used for scientific data and ML operations.",
+    color: colour("matrix"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "tensor"
   }
 ];
 
