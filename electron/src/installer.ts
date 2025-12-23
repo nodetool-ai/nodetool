@@ -695,8 +695,43 @@ async function provisionPythonEnvironment(
  */
 
 /**
+ * Validates an API key format based on the provider type.
+ * Returns true if the key appears valid, false otherwise.
+ * Note: This only validates the format, not whether the key actually works.
+ */
+function validateApiKeyFormat(key: string, value: string): boolean {
+  const trimmedValue = value.trim();
+  
+  // Empty values are valid (just means the user didn't provide a key)
+  if (trimmedValue.length === 0) {
+    return true;
+  }
+
+  switch (key) {
+    case "OPENAI_API_KEY":
+      // OpenAI keys start with "sk-" and are at least 20 characters
+      return trimmedValue.startsWith("sk-") && trimmedValue.length >= 20;
+    case "ANTHROPIC_API_KEY":
+      // Anthropic keys start with "sk-ant-" and are at least 20 characters
+      return trimmedValue.startsWith("sk-ant-") && trimmedValue.length >= 20;
+    case "GEMINI_API_KEY":
+      // Google Gemini keys are typically at least 30 characters
+      return trimmedValue.length >= 30;
+    case "OPENROUTER_API_KEY":
+      // OpenRouter keys start with "sk-or-" and are at least 20 characters
+      return trimmedValue.startsWith("sk-or-") && trimmedValue.length >= 20;
+    case "HF_TOKEN":
+      // Hugging Face tokens start with "hf_" and are at least 20 characters
+      return trimmedValue.startsWith("hf_") && trimmedValue.length >= 20;
+    default:
+      // For unknown keys, just accept non-empty values
+      return true;
+  }
+}
+
+/**
  * Save provider API keys to settings
- * Only saves non-empty values
+ * Only saves non-empty values that pass basic format validation
  */
 function persistProviderApiKeys(providerApiKeys: ProviderApiKeys | undefined): void {
   if (!providerApiKeys) {
@@ -704,11 +739,27 @@ function persistProviderApiKeys(providerApiKeys: ProviderApiKeys | undefined): v
   }
 
   const keysToSave: Record<string, string> = {};
+  const skippedKeys: string[] = [];
   
   for (const [key, value] of Object.entries(providerApiKeys)) {
     if (typeof value === "string" && value.trim().length > 0) {
-      keysToSave[key] = value.trim();
+      if (validateApiKeyFormat(key, value)) {
+        keysToSave[key] = value.trim();
+      } else {
+        skippedKeys.push(key);
+        logMessage(
+          `Skipping ${key}: value does not match expected format`,
+          "warn"
+        );
+      }
     }
+  }
+
+  if (skippedKeys.length > 0) {
+    logMessage(
+      `Skipped invalid API keys: ${skippedKeys.join(", ")}. Keys can be configured later in Settings.`,
+      "warn"
+    );
   }
 
   if (Object.keys(keysToSave).length > 0) {

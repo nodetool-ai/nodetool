@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import logo from "../assets/logo.png";
+import type { ProviderApiKeys } from "../types.d";
 
 const moduleMapping = {
   apple: "nodetool-ai/nodetool-apple",
@@ -210,14 +211,8 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
   const [isOllamaRunning, setIsOllamaRunning] = useState(false);
   const [isOllamaInstalled, setIsOllamaInstalled] = useState(false);
   
-  // Provider API keys state
-  const [providerApiKeys, setProviderApiKeys] = useState<{
-    OPENAI_API_KEY: string;
-    ANTHROPIC_API_KEY: string;
-    GEMINI_API_KEY: string;
-    OPENROUTER_API_KEY: string;
-    HF_TOKEN: string;
-  }>({
+  // Provider API keys state - uses Required<ProviderApiKeys> to ensure all fields have values
+  const [providerApiKeys, setProviderApiKeys] = useState<Required<ProviderApiKeys>>({
     OPENAI_API_KEY: "",
     ANTHROPIC_API_KEY: "",
     GEMINI_API_KEY: "",
