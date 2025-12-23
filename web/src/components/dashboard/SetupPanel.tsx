@@ -281,11 +281,7 @@ const SetupPanel: React.FC = () => {
                   <li>Or use <span className="fake-button">Recommended Models</span> button on nodes</li>
                 </ol>
               </Box>
-            </>
-          )}
 
-          {shouldShowLocalModels && (
-            <>
               <Typography variant="subtitle2" className="setup-list-title">
                 Popular Models
               </Typography>
