@@ -305,6 +305,35 @@
   color: var(--c_text_primary);
 }
 
+.package-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.status-badge.up-to-date {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--c_success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.status-badge.update-available {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--c_warning);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.version-arrow {
+  color: var(--c_warning);
+  margin-left: 8px;
+}
+
 .version-info {
   display: flex;
   flex-direction: column;
