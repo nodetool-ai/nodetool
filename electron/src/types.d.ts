@@ -132,7 +132,8 @@ declare global {
           packages: PythonPackages,
           modelBackend?: ModelBackend,
           installOllama?: boolean,
-          installLlamaCpp?: boolean
+          installLlamaCpp?: boolean,
+          providerApiKeys?: ProviderApiKeys
         ) => Promise<void>;
         onLocationPrompt: (
           callback: (data: InstallLocationData) => void
@@ -393,10 +394,19 @@ export enum IpcChannels {
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
 
+export interface ProviderApiKeys {
+  OPENAI_API_KEY?: string;
+  ANTHROPIC_API_KEY?: string;
+  GEMINI_API_KEY?: string;
+  OPENROUTER_API_KEY?: string;
+  HF_TOKEN?: string;
+}
+
 export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
   modelBackend?: ModelBackend;
+  providerApiKeys?: ProviderApiKeys;
   // Deprecated: kept for backward compatibility if needed
   installOllama?: boolean;
   installLlamaCpp?: boolean;

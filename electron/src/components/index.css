@@ -2167,3 +2167,113 @@ body::before {
   height: 0;
 }
 
+/* Provider Setup Styles */
+.provider-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.provider-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.provider-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.provider-card:focus-within {
+  border-color: rgba(74, 158, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+.provider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.provider-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.provider-title {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c_text_primary);
+}
+
+.provider-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--c_text_secondary);
+  line-height: 1.4;
+}
+
+.provider-link {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c_link);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(96, 165, 250, 0.1);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.provider-link:hover {
+  background: rgba(96, 165, 250, 0.2);
+  color: #93c5fd;
+}
+
+.provider-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+  color: var(--c_text_primary);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.provider-input::placeholder {
+  color: var(--c_text_tertiary);
+  opacity: 0.7;
+}
+
+.provider-input:focus {
+  border-color: rgba(74, 158, 255, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.15);
+}
+
+.provider-input:not(:placeholder-shown) {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+

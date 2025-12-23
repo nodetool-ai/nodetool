@@ -423,7 +423,14 @@ const api = {
       packages: PythonPackages,
       modelBackend?: "ollama" | "llama_cpp" | "none",
       installOllama?: boolean,
-      installLlamaCpp?: boolean
+      installLlamaCpp?: boolean,
+      providerApiKeys?: {
+        OPENAI_API_KEY?: string;
+        ANTHROPIC_API_KEY?: string;
+        GEMINI_API_KEY?: string;
+        OPENROUTER_API_KEY?: string;
+        HF_TOKEN?: string;
+      }
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
@@ -431,6 +438,7 @@ const api = {
         modelBackend,
         installOllama,
         installLlamaCpp,
+        providerApiKeys,
       }),
 
     /** Subscribe to install location prompt */

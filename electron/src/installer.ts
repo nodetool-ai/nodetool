@@ -16,7 +16,7 @@ import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
-import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend } from "./types.d";
+import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend, ProviderApiKeys } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
@@ -43,6 +43,7 @@ interface InstallationPreferences {
 interface InstallationSelection extends InstallationPreferences {
   installOllama?: boolean;
   installLlamaCpp?: boolean;
+  providerApiKeys?: ProviderApiKeys;
 }
 
 function sanitizePackageSelection(packages: unknown): PythonPackages {
@@ -159,6 +160,7 @@ async function promptForInstallLocation(
           location,
           packages,
           modelBackend,
+          providerApiKeys,
           installOllama,
           installLlamaCpp,
         }: InstallToLocationData
@@ -172,6 +174,7 @@ async function promptForInstallLocation(
           ...preferences,
           installOllama,
           installLlamaCpp,
+          providerApiKeys,
         });
       }
     );
@@ -692,14 +695,52 @@ async function provisionPythonEnvironment(
  */
 
 /**
+ * Save provider API keys to settings
+ * Only saves non-empty values
+ */
+function persistProviderApiKeys(providerApiKeys: ProviderApiKeys | undefined): void {
+  if (!providerApiKeys) {
+    return;
+  }
+
+  const keysToSave: Record<string, string> = {};
+  
+  for (const [key, value] of Object.entries(providerApiKeys)) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      keysToSave[key] = value.trim();
+    }
+  }
+
+  if (Object.keys(keysToSave).length > 0) {
+    try {
+      updateSettings(keysToSave);
+      logMessage(
+        `Persisted provider API keys: ${Object.keys(keysToSave).join(", ")}`
+      );
+    } catch (error) {
+      logMessage(
+        `Failed to persist provider API keys: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        "error"
+      );
+    }
+  }
+}
+
+/**
  * Install the Python environment
  */
 async function installCondaEnvironment(): Promise<void> {
   try {
     logMessage("Prompting for install location");
     const persistedPreferences = readInstallationPreferences();
-    const { location, packages, modelBackend, installOllama, installLlamaCpp } =
+    const { location, packages, modelBackend, installOllama, installLlamaCpp, providerApiKeys } =
       await promptForInstallLocation(persistedPreferences);
+    
+    // Save provider API keys before starting the Python environment setup
+    persistProviderApiKeys(providerApiKeys);
+    
     await provisionPythonEnvironment(location, packages, modelBackend, {
       installOllama,
       installLlamaCpp,
