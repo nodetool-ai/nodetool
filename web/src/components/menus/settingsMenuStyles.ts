@@ -4,6 +4,10 @@ import type { Theme } from "@mui/material/styles";
 
 export const settingsStyles = (theme: Theme): any =>
   css({
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    width: "100%",
     ".settings-tabs": {
       marginBottom: "1em",
       paddingTop: "0em",
@@ -62,25 +66,25 @@ export const settingsStyles = (theme: Theme): any =>
       position: "relative",
       display: "flex",
       flexDirection: "column",
-      height: "75vh",
-      width: "70vw",
-      minWidth: "400px",
-      maxWidth: "1000px",
+      flex: 1,
+      minHeight: 0,
+      width: "100%",
       fontSize: theme.fontSizeNormal
     },
     ".settings-container": {
       display: "flex",
       flexDirection: "row",
       flex: 1,
+      minHeight: 0,
       overflow: "hidden",
-      height: "70vh"
+      height: "100%"
     },
     ".settings-sidebar": {
       width: "220px",
       minWidth: "220px",
       background: "transparent",
       padding: "1.5em 0",
-      height: "calc(75vh - 48px)",
+      height: "100%",
       overflowY: "auto",
       borderRight: `1px solid ${theme.vars.palette.grey[600]}`
     },
@@ -124,7 +128,7 @@ export const settingsStyles = (theme: Theme): any =>
       flex: 1,
       padding: "0 1em",
       overflowY: "auto",
-      height: "70vh",
+      height: "100%",
       "&::-webkit-scrollbar": {
         width: "8px"
       },
