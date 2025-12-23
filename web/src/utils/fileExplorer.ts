@@ -2,6 +2,8 @@ import { useNotificationStore } from "../stores/NotificationStore";
 
 type ModelDirectory = "huggingface" | "ollama";
 
+type SystemDirectory = "installation" | "logs";
+
 interface FileExplorerResult {
   status: "success" | "error";
   path?: string;
@@ -13,6 +15,9 @@ type ExplorerBridge = {
     target: ModelDirectory
   ) => Promise<FileExplorerResult | void>;
   openModelPath: (path: string) => Promise<FileExplorerResult | void>;
+  openSystemDirectory?: (
+    target: SystemDirectory
+  ) => Promise<FileExplorerResult | void>;
 };
 
 type ExplorerWindow = Window & {
@@ -198,6 +203,60 @@ export async function openOllamaPath(): Promise<void> {
     debugLog("openOllamaPath threw", error);
     notify("error", "Could not open Ollama folder.");
   }
+}
+
+/**
+ * Ask the Electron main process to open the Nodetool installation directory.
+ */
+export async function openInstallationPath(): Promise<void> {
+  const explorer = getExplorerBridge();
+  if (!explorer || typeof explorer.openSystemDirectory !== "function") {
+    debugLog("openInstallationPath aborted because openSystemDirectory is unavailable");
+    notify("warning", explorerUnavailableMessage);
+    return;
+  }
+
+  try {
+    debugLog("Calling explorer.openSystemDirectory for installation");
+    const result = await explorer.openSystemDirectory("installation");
+    handleExplorerResult(result, "Could not open Nodetool installation folder.");
+    debugLog("openInstallationPath completed");
+  } catch (error) {
+    console.error("[fileExplorer] Failed to open installation path:", error);
+    debugLog("openInstallationPath threw", error);
+    notify("error", "Could not open Nodetool installation folder.");
+  }
+}
+
+/**
+ * Ask the Electron main process to open the Nodetool logs directory.
+ */
+export async function openLogsPath(): Promise<void> {
+  const explorer = getExplorerBridge();
+  if (!explorer || typeof explorer.openSystemDirectory !== "function") {
+    debugLog("openLogsPath aborted because openSystemDirectory is unavailable");
+    notify("warning", explorerUnavailableMessage);
+    return;
+  }
+
+  try {
+    debugLog("Calling explorer.openSystemDirectory for logs");
+    const result = await explorer.openSystemDirectory("logs");
+    handleExplorerResult(result, "Could not open Nodetool logs folder.");
+    debugLog("openLogsPath completed");
+  } catch (error) {
+    console.error("[fileExplorer] Failed to open logs path:", error);
+    debugLog("openLogsPath threw", error);
+    notify("error", "Could not open Nodetool logs folder.");
+  }
+}
+
+/**
+ * Check if system directory opening is available.
+ */
+export function isSystemDirectoryAvailable(): boolean {
+  const explorer = getExplorerBridge();
+  return explorer !== null && typeof explorer.openSystemDirectory === "function";
 }
 
 export function isPathValid(path: string): boolean {
