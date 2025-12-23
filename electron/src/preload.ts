@@ -24,6 +24,7 @@ import {
   UpdateInfo,
   Workflow,
   ModelDirectory,
+  SystemDirectory,
 } from "./types.d";
 
 // ============================================================================
@@ -155,6 +156,8 @@ const api = {
     ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_PATH, {
       path: validatePath(path),
     }),
+  openSystemDirectory: (target: SystemDirectory) =>
+    ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY, target),
   openExternal: (url: string) =>
     ipcRenderer.invoke(IpcChannels.PACKAGE_OPEN_EXTERNAL, validateUrl(url)),
 
@@ -326,6 +329,10 @@ const api = {
       ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_PATH, {
         path: validatePath(path),
       }),
+
+    /** Open a system directory (installation or logs) */
+    openSystemDirectory: (target: SystemDirectory) =>
+      ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY, target),
 
     /** Open a URL in the system browser */
     openExternal: (url: string) =>

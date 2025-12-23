@@ -67,6 +67,17 @@ const getDefaultCondaEnvPath = (): string => {
 const getCondaEnvPath = (): string => {
   logMessage("=== Getting Conda Environment Path ===");
 
+  // Detect if a conda environment is already activated in the shell
+  if (process.env.CONDA_PREFIX) {
+    const activeEnv = process.env.CONDA_PREFIX;
+    logMessage("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", "warn");
+    logMessage("! WARNING: DETECTED ACTIVATED CONDA ENVIRONMENT", "warn");
+    logMessage(`! USING: ${activeEnv}`, "warn");
+    logMessage("! IGNORING CONDA_ENV SETTING FROM CONFIG FILE", "warn");
+    logMessage("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", "warn");
+    return activeEnv;
+  }
+
   let settings: Record<string, unknown> = {};
   try {
     settings = readSettings();

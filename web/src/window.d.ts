@@ -8,6 +8,8 @@ interface WindowControls {
 
 type ModelDirectory = "huggingface" | "ollama";
 
+type SystemDirectory = "installation" | "logs";
+
 interface FileExplorerResult {
   status: "success" | "error";
   path?: string;
@@ -52,6 +54,9 @@ declare global {
       ) => Promise<FileExplorerResult | void>;
       openModelPath?: (
         path: string
+      ) => Promise<FileExplorerResult | void>;
+      openSystemDirectory?: (
+        target: SystemDirectory
       ) => Promise<FileExplorerResult | void>;
       onMenuEvent: (callback: (data: MenuEventData) => void) => void;
       unregisterMenuEvent: (callback: (data: MenuEventData) => void) => void;

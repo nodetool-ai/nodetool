@@ -1,15 +1,48 @@
 /** @jsxImportSource @emotion/react */
 import { css, SerializedStyles } from "@emotion/react";
 import SaveIcon from "@mui/icons-material/Save";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useMemo, useState, useCallback } from "react";
-import { Button, TextField, Typography } from "@mui/material";
+import { Button, TextField, Typography, Box, Divider, IconButton, Tooltip } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import {
+  isFileExplorerAvailable,
+  isSystemDirectoryAvailable,
+  openHuggingfacePath,
+  openOllamaPath,
+  openInstallationPath,
+  openLogsPath,
+  openInExplorer
+} from "../../utils/fileExplorer";
+import { isElectron } from "../../utils/browser";
+import { isLocalhost } from "../../stores/ApiClient";
+
+interface FolderButtonProps {
+  label: string;
+  onClick: () => void;
+}
+
+const FolderButton = ({ label, onClick }: FolderButtonProps) => (
+  <Button
+    variant="outlined"
+    startIcon={<FolderOutlinedIcon />}
+    onClick={onClick}
+    sx={{
+      padding: "0.5em 1.5em",
+      textTransform: "none",
+      justifyContent: "flex-start",
+      minWidth: "200px"
+    }}
+  >
+    {label}
+  </Button>
+);
 
 const ExternalLinkButton = ({
   href,
@@ -146,6 +179,28 @@ const FoldersSettings = () => {
 
   const theme = useTheme();
 
+  // Check if we can show folder opening buttons
+  const canOpenFolders = isElectron && isLocalhost && isFileExplorerAvailable();
+  const canOpenSystemFolders = isElectron && isLocalhost && isSystemDirectoryAvailable();
+
+  // Helper to create open button for a folder setting
+  const renderOpenButton = (settingValue: string | undefined) => {
+    if (!canOpenFolders || !settingValue) {
+      return null;
+    }
+    return (
+      <Tooltip title="Open folder in file explorer">
+        <IconButton
+          size="small"
+          onClick={() => openInExplorer(settingValue)}
+          sx={{ ml: 1 }}
+        >
+          <FolderOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+  };
+
   return (
     <>
       {isLoading && (
@@ -153,76 +208,139 @@ const FoldersSettings = () => {
           Loading folder settings...
         </Typography>
       )}
-      {isSuccess && settingsByGroup && settingsByGroup.size > 0 && (
-        <div
-          className="remote-settings-content"
-          css={getSharedSettingsStyles(theme)}
-        >
-          <div className="settings-main-content">
-            <Typography variant="h1">Folder Settings</Typography>
+      <div
+        className="remote-settings-content"
+        css={getSharedSettingsStyles(theme)}
+      >
+        <div className="settings-main-content">
+          <Typography variant="h1">Folder Settings</Typography>
 
-            {/* Secrets warning can be removed if no secret folder settings exist, or kept if applicable */}
-            {/* <div className="secrets">
-              <WarningIcon sx={{ color: "#ff9800" }} />
-              <Typography>
-                Keep your keys and tokens secure and do not share them publicly
-              </Typography>
-            </div> */}
-
-            {Array.from(settingsByGroup.entries()).map(
-              ([groupName, groupSettings]) => (
-                <div key={groupName} className="settings-section">
-                  <Typography
-                    variant="h2"
-                    id={groupName.toLowerCase().replace(/\s+/g, "-")}
-                  >
-                    {groupName}
-                  </Typography>
-                  {groupSettings.map((setting) => (
-                    <div key={setting.env_var} className="settings-item large">
-                      <TextField
-                        type={setting.is_secret ? "text" : "text"}
-                        autoComplete="off"
-                        id={`${setting.env_var.toLowerCase()}-input`}
-                        label={setting.env_var.replace(/_/g, " ")}
-                        value={settingValues[setting.env_var] || ""}
-                        onChange={(e) =>
-                          handleChange(setting.env_var, e.target.value)
-                        }
-                        variant="standard"
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                      {setting.description && (
-                        <Typography className="description">
-                          {setting.description}
-                        </Typography>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
-
-            <div className="save-button-container">
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                className="save-button"
-                startIcon={<SaveIcon />}
+          {/* System Folders Section - Always show when in Electron */}
+          {canOpenSystemFolders && (
+            <div className="settings-section">
+              <Typography
+                variant="h2"
+                id="system-folders"
               >
-                SAVE FOLDER SETTINGS
-              </Button>
+                System Folders
+              </Typography>
+              <Typography className="description" sx={{ mb: 2 }}>
+                Open important Nodetool directories in your file explorer.
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <FolderButton
+                  label="Nodetool Installation"
+                  onClick={openInstallationPath}
+                />
+                <FolderButton
+                  label="Nodetool Logs"
+                  onClick={openLogsPath}
+                />
+              </Box>
             </div>
-          </div>
+          )}
+
+          {/* Model Folders Section */}
+          {canOpenFolders && (
+            <div className="settings-section">
+              <Typography
+                variant="h2"
+                id="model-folders"
+              >
+                Model Folders
+              </Typography>
+              <Typography className="description" sx={{ mb: 2 }}>
+                Open model cache directories in your file explorer.
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <FolderButton
+                  label="HuggingFace Models"
+                  onClick={openHuggingfacePath}
+                />
+                <FolderButton
+                  label="Ollama Models"
+                  onClick={openOllamaPath}
+                />
+              </Box>
+            </div>
+          )}
+
+          {/* Dynamic folder settings from backend */}
+          {isSuccess && settingsByGroup && settingsByGroup.size > 0 && (
+            <>
+              {Array.from(settingsByGroup.entries()).map(
+                ([groupName, groupSettings]) => {
+                  // Only add "Custom" prefix if system or model folders are visible, to differentiate
+                  const showCustomPrefix = canOpenFolders || canOpenSystemFolders;
+                  const sectionTitle = showCustomPrefix ? `Custom ${groupName}` : groupName;
+                  
+                  return (
+                    <div key={groupName} className="settings-section">
+                      <Typography
+                        variant="h2"
+                        id={groupName.toLowerCase().replace(/\s+/g, "-")}
+                      >
+                        {sectionTitle}
+                      </Typography>
+                      {groupSettings.map((setting) => (
+                        <div key={setting.env_var} className="settings-item large">
+                          <Box sx={{ display: "flex", alignItems: "flex-end", width: "100%" }}>
+                            <TextField
+                              type={setting.is_secret ? "text" : "text"}
+                              autoComplete="off"
+                              id={`${setting.env_var.toLowerCase()}-input`}
+                              label={setting.env_var.replace(/_/g, " ")}
+                              value={settingValues[setting.env_var] || ""}
+                              onChange={(e) =>
+                                handleChange(setting.env_var, e.target.value)
+                              }
+                              variant="standard"
+                              onKeyDown={(e) => e.stopPropagation()}
+                              sx={{ flex: 1 }}
+                            />
+                            {renderOpenButton(settingValues[setting.env_var])}
+                          </Box>
+                          {setting.description && (
+                            <Typography className="description">
+                              {setting.description}
+                            </Typography>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+              )}
+
+              <div className="save-button-container">
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSave}
+                  className="save-button"
+                  startIcon={<SaveIcon />}
+                >
+                  SAVE FOLDER SETTINGS
+                </Button>
+              </div>
+            </>
+          )}
+          
+          {/* Show message if no settings available and no folder buttons */}
+          {(() => {
+            const hasNoSettings = isSuccess && (!settingsByGroup || settingsByGroup.size === 0);
+            const hasNoFolderButtons = !canOpenFolders && !canOpenSystemFolders;
+            const showNoSettingsMessage = hasNoSettings && hasNoFolderButtons;
+            
+            return showNoSettingsMessage ? (
+              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+                No folder settings available or defined in the &apos;Folders&apos;
+                group.
+              </Typography>
+            ) : null;
+          })()}
         </div>
-      )}
-      {isSuccess && (!settingsByGroup || settingsByGroup.size === 0) && (
-        <Typography sx={{ textAlign: "center", padding: "2em" }}>
-          No folder settings available or defined in the &apos;Folders&apos;
-          group.
-        </Typography>
-      )}
+      </div>
     </>
   );
 };
