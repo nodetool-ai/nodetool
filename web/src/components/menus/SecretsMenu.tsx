@@ -23,6 +23,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import ConfirmDialog from "../dialogs/ConfirmDialog";
 
 interface SecretFormData {
   key: string;
@@ -48,6 +49,8 @@ const SecretsMenu = () => {
     key: "",
     value: ""
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [secretToDelete, setSecretToDelete] = useState<string | null>(null);
 
   // Use React Query to trigger fetch, but use store state directly
   const { isLoading: queryLoading } = useQuery({
@@ -157,11 +160,16 @@ const SecretsMenu = () => {
   }, [formData, updateMutation, addNotification]);
 
   const handleDelete = (key: string) => {
-    if (
-      window.confirm(`Are you sure you want to delete the secret "${key}"?`)
-    ) {
-      deleteMutation.mutate(key);
+    setSecretToDelete(key);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (secretToDelete) {
+      deleteMutation.mutate(secretToDelete);
     }
+    setDeleteDialogOpen(false);
+    setSecretToDelete(null);
   };
 
   return (
@@ -444,6 +452,19 @@ const SecretsMenu = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setSecretToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Secret"
+        content={`Are you sure you want to delete the secret "${secretToDelete}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </>
   );
 };

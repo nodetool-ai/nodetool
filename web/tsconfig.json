@@ -17,7 +17,8 @@
     "noEmit": true,
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react-jsx",
-    // Additional strict options - commented for gradual adoption
+    // Note: unused variable checking is handled by ESLint's @typescript-eslint/no-unused-vars
+    // for more granular control (allows underscore prefix patterns, ignoreRestSiblings, etc.)
     // "noUnusedLocals": true,
     // "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
