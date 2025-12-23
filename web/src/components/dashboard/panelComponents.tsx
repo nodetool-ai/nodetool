@@ -7,6 +7,7 @@ import WorkflowsList from "./WorkflowsList";
 import RecentChats from "./RecentChats";
 import WelcomePanel from "./WelcomePanel";
 import SetupPanel from "./SetupPanel";
+import ProviderSetupPanel from "./ProviderSetupPanel";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { PanelProps } from "./panelConfig";
 import ActivityPanel from "./ActivityPanel";
@@ -104,6 +105,11 @@ export const createPanelComponents = () => ({
   setup: (props: IDockviewPanelProps<PanelProps>) => (
     <Box sx={{ overflow: "auto", height: "100%" }}>
       <SetupPanel />
+    </Box>
+  ),
+  providers: (props: IDockviewPanelProps<PanelProps>) => (
+    <Box sx={{ overflow: "auto", height: "100%" }}>
+      <ProviderSetupPanel />
     </Box>
   ),
   "mini-app": (props: IDockviewPanelProps<PanelProps>) => (
