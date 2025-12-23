@@ -1,26 +1,13 @@
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 
-const SETTING_LINKS: Record<string, string> = {
-  OPENAI_API_KEY: "https://platform.openai.com/api-keys",
-  ANTHROPIC_API_KEY: "https://console.anthropic.com/",
-  GEMINI_API_KEY: "https://aistudio.google.com/app/apikey",
-  OPENROUTER_API_KEY: "https://openrouter.ai/keys",
-  HF_TOKEN: "https://huggingface.co/settings/tokens",
-  REPLICATE_API_TOKEN: "https://replicate.com/account/api-tokens",
-  AIME_API_KEY: "https://www.aime.info",
-  GOOGLE_APP_PASSWORD: "https://myaccount.google.com/apppasswords",
-  ELEVENLABS_API_KEY: "https://elevenlabs.io/subscription",
-  FAL_API_KEY: "https://fal.ai/dashboard/keys",
-  SERPAPI_API_KEY: "https://serpapi.com/manage-api-key",
-  DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard"
-};
+
 
 export const getRemoteSidebarSections = () => {
   const store = useRemoteSettingsStore.getState();
   const settings = store.settings;
 
   const initialGroupedSettings = settings
-    .filter((setting) => !setting.is_secret || SETTING_LINKS[setting.env_var])
+    .filter((setting) => !setting.is_secret)
     .reduce((acc, setting) => {
       const groupKey = setting.group || "UnknownGroup";
       acc[groupKey] = acc[groupKey] || [];

@@ -90,7 +90,7 @@ const RemoteSettings = () => {
     if (settingsToUse && settingsToUse.length > 0) {
       const values: Record<string, string> = {};
       settingsToUse.forEach((setting) => {
-        if ((!setting.is_secret || SETTING_LINKS[setting.env_var]) && setting.value !== null && setting.value !== undefined) {
+        if ((!setting.is_secret) && setting.value !== null && setting.value !== undefined) {
           values[setting.env_var] = String(setting.value);
         }
       });
@@ -133,7 +133,7 @@ const RemoteSettings = () => {
       }
 
       const allowedSettings = groupSettings.filter(
-        (setting) => !setting.is_secret || SETTING_LINKS[setting.env_var]
+        (setting) => !setting.is_secret
       );
 
       if (allowedSettings.length > 0) {
@@ -225,7 +225,7 @@ const RemoteSettings = () => {
                       {groupName}
                     </Typography>
                     {groupSettings
-                      .filter((setting) => !setting.is_secret || SETTING_LINKS[setting.env_var])
+                      .filter((setting) => !setting.is_secret)
                       .map((setting) => (
                       <div
                         key={setting.env_var}
