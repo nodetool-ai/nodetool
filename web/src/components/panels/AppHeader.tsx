@@ -18,6 +18,9 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import ModelsButton from "../hugging_face/ModelsButton";
 import { IconForType } from "../../config/data_types";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
+import { getIsElectronDetails } from "../../utils/browser";
+
+const isProduction = process.env.NODE_ENV === "production";
 
 const styles = (theme: Theme) =>
   css({
@@ -395,7 +398,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
             <EditorButton isActive={path.startsWith("/editor")} />
             <ChatButton isActive={path.startsWith("/chat")} />
             <AssetsButton isActive={path.startsWith("/assets")} />
-            <ModelsButton />
+            {(getIsElectronDetails().isElectron || !isProduction) && <ModelsButton />}
             <TemplatesButton isActive={path.startsWith("/templates")} />
             <CollectionsButton isActive={path.startsWith("/collections")} />
             <DashboardButton isActive={path.startsWith("/dashboard")} />
