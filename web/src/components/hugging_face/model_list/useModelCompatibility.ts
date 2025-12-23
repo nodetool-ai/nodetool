@@ -11,9 +11,11 @@ export type CompatibilityMatchKind =
   | "recommendation"
   | "property"
   | "recommended_type"
-  | "pipeline"
-  | "tag";
+  | "pipeline";
 
+/**
+ * Interface for a node that is compatible with a given model.
+ */
 export interface NodeCompatibilityInfo {
   nodeType: string;
   title: string;
@@ -22,6 +24,10 @@ export interface NodeCompatibilityInfo {
   matchedBy: CompatibilityMatchKind;
 }
 
+/**
+ * Result of the model compatibility check, splitting nodes into recommended
+ * (high confidence) and compatible (potential matches).
+ */
 export interface ModelCompatibilityResult {
   recommended: NodeCompatibilityInfo[];
   compatible: NodeCompatibilityInfo[];
@@ -37,59 +43,50 @@ let missingSummaryTimeout: number | null = null;
 
 type CompatibilityMap = Map<string, NodeCompatibilityInfo[]>;
 
-const NORMALIZED_MODEL_HINTS = [
-  "hf.",
-  "llama",
-  "language_model",
-  "tts",
-  "asr",
-  "mlx",
-  "gguf"
-];
 
-const EXACT_MODEL_TYPES = new Set([
-  "model",
-  "model_ref",
-  "model_path",
-  "hf.model",
-  "llama_model",
-  "language_model",
-  "tts_model",
-  "asr_model"
+const IMAGE_TYPES = new Set([
+  "hf.text_to_image",
+  "hf.flux",
+  "hf.stable_diffusion",
+  "hf.stable_diffusion_xl",
+  "hf.pixart",
+  "hf.qwen_image",
+  "hf.image_to_image",
+  "hf.inpainting",
+  "hf.controlnet",
+  "hf.controlnet_flux",
+  "hf.ip_adapter",
+  "hf.lora",
+  "hf.vae",
+  "hf.unet",
+  "hf.clip",
+  "hf.t5",
+  "hf.flux_kontext"
+]);
+const VIDEO_TYPES = new Set(["hf.text_to_video", "hf.image_to_video"]);
+const AUDIO_TYPES = new Set([
+  "hf.automatic_speech_recognition",
+  "hf.text_to_speech",
+  "hf.zero_shot_audio_classification"
 ]);
 
-const HF_TEXT_TO_IMAGE_HINTS = [
-  "text_to_image",
-  "stable_diffusion",
-  "flux",
-  "pixart",
-  "qwen_image",
-  "ip_adapter",
-  "unet",
-  "vae",
-  "clip",
-  "t5"
-];
-
-const HF_IMAGE_TO_IMAGE_HINTS = [
-  "image_to_image",
-  "inpainting",
-  "outpainting",
-  "controlnet",
-  "image_to_text"
-];
-
-const HF_TEXT_TO_VIDEO_HINTS = ["text_to_video"];
-const HF_IMAGE_TO_VIDEO_HINTS = ["image_to_video"];
-
-const HF_ASR_HINTS = ["automatic_speech_recognition", "asr"];
-const HF_TTS_HINTS = ["text_to_speech", "tts"];
+const resolveDomain = (typeName?: string | null) => {
+  const normalized = normalize(typeName);
+  if (!normalized) { return null; }
+  if (IMAGE_TYPES.has(normalized)) {
+    return "image";
+  }
+  if (VIDEO_TYPES.has(normalized)) {
+    return "video";
+  }
+  if (AUDIO_TYPES.has(normalized)) {
+    return "audio";
+  }
+  return null;
+};
 
 const normalize = (value?: string | null) =>
   value ? value.trim().toLowerCase() : undefined;
-
-const containsModelHint = (typeName: string) =>
-  NORMALIZED_MODEL_HINTS.some((hint) => typeName.includes(hint));
 
 const isModelPropertyType = (property: Property): string | undefined => {
   const baseType = property.type?.type;
@@ -103,14 +100,6 @@ const isModelPropertyType = (property: Property): string | undefined => {
   }
 
   if (normalized.endsWith("_model") || normalized.endsWith("_models")) {
-    return normalized;
-  }
-
-  if (EXACT_MODEL_TYPES.has(normalized)) {
-    return normalized;
-  }
-
-  if (containsModelHint(normalized)) {
     return normalized;
   }
 
@@ -134,7 +123,7 @@ const upsert = (
   key: string,
   info: NodeCompatibilityInfo
 ) => {
-  if (!key) {return;}
+  if (!key) { return; }
   const existing = map.get(key) ?? [];
   map.set(key, [...existing, info]);
 };
@@ -147,7 +136,7 @@ const expandRepoKeys = (
   const keys = new Set<string>();
   const add = (value?: string | null) => {
     const key = normalize(value);
-    if (!key) {return;}
+    if (!key) { return; }
     keys.add(key);
     if (key.includes(":")) {
       keys.add(key.split(":")[0]);
@@ -177,7 +166,7 @@ const expandRepoKeys = (
 
 const expandTypeVariants = (typeName: string): string[] => {
   const normalized = normalize(typeName);
-  if (!normalized) {return [];}
+  if (!normalized) { return []; }
 
   const variants = new Set<string>();
   variants.add(normalized);
@@ -204,80 +193,60 @@ const expandTypeVariants = (typeName: string): string[] => {
   return Array.from(variants);
 };
 
-const mapSlugToCanonicalType = (slug: string): string | undefined => {
-  if (HF_TEXT_TO_IMAGE_HINTS.some((hint) => slug.includes(hint))) {
-    return "hf.text_to_image";
-  }
-  if (HF_IMAGE_TO_IMAGE_HINTS.some((hint) => slug.includes(hint))) {
-    return "hf.image_to_image";
-  }
-  if (HF_TEXT_TO_VIDEO_HINTS.some((hint) => slug.includes(hint))) {
-    return "hf.text_to_video";
-  }
-  if (HF_IMAGE_TO_VIDEO_HINTS.some((hint) => slug.includes(hint))) {
-    return "hf.image_to_video";
-  }
-  if (HF_ASR_HINTS.some((hint) => slug.includes(hint))) {
-    return "hf.automatic_speech_recognition";
-  }
-  if (HF_TTS_HINTS.some((hint) => slug.includes(hint))) {
-    return "hf.text_to_speech";
-  }
-  return undefined;
-};
-
 const expandModelTypeCandidates = (model: UnifiedModel) => {
   const candidates = new Set<string>();
+  const lockedDomain = resolveDomain(model.type)
+    ?? resolveDomain(model.pipeline_tag ? `hf.${model.pipeline_tag.replace(/-/g, "_")}` : null);
   const add = (key?: string | null) => {
     const normalized = normalize(key);
-    if (normalized) {candidates.add(normalized);}
+    if (normalized) {
+      candidates.add(normalized);
+    }
   };
 
-  add(model.type);
-
-  if (model.type?.startsWith("hf.")) {
-    const slug = model.type.slice(3).toLowerCase();
-    const canonical = mapSlugToCanonicalType(slug);
-    if (canonical) {
-      add(canonical);
-    }
+  if (model.type) {
+    add(model.type);
   }
 
   if (model.pipeline_tag) {
     const pipelineSlug = model.pipeline_tag.replace(/-/g, "_").toLowerCase();
-    add(`hf.${pipelineSlug}`);
-    const canonical = mapSlugToCanonicalType(pipelineSlug);
-    if (canonical) {
-      add(canonical);
+    const pipelineType = `hf.${pipelineSlug}`;
+    const pipelineDomain = resolveDomain(pipelineType);
+    if (!lockedDomain || !pipelineDomain || pipelineDomain === lockedDomain) {
+      add(pipelineType);
     }
   }
-
-  (model.tags || []).forEach((tag) => {
-    const tagSlug = tag.replace(/-/g, "_").toLowerCase();
-    const canonical = mapSlugToCanonicalType(tagSlug);
-    if (canonical) {
-      add(canonical);
-    }
-  });
 
   return Array.from(candidates);
 };
 
+/**
+ * A hook that provides a function to check node compatibility for a given Hugging Face model.
+ *
+ * The compatibility logic works by pre-building indices of all available nodes based on:
+ * 1. Recommended models (repo_id, path) - Highest confidence match.
+ * 2. Property types (e.g. hf.flux) - Architecture-specific matching.
+ * 3. Recommended model types - Matches models against nodes that recommend similar model types.
+ *
+ * Matching Strategy:
+ * - Repo matches first: Exact repo/path matches are considered recommended.
+ * - Type and pipeline matching: Uses model.type and pipeline_tag to find compatible nodes.
+ * - Domain locking: Pipeline matches are allowed only when they align with the model's domain.
+ * - Strict recommendations: Generic pipeline types are excluded from matching via recommendation lists
+ *   to prevent false positives from nodes that merely recommend 'some' pipeline model without
+ *   having a matching input property.
+ */
 export const useModelCompatibility = () => {
   const metadata = useMetadataStore((state) => state.metadata);
 
   const {
     nodesByRepoId,
     nodesByModelType,
-    nodesByRecommendedType,
-    nodesByPipelineTag,
-    nodesByTag
+    nodesByRecommendedType
   } = useMemo(() => {
     const repoMap: CompatibilityMap = new Map();
     const typeMap: CompatibilityMap = new Map();
     const recommendedTypeMap: CompatibilityMap = new Map();
-    const pipelineMap: CompatibilityMap = new Map();
-    const tagMap: CompatibilityMap = new Map();
 
     Object.values(metadata).forEach((node) => {
       node.recommended_models.forEach((model) => {
@@ -294,25 +263,11 @@ export const useModelCompatibility = () => {
             toInfo(node, "recommended_type")
           );
         }
-
-        const pipeline = normalize(model.pipeline_tag);
-        if (pipeline) {
-          upsert(pipelineMap, pipeline, toInfo(node, "pipeline"));
-        }
-
-        (model.tags || [])
-          .map((tag) => normalize(tag))
-          .filter(Boolean)
-          .forEach((tag) => {
-            if (tag) {
-              upsert(tagMap, tag, toInfo(node, "tag"));
-            }
-          });
       });
 
       node.properties.forEach((property) => {
         const propertyType = isModelPropertyType(property);
-        if (!propertyType) {return;}
+        if (!propertyType) { return; }
         const variants = expandTypeVariants(propertyType);
         variants.forEach((key) =>
           upsert(
@@ -327,50 +282,9 @@ export const useModelCompatibility = () => {
     return {
       nodesByRepoId: repoMap,
       nodesByModelType: typeMap,
-      nodesByRecommendedType: recommendedTypeMap,
-      nodesByPipelineTag: pipelineMap,
-      nodesByTag: tagMap
+      nodesByRecommendedType: recommendedTypeMap
     };
   }, [metadata]);
-
-  useMemo(() => {
-    log.debug("[ModelCompatibility] maps built", {
-      metadataEntries: Object.keys(metadata).length,
-      repoKeys: nodesByRepoId.size,
-      propertyTypeKeys: nodesByModelType.size,
-      recommendedTypeKeys: nodesByRecommendedType.size,
-      pipelineKeys: nodesByPipelineTag.size,
-      tagKeys: nodesByTag.size
-    });
-  }, [
-    metadata,
-    nodesByRepoId,
-    nodesByModelType,
-    nodesByRecommendedType,
-    nodesByPipelineTag,
-    nodesByTag
-  ]);
-
-  useMemo(() => {
-    // Debug logging for specific nodes
-    const debugTypes = ["AudioClassifier", "DepthEstimation", "Whisper"];
-    const debugNodes = Object.values(metadata).filter((n) =>
-      debugTypes.some((t) => n.node_type.includes(t))
-    );
-    if (debugNodes.length > 0) {
-      log.info("[ModelCompatibility] Found debug nodes:", debugNodes.map(n => ({
-        type: n.node_type,
-        properties: n.properties.map(p => ({ name: p.name, type: p.type }))
-      })));
-    } else {
-      log.warn("[ModelCompatibility] No nodes found matching debug types:", debugTypes);
-    }
-
-    const hfKeys = Array.from(nodesByModelType.keys()).filter((k) =>
-      k.startsWith("hf.")
-    );
-    log.info("[ModelCompatibility] nodesByModelType keys (hf.*):", hfKeys);
-  }, [metadata, nodesByModelType]);
 
   const getModelCompatibility = useCallback(
     (model: UnifiedModel | null | undefined): ModelCompatibilityResult => {
@@ -405,7 +319,7 @@ export const useModelCompatibility = () => {
         targetMap: Map<string, NodeCompatibilityInfo>
       ) => {
         keys.forEach((key) => {
-          if (!key) {return;}
+          if (!key) { return; }
           sourceMap.get(key)?.forEach((info) => {
             if (targetMap === compatibleMap && recommendedMap.has(info.nodeType)) {
               return;
@@ -416,9 +330,6 @@ export const useModelCompatibility = () => {
       };
 
       const repoKeys = expandRepoKeys(model.repo_id, model.id, model.path);
-      const recommendedMatches = repoKeys.filter((key) =>
-        nodesByRepoId.has(key)
-      );
       if (repoKeys.length > 0) {
         collectMatches(repoKeys, nodesByRepoId, recommendedMap);
       }
@@ -427,20 +338,16 @@ export const useModelCompatibility = () => {
       const expandedTypeKeys = typeCandidates.flatMap((candidate) =>
         expandTypeVariants(candidate)
       );
+
       collectMatches(expandedTypeKeys, nodesByModelType, compatibleMap);
-      collectMatches(expandedTypeKeys, nodesByRecommendedType, compatibleMap);
 
-      const pipelineKey = normalize(model.pipeline_tag);
-      if (pipelineKey) {
-        collectMatches([pipelineKey], nodesByPipelineTag, compatibleMap);
-      }
-
-      const tagKeys = (model.tags || [])
-        .map((tag) => normalize(tag))
-        .filter(Boolean) as string[];
-      if (tagKeys.length > 0) {
-        collectMatches(tagKeys, nodesByTag, compatibleMap);
-      }
+      // For recommended types, only allow matching on specific architectures,
+      // not generic pipeline categories, to avoid over-matching.
+      const specificTypeKeys = expandedTypeKeys.filter(
+        (k) =>
+          !["hf.text_to_image", "hf.image_to_image", "hf.text_to_video", "hf.image_to_video"].includes(k)
+      );
+      collectMatches(specificTypeKeys, nodesByRecommendedType, compatibleMap);
 
       const recommended = Array.from(recommendedMap.values());
       const compatible = Array.from(compatibleMap.values());
@@ -453,20 +360,6 @@ export const useModelCompatibility = () => {
         !loggedHfModelIds.has(model.id)
       ) {
         loggedHfModelIds.add(model.id);
-
-        const repoKeysMatched = repoKeys.filter((key) =>
-          nodesByRepoId.has(key)
-        );
-        const typeKeysMatched = expandedTypeKeys.filter((key) =>
-          nodesByModelType.has(key)
-        );
-        const recTypeKeysMatched = expandedTypeKeys.filter((key) =>
-          nodesByRecommendedType.has(key)
-        );
-        const pipelineMatched = pipelineKey
-          ? nodesByPipelineTag.has(pipelineKey)
-          : false;
-        const tagKeysMatched = tagKeys.filter((key) => nodesByTag.has(key));
 
         const summaryKey = normalize(model.type) || "unknown";
         const summaryEntry =
@@ -494,20 +387,12 @@ export const useModelCompatibility = () => {
       }
 
       return {
-        recommended: Array.from(recommendedMap.values()),
-        compatible: Array.from(compatibleMap.values())
+        recommended,
+        compatible
       };
     },
-    [
-      nodesByRepoId,
-      nodesByModelType,
-      nodesByRecommendedType,
-      nodesByPipelineTag,
-      nodesByTag
-    ]
+    [nodesByRepoId, nodesByModelType, nodesByRecommendedType]
   );
 
   return { getModelCompatibility };
 };
-
-

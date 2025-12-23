@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import {
   Dialog,
   DialogTitle,
@@ -9,7 +9,10 @@ import {
   Typography,
   List,
   ListItem,
-  Chip
+  Chip,
+  Box,
+  IconButton,
+  Stack
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -20,46 +23,84 @@ import type {
 } from "./useModelCompatibility";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import TerminalRoundedIcon from "@mui/icons-material/TerminalRounded";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
 
 const styles = (theme: Theme) =>
   css({
     "& .compatibility-section": {
-      marginBottom: theme.spacing(2)
+      marginBottom: theme.spacing(3),
+      animation: `${fadeIn} 0.5s ease-out forwards`
     },
     "& .section-header": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: theme.spacing(1)
+      marginBottom: theme.spacing(1.5),
+      padding: theme.spacing(0, 1)
     },
     "& .node-list": {
-      maxHeight: 320,
+      maxHeight: 340,
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       borderRadius: theme.shape.borderRadius,
-      background: theme.vars.palette.background.paper
+      background: "rgba(0, 0, 0, 0.15)",
+      "&::-webkit-scrollbar": {
+        width: 6
+      },
+      "&::-webkit-scrollbar-thumb": {
+        background: theme.vars.palette.grey[800],
+        borderRadius: 3
+      }
     },
     "& .node-list-item": {
-      paddingTop: theme.spacing(0.75),
-      paddingBottom: theme.spacing(0.75)
+      padding: theme.spacing(1.5, 2),
+      transition: "all 0.2s ease",
+      borderBottom: `1px solid ${theme.vars.palette.grey[900]}`,
+      "&:last-child": {
+        borderBottom: "none"
+      },
+      "&:hover": {
+        background: "rgba(255, 255, 255, 0.03)",
+        "& .copy-button": {
+          opacity: 1
+        }
+      }
+    },
+    "& .recommended-item": {
+      borderLeft: `3px solid ${theme.vars.palette.primary.main}`,
+      background: `linear-gradient(90deg, ${theme.vars.palette.primary.main}11 0%, transparent 100%)`
     },
     "& .node-row": {
       width: "100%",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      gap: theme.spacing(1)
+      gap: theme.spacing(1.5)
     },
     "& .node-info": {
       flex: 1,
       minWidth: 0,
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.25)
+      gap: theme.spacing(0.5)
+    },
+    "& .node-title-row": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1)
     },
     "& .node-title": {
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: 500,
+      fontSize: "0.875rem",
+      fontWeight: 600,
       color: theme.vars.palette.text.primary,
       whiteSpace: "nowrap",
       overflow: "hidden",
@@ -67,23 +108,118 @@ const styles = (theme: Theme) =>
     },
     "& .node-type": {
       fontFamily: "var(--fontFamilyMono)",
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.secondary
+      fontSize: "0.7rem",
+      color: theme.vars.palette.text.secondary,
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(0.5),
+      opacity: 0.8
     },
     "& .property-chip": {
-      marginRight: theme.spacing(0.5),
-      marginBottom: theme.spacing(0.5)
+      height: 20,
+      fontSize: "0.65rem",
+      background: "rgba(255, 255, 255, 0.05)",
+      borderColor: theme.vars.palette.grey[800]
     },
     "& .node-meta": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5),
-      flexWrap: "wrap"
+      gap: theme.spacing(1),
+      flexWrap: "wrap",
+      marginTop: theme.spacing(0.5)
     },
     "& .empty-state": {
-      color: theme.vars.palette.text.secondary
+      color: theme.vars.palette.text.disabled,
+      textAlign: "center",
+      padding: theme.spacing(4, 2),
+      fontStyle: "italic",
+      background: "rgba(0, 0, 0, 0.1)",
+      borderRadius: theme.shape.borderRadius,
+      border: `1px dashed ${theme.vars.palette.grey[800]}`
+    },
+    "& .copy-button": {
+      opacity: 0,
+      transition: "opacity 0.2s ease"
     }
   });
+
+const NodeList: React.FC<{
+  items: NodeCompatibilityInfo[];
+  label: string;
+  isRecommended?: boolean;
+}> = ({ items, label, isRecommended }) => {
+  const theme = useTheme();
+  if (items.length === 0) {
+    return (
+      <Typography variant="body2" className="empty-state">
+        No {label.toLowerCase()} nodes found for this model type.
+      </Typography>
+    );
+  }
+
+  return (
+    <List disablePadding className="node-list">
+      {items.map((node, index) => (
+        <ListItem
+          key={node.nodeType}
+          disableGutters
+          className={`node-list-item ${isRecommended ? "recommended-item" : ""}`}
+          style={{ animationDelay: `${index * 0.05}s` }}
+        >
+          <div className="node-row">
+            <div className="node-info">
+              <div className="node-title-row">
+                <Typography className="node-title" title={node.title}>
+                  {node.title}
+                </Typography>
+                {isRecommended && (
+                  <Chip
+                    label="Best Match"
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{
+                      height: 16,
+                      fontSize: "0.6rem",
+                      fontWeight: 700,
+                      px: 0.5,
+                      background: theme.vars.palette.primary.main + "22",
+                      borderColor: theme.vars.palette.primary.main + "44"
+                    }}
+                  />
+                )}
+              </div>
+              <div className="node-type">
+                <TerminalRoundedIcon sx={{ fontSize: 12 }} />
+                {node.nodeType}
+              </div>
+              {node.propertyNames.length > 0 && (
+                <div className="node-meta">
+                  {node.propertyNames.map((name) => (
+                    <Chip
+                      key={name}
+                      size="small"
+                      label={name}
+                      className="property-chip"
+                      variant="outlined"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="copy-button">
+              <CopyToClipboardButton
+                copyValue={node.nodeType}
+                title="Copy node type"
+                tooltipPlacement="left"
+              />
+            </div>
+          </div>
+        </ListItem>
+      ))}
+    </List>
+  );
+};
 
 interface ModelCompatibilityDialogProps {
   open: boolean;
@@ -91,56 +227,6 @@ interface ModelCompatibilityDialogProps {
   model: UnifiedModel;
   compatibility: ModelCompatibilityResult;
 }
-
-const NodeList: React.FC<{
-  items: NodeCompatibilityInfo[];
-  label: string;
-}> = ({ items, label }) => {
-  if (items.length === 0) {
-    return (
-      <Typography variant="body2" className="empty-state">
-        No {label.toLowerCase()} nodes found.
-      </Typography>
-    );
-  }
-
-  return (
-    <List dense className="node-list">
-      {items.map((node) => (
-        <ListItem key={node.nodeType} disableGutters className="node-list-item">
-          <div className="node-row">
-            <div className="node-info">
-              <Typography className="node-title" title={node.title}>
-                {node.title}
-              </Typography>
-              <div className="node-meta">
-                <span className="node-type">{node.nodeType}</span>
-                {node.propertyNames.length > 0 && (
-                  <div>
-                    {node.propertyNames.map((name) => (
-                      <Chip
-                        key={name}
-                        size="small"
-                        label={name}
-                        className="property-chip"
-                        variant="outlined"
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <CopyToClipboardButton
-              copyValue={node.nodeType}
-              title="Copy node type"
-              tooltipPlacement="left"
-            />
-          </div>
-        </ListItem>
-      ))}
-    </List>
-  );
-};
 
 const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
   open,
@@ -151,38 +237,104 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
   const theme = useTheme();
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        backdrop: {
+          sx: {
+            backdropFilter: "blur(8px)",
+            backgroundColor: "rgba(0, 0, 0, 0.4)"
+          }
+        },
+        paper: {
+          sx: {
+            borderRadius: theme.vars.rounded.dialog,
+            background: theme.vars.palette.glass.backgroundDialogContent,
+            border: `1px solid ${theme.vars.palette.grey[800]}`,
+            backgroundImage: "none"
+          }
+        }
+      }}
+    >
       <div css={styles(theme)}>
-        <DialogTitle>
-          {model.repo_id || model.name}
-          <Typography variant="body2" color="text.secondary">
-            Nodes that can run this model
-          </Typography>
+        <DialogTitle sx={{ p: 3, pb: 2 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                <AutoAwesomeRoundedIcon sx={{ color: "primary.main", fontSize: 20 }} />
+                <Typography variant="h6" component="span" sx={{ fontWeight: 700, letterSpacing: -0.2 }}>
+                  Node Compatibility
+                </Typography>
+              </Stack>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontFamily: "var(--fontFamilyMono)",
+                  color: "text.secondary",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 1,
+                  border: `1px solid ${theme.vars.palette.grey[800]}`
+                }}
+              >
+                {model.repo_id || model.name}
+              </Typography>
+            </Box>
+            <IconButton onClick={onClose} size="small" sx={{ color: "text.disabled", "&:hover": { color: "text.primary" } }}>
+              <CloseRoundedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
         </DialogTitle>
-        <DialogContent dividers>
+
+        <DialogContent sx={{ p: 3, pt: 0 }}>
           <div className="compatibility-section">
             <div className="section-header">
-              <Typography variant="subtitle2">Recommended</Typography>
-              <Typography variant="caption">
-                {compatibility.recommended.length} nodes
+              <Stack direction="row" spacing={1} alignItems="center">
+                <VerifiedRoundedIcon sx={{ color: "primary.main", fontSize: 18 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                  Recommended Nodes
+                </Typography>
+              </Stack>
+              <Typography variant="caption" sx={{ color: "text.disabled", fontWeight: 500 }}>
+                {compatibility.recommended.length} matches
               </Typography>
             </div>
-            <NodeList items={compatibility.recommended} label="recommended" />
+            <NodeList items={compatibility.recommended} label="recommended" isRecommended />
           </div>
 
-          <div className="compatibility-section">
+          <div className="compatibility-section" style={{ marginBottom: 0 }}>
             <div className="section-header">
-              <Typography variant="subtitle2">Compatible</Typography>
-              <Typography variant="caption">
-                {compatibility.compatible.length} nodes
+              <Stack direction="row" spacing={1} alignItems="center">
+                <CheckCircleOutlineRoundedIcon sx={{ color: "text.secondary", fontSize: 18 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  Compatible Nodes
+                </Typography>
+              </Stack>
+              <Typography variant="caption" sx={{ color: "text.disabled", fontWeight: 500 }}>
+                {compatibility.compatible.length} matches
               </Typography>
             </div>
             <NodeList items={compatibility.compatible} label="compatible" />
           </div>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} color="primary">
-            Close
+
+        <DialogActions sx={{ p: 2, px: 3, borderTop: `1px solid ${theme.vars.palette.grey[900]}` }}>
+          <Button
+            onClick={onClose}
+            variant="contained"
+            disableElevation
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 600,
+              px: 3
+            }}
+          >
+            Got it
           </Button>
         </DialogActions>
       </div>
@@ -191,3 +343,4 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
 };
 
 export default ModelCompatibilityDialog;
+
