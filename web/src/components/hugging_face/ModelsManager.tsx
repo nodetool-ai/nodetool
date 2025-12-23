@@ -19,8 +19,6 @@ const styles = (theme: Theme) =>
     margin: "2em 0 4em 0",
     ".models-manager": {
       display: "flex",
-      gap: "1em",
-      padding: "1em",
       height: "100%",
       overflow: "hidden"
     },
@@ -29,7 +27,6 @@ const styles = (theme: Theme) =>
       width: "50%",
       flexDirection: "column",
       gap: "1em",
-      padding: "1em",
       overflow: "auto"
     },
     ".existing-models-section": {
@@ -147,10 +144,10 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       </DialogTitle>
       <DialogContent
         sx={{
-          pt: 2,
           overflow: "hidden",
           display: "flex",
-          flexDirection: "column"
+          flexDirection: "column",
+          padding: "0"
         }}
       >
         <div className="models-manager">

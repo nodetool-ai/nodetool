@@ -154,7 +154,7 @@ describe("RemoteSettingsMenu", () => {
           expect.anything()
         );
 
-        // Secret settings should NOT be included
+        // Secret settings should NOT be included in the settings object
         expect(mockRemoteSettingsStore.updateSettings).not.toHaveBeenCalledWith(
           expect.objectContaining({
             API_KEY: expect.anything()
