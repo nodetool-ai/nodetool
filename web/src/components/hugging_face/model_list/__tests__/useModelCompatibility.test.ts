@@ -217,7 +217,46 @@ describe("useModelCompatibility", () => {
       expect(compatibility.compatible).toHaveLength(0);
     });
 
-    it("should match by expanded pipeline type", () => {
+    it("should not match stable diffusion nodes for Flux models", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "flux.node": createMockNode(
+          "huggingface.text_to_image.Flux",
+          "Flux",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.flux", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "Stable Diffusion",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.stable_diffusion", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "generic.node": createMockNode(
+          "huggingface.text_to_image.Text2Image",
+          "Text to Image",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("flux-model", "hf.flux", {
+        pipeline_tag: "text-to-image",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.text_to_image.Flux");
+      expect(matchedNodeTypes).toContain("huggingface.text_to_image.Text2Image");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
+    });
+
+    it("should match by pipeline type", () => {
       const mockMetadata: Record<string, NodeMetadata> = {
         "asr.node": createMockNode(
           "huggingface.asr.Whisper",
@@ -262,7 +301,6 @@ describe("useModelCompatibility", () => {
 
       // A model that is just a VAE
       const vaeModel = createMockModel("some-vae", "hf.vae", {
-        tags: ["vae"],
         pipeline_tag: "vae"
       });
 
@@ -275,7 +313,429 @@ describe("useModelCompatibility", () => {
       expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
     });
 
-    it("should prioritize component matching over pipeline matching for complex tags", () => {
+    it("should match recommended models by repo_id and path", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "flux.node": createMockNode(
+          "huggingface.text_to_image.Flux",
+          "Flux",
+          "huggingface.text_to_image",
+          [
+            {
+              repo_id: "nunchaku-tech/nunchaku-flux.1-dev",
+              path: "svdq-int4_r32-flux.1-dev.safetensors",
+              type: "hf.flux"
+            }
+          ]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("custom-id", "hf.flux", {
+        repo_id: "nunchaku-tech/nunchaku-flux.1-dev",
+        path: "svdq-int4_r32-flux.1-dev.safetensors",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      expect(compatibility.recommended).toHaveLength(1);
+      expect(compatibility.recommended[0].nodeType).toBe("huggingface.text_to_image.Flux");
+    });
+
+    it("should not match text-to-image nodes for controlnet component models", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "controlnet.node": createMockNode(
+          "huggingface.image_to_image.ControlNet",
+          "ControlNet",
+          "huggingface.image_to_image",
+          [],
+          [{ name: "controlnet", type: { type: "hf.controlnet", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "Stable Diffusion",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("controlnet-model", "hf.controlnet", {
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.image_to_image.ControlNet");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
+    });
+
+    it("should not match controlnet nodes for Flux controlnet models", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "flux.control.node": createMockNode(
+          "huggingface.text_to_image.FluxControl",
+          "Flux Control",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.controlnet_flux", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sd.control.node": createMockNode(
+          "huggingface.image_to_image.ControlNet",
+          "ControlNet",
+          "huggingface.image_to_image",
+          [],
+          [{ name: "controlnet", type: { type: "hf.controlnet", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("black-forest-labs/FLUX.1-Depth-dev", "hf.controlnet_flux", {
+        repo_id: "black-forest-labs/FLUX.1-Depth-dev",
+        pipeline_tag: "text-to-image",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.text_to_image.FluxControl");
+      expect(matchedNodeTypes).not.toContain("huggingface.image_to_image.ControlNet");
+    });
+
+    it("should not match Stable Diffusion nodes for SDXL models", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "Stable Diffusion",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.stable_diffusion", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sdxl.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusionXL",
+          "Stable Diffusion XL",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.stable_diffusion_xl", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "generic.node": createMockNode(
+          "huggingface.text_to_image.Text2Image",
+          "Text to Image",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("sdxl-model", "hf.stable_diffusion_xl", {
+        pipeline_tag: "text-to-image",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.text_to_image.StableDiffusionXL");
+      expect(matchedNodeTypes).toContain("huggingface.text_to_image.Text2Image");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
+    });
+
+    it("should match Qwen-Image models without matching Flux or Stable Diffusion nodes", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "qwen.node": createMockNode(
+          "huggingface.text_to_image.QwenImage",
+          "Qwen-Image",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.qwen_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "Stable Diffusion",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.stable_diffusion", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "flux.node": createMockNode(
+          "huggingface.text_to_image.Flux",
+          "Flux",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.flux", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "generic.node": createMockNode(
+          "huggingface.text_to_image.Text2Image",
+          "Text to Image",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("Qwen/Qwen-Image", "hf.qwen_image", {
+        repo_id: "Qwen/Qwen-Image",
+        pipeline_tag: "text-to-image",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.text_to_image.QwenImage");
+      expect(matchedNodeTypes).toContain("huggingface.text_to_image.Text2Image");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.Flux");
+    });
+
+    it("should match image-to-video pipeline models without matching text-to-video nodes", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "i2v.node": createMockNode(
+          "huggingface.image_to_video.Wan_I2V",
+          "Wan I2V",
+          "huggingface.image_to_video",
+          [],
+          [{ name: "model", type: { type: "hf.image_to_video", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "t2v.node": createMockNode(
+          "huggingface.text_to_video.Wan_T2V",
+          "Wan T2V",
+          "huggingface.text_to_video",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_video", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("Wan-AI/Wan2.2-I2V-A14B-Diffusers", null, {
+        repo_id: "Wan-AI/Wan2.2-I2V-A14B-Diffusers",
+        pipeline_tag: "image-to-video",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.image_to_video.Wan_I2V");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_video.Wan_T2V");
+    });
+
+    it("should match text-to-video pipeline models without matching image-to-video nodes", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "t2v.node": createMockNode(
+          "huggingface.text_to_video.Wan_T2V",
+          "Wan T2V",
+          "huggingface.text_to_video",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_video", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "i2v.node": createMockNode(
+          "huggingface.image_to_video.Wan_I2V",
+          "Wan I2V",
+          "huggingface.image_to_video",
+          [],
+          [{ name: "model", type: { type: "hf.image_to_video", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("Wan-AI/Wan2.1-T2V-14B-Diffusers", null, {
+        repo_id: "Wan-AI/Wan2.1-T2V-14B-Diffusers",
+        pipeline_tag: "text-to-video",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.text_to_video.Wan_T2V");
+      expect(matchedNodeTypes).not.toContain("huggingface.image_to_video.Wan_I2V");
+    });
+
+    it("should match text-to-speech pipeline models", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "tts.node": createMockNode(
+          "huggingface.tts.Bark",
+          "Bark",
+          "huggingface.tts",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_speech", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("suno/bark", null, {
+        repo_id: "suno/bark",
+        pipeline_tag: "text-to-speech",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      expect(compatibility.compatible).toHaveLength(1);
+      expect(compatibility.compatible[0].nodeType).toBe("huggingface.tts.Bark");
+    });
+
+    it("should match inpainting models to inpainting and image-to-image nodes", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "inpaint.node": createMockNode(
+          "huggingface.image_to_image.FluxFill",
+          "Flux Fill",
+          "huggingface.image_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.inpainting", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sd.img2img.node": createMockNode(
+          "huggingface.image_to_image.StableDiffusionImg2Img",
+          "Stable Diffusion Img2Img",
+          "huggingface.image_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.image_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("black-forest-labs/FLUX.1-Fill-dev", "hf.inpainting", {
+        repo_id: "black-forest-labs/FLUX.1-Fill-dev",
+        pipeline_tag: "image-to-image",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.image_to_image.FluxFill");
+      expect(matchedNodeTypes).toContain("huggingface.image_to_image.StableDiffusionImg2Img");
+    });
+
+    it("should match IP-Adapter models to IP-Adapter nodes only", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "ip.node": createMockNode(
+          "huggingface.image_to_image.IPAdapter",
+          "IP Adapter",
+          "huggingface.image_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.ip_adapter", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "Stable Diffusion",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("h94/IP-Adapter", "hf.ip_adapter", {
+        repo_id: "h94/IP-Adapter",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.image_to_image.IPAdapter");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
+    });
+
+    it("should match LoRA models only to LoRA selector nodes", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "lora.node": createMockNode(
+          "huggingface.loaders.SelectLoRASD",
+          "Select LoRA SD",
+          "huggingface.loaders",
+          [],
+          [{ name: "loras", type: { type: "hf.lora", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "Stable Diffusion",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("some-lora", "hf.lora", {
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.loaders.SelectLoRASD");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
+    });
+
+    it("should match zero-shot audio classification models to audio nodes only", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "audio.node": createMockNode(
+          "huggingface.audio.ZeroShotAudioClassification",
+          "Zero Shot Audio Classification",
+          "huggingface.audio",
+          [],
+          [{ name: "model", type: { type: "hf.zero_shot_audio_classification", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "asr.node": createMockNode(
+          "huggingface.asr.Whisper",
+          "Whisper",
+          "huggingface.asr",
+          [],
+          [{ name: "model", type: { type: "hf.automatic_speech_recognition", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("laion/clap-htsat-unfused", "hf.zero_shot_audio_classification", {
+        repo_id: "laion/clap-htsat-unfused",
+        pipeline_tag: "feature-extraction",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.audio.ZeroShotAudioClassification");
+      expect(matchedNodeTypes).not.toContain("huggingface.asr.Whisper");
+    });
+
+    it("should not match image nodes when ASR models have conflicting tags", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "asr.node": createMockNode(
+          "huggingface.automatic_speech_recognition.Whisper",
+          "Whisper",
+          "huggingface.automatic_speech_recognition",
+          [],
+          [{ name: "model", type: { type: "hf.automatic_speech_recognition", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "Stable Diffusion",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("openai/whisper-large-v3", "hf.automatic_speech_recognition", {
+        repo_id: "openai/whisper-large-v3",
+        tags: ["automatic-speech-recognition", "text-to-image"],
+        pipeline_tag: "text-to-image",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      expect(matchedNodeTypes).toContain("huggingface.automatic_speech_recognition.Whisper");
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
+    });
+
+    it("should match component models by type even with unrelated tags", () => {
       const mockMetadata: Record<string, NodeMetadata> = {
         "sd.node": createMockNode(
           "huggingface.text_to_image.StableDiffusion",
@@ -296,7 +756,6 @@ describe("useModelCompatibility", () => {
 
       const { result } = renderHook(() => useModelCompatibility());
 
-      // A model tagged with both stable-diffusion and vae (common for VAEs meant for SD)
       const complexModel = createMockModel("some-sd-vae", "hf.vae", {
         tags: ["stable-diffusion", "vae"],
       });
@@ -306,9 +765,7 @@ describe("useModelCompatibility", () => {
 
       // Should match the VAE Loader
       expect(matchedNodeTypes).toContain("huggingface.loaders.VAELoader");
-      // Should NOT match the Stable Diffusion node, even if "stable-diffusion" is in the tags
-      // because the component mapping (vae) should take precedence or at least prevent the broad match.
-      // In our implementation, if it returns hf.vae, it doesn't return hf.text_to_image for that same tag.
+      // Tags should not cause matching to unrelated pipeline nodes.
       expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
     });
 

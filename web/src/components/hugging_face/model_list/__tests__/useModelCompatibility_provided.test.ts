@@ -51,7 +51,7 @@ describe("useModelCompatibility - Provided Models", () => {
     jest.clearAllMocks();
   });
 
-  it("should reproduce over-matching for FLUX.1-schnell", () => {
+  it("should match by type and pipeline without over-matching", () => {
     const mockMetadata: Record<string, NodeMetadata> = {
       "flux.node": createMockNode(
         "huggingface.text_to_image.Flux",
@@ -97,16 +97,10 @@ describe("useModelCompatibility - Provided Models", () => {
       path: null,
     } as UnifiedModel;
 
-    const compatibility = result.current.getModelCompatibility(fluxModel);
+      const compatibility = result.current.getModelCompatibility(fluxModel);
 
-    // Debug mapping - we can't easily access internal maps but we can see what matched
-    const recommendedTypes = compatibility.recommended.map(n => n.nodeType);
-    const compatibleTypes = compatibility.compatible.map(n => n.nodeType);
-    const compatibleNodes = compatibility.compatible.map(n => ({ type: n.nodeType, matchedBy: n.matchedBy }));
-
-    console.log("Flux Model Candidates:", (result.current as any)._expandModelTypeCandidates?.(fluxModel));
-    console.log("Recommended:", recommendedTypes);
-    console.log("Compatible:", JSON.stringify(compatibleNodes, null, 2));
+    const recommendedTypes = compatibility.recommended.map((n) => n.nodeType);
+    const compatibleTypes = compatibility.compatible.map((n) => n.nodeType);
 
     // Flux should be recommended
     expect(recommendedTypes).toContain("huggingface.text_to_image.Flux");

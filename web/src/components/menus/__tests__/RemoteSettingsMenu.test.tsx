@@ -147,15 +147,17 @@ describe("RemoteSettingsMenu", () => {
 
       await waitFor(() => {
         // Should only update non-secret settings
-        expect(mockRemoteSettingsStore.updateSettings).toHaveBeenCalledWith({
-          TIMEOUT: "60"
-        });
+        expect(mockRemoteSettingsStore.updateSettings).toHaveBeenCalledWith(
+          { TIMEOUT: "60" },
+          {}
+        );
 
-        // Secret settings should NOT be included
+        // Secret settings should NOT be included in the settings object
         expect(mockRemoteSettingsStore.updateSettings).not.toHaveBeenCalledWith(
           expect.objectContaining({
             API_KEY: expect.anything()
-          })
+          }),
+          expect.anything()
         );
       });
     });

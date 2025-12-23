@@ -43,44 +43,50 @@ let missingSummaryTimeout: number | null = null;
 
 type CompatibilityMap = Map<string, NodeCompatibilityInfo[]>;
 
-const NORMALIZED_MODEL_HINTS = [
-  "hf",
-  "llama",
-  "language_model",
-  "tts",
-  "asr",
-  "mlx",
-  "gguf",
-  "diffusion"
-];
 
-const EXACT_MODEL_TYPES = new Set([
-  "model",
-  "model_ref",
-  "model_path",
-  "hf.model",
-  "llama_model",
-  "language_model",
-  "tts_model",
-  "asr_model"
+const IMAGE_TYPES = new Set([
+  "hf.text_to_image",
+  "hf.flux",
+  "hf.stable_diffusion",
+  "hf.stable_diffusion_xl",
+  "hf.pixart",
+  "hf.qwen_image",
+  "hf.image_to_image",
+  "hf.inpainting",
+  "hf.controlnet",
+  "hf.controlnet_flux",
+  "hf.ip_adapter",
+  "hf.lora",
+  "hf.vae",
+  "hf.unet",
+  "hf.clip",
+  "hf.t5",
+  "hf.flux_kontext"
+]);
+const VIDEO_TYPES = new Set(["hf.text_to_video", "hf.image_to_video"]);
+const AUDIO_TYPES = new Set([
+  "hf.automatic_speech_recognition",
+  "hf.text_to_speech",
+  "hf.zero_shot_audio_classification"
 ]);
 
-const HF_TEXT_TO_VIDEO_HINTS = ["text_to_video"];
-const HF_IMAGE_TO_VIDEO_HINTS = ["image_to_video"];
-const HF_ASR_HINTS = ["automatic_speech_recognition", "asr"];
-const HF_TTS_HINTS = ["text_to_speech", "tts"];
+const resolveDomain = (typeName?: string | null) => {
+  const normalized = normalize(typeName);
+  if (!normalized) { return null; }
+  if (IMAGE_TYPES.has(normalized)) {
+    return "image";
+  }
+  if (VIDEO_TYPES.has(normalized)) {
+    return "video";
+  }
+  if (AUDIO_TYPES.has(normalized)) {
+    return "audio";
+  }
+  return null;
+};
 
 const normalize = (value?: string | null) =>
   value ? value.trim().toLowerCase() : undefined;
-
-/**
- * Checks if a type name contains any known model-related hints.
- * Uses word-boundary matching to avoid false positives (e.g. "broadcast" matching "asr").
- */
-const containsModelHint = (typeName: string) => {
-  const parts = typeName.split(/[._-]/);
-  return NORMALIZED_MODEL_HINTS.some((hint) => parts.includes(hint));
-};
 
 const isModelPropertyType = (property: Property): string | undefined => {
   const baseType = property.type?.type;
@@ -94,14 +100,6 @@ const isModelPropertyType = (property: Property): string | undefined => {
   }
 
   if (normalized.endsWith("_model") || normalized.endsWith("_models")) {
-    return normalized;
-  }
-
-  if (EXACT_MODEL_TYPES.has(normalized)) {
-    return normalized;
-  }
-
-  if (containsModelHint(normalized)) {
     return normalized;
   }
 
@@ -195,38 +193,10 @@ const expandTypeVariants = (typeName: string): string[] => {
   return Array.from(variants);
 };
 
-/**
- * Maps a model slug or tag to a canonical "hf.*" type.
- */
-const mapSlugToCanonicalType = (slug: string): string | undefined => {
-  // 1. Components
-  if (slug.includes("lora")) return "hf.lora";
-  if (slug.includes("vae")) return "hf.vae";
-  if (slug.includes("controlnet")) return "hf.controlnet";
-  if (slug.includes("ip_adapter")) return "hf.ip_adapter";
-  if (slug.includes("unet")) return "hf.unet";
-  if (slug.includes("clip_") || slug.includes("_clip") || slug === "clip") return "hf.clip";
-  if (slug.includes("t5_") || slug.includes("_t5") || slug === "t5") return "hf.t5";
-
-  // 2. Specific Architectures
-  if (slug.includes("flux")) return "hf.flux";
-  if (slug.includes("stable_diffusion_xl") || slug.includes("sdxl")) return "hf.stable_diffusion_xl";
-  if (slug.includes("stable_diffusion") || slug === "sd") return "hf.stable_diffusion";
-  if (slug.includes("pixart")) return "hf.pixart";
-  if (slug.includes("qwen_image")) return "hf.qwen_image";
-
-  // 3. Generic Pipeline Categories
-  if (slug.includes("text_to_image")) return "hf.text_to_image";
-  if (slug.includes("image_to_image") || slug.includes("inpainting") || slug.includes("outpainting")) return "hf.image_to_image";
-  if (HF_TEXT_TO_VIDEO_HINTS.some((hint) => slug.includes(hint))) return "hf.text_to_video";
-  if (HF_IMAGE_TO_VIDEO_HINTS.some((hint) => slug.includes(hint))) return "hf.image_to_video";
-  if (HF_ASR_HINTS.some((hint) => slug.includes(hint))) return "hf.automatic_speech_recognition";
-  if (HF_TTS_HINTS.some((hint) => slug.includes(hint))) return "hf.text_to_speech";
-  return undefined;
-};
-
 const expandModelTypeCandidates = (model: UnifiedModel) => {
   const candidates = new Set<string>();
+  const lockedDomain = resolveDomain(model.type)
+    ?? resolveDomain(model.pipeline_tag ? `hf.${model.pipeline_tag.replace(/-/g, "_")}` : null);
   const add = (key?: string | null) => {
     const normalized = normalize(key);
     if (normalized) {
@@ -234,51 +204,17 @@ const expandModelTypeCandidates = (model: UnifiedModel) => {
     }
   };
 
-  const tags = model.tags || [];
-  const tagSlugs = tags.map((t) => t.replace(/-/g, "_").toLowerCase());
+  if (model.type) {
+    add(model.type);
+  }
 
-  // Check for components first
-  const componentCandidates = tagSlugs
-    .map((slug) => mapSlugToCanonicalType(slug))
-    .filter((c): c is string => !!c && ["hf.lora", "hf.vae", "hf.controlnet", "hf.ip_adapter", "hf.unet", "hf.clip", "hf.t5"].includes(c));
-
-  if (componentCandidates.length > 0) {
-    // If it's a component, ONLY use the component candidates
-    componentCandidates.forEach((c) => add(c));
-  } else {
-    // Normal model type expansion
-    if (model.type) {
-      add(model.type);
-      if (model.type.startsWith("hf.")) {
-        const canonical = mapSlugToCanonicalType(model.type.slice(3).toLowerCase());
-        if (canonical) {
-          add(canonical);
-          // Auto-expand specific architectures to generic pipeline types
-          if (["hf.flux", "hf.stable_diffusion", "hf.stable_diffusion_xl", "hf.pixart"].includes(canonical)) {
-            add("hf.text_to_image");
-          }
-        }
-      }
+  if (model.pipeline_tag) {
+    const pipelineSlug = model.pipeline_tag.replace(/-/g, "_").toLowerCase();
+    const pipelineType = `hf.${pipelineSlug}`;
+    const pipelineDomain = resolveDomain(pipelineType);
+    if (!lockedDomain || !pipelineDomain || pipelineDomain === lockedDomain) {
+      add(pipelineType);
     }
-
-    if (model.pipeline_tag) {
-      const pipelineSlug = model.pipeline_tag.replace(/-/g, "_").toLowerCase();
-      add(`hf.${pipelineSlug}`);
-      const canonical = mapSlugToCanonicalType(pipelineSlug);
-      if (canonical) {
-        add(canonical);
-      }
-    }
-
-    tagSlugs.forEach((slug) => {
-      const canonical = mapSlugToCanonicalType(slug);
-      if (canonical) {
-        add(canonical);
-        if (["hf.flux", "hf.stable_diffusion", "hf.stable_diffusion_xl", "hf.pixart"].includes(canonical)) {
-          add("hf.text_to_image");
-        }
-      }
-    });
   }
 
   return Array.from(candidates);
@@ -293,12 +229,11 @@ const expandModelTypeCandidates = (model: UnifiedModel) => {
  * 3. Recommended model types - Matches models against nodes that recommend similar model types.
  *
  * Matching Strategy:
- * - Specific Architectures First: Models are first mapped to specific architectures (e.g. Flux, SDXL).
- * - Component Prioritization: Components (VAE, LoRA, ControlNet) are prioritized to avoid broad pipeline matching.
- * - Hierarchy Expansion: Specific architectures also expand to generic pipeline types (e.g. hf.flux -> hf.text_to_image).
- *   This ensures a Flux model matches both Flux-specific nodes and generic Text-to-Image loaders.
- * - Strict Recommendations: Generic pipeline types are excluded from matching via recommendation lists
- *   to prevent false positives from nodes that merely recommend 'some' text-to-image model without
+ * - Repo matches first: Exact repo/path matches are considered recommended.
+ * - Type and pipeline matching: Uses model.type and pipeline_tag to find compatible nodes.
+ * - Domain locking: Pipeline matches are allowed only when they align with the model's domain.
+ * - Strict recommendations: Generic pipeline types are excluded from matching via recommendation lists
+ *   to prevent false positives from nodes that merely recommend 'some' pipeline model without
  *   having a matching input property.
  */
 export const useModelCompatibility = () => {
