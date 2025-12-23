@@ -232,6 +232,8 @@ const SetupPanel: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
+  const shouldShowLocalModels = getIsElectronDetails().isElectron || !isProduction;
+
   // Featured local models to display
   const featuredLocalModelIds = [
     DEFAULT_MODEL,
@@ -265,7 +267,7 @@ const SetupPanel: React.FC = () => {
               <li>Add API keys</li>
             </ol>
           </Box>
-          {(getIsElectronDetails().isElectron || !isProduction) && (
+          {shouldShowLocalModels && (
             <>
               <Typography variant="subtitle2" className="setup-list-title">
                 Local Models
@@ -282,7 +284,7 @@ const SetupPanel: React.FC = () => {
             </>
           )}
 
-          {(getIsElectronDetails().isElectron || !isProduction) && (
+          {shouldShowLocalModels && (
             <>
               <Typography variant="subtitle2" className="setup-list-title">
                 Popular Models
