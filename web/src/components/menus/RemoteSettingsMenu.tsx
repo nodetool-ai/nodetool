@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
 import WarningIcon from "@mui/icons-material/Warning";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   Button,
   TextField,
@@ -85,7 +85,7 @@ const RemoteSettings = () => {
   );
 
   // Initialize setting values from fetched data or store settings (non-secrets only)
-  useMemo(() => {
+  useEffect(() => {
     const settingsToUse: SettingWithValue[] | undefined = data || settings;
     if (settingsToUse && settingsToUse.length > 0) {
       const values: Record<string, string> = {};
