@@ -19,6 +19,8 @@ import { IconForType } from "../../config/data_types";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import DownloadIcon from "@mui/icons-material/Download";
+import { getIsElectronDetails } from "../../utils/browser";
+import { isProduction } from "../../stores/ApiClient";
 
 const InlineModelDownload: React.FC<{
   model: UnifiedModel;
@@ -229,6 +231,8 @@ const SetupPanel: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
+  const shouldShowLocalModels = getIsElectronDetails().isElectron || !isProduction;
+
   // Featured local models to display
   const featuredLocalModelIds = [
     DEFAULT_MODEL,
@@ -262,116 +266,120 @@ const SetupPanel: React.FC = () => {
               <li>Add API keys</li>
             </ol>
           </Box>
-          <Typography variant="subtitle2" className="setup-list-title">
-            Local Models
-          </Typography>
-          <Box sx={{ mb: 2 }}>
-            <ol className="step-list">
-              <li>
-                Download models using the <span className="fake-button">Models</span> 
-                button in the header
-              </li>
-              <li>Or use <span className="fake-button">Recommended Models</span> button on nodes</li>
-            </ol>
-          </Box>
+          {shouldShowLocalModels && (
+            <>
+              <Typography variant="subtitle2" className="setup-list-title">
+                Local Models
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <ol className="step-list">
+                  <li>
+                    Download models using the <span className="fake-button">Models</span> 
+                    button in the header
+                  </li>
+                  <li>Or use <span className="fake-button">Recommended Models</span> button on nodes</li>
+                </ol>
+              </Box>
 
-          <Typography variant="subtitle2" className="setup-list-title">
-            Popular Models
-          </Typography>
-          <ul className="local-models-list">
-            {featuredModels.map((model) => (
-              <li key={model.id} style={{ listStyle: "none" }}>
-                <div className="local-model-item">
-                  <div className="local-model-header">
-                    <div className="local-model-title">
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 500 }}
-                      >
-                        {(model as FeaturedModel).displayName || model.name}
-                      </Typography>
-                    </div>
-                    <div className="local-model-actions">
-                      <Box className="model-variant-buttons">
-                        {((model as FeaturedModel).variants &&
-                        (model as FeaturedModel).variants!.length > 0
-                          ? (model as FeaturedModel).variants!
-                          : [model.id.split(":")[1] || "latest"]
-                        ).map((variant) => {
-                          const base =
-                            (model as FeaturedModel).base ||
-                            (model.id.includes(":")
-                              ? model.id.split(":")[0]
-                              : model.id);
-                          const variantModel: UnifiedModel = {
-                            ...model,
-                            id: `${base}:${variant}`,
-                            repo_id: `${base}:${variant}`
-                          };
-                          const defaultVariant =
-                            (model as FeaturedModel).defaultVariant ||
-                            (model.id.includes(":")
-                              ? model.id.split(":")[1]
-                              : "");
-                          const isDefault =
-                            variant.toLowerCase() ===
-                            (defaultVariant || "").toLowerCase();
-                          return (
-                            <InlineModelDownload
-                              key={`${model.id}-${variant}`}
-                              model={variantModel}
-                              isDefault={isDefault}
-                              label={`${variant.toUpperCase()}`}
-                              tooltip={`Download ${base}:${variant}`}
+              <Typography variant="subtitle2" className="setup-list-title">
+                Popular Models
+              </Typography>
+              <ul className="local-models-list">
+                {featuredModels.map((model) => (
+                  <li key={model.id} style={{ listStyle: "none" }}>
+                    <div className="local-model-item">
+                      <div className="local-model-header">
+                        <div className="local-model-title">
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 500 }}
+                          >
+                            {(model as FeaturedModel).displayName || model.name}
+                          </Typography>
+                        </div>
+                        <div className="local-model-actions">
+                          <Box className="model-variant-buttons">
+                            {((model as FeaturedModel).variants &&
+                            (model as FeaturedModel).variants!.length > 0
+                              ? (model as FeaturedModel).variants!
+                              : [model.id.split(":")[1] || "latest"]
+                            ).map((variant) => {
+                              const base =
+                                (model as FeaturedModel).base ||
+                                (model.id.includes(":")
+                                  ? model.id.split(":")[0]
+                                  : model.id);
+                              const variantModel: UnifiedModel = {
+                                ...model,
+                                id: `${base}:${variant}`,
+                                repo_id: `${base}:${variant}`
+                              };
+                              const defaultVariant =
+                                (model as FeaturedModel).defaultVariant ||
+                                (model.id.includes(":")
+                                  ? model.id.split(":")[1]
+                                  : "");
+                              const isDefault =
+                                variant.toLowerCase() ===
+                                (defaultVariant || "").toLowerCase();
+                              return (
+                                <InlineModelDownload
+                                  key={`${model.id}-${variant}`}
+                                  model={variantModel}
+                                  isDefault={isDefault}
+                                  label={`${variant.toUpperCase()}`}
+                                  tooltip={`Download ${base}:${variant}`}
+                                />
+                              );
+                            })}
+                          </Box>
+                        </div>
+                      </div>
+                      <div className="local-model-desc">
+                        {model.description && (
+                          <Typography variant="body2" sx={{ fontSize: "0.85em" }}>
+                            {model.description}
+                          </Typography>
+                        )}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 0.5,
+                            flexWrap: "wrap",
+                            mt: 0.75
+                          }}
+                        >
+                          {((model as FeaturedModel).reasoning ?? false) && (
+                            <Chip
+                              size="small"
+                              label="Reasoning"
+                              color="primary"
+                              variant="outlined"
+                              sx={{ height: "20px", fontSize: "0.7em" }}
                             />
-                          );
-                        })}
-                      </Box>
+                          )}
+                          {((model as FeaturedModel).vision ?? false) && (
+                            <Chip
+                              size="small"
+                              label="Vision"
+                              color="secondary"
+                              variant="outlined"
+                              sx={{ height: "20px", fontSize: "0.7em" }}
+                            />
+                          )}
+                        </Box>
+                        {(model as FeaturedModel).note && (
+                          <Typography variant="caption" className="model-note">
+                            {(model as FeaturedModel).note}
+                          </Typography>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="local-model-desc">
-                    {model.description && (
-                      <Typography variant="body2" sx={{ fontSize: "0.85em" }}>
-                        {model.description}
-                      </Typography>
-                    )}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 0.5,
-                        flexWrap: "wrap",
-                        mt: 0.75
-                      }}
-                    >
-                      {((model as FeaturedModel).reasoning ?? false) && (
-                        <Chip
-                          size="small"
-                          label="Reasoning"
-                          color="primary"
-                          variant="outlined"
-                          sx={{ height: "20px", fontSize: "0.7em" }}
-                        />
-                      )}
-                      {((model as FeaturedModel).vision ?? false) && (
-                        <Chip
-                          size="small"
-                          label="Vision"
-                          color="secondary"
-                          variant="outlined"
-                          sx={{ height: "20px", fontSize: "0.7em" }}
-                        />
-                      )}
-                    </Box>
-                    {(model as FeaturedModel).note && (
-                      <Typography variant="caption" className="model-note">
-                        {(model as FeaturedModel).note}
-                      </Typography>
-                    )}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </Box>
       </div>
     </Box>
