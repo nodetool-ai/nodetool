@@ -18,6 +18,14 @@ import CodeIcon from "@mui/icons-material/Code";
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button
+} from "@mui/material";
 
 const toolbarStyles = css`
   position: fixed;
@@ -94,6 +102,8 @@ export function FloatingTextFormatToolbar(): JSX.Element | null {
   const [isStrikethrough, setIsStrikethrough] = useState(false);
   const [isCode, setIsCode] = useState(false);
   const [isLink, setIsLink] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
   const popupRef = useRef<HTMLDivElement | null>(null);
 
   const updatePopup = useCallback(() => {
@@ -166,67 +176,110 @@ export function FloatingTextFormatToolbar(): JSX.Element | null {
 
   const insertLink = useCallback(() => {
     if (!isLink) {
-      const url = prompt("Enter URL:");
-      if (url) {
-        editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
-      }
+      setLinkUrl("");
+      setLinkDialogOpen(true);
     } else {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
     }
   }, [editor, isLink]);
 
+  const handleLinkSubmit = useCallback(() => {
+    if (linkUrl) {
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, linkUrl);
+    }
+    setLinkDialogOpen(false);
+    setLinkUrl("");
+  }, [editor, linkUrl]);
+
   if (!isText) {
     return null;
   }
 
-  return createPortal(
-    <div ref={popupRef} css={toolbarStyles}>
-      <button
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}
-        className={isBold ? "active" : ""}
-        aria-label="Format Bold"
+  return (
+    <>
+      {createPortal(
+        <div ref={popupRef} css={toolbarStyles}>
+          <button
+            onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}
+            className={isBold ? "active" : ""}
+            aria-label="Format Bold"
+          >
+            <FormatBoldIcon />
+          </button>
+          <button
+            onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}
+            className={isItalic ? "active" : ""}
+            aria-label="Format Italic"
+          >
+            <FormatItalicIcon />
+          </button>
+          <button
+            onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline")}
+            className={isUnderline ? "active" : ""}
+            aria-label="Format Underline"
+          >
+            <FormatUnderlinedIcon />
+          </button>
+          <button
+            onClick={() =>
+              editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough")
+            }
+            className={isStrikethrough ? "active" : ""}
+            aria-label="Format Strikethrough"
+          >
+            <StrikethroughSIcon />
+          </button>
+          <button
+            onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code")}
+            className={isCode ? "active" : ""}
+            aria-label="Format Code"
+          >
+            <CodeIcon />
+          </button>
+          <div className="divider" />
+          <button
+            onClick={insertLink}
+            className={isLink ? "active" : ""}
+            aria-label={isLink ? "Remove Link" : "Insert Link"}
+          >
+            {isLink ? <LinkOffIcon /> : <LinkIcon />}
+          </button>
+        </div>,
+        document.body
+      )}
+      <Dialog
+        open={linkDialogOpen}
+        onClose={() => setLinkDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
       >
-        <FormatBoldIcon />
-      </button>
-      <button
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}
-        className={isItalic ? "active" : ""}
-        aria-label="Format Italic"
-      >
-        <FormatItalicIcon />
-      </button>
-      <button
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline")}
-        className={isUnderline ? "active" : ""}
-        aria-label="Format Underline"
-      >
-        <FormatUnderlinedIcon />
-      </button>
-      <button
-        onClick={() =>
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough")
-        }
-        className={isStrikethrough ? "active" : ""}
-        aria-label="Format Strikethrough"
-      >
-        <StrikethroughSIcon />
-      </button>
-      <button
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code")}
-        className={isCode ? "active" : ""}
-        aria-label="Format Code"
-      >
-        <CodeIcon />
-      </button>
-      <div className="divider" />
-      <button
-        onClick={insertLink}
-        className={isLink ? "active" : ""}
-        aria-label={isLink ? "Remove Link" : "Insert Link"}
-      >
-        {isLink ? <LinkOffIcon /> : <LinkIcon />}
-      </button>
-    </div>,
-    document.body
+        <DialogTitle>Insert Link</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="URL"
+            type="url"
+            fullWidth
+            variant="outlined"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleLinkSubmit();
+              }
+            }}
+            placeholder="https://example.com"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleLinkSubmit} variant="contained">
+            Insert
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

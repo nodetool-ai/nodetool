@@ -69,14 +69,23 @@ export default [
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
       
-      // TypeScript rules - relaxed for gradual improvement
+      // TypeScript rules - gradual strictness improvement
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
-      "@typescript-eslint/no-unused-vars": "off",
+      // Enable unused vars detection as warning for gradual cleanup
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true
+        }
+      ],
       
       // General code quality rules
       "no-console": "off", // Allow console for logging
-      "no-empty": ["error", { "allowEmptyCatch": false }], // Prevent empty blocks
+      "no-empty": ["error", { "allowEmptyCatch": true }], // Allow intentional empty catch blocks
       "no-debugger": "error",
       "no-alert": "warn",
       "no-eval": "error",
