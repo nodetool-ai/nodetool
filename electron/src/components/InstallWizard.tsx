@@ -1129,7 +1129,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                     className="nav-button next"
                     onClick={() => setCurrentStep("packages")}
                   >
-                    {Object.values(providerApiKeys).some((v) => v.trim().length > 0)
+                    {Object.values(providerApiKeys).some((v) => v && v.trim().length > 0)
                       ? "Continue →"
                       : "Skip for Now →"}
                   </button>

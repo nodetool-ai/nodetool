@@ -19,6 +19,7 @@ import {
   IpcEvents,
   MenuEventData,
   PackageUpdateInfo,
+  ProviderApiKeys,
   PythonPackages,
   UpdateProgressData,
   UpdateInfo,
@@ -424,13 +425,7 @@ const api = {
       modelBackend?: "ollama" | "llama_cpp" | "none",
       installOllama?: boolean,
       installLlamaCpp?: boolean,
-      providerApiKeys?: {
-        OPENAI_API_KEY?: string;
-        ANTHROPIC_API_KEY?: string;
-        GEMINI_API_KEY?: string;
-        OPENROUTER_API_KEY?: string;
-        HF_TOKEN?: string;
-      }
+      providerApiKeys?: ProviderApiKeys
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
