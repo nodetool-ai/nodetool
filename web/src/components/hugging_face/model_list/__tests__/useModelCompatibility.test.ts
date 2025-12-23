@@ -217,13 +217,14 @@ describe("useModelCompatibility", () => {
       expect(compatibility.compatible).toHaveLength(0);
     });
 
-    it("should match by pipeline_tag", () => {
+    it("should match by expanded pipeline type", () => {
       const mockMetadata: Record<string, NodeMetadata> = {
         "asr.node": createMockNode(
           "huggingface.asr.Whisper",
           "Whisper",
           "huggingface.asr",
-          [{ pipeline_tag: "automatic-speech-recognition" }]
+          [],
+          [{ name: "model", type: { type: "hf.automatic_speech_recognition", optional: false, values: null, type_args: [], type_name: null } }]
         ),
       };
       mockUseMetadataStore.mockReturnValue(mockMetadata);
@@ -236,6 +237,79 @@ describe("useModelCompatibility", () => {
 
       expect(compatibility.compatible).toHaveLength(1);
       expect(compatibility.compatible[0].nodeType).toBe("huggingface.asr.Whisper");
+    });
+
+    it("should not match full pipeline nodes when model is just a component (e.g. VAE)", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "SD",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "vae.node": createMockNode(
+          "huggingface.loaders.VAELoader",
+          "VAE Loader",
+          "huggingface.loaders",
+          [],
+          [{ name: "vae", type: { type: "hf.vae", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+
+      // A model that is just a VAE
+      const vaeModel = createMockModel("some-vae", "hf.vae", {
+        tags: ["vae"],
+        pipeline_tag: "vae"
+      });
+
+      const compatibility = result.current.getModelCompatibility(vaeModel);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      // Should match the VAE Loader
+      expect(matchedNodeTypes).toContain("huggingface.loaders.VAELoader");
+      // Should NOT match the Stable Diffusion node (which takes hf.text_to_image)
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
+    });
+
+    it("should prioritize component matching over pipeline matching for complex tags", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "sd.node": createMockNode(
+          "huggingface.text_to_image.StableDiffusion",
+          "SD",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.text_to_image", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "vae.node": createMockNode(
+          "huggingface.loaders.VAELoader",
+          "VAE Loader",
+          "huggingface.loaders",
+          [],
+          [{ name: "vae", type: { type: "hf.vae", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+
+      // A model tagged with both stable-diffusion and vae (common for VAEs meant for SD)
+      const complexModel = createMockModel("some-sd-vae", "hf.vae", {
+        tags: ["stable-diffusion", "vae"],
+      });
+
+      const compatibility = result.current.getModelCompatibility(complexModel);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      // Should match the VAE Loader
+      expect(matchedNodeTypes).toContain("huggingface.loaders.VAELoader");
+      // Should NOT match the Stable Diffusion node, even if "stable-diffusion" is in the tags
+      // because the component mapping (vae) should take precedence or at least prevent the broad match.
+      // In our implementation, if it returns hf.vae, it doesn't return hf.text_to_image for that same tag.
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
     });
 
     it("should not duplicate nodes in recommended and compatible", () => {
