@@ -16,7 +16,7 @@ import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
-import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend, ProviderApiKeys } from "./types.d";
+import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
@@ -43,7 +43,6 @@ interface InstallationPreferences {
 interface InstallationSelection extends InstallationPreferences {
   installOllama?: boolean;
   installLlamaCpp?: boolean;
-  providerApiKeys?: ProviderApiKeys;
 }
 
 function sanitizePackageSelection(packages: unknown): PythonPackages {
@@ -160,7 +159,6 @@ async function promptForInstallLocation(
           location,
           packages,
           modelBackend,
-          providerApiKeys,
           installOllama,
           installLlamaCpp,
         }: InstallToLocationData
@@ -174,7 +172,6 @@ async function promptForInstallLocation(
           ...preferences,
           installOllama,
           installLlamaCpp,
-          providerApiKeys,
         });
       }
     );
@@ -695,103 +692,14 @@ async function provisionPythonEnvironment(
  */
 
 /**
- * Validates an API key format based on the provider type.
- * Returns true if the key appears valid, false otherwise.
- * Note: This only validates the format, not whether the key actually works.
- */
-function validateApiKeyFormat(key: string, value: string): boolean {
-  const trimmedValue = value.trim();
-  
-  // Empty values are valid (just means the user didn't provide a key)
-  if (trimmedValue.length === 0) {
-    return true;
-  }
-
-  switch (key) {
-    case "OPENAI_API_KEY":
-      // OpenAI keys start with "sk-" and are at least 20 characters
-      return trimmedValue.startsWith("sk-") && trimmedValue.length >= 20;
-    case "ANTHROPIC_API_KEY":
-      // Anthropic keys start with "sk-ant-" and are at least 20 characters
-      return trimmedValue.startsWith("sk-ant-") && trimmedValue.length >= 20;
-    case "GEMINI_API_KEY":
-      // Google Gemini keys are typically at least 30 characters
-      return trimmedValue.length >= 30;
-    case "OPENROUTER_API_KEY":
-      // OpenRouter keys start with "sk-or-" and are at least 20 characters
-      return trimmedValue.startsWith("sk-or-") && trimmedValue.length >= 20;
-    case "HF_TOKEN":
-      // Hugging Face tokens start with "hf_" and are at least 20 characters
-      return trimmedValue.startsWith("hf_") && trimmedValue.length >= 20;
-    default:
-      // For unknown keys, just accept non-empty values
-      return true;
-  }
-}
-
-/**
- * Save provider API keys to settings
- * Only saves non-empty values that pass basic format validation
- */
-function persistProviderApiKeys(providerApiKeys: ProviderApiKeys | undefined): void {
-  if (!providerApiKeys) {
-    return;
-  }
-
-  const keysToSave: Record<string, string> = {};
-  const skippedKeys: string[] = [];
-  
-  for (const [key, value] of Object.entries(providerApiKeys)) {
-    if (typeof value === "string" && value.trim().length > 0) {
-      if (validateApiKeyFormat(key, value)) {
-        keysToSave[key] = value.trim();
-      } else {
-        skippedKeys.push(key);
-        logMessage(
-          `Skipping ${key}: value does not match expected format`,
-          "warn"
-        );
-      }
-    }
-  }
-
-  if (skippedKeys.length > 0) {
-    logMessage(
-      `Skipped invalid API keys: ${skippedKeys.join(", ")}. Keys can be configured later in Settings.`,
-      "warn"
-    );
-  }
-
-  if (Object.keys(keysToSave).length > 0) {
-    try {
-      updateSettings(keysToSave);
-      logMessage(
-        `Persisted provider API keys: ${Object.keys(keysToSave).join(", ")}`
-      );
-    } catch (error) {
-      logMessage(
-        `Failed to persist provider API keys: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        "error"
-      );
-    }
-  }
-}
-
-/**
  * Install the Python environment
  */
 async function installCondaEnvironment(): Promise<void> {
   try {
     logMessage("Prompting for install location");
     const persistedPreferences = readInstallationPreferences();
-    const { location, packages, modelBackend, installOllama, installLlamaCpp, providerApiKeys } =
+    const { location, packages, modelBackend, installOllama, installLlamaCpp } =
       await promptForInstallLocation(persistedPreferences);
-    
-    // Save provider API keys before starting the Python environment setup
-    persistProviderApiKeys(providerApiKeys);
-    
     await provisionPythonEnvironment(location, packages, modelBackend, {
       installOllama,
       installLlamaCpp,

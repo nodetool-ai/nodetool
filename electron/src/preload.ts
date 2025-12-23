@@ -19,7 +19,6 @@ import {
   IpcEvents,
   MenuEventData,
   PackageUpdateInfo,
-  ProviderApiKeys,
   PythonPackages,
   UpdateProgressData,
   UpdateInfo,
@@ -424,8 +423,7 @@ const api = {
       packages: PythonPackages,
       modelBackend?: "ollama" | "llama_cpp" | "none",
       installOllama?: boolean,
-      installLlamaCpp?: boolean,
-      providerApiKeys?: ProviderApiKeys
+      installLlamaCpp?: boolean
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
@@ -433,7 +431,6 @@ const api = {
         modelBackend,
         installOllama,
         installLlamaCpp,
-        providerApiKeys,
       }),
 
     /** Subscribe to install location prompt */

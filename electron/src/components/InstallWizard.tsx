@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import logo from "../assets/logo.png";
-import type { ProviderApiKeys } from "../types.d";
 
 const moduleMapping = {
   apple: "nodetool-ai/nodetool-apple",
@@ -200,7 +199,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
 
   // Update step type to include licensing step
   const [currentStep, setCurrentStep] = useState<
-    "welcome" | "location" | "runtime" | "providers" | "packages" | "licensing"
+    "welcome" | "location" | "runtime" | "packages" | "licensing"
   >("welcome");
   const [selectedPath, setSelectedPath] = useState(defaultPath);
   const [selectedRuntime, setSelectedRuntime] =
@@ -210,15 +209,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
   const [pathError, setPathError] = useState<string | null>(null);
   const [isOllamaRunning, setIsOllamaRunning] = useState(false);
   const [isOllamaInstalled, setIsOllamaInstalled] = useState(false);
-  
-  // Provider API keys state - uses Required<ProviderApiKeys> to ensure all fields have values
-  const [providerApiKeys, setProviderApiKeys] = useState<Required<ProviderApiKeys>>({
-    OPENAI_API_KEY: "",
-    ANTHROPIC_API_KEY: "",
-    GEMINI_API_KEY: "",
-    OPENROUTER_API_KEY: "",
-    HF_TOKEN: "",
-  });
 
   // Check for running Ollama instance or existing installation
   useEffect(() => {
@@ -326,11 +316,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     setCurrentStep("licensing"); // Changed from "packages"
   };
 
-  // Update handleBack to include providers step
+  // Update handleBack to include licensing step
   const handleBack = () => {
     if (currentStep === "packages") {
-      setCurrentStep("providers");
-    } else if (currentStep === "providers") {
       setCurrentStep("licensing");
     } else if (currentStep === "licensing") {
       setCurrentStep("runtime");
@@ -393,8 +381,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
       sanitizedSelection,
       modelBackend,
       installOllama,
-      installLlamaCpp,
-      providerApiKeys
+      installLlamaCpp
     );
     onComplete();
   };
@@ -504,8 +491,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
               { key: "location", label: "Step 1: Location" },
               { key: "runtime", label: "Step 2: AI Runtime" },
               { key: "licensing", label: "Step 3: Licensing" },
-              { key: "providers", label: "Step 4: Providers" },
-              { key: "packages", label: "Step 5: Packages" },
+              { key: "packages", label: "Step 4: Packages" },
             ].map((step, index) => (
               <div
                 key={step.key}
@@ -919,7 +905,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   </button>
                   <button
                     className="nav-button next"
-                    onClick={() => setCurrentStep("providers")}
+                    onClick={() => setCurrentStep("packages")}
                   >
                     I Understand, Continue →
                   </button>
@@ -927,221 +913,11 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
               </div>
             )}
 
-            {/* Step 4: Provider Setup */}
-            {currentStep === "providers" && (
-              <div id="step-providers" className="setup-step active">
-                <div className="step-header">
-                  <h3>Step 4: Configure AI Providers (Optional)</h3>
-                  <p>Enter API keys for the AI providers you want to use:</p>
-                  <p
-                    role="note"
-                    style={{
-                      marginTop: 8,
-                      color: "#7a7a7a",
-                    }}
-                  >
-                    You can skip this step and configure providers later in Settings.
-                  </p>
-                </div>
-
-                <div className="provider-setup">
-                  <div className="provider-grid">
-                    {/* OpenAI */}
-                    <div className="provider-card">
-                      <div className="provider-header">
-                        <div className="provider-info">
-                          <h4 className="provider-title">OpenAI</h4>
-                          <p className="provider-description">GPT-4, GPT-4o, DALL-E, and more</p>
-                        </div>
-                        <a
-                          href="https://platform.openai.com/api-keys"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.api.system.openExternal("https://platform.openai.com/api-keys");
-                          }}
-                        >
-                          Get API Key →
-                        </a>
-                      </div>
-                      <input
-                        type="password"
-                        placeholder="sk-..."
-                        className="provider-input"
-                        value={providerApiKeys.OPENAI_API_KEY}
-                        onChange={(e) =>
-                          setProviderApiKeys((prev) => ({
-                            ...prev,
-                            OPENAI_API_KEY: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    {/* Anthropic */}
-                    <div className="provider-card">
-                      <div className="provider-header">
-                        <div className="provider-info">
-                          <h4 className="provider-title">Anthropic</h4>
-                          <p className="provider-description">Claude 3.5 Sonnet, Claude 3 Opus</p>
-                        </div>
-                        <a
-                          href="https://console.anthropic.com/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.api.system.openExternal("https://console.anthropic.com/");
-                          }}
-                        >
-                          Get API Key →
-                        </a>
-                      </div>
-                      <input
-                        type="password"
-                        placeholder="sk-ant-..."
-                        className="provider-input"
-                        value={providerApiKeys.ANTHROPIC_API_KEY}
-                        onChange={(e) =>
-                          setProviderApiKeys((prev) => ({
-                            ...prev,
-                            ANTHROPIC_API_KEY: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    {/* Google Gemini */}
-                    <div className="provider-card">
-                      <div className="provider-header">
-                        <div className="provider-info">
-                          <h4 className="provider-title">Google Gemini</h4>
-                          <p className="provider-description">Gemini Pro, Gemini Flash</p>
-                        </div>
-                        <a
-                          href="https://aistudio.google.com/app/apikey"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.api.system.openExternal("https://aistudio.google.com/app/apikey");
-                          }}
-                        >
-                          Get API Key →
-                        </a>
-                      </div>
-                      <input
-                        type="password"
-                        placeholder="AI..."
-                        className="provider-input"
-                        value={providerApiKeys.GEMINI_API_KEY}
-                        onChange={(e) =>
-                          setProviderApiKeys((prev) => ({
-                            ...prev,
-                            GEMINI_API_KEY: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    {/* OpenRouter */}
-                    <div className="provider-card">
-                      <div className="provider-header">
-                        <div className="provider-info">
-                          <h4 className="provider-title">OpenRouter</h4>
-                          <p className="provider-description">Access multiple AI models via one API</p>
-                        </div>
-                        <a
-                          href="https://openrouter.ai/keys"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.api.system.openExternal("https://openrouter.ai/keys");
-                          }}
-                        >
-                          Get API Key →
-                        </a>
-                      </div>
-                      <input
-                        type="password"
-                        placeholder="sk-or-..."
-                        className="provider-input"
-                        value={providerApiKeys.OPENROUTER_API_KEY}
-                        onChange={(e) =>
-                          setProviderApiKeys((prev) => ({
-                            ...prev,
-                            OPENROUTER_API_KEY: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    {/* Hugging Face */}
-                    <div className="provider-card">
-                      <div className="provider-header">
-                        <div className="provider-info">
-                          <h4 className="provider-title">Hugging Face</h4>
-                          <p className="provider-description">Inference API and model downloads</p>
-                        </div>
-                        <a
-                          href="https://huggingface.co/settings/tokens"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.api.system.openExternal("https://huggingface.co/settings/tokens");
-                          }}
-                        >
-                          Get Token →
-                        </a>
-                      </div>
-                      <input
-                        type="password"
-                        placeholder="hf_..."
-                        className="provider-input"
-                        value={providerApiKeys.HF_TOKEN}
-                        onChange={(e) =>
-                          setProviderApiKeys((prev) => ({
-                            ...prev,
-                            HF_TOKEN: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="navigation-buttons"
-                  style={{ marginTop: "24px" }}
-                >
-                  <button className="nav-button back" onClick={handleBack}>
-                    ← Back
-                  </button>
-                  <button
-                    className="nav-button next"
-                    onClick={() => setCurrentStep("packages")}
-                  >
-                    {Object.values(providerApiKeys).some((v) => v.trim().length > 0)
-                      ? "Continue →"
-                      : "Skip for Now →"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5: Package Selection */}
+            {/* Step 3: Package Selection */}
             {currentStep === "packages" && (
               <div id="step-packages" className="setup-step active">
                 <div className="step-header">
-                  <h3>Step 5: Choose Packages</h3>
+                  <h3>Step 4: Choose Packages</h3>
                   <p>Select the packages you'd like to install:</p>
                   <p
                     role="note"
