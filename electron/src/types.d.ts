@@ -392,9 +392,6 @@ export enum IpcChannels {
   SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
   // System directory channels
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
-  // Settings channels
-  SETTINGS_GET_CLOSE_BEHAVIOR = "settings-get-close-behavior",
-  SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
 }
 
 
@@ -483,9 +480,6 @@ export interface IpcRequest {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
-  // Settings
-  [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: void;
-  [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -548,9 +542,6 @@ export interface IpcResponse {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;
-  // Settings
-  [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: WindowCloseAction;
-  [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
 }
 
 
