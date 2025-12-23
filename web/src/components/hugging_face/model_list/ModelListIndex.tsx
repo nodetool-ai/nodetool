@@ -121,14 +121,13 @@ type VisibleRange = {
 const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
-  const { selectedModelType, modelSearchTerm, filterStatus } = useModelManagerStore();
+  const { selectedModelType, modelSearchTerm, filterStatus } =
+    useModelManagerStore();
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
   const cachePending = useHfCacheStatusStore((state) => state.pending);
   const cacheVersion = useHfCacheStatusStore((state) => state.version);
-  const ensureStatuses = useHfCacheStatusStore(
-    (state) => state.ensureStatuses
-  );
+  const ensureStatuses = useHfCacheStatusStore((state) => state.ensureStatuses);
 
   const {
     modelTypes,
@@ -194,7 +193,7 @@ const ModelListIndex: React.FC = () => {
   const getItemSize = useCallback(
     (index: number) => {
       const item = flattenedList[index];
-      return item.type === "header" ? 60 : 180;
+      return item.type === "header" ? 48 : 150;
     },
     [flattenedList]
   );
@@ -216,7 +215,9 @@ const ModelListIndex: React.FC = () => {
   useEffect(() => {
     const requests = visibleModels
       .map((model) => buildHfCacheRequest(model))
-      .filter((request): request is NonNullable<typeof request> => request !== null);
+      .filter(
+        (request): request is NonNullable<typeof request> => request !== null
+      );
 
     if (requests.length === 0) {
       return;
@@ -234,7 +235,9 @@ const ModelListIndex: React.FC = () => {
 
     const requests = allModels
       .map((model) => buildHfCacheRequest(model))
-      .filter((request): request is NonNullable<typeof request> => request !== null);
+      .filter(
+        (request): request is NonNullable<typeof request> => request !== null
+      );
 
     if (requests.length === 0) {
       return;
@@ -412,7 +415,9 @@ const ModelListIndex: React.FC = () => {
                       <ModelListItem
                         model={displayModel}
                         handleModelDelete={
-                          displayModel.downloaded ? handleDeleteClick : undefined
+                          displayModel.downloaded
+                            ? handleDeleteClick
+                            : undefined
                         }
                         onDownload={
                           !displayModel.downloaded

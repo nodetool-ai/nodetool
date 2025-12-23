@@ -4,8 +4,8 @@ import type { Theme } from "@mui/material/styles";
 const modelListItemStyles = (theme: Theme) =>
   css({
     "&.model-list-item": {
-      padding: "1em",
-      marginBottom: "0.75em",
+      padding: "0.75em 1em",
+      marginBottom: "0.35em",
       boxSizing: "border-box",
       border: "1px solid rgba(255, 255, 255, 0.08)",
       borderRadius: "16px",
@@ -30,7 +30,7 @@ const modelListItemStyles = (theme: Theme) =>
       "& .model-content": {
         display: "flex",
         flexDirection: "column",
-        gap: "0.75em",
+        gap: "0.5em",
         width: "100%",
         padding: "0"
       },
