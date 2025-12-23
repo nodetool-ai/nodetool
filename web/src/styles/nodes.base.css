@@ -34,7 +34,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   background-color: transparent;
   color: var(--palette-grey-0);
   margin: 0;
@@ -51,15 +51,26 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 4px;
+  padding: 4px 4px;
+}
+
+.react-flow__node .node-header .menu-button-container {
+  display: flex;
+  align-items: center;
+  padding: 4px 4px;
 }
 
 .react-flow__node .node-header .node-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: grid;
   place-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-right: 4px;
+  flex-shrink: 0;
 }
 
 .node-drag-handle {
@@ -81,7 +92,7 @@
 .react-flow__node .node-header svg.MuiSvgIcon-root {
   scale: 0.9;
   border: 0;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 .react-flow__node .node-header .node-title {
@@ -90,26 +101,35 @@
   gap: 0;
   flex-grow: 1;
   text-align: left;
-  max-width: 180px;
+  max-width: 250px;
   word-wrap: break-word;
-  line-height: 0.9em;
+  line-height: 1.2em;
   font-size: var(--fontSizeNormal);
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding: 0;
+  padding: 2px 0;
   color: var(--palette-text-primary);
 }
 
 .react-flow__node .node-header .sync-mode-button {
   display: inline-grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   color: var(--palette-text-secondary);
-  background: rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.react-flow__node .node-header .sync-mode-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--palette-grey-0);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* --------------------------------------------- */
@@ -358,9 +378,9 @@
 
 .node-footer .namespace-button {
   display: block;
-  margin: 0;
-  padding: 0 4px;
-  border-radius: 0;
+  margin: 0 -4px;
+  padding: 2px 8px;
+  border-radius: 4px;
   background-color: transparent;
   color: var(--palette-grey-400);
   font-size: 9px;
@@ -373,8 +393,9 @@
 }
 
 .node-footer .namespace-button:hover {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.05);
   color: var(--palette-primary-main);
+  opacity: 1;
 }
 
 .node-footer .namespace-button:hover .pretty-namespace span {
@@ -384,6 +405,14 @@
 .node-footer svg {
   scale: 0.6;
   opacity: 0.5;
+  transition: opacity 0.2s ease, color 0.2s ease, scale 0.2s ease;
+  cursor: help;
+}
+
+.node-footer svg:hover {
+  opacity: 1;
+  color: var(--palette-grey-0);
+  scale: 0.7;
 }
 
 .pretty-namespace {
