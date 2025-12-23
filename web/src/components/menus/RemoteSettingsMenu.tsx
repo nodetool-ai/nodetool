@@ -25,6 +25,7 @@ const SETTING_LINKS: Record<string, string> = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
   ANTHROPIC_API_KEY: "https://console.anthropic.com/",
   GEMINI_API_KEY: "https://aistudio.google.com/app/apikey",
+  OPENROUTER_API_KEY: "https://openrouter.ai/keys",
   HF_TOKEN: "https://huggingface.co/settings/tokens",
   REPLICATE_API_TOKEN: "https://replicate.com/account/api-tokens",
   AIME_API_KEY: "https://www.aime.info",
@@ -39,6 +40,7 @@ const SETTING_BUTTON_TITLES: Record<string, string> = {
   OPENAI_API_KEY: "Get OpenAI API Key",
   ANTHROPIC_API_KEY: "Get Anthropic API Key",
   GEMINI_API_KEY: "Get Gemini API Key",
+  OPENROUTER_API_KEY: "Get OpenRouter API Key",
   HF_TOKEN: "Get Hugging Face Token",
   REPLICATE_API_TOKEN: "Get Replicate API Token",
   AIME_API_KEY: "Learn more",
@@ -53,6 +55,7 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   OPENAI_API_KEY: "Go to OpenAI API key page",
   ANTHROPIC_API_KEY: "Go to Anthropic console",
   GEMINI_API_KEY: "Go to Google AI Studio to get your API key",
+  OPENROUTER_API_KEY: "Go to OpenRouter keys page",
   HF_TOKEN: "Go to Hugging Face tokens page",
   REPLICATE_API_TOKEN: "Go to Replicate API tokens page",
   AIME_API_KEY: "Go to Aime info page",
@@ -87,7 +90,7 @@ const RemoteSettings = () => {
     if (settingsToUse && settingsToUse.length > 0) {
       const values: Record<string, string> = {};
       settingsToUse.forEach((setting) => {
-        if (!setting.is_secret && setting.value !== null && setting.value !== undefined) {
+        if ((!setting.is_secret || SETTING_LINKS[setting.env_var]) && setting.value !== null && setting.value !== undefined) {
           values[setting.env_var] = String(setting.value);
         }
       });
@@ -129,12 +132,12 @@ const RemoteSettings = () => {
         return;
       }
 
-      const nonSecretSettings = groupSettings.filter(
-        (setting) => !setting.is_secret
+      const allowedSettings = groupSettings.filter(
+        (setting) => !setting.is_secret || SETTING_LINKS[setting.env_var]
       );
 
-      if (nonSecretSettings.length > 0) {
-        filteredEntries.push([groupName, nonSecretSettings]);
+      if (allowedSettings.length > 0) {
+        filteredEntries.push([groupName, allowedSettings]);
       }
     });
 
@@ -142,8 +145,8 @@ const RemoteSettings = () => {
   }, [settingsByGroup]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: (settings: Record<string, string>) =>
-      updateSettings(settings),
+    mutationFn: (args: { settings: Record<string, string>; secrets: Record<string, string> }) =>
+      updateSettings(args.settings, args.secrets),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     }
@@ -154,14 +157,16 @@ const RemoteSettings = () => {
   }, []);
 
   const handleSave = useCallback(() => {
-    // Only save non-secret settings
     const settings: Record<string, string> = {};
+    const secrets: Record<string, string> = {};
 
     if (data) {
       data.forEach((setting) => {
-        if (!setting.is_secret) {
-          const value = settingValues[setting.env_var];
-          if (value !== undefined) {
+        const value = settingValues[setting.env_var];
+        if (value !== undefined) {
+          if (setting.is_secret) {
+            secrets[setting.env_var] = value;
+          } else {
             settings[setting.env_var] = value;
           }
         }
@@ -169,7 +174,7 @@ const RemoteSettings = () => {
     }
 
     updateSettingsMutation.mutate(
-      settings,
+      { settings, secrets },
       {
         onSuccess: () => {
           addNotification({
@@ -220,7 +225,7 @@ const RemoteSettings = () => {
                       {groupName}
                     </Typography>
                     {groupSettings
-                      .filter((setting) => !setting.is_secret)
+                      .filter((setting) => !setting.is_secret || SETTING_LINKS[setting.env_var])
                       .map((setting) => (
                       <div
                         key={setting.env_var}
@@ -251,7 +256,7 @@ const RemoteSettings = () => {
                           </FormControl>
                         ) : (
                           <TextField
-                            type="text"
+                            type={setting.is_secret ? "password" : "text"}
                             autoComplete="off"
                             id={`${setting.env_var.toLowerCase()}-input`}
                             label={setting.env_var.replace(/_/g, " ")}
@@ -316,7 +321,7 @@ export const getRemoteSidebarSections = () => {
   const settings = store.settings;
 
   const initialGroupedSettings = settings
-    .filter((setting) => !setting.is_secret)
+    .filter((setting) => !setting.is_secret || SETTING_LINKS[setting.env_var])
     .reduce((acc, setting) => {
       const groupKey = setting.group || "UnknownGroup";
       acc[groupKey] = acc[groupKey] || [];
