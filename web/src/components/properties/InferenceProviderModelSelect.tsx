@@ -165,7 +165,7 @@ const InferenceProviderModelSelect = ({
         return models.map((model) => ({
             value: model.id,
             label: model.id
-        }));
+        })).sort((a, b) => a.label.localeCompare(b.label));
     }, [models]);
 
     return (

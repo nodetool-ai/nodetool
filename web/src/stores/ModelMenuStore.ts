@@ -146,7 +146,13 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
     }
     return merged;
   }
-  return list;
+
+  // Sort alphabetically by name (or id as fallback) when not searching
+  return [...list].sort((a, b) => {
+    const nameA = (a.path || a.name || a.id || "").toLowerCase();
+    const nameB = (b.path || b.name || b.id || "").toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 };
 
 export type ModelMenuStoreHook<TModel extends ModelSelectorModel> = <Selected>(
@@ -187,7 +193,12 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
   const favoriteModels = React.useMemo(() => {
     const keyHas = (provider?: string, id?: string) =>
       favoritesSet.has(`${provider ?? ""}:${id ?? ""}`);
-    return (models ?? []).filter((m) => keyHas(m.provider, m.id));
+    const filtered = (models ?? []).filter((m) => keyHas(m.provider, m.id));
+    return [...filtered].sort((a, b) => {
+      const nameA = (a.path || a.name || a.id || "").toLowerCase();
+      const nameB = (b.path || b.name || b.id || "").toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
   }, [models, favoritesSet]);
 
   const totalCount = models?.length ?? 0;
