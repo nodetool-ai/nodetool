@@ -17,6 +17,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import LlamaModelSelect from "../properties/LlamaModelSelect";
 import ModelRecommendationsButton from "../node/ModelRecommendationsButton";
+import { getIsElectronDetails } from "../../utils/browser";
+
+const isProduction = process.env.NODE_ENV === "production";
 
 interface CollectionFormProps {
   onClose: () => void;
@@ -180,7 +183,9 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
         helperText="Set a unique name for the new collection"
       />
 
-      <ModelRecommendationsButton recommendedModels={embeddingModels} />
+      {(getIsElectronDetails().isElectron || !isProduction) && (
+        <ModelRecommendationsButton recommendedModels={embeddingModels} />
+      )}
 
       <FormControl fullWidth>
         <InputLabel
