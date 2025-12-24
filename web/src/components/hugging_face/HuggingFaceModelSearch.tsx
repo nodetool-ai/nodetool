@@ -33,14 +33,16 @@ const searchModels = async (query: string) => {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       padding: theme.spacing(2),
-      marginBottom: "1em"
+      marginBottom: "1em",
+      borderRadius: theme.vars.rounded.container,
+      border: `1px solid ${theme.vars.palette.divider}`
     },
     ".download-button": {
       margin: ".1em 0 1em 0",
       lineHeight: "1.2em",
-      color: theme.vars.palette.grey[900]
+      color: theme.vars.palette.text.primary
     },
     ".download-info": {
       color: theme.vars.palette.warning.main

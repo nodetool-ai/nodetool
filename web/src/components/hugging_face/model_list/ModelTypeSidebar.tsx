@@ -5,18 +5,19 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  Tooltip,
-  Theme
+  Tooltip
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/data_types";
 import { prettifyModelType } from "../../../utils/modelFormatting";
 import { useModels } from "./useModels";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import { useTheme } from "@mui/material/styles";
 
 const ModelTypeSidebar: React.FC = () => {
   const { modelTypes, availableModelTypes } = useModels();
   const { selectedModelType, setSelectedModelType } = useModelManagerStore();
+  const theme = useTheme();
 
   const onModelTypeChange = useCallback(
     (type: string) => {
@@ -63,7 +64,7 @@ const ModelTypeSidebar: React.FC = () => {
                       size="small"
                       onClick={(event) => event.stopPropagation()}
                       sx={{ 
-                        color: isSelected ? "white" : "inherit",
+                        color: isSelected ? theme.vars.palette.text.primary : "inherit",
                         opacity: 0.7,
                         "&:hover": { opacity: 1 }
                       }}
@@ -83,15 +84,15 @@ const ModelTypeSidebar: React.FC = () => {
                   padding: "8px 12px",
                   transition: "all 0.2s ease",
                   "&.Mui-selected": {
-                    backgroundColor: "rgba(255, 255, 255, 0.08)",
-                    backdropFilter: "blur(4px)",
-                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    backgroundColor: theme.vars.palette.action.selected,
+                    backdropFilter: theme.vars.palette.glass.blur,
+                    border: `1px solid ${theme.vars.palette.divider}`,
                     "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.12)",
+                      backgroundColor: theme.vars.palette.action.activatedOpacity,
                     }
                   },
                   "&:hover": {
-                    backgroundColor: "rgba(255, 255, 255, 0.04)",
+                    backgroundColor: theme.vars.palette.action.hover,
                   }
                 }}
               >
@@ -114,7 +115,7 @@ const ModelTypeSidebar: React.FC = () => {
                   primaryTypographyProps={{
                     fontSize: "0.9rem",
                     fontWeight: isSelected ? 600 : 400,
-                    color: isSelected ? "white" : "text.secondary"
+                    color: isSelected ? theme.vars.palette.text.primary : "text.secondary"
                   }}
                 />
               </ListItemButton>

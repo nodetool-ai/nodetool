@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       padding: "1em",
       overflowY: "auto",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      background: "rgba(0, 0, 0, 0.2)"
+      background: theme.vars.palette.action.hover
     },
     ".model-list": {
       paddingBottom: "250px"
@@ -63,8 +63,8 @@ const styles = (theme: Theme) =>
       top: 0,
       zIndex: 2,
       width: "100%",
-      backdropFilter: "blur(12px)",
-      background: "rgba(18, 18, 18, 0.4)",
+      backdropFilter: theme.vars.palette.glass.blur,
+      background: theme.vars.palette.background.paper,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
     },
@@ -80,10 +80,10 @@ const styles = (theme: Theme) =>
       }
     },
     ".model-type-button.Mui-selected": {
-      color: theme.vars.palette.grey[100],
+      color: theme.vars.palette.text.primary,
       transition: "background-color 0.2s ease-in",
       borderRadius: 8,
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.action.selected
     },
     ".model-type-button span": {
       display: "flex",
