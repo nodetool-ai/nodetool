@@ -287,7 +287,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
             height: "75vh",
             margin: "auto",
             borderRadius: 1,
-            border: `1px solid ${theme.vars.palette.grey[600]}`,
+            border: `1px solid ${theme.vars.palette.divider}`,
             backgroundColor:
               (theme as any)?.palette?.glass?.backgroundDialogContent ??
               "transparent",

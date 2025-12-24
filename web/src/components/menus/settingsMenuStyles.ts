@@ -52,7 +52,7 @@ export const settingsStyles = (theme: Theme): any =>
       justifyContent: "space-between",
       alignItems: "center",
       padding: "0em 1em",
-      borderBottom: `1px solid ${theme.vars.palette.grey[600]}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       h2: {
         marginTop: "0",
         padding: "0.5em 0",
@@ -86,7 +86,7 @@ export const settingsStyles = (theme: Theme): any =>
       padding: "1.5em 0",
       height: "100%",
       overflowY: "auto",
-      borderRight: `1px solid ${theme.vars.palette.grey[600]}`
+      borderRight: `1px solid ${theme.vars.palette.divider}`
     },
     ".settings-sidebar-item": {
       padding: "0.5em 1.5em",
@@ -98,12 +98,12 @@ export const settingsStyles = (theme: Theme): any =>
       borderLeft: "3px solid transparent",
       "&:hover": {
         opacity: 1,
-        backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.08)`
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&.active": {
         opacity: 1,
         borderLeftColor: "var(--palette-primary-main)",
-        backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.12)`
+        backgroundColor: theme.vars.palette.action.selected
       }
     },
     ".settings-sidebar-category": {
@@ -122,7 +122,7 @@ export const settingsStyles = (theme: Theme): any =>
       padding: "0 1em",
       display: "block",
       backgroundColor: "transparent",
-      borderBottom: `1px solid ${theme.vars.palette.grey[600]}`
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".settings-content": {
       flex: 1,
@@ -136,11 +136,11 @@ export const settingsStyles = (theme: Theme): any =>
         background: theme.vars.palette.background.paper
       },
       "&::-webkit-scrollbar-thumb": {
-        background: theme.vars.palette.grey[500],
+        background: theme.vars.palette.action.disabledBackground,
         borderRadius: "4px"
       },
       "&::-webkit-scrollbar-thumb:hover": {
-        background: theme.vars.palette.grey[400]
+        background: theme.vars.palette.action.disabled
       }
     },
     ".settings-section": {
@@ -150,7 +150,7 @@ export const settingsStyles = (theme: Theme): any =>
       padding: "0.5em 1.2em 1.2em 1.2em",
       margin: "1.5em 0 1.5em 0",
       boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       width: "100%",
       display: "flex",
       flexDirection: "column",
@@ -166,7 +166,7 @@ export const settingsStyles = (theme: Theme): any =>
     },
     ".settings-item": {
       padding: "1em 0",
-      borderBottom: `1px solid ${theme.vars.palette.grey[600]}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       "&:last-child": {
         borderBottom: "none",
         paddingBottom: "0"
@@ -286,7 +286,7 @@ export const settingsStyles = (theme: Theme): any =>
       padding: "0.5em 0 0",
       fontWeight: "500",
       color: theme.vars.palette.grey[0],
-      borderBottom: `1px solid ${theme.vars.palette.grey[500]}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       paddingBottom: "0.3em"
     },
     ".settings-button": {
