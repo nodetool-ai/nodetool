@@ -97,11 +97,11 @@
 /* Textarea */
 .node-property .MuiTextField-root textarea {
   width: 100%;
-  min-height: 12px !important;
+  min-height: 18px !important;
   max-height: 200px;
   overflow-y: auto !important;
   margin-top: 0;
-  padding: 6px 8px;
+  padding: 4px 8px;
   font-family: var(--font_family);
   font-size: var(--fontSizeSmall);
   font-weight: 400;
@@ -112,6 +112,12 @@
   border-radius: 6px;
   outline: none;
   transition: border-color 0.2s, background-color 0.2s;
+  box-sizing: border-box;
+}
+
+/* Ensure second row aligns with form rhythm (18px baseline) */
+.node-property .MuiTextField-root textarea:not([rows="1"]) {
+  min-height: 36px !important;
 }
 
 .node-property .MuiTextField-root textarea:hover {
@@ -127,14 +133,17 @@
 /* STRING PROPERTY STYLES */
 .string-property .property-row {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.string-property .property-row > .property-label {
+  order: 1;
 }
 
 .string-property .value-container {
   width: 100%;
-}
-
-.string-property .string-value-input {
-  font-size: var(--fontSizeSmaller);
+  order: 2;
 }
 
 .string-property .string-action-buttons {
@@ -142,6 +151,12 @@
   right: 0;
   top: -3px;
   opacity: 0.8;
+  z-index: 10;
+}
+
+.string-property .string-value-input {
+  font-size: var(--fontSizeSmaller);
+  line-height: 1.25em;
 }
 
 .string-property .string-action-buttons .MuiIconButton-root {
@@ -186,10 +201,11 @@
 
 .string-property .MuiOutlinedInput-root textarea {
   resize: none;
-  min-height: 1.25em;
-  padding: 0.25em 0.5em;
-  line-height: 1.25em;
+  min-height: 18px !important;
+  padding: 4px 8px 0 8px;
+  line-height: 18px;
   border: 1px solid var(--palette-grey-600);
+  box-sizing: content-box;
 }
 
 .string-property .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
