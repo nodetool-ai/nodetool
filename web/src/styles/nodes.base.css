@@ -353,6 +353,15 @@
 /* --------------------------------------------- */
 /* Handle styles                                  */
 /* --------------------------------------------- */
+.output-handle-container {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: block;
+  text-align: right;
+}
+
 .react-flow__node-toolbar button {
   opacity: 0.7;
   transition: opacity 0.2s;

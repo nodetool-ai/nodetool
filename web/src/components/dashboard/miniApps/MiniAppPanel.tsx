@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, useState } from "react";
-import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -280,44 +279,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                   <Typography
                     variant="body2"
                     color="text.secondary"
-                    css={
-                      runnerState === "running"
-                        ? css`
-                            @keyframes statusPulseColor {
-                              0% {
-                                color: #ff6b3d;
-                              }
-                              20% {
-                                color: #ffd700;
-                              }
-                              40% {
-                                color: #9acd32;
-                              }
-                              60% {
-                                color: #40e0d0;
-                              }
-                              80% {
-                                color: #48d1ff;
-                              }
-                              100% {
-                                color: #9370db;
-                              }
-                            }
-                            @keyframes statusSlideIn {
-                              from {
-                                transform: translateY(-2px);
-                                opacity: 0;
-                              }
-                              to {
-                                transform: translateY(0);
-                                opacity: 1;
-                              }
-                            }
-                            animation: statusPulseColor 3s linear infinite,
-                              statusSlideIn 0.25s ease-out;
-                          `
-                        : undefined
-                    }
+                    className={runnerState === "running" ? "status-message animating" : ""}
                   >
                     {statusMessage}
                   </Typography>

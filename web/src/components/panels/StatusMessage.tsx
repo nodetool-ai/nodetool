@@ -1,6 +1,4 @@
-/** @jsxImportSource @emotion/react */
 import { Typography } from "@mui/material";
-import { css } from "@emotion/react";
 import { memo } from "react";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 
@@ -14,45 +12,9 @@ const StatusMessage = memo(function StatusMessage() {
 
   return (
     <Typography
-      className="status-message"
+      className="status-message animating"
       variant="caption"
       color="inherit"
-      css={css`
-        @keyframes typing {
-          0% {
-            color: #ff6b3d;
-          }
-          20% {
-            color: #ffd700;
-          }
-          40% {
-            color: #9acd32;
-          }
-          60% {
-            color: #40e0d0;
-          }
-          80% {
-            color: #48d1ff;
-          }
-          100% {
-            color: #9370db;
-          }
-        }
-        @keyframes slideIn {
-          from {
-            transform: translateY(-10px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        animation: typing 3s linear infinite, slideIn 0.3s ease-out;
-        display: inline-block;
-        padding: 4px 8px;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-      `}
     >
       {statusMessage || ""}
     </Typography>
