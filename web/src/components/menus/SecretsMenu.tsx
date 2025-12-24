@@ -362,7 +362,7 @@ const SecretsMenu = () => {
           }}
         >
           <LockIcon sx={{ color: "var(--palette-primary-main)" }} />
-          {editingSecret?.is_configured ? "Update Secret" : "Set Secret"}
+          {editingSecret?.is_configured ? "Update" : "Set"} {formData.key || "Secret"}
         </DialogTitle>
         <DialogContent
           sx={{
@@ -372,17 +372,6 @@ const SecretsMenu = () => {
           }}
         >
           <Box sx={{ marginTop: "1.5em" }}>
-            <TextField
-              disabled={true}
-              label="Key"
-              value={formData.key}
-              fullWidth
-              helperText="This is the secret name — update the value below"
-              variant="outlined"
-            />
-          </Box>
-
-          <Box>
             <TextField
               label="Value"
               type="password"
