@@ -90,9 +90,17 @@ const treeStyles = (theme: Theme) =>
       overflow: "visible", // Allow dropdowns to overflow if needed, though usually they are portals
       width: "100%",
       margin: 0,
-      padding: "0 1em 0.5em 0.5em",
+      padding: "0 1em 0 0.5em",
       ".search-input-container": {
         minWidth: "200px" // Slightly wider
+      },
+      ".type-filter-container": {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: "0.5em",
+        flexGrow: 1,
+        marginTop: "2px" // Fine-tune vertical alignment with search input
       }
     },
     ".close-button": {
