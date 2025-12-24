@@ -118,15 +118,19 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       },
       ".type-filter": {
         width: "150px",
-        height: "38px",
-        margin: "0"
+        height: "36px",
+        margin: 0,
+        display: "flex",
+        alignItems: "center"
       },
       ".type-filter label": {
         position: "absolute",
         zIndex: 100,
         fontSize: theme.fontSizeNormal,
         color: theme.vars.palette.text.disabled,
-        padding: ".6em 0 0 .5em"
+        padding: "0 0 0 0.75em",
+        height: "36px",
+        lineHeight: "36px"
       },
       ".type-filter-select": {
         flexGrow: 1,
