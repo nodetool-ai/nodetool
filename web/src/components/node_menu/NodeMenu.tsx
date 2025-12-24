@@ -39,7 +39,7 @@ const treeStyles = (theme: Theme) =>
       // Glassmorphism container
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "16px",
-      boxShadow: theme.shadows[10],
+      boxShadow: "0 24px 48px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0,0,0,0.2)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
       transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
@@ -58,7 +58,7 @@ const treeStyles = (theme: Theme) =>
       userSelect: "none",
       display: "flex",
       alignItems: "center",
-      borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       h4: {
         margin: "0",
         padding: "0 0 0 1.25em",
@@ -66,7 +66,7 @@ const treeStyles = (theme: Theme) =>
         fontWeight: 500,
         letterSpacing: "0.5px",
         color: theme.vars.palette.text.primary,
-        textShadow: "none"
+        textShadow: "0 1px 2px rgba(0,0,0,0.5)"
       }
     },
     ".draggable-header:active": {

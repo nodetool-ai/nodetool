@@ -217,32 +217,32 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#fff"
   },
   background: {
-    default: "#0F1115",
-    paper: "#161A22"
+    default: "#141414",
+    paper: "rgba(20, 20, 20, 0.75)"
   },
   text: {
     primary: "#FFFFFF",
     secondary: "#B9B9B4",
-    disabled: "#94A3B8"
+    disabled: "rgba(255, 255, 255, 0.4)"
   },
   action: {
     // Icons, enabled interactive elements, "on" state indicators
     active: "#fff",
 
     // Background when hovering over clickable items
-    hover: "rgba(255, 255, 255, 0.08)",
-    hoverOpacity: 0.08,
+    hover: "rgba(255, 255, 255, 0.02)",
+    hoverOpacity: 0.02,
 
     // Background for selected list items, active nav items
-    selected: "rgba(255, 255, 255, 0.16)",
-    selectedOpacity: 0.16,
+    selected: "rgba(255, 255, 255, 0.05)",
+    selectedOpacity: 0.05,
 
     // Text color for disabled buttons, form fields, icons
     disabled: "rgba(255, 255, 255, 0.3)",
     disabledOpacity: 0.38,
 
     // Background color for disabled buttons, form controls
-    disabledBackground: "rgba(255, 255, 255, 0.12)",
+    disabledBackground: "rgba(255, 255, 255, 0.1)",
 
     // Focus ring color, keyboard navigation indicators
     focus: "rgba(255, 255, 255, 0.12)",
@@ -252,13 +252,13 @@ export const paletteDark: PaletteOptions = {
     activatedOpacity: 0.24
   },
   Paper: {
-    default: "#161A22",
-    paper: "#161A22",
-    overlay: "#1C1F26"
+    default: "#1a1a1a",
+    paper: "#1a1a1a",
+    overlay: "#222222"
   },
-  divider: "#525865",
+  divider: "rgba(255, 255, 255, 0.08)",
   glass: {
-    blur: "blur(35px)",
+    blur: "blur(16px) saturate(180%)",
     backgroundDialog: "rgba(0, 0, 0, 0.2)",
     backgroundDialogContent: "rgba(0, 0, 0, 0.5)"
   }

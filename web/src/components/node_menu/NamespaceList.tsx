@@ -89,7 +89,7 @@ const namespaceStyles = (theme: Theme) =>
       // Glassmorphic list container
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.action.hover,
-      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.05)"
+      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)"
     },
     ".namespace-list::-webkit-scrollbar": { width: "6px" },
     ".namespace-list::-webkit-scrollbar-track": { background: "transparent" },
