@@ -93,6 +93,9 @@ span.tooltip-small {
   padding:.2em .5em;
 }
 .tooltip-key {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   background-color: transparent;
   color: var(--palette-grey-50);
   word-spacing: 1em;
@@ -126,27 +129,46 @@ kbd {
   line-height: 1.1;
   box-shadow: 1px 1px 0 0px var(--palette-grey-300);
 }
-/* .tooltip-span {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  color: var(--palette-text-primary);
+
+/* Status message animations */
+@keyframes status-color-cycle {
+  0% {
+    color: #ff6b3d;
+  }
+  20% {
+    color: #ffd700;
+  }
+  40% {
+    color: #9acd32;
+  }
+  60% {
+    color: #40e0d0;
+  }
+  80% {
+    color: #48d1ff;
+  }
+  100% {
+    color: #9370db;
+  }
 }
-.tooltip-title {
-  font-weight: 600;
+
+@keyframes status-slide-in {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
-.tooltip-key {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+
+.status-message {
+  display: inline-block;
+  padding: 4px 8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
-.tooltip-key kbd {
-  background: var(--palette-grey-800);
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-size: 0.7rem;
-  font-family: inherit;
-  color: var(--palette-text-primary);
-} */
+
+.status-message.animating {
+  animation: status-color-cycle 3s linear infinite, status-slide-in 0.3s ease-out;
+}

@@ -276,21 +276,52 @@ ul.multi-outputs li::marker {
 
 .handle-tooltip {
   position: fixed;
-  transform: translateX(-100%);
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.1s ease-in-out, visibility 0ms linear 150ms;
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
+  z-index: 999;
 }
 
-/* Debug - add direct hover first */
-.handle-tooltip-wrapper:hover ~ .handle-tooltip {
-  opacity: 0.85 !important;
-  visibility: visible !important;
-}
-
-/* Original hover */
-.handle-tooltip-wrapper:hover + .tooltip-container .handle-tooltip {
+.handle-tooltip.show {
   opacity: 0.85;
+  transition: opacity 150ms ease-in-out 500ms;
+}
+
+/* Handle tooltip inner content */
+.handle-tooltip-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5em;
+  text-align: center;
+  padding: 0.4em;
   visibility: visible;
-  transition: opacity 0.1s ease-in-out 0.1s, visibility 0ms linear;
+  white-space: nowrap;
+}
+
+.handle-tooltip-name {
+  font-size: var(--fontSizeNormal);
+  font-weight: bold;
+  border: 0;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 0.4em;
+  width: 100%;
+  padding: 0.25em 0.5em;
+  margin-bottom: 0.2em;
+  line-height: 1.2;
+}
+
+.handle-tooltip-type {
+  width: fit-content;
+  font-family: var(--fontFamily2);
+  font-size: var(--fontSizeSmall);
+  background-color: var(--palette-grey-800);
+  color: var(--palette-grey-100);
+  opacity: 0.8;
+  border: 0;
+  border-radius: 0.4em;
+  padding: 0.2em 0.5em;
+  line-height: 1;
 }
