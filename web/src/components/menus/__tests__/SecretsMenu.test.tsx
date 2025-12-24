@@ -105,6 +105,84 @@ describe("SecretsMenu", () => {
       // accessing component state. For now, just verify that updateSecret exists.
       expect(mockSecretsStore.updateSecret).toBeDefined();
     });
+
+    it("should show secret name in dialog title", async () => {
+      const testSecret = {
+        key: "ANTHROPIC_API_KEY",
+        description: "Anthropic API key",
+        is_configured: false,
+        updated_at: new Date().toISOString()
+      };
+      mockSecretsStore.fetchSecrets.mockResolvedValue([testSecret]);
+      mockSecretsStore.updateSecret.mockResolvedValue(undefined);
+
+      render(<SecretsMenu />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("ANTHROPIC_API_KEY")).toBeInTheDocument();
+      });
+
+      // Click edit button to open dialog
+      const editButton = screen.getByLabelText("Update secret");
+      await userEvent.click(editButton);
+
+      await waitFor(() => {
+        // Dialog should be open with secret name in title
+        expect(screen.getByText("Set ANTHROPIC_API_KEY")).toBeInTheDocument();
+      });
+    });
+
+    it("should not have key input field in dialog", async () => {
+      const testSecret = {
+        key: "OPENAI_API_KEY",
+        description: "OpenAI API key",
+        is_configured: true,
+        updated_at: new Date().toISOString()
+      };
+      mockSecretsStore.fetchSecrets.mockResolvedValue([testSecret]);
+      mockSecretsStore.updateSecret.mockResolvedValue(undefined);
+
+      render(<SecretsMenu />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("OPENAI_API_KEY")).toBeInTheDocument();
+      });
+
+      // Click edit button to open dialog
+      const editButton = screen.getByLabelText("Update secret");
+      await userEvent.click(editButton);
+
+      await waitFor(() => {
+        // Should NOT have a Key label or input
+        expect(screen.queryByText("Key")).not.toBeInTheDocument();
+      });
+    });
+
+    it("should have only value input field in dialog", async () => {
+      const testSecret = {
+        key: "TEST_SECRET",
+        description: "Test secret",
+        is_configured: false,
+        updated_at: new Date().toISOString()
+      };
+      mockSecretsStore.fetchSecrets.mockResolvedValue([testSecret]);
+      mockSecretsStore.updateSecret.mockResolvedValue(undefined);
+
+      render(<SecretsMenu />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("TEST_SECRET")).toBeInTheDocument();
+      });
+
+      // Click edit button to open dialog
+      const editButton = screen.getByLabelText("Set secret");
+      await userEvent.click(editButton);
+
+      await waitFor(() => {
+        // Should have Value input field
+        expect(screen.getByLabelText("Value")).toBeInTheDocument();
+      });
+    });
   });
 
   describe("Delete Secret", () => {
