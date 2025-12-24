@@ -11,6 +11,7 @@ import {
   useModelManagerStore,
   ModelFilterStatus
 } from "../../../stores/ModelManagerStore";
+import { useTheme } from "@mui/material/styles";
 
 interface ModelListHeaderProps {
   totalCount: number;
@@ -29,6 +30,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
     filterStatus,
     setFilterStatus
   } = useModelManagerStore();
+  const theme = useTheme();
 
   const handleSliderChange = (_: Event, value: number | number[]) => {
     const v = Array.isArray(value) ? value[0] : value;
@@ -93,22 +95,22 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           color="primary"
           sx={{ 
             height: "32px",
-            background: "rgba(255, 255, 255, 0.05)",
-            backdropFilter: "blur(4px)",
+            background: theme.vars.palette.action.hover,
+            backdropFilter: theme.vars.palette.glass.blur,
             borderRadius: "8px",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            border: `1px solid ${theme.vars.palette.divider}`,
             "& .MuiToggleButton-root": {
               border: "none",
-              color: "text.secondary",
+              color: theme.vars.palette.text.secondary,
               "&.Mui-selected": {
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                color: "text.primary",
+                backgroundColor: theme.vars.palette.action.selected,
+                color: theme.vars.palette.text.primary,
                 "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
+                  backgroundColor: theme.vars.palette.action.activatedOpacity,
                 }
               },
               "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                backgroundColor: theme.vars.palette.action.hover,
               }
             }
           }}

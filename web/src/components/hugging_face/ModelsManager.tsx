@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
       transition: "color 0.2s",
       "&:hover": {
         color: theme.vars.palette.text.primary,
-        backgroundColor: "rgba(255, 255, 255, 0.1)"
+        backgroundColor: theme.vars.palette.action.hover
       }
     }
   });
@@ -110,8 +110,8 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
         paper: {
           style: {
             borderRadius: "16px",
-            background: "rgba(18, 18, 18, 0.65)", // Darker, translucent background
-            backdropFilter: "blur(20px) saturate(180%)",
+            background: theme.vars.palette.background.paper,
+            backdropFilter: `${theme.vars.palette.glass.blur} saturate(180%)`,
             border: `1px solid ${theme.vars.palette.divider}`
           }
         }

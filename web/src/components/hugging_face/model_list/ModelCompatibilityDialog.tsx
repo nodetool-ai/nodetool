@@ -50,26 +50,26 @@ const styles = (theme: Theme) =>
     "& .node-list": {
       maxHeight: 340,
       overflowY: "auto",
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: theme.shape.borderRadius,
-      background: "rgba(0, 0, 0, 0.15)",
+      background: theme.vars.palette.action.hover,
       "&::-webkit-scrollbar": {
         width: 6
       },
       "&::-webkit-scrollbar-thumb": {
-        background: theme.vars.palette.grey[800],
+        background: theme.vars.palette.action.disabledBackground,
         borderRadius: 3
       }
     },
     "& .node-list-item": {
       padding: theme.spacing(1.5, 2),
       transition: "all 0.2s ease",
-      borderBottom: `1px solid ${theme.vars.palette.grey[900]}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       "&:last-child": {
         borderBottom: "none"
       },
       "&:hover": {
-        background: "rgba(255, 255, 255, 0.03)",
+        background: theme.vars.palette.action.selected,
         "& .copy-button": {
           opacity: 1
         }
@@ -118,8 +118,8 @@ const styles = (theme: Theme) =>
     "& .property-chip": {
       height: 20,
       fontSize: "0.65rem",
-      background: "rgba(255, 255, 255, 0.05)",
-      borderColor: theme.vars.palette.grey[800]
+      background: theme.vars.palette.action.hover,
+      borderColor: theme.vars.palette.divider
     },
     "& .node-meta": {
       display: "flex",
@@ -133,9 +133,9 @@ const styles = (theme: Theme) =>
       textAlign: "center",
       padding: theme.spacing(4, 2),
       fontStyle: "italic",
-      background: "rgba(0, 0, 0, 0.1)",
+      background: theme.vars.palette.action.hover,
       borderRadius: theme.shape.borderRadius,
-      border: `1px dashed ${theme.vars.palette.grey[800]}`
+      border: `1px dashed ${theme.vars.palette.divider}`
     },
     "& .copy-button": {
       opacity: 0,
@@ -245,15 +245,15 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
       slotProps={{
         backdrop: {
           sx: {
-            backdropFilter: "blur(8px)",
-            backgroundColor: "rgba(0, 0, 0, 0.4)"
+            backdropFilter: theme.vars.palette.glass.blur,
+            backgroundColor: theme.vars.palette.glass.backgroundDialog
           }
         },
         paper: {
           sx: {
             borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.glass.backgroundDialogContent,
-            border: `1px solid ${theme.vars.palette.grey[800]}`,
+            background: theme.vars.palette.background.paper,
+            border: `1px solid ${theme.vars.palette.divider}`,
             backgroundImage: "none"
           }
         }
@@ -274,11 +274,11 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
                 sx={{
                   fontFamily: "var(--fontFamilyMono)",
                   color: "text.secondary",
-                  background: "rgba(255, 255, 255, 0.05)",
+                  background: theme.vars.palette.action.hover,
                   px: 1,
                   py: 0.25,
                   borderRadius: 1,
-                  border: `1px solid ${theme.vars.palette.grey[800]}`
+                  border: `1px solid ${theme.vars.palette.divider}`
                 }}
               >
                 {model.repo_id || model.name}

@@ -182,6 +182,20 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       onClose={onClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
+      slotProps={{
+        backdrop: {
+          sx: {
+            backdropFilter: "blur(4px)",
+            backgroundColor: "rgba(0, 0, 0, 0.4)"
+          }
+        },
+        paper: {
+          sx: {
+            borderRadius: "16px",
+            backgroundImage: "none"
+          }
+        }
+      }}
     >
       <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
       <DialogContent>

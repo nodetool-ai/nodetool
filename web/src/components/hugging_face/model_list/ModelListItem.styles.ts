@@ -7,9 +7,9 @@ const modelListItemStyles = (theme: Theme) =>
       padding: "0.75em 1em",
       marginBottom: "0.35em",
       boxSizing: "border-box",
-      border: "1px solid rgba(255, 255, 255, 0.08)",
+      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "16px",
-      background: "rgba(255, 255, 255, 0.03)",
+      background: theme.vars.palette.action.hover,
       wordBreak: "break-word",
       transition: "all 0.2s ease",
       marginRight: "0.5em", // Reduced margin
@@ -21,10 +21,10 @@ const modelListItemStyles = (theme: Theme) =>
       },
 
       "&:hover": {
-        background: "rgba(255, 255, 255, 0.06)",
-        borderColor: "rgba(255, 255, 255, 0.15)",
+        background: theme.vars.palette.action.selected,
+        borderColor: theme.vars.palette.primary.main,
         transform: "translateY(-1px)",
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)"
+        boxShadow: theme.shadows[4]
       },
 
       "& .model-content": {
@@ -143,19 +143,19 @@ const modelListItemStyles = (theme: Theme) =>
         fontSize: "0.875rem"
       },
       "& .pipeline-tag": {
-        backgroundColor: "rgba(0, 0, 0, 0.2)",
-        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.text.secondary,
         fontSize: "0.75rem",
         fontWeight: 500,
         marginLeft: "0.5em",
         padding: ".3em .8em",
         borderRadius: "12px",
         height: "auto",
-        border: "1px solid rgba(255, 255, 255, 0.05)",
+        border: `1px solid ${theme.vars.palette.divider}`,
         transition: "all 0.2s",
         "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          borderColor: "rgba(255, 255, 255, 0.1)"
+          backgroundColor: theme.vars.palette.action.selected,
+          borderColor: theme.vars.palette.text.secondary
         }
       },
 
@@ -174,7 +174,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-stats": {
         fontSize: "var(--fontSizeSmaller)",
-        color: theme.vars.palette.grey[100],
+        color: theme.vars.palette.text.secondary,
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
@@ -221,10 +221,10 @@ const modelListItemStyles = (theme: Theme) =>
       //
       ".model-item": {
         padding: 0,
-        borderBottom: `1px solid ${theme.vars.palette.grey[900]}`,
+        borderBottom: `1px solid ${theme.vars.palette.divider}`,
         marginBottom: theme.spacing(1),
         "&:hover": {
-          backgroundColor: theme.vars.palette.grey[600]
+          backgroundColor: theme.vars.palette.action.hover
         }
       },
       ".model-text": {

@@ -27,8 +27,8 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     alignItems: "stretch",
     justifyContent: "start",
-    border: `1px solid ${theme.vars.palette.grey[800]}`,
-    background: theme.vars.palette.glass.backgroundDialogContent,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    background: theme.vars.palette.background.paper,
     boxShadow: theme.shadows[1],
     ".download-progress-text": {
       fontFamily: theme.fontFamily2,
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
       borderRadius: "4px",
       overflow: "hidden",
       position: "relative",
-      background: theme.vars.palette.grey[800],
+      background: theme.vars.palette.action.hover,
       marginTop: "0.75em"
     },
     ".progress-bar": {
@@ -71,8 +71,7 @@ const styles = (theme: Theme) =>
       left: 0,
       right: 0,
       bottom: 0,
-      background:
-        "linear-gradient(90deg, var(--palette-primary-light), var(--palette-primary-dark))",
+      background: `linear-gradient(90deg, ${theme.vars.palette.primary.light}, ${theme.vars.palette.primary.dark})`,
       backgroundSize: "200% 100%",
       transformOrigin: "right center"
     },
