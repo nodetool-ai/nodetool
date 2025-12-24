@@ -8,8 +8,8 @@
     --node-primary-color,
     var(--palette-text-primary)
   ) !important;
-  box-shadow: 0 0 0 2px var(--node-primary-color, var(--palette-text-primary)),
-    0.3em 0.3em 12px 0px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 0 0 1px var(--node-primary-color, var(--palette-text-primary)),
+    0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .react-flow__node:not(.selected) {

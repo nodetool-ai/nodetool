@@ -15,7 +15,6 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
 import { serializeValue } from "../../../utils/serializeValue";
-import { hexToRgba } from "../../../utils/ColorUtils";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
 import { NodeHeader } from "../NodeHeader";
@@ -38,7 +37,8 @@ const styles = (theme: Theme) =>
         minWidth: "150px",
         maxWidth: "unset",
         minHeight: "150px",
-        borderRadius: "var(--rounded-node)"
+        borderRadius: "var(--rounded-node)",
+        border: `1px solid ${theme.vars.palette.grey[700]}`
       },
       "&.preview-node": {
         padding: 0,
@@ -411,7 +411,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       css={styles(theme)}
       sx={{
         display: "flex",
-        border: "none",
+        border: "inherit",
         backgroundColor: theme.vars.palette.c_node_bg,
         backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: props.selected

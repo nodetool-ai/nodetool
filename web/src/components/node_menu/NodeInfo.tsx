@@ -31,11 +31,7 @@ const nodeInfoStyles = (theme: Theme) =>
     maxHeight: "55vh",
     position: "relative",
     ".node-title": {
-      fontSize: theme.fontSizeBigger,
-      fontWeight: "500",
-      lineHeight: "1.2em",
-      minHeight: "1em",
-      color: "var(--palette-grey-100)",
+      color: theme.vars.palette.text.primary,
       marginBottom: "0.25em"
     },
     ".title-container": {
@@ -49,11 +45,7 @@ const nodeInfoStyles = (theme: Theme) =>
       alignItems: "center"
     },
     h4: {
-      fontFamily: theme.fontFamily2,
-      textTransform: "uppercase",
-      padding: "0",
-      margin: ".5em 0 0",
-      color: theme.vars.palette.grey[100]
+      color: theme.vars.palette.text.secondary
     },
     ".replicate-status": {
       fontWeight: "400",
@@ -74,7 +66,7 @@ const nodeInfoStyles = (theme: Theme) =>
     ".node-description": {
       fontWeight: "400",
       fontSize: theme.fontSizeNormal,
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.text.primary,
       // wordBreak: "break-word",
       whiteSpace: "pre-wrap",
       marginBottom: "0.5em",
@@ -91,7 +83,7 @@ const nodeInfoStyles = (theme: Theme) =>
       fontWeight: "600",
       fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.grey[1000],
-      backgroundColor: theme.vars.palette.grey[400],
+      backgroundColor: theme.vars.palette.grey[500],
       borderRadius: "0.5em",
       padding: "0.2em 0.5em",
       textTransform: "uppercase",
@@ -106,7 +98,7 @@ const nodeInfoStyles = (theme: Theme) =>
     ".node-usecases div": {
       fontSize: theme.fontSizeNormal,
       fontWeight: "300",
-      color: theme.vars.palette.grey[100],
+      color: theme.vars.palette.text.secondary,
       lineHeight: "1.3em",
       ul: {
         margin: "0.5em 0",
@@ -121,7 +113,7 @@ const nodeInfoStyles = (theme: Theme) =>
           content: '"•"',
           position: "absolute",
           left: "0.5em",
-          color: theme.vars.palette.grey[100]
+          color: theme.vars.palette.text.secondary
         }
       }
     },
@@ -150,19 +142,19 @@ const nodeInfoStyles = (theme: Theme) =>
       cursor: "default"
     },
     ".inputs-outputs .item:nth-of-type(odd)": {
-      backgroundColor: theme.vars.palette.grey[700]
+      backgroundColor: theme.vars.palette.action.hover
     },
     ".inputs-outputs .item .type": {
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.text.primary,
       textAlign: "right",
-      borderRight: `4px solid ${theme.vars.palette.grey[400]}`,
+      borderRight: `4px solid ${theme.vars.palette.divider}`,
       paddingRight: ".5em"
     },
     ".inputs-outputs .item .property": {
-      color: theme.vars.palette.grey[100]
+      color: theme.vars.palette.text.secondary
     },
     ".inputs-outputs .item .property.description": {
-      color: theme.vars.palette.grey[0]
+      color: theme.vars.palette.text.primary
     },
     ".preview-image": {
       width: "100%",

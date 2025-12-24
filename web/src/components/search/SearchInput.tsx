@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
       left: "0.8em",
       top: "50%",
       transform: "translateY(-50%)",
-      color: "rgba(255, 255, 255, 0.4)",
+      color: theme.vars.palette.text.disabled,
       pointerEvents: "none",
       zIndex: 1
     },
@@ -49,25 +49,25 @@ const styles = (theme: Theme) =>
       MozAppearance: "none",
       appearance: "none",
       color: theme.vars.palette.text.primary,
-      backgroundColor: "rgba(255, 255, 255, 0.05)",
-      border: `1px solid rgba(255, 255, 255, 0.1)`,
+      backgroundColor: theme.vars.palette.action.hover,
+      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "10px",
       transition: "all 0.2s ease",
-      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.1)",
+      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
       fontSize: (theme as any).fontSizeNormal ?? undefined,
       "::placeholder": {
-        color: "rgba(255, 255, 255, 0.3)"
+        color: theme.vars.palette.text.disabled
       }
     },
     "input[type='text']:hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.08)",
-      borderColor: "rgba(255, 255, 255, 0.2)"
+      backgroundColor: theme.vars.palette.action.selected,
+      borderColor: theme.vars.palette.text.disabled
     },
     "input[type='text']:focus": {
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      backgroundColor: theme.vars.palette.action.selected,
       borderColor: "var(--palette-primary-main)",
       outline: "none",
-      boxShadow: `0 0 0 3px rgba(${theme.vars.palette.primary.mainChannel} / 0.15), inset 0 1px 2px rgba(0,0,0,0.1)`
+      boxShadow: `0 0 0 3px rgba(${theme.vars.palette.primary.mainChannel} / 0.15), inset 0 1px 2px rgba(0,0,0,0.05)`
     },
     ".clear-search-btn": {
       position: "absolute",
@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
       right: "0.5em",
       border: 0,
       backgroundColor: "transparent",
-      color: "rgba(255, 255, 255, 0.3)",
+      color: theme.vars.palette.text.disabled,
       transition: "color 0.2s",
       padding: 0,
       "& svg": {
@@ -95,7 +95,7 @@ const styles = (theme: Theme) =>
         backgroundColor: "transparent"
       },
       "&.disabled": {
-        color: "rgba(255, 255, 255, 0.1)"
+        color: theme.vars.palette.action.disabled
       }
     }
   });

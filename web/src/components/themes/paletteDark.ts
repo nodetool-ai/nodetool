@@ -1,10 +1,5 @@
 import {
-  PaletteOptions,
-  Color
-  // PaletteColor,
-  // PaletteColorOptions,
-  // PaletteColor,
-  // SimplePaletteColorOptions
+  PaletteOptions
 } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
@@ -173,7 +168,7 @@ export const paletteDark: PaletteOptions = {
     1000: "#000" // black
   }))(),
   c_black: "#020202",
-  c_bg_comment: "#fff",
+  c_bg_comment: "#0F1115",
   c_brightest: "#FCFCFC",
   c_white: "#FCFCFC",
   c_background: "#424854",
@@ -199,7 +194,7 @@ export const paletteDark: PaletteOptions = {
   c_node_header_bg_group: "#383838",
   c_bg_loop: "#2563EB22",
   c_bg_group: "#A1A4AD30",
-  c_editor_bg_color: "#232323",
+  c_editor_bg_color: "#0F1115",
   c_editor_grid_color: "#353535",
   c_editor_axis_color: "#1F2330",
   c_selection_rect: "#cdcdcd33",

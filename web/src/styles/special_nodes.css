@@ -86,11 +86,10 @@
 .react-flow .input-node .node-header,
 .react-flow .output-node .node-header {
   margin: 0;
-  background-color: var(--palette-grey-500);
 }
 /* Preview node */
 .react-flow__nodes .react-flow__node-nodetool\.workflows\.base_node\.Preview {
-  outline-width: 2px !important;
+  border: 1px solid var(--palette-grey-700) !important;
 }
 
 /* Constant node */

@@ -125,7 +125,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         position: "absolute",
         zIndex: 100,
         fontSize: theme.fontSizeNormal,
-        color: "rgba(255, 255, 255, 0.4)",
+        color: theme.vars.palette.text.disabled,
         padding: ".6em 0 0 .5em"
       },
       ".type-filter-select": {
@@ -140,19 +140,19 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         padding: "0 1.75em 0 .75em",
         height: "36px",
         lineHeight: "36px",
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        borderColor: "rgba(255, 255, 255, 0.1)",
+        backgroundColor: theme.vars.palette.action.hover,
+        borderColor: theme.vars.palette.divider,
         color: theme.vars.palette.text.primary,
         transition: "all 0.2s ease",
         borderRadius: "10px !important", // Force rounded corners
         "&:focus": {
-          backgroundColor: "rgba(255, 255, 255, 0.1)"
+          backgroundColor: theme.vars.palette.action.selected
         }
       },
       ".type-filter .MuiOutlinedInput-root": {
         borderRadius: "10px",
         "&:hover .MuiOutlinedInput-notchedOutline": {
-          borderColor: "rgba(255, 255, 255, 0.2)"
+          borderColor: theme.vars.palette.text.disabled
         },
         "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
           borderColor: "var(--palette-primary-main)",
@@ -160,7 +160,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         }
       },
       ".type-filter .MuiOutlinedInput-notchedOutline": {
-        borderColor: "rgba(255, 255, 255, 0.1)"
+        borderColor: theme.vars.palette.divider
       },
       ".type-filter .MuiListItemIcon-root": {
         minWidth: "18px",
@@ -227,8 +227,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   userSelect: "none",
                   display: "flex",
                   alignItems: "center",
-                  backgroundColor: "var(--palette-grey-800)",
-                  "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
+                  backgroundColor: theme.vars.palette.action.hover,
+                  "&:hover": { backgroundColor: theme.vars.palette.action.selected }
                 }}
                 disableSticky
               >
@@ -268,8 +268,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     userSelect: "none",
                     display: "flex",
                     alignItems: "center",
-                    backgroundColor: "var(--palette-grey-800)",
-                    "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
+                    backgroundColor: theme.vars.palette.action.hover,
+                    "&:hover": { backgroundColor: theme.vars.palette.action.selected }
                   }}
                   key="comfy-header-input"
                   disableSticky
@@ -351,8 +351,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   userSelect: "none",
                   display: "flex",
                   alignItems: "center",
-                  backgroundColor: "var(--palette-grey-800)",
-                  "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
+                  backgroundColor: theme.vars.palette.action.hover,
+                  "&:hover": { backgroundColor: theme.vars.palette.action.selected }
                 }}
                 disableSticky
               >
@@ -392,8 +392,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     userSelect: "none",
                     display: "flex",
                     alignItems: "center",
-                    backgroundColor: "var(--palette-grey-800)",
-                    "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
+                    backgroundColor: theme.vars.palette.action.hover,
+                    "&:hover": { backgroundColor: theme.vars.palette.action.selected }
                   }}
                   key="comfy-header-output"
                   disableSticky

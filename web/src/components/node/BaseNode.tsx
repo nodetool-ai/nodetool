@@ -28,7 +28,7 @@ import InputNodeNameWarning from "./InputNodeNameWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
-import { darkenHexColor, hexToRgba } from "../../utils/ColorUtils";
+import { hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
@@ -201,7 +201,7 @@ const getHeaderColors = (
   if (nodeType.startsWith("nodetool.input.")) {
     const baseColor = "#4caf50"; // Green for input nodes
     return {
-      headerColor: darkenHexColor(baseColor, 200),
+      headerColor: baseColor,
       baseColor
     };
   }
@@ -209,7 +209,7 @@ const getHeaderColors = (
   if (nodeType.startsWith("nodetool.output.")) {
     const baseColor = "#2196f3"; // Blue for output nodes
     return {
-      headerColor: darkenHexColor(baseColor, 200),
+      headerColor: baseColor,
       baseColor
     };
   }
@@ -222,7 +222,7 @@ const getHeaderColors = (
   const baseColor = colorForType(firstOutputType);
 
   return {
-    headerColor: darkenHexColor(baseColor, 200),
+    headerColor: baseColor,
     baseColor
   };
 };
@@ -258,7 +258,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     throw new Error("Metadata is not loaded for node type " + type);
   }
 
-  const parentColor = useNodes((state) => {
+  const parentColor = useNodes((_state) => {
     if (!parentId) {return "";}
     return isDarkMode
       ? hexToRgba("#222", GROUP_COLOR_OPACITY)

@@ -1,10 +1,5 @@
 import {
-  PaletteOptions,
-  Color,
-  PaletteColor
-  // PaletteColorOptions,
-  // PaletteColor,
-  // SimplePaletteColorOptions
+  PaletteOptions
 } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
@@ -138,7 +133,7 @@ export const paletteLight: PaletteOptions = {
     main: "#D8615B",
     light: "#F29D99",
     dark: "#A8443F",
-    contrastText: "#fff"
+    contrastText: "#FAF7F2"
   },
   warning: {
     main: "#D99A3B",
@@ -150,13 +145,13 @@ export const paletteLight: PaletteOptions = {
     main: "#3F7D8C",
     light: "#7FA8B3",
     dark: "#2E5F6A",
-    contrastText: "#fff"
+    contrastText: "#FAF7F2"
   },
   success: {
     main: "#6BAA75",
     light: "#9FD2A6",
     dark: "#4E8557",
-    contrastText: "#fff"
+    contrastText: "#FAF7F2"
   },
   grey: {
     0: "#000000",
@@ -170,12 +165,12 @@ export const paletteLight: PaletteOptions = {
     700: "#DED8D0",
     800: "#ECE6DE",
     900: "#F6F2EC",
-    1000: "#FFFFFF"
+    1000: "#FAF7F2"
   },
   c_black: "#1A1715",
-  c_bg_comment: "#1E1C1A",
-  c_brightest: "#FFFFFF",
-  c_white: "#FFFFFF",
+  c_bg_comment: "#FAF7F2",
+  c_brightest: "#FAF7F2",
+  c_white: "#FAF7F2",
   c_background: "#FAF7F2",
   c_node_menu: "#F4EFE7",
   c_selection: "#5E9A8F33",
@@ -193,21 +188,21 @@ export const paletteLight: PaletteOptions = {
   c_scroll_bg: "transparent",
   c_scroll_hover: "#D9D2C9",
   c_scroll_thumb: "#C7BEB3",
-  c_node_bg: "#F8F9FA",
-  c_node_bg_group: "#F5F5F5",
-  c_node_header_bg: "#F8F8F8",
-  c_node_header_bg_group: "#EBEBEB",
+  c_node_bg: "#FAF7F2",
+  c_node_bg_group: "#FAF7F2",
+  c_node_header_bg: "#FAF7F2",
+  c_node_header_bg_group: "#FAF7F2",
   c_bg_loop: "#5E9A8F14",
   c_bg_group: "#A59F9730",
-  c_editor_bg_color: "#FFFFFF",
+  c_editor_bg_color: "#FAF7F2",
   c_editor_grid_color: "#F0F0F0",
   c_editor_axis_color: "#D4CCC3",
   c_selection_rect: "rgba(94, 154, 143, 0.12)",
   c_provider_api: "#2C415A",
   c_provider_local: "#2E5B4E",
   c_provider_hf: "#6D4B6F",
-  c_app_header: "#FFFFFF",
-  c_tabs_header: "#FFFFFF",
+  c_app_header: "#FAF7F2",
+  c_tabs_header: "#FAF7F2",
 
   // Provider badge colors (light) - single token per provider type
   providerApi: "#2C415A",
@@ -218,17 +213,17 @@ export const paletteLight: PaletteOptions = {
     main: "#5E9A8F",
     light: "#8DC2BA",
     dark: "#3E7F77",
-    contrastText: "#fff"
+    contrastText: "#FAF7F2"
   },
   secondary: {
     main: "#C97C5D",
     light: "#E0A58C",
     dark: "#99573F",
-    contrastText: "#fff"
+    contrastText: "#FAF7F2"
   },
   background: {
     default: "#FAF7F2",
-    paper: "#FFFEFC"
+    paper: "#FAF7F2"
   },
   text: {
     primary: "#2A2A2A",
@@ -262,8 +257,8 @@ export const paletteLight: PaletteOptions = {
     activatedOpacity: 0.12
   },
   Paper: {
-    default: "#FFFFFF",
-    paper: "#FFFFFF",
+    default: "#FAF7F2",
+    paper: "#FAF7F2",
     overlay: "#F0EBE4"
   },
   divider: "#E7DFD6",
