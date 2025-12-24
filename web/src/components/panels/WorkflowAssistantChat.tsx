@@ -184,7 +184,7 @@ const WorkflowAssistantChat: React.FC = () => {
   const [isThreadListOpen, setIsThreadListOpen] = useState(false);
 
   const { models: approvedModels } = useLanguageModelsByProvider({
-    allowedProviders: ["OpenAI"]
+    allowedProviders: ["OpenAI", "MiniMax"]
   });
 
   useEffect(() => {
@@ -455,7 +455,7 @@ const WorkflowAssistantChat: React.FC = () => {
         onStop={stopGeneration}
         onNewChat={handleNewChat}
         noMessagesPlaceholder={<AssistantWelcome />}
-        allowedProviders={["OpenAI"]}
+        allowedProviders={["OpenAI", "MiniMax"]}
         runningToolCallId={currentRunningToolCallId}
         runningToolMessage={currentToolMessage}
         graph={{
