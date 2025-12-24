@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import React, { useMemo, useCallback, memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -8,7 +7,6 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import isEqual from "lodash/isEqual";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
-import { css } from "@emotion/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findInputHandle } from "../../utils/handleUtils";
@@ -111,17 +109,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
   ]);
 
   return (
-    <div
-      className="output-handle-container"
-      css={css`
-        position: absolute;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        display: block;
-        text-align: right;
-      `}
-    >
+    <div className="output-handle-container">
       <HandleTooltip
         typeMetadata={output.type}
         paramName={output.name}

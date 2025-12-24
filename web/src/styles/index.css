@@ -281,40 +281,4 @@ img::selection {
   padding: 0.5em 1em;
 }
 
-/* Tooltip Styles */
-.tooltip-span {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 120px;
-}
 
-.tooltip-title {
-  font-weight: 500;
-  color: var(--palette-grey-50);
-  font-size: 0.85rem;
-}
-
-.tooltip-key {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-kbd {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  box-shadow: 0 2px 0 rgba(0,0,0,0.2);
-  color: var(--palette-grey-100);
-  display: inline-block;
-  font-family: var(--font_family2);
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
-  padding: 3px 6px;
-  white-space: nowrap;
-  min-width: 18px;
-  text-align: center;
-}
