@@ -87,18 +87,18 @@ const namespaceStyles = (theme: Theme) =>
       paddingLeft: "0.75em",
       borderRadius: "12px",
       // Glassmorphic list container
-      border: `1px solid rgba(255, 255, 255, 0.05)`,
-      backgroundColor: "rgba(255, 255, 255, 0.02)",
-      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)"
+      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.action.hover,
+      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.05)"
     },
     ".namespace-list::-webkit-scrollbar": { width: "6px" },
     ".namespace-list::-webkit-scrollbar-track": { background: "transparent" },
     ".namespace-list::-webkit-scrollbar-thumb": {
-      backgroundColor: "rgba(255,255,255,0.1)",
+      backgroundColor: theme.vars.palette.action.disabledBackground,
       borderRadius: "8px"
     },
     ".namespace-list::-webkit-scrollbar-thumb:hover": {
-      backgroundColor: "rgba(255,255,255,0.2)"
+      backgroundColor: theme.vars.palette.action.disabled
     },
     ".namespace-list-enabled": {
       flex: "1 1 auto",
@@ -109,11 +109,11 @@ const namespaceStyles = (theme: Theme) =>
       flex: "0 0 auto",
       height: "fit-content",
       overflowY: "visible",
-      borderTop: `1px dashed rgba(255, 255, 255, 0.1)`,
+      borderTop: `1px dashed ${theme.vars.palette.divider}`,
       marginTop: "0.75em",
       paddingTop: "0.5em",
       ".namespace-item": {
-        color: "rgba(255, 255, 255, 0.3)"
+        color: theme.vars.palette.text.disabled
       }
     },
     ".node-list": {
@@ -130,11 +130,11 @@ const namespaceStyles = (theme: Theme) =>
     ".node-list::-webkit-scrollbar": { width: "6px" },
     ".node-list::-webkit-scrollbar-track": { background: "transparent" },
     ".node-list::-webkit-scrollbar-thumb": {
-      backgroundColor: "rgba(255,255,255,0.1)",
+      backgroundColor: theme.vars.palette.action.disabledBackground,
       borderRadius: "8px"
     },
     ".node-list::-webkit-scrollbar-thumb:hover": {
-      backgroundColor: "rgba(255,255,255,0.2)"
+      backgroundColor: theme.vars.palette.action.disabled
     },
     ".no-selection": {
       maxWidth: "200px",
@@ -190,7 +190,7 @@ const namespaceStyles = (theme: Theme) =>
       }
     },
     ".result-info": {
-      color: "rgba(255, 255, 255, 0.9)",
+      color: theme.vars.palette.text.primary,
       cursor: "default",
       display: "flex",
       alignItems: "center",
@@ -198,16 +198,16 @@ const namespaceStyles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       padding: "0.25em .75em .2em .75em",
       borderRadius: "6px",
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      backgroundColor: theme.vars.palette.action.hover,
       margin: "1em .5em 0 0",
-      border: "1px solid rgba(255, 255, 255, 0.05)"
+      border: `1px solid ${theme.vars.palette.divider}`
     },
     ".result-info span": {
       color: "var(--palette-primary-main)",
       fontWeight: "500"
     },
     ".result-label": {
-      color: "rgba(255, 255, 255, 0.5) !important",
+      color: `${theme.vars.palette.text.secondary} !important`,
       fontSize: "0.8em",
       fontWeight: "400",
       marginLeft: "0.5em",
@@ -265,12 +265,12 @@ const namespaceStyles = (theme: Theme) =>
         backgroundColor: "transparent !important"
       },
       ".icon-bg svg": {
-        color: "rgba(255, 255, 255, 0.5)"
+        color: theme.vars.palette.text.secondary
       }
     },
     ".node:hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.05)",
-      border: "1px solid rgba(255, 255, 255, 0.1)",
+      backgroundColor: theme.vars.palette.action.hover,
+      border: `1px solid ${theme.vars.palette.divider}`,
       transform: "translateX(2px)"
     },
     ".node.focused": {
@@ -281,7 +281,7 @@ const namespaceStyles = (theme: Theme) =>
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     },
     ".namespace-text": {
-      color: "rgba(255, 255, 255, 0.4)",
+      color: theme.vars.palette.text.disabled,
       fontWeight: 600,
       fontSize: "0.7rem",
       padding: ".4em 0 0 0",
@@ -310,7 +310,7 @@ const namespaceStyles = (theme: Theme) =>
       gap: "0"
     },
     ".namespace-item": {
-      color: "rgba(255, 255, 255, 0.8)",
+      color: theme.vars.palette.text.primary,
       textTransform: "capitalize",
       whiteSpace: "nowrap",
       overflow: "hidden",
@@ -318,7 +318,7 @@ const namespaceStyles = (theme: Theme) =>
       userSelect: "none"
     },
     ".disabled .namespace-item": {
-      color: "rgba(255, 255, 255, 0.3)"
+      color: theme.vars.palette.text.disabled
     },
     ".namespaces .list-item": {
       cursor: "pointer",
@@ -338,15 +338,15 @@ const namespaceStyles = (theme: Theme) =>
       border: "none !important",
       color: theme.vars.palette.grey[200],
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        backgroundColor: theme.vars.palette.action.hover
       }
     },
     ".list-item.firstDisabled": {
-      borderTop: `1px solid rgba(255, 255, 255, 0.1)`,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       marginTop: "0.5em"
     },
     ".namespaces .list-item:hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.05)",
+      backgroundColor: theme.vars.palette.action.hover,
       paddingLeft: "1em" // Slide effect
     },
     ".namespaces .list-item.expanded": {
@@ -370,7 +370,7 @@ const namespaceStyles = (theme: Theme) =>
       color: "var(--palette-primary-main)"
     },
     ".namespaces .list-item.disabled.selected": {
-      backgroundColor: "rgba(255, 255, 255, 0.05)",
+      backgroundColor: theme.vars.palette.action.selected,
       border: "none"
     },
     ".namespaces .list-item.highlighted": {
@@ -389,7 +389,7 @@ const namespaceStyles = (theme: Theme) =>
     },
     "&.has-search-results .namespace-list-enabled .no-highlight .namespace-item":
       {
-        color: "rgba(255, 255, 255, 0.2)"
+        color: theme.vars.palette.text.disabled
       },
     "&.has-search-results .no-highlight": {
       pointerEvents: "none"
@@ -410,7 +410,7 @@ const namespaceStyles = (theme: Theme) =>
     ".node-info-container": {
       width: "300px",
       backgroundColor: "transparent",
-      borderLeft: `1px solid rgba(255, 255, 255, 0.1)`,
+      borderLeft: `1px solid ${theme.vars.palette.divider}`,
       paddingLeft: "0.5em"
     },
     ".toggle-panel-button": {
@@ -430,14 +430,14 @@ const namespaceStyles = (theme: Theme) =>
       justifyContent: "center",
       transition: "background-color 0.18s ease",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.06)"
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&:focus-visible": {
         outline: `2px solid ${theme.vars.palette.primary.main}`,
         outlineOffset: -2
       },
       "& svg": {
-        color: "rgba(255, 255, 255, 0.55)",
+        color: theme.vars.palette.text.secondary,
         transition: "transform 0.25s ease-in-out"
       },
       "&.collapsed svg": {
@@ -448,11 +448,11 @@ const namespaceStyles = (theme: Theme) =>
       textTransform: "none",
       borderRadius: "8px",
       padding: "6px 10px",
-      borderColor: "rgba(255, 255, 255, 0.2)",
-      color: "rgba(255, 255, 255, 0.8)",
+      borderColor: theme.vars.palette.divider,
+      color: theme.vars.palette.text.secondary,
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.06)",
-        borderColor: "rgba(255, 255, 255, 0.4)"
+        backgroundColor: theme.vars.palette.action.hover,
+        borderColor: theme.vars.palette.text.secondary
       }
     }
   });

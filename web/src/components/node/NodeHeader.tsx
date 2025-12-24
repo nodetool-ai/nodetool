@@ -85,10 +85,13 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const hasIcon = Boolean(iconType);
 
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
+    if (backgroundColor === "transparent") {
+      return { background: "transparent" } as React.CSSProperties;
+    }
     const tint = backgroundColor || "var(--c_node_header_bg)";
     return {
       background: selected
-        ? backgroundColor
+        ? (backgroundColor ? backgroundColor : hexToRgba(tint, 0.5))
         : `linear-gradient(90deg, ${hexToRgba(tint, 0.25)}, ${hexToRgba(
             tint,
             0.1

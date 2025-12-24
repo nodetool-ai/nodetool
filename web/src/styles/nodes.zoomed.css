@@ -107,6 +107,6 @@
 
 /* Selected node shadow at zoom */
 .react-flow.zoomed-out .react-flow__node.selected {
-  box-shadow: 0 0 0 6px var(--node-primary-color, var(--palette-text-primary)),
-    0.1em 0.1em 8px 0px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 0 0 4px var(--node-primary-color, var(--palette-text-primary)),
+    0 2px 8px rgba(0, 0, 0, 0.4) !important;
 }

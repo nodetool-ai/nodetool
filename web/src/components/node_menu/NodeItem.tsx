@@ -1,8 +1,9 @@
-import { memo, useCallback, useMemo, forwardRef } from "react";
+import { memo, useCallback, forwardRef } from "react";
+import { useTheme } from "@mui/material/styles";
+import { Typography, Checkbox } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { IconForType } from "../../config/data_types";
-import { Typography, Checkbox, Chip } from "@mui/material";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 
 interface NodeItemProps {
@@ -27,6 +28,7 @@ const NodeItem = memo(
       },
       ref
     ) => {
+      const theme = useTheme();
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
@@ -107,11 +109,11 @@ const NodeItem = memo(
                 marginTop: "0"
               }}
               bgStyle={{
-                backgroundColor: "#333",
+                backgroundColor: theme.vars.palette.grey[900],
                 margin: "0",
                 padding: "1px",
                 borderRadius: "0 0 3px 0",
-                boxShadow: "inset 1px 1px 2px #00000044",
+                boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
                 width: "20px",
                 height: "20px"
               }}

@@ -830,9 +830,9 @@
   padding: 4px;
   margin-top: 4px;
   list-style: none;
-  background-color: rgba(30, 30, 30, 0.95);
+  background-color: var(--palette-Paper-overlay);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--palette-divider);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   border-radius: 8px;
   z-index: 10000;
@@ -846,7 +846,7 @@
   padding: 6px 12px;
   cursor: pointer;
   font-size: var(--fontSizeSmall);
-  color: var(--palette-grey-300);
+  color: var(--text-primary);
   transition: all 0.1s ease;
   white-space: nowrap;
   border-radius: 4px;
@@ -858,8 +858,8 @@
 }
 
 .select-container .option:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--palette-grey-100);
+  background-color: var(--palette-action-hover);
+  color: var(--text-primary);
 }
 
 .select-container .option.matching {
@@ -868,14 +868,14 @@
 }
 
 .select-container .option.selected {
-  background-color: rgba(33, 150, 243, 0.15);
-  color: #64b5f6;
+  background-color: var(--palette-action-selected);
+  color: var(--palette-primary-main);
   font-weight: 500;
 }
 
 .select-container .option.highlighted {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--palette-grey-0);
+  background-color: var(--palette-action-hover);
+  color: var(--text-primary);
 }
 
 .select-container .select-header {
@@ -884,8 +884,8 @@
   height: 28px;
   padding: 0 8px;
   margin: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--palette-divider);
+  background-color: var(--palette-grey-900);
   font-size: var(--fontSizeSmall);
   border-radius: 6px;
   cursor: pointer;
@@ -896,12 +896,12 @@
 }
 
 .select-container .select-header:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--palette-grey-500);
+  background-color: var(--palette-action-hover);
 }
 
 .select-container .select-header-text {
-  color: var(--palette-grey-100);
+  color: var(--text-primary);
   font-size: var(--fontSizeSmall);
   font-weight: 500;
   user-select: none;
@@ -927,10 +927,10 @@
   width: 100%;
   height: 28px;
   padding: 0 8px;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--palette-grey-900);
   border: 1px solid var(--palette-primary-main);
   border-radius: 6px;
-  color: var(--palette-grey-0);
+  color: var(--text-primary);
   font-size: var(--fontSizeSmall);
   outline: none;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
