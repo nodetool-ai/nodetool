@@ -275,7 +275,12 @@ export class Watchdog {
           `${this.opts.name} watchdog: process spawned (pid=${this.process?.pid})`
         );
         if (this.process?.pid) {
-          this.writePidFile(this.process.pid).catch(() => { });
+          this.writePidFile(this.process.pid).catch((err) => {
+            logMessage(
+              `${this.opts.name} watchdog: failed to write PID file during spawn: ${(err as Error).message}`,
+              "error"
+            );
+          });
         }
         resolve();
       });

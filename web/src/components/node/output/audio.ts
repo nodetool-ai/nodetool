@@ -42,7 +42,10 @@ export function playPcm16Base64(
   const channels = opts?.channels ?? 1;
 
   const ctx = getAudioContext();
-  ctx.resume().catch(() => {});
+  ctx.resume().catch((err) => {
+    // Audio context resume can fail if user hasn't interacted with page yet
+    console.warn("Failed to resume AudioContext:", err);
+  });
 
   const u8 = base64ToUint8Array(base64);
   const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);

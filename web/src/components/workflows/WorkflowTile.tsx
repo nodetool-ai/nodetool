@@ -8,6 +8,7 @@ import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
+import { escapeHtml } from "../../utils/highlightText";
 
 interface WorkflowTileProps {
   workflow: Workflow;
@@ -21,7 +22,7 @@ interface WorkflowTileProps {
 }
 
 const addBreaks = (text: string) => {
-  return text.replace(/([-_.])/g, "$1<wbr>");
+  return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
 };
 
 export const WorkflowTile = ({
