@@ -976,6 +976,152 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/oauth/hf/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start Huggingface Oauth
+         * @description Start Hugging Face OAuth flow.
+         *
+         *     Generates PKCE challenge, state, and returns the authorization URL.
+         *
+         *     Args:
+         *         request: FastAPI request object to get the server host.
+         *         user_id: Current user ID from auth middleware.
+         *
+         *     Returns:
+         *         OAuthStartResponse with auth_url.
+         */
+        get: operations["start_huggingface_oauth_api_oauth_hf_start_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/hf/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Huggingface Oauth Callback
+         * @description Handle Hugging Face OAuth callback.
+         *
+         *     Validates state, exchanges code for tokens, and stores the credential.
+         *
+         *     Args:
+         *         code: Authorization code from Hugging Face.
+         *         state: State parameter to validate.
+         *         error: Optional error from OAuth provider.
+         *         error_description: Optional error description.
+         *
+         *     Returns:
+         *         HTML page with success/error message.
+         */
+        get: operations["huggingface_oauth_callback_api_oauth_hf_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/hf/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Huggingface Tokens
+         * @description List all stored Hugging Face OAuth tokens for the current user.
+         *
+         *     Args:
+         *         user_id: Current user ID from auth middleware.
+         *
+         *     Returns:
+         *         OAuthTokensResponse with list of token metadata.
+         */
+        get: operations["list_huggingface_tokens_api_oauth_hf_tokens_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/hf/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Huggingface Token
+         * @description Refresh a Hugging Face OAuth token using the stored refresh token.
+         *
+         *     Args:
+         *         account_id: The account ID to refresh token for.
+         *         user_id: Current user ID from auth middleware.
+         *
+         *     Returns:
+         *         OAuthRefreshResponse indicating success or failure.
+         */
+        post: operations["refresh_huggingface_token_api_oauth_hf_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/hf/whoami": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Huggingface Whoami Endpoint
+         * @description Get Hugging Face account information using the stored OAuth token.
+         *
+         *     This endpoint demonstrates how to use the stored OAuth credentials
+         *     to make authenticated requests to the Hugging Face API.
+         *
+         *     Makes a request to https://huggingface.co/api/whoami-v2 and returns
+         *     parsed account metadata.
+         *
+         *     Args:
+         *         account_id: The account ID to get information for.
+         *         user_id: Current user ID from auth middleware.
+         *
+         *     Returns:
+         *         OAuthWhoamiResponse with account information.
+         */
+        get: operations["get_huggingface_whoami_endpoint_api_oauth_hf_whoami_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/": {
         parameters: {
             query?: never;
@@ -4332,11 +4478,6 @@ export interface components {
             models: components["schemas"]["UnifiedModel"][];
             /** Total Size */
             total_size?: number | null;
-            /**
-             * Downloaded
-             * @default false
-             */
-            downloaded: boolean;
         };
         /** ModelRef */
         ModelRef: {
@@ -4620,6 +4761,76 @@ export interface components {
             severity: "info" | "warning" | "error";
         };
         /**
+         * OAuthRefreshResponse
+         * @description Response for OAuth token refresh.
+         */
+        OAuthRefreshResponse: {
+            /** Success */
+            success: boolean;
+            /** Message */
+            message: string;
+        };
+        /**
+         * OAuthStartResponse
+         * @description Response for OAuth start endpoint.
+         */
+        OAuthStartResponse: {
+            /** Auth Url */
+            auth_url: string;
+        };
+        /**
+         * OAuthTokenMetadata
+         * @description Metadata about a stored OAuth token.
+         */
+        OAuthTokenMetadata: {
+            /** Id */
+            id: string;
+            /** Provider */
+            provider: string;
+            /** Account Id */
+            account_id: string;
+            /** Username */
+            username: string | null;
+            /** Token Type */
+            token_type: string;
+            /** Scope */
+            scope: string | null;
+            /** Received At */
+            received_at: string;
+            /** Expires At */
+            expires_at: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /**
+         * OAuthTokensResponse
+         * @description Response for listing OAuth tokens.
+         */
+        OAuthTokensResponse: {
+            /** Tokens */
+            tokens: components["schemas"]["OAuthTokenMetadata"][];
+        };
+        /**
+         * OAuthWhoamiResponse
+         * @description Response for Hugging Face whoami endpoint.
+         */
+        OAuthWhoamiResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Type */
+            type?: string | null;
+            /** Orgs */
+            orgs?: {
+                [key: string]: unknown;
+            }[] | null;
+        };
+        /**
          * OutputSlot
          * @description An output slot is a slot that can be connected to an input slot.
          */
@@ -4836,7 +5047,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "minimax" | "replicate" | "ollama" | "lmstudio" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
         /**
          * ProviderInfo
          * @description Information about a provider including its key and capabilities.
@@ -5569,13 +5780,10 @@ export interface components {
             description?: string | null;
             /** Readme */
             readme?: string | null;
+            /** Downloaded */
+            downloaded?: boolean | null;
             /** Size On Disk */
             size_on_disk?: number | null;
-            /**
-             * Downloaded
-             * @default false
-             */
-            downloaded: boolean;
             /** Pipeline Tag */
             pipeline_tag?: string | null;
             /** Tags */
@@ -7406,6 +7614,148 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_huggingface_oauth_api_oauth_hf_start_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthStartResponse"];
+                };
+            };
+        };
+    };
+    huggingface_oauth_callback_api_oauth_hf_callback_get: {
+        parameters: {
+            query?: {
+                /** @description Authorization code from Hugging Face */
+                code?: string | null;
+                /** @description State parameter to prevent CSRF */
+                state?: string | null;
+                /** @description Error from OAuth provider */
+                error?: string | null;
+                /** @description Error description */
+                error_description?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_huggingface_tokens_api_oauth_hf_tokens_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthTokensResponse"];
+                };
+            };
+        };
+    };
+    refresh_huggingface_token_api_oauth_hf_refresh_post: {
+        parameters: {
+            query: {
+                /** @description Account ID to refresh token for */
+                account_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthRefreshResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_huggingface_whoami_endpoint_api_oauth_hf_whoami_get: {
+        parameters: {
+            query: {
+                /** @description Account ID to get information for */
+                account_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthWhoamiResponse"];
                 };
             };
             /** @description Validation Error */

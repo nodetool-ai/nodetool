@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
 import WarningIcon from "@mui/icons-material/Warning";
+import LoginIcon from "@mui/icons-material/Login";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   Button,
@@ -17,9 +19,9 @@ import useRemoteSettingsStore, {
 } from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ExternalLink from "../common/ExternalLink";
+import { isElectron, client } from "../../stores/ApiClient";
 
 const SETTING_LINKS: Record<string, string> = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
@@ -75,10 +77,59 @@ const RemoteSettings = () => {
     settings
   } = useRemoteSettingsStore();
   const { addNotification } = useNotificationStore();
+
+  // HuggingFace OAuth state
+  const [hfOAuthLoading, setHfOAuthLoading] = useState(false);
+
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings
   });
+
+  // Poll for HuggingFace OAuth completion
+  const { data: hfTokenData, isError: isHfTokenError } = useQuery({
+    queryKey: ["hf-oauth-token"],
+    queryFn: async () => {
+      const { data, error } = await client.GET("/api/oauth/hf/tokens");
+      if (error) {
+        throw new Error("Failed to fetch HuggingFace token");
+      }
+      return data;
+    },
+    refetchInterval: (query: any) => {
+      // Handle both v4 (data) and v5 (Query object)
+      const data = query?.state?.data || query;
+      // Poll if we are loading and don't have a token yet
+      if (hfOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
+        return 2000;
+      }
+      return false;
+    },
+    retry: true
+  });
+
+  const isConnected = !!((hfTokenData as any)?.tokens && (hfTokenData as any).tokens.length > 0);
+
+  // Handle OAuth completion side effects
+  useEffect(() => {
+    if (hfOAuthLoading) {
+      if (isConnected) {
+        setHfOAuthLoading(false);
+        addNotification({
+          content: "Successfully connected to HuggingFace",
+          type: "success",
+          alert: true
+        });
+      } else if (isHfTokenError) {
+        setHfOAuthLoading(false);
+        addNotification({
+          content: "Failed to check HuggingFace connection",
+          type: "error",
+          alert: true
+        });
+      }
+    }
+  }, [hfOAuthLoading, isConnected, isHfTokenError, addNotification]);
 
   const [settingValues, setSettingValues] = useState<Record<string, string>>(
     {}
@@ -156,6 +207,37 @@ const RemoteSettings = () => {
     setSettingValues((prev) => ({ ...prev, [envVar]: value }));
   }, []);
 
+  const handleHuggingFaceOAuth = useCallback(async () => {
+    setHfOAuthLoading(true);
+
+    try {
+      const { data, error } = await client.GET("/api/oauth/hf/start");
+
+      if (error || !data?.auth_url) {
+        throw new Error("Failed to start OAuth flow");
+      }
+
+      const authUrl = data.auth_url;
+
+      if (isElectron && window.require) {
+        // Electron environment
+        const { shell } = window.require("electron").shell;
+        shell.openExternal(authUrl);
+      } else {
+        // Web environment - open in new window/tab
+        window.open(authUrl, "_blank", "width=600,height=700");
+      }
+    } catch (error) {
+      console.error("OAuth initiation failed:", error);
+      setHfOAuthLoading(false);
+      addNotification({
+        content: "Failed to initiate HuggingFace login",
+        type: "error",
+        alert: true
+      });
+    }
+  }, [addNotification]);
+
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
     const secrets: Record<string, string> = {};
@@ -212,6 +294,41 @@ const RemoteSettings = () => {
                   Keep your keys and tokens secure and do not share them
                   publicly
                 </Typography>
+              </div>
+
+              {/* HuggingFace OAuth Section */}
+              <div className="settings-section">
+                <Typography
+                  variant="h2"
+                  id="huggingface-oauth"
+                >
+                  HuggingFace Authentication
+                </Typography>
+                <div className="settings-item large">
+                  <Typography className="description">
+                    Connect your HuggingFace account to access premium models and features
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleHuggingFaceOAuth}
+                    disabled={hfOAuthLoading}
+                    startIcon={
+                      isConnected ? (
+                        <CheckCircleIcon />
+                      ) : hfOAuthLoading ? null : (
+                        <LoginIcon />
+                      )
+                    }
+                    sx={{ marginTop: "1em" }}
+                  >
+                    {isConnected
+                      ? "Connected to HuggingFace"
+                      : hfOAuthLoading
+                      ? "Connecting..."
+                      : "Connect with HuggingFace"}
+                  </Button>
+                </div>
               </div>
 
               {/* Render settings grouped by their group field */}
