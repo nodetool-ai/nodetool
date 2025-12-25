@@ -1,6 +1,7 @@
 import {
   highlightText as highlightTextUtil,
-  formatBulletList
+  formatBulletList,
+  escapeHtml
 } from "../utils/highlightText";
 import { SplitNodeDescription } from "./NodeMenuStore";
 
@@ -57,7 +58,8 @@ export const formatNodeDocumentation = (
       );
       useCasesHtml = highlighted.html;
     } else {
-      useCasesHtml = formatBulletList(useCasesRaw);
+      // Escape HTML before formatting as bullet list (useCasesRaw could contain untrusted content)
+      useCasesHtml = formatBulletList(escapeHtml(useCasesRaw));
     }
   }
 
