@@ -35,8 +35,8 @@ This implementation adds a separate, optimized route for running mini apps as st
 - Part of main application bundle
 
 ### Standalone Mini App: `/miniapp/:workflowId`
-- **Development**: `http://localhost:3000/miniapp/{workflow-id}`
-- **Production**: `/miniapp.html` (routes to `/miniapp/:workflowId`)
+- **URL Format**: `/miniapp/{workflow-id}` (same for dev and production)
+- **Entry File**: Served from `miniapp.html` in production
 - Minimal UI - no app chrome
 - Optimized for embedding and fast load times
 - Separate bundle from main application

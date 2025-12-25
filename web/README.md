@@ -28,7 +28,7 @@ The full mini app includes the standard application chrome (header, left panel, 
 ### Standalone Mini App (`/miniapp/:workflowId`)
 
 A lightweight, standalone version with minimal UI for embedding or fast loading:
-- Access via: `http://localhost:3000/miniapp/{workflow-id}` (dev) or `/miniapp.html?workflowId={workflow-id}` (production)
+- Access via: `/miniapp/{workflow-id}` (same for both dev and production)
 - Built as a separate optimized bundle (`miniapp.html`)
 - No application header, panels, or navigation
 - Optimized for fast load times and embedding
