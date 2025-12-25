@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
         top: "14px",
         bottom: "14px",
         width: "2px",
-        background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}88, ${theme.vars.palette.secondary.main}44, transparent)`,
+        background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}44, ${theme.vars.palette.secondary.main}22, transparent)`,
         borderRadius: "1px"
       }
     },
@@ -47,10 +47,10 @@ const styles = (theme: Theme) =>
       position: "relative",
       marginBottom: "1.5rem",
       borderRadius: "16px",
-      backgroundColor: `rgba(20, 22, 28, 0.7)`,
+      backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: "blur(12px)",
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: theme.shadows?.[4] || "0 4px 12px rgba(0, 0, 0, 0.2)",
       overflow: "hidden",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       "&.executing": {
@@ -64,15 +64,15 @@ const styles = (theme: Theme) =>
         left: 0,
         right: 0,
         height: "1px",
-        background: `linear-gradient(90deg, transparent, ${theme.vars.palette.primary.main}88, transparent)`,
-        opacity: 0.5
+        background: `linear-gradient(90deg, transparent, ${theme.vars.palette.primary.main}44, transparent)`,
+        opacity: 0.3
       }
     },
 
     ".task-header-section": {
       padding: "1rem 1.25rem",
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}88`,
-      background: `linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)`
+      background: "transparent"
     },
 
     ".task-header-top": {
@@ -137,7 +137,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       fontSize: "1rem",
       lineHeight: "1.4",
-      color: "#fff",
+      color: theme.vars.palette.text.primary,
       letterSpacing: "0.2px",
       marginBottom: "0.25rem"
     },
@@ -145,7 +145,7 @@ const styles = (theme: Theme) =>
     ".task-description": {
       fontSize: "0.8rem",
       lineHeight: "1.5",
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       fontStyle: "normal",
       maxWidth: "95%"
     },
@@ -161,7 +161,7 @@ const styles = (theme: Theme) =>
       fontSize: "0.65rem",
       fontWeight: 600,
       textTransform: "uppercase",
-      color: theme.vars.palette.grey[600],
+      color: theme.vars.palette.text.secondary,
       letterSpacing: "1px",
       marginBottom: "0.75rem",
       display: "block"
@@ -198,9 +198,9 @@ const styles = (theme: Theme) =>
       fontSize: "0.75rem",
       padding: "0.5rem 0.75rem",
       borderRadius: "8px",
-      backgroundColor: `rgba(0, 0, 0, 0.2)`,
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
-      color: theme.vars.palette.grey[400],
+      backgroundColor: theme.vars.palette.action.hover,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily2 || "monospace",
       marginBottom: "0.5rem",
       marginLeft: "0.5rem",
@@ -210,8 +210,8 @@ const styles = (theme: Theme) =>
     ".tool-calls-container": {
       marginLeft: "1rem",
       borderRadius: "8px",
-      border: `1px solid ${theme.vars.palette.grey[800]}66`,
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.action.hover,
       overflow: "hidden"
     },
 
@@ -224,7 +224,7 @@ const styles = (theme: Theme) =>
       userSelect: "none",
       transition: "background-color 0.2s",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.03)"
+        backgroundColor: theme.vars.palette.action.selected
       }
     },
 
@@ -233,7 +233,7 @@ const styles = (theme: Theme) =>
       fontWeight: 700,
       textTransform: "uppercase",
       letterSpacing: "0.8px",
-      color: theme.vars.palette.grey[500],
+      color: theme.vars.palette.text.secondary,
       display: "flex",
       alignItems: "center",
       gap: "0.5rem"
@@ -242,8 +242,8 @@ const styles = (theme: Theme) =>
     ".tool-calls-count": {
       padding: "1px 6px",
       borderRadius: "4px",
-      backgroundColor: theme.vars.palette.grey[800],
-      color: theme.vars.palette.grey[400],
+      backgroundColor: theme.vars.palette.action.selected,
+      color: theme.vars.palette.text.secondary,
       fontSize: "0.6rem"
     },
 
@@ -261,12 +261,12 @@ const styles = (theme: Theme) =>
       gap: "0.35rem",
       padding: "0.5rem 0.6rem",
       borderRadius: "6px",
-      backgroundColor: "rgba(255, 255, 255, 0.02)",
-      border: `1px solid ${theme.vars.palette.grey[800]}44`,
+      backgroundColor: theme.vars.palette.background.default,
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.04)",
-        borderColor: `${theme.vars.palette.grey[700]}`
+        backgroundColor: theme.vars.palette.action.hover,
+        borderColor: theme.vars.palette.action.active
       }
     },
 
@@ -310,7 +310,7 @@ const styles = (theme: Theme) =>
 
     ".tool-message": {
       fontSize: "0.7rem",
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       lineHeight: "1.3"
     },
 
@@ -318,11 +318,11 @@ const styles = (theme: Theme) =>
       marginTop: "0.25rem",
       padding: "0.4rem",
       borderRadius: "4px",
-      backgroundColor: "rgba(0, 0, 0, 0.3)",
-      border: `1px solid ${theme.vars.palette.grey[900]}`,
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
       fontSize: "0.65rem",
       lineHeight: "1.4",
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily2 || "monospace",
       whiteSpace: "pre-wrap",
       wordBreak: "break-word"
@@ -379,9 +379,9 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
                   {tc.message && (
                     <div className="tool-message">{tc.message}</div>
                   )}
-                  {tc.args && Object.keys(tc.args).length > 0 && (
+                   {tc.args && Object.keys(tc.args).length > 0 && (
                      <details style={{ marginTop: "4px" }}>
-                       <summary style={{ fontSize: "0.65rem", color: theme.vars.palette.grey[500], cursor: "pointer" }}>Arguments</summary>
+                       <summary style={{ fontSize: "0.65rem", color: theme.vars.palette.text.secondary, cursor: "pointer" }}>Arguments</summary>
                        <pre className="tool-args">{formatToolArgs(tc.args)}</pre>
                      </details>
                   )}
@@ -576,8 +576,6 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
 
         return (
           <div key={item.key} style={{ position: "relative" }}>
-             <div className={`timeline-dot ${taskUpdate.event === "task_completed" ? "completed" : execution.status === "failed" ? "failed" : ""}`} />
-             
              <div className={`consolidated-task-card noscroll ${execution.status === "executing" ? "executing" : ""}`} css={styles(theme)}>
               
               <div className="task-header-section">
