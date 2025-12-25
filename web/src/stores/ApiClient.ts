@@ -65,8 +65,7 @@ export const isLocalhost = ((): boolean => {
     typeof window !== "undefined" &&
     (window.location.hostname.includes("dev.") ||
       window.location.hostname === "127.0.0.1" ||
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "192.168.50.225")
+      window.location.hostname === "localhost")
   );
 })();
 
@@ -142,17 +141,6 @@ const authMiddleware: Middleware = {
   async onResponse({ response }) {
     if (response?.status === 401 && window.location.pathname !== "/login") {
       log.warn("API request unauthorized (401).");
-      // const {
-      //   data: { session }
-      // } = await supabase.auth.getSession();
-      // if (session) {
-      //   console.warn("API request unauthorized (401). Signing out.");
-      //   // Attempt to sign out via Supabase
-      //   await supabase.auth.signOut();
-      //   if (typeof window !== "undefined") {
-      //     window.location.href = "/login";
-      //   }
-      // }
     }
     return response;
   }

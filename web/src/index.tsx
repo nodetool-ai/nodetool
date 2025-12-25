@@ -104,8 +104,6 @@ import "./lib/tools/builtin/autoLayout";
 import "./lib/tools/builtin/setNodeTitle";
 import "./lib/tools/builtin/setNodeColor";
 import "./lib/tools/builtin/alignNodes";
-import "./lib/tools/builtin/duplicateNode";
-import "./lib/tools/builtin/selectNodes";
 import "./lib/tools/builtin/fitView";
 import "./lib/tools/builtin/graph";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";

@@ -9,6 +9,7 @@ import LaunchIcon from "@mui/icons-material/Launch";
 import { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import isEqual from "lodash/isEqual";
+import { escapeHtml } from "../../utils/highlightText";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -37,7 +38,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   onEdit
 }: WorkflowListItemProps) => {
   const addBreaks = (text: string) => {
-    return text.replace(/([-_.])/g, "$1<wbr>");
+    return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
   };
 
   return (

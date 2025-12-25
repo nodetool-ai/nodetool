@@ -66,7 +66,9 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
 
   const onCopy = useCallback(() => {
     if (!copyText) {return;}
-    navigator.clipboard?.writeText(copyText).catch(() => {});
+    navigator.clipboard?.writeText(copyText).catch((err) => {
+      console.warn("Failed to copy logs to clipboard:", err);
+    });
   }, [copyText]);
 
   useEffect(() => {

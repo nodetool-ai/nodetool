@@ -75,17 +75,3 @@ export const loadMetadata = async () => {
 
   return "success";
 };
-
-// export const useNodeDefaultProperties = (nodeType: string) => {
-//   const metadata = useMetadata(nodeType);
-//   if (!metadata) {
-//     return {};
-//   }
-//   return metadata.properties.reduce<Record<string, any>>(
-//     (acc, property) => ({
-//       ...acc,
-//       [property.name]: property.default
-//     }),
-//     {}
-//   );
-// };
