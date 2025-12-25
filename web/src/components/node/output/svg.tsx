@@ -1,5 +1,15 @@
 import React, { createElement } from "react";
+import DOMPurify from "dompurify";
 import { SVGElement } from "../../../stores/ApiTypes";
+
+// Configure DOMPurify to allow SVG elements and attributes
+const sanitizeSvgContent = (html: string): string => {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    ADD_TAGS: ["use", "symbol", "defs", "clipPath", "mask", "pattern", "marker", "linearGradient", "radialGradient", "stop"],
+    ADD_ATTR: ["xlink:href", "clip-path", "mask", "fill", "stroke", "transform", "viewBox", "preserveAspectRatio"]
+  });
+};
 
 const convertStyleStringToObject = (
   styleString: string
@@ -34,7 +44,7 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
     value.content &&
       (typeof value.content === "string" &&
       value.content.trim().startsWith("<") ? (
-        <div dangerouslySetInnerHTML={{ __html: value.content }} />
+        <div dangerouslySetInnerHTML={{ __html: sanitizeSvgContent(value.content) }} />
       ) : (
         value.content
       )),
@@ -59,7 +69,7 @@ export const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
           return (
             <g
               key={element.name}
-              dangerouslySetInnerHTML={{ __html: match[1] }}
+              dangerouslySetInnerHTML={{ __html: sanitizeSvgContent(match[1]) }}
             />
           );
         }
