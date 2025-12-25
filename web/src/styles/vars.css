@@ -1,10 +1,7 @@
 :root {
-  --font_family: Inter, Arial, sans-serif;
-  --font_family2: "Jetbrains Mono", Inter, Arial, sans-serif;
-  
-  /* Canonical font family aliases used throughout stylesheets */
-  --fontFamily1: var(--font_family);
-  --fontFamily2: var(--font_family2);
+  /* Canonical font family definitions */
+  --fontFamily1: Inter, Arial, sans-serif;
+  --fontFamily2: "JetBrains Mono", Inter, Arial, sans-serif;
   
   /* General */
   --c_background: var(--palette-c_background);

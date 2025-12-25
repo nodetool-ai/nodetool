@@ -306,7 +306,7 @@
 .react-flow .process-timer {
   pointer-events: none;
   font-size: 9px;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--fontFamily2);
   line-height: 1em;
   width: fit-content;
   text-align: center;

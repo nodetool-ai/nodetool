@@ -97,7 +97,7 @@
   overflow-y: auto !important;
   margin-top: 0;
   padding: 4px 8px;
-  font-family: var(--font_family);
+  font-family: var(--fontFamily1);
   font-size: var(--fontSizeSmall);
   font-weight: 400;
   line-height: 1.25em;
@@ -281,7 +281,7 @@
   min-width: 60px;
   min-height: 14px;
   line-height: 1.1em;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--fontFamily2);
   text-transform: uppercase;
   letter-spacing: 1px;
   font-size: 10px;
@@ -490,7 +490,7 @@
 .number-input .slider-value .value {
   position: relative;
   color: var(--palette-grey-100);
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--fontFamily2);
   font-size: var(--fontSizeSmall);
   line-height: 1.2em;
   text-align: right;
@@ -721,7 +721,7 @@
 /* Property Name Edit Input */
 .property-name-edit {
   padding: 2px 4px;
-  border: 1px solid #666;
+  border: 1px solid var(--palette-grey-500);
   border-radius: 3px;
   background: transparent;
   color: inherit;
@@ -735,7 +735,7 @@
 
 .property-input-form input {
   padding: 2px 4px;
-  border: 1px solid #666;
+  border: 1px solid var(--palette-grey-500);
   border-radius: 3px;
   background: transparent;
   color: inherit;

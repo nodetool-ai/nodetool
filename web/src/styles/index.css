@@ -135,7 +135,7 @@ img::selection {
   box-sizing: border-box;
   color: #000;
   cursor: pointer;
-  font-family: var(--font_family), "Roboto", arial, sans-serif;
+  font-family: var(--fontFamily1), "Roboto", arial, sans-serif;
   font-size: 14px;
   height: 40px;
   /* letter-spacing: 0.25px; */
@@ -179,7 +179,7 @@ img::selection {
 .gsi-material-button .gsi-material-button-contents {
   -webkit-flex-grow: 1;
   flex-grow: 1;
-  font-family: var(--font_family), "Roboto", arial, sans-serif;
+  font-family: var(--fontFamily1), "Roboto", arial, sans-serif;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
