@@ -31,7 +31,7 @@
   transform: translate3d(0, 0, 0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  font-family: var(--font_family);
+  font-family: var(--fontFamily1);
   opacity: 0;
   pointer-events: none;
   transition: all var(--microtip-transition-duration)
