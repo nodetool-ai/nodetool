@@ -2,7 +2,7 @@
   --font_family: Inter, Arial, sans-serif;
   --font_family2: "Jetbrains Mono", Inter, Arial, sans-serif;
   
-  /* Aliases for legacy compatibility with legacy-component-styles.css */
+  /* Canonical font family aliases used throughout stylesheets */
   --fontFamily1: var(--font_family);
   --fontFamily2: var(--font_family2);
   
