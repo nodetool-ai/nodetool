@@ -2,6 +2,10 @@
   --font_family: Inter, Arial, sans-serif;
   --font_family2: "Jetbrains Mono", Inter, Arial, sans-serif;
   
+  /* Aliases for legacy compatibility with legacy-component-styles.css */
+  --fontFamily1: var(--font_family);
+  --fontFamily2: var(--font_family2);
+  
   /* General */
   --c_background: var(--palette-c_background);
   --c_node_menu: var(--palette-c_node_menu);

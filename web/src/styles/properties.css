@@ -437,7 +437,7 @@
 .number-input {
   display: block;
   cursor: ew-resize !important;
-  font-family: var(--font_family1);
+  font-family: var(--fontFamily1);
   font-size: var(--fontSizeSmall);
   color: var(--palette-primary-main);
   margin-bottom: 10px;
@@ -449,7 +449,7 @@
 
 .number-input .value {
   margin-top: -3px;
-  font-family: var(--font_family2);
+  font-family: var(--fontFamily2);
   font-size: var(--fontSizeNormal);
 }
 .number-input .slider-value {
@@ -507,7 +507,7 @@
   background-color: var(--palette-grey-800);
   border: none;
   border-radius: 0;
-  font-family: var(--font_family2);
+  font-family: var(--fontFamily2);
   font-size: var(--fontSizeSmall);
   line-height: 1.5em;
   height: 12px;
@@ -565,7 +565,7 @@
 .custom-select {
   width: 100%;
   display: block;
-  font-family: var(--font-family-1);
+  font-family: var(--fontFamily1);
 }
 
 .custom-select .select-header {
