@@ -46,8 +46,16 @@
     {
       "id": 1,
       "title": "XSS Vulnerability: dangerouslySetInnerHTML Without Sanitization in SVG Output",
-      "file": "web/src/components/node/output/svg.tsx",
-      "lines": [37, 62],
+      "files": [
+        {
+          "path": "web/src/components/node/output/svg.tsx",
+          "line": 37
+        },
+        {
+          "path": "web/src/components/node/output/svg.tsx",
+          "line": 62
+        }
+      ],
       "category": "security",
       "severity": "high",
       "confidence": "high",
@@ -90,7 +98,12 @@
     {
       "id": 3,
       "title": "Skipped Tests Indicate Incomplete Features in GlobalChatStore",
-      "file": "web/src/stores/__tests__/GlobalChatStore.test.ts",
+      "files": [
+        {
+          "path": "web/src/stores/__tests__/GlobalChatStore.test.ts",
+          "line": null
+        }
+      ],
       "category": "test-gap",
       "severity": "high",
       "confidence": "high",
@@ -124,10 +137,12 @@
         },
         {
           "path": "web/src/components/node/NodeLogs.tsx",
+          "line": null,
           "code": "navigator.clipboard?.writeText(copyText).catch(() => {});"
         },
         {
           "path": "electron/src/watchdog.ts",
+          "line": null,
           "code": "this.writePidFile(this.process.pid).catch(() => { });"
         }
       ],
@@ -186,8 +201,16 @@
     {
       "id": 7,
       "title": "Supabase Fallback to Test Credentials in Production",
-      "file": "web/src/lib/supabaseClient.ts",
-      "lines": [14, 22],
+      "files": [
+        {
+          "path": "web/src/lib/supabaseClient.ts",
+          "line": 14
+        },
+        {
+          "path": "web/src/lib/supabaseClient.ts",
+          "line": 22
+        }
+      ],
       "category": "security",
       "severity": "medium",
       "confidence": "medium",
@@ -203,11 +226,27 @@
       "id": 8,
       "title": "eslint-disable Comments Mask Potential Hook Dependency Issues",
       "files": [
-        "web/src/hooks/browser/useRealtimeAudioPlayback.ts",
-        "web/src/hooks/useEnsureChatConnected.ts (2x)",
-        "web/src/hooks/useNumberInput.ts",
-        "web/src/components/inputs/NumberInput.tsx",
-        "web/src/components/node/PreviewImageGrid.tsx"
+        {
+          "path": "web/src/hooks/browser/useRealtimeAudioPlayback.ts",
+          "line": null
+        },
+        {
+          "path": "web/src/hooks/useEnsureChatConnected.ts",
+          "line": null,
+          "note": "2 occurrences"
+        },
+        {
+          "path": "web/src/hooks/useNumberInput.ts",
+          "line": null
+        },
+        {
+          "path": "web/src/components/inputs/NumberInput.tsx",
+          "line": null
+        },
+        {
+          "path": "web/src/components/node/PreviewImageGrid.tsx",
+          "line": null
+        }
       ],
       "category": "tech-debt",
       "severity": "medium",
@@ -222,8 +261,12 @@
     {
       "id": 9,
       "title": "Hard-coded IP Address in Localhost Detection",
-      "file": "web/src/stores/ApiClient.ts",
-      "line": 69,
+      "files": [
+        {
+          "path": "web/src/stores/ApiClient.ts",
+          "line": 69
+        }
+      ],
       "category": "tech-debt",
       "severity": "medium",
       "confidence": "medium",
@@ -255,7 +298,12 @@
     {
       "id": 11,
       "title": "NodeInfo Component Uses dangerouslySetInnerHTML for Descriptions",
-      "file": "web/src/components/node_menu/NodeInfo.tsx",
+      "files": [
+        {
+          "path": "web/src/components/node_menu/NodeInfo.tsx",
+          "line": null
+        }
+      ],
       "category": "security",
       "severity": "medium",
       "confidence": "medium",
@@ -283,10 +331,23 @@
       "id": 13,
       "title": "Commented-Out Code Throughout Codebase",
       "files": [
-        "web/src/stores/ApiClient.ts (lines 145-156)",
-        "web/src/serverState/useMetadata.ts",
-        "web/src/lib/tools/builtin/duplicateNode.ts",
-        "web/src/lib/tools/builtin/selectNodes.ts"
+        {
+          "path": "web/src/stores/ApiClient.ts",
+          "line": 145,
+          "note": "lines 145-156"
+        },
+        {
+          "path": "web/src/serverState/useMetadata.ts",
+          "line": null
+        },
+        {
+          "path": "web/src/lib/tools/builtin/duplicateNode.ts",
+          "line": null
+        },
+        {
+          "path": "web/src/lib/tools/builtin/selectNodes.ts",
+          "line": null
+        }
       ],
       "category": "tech-debt",
       "severity": "low",
@@ -314,7 +375,12 @@
     {
       "id": 15,
       "title": "Missing Type Definitions for External Libraries",
-      "file": "web/src/types/react-simple-keyboard.d.ts",
+      "files": [
+        {
+          "path": "web/src/types/react-simple-keyboard.d.ts",
+          "line": null
+        }
+      ],
       "category": "tech-debt",
       "severity": "low",
       "confidence": "low",
@@ -328,7 +394,12 @@
     {
       "id": 16,
       "title": "Browser API Compatibility Issues with Experimental Features",
-      "file": "web/src/components/textEditor/EditorController.tsx",
+      "files": [
+        {
+          "path": "web/src/components/textEditor/EditorController.tsx",
+          "line": null
+        }
+      ],
       "category": "fragile",
       "severity": "low",
       "confidence": "low",
@@ -347,8 +418,14 @@
       "id": 17,
       "title": "Duplicate UUID Generation Logic",
       "files": [
-        "web/src/stores/NodeStore.ts",
-        "web/src/stores/uuidv4.ts"
+        {
+          "path": "web/src/stores/NodeStore.ts",
+          "line": null
+        },
+        {
+          "path": "web/src/stores/uuidv4.ts",
+          "line": null
+        }
       ],
       "category": "tech-debt",
       "severity": "low",
@@ -380,7 +457,7 @@
     "todoComments": 2,
     "consoleStatements": 70,
     "dangerouslySetInnerHTMLUsages": 8,
-    "emptyCAatchBlocks": 3,
+    "emptyCatchBlocks": 3,
     "commentedOutCodeBlocks": 4
   },
   "remediationPlan": {
