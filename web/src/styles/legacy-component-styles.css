@@ -446,6 +446,5 @@
   --fontSizeSmaller: 0.75em;
   --fontSizeTiny: 0.65em;
   --fontSizeTinyer: 0.55em;
-  --fontFamily1: 'Inter', Arial, sans-serif;
-  --fontFamily2: 'JetBrains Mono', 'Inter', Arial, sans-serif;
+  /* Font family variables are defined in vars.css */
 } 

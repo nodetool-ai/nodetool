@@ -35,7 +35,7 @@
   overflow: hidden;
   border-radius: 8px;
   border: none;
-  background-color: #fff2;
+  background-color: rgba(255, 255, 255, 0.13);
   box-shadow: none;
   overflow: visible;
 }
@@ -44,7 +44,7 @@
   .react-flow__node-nodetool\.workflows\.base_node\.Comment,
 .react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop,
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Group {
-  background-color: #0001;
+  background-color: rgba(0, 0, 0, 0.07);
 }
 .react-flow.zoomed-out
   .react-flow__node-nodetool\.workflows\.base_node\.Group
@@ -56,7 +56,7 @@
 
 .react-flow__node-nodetool\.workflows\.base_node\.Comment.selected {
   border: 0;
-  outline: 1px solid #ccc !important;
+  outline: 1px solid var(--palette-grey-300) !important;
   box-shadow: none !important;
 }
 
@@ -100,15 +100,7 @@
   display: none;
 }
 
-/* Collapsed Loop node */
-.react-flow__node-nodetool\.group\.Loop .loop-node.collapsed {
-  min-height: 7em;
-  height: 7em;
-}
-
-.react-flow__node-nodetool\.group\.Loop .loop-node.collapsed .tools {
-  display: none;
-}
+/* Collapsed Loop node - styles moved to collapsed.css */
 
 /* Datatable */
 .node-property.dataframe {
@@ -123,5 +115,5 @@
 
 .react-flow__node-default .node-header {
   border: 0;
-  background-color: #4444;
+  background-color: rgba(68, 68, 68, 0.27);
 }
