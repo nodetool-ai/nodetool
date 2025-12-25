@@ -80,6 +80,9 @@ const RemoteSettings = () => {
 
   // HuggingFace OAuth state
   const [hfOAuthLoading, setHfOAuthLoading] = useState(false);
+  
+  // Google OAuth state
+  const [googleOAuthLoading, setGoogleOAuthLoading] = useState(false);
 
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
@@ -110,6 +113,28 @@ const RemoteSettings = () => {
 
   const isConnected = !!((hfTokenData as any)?.tokens && (hfTokenData as any).tokens.length > 0);
 
+  // Poll for Google OAuth completion
+  const { data: googleTokenData, isError: isGoogleTokenError } = useQuery({
+    queryKey: ["google-oauth-token"],
+    queryFn: async () => {
+      const { data, error } = await (client as any).GET("/api/oauth/google/tokens");
+      if (error) {
+        throw new Error("Failed to fetch Google token");
+      }
+      return data;
+    },
+    refetchInterval: (query: any) => {
+      const data = query?.state?.data || query;
+      if (googleOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
+        return 2000;
+      }
+      return false;
+    },
+    retry: true
+  });
+
+  const isGoogleConnected = !!((googleTokenData as any)?.tokens && (googleTokenData as any).tokens.length > 0);
+
   // Handle OAuth completion side effects
   useEffect(() => {
     if (hfOAuthLoading) {
@@ -130,6 +155,27 @@ const RemoteSettings = () => {
       }
     }
   }, [hfOAuthLoading, isConnected, isHfTokenError, addNotification]);
+
+  // Handle Google OAuth completion side effects
+  useEffect(() => {
+    if (googleOAuthLoading) {
+      if (isGoogleConnected) {
+        setGoogleOAuthLoading(false);
+        addNotification({
+          content: "Successfully connected to Google",
+          type: "success",
+          alert: true
+        });
+      } else if (isGoogleTokenError) {
+        setGoogleOAuthLoading(false);
+        addNotification({
+          content: "Failed to check Google connection",
+          type: "error",
+          alert: true
+        });
+      }
+    }
+  }, [googleOAuthLoading, isGoogleConnected, isGoogleTokenError, addNotification]);
 
   const [settingValues, setSettingValues] = useState<Record<string, string>>(
     {}
@@ -238,6 +284,37 @@ const RemoteSettings = () => {
     }
   }, [addNotification]);
 
+  const handleGoogleOAuth = useCallback(async () => {
+    setGoogleOAuthLoading(true);
+
+    try {
+      const { data, error } = await (client as any).GET("/api/oauth/google/start");
+
+      if (error || !data?.auth_url) {
+        throw new Error("Failed to start Google OAuth flow");
+      }
+
+      const authUrl = data.auth_url;
+
+      if (isElectron && window.require) {
+        // Electron environment
+        const { shell } = window.require("electron").shell;
+        shell.openExternal(authUrl);
+      } else {
+        // Web environment - open in new window/tab
+        window.open(authUrl, "_blank", "width=600,height=700");
+      }
+    } catch (error) {
+      console.error("Google OAuth initiation failed:", error);
+      setGoogleOAuthLoading(false);
+      addNotification({
+        content: "Failed to initiate Google login",
+        type: "error",
+        alert: true
+      });
+    }
+  }, [addNotification]);
+
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
     const secrets: Record<string, string> = {};
@@ -327,6 +404,41 @@ const RemoteSettings = () => {
                       : hfOAuthLoading
                       ? "Connecting..."
                       : "Connect with HuggingFace"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Google OAuth Section */}
+              <div className="settings-section">
+                <Typography
+                  variant="h2"
+                  id="google-oauth"
+                >
+                  Google Authentication
+                </Typography>
+                <div className="settings-item large">
+                  <Typography className="description">
+                    Connect your Google account to access Gemini models and Google services
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleGoogleOAuth}
+                    disabled={googleOAuthLoading}
+                    startIcon={
+                      isGoogleConnected ? (
+                        <CheckCircleIcon />
+                      ) : googleOAuthLoading ? null : (
+                        <LoginIcon />
+                      )
+                    }
+                    sx={{ marginTop: "1em" }}
+                  >
+                    {isGoogleConnected
+                      ? "Connected to Google"
+                      : googleOAuthLoading
+                      ? "Connecting..."
+                      : "Connect with Google"}
                   </Button>
                 </div>
               </div>
