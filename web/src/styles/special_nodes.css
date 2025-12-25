@@ -100,15 +100,7 @@
   display: none;
 }
 
-/* Collapsed Loop node */
-.react-flow__node-nodetool\.group\.Loop .loop-node.collapsed {
-  min-height: 7em;
-  height: 7em;
-}
-
-.react-flow__node-nodetool\.group\.Loop .loop-node.collapsed .tools {
-  display: none;
-}
+/* Collapsed Loop node - styles moved to collapsed.css */
 
 /* Datatable */
 .node-property.dataframe {

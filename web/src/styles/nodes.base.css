@@ -25,9 +25,6 @@
 /* --------------------------------------------- */
 /* Node header                                    */
 /* --------------------------------------------- */
-/* --------------------------------------------- */
-/* Node header                                    */
-/* --------------------------------------------- */
 .react-flow__node .node-header {
   display: flex;
   justify-content: space-between;
@@ -38,12 +35,11 @@
   background-color: transparent;
   color: var(--palette-grey-0);
   margin: 0;
-  padding: 0 8px;
+  padding: 0 4px;
   /* slightly slanted corners on header to align with node body */
   border-radius: calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px)
     0 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 0 4px;
   transition: background-color 0.2s ease-in-out;
 }
 
@@ -79,8 +75,6 @@
 
 .react-flow__node .node-header.has-parent {
   background-color: var(--c_node_header_bg_group);
-}
-.react-flow__node .node-header.has-parent {
   opacity: 0.9;
 }
 
