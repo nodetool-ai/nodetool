@@ -2,6 +2,7 @@ import { defineConfig, type ProxyOptions, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 import svgr from "vite-plugin-svgr";
+import { resolve } from "path";
 
 export default defineConfig(async ({ mode }) => {
   const browserslistToEsbuild = (await import("browserslist-to-esbuild"))
@@ -41,15 +42,19 @@ export default defineConfig(async ({ mode }) => {
       target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all"]),
       sourcemap: isDebug,
       minify: isDebug ? false : "esbuild",
-      ...(isDebug
-        ? {}
-        : {
-            rollupOptions: {
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, "index.html"),
+          miniapp: resolve(__dirname, "miniapp.html")
+        },
+        ...(isDebug
+          ? {}
+          : {
               output: {
                 manualChunks: undefined
               }
-            }
-          })
+            })
+      }
     }
   } satisfies UserConfig;
 });
