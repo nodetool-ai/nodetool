@@ -55,7 +55,6 @@ const StandaloneMiniApp: React.FC = () => {
     runWorkflow,
     runnerState,
     statusMessage,
-    notifications,
     results,
     progress,
     resetWorkflowState
