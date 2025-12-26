@@ -110,6 +110,21 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   };
 
   const handleRun = async () => {
+    // Validate inputs before running
+    const inputs = extractInputDefinitions(workflow!);
+    const missingInputs = inputs.filter(input => {
+      const value = inputValues[input.data.name];
+      return value === undefined && input.kind !== 'boolean';
+    });
+
+    if (missingInputs.length > 0) {
+      Alert.alert(
+        'Missing Inputs', 
+        `Please fill in the following fields:\n${missingInputs.map(i => i.data.label).join(', ')}`
+      );
+      return;
+    }
+
     try {
       setIsRunning(true);
       setResults('Running workflow...');
@@ -161,15 +176,25 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
         )}
         <TextInput
           style={styles.input}
-          value={String(value || '')}
+          value={String(value ?? '')}
           onChangeText={(text) => {
-            let newValue: any = text;
+            let newValue: any;
             if (input.kind === 'integer') {
-              const parsed = parseInt(text, 10);
-              newValue = text ? (isNaN(parsed) ? 0 : parsed) : 0;
+              if (text === '') {
+                newValue = undefined;
+              } else {
+                const parsed = parseInt(text, 10);
+                newValue = isNaN(parsed) ? undefined : parsed;
+              }
             } else if (input.kind === 'float') {
-              const parsed = parseFloat(text);
-              newValue = text ? (isNaN(parsed) ? 0 : parsed) : 0;
+              if (text === '') {
+                newValue = undefined;
+              } else {
+                const parsed = parseFloat(text);
+                newValue = isNaN(parsed) ? undefined : parsed;
+              }
+            } else {
+              newValue = text;
             }
             setInputValues({ ...inputValues, [key]: newValue });
           }}

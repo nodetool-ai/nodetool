@@ -15,6 +15,7 @@ export default function SettingsScreen() {
   const [apiHost, setApiHost] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -58,7 +59,7 @@ export default function SettingsScreen() {
     }
 
     try {
-      setIsSaving(true);
+      setIsTesting(true);
       // Create a temporary client to test the connection without saving
       const testClient = axios.create({
         baseURL: apiHost.trim(),
@@ -73,7 +74,7 @@ export default function SettingsScreen() {
       console.error('Connection test failed:', error);
       Alert.alert('Error', 'Failed to connect to server. Please check the host URL.');
     } finally {
-      setIsSaving(false);
+      setIsTesting(false);
     }
   };
 
@@ -106,11 +107,11 @@ export default function SettingsScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.button, isSaving && styles.buttonDisabled]}
+        style={[styles.button, isTesting && styles.buttonDisabled]}
         onPress={handleTestConnection}
-        disabled={isSaving}
+        disabled={isTesting || isSaving}
       >
-        {isSaving ? (
+        {isTesting ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <Text style={styles.buttonText}>Test Connection</Text>
@@ -120,7 +121,7 @@ export default function SettingsScreen() {
       <TouchableOpacity
         style={[styles.button, styles.primaryButton, isSaving && styles.buttonDisabled]}
         onPress={handleSave}
-        disabled={isSaving}
+        disabled={isTesting || isSaving}
       >
         {isSaving ? (
           <ActivityIndicator color="#fff" />
