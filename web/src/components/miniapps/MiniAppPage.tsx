@@ -168,7 +168,7 @@ const MiniAppPage: React.FC = () => {
   );
   return (
     <NodeContext.Provider value={activeNodeStore ?? null}>
-      <Box css={styles} component="section">
+      <Box css={styles} component="section" className="mini-app-page">
         {/* <MiniAppHero
         workflows={workflows}
         selectedWorkflowId={selectedWorkflowId}
@@ -188,7 +188,7 @@ const MiniAppPage: React.FC = () => {
               <Fab
                 size="medium"
                 onClick={handleOpenInEditor}
-                sx={(theme) => ({
+                sx={{
                   position: "absolute",
                   top: 88,
                   right: 50,
@@ -201,15 +201,8 @@ const MiniAppPage: React.FC = () => {
                     boxShadow: "0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)",
                     transform: "scale(1.05)"
                   },
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                  // Mobile responsive positioning
-                  [theme.breakpoints.down("sm")]: {
-                    top: 60,
-                    right: 16,
-                    width: 48,
-                    height: 48
-                  }
-                })}
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                }}
               >
                 <EditIcon />
               </Fab>

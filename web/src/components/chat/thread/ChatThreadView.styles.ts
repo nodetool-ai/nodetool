@@ -9,12 +9,7 @@ export const createStyles = (theme: Theme) => ({
     flexDirection: "column",
     padding: "2em 0",
     marginRight: "20px",
-    minHeight: 0,
-    // Mobile responsive padding
-    [theme.breakpoints.down("sm")]: {
-      padding: "1em 0",
-      marginRight: "8px"
-    }
+    minHeight: 0
   }),
   messageWrapper: css({
     flex: 1,
@@ -39,10 +34,6 @@ export const createStyles = (theme: Theme) => ({
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: "var(--palette-warning-main) !important"
-    },
-    // Mobile responsive padding
-    [theme.breakpoints.down("sm")]: {
-      padding: "0 .25em"
     }
   }),
   chatMessagesList: css({
@@ -77,29 +68,15 @@ export const createStyles = (theme: Theme) => ({
       border: "1px solid rgba(255, 255, 255, 0.08)",
       opacity: 0.9,
       borderRadius: "16px 16px 4px 16px",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      // Mobile responsive width
-      [theme.breakpoints.down("sm")]: {
-        width: "85%",
-        margin: "2em 0 1em auto",
-        fontSize: theme.fontSizeSmall
-      }
+      boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
     },
 
     ".chat-message.user .markdown": {
-      padding: ".5em 1em",
-      // Mobile responsive padding
-      [theme.breakpoints.down("sm")]: {
-        padding: ".4em .8em"
-      }
+      padding: ".5em 1em"
     },
 
     "li.assistant": {
       // color: theme.vars.palette.grey[0]
-      // Mobile responsive font size
-      [theme.breakpoints.down("sm")]: {
-        fontSize: theme.fontSizeSmall
-      }
     },
 
     "li.chat-message .copy-button": {
@@ -140,11 +117,6 @@ export const createStyles = (theme: Theme) => ({
       "& code": {
         backgroundColor: "rgba(0,0,0,0.3)",
         color: theme.vars.palette.error.contrastText
-      },
-      // Mobile responsive padding
-      [theme.breakpoints.down("sm")]: {
-        padding: ".8em",
-        fontSize: theme.fontSizeSmall
       }
     },
 
@@ -177,11 +149,7 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      padding: "20px 0",
-      // Mobile responsive padding
-      [theme.breakpoints.down("sm")]: {
-        padding: "15px 0"
-      }
+      padding: "20px 0"
     },
 
     ".loading-dots": {
@@ -202,31 +170,19 @@ export const createStyles = (theme: Theme) => ({
       textAlign: "center",
       color: theme.vars.palette.grey[100],
       fontSize: theme.fontSizeSmall,
-      margin: "0.5em 0",
-      // Mobile responsive font size
-      [theme.breakpoints.down("sm")]: {
-        fontSize: "0.75rem"
-      }
+      margin: "0.5em 0"
     },
 
     ".node-progress": {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      margin: "2em 0",
-      // Mobile responsive margin
-      [theme.breakpoints.down("sm")]: {
-        margin: "1em 0"
-      }
+      margin: "2em 0"
     },
 
     ".progress-bar": {
       width: "80%",
-      marginBottom: "0.5em",
-      // Mobile responsive width
-      [theme.breakpoints.down("sm")]: {
-        width: "90%"
-      }
+      marginBottom: "0.5em"
     },
 
     ".message-content": {
@@ -242,12 +198,7 @@ export const createStyles = (theme: Theme) => ({
       borderRadius: 12,
       background: "rgba(0, 0, 0, 0.2)",
       padding: "4px 8px",
-      marginBottom: 2,
-      // Mobile responsive padding
-      [theme.breakpoints.down("sm")]: {
-        padding: "3px 6px",
-        fontSize: theme.fontSizeSmall
-      }
+      marginBottom: 2
     },
 
     "li.chat-message.tool-calls-only": {
@@ -262,11 +213,7 @@ export const createStyles = (theme: Theme) => ({
     ".tool-call-header": {
       display: "flex",
       alignItems: "center",
-      gap: 6,
-      // Mobile responsive gap
-      [theme.breakpoints.down("sm")]: {
-        gap: 4
-      }
+      gap: 6
     },
 
     ".tool-chip": {
@@ -276,11 +223,7 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-message": {
-      color: "var(--palette-grey-400)",
-      // Mobile responsive font size
-      [theme.breakpoints.down("sm")]: {
-        fontSize: "0.8rem"
-      }
+      color: "var(--palette-grey-400)"
     },
 
     ".expand-icon": {
@@ -303,12 +246,7 @@ export const createStyles = (theme: Theme) => ({
       borderRadius: 6,
       color: "var(--palette-grey-300)",
       border: "1px solid var(--palette-grey-900)",
-      overflowX: "auto",
-      // Mobile responsive padding and font
-      [theme.breakpoints.down("sm")]: {
-        padding: "6px 8px",
-        fontSize: "0.75rem"
-      }
+      overflowX: "auto"
     },
 
     ".error-icon": {
@@ -347,24 +285,14 @@ export const createStyles = (theme: Theme) => ({
       padding: "0.75rem",
       borderRadius: "8px",
       backgroundColor: "rgba(0, 0, 0, 0.2)",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      // Mobile responsive padding and margin
-      [theme.breakpoints.down("sm")]: {
-        padding: "0.5rem",
-        marginBottom: "1rem",
-        gap: "0.4rem"
-      }
+      border: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".execution-event-separator": {
       height: "1px",
       backgroundColor: theme.vars.palette.divider,
       margin: "1rem 0",
-      opacity: 0.3,
-      // Mobile responsive margin
-      [theme.breakpoints.down("sm")]: {
-        margin: "0.75rem 0"
-      }
+      opacity: 0.3
     }
   })
 });

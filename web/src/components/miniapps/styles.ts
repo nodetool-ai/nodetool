@@ -18,17 +18,6 @@ export const createStyles = (theme: Theme) => {
     overflow: "hidden",
     width: "100%",
 
-    // Mobile responsive padding
-    [theme.breakpoints.down("md")]: {
-      padding: theme.spacing(10, 10, 4),
-      paddingTop: "56px"
-    },
-    [theme.breakpoints.down("sm")]: {
-      padding: theme.spacing(8, 2, 4),
-      paddingTop: "48px",
-      gap: theme.spacing(2)
-    },
-
     ".glass-card": {
       position: "relative",
       borderRadius: doubledRadius,
