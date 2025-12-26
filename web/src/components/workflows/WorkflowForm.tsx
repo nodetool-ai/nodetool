@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
     ".settings-section": {
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2),
-      backgroundColor: "rgba(255, 255, 255, 0.02)",
+      backgroundColor: theme.vars.palette.action.hover,
       borderRadius: "8px",
       border: `1px solid ${theme.vars.palette.grey[800]}`
     },
@@ -185,7 +185,7 @@ const styles = (theme: Theme) =>
       padding: "4px 10px",
       "&:hover": {
         color: theme.vars.palette.grey[0],
-        backgroundColor: "rgba(255, 255, 255, 0.1)"
+        backgroundColor: theme.vars.palette.action.disabledBackground
       }
     },
     
@@ -218,18 +218,18 @@ const styles = (theme: Theme) =>
     },
     
     ".save-button": {
-      background: "linear-gradient(135deg, var(--palette-primary-main) 0%, #1976d2 100%)",
-      color: "#fff",
+      background: `linear-gradient(135deg, var(--palette-primary-main) 0%, ${theme.vars.palette.primary.dark} 100%)`,
+      color: theme.vars.palette.primary.contrastText,
       padding: "8px 28px",
       fontSize: theme.fontSizeSmall,
       fontWeight: 600,
       textTransform: "none",
       borderRadius: "6px",
       border: "none",
-      boxShadow: "0 2px 8px rgba(33, 150, 243, 0.3)",
+      boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}4d`,
       transition: "all 0.2s ease",
       "&:hover": {
-        boxShadow: "0 4px 12px rgba(33, 150, 243, 0.4)",
+        boxShadow: `0 4px 12px ${theme.vars.palette.primary.main}66`,
         transform: "translateY(-1px)"
       }
     },
@@ -256,7 +256,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: "1px",
       right: "1px",
-      backgroundColor: "#333333cc"
+      backgroundColor: "rgba(51, 51, 51, 0.8)"
     }
   });
 

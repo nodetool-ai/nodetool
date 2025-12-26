@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
     overflowY: "auto",
     flexDirection: "column",
     overflow: "hidden",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+    boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}1a`,
     ".section-title": {
       color: theme.vars.palette.grey[100],
       marginBottom: theme.spacing(3)
