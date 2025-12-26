@@ -247,7 +247,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
   nodeTypes["nodetool.control.Reroute"] = RerouteNode;
   nodeTypes["default"] = PlaceholderNode;
-  // debug removed: too noisy
 
   /* SETTINGS */
   const settings = useSettingsStore((state) => state.settings);
