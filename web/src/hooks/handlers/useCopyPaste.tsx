@@ -22,9 +22,7 @@ const isValidNode = (node: any): node is Node<NodeData> =>
   !!node && typeof node.id === "string" && hasValidPosition(node.position);
 
 const isValidEdge = (edge: any): edge is Edge =>
-  !!edge &&
-  typeof edge.source === "string" &&
-  typeof edge.target === "string";
+  !!edge && typeof edge.source === "string" && typeof edge.target === "string";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
@@ -36,13 +34,15 @@ export const useCopyPaste = () => {
     })
   );
 
-  const { nodes, edges, setNodes, setEdges, workflowId } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    setNodes: state.setNodes,
-    setEdges: state.setEdges,
-    workflowId: state.workflow.id
-  }));
+  const { nodes, edges, setNodes, setEdges, workflowId } = useNodes(
+    (state) => ({
+      nodes: state.nodes,
+      edges: state.edges,
+      setNodes: state.setNodes,
+      setEdges: state.setEdges,
+      workflowId: state.workflow.id
+    })
+  );
 
   const selectedNodes = useMemo(() => {
     return nodes.filter((node) => node.selected);
@@ -99,10 +99,14 @@ export const useCopyPaste = () => {
       const nodesToCopyIds = new Set(nodesToCopy.map((n) => n.id));
       const connectedEdgeIds = new Set(connectedEdges.map((e) => e.id));
 
-      const filteredNodes = nodes.filter((node) => !nodesToCopyIds.has(node.id));
+      const filteredNodes = nodes.filter(
+        (node) => !nodesToCopyIds.has(node.id)
+      );
       setNodes(filteredNodes);
 
-      const filteredEdges = edges.filter((edge) => !connectedEdgeIds.has(edge.id));
+      const filteredEdges = edges.filter(
+        (edge) => !connectedEdgeIds.has(edge.id)
+      );
       setEdges(filteredEdges);
     },
     [handleCopy, nodes, edges, setNodes, setEdges]
@@ -172,11 +176,10 @@ export const useCopyPaste = () => {
     // At this point, no text input is focused, so we can proceed with node paste
     // Previously we checked if cursor was over the flow pane, but that breaks
     // paste from Electron's Edit menu where cursor is on the menu
-    const { nodes: copiedNodes, edges: copiedEdges } =
-      parsedData as {
-        nodes: Node<NodeData>[];
-        edges: Edge[];
-      };
+    const { nodes: copiedNodes, edges: copiedEdges } = parsedData as {
+      nodes: Node<NodeData>[];
+      edges: Edge[];
+    };
     const oldToNewIds = new Map<string, string>();
     const newNodes: Node<NodeData>[] = [];
     const newEdges: Edge[] = [];
