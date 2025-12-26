@@ -378,6 +378,223 @@
     display: none !important;
   }
 
+  /* Chat Thread View Mobile Styles */
+  .mobile .chat-thread-view-root {
+    contain: layout style !important;
+    padding: 1em 0 !important;
+    margin-right: 8px !important;
+  }
+
+  .mobile .scrollable-message-wrapper {
+    padding: 0 0.25em !important;
+    scrollbar-width: thin !important;
+  }
+
+  .mobile .scrollable-message-wrapper::-webkit-scrollbar {
+    width: 4px !important;
+  }
+
+  /* Chat message styles for mobile */
+  .mobile .chat-messages-list li.user {
+    width: 85% !important;
+    margin: 2em 0 1em auto !important;
+    font-size: 0.875em !important;
+  }
+
+  .mobile .chat-messages-list .chat-message.user .markdown {
+    padding: 0.4em 0.8em !important;
+  }
+
+  .mobile .chat-messages-list li.assistant {
+    font-size: 0.875em !important;
+  }
+
+  .mobile .chat-messages-list li.error-message {
+    padding: 0.8em !important;
+    font-size: 0.875em !important;
+  }
+
+  .mobile .chat-messages-list .loading-container {
+    padding: 15px 0 !important;
+  }
+
+  .mobile .chat-messages-list .node-status {
+    font-size: 0.75rem !important;
+  }
+
+  .mobile .chat-messages-list .node-progress {
+    margin: 1em 0 !important;
+  }
+
+  .mobile .chat-messages-list .progress-bar {
+    width: 90% !important;
+  }
+
+  .mobile .chat-messages-list .tool-call-card {
+    padding: 3px 6px !important;
+    font-size: 0.875em !important;
+  }
+
+  .mobile .chat-messages-list .tool-call-header {
+    gap: 4px !important;
+  }
+
+  .mobile .chat-messages-list .tool-message {
+    font-size: 0.8rem !important;
+  }
+
+  .mobile .chat-messages-list .pretty-json {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .mobile .chat-messages-list .execution-events-group {
+    padding: 0.5rem !important;
+    margin-bottom: 1rem !important;
+    gap: 0.4rem !important;
+  }
+
+  .mobile .chat-messages-list .execution-event-separator {
+    margin: 0.75rem 0 !important;
+  }
+
+  /* ChatView Mobile Styles */
+  .mobile .chat-view .chat-thread-container {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .mobile .chat-view .chat-controls {
+    padding: 0 8px 0 0 !important;
+    gap: 4px !important;
+  }
+
+  /* Dashboard Mobile Styles */
+  .mobile .dashboard {
+    padding-top: 48px !important;
+    padding-left: 0px !important;
+  }
+
+  .mobile .dashboard .dockview-container {
+    padding-top: 0.5rem !important;
+  }
+
+  /* MiniApp Mobile Styles */
+  .mobile .mini-app-page {
+    padding: 48px 16px 32px !important;
+    gap: 16px !important;
+  }
+
+  .mobile .mini-app-page .MuiFab-root {
+    top: 60px !important;
+    right: 16px !important;
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .mobile .mini-app-page .hero {
+    padding: 20px 16px 16px !important;
+    gap: 16px !important;
+  }
+
+  .mobile .mini-app-page .hero-copy {
+    gap: 6px !important;
+  }
+
+  .mobile .mini-app-page .hero-subtitle {
+    padding-bottom: 12px !important;
+  }
+
+  .mobile .mini-app-page .hero-controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .mobile .mini-app-page .hero-controls .MuiFormControl-root {
+    width: 100% !important;
+  }
+
+  .mobile .mini-app-page .hero-status {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .mobile .mini-app-page .hero-status .MuiLinearProgress-root {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .mobile .mini-app-page .content-grid {
+    gap: 16px !important;
+  }
+
+  .mobile .mini-app-page .results-shell {
+    padding: 16px !important;
+    min-height: 320px !important;
+  }
+
+  .mobile .mini-app-page .results-heading {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+
+  .mobile .mini-app-page .result-placeholder {
+    padding: 32px !important;
+  }
+
+  .mobile .mini-app-page .inputs-card {
+    padding: 16px !important;
+    gap: 16px !important;
+  }
+
+  .mobile .mini-app-page .composer-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .mobile .mini-app-page .generate-button {
+    width: 100% !important;
+  }
+
+  .mobile .mini-app-page .refresh-button {
+    align-self: stretch !important;
+  }
+
+  /* Chat Composer Mobile Styles */
+  .mobile .chat-composer .compose-message {
+    padding: 6px 8px !important;
+    margin-top: 8px !important;
+    border-radius: 20px !important;
+    min-height: 40px !important;
+    max-height: 100px !important;
+  }
+
+  .mobile .chat-composer .compose-message textarea {
+    font-size: 0.875em !important;
+    padding: 4px 8px 4px 4px !important;
+    margin: 4px 0 !important;
+  }
+
+  .mobile .chat-composer .button-container {
+    gap: 4px !important;
+    padding: 0 4px !important;
+  }
+
+  .mobile .chat-composer .button-container button {
+    padding: 4px !important;
+    border-radius: 10px !important;
+  }
+
+  .mobile .chat-composer .file-preview-container {
+    gap: 4px !important;
+    padding: 4px 6px !important;
+  }
+
   /* General Mobile Layout */
   .mobile {
     touch-action: manipulation !important;
