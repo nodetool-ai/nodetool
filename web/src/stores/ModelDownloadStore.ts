@@ -30,15 +30,20 @@ interface Download {
   speedHistory: SpeedDataPoint[];
   abortController?: AbortController;
   modelType?: string;
+  lastUpdated?: number; // Timestamp of last progress update
 }
 
 interface ModelDownloadStore {
   downloads: Record<string, Download>;
   ws: WebSocket | null;
+  wsConnectionState: "disconnected" | "connecting" | "connected";
+  reconnectAttempts: number;
   queryClient: QueryClient | null;
   setQueryClient: (queryClient: QueryClient) => void;
   connectWebSocket: () => Promise<WebSocket>;
   disconnectWebSocket: () => void;
+  reconnectWebSocket: () => void;
+  hasActiveDownloads: () => boolean;
   addDownload: (id: string, additionalProps?: Partial<Download>) => void;
   updateDownload: (id: string, update: Partial<Download>) => void;
   removeDownload: (id: string) => void;
@@ -55,6 +60,10 @@ interface ModelDownloadStore {
   closeDialog: () => void;
 }
 
+// Reconnection settings
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_BASE_DELAY_MS = 2000; // Start with 2 seconds, then exponential backoff
+
 const calculateSpeed = (speedHistory: SpeedDataPoint[]): number | null => {
   if (speedHistory.length < 2) {return null;}
   const oldestPoint = speedHistory[0];
@@ -67,23 +76,112 @@ const calculateSpeed = (speedHistory: SpeedDataPoint[]): number | null => {
 export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   downloads: {},
   ws: null,
+  wsConnectionState: "disconnected",
+  reconnectAttempts: 0,
   queryClient: null,
   setQueryClient: (queryClient: QueryClient) => {
     set({ queryClient });
   },
+
+  hasActiveDownloads: () => {
+    const downloads = get().downloads;
+    return Object.values(downloads).some(
+      (d) =>
+        d.status === "running" ||
+        d.status === "progress" ||
+        d.status === "start" ||
+        d.status === "pending"
+    );
+  },
+
+  reconnectWebSocket: () => {
+    const { reconnectAttempts, hasActiveDownloads, wsConnectionState } = get();
+
+    // Only reconnect if we have active downloads and aren't already connecting
+    if (!hasActiveDownloads() || wsConnectionState === "connecting") {
+      return;
+    }
+
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      console.error(
+        "[ModelDownloadStore] Max reconnect attempts reached. Giving up."
+      );
+      // Mark active downloads as potentially stalled/errored
+      const downloads = get().downloads;
+      Object.entries(downloads).forEach(([id, download]) => {
+        if (
+          download.status === "running" ||
+          download.status === "progress" ||
+          download.status === "start"
+        ) {
+          get().updateDownload(id, {
+            message: "Connection lost. Download may still be running on server."
+          });
+        }
+      });
+      return;
+    }
+
+    const delay = RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempts);
+    console.log(
+      `[ModelDownloadStore] Reconnecting in ${delay}ms (attempt ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`
+    );
+
+    set({ reconnectAttempts: reconnectAttempts + 1 });
+
+    setTimeout(() => {
+      get()
+        .connectWebSocket()
+        .then(() => {
+          console.log("[ModelDownloadStore] Reconnected successfully");
+          set({ reconnectAttempts: 0 });
+        })
+        .catch((err) => {
+          console.error("[ModelDownloadStore] Reconnection failed:", err);
+          get().reconnectWebSocket();
+        });
+    }, delay);
+  },
+
   connectWebSocket: async () => {
     let ws = get().ws;
     if (ws?.readyState === WebSocket.OPEN) {
       return ws;
     }
 
+    // Prevent multiple simultaneous connection attempts
+    if (get().wsConnectionState === "connecting") {
+      // Wait for existing connection attempt
+      return new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          const currentWs = get().ws;
+          const state = get().wsConnectionState;
+          if (state === "connected" && currentWs) {
+            clearInterval(checkInterval);
+            resolve(currentWs);
+          } else if (state === "disconnected") {
+            clearInterval(checkInterval);
+            reject(new Error("Connection failed"));
+          }
+        }, 100);
+      });
+    }
+
+    set({ wsConnectionState: "connecting" });
     ws = new WebSocket(DOWNLOAD_URL);
 
     await new Promise<void>((resolve, reject) => {
       if (ws) {
-        ws.onopen = () => resolve();
-        ws.onerror = (error) => reject(error);
+        ws.onopen = () => {
+          set({ wsConnectionState: "connected" });
+          resolve();
+        };
+        ws.onerror = (error) => {
+          set({ wsConnectionState: "disconnected" });
+          reject(error);
+        };
       } else {
+        set({ wsConnectionState: "disconnected" });
         reject(new Error("WebSocket is null"));
       }
     });
@@ -108,10 +206,13 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             queryClient?.invalidateQueries({ queryKey: ["allModels"] });
             queryClient?.invalidateQueries({ queryKey: ["image-models"] });
             useHfCacheStatusStore.getState().invalidate([id]);
-            
+
             // Restart llama-server if a llama_cpp model was downloaded
             const download = get().downloads[id];
-            if (download?.modelType === "llama_cpp_model" && window.api?.restartLlamaServer) {
+            if (
+              download?.modelType === "llama_cpp_model" &&
+              window.api?.restartLlamaServer
+            ) {
               console.log("Restarting llama-server after model download");
               window.api.restartLlamaServer().catch((e: unknown) => {
                 console.error("Failed to restart llama-server:", e);
@@ -119,6 +220,22 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             }
           }
         }
+      };
+
+      ws.onclose = (event) => {
+        console.warn(
+          `[ModelDownloadStore] WebSocket closed: code=${event.code}, reason=${event.reason}`
+        );
+        set({ ws: null, wsConnectionState: "disconnected" });
+
+        // Attempt reconnection if we have active downloads
+        if (get().hasActiveDownloads()) {
+          get().reconnectWebSocket();
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("[ModelDownloadStore] WebSocket error:", error);
       };
 
       set({ ws });
@@ -132,7 +249,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     const { ws } = get();
     if (ws) {
       ws.close();
-      set({ ws: null });
+      set({ ws: null, wsConnectionState: "disconnected", reconnectAttempts: 0 });
     }
   },
 
@@ -213,7 +330,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             totalFiles: nextTotalFiles,
             status: nextStatus,
             speedHistory: newSpeedHistory,
-            speed: newSpeed
+            speed: newSpeed,
+            lastUpdated: Date.now()
           }
         }
       };

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { keyframes } from "@emotion/react";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import {
   Typography,
   Box,
@@ -13,9 +13,13 @@ import {
   Chip
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+
+// Threshold in ms to consider a download stalled (30 seconds)
+const STALL_THRESHOLD_MS = 30000;
 
 const styles = (theme: Theme) =>
   css({
@@ -127,9 +131,28 @@ export const DownloadProgress: React.FC<{
   const downloads = useModelDownloadStore((state) => state.downloads);
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const removeDownload = useModelDownloadStore((state) => state.removeDownload);
+  const wsConnectionState = useModelDownloadStore(
+    (state) => state.wsConnectionState
+  );
+  const reconnectWebSocket = useModelDownloadStore(
+    (state) => state.reconnectWebSocket
+  );
   const download = downloads[name];
+  const isDisconnected = wsConnectionState === "disconnected";
+  const isReconnecting = wsConnectionState === "connecting";
 
   const theme = useTheme();
+
+  // Track current time for stall detection
+  const [now, setNow] = useState(Date.now());
+
+  // Update current time every 5 seconds to check for stalls
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRemove = useCallback(() => {
     removeDownload(name);
@@ -142,7 +165,34 @@ export const DownloadProgress: React.FC<{
       ? Math.min(100, Math.max(0, (downloadedBytes / totalBytes) * 100))
       : 0;
 
+  // Detect if download is stalled (no updates for STALL_THRESHOLD_MS or disconnected)
+  const isStalled = useMemo(() => {
+    const isActive =
+      download.status === "running" ||
+      download.status === "progress" ||
+      download.status === "start";
+    if (!isActive) return false;
+
+    // If WebSocket is disconnected, consider it stalled
+    if (isDisconnected) return true;
+
+    // Check for time-based stall
+    if (!download.lastUpdated) return false;
+    return now - download.lastUpdated > STALL_THRESHOLD_MS;
+  }, [download.lastUpdated, download.status, now, isDisconnected]);
+
+  // Calculate time since last update for display
+  const timeSinceUpdate = useMemo(() => {
+    if (!download.lastUpdated || !isStalled) return null;
+    const seconds = Math.floor((now - download.lastUpdated) / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}m ${seconds % 60}s`;
+  }, [download.lastUpdated, isStalled, now]);
+
   const eta = useMemo(() => {
+    // Don't show ETA if stalled
+    if (isStalled) return null;
     if (download.speed && download.speed > 0) {
       const remainingBytes = totalBytes - downloadedBytes;
       const remainingSeconds = remainingBytes / download.speed;
@@ -151,7 +201,18 @@ export const DownloadProgress: React.FC<{
       return `${minutes}m ${seconds}s`;
     }
     return null;
-  }, [download.speed, totalBytes, downloadedBytes]);
+  }, [download.speed, totalBytes, downloadedBytes, isStalled]);
+
+  // Display speed - show as stalled/disconnected if no recent updates
+  const displaySpeed = useMemo(() => {
+    if (isDisconnected) return "Disconnected";
+    if (isReconnecting) return "Reconnecting...";
+    if (isStalled) return "Stalled";
+    if (download.speed) {
+      return `${(download.speed / 1024 / 1024).toFixed(2)} MB/s`;
+    }
+    return "-";
+  }, [download.speed, isStalled, isDisconnected, isReconnecting]);
 
   const showDetails =
     download.status === "start" ||
@@ -328,13 +389,61 @@ export const DownloadProgress: React.FC<{
             <Typography variant="caption" sx={{ opacity: 0.85 }}>
               {percent.toFixed(0)}%
             </Typography>
+            {isStalled && (
+              <Tooltip
+                title={
+                  isDisconnected
+                    ? "WebSocket connection lost. The download may still be running on the server. Click Reconnect to restore progress updates."
+                    : `No progress received for ${timeSinceUpdate}. The download may have stalled or the connection was lost. Try cancelling and restarting the download.`
+                }
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    color: "var(--palette-warning-main)"
+                  }}
+                >
+                  <WarningAmberIcon fontSize="small" />
+                  <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                    {isDisconnected
+                      ? "Disconnected"
+                      : isReconnecting
+                        ? "Reconnecting..."
+                        : `Stalled (${timeSinceUpdate} since last update)`}
+                  </Typography>
+                  {isDisconnected && !isReconnecting && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={reconnectWebSocket}
+                      sx={{
+                        ml: 1,
+                        minWidth: "auto",
+                        padding: "2px 8px",
+                        fontSize: "0.75rem"
+                      }}
+                    >
+                      Reconnect
+                    </Button>
+                  )}
+                </Box>
+              </Tooltip>
+            )}
           </Box>
           <Box className="progress-bar-container">
             <Box
               className="progress-bar"
               sx={{
                 width: `${percent}%`,
-                animation: `${pulse} 3s ease-in-out infinite, ${moveRight} 8s linear infinite`
+                animation: isStalled
+                  ? "none"
+                  : `${pulse} 3s ease-in-out infinite, ${moveRight} 8s linear infinite`,
+                opacity: isStalled ? 0.5 : 1,
+                background: isStalled
+                  ? "var(--palette-warning-main)"
+                  : undefined
               }}
             />
           </Box>
@@ -371,20 +480,21 @@ export const DownloadProgress: React.FC<{
               variant="body2"
               style={{
                 minHeight: "1.5em",
-                fontFamily: "var(--fontFamily2)"
+                fontFamily: "var(--fontFamily2)",
+                color: isStalled ? "var(--palette-warning-main)" : undefined
               }}
             >
-              Speed:{" "}
-              {download.speed
-                ? `${(download.speed / 1024 / 1024).toFixed(2)} MB/s`
-                : "-"}
+              Speed: {displaySpeed}
             </Typography>
             <Typography
               className="download-progress-text download-eta"
               variant="body2"
-              style={{ minHeight: "1.2em" }}
+              style={{
+                minHeight: "1.2em",
+                color: isStalled ? "var(--palette-warning-main)" : undefined
+              }}
             >
-              ETA: {eta || "-"}
+              ETA: {isStalled ? "Unknown (stalled)" : eta || "-"}
             </Typography>
           </Box>
           <Tooltip title="Stop the current download. You can restart it later.">
