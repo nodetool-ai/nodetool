@@ -2,21 +2,31 @@ import React from "react";
 import { Button, Box, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 
 type PreviewActionsProps = {
-  onCopy: () => void;
   onDownload: () => void;
   onAddToAssets: () => void;
-  canCopy: boolean;
+  copyValue: unknown;
 };
 
 const PreviewActions: React.FC<PreviewActionsProps> = ({
-  onCopy,
   onDownload,
   onAddToAssets,
-  canCopy
+  copyValue
 }) => {
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
+  const handleCopyError = (_err: Error) => {
+    addNotification({
+      type: "error",
+      content: "Failed to copy to clipboard"
+    });
+  };
+
   return (
     <Box
       className="actions"
@@ -24,7 +34,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
         display: "flex",
         gap: 1,
         justifyContent: "flex-start",
-        alignItems: "start",
+        alignItems: "center",
         padding: 0,
         margin: "0 0 .25em 0"
       }}
@@ -43,13 +53,29 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
           <AddIcon />
         </Button>
       </Tooltip>
-      {canCopy && (
-        <Tooltip title="Copy to clipboard">
-          <Button onClick={onCopy} className="action-button" tabIndex={-1}>
-            <ContentCopyIcon fontSize="inherit" />
-          </Button>
-        </Tooltip>
-      )}
+      <CopyToClipboardButton
+        copyValue={copyValue}
+        onCopyError={handleCopyError}
+        className="action-button copy"
+        sx={{
+          width: "17px",
+          height: "17px",
+          minWidth: "unset",
+          padding: 0,
+          margin: 0,
+          marginLeft: "0 !important",
+          borderRadius: ".1em",
+          backgroundColor: (theme) => theme.vars.palette.grey[600],
+          color: (theme) => theme.vars.palette.grey[200],
+          "&:hover": {
+            color: "var(--palette-primary-main)"
+          },
+          "& svg": {
+            width: "100%",
+            height: "100%"
+          }
+        }}
+      />
     </Box>
   );
 };
