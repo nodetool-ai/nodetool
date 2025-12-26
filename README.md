@@ -108,6 +108,16 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
 
 Configure `settings.yaml` with your Conda path and run `make electron`.
 
+### Mobile App
+
+The mobile app allows you to run Mini Apps on iOS and Android devices.
+
+```bash
+cd mobile && npm install && npm start
+```
+
+See [mobile/README.md](mobile/README.md) for detailed setup and usage instructions.
+
 ## Testing
 
 ```bash

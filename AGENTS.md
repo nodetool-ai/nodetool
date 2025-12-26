@@ -20,6 +20,11 @@ This repository has multiple AGENTS.md files organized by directory to help you 
 ### Desktop Application
 - **[Electron](electron/src/AGENTS.md)** - Electron desktop app, IPC, and system integration
 
+### Mobile Application
+- **[Mobile README](mobile/README.md)** - React Native/Expo mobile app setup and usage
+- **[Mobile Quick Start](mobile/QUICKSTART.md)** - Step-by-step guide to run the mobile app
+- **[Mobile Architecture](mobile/ARCHITECTURE.md)** - Architecture and implementation details
+
 ### Documentation & Build
 - **[Documentation](docs/AGENTS.md)** - Documentation structure and writing guidelines
 - **[Scripts](scripts/AGENTS.md)** - Build and release scripts
@@ -46,6 +51,7 @@ NodeTool follows a client-server architecture with multiple components:
 
    - Web UI (React/TypeScript): Visual editor for building AI workflows
    - Electron Wrapper: Packages the web UI into a desktop application
+   - Mobile App (React Native/Expo): Browse and run Mini Apps on iOS/Android
 
 2. **Backend Components:**
 
@@ -63,6 +69,7 @@ NodeTool follows a client-server architecture with multiple components:
 
 - `/web`: Main React web application (editor UI)
 - `/electron`: Electron desktop app wrapper
+- `/mobile`: React Native mobile app (Mini Apps viewer)
 - `/docs`: Documentation files
 - `/scripts`: Build and release scripts
 
