@@ -36,6 +36,15 @@ export const createStyles = (theme: Theme) =>
       "&.dragging": {
         borderColor: "var(--palette-primary-main)",
         backgroundColor: `${theme.vars.palette.grey[800]}80`
+      },
+
+      // Mobile responsive styles
+      [theme.breakpoints.down("sm")]: {
+        padding: "6px 8px",
+        marginTop: "8px",
+        borderRadius: 20,
+        minHeight: "40px",
+        maxHeight: "100px"
       }
     },
 
@@ -56,6 +65,12 @@ export const createStyles = (theme: Theme) =>
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
         color: theme.vars.palette.grey[500]
+      },
+      // Mobile responsive font size
+      [theme.breakpoints.down("sm")]: {
+        fontSize: theme.fontSizeSmall,
+        padding: "4px 8px 4px 4px",
+        margin: "4px 0"
       }
     },
 
@@ -71,18 +86,30 @@ export const createStyles = (theme: Theme) =>
         padding: "6px",
         position: "relative",
         borderRadius: 12
-      }
+      },
 
-      // Mobile styles handled via separate CSS file
+      // Mobile responsive gap and padding
+      [theme.breakpoints.down("sm")]: {
+        gap: "4px",
+        padding: "0 4px",
+        "& button": {
+          padding: "4px",
+          borderRadius: 10
+        }
+      }
     },
 
     ".file-preview-container": {
       display: "flex",
       flexWrap: "wrap",
       gap: "6px",
-      padding: "6px 8px"
+      padding: "6px 8px",
 
-      // Mobile styles handled via separate CSS file
+      // Mobile responsive gap and padding
+      [theme.breakpoints.down("sm")]: {
+        gap: "4px",
+        padding: "4px 6px"
+      }
     },
 
     ".file-preview": {
@@ -90,8 +117,6 @@ export const createStyles = (theme: Theme) =>
       maxWidth: "24px",
       maxHeight: "24px",
       flexShrink: 0,
-
-      // Mobile styles handled via separate CSS file
 
       ".remove-button": {
         position: "absolute",

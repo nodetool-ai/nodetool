@@ -6,7 +6,12 @@ import { pulse } from "../styles/animations";
 export const LoadingIndicator: React.FC = () => {
   return (
     <div className="loading-container">
-      <div className="loading-dots">
+      <div
+        className="loading-dots"
+        css={css`
+          justify-content: flex-start;
+        `}
+      >
         <div
           className="dot"
           css={css`

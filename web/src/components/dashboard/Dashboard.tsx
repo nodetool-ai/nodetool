@@ -47,13 +47,26 @@ const styles = (theme: Theme) =>
       paddingTop: "64px",
       paddingLeft: "64px",
       boxSizing: "border-box",
-      backgroundColor: theme.vars.palette.c_editor_bg_color
+      backgroundColor: theme.vars.palette.c_editor_bg_color,
+      // Mobile responsive padding
+      [theme.breakpoints.down("md")]: {
+        paddingTop: "56px",
+        paddingLeft: "56px"
+      },
+      [theme.breakpoints.down("sm")]: {
+        paddingTop: "48px",
+        paddingLeft: "0px"
+      }
     },
     "& .dockview-container": {
       paddingTop: "1rem",
       flex: 1,
       minHeight: 0,
-      height: "100%"
+      height: "100%",
+      // Mobile responsive padding
+      [theme.breakpoints.down("sm")]: {
+        paddingTop: "0.5rem"
+      }
     },
     // CONTENT
     "& .dv-react-part": {

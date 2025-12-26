@@ -35,7 +35,13 @@ const styles = (theme: Theme) =>
       paddingBottom: "16px",
       // Prevent scroll jumping on mobile keyboard
       WebkitOverflowScrolling: "touch",
-      scrollBehavior: "smooth"
+      scrollBehavior: "smooth",
+      // Mobile responsive padding
+      [theme.breakpoints.down("sm")]: {
+        paddingLeft: "8px",
+        paddingRight: "8px",
+        paddingBottom: "8px"
+      }
     },
     ".chat-controls": {
       padding: "0 16px 0 0",
@@ -43,7 +49,12 @@ const styles = (theme: Theme) =>
       zIndex: 10,
       display: "flex",
       alignItems: "center",
-      gap: "8px"
+      gap: "8px",
+      // Mobile responsive padding
+      [theme.breakpoints.down("sm")]: {
+        padding: "0 8px 0 0",
+        gap: "4px"
+      }
     },
     ".chat-composer-wrapper": {
       flex: 1,
