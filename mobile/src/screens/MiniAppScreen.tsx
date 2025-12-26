@@ -13,8 +13,12 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { apiService } from '../services/api';
-import { Workflow, MiniAppInputDefinition, MiniAppInputKind } from '../types/miniapp';
+import { Workflow, MiniAppResult } from '../types/miniapp';
 import { RootStackParamList } from '../navigation/types';
+import { useWorkflowRunner } from '../stores/WorkflowRunner';
+import { useMiniAppInputs } from '../hooks/useMiniAppInputs';
+import { PropertyRenderer } from '../components/properties';
+import { MiniAppResults } from '../components/miniapps/MiniAppResults';
 
 type MiniAppScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MiniApp'>;
@@ -24,13 +28,30 @@ type MiniAppScreenProps = {
 export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps) {
   const { workflowId, workflowName } = route.params;
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
-  const [inputValues, setInputValues] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<string>('');
+  
+  // Use the workflow runner store
+  const runnerStore = useWorkflowRunner(workflowId);
+  // Subscribe to store state
+  const state = runnerStore((state) => state.state);
+  const statusMessage = runnerStore((state) => state.statusMessage);
+  const runResults = runnerStore((state) => state.results);
+  const logs = runnerStore((state) => state.logs);
+  const run = runnerStore((state) => state.run);
+  const cleanup = runnerStore((state) => state.cleanup);
+
+  // Use the new hook for inputs
+  const { inputDefinitions, inputValues, updateInputValue, setInputValues } = useMiniAppInputs(workflow);
+
+  const isRunning = state === 'running' || state === 'connecting';
+  
+  const scrollViewRef = React.useRef<ScrollView>(null);
 
   useEffect(() => {
     loadWorkflow();
+    return () => {
+      cleanup();
+    };
   }, [workflowId]);
 
   useEffect(() => {
@@ -42,7 +63,6 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
       setIsLoading(true);
       const data = await apiService.getWorkflow(workflowId);
       setWorkflow(data);
-      initializeInputs(data);
     } catch (error) {
       console.error('Failed to load workflow:', error);
       Alert.alert('Error', 'Failed to load mini app');
@@ -51,68 +71,9 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
     }
   };
 
-  const initializeInputs = (wf: Workflow) => {
-    const inputs = extractInputDefinitions(wf);
-    const initialValues: Record<string, any> = {};
-    
-    inputs.forEach((input) => {
-      const key = input.data.name;
-      if (input.data.value !== undefined) {
-        initialValues[key] = input.data.value;
-      } else if (input.kind === 'boolean') {
-        initialValues[key] = false;
-      } else if (input.kind === 'integer' || input.kind === 'float') {
-        initialValues[key] = input.data.min || 0;
-      } else {
-        initialValues[key] = '';
-      }
-    });
-    
-    setInputValues(initialValues);
-  };
-
-  const extractInputDefinitions = (wf: Workflow): MiniAppInputDefinition[] => {
-    if (!wf.graph?.nodes) {
-      return [];
-    }
-
-    const inputNodes = wf.graph.nodes.filter(
-      (node) => node.type === 'nodetool.input.TextInput' || 
-               node.type === 'nodetool.input.IntegerInput' ||
-               node.type === 'nodetool.input.FloatInput' ||
-               node.type === 'nodetool.input.BooleanInput'
-    );
-
-    return inputNodes.map((node) => {
-      let kind: MiniAppInputKind = 'string';
-      if (node.type.includes('Integer')) {
-        kind = 'integer';
-      } else if (node.type.includes('Float')) {
-        kind = 'float';
-      } else if (node.type.includes('Boolean')) {
-        kind = 'boolean';
-      }
-
-      return {
-        nodeId: node.id,
-        nodeType: node.type,
-        kind,
-        data: {
-          name: (node.data.name as string) || node.id,
-          label: (node.data.label as string) || (node.data.name as string) || 'Input',
-          description: (node.data.description as string) || '',
-          min: node.data.min as number | undefined,
-          max: node.data.max as number | undefined,
-          value: node.data.value,
-        },
-      };
-    });
-  };
-
   const handleRun = async () => {
-    // Validate inputs before running
-    const inputs = extractInputDefinitions(workflow!);
-    const missingInputs = inputs.filter(input => {
+    // Validate inputs
+    const missingInputs = inputDefinitions.filter(input => {
       const value = inputValues[input.data.name];
       return value === undefined && input.kind !== 'boolean';
     });
@@ -125,89 +86,50 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
       return;
     }
 
+    // Normalize inputs (logic ported from web MiniAppPage.tsx)
+    const params = inputDefinitions.reduce<Record<string, unknown>>(
+      (accumulator, definition) => {
+        const value = inputValues[definition.data.name];
+
+        if (value === undefined) {
+          return accumulator;
+        }
+
+        if (
+          (definition.kind === "integer" || definition.kind === "float") &&
+          typeof value === "number"
+        ) {
+          // Clamp and round if necessary
+          let normalized = value;
+          if (definition.kind === "integer") {
+             normalized = Math.round(value);
+          }
+          
+          if (definition.data.min !== undefined || definition.data.max !== undefined) {
+             const min = definition.data.min ?? -Infinity;
+             const max = definition.data.max ?? Infinity;
+             normalized = Math.min(Math.max(normalized, min), max);
+          }
+          
+          accumulator[definition.data.name] = normalized;
+          return accumulator;
+        }
+
+        accumulator[definition.data.name] = value;
+        return accumulator;
+      },
+      {}
+    );
+
     try {
-      setIsRunning(true);
-      setResults('Running workflow...');
-      
-      const response = await apiService.runWorkflow(workflowId, inputValues);
-      setResults(JSON.stringify(response, null, 2));
-      Alert.alert('Success', 'Workflow completed successfully');
+      await run(params, workflow as Workflow);
     } catch (error) {
       console.error('Failed to run workflow:', error);
-      setResults('Error: Failed to run workflow');
       Alert.alert('Error', 'Failed to run workflow. Please try again.');
-    } finally {
-      setIsRunning(false);
     }
   };
 
-  const renderInput = (input: MiniAppInputDefinition) => {
-    const key = input.data.name;
-    const value = inputValues[key];
 
-    if (input.kind === 'boolean') {
-      return (
-        <View key={key} style={styles.inputContainer}>
-          <View style={styles.switchContainer}>
-            <View style={styles.switchLabel}>
-              <Text style={styles.label}>{input.data.label}</Text>
-              {input.data.description && (
-                <Text style={styles.description}>{input.data.description}</Text>
-              )}
-            </View>
-            <Switch
-              value={value}
-              onValueChange={(newValue) => 
-                setInputValues({ ...inputValues, [key]: newValue })
-              }
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={value ? '#007AFF' : '#f4f3f4'}
-            />
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View key={key} style={styles.inputContainer}>
-        <Text style={styles.label}>{input.data.label}</Text>
-        {input.data.description && (
-          <Text style={styles.description}>{input.data.description}</Text>
-        )}
-        <TextInput
-          style={styles.input}
-          value={String(value ?? '')}
-          onChangeText={(text) => {
-            let newValue: any;
-            if (input.kind === 'integer') {
-              if (text === '') {
-                newValue = undefined;
-              } else {
-                const parsed = parseInt(text, 10);
-                newValue = isNaN(parsed) ? undefined : parsed;
-              }
-            } else if (input.kind === 'float') {
-              if (text === '') {
-                newValue = undefined;
-              } else {
-                const parsed = parseFloat(text);
-                newValue = isNaN(parsed) ? undefined : parsed;
-              }
-            } else {
-              newValue = text;
-            }
-            setInputValues({ ...inputValues, [key]: newValue });
-          }}
-          placeholder={`Enter ${input.data.label.toLowerCase()}`}
-          keyboardType={
-            input.kind === 'integer' || input.kind === 'float' 
-              ? 'numeric' 
-              : 'default'
-          }
-        />
-      </View>
-    );
-  };
 
   if (isLoading) {
     return (
@@ -226,17 +148,22 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
     );
   }
 
-  const inputs = extractInputDefinitions(workflow);
-
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Inputs</Text>
-          {inputs.length === 0 ? (
+          {inputDefinitions.length === 0 ? (
             <Text style={styles.noInputsText}>This mini app has no inputs</Text>
           ) : (
-            inputs.map(renderInput)
+            inputDefinitions.map((def) => (
+              <PropertyRenderer
+                key={def.nodeId}
+                definition={def}
+                value={inputValues[def.data.name]}
+                onChange={(val) => updateInputValue(def.data.name, val)}
+              />
+            ))
           )}
         </View>
 
@@ -252,12 +179,77 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
           )}
         </TouchableOpacity>
 
-        {results && (
+        {/* Execution Status & Logs - Only show while running */}
+        {isRunning && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Execution</Text>
+            {statusMessage && (
+               <Text style={styles.statusText}>{statusMessage}</Text>
+            )}
+            <View style={styles.terminalContainer}>
+               <ScrollView 
+                  style={styles.terminalScroll} 
+                  nestedScrollEnabled
+                  onContentSizeChange={(w, h) => {
+                    // Auto-scroll to bottom
+                    scrollViewRef.current?.scrollTo({ y: h, animated: true }); 
+                  }}
+                  ref={scrollViewRef}
+               >
+                  {logs.map((log, index) => (
+                     <Text key={index} style={styles.terminalText}>
+                       <Text style={styles.terminalPrompt}>{'> '}</Text>
+                       {log}
+                     </Text>
+                  ))}
+               </ScrollView>
+            </View>
+          </View>
+        )}
+
+        {/* Results Section - Only show when finished */}
+        {!isRunning && runResults && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Results</Text>
-            <ScrollView style={styles.resultsContainer} nestedScrollEnabled>
-              <Text style={styles.resultsText}>{results}</Text>
-            </ScrollView>
+            
+            <MiniAppResults 
+              results={(() => {
+                if (!runResults) return [];
+                if (Array.isArray(runResults)) {
+                   // If it's an array of results
+                   return runResults.map((r, i) => ({
+                      id: `res-${i}`,
+                      nodeId: 'unknown', // metadata not avail in raw results
+                      nodeName: 'Output',
+                      outputName: `Output ${i+1}`,
+                      outputType: typeof r === 'string' ? 'string' : 'unknown',
+                      value: r,
+                      receivedAt: Date.now()
+                   })) as MiniAppResult[];
+                }
+                if (typeof runResults === 'object') {
+                  return Object.entries(runResults).map(([key, val], i) => ({
+                    id: `res-${i}`,
+                    nodeId: key,
+                    nodeName: key,
+                    outputName: 'Output',
+                    outputType: typeof val === 'string' ? 'string' : 'unknown',
+                    value: val,
+                    receivedAt: Date.now()
+                  })) as MiniAppResult[];
+                }
+                // Primitive value
+                return [{
+                   id: 'res-single',
+                   nodeId: 'output',
+                   nodeName: 'Output',
+                   outputName: 'Result',
+                   outputType: typeof runResults,
+                   value: runResults,
+                   receivedAt: Date.now()
+                }] as MiniAppResult[];
+              })()} 
+            />
           </View>
         )}
       </ScrollView>
@@ -355,13 +347,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#333',
   },
+  logText: {
+    fontFamily: 'monospace',
+    fontSize: 10,
+    color: '#666',
+    marginBottom: 2,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#007AFF',
+  },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
     color: '#666',
   },
   errorText: {
-    fontSize: 18,
     color: '#ff3b30',
   },
   noInputsText: {
@@ -369,4 +372,35 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
   },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 8,
+  },
+  terminalContainer: {
+    backgroundColor: '#1E1E1E',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+    height: 200,
+  },
+  terminalScroll: {
+    flex: 1,
+  },
+  terminalText: {
+    fontFamily: 'Menlo', // or monospace
+    fontSize: 12,
+    color: '#A9B7C6',
+    marginBottom: 4,
+  },
+  terminalPrompt: {
+    color: '#9876AA',
+  },
+  resultTitle: {
+    fontWeight: '600',
+    fontSize: 12,
+    marginBottom: 4,
+    color: '#333',
+  }
 });

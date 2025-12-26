@@ -24,21 +24,33 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    loadWorkflows();
+    initializeAndLoadWorkflows();
   }, []);
+
+  const initializeAndLoadWorkflows = async () => {
+    try {
+      setIsLoading(true);
+      await apiService.loadApiHost();
+      console.log('API Host loaded:', apiService.getApiHost());
+      await loadWorkflows();
+    } catch (error) {
+      console.error('Failed to initialize:', error);
+      setIsLoading(false);
+    }
+  };
 
   const loadWorkflows = async () => {
     try {
-      setIsLoading(true);
       const data = await apiService.getWorkflows();
-      // Handle both array response and object with workflows property
+      console.log('Workflows loaded:', data);
       const workflowsList = Array.isArray(data) ? data : (data?.workflows || []);
       setWorkflows(workflowsList);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load workflows:', error);
+      console.error('Current API Host:', apiService.getApiHost());
       Alert.alert(
         'Error',
-        'Failed to load mini apps. Please check your server settings.',
+        `Failed to load mini apps. Please check your server settings.\n\nError: ${error.message || 'Network Error'}`,
         [
           { text: 'Go to Settings', onPress: () => navigation.navigate('Settings') },
           { text: 'Retry', onPress: loadWorkflows },

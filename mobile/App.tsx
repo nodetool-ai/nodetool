@@ -34,7 +34,7 @@ export default function App() {
         <Stack.Screen
           name="MiniAppsList"
           component={MiniAppsListScreen}
-          options={{ title: 'NodeTool Mini Apps', headerShown: false }}
+          options={{ title: 'NodeTool Mini Apps' }}
         />
         <Stack.Screen
           name="MiniApp"

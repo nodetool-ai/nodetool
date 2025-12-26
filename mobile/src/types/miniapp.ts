@@ -1,6 +1,6 @@
-// Types for mini apps - adapted from web/src/components/miniapps/types.ts
-// Note: These types are duplicated here for simplicity. In a production setup,
-// consider creating a shared types package or monorepo to avoid duplication.
+import type { Workflow } from "./workflow";
+
+export type { Workflow } from "./workflow";
 
 export type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path";
 
@@ -35,29 +35,4 @@ export interface MiniAppResult {
 export interface MiniAppProgress {
   current: number;
   total: number;
-}
-
-export interface Workflow {
-  id: string;
-  name: string;
-  description?: string;
-  thumbnail?: string;
-  graph?: {
-    nodes: GraphNode[];
-    edges: GraphEdge[];
-  };
-}
-
-export interface GraphNode {
-  id: string;
-  type: string;
-  data: Record<string, unknown>;
-}
-
-export interface GraphEdge {
-  id: string;
-  source: string;
-  target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
 }
