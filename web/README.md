@@ -29,11 +29,7 @@ The full mini app includes the standard application chrome (header, left panel, 
 
 A lightweight, standalone version with minimal UI for embedding or fast loading:
 - Access via: `/miniapp/{workflow-id}` (same for both dev and production)
-- Built as a separate optimized bundle (`miniapp.html`)
+- Code-split lazy-loaded component in the main build
 - No application header, panels, or navigation
-- Optimized for fast load times and embedding
+- Optimized for fast load times with React code splitting
 - Perfect for sharing workflows as standalone apps
-
-**Build outputs:**
-- Main app: `dist/index.html`
-- Standalone mini app: `dist/miniapp.html`

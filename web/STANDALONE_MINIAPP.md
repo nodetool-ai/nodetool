@@ -2,30 +2,20 @@
 
 ## Overview
 
-This implementation adds a separate, optimized route for running mini apps as standalone single-page applications without the main nodetool app components. The workflow ID is part of the route, and the build is optimized for fast load times.
+This implementation adds a code-split route for running mini apps as standalone single-page applications without the main nodetool app components. The workflow ID is part of the route, and React's code splitting ensures fast load times.
 
 ## What Was Added
 
-### 1. New HTML Entry Point (`miniapp.html`)
-- Minimal HTML file (1.04 kB vs 2.21 kB for main app)
-- No app branding or unnecessary metadata
-- Optimized for embedding and fast loading
-
-### 2. New React Entry Point (`src/miniapp.tsx`)
-- Lightweight React entry with only essential providers
-- Removed: MobileClassProvider, MenuProvider, KeyboardProvider, JobReconnectionManager, DownloadManagerDialog
-- Kept: QueryClientProvider, ThemeProvider, WorkflowManagerProvider (required for workflow execution)
-- 204 lines vs 392 lines in main `index.tsx`
-
-### 3. Standalone Mini App Component (`src/components/miniapps/StandaloneMiniApp.tsx`)
+### 1. Standalone Mini App Component (`src/components/miniapps/StandaloneMiniApp.tsx`)
 - Clean implementation without app chrome (no AppHeader, PanelLeft, PanelBottom)
 - Focused solely on workflow input forms and results
 - Similar structure to MiniAppPage but stripped of navigation elements
+- Lazy-loaded via React.lazy() for automatic code splitting
 
-### 4. Vite Multi-Page Build Configuration
-- Updated `vite.config.ts` to support two entry points
-- Separate bundles for main app and mini app
-- Shared dependencies are automatically optimized by Vite
+### 2. Route in Main App (`src/index.tsx`)
+- Added `/miniapp/:workflowId` route to existing router
+- Lazy-loaded component ensures minimal initial bundle impact
+- Uses existing providers and infrastructure from main app
 
 ## Routes
 
@@ -36,21 +26,26 @@ This implementation adds a separate, optimized route for running mini apps as st
 
 ### Standalone Mini App: `/miniapp/:workflowId`
 - **URL Format**: `/miniapp/{workflow-id}` (same for dev and production)
-- **Entry File**: Served from `miniapp.html` in production
+- **Loading**: Lazy-loaded with React code splitting
 - Minimal UI - no app chrome
 - Optimized for embedding and fast load times
-- Separate bundle from main application
+- Automatically split into separate chunk by bundler
 
-## Bundle Sizes
+## Code Splitting
 
-### Production Build Results:
-- **Main App HTML**: 2.21 kB
-- **Standalone Mini App HTML**: 1.04 kB (53% smaller)
-- **Main App JS**: 893 kB
-- **Mini App Entry JS**: 2.5 kB (gzipped: 1.07 kB)
-- **Standalone Component JS**: 3.2 kB (gzipped: 1.60 kB)
+The standalone mini app uses React's built-in code splitting:
 
-Both bundles share the core workflow execution bundle (`useMetadata-Do30KQ7h.js` ~10.5 MB), which is necessary for workflow functionality.
+```typescript
+const StandaloneMiniApp = React.lazy(
+  () => import("./components/miniapps/StandaloneMiniApp")
+);
+```
+
+This ensures:
+- The component is only loaded when the route is accessed
+- Smaller initial bundle for the main app
+- Automatic chunk optimization by Vite
+
 
 ## Usage
 
@@ -69,38 +64,31 @@ http://localhost:3000/miniapp/[workflow-id]
 
 ### Production Build
 ```bash
-# Build both entry points
+# Build the application
 cd web
 npm run build
 
-# Outputs:
-# - dist/index.html (main app)
-# - dist/miniapp.html (standalone mini app)
+# Output: dist/index.html (single build with code splitting)
+# The standalone mini app component is automatically split into a separate chunk
 ```
 
 ### Deployment
-When deploying, configure your server to:
-1. Serve `dist/index.html` for main app routes
-2. Serve `dist/miniapp.html` for mini app routes (`/miniapp/*`)
-3. Ensure proper routing for SPA (single-page app) behavior
+Standard SPA deployment:
 
-Example nginx configuration:
 ```nginx
 location / {
     try_files $uri $uri/ /index.html;
 }
-
-location /miniapp {
-    try_files $uri $uri/ /miniapp.html;
-}
 ```
+
+The `/miniapp/:workflowId` route works the same as any other route - it's handled by the client-side router with lazy loading for the component.
 
 ## Key Differences
 
 | Feature | Full Mini App (`/apps/:workflowId`) | Standalone Mini App (`/miniapp/:workflowId`) |
 |---------|--------------------------------------|---------------------------------------------|
-| HTML Size | 2.21 kB | 1.04 kB |
-| Entry Bundle | Part of main app (~893 kB) | Separate mini bundle (~2.5 kB) |
+| Entry | Same main bundle | Same main bundle |
+| Component Loading | Lazy-loaded | Lazy-loaded |
 | App Header | ✓ Yes | ✗ No |
 | Left Panel | ✓ Yes | ✗ No |
 | Bottom Panel | ✓ Yes | ✗ No |
@@ -113,27 +101,18 @@ location /miniapp {
 
 ## Benefits
 
-1. **Fast Load Times**: Minimal HTML and separate small entry bundle
+1. **Code Splitting**: Component only loads when route is accessed
 2. **Easy Embedding**: No app chrome makes it perfect for iframes
-3. **Optimized Bundle**: Only includes what's needed for workflow execution
-4. **Maintained Separately**: Changes to main app don't affect standalone mini app
-5. **Production Ready**: Built and optimized by Vite
+3. **Simplified Architecture**: Uses main app infrastructure
+4. **Maintained Together**: Changes to main app benefit both routes
+5. **Production Ready**: Built and optimized by Vite with automatic chunking
 
 ## Technical Details
 
-### Provider Hierarchy (Standalone Mini App)
-```
-React.StrictMode
-└── QueryClientProvider
-    └── ThemeProvider
-        └── WorkflowManagerProvider
-            └── RouterProvider
-                └── Route: /miniapp/:workflowId
-                    └── ProtectedRoute
-                        └── StandaloneMiniApp
-```
+### Provider Hierarchy (Both Routes)
 
-### Provider Hierarchy (Full App)
+Both routes share the same provider hierarchy from the main app:
+
 ```
 React.StrictMode
 └── QueryClientProvider
@@ -144,24 +123,29 @@ React.StrictMode
                 └── WorkflowManagerProvider
                     └── KeyboardProvider
                         └── RouterProvider
-                            └── Routes (including /apps/:workflowId)
-                                └── DownloadManagerDialog
+                            └── Route: /miniapp/:workflowId
+                                └── ProtectedRoute
+                                    └── StandaloneMiniApp (lazy-loaded)
 ```
+
+The difference is in the component rendering:
+- `/apps/:workflowId` renders with AppHeader, PanelLeft, PanelBottom
+- `/miniapp/:workflowId` renders only StandaloneMiniApp component
 
 ## Future Enhancements
 
 Potential improvements for the standalone mini app:
 
 1. **Query Parameter Support**: Allow workflow ID via query string for easier sharing
-   - Example: `/miniapp.html?workflowId=abc123`
+   - Example: `/miniapp?workflowId=abc123`
    
 2. **Theme Customization**: Allow embedding sites to customize colors via query params
-   - Example: `/miniapp.html?workflowId=abc123&theme=light`
+   - Example: `/miniapp?workflowId=abc123&theme=light`
 
 3. **Custom Branding**: Support for custom logos and titles
-   - Example: `/miniapp.html?workflowId=abc123&title=My%20Custom%20App`
+   - Example: `/miniapp?workflowId=abc123&title=My%20Custom%20App`
 
-4. **Further Bundle Optimization**: Code splitting for lazy-loaded workflow components
+4. **Further Optimization**: Additional code splitting for workflow-specific components
 
 5. **Offline Support**: Service worker for PWA capabilities
 
@@ -171,7 +155,7 @@ The implementation has been verified to:
 - ✓ Build successfully with Vite
 - ✓ Pass TypeScript compilation (1 pre-existing error in test file)
 - ✓ Pass ESLint with no new errors (only pre-existing warnings)
-- ✓ Generate separate optimized bundles
+- ✓ Use React code splitting for optimal loading
 - ✓ Maintain all existing functionality in main app
 
 Manual testing recommended:
@@ -180,4 +164,4 @@ Manual testing recommended:
 3. Test workflow input and execution
 4. Verify results display correctly
 5. Test in embedded iframe
-6. Verify production build serves correctly
+6. Check that component is lazy-loaded in browser dev tools
