@@ -482,8 +482,7 @@
 
   /* MiniApp Mobile Styles */
   .mobile .mini-app-page {
-    padding: 64px 16px 32px !important;
-    padding-top: 48px !important;
+    padding: 48px 16px 32px !important;
     gap: 16px !important;
   }
 
