@@ -44,6 +44,48 @@ function createWorkflowWindow(workflowId: string): BrowserWindow {
 }
 
 /**
+ * Creates a dedicated window for a mini app workflow
+ * @param workflowId - The workflow ID to create a mini app window for
+ * @param workflowName - The workflow name for the window title
+ * @returns The created window
+ */
+function createMiniAppWindow(workflowId: string, workflowName?: string): BrowserWindow {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  const windowWidth = Math.min(1200, Math.floor(width * 0.8));
+  const windowHeight = Math.min(900, Math.floor(height * 0.8));
+
+  const miniAppWindow = new BrowserWindow({
+    width: windowWidth,
+    height: windowHeight,
+    minWidth: 800,
+    minHeight: 600,
+    title: workflowName ? `${workflowName} - NodeTool` : "Mini App - NodeTool",
+    backgroundColor: "#181a1b",
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  const windowId = miniAppWindow.id;
+  workflowWindows.set(windowId, miniAppWindow);
+
+  miniAppWindow.on("closed", () => {
+    workflowWindows.delete(windowId);
+  });
+
+  // Load the mini app route
+  const port = app.isPackaged ? getServerPort() : 3000;
+  const baseUrl = app.isPackaged 
+    ? `http://127.0.0.1:${port}/index.html`
+    : `http://127.0.0.1:${port}`;
+  
+  miniAppWindow.loadURL(`${baseUrl}#/miniapp/${workflowId}`);
+
+  return miniAppWindow;
+}
+
+/**
  * Checks if a window is a workflow window
  * @param window - The window to check
  * @returns True if the window is a workflow window
@@ -52,4 +94,4 @@ function isWorkflowWindow(window: BrowserWindow): boolean {
   return workflowWindows.has(window.id);
 }
 
-export { createWorkflowWindow, isWorkflowWindow };
+export { createWorkflowWindow, createMiniAppWindow, isWorkflowWindow };
