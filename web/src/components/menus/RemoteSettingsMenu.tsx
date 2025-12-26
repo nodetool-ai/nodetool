@@ -366,7 +366,7 @@ const RemoteSettings = () => {
               <Typography variant="h1">Settings</Typography>
 
               <div className="secrets">
-                <WarningIcon sx={{ color: "#ff9800" }} />
+                <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main }} />
                 <Typography>
                   Keep your keys and tokens secure and do not share them
                   publicly

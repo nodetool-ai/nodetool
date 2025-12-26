@@ -303,7 +303,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
             backgroundColor:
               (theme as any)?.palette?.glass?.backgroundDialogContent ??
               "transparent",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)"
+            boxShadow: `0 8px 32px ${theme.vars.palette.grey[1000]}80`
           }
         }}
         slotProps={{
@@ -744,7 +744,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 with the Nodetool API.
                               </Typography>
                               <div className="secrets">
-                                <WarningIcon sx={{ color: "#ff9800" }} />
+                                <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main }} />
                                 <Typography component="span">
                                   Keep this token secure and do not share it
                                   publicly
