@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     overflowY: "auto",
     height: "100%",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+    boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}1a`,
     background: theme.vars.palette.c_editor_bg_color,
     ".panel-header": {
       display: "flex",
@@ -53,11 +53,11 @@ const styles = (theme: Theme) =>
       borderRadius: theme.spacing(1),
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
-      background: "rgba(255, 255, 255, 0.02)",
+      background: theme.vars.palette.action.hover,
       transition: "all 0.2s ease",
       ":hover": {
         transform: "translateY(-2px)",
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+        boxShadow: `0 4px 12px ${theme.vars.palette.grey[900]}1a`,
         borderColor: theme.vars.palette.primary.main
       },
       ".example-description-tooltip": {
@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
         textAlign: "center",
         borderRadius: "6px",
         padding: "8px",
-        background: "rgba(0, 0, 0, 0.9)",
+        background: theme.vars.palette.Paper.overlay,
         position: "absolute",
         zIndex: 1,
         bottom: "10px",
