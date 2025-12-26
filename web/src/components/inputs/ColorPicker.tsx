@@ -20,11 +20,11 @@ const styles = (theme: Theme) =>
     ".open-colors-button": {
       borderRadius: "50%",
       backgroundColor: "transparent",
-      border: "2px solid rgba(0, 0, 0, 0.75)",
+      border: `2px solid ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.75)"}`,
       padding: 0,
       minWidth: "unset !important",
       minHeight: "unset !important",
-      outline: "1px solid white"
+      outline: `1px solid ${(theme as any).vars?.palette?.grey?.[0] || "white"}`
     }
   });
 
@@ -39,7 +39,7 @@ const colorMatrixStyle = (theme: Theme) =>
     maxWidth: "300px",
     ".pick-color-button": {
       borderRadius: "50%",
-      border: "1px solid rgba(0, 0, 0, 0.75)",
+      border: `1px solid ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.75)"}`,
       minWidth: "unset",
       minHeight: "unset",
       width: PALETTE_BUTTON_SIZE,
