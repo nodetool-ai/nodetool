@@ -79,10 +79,10 @@ const styles = (theme: Theme) =>
     borderRadius: "3px",
     padding: "1em .5em",
     boxSizing: "border-box",
-    boxShadow: `inset 0 0 5px 1px #00000011`,
+    boxShadow: "inset 0 0 5px 1px rgba(0, 0, 0, 0.067)",
     position: "relative",
     "&:hover": {
-      boxShadow: `inset 0 0 8px 1px #ffffff11`
+      boxShadow: "inset 0 0 8px 1px rgba(255, 255, 255, 0.067)"
     },
     ".text-editor-container": {
       width: "100%",

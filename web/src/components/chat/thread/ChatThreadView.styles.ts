@@ -194,9 +194,9 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card": {
-      border: "1px solid rgba(255, 255, 255, 0.05)",
+      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: 12,
-      background: "rgba(0, 0, 0, 0.2)",
+      background: theme.vars.palette.action.hover,
       padding: "4px 8px",
       marginBottom: 2
     },
@@ -284,7 +284,7 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: "1.5rem",
       padding: "0.75rem",
       borderRadius: "8px",
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
     },
 

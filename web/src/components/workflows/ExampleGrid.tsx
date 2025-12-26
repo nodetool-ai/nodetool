@@ -82,7 +82,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+      boxShadow: `0 4px 6px ${theme.vars.palette.grey[900]}1a`,
       "&:hover": {
         transform: "translateY(-4px) scale(1.02)",
         boxShadow: `
@@ -148,7 +148,7 @@ const styles = (theme: Theme) =>
       marginTop: "12px",
       textAlign: "center",
       fontWeight: "bold",
-      textShadow: "0 1px 3px rgba(0,0,0,0.8)"
+      textShadow: `0 1px 3px ${theme.vars.palette.grey[1000]}cc`
     },
     ".workflow h3": {
       color: theme.vars.palette.text.primary,
@@ -278,12 +278,12 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.5px",
       fontWeight: 600,
       color: theme.vars.palette.text.secondary,
-      border: "1px solid rgba(255, 255, 255, 0.1)",
-      background: "rgba(255, 255, 255, 0.03)",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      background: theme.vars.palette.action.hover,
       borderRadius: "20px !important",
       "&:hover": {
         border: `1px solid ${"var(--palette-primary-main)"}`,
-        background: "rgba(255, 255, 255, 0.08)",
+        background: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.primary,
         boxShadow: `0 0 12px ${"var(--palette-primary-main)"}40`
       },
@@ -326,13 +326,13 @@ const styles = (theme: Theme) =>
       marginBottom: "0",
       maxWidth: "400px",
       "& .MuiOutlinedInput-root": {
-        background: "rgba(255, 255, 255, 0.03)",
+        background: theme.vars.palette.action.hover,
         borderRadius: "12px",
         "& fieldset": {
-          borderColor: "rgba(255, 255, 255, 0.1)"
+          borderColor: theme.vars.palette.divider
         },
         "&:hover fieldset": {
-          borderColor: "rgba(255, 255, 255, 0.3)"
+          borderColor: theme.vars.palette.action.focus
         },
         "&.Mui-focused fieldset": {
           borderColor: "var(--palette-primary-main)",

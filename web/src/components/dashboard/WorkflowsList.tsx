@@ -33,7 +33,7 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     overflowY: "auto",
     height: "100%",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+    boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}1a`,
     ".header-controls": {
       display: "flex",
       justifyContent: "space-between",

@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.c_app_header,
       backdropFilter: "blur(12px)",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
+      boxShadow: `0 4px 30px ${theme.vars.palette.grey[900]}1a`,
       paddingLeft: "8px",
       position: "fixed",
       top: 0,

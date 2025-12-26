@@ -33,11 +33,11 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     overflow: "hidden",
     borderRadius: theme.spacing(1),
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+    boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}1a`,
     background: theme.vars.palette.c_editor_bg_color,
     ".panel-header": {
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      background: "rgba(255, 255, 255, 0.02)"
+      background: theme.vars.palette.action.hover
     },
     ".panel-content": {
       flex: 1,

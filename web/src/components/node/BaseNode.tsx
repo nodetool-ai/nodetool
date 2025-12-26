@@ -199,7 +199,7 @@ const getHeaderColors = (
 ) => {
   // Override colors for input and output nodes
   if (nodeType.startsWith("nodetool.input.")) {
-    const baseColor = "#4caf50"; // Green for input nodes
+    const baseColor = theme.vars.palette.success.main;
     return {
       headerColor: baseColor,
       baseColor
@@ -207,7 +207,7 @@ const getHeaderColors = (
   }
 
   if (nodeType.startsWith("nodetool.output.")) {
-    const baseColor = "#2196f3"; // Blue for output nodes
+    const baseColor = theme.vars.palette.info.main;
     return {
       headerColor: baseColor,
       baseColor

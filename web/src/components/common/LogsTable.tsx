@@ -30,11 +30,23 @@ export type LogsTableProps = {
   autoScroll?: boolean; // default true
 };
 
-const SEVERITY_COLORS: Record<Severity, { bg: string; text: string; border: string }> = {
-  error: { bg: "rgba(244, 67, 54, 0.12)", text: "#f44336", border: "rgba(244, 67, 54, 0.3)" },
-  warning: { bg: "rgba(255, 152, 0, 0.12)", text: "#ff9800", border: "rgba(255, 152, 0, 0.3)" },
-  info: { bg: "rgba(33, 150, 243, 0.08)", text: "#2196f3", border: "rgba(33, 150, 243, 0.2)" }
-};
+const SEVERITY_COLORS = (theme: Theme): Record<Severity, { bg: string; text: string; border: string }> => ({
+  error: { 
+    bg: `${theme.vars.palette.error.main}1f`, 
+    text: theme.vars.palette.error.main, 
+    border: `${theme.vars.palette.error.main}4d` 
+  },
+  warning: { 
+    bg: `${theme.vars.palette.warning.main}1f`, 
+    text: theme.vars.palette.warning.main, 
+    border: `${theme.vars.palette.warning.main}4d` 
+  },
+  info: { 
+    bg: `${theme.vars.palette.info.main}14`, 
+    text: theme.vars.palette.info.main, 
+    border: `${theme.vars.palette.info.main}33` 
+  }
+});
 
 const tableStyles = (theme: Theme) =>
   css({
@@ -83,10 +95,10 @@ const tableStyles = (theme: Theme) =>
       transition: "background-color 0.15s ease",
       cursor: "pointer",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&:active": {
-        backgroundColor: "rgba(255, 255, 255, 0.08)"
+        backgroundColor: theme.vars.palette.action.selected
       },
       // Hide copy button by default, show on hover
       "& .copy-btn": {
@@ -103,16 +115,16 @@ const tableStyles = (theme: Theme) =>
     },
 
     ".row-error": {
-      backgroundColor: "rgba(244, 67, 54, 0.04)",
+      backgroundColor: `${theme.vars.palette.error.main}0a`,
       "&:hover": {
-        backgroundColor: "rgba(244, 67, 54, 0.08)"
+        backgroundColor: `${theme.vars.palette.error.main}14`
       }
     },
 
     ".row-warning": {
-      backgroundColor: "rgba(255, 152, 0, 0.04)",
+      backgroundColor: `${theme.vars.palette.warning.main}0a`,
       "&:hover": {
-        backgroundColor: "rgba(255, 152, 0, 0.08)"
+        backgroundColor: `${theme.vars.palette.warning.main}14`
       }
     },
 
@@ -202,7 +214,8 @@ const formatTime = (ts: number) => {
 // Memoized row component for better performance
 const RowItem = memo(({ index, style, data }: ListChildComponentProps<LogRow[]>) => {
   const r = data[index];
-  const colors = SEVERITY_COLORS[r.severity];
+  const theme = useTheme();
+  const colors = SEVERITY_COLORS(theme)[r.severity];
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {

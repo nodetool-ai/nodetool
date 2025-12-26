@@ -185,7 +185,7 @@ const SecretsMenu = () => {
             <Typography variant="h1">Secrets Management</Typography>
 
             <div className="secrets">
-              <WarningIcon sx={{ color: "#ff9800", flexShrink: 0 }} />
+              <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main, flexShrink: 0 }} />
               <Typography>
                 Keep your secrets secure and do not share them publicly. Secrets
                 are encrypted in the database.
@@ -425,9 +425,9 @@ const SecretsMenu = () => {
               fontSize: "0.95rem",
               padding: "0.6em 2em",
               fontWeight: 600,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+              boxShadow: (theme) => `0 2px 8px ${theme.vars.palette.grey[900]}26`,
               "&:hover:not(:disabled)": {
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                boxShadow: (theme) => `0 4px 12px ${theme.vars.palette.grey[900]}33`,
                 transform: "translateY(-1px)"
               },
               transition: "all 0.2s ease"

@@ -47,7 +47,7 @@ const InputNodeNameWarning: React.FC<InputNodeNameWarningProps> = ({
           padding: ".5em !important",
           marginBottom: "0",
           color: "var(--palette-warning-main)",
-          backgroundColor: "rgba(255, 152, 0, 0.1)",
+          backgroundColor: (theme) => `${theme.vars.palette.warning.main}1a`,
           cursor: "help"
         }}
       >

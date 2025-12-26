@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
       ${theme.vars.palette.grey[900]}ee 100%)`,
     backdropFilter: "blur(12px)",
     border: `1px solid ${theme.vars.palette.grey[700]}80`,
-    boxShadow: `0 4px 24px -4px rgba(0, 0, 0, 0.3), 
+    boxShadow: `0 4px 24px -4px ${theme.vars.palette.grey[900]}4d, 
                 inset 0 1px 0 ${theme.vars.palette.grey[600]}40`,
     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     position: "relative",
@@ -57,7 +57,7 @@ const styles = (theme: Theme) =>
 
     "&:hover": {
       border: `1px solid ${theme.vars.palette.grey[600]}90`,
-      boxShadow: `0 6px 32px -4px rgba(0, 0, 0, 0.4), 
+      boxShadow: `0 6px 32px -4px ${theme.vars.palette.grey[900]}66, 
                   inset 0 1px 0 ${theme.vars.palette.grey[500]}50`
     },
 

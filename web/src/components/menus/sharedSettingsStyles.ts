@@ -38,7 +38,7 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       letter-spacing: 0.02em;
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 8px ${theme.vars.palette.grey[900]}33;
       }
     }
 
@@ -76,11 +76,11 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       display: flex;
       align-items: center;
       gap: 0.8em;
-      background-color: rgba(255, 152, 0, 0.1);
+      background-color: ${theme.vars.palette.warning.main}1a;
       padding: 0.8em 1.2em;
       border-radius: 6px;
       margin: 1em 0 2em;
-      border-left: 3px solid #ff9800;
+      border-left: 3px solid ${theme.vars.palette.warning.main};
     }
 
     .description {
@@ -107,7 +107,7 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       borderradius: 8px;
       padding: 1.2em;
       margin: 1.5em 0 1.5em 0;
-      boxshadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      boxshadow: 0 2px 12px ${theme.vars.palette.grey[900]}33;
       border: 1px solid ${theme.vars.palette.grey[600]};
       width: 100%;
       display: flex;

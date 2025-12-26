@@ -63,7 +63,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
     },
     // header
     ".node-header": {
-      backgroundColor: "rgba(0,0,0,0.1)",
+      backgroundColor: theme.vars.palette.action.hover,
       width: "100%",
       margin: 0,
       padding: 0,
@@ -152,7 +152,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       transform: "translateX(-50%)",
       color: "var(--palette-grey-50)",
       backgroundColor: "var(--palette-grey-900)",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+      boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}33`,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       padding: "0.75em 1em",
       borderRadius: "4px",

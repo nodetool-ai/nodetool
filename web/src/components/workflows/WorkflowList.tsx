@@ -296,7 +296,7 @@ const WorkflowList = () => {
               position: "relative",
               overflow: "hidden",
               borderRadius: "16px",
-              color: "#fff",
+              color: (theme as any).vars.palette.primary.contrastText,
               background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.main}, ${(theme as any).vars.palette.primary.dark})`,
               boxShadow: `0 4px 20px ${(theme as any).vars.palette.primary.main}40`,
               textTransform: "none",
@@ -304,14 +304,14 @@ const WorkflowList = () => {
               fontSize: "0.95rem",
               letterSpacing: "0.02em",
               justifyContent: "center",
-              border: "1px solid rgba(255,255,255,0.1)",
+              border: `1px solid ${(theme as any).vars.palette.divider}`,
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               
               "&:hover": {
                 background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.light}, ${(theme as any).vars.palette.primary.main})`,
                 boxShadow: `0 8px 30px ${(theme as any).vars.palette.primary.main}60`,
                 transform: "translateY(-2px)",
-                border: "1px solid rgba(255,255,255,0.2)",
+                border: `1px solid ${(theme as any).vars.palette.action.focus}`,
               },
               "&:active": {
                 transform: "scale(0.98) translateY(0)",

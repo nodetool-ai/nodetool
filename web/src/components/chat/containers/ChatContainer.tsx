@@ -20,8 +20,8 @@ const styles = (theme: Theme) =>
     transition: "all 0.3s ease-out",
     backdropFilter: "blur(16px)",
     boxShadow: `
-      0 4px 24px -1px rgba(0, 0, 0, 0.2),
-      0 0 1px 0 rgba(255, 255, 255, 0.3) inset
+      0 4px 24px -1px ${theme.vars.palette.grey[900]}33,
+      0 0 1px 0 ${theme.vars.palette.grey[0]}4d inset
     `,
     cursor: "default",
     width: "400px",
