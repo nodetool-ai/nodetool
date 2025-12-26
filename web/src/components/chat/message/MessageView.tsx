@@ -336,6 +336,7 @@ export const MessageView: React.FC<
       >
         <Box className="tool-call-header">
           <Chip
+            label={tc.name}
             color="default"
             size="small"
             variant="outlined"
