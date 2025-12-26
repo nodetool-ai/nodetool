@@ -1,16 +1,21 @@
 import React, { useCallback, useState, useEffect } from "react";
 //mui
 import { Divider, Menu } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
-import ViewWeekIcon from "@mui/icons-material/ViewWeek";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import DataObjectIcon from "@mui/icons-material/DataObject";
+import AltRouteIcon from "@mui/icons-material/AltRoute";
+import ConstructionIcon from "@mui/icons-material/Construction";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
+import HubIcon from "@mui/icons-material/Hub";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
-import LogoutIcon from "@mui/icons-material/Logout";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
@@ -19,6 +24,7 @@ import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodes } from "../../contexts/NodeContext";
 
 const OutputContextMenu: React.FC = () => {
+  const theme = useTheme();
   const {
     nodeId,
     menuPosition,
@@ -370,36 +376,46 @@ const OutputContextMenu: React.FC = () => {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "8px"
+              borderRadius: "12px",
+              backgroundColor: theme.vars.palette.background.paper,
+              border: `1px solid ${theme.vars.palette.divider}`,
+              boxShadow: theme.shadows[8],
+              minWidth: "220px",
+              padding: "4px",
+              "& .MuiDivider-root": {
+                margin: "4px 0",
+                borderColor: theme.vars.palette.divider
+              }
             }
           }
         }}
+        transitionDuration={200}
       >
         <ContextMenuItem
           onClick={handleCreatePreviewNode}
           label="Create Preview Node"
           addButtonClassName="create-preview-node"
-          IconComponent={<LogoutIcon />}
+          IconComponent={<VisibilityIcon />}
         />
         {outputNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateOutputNode}
             label="Create Output Node"
             addButtonClassName="create-output-node"
-            IconComponent={<LogoutIcon />}
+            IconComponent={<DataObjectIcon />}
           />
         )}
         <ContextMenuItem
           onClick={handleCreateRerouteNode}
           label="Create Reroute Node"
           addButtonClassName="create-reroute-node"
-          IconComponent={<LogoutIcon />}
+          IconComponent={<AltRouteIcon />}
         />
         <ContextMenuItem
           onClick={handleCreateToolResultNode}
           label="Create Tool Result Node"
           addButtonClassName="create-tool-result-node"
-          IconComponent={<LogoutIcon />}
+          IconComponent={<ConstructionIcon />}
         />
         {saveNodeMetadata && (
           <ContextMenuItem
@@ -421,13 +437,13 @@ const OutputContextMenu: React.FC = () => {
           onClick={handleShowConnectableNodes}
           label="Show Connectable Nodes"
           addButtonClassName="show-connectable-nodes"
-          IconComponent={<ViewWeekIcon />}
+          IconComponent={<HubIcon />}
         />
         <ContextMenuItem
           onClick={handleOpenNodeMenu}
-          label="Open filtered NodeMenu"
+          label="Open Filtered Menu"
           addButtonClassName="open-node-menu"
-          IconComponent={<ViewWeekIcon />}
+          IconComponent={<ListAltIcon />}
         />
       </Menu>
     </>
@@ -435,3 +451,4 @@ const OutputContextMenu: React.FC = () => {
 };
 
 export default OutputContextMenu;
+

@@ -27,6 +27,7 @@ package/
 postgres_data/
 .ipynb_checkpoints
 .huggingface
+.expo
 
 .bin
 .claude

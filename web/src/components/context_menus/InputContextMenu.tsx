@@ -1,15 +1,18 @@
 import React, { useCallback } from "react";
 //mui
-import { Divider, Menu, MenuItem, Typography } from "@mui/material";
+import { Divider, Menu } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
-import ViewWeekIcon from "@mui/icons-material/ViewWeek";
+import InputIcon from "@mui/icons-material/Input";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import HubIcon from "@mui/icons-material/Hub";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
-import LoginIcon from "@mui/icons-material/Login";
 import { labelForType } from "../../config/data_types";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Edge, useReactFlow } from "@xyflow/react";
@@ -18,6 +21,7 @@ import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodes } from "../../contexts/NodeContext";
 
 const InputContextMenu: React.FC = () => {
+  const theme = useTheme();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const reactFlowInstance = useReactFlow();
 
@@ -221,17 +225,27 @@ const InputContextMenu: React.FC = () => {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "8px"
+              borderRadius: "12px",
+              backgroundColor: theme.vars.palette.background.paper,
+              border: `1px solid ${theme.vars.palette.divider}`,
+              boxShadow: theme.shadows[8],
+              minWidth: "220px",
+              padding: "4px",
+              "& .MuiDivider-root": {
+                margin: "4px 0",
+                borderColor: theme.vars.palette.divider
+              }
             }
           }
         }}
+        transitionDuration={200}
       >
         {constantNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateConstantNode}
             label="Create Constant Node"
             addButtonClassName="create-constant-node"
-            IconComponent={<LoginIcon />}
+            IconComponent={<PushPinIcon />}
           />
         )}
         {inputNodeMetadata && (
@@ -239,7 +253,7 @@ const InputContextMenu: React.FC = () => {
             onClick={handleCreateInputNode}
             label="Create Input Node"
             addButtonClassName="create-input-node"
-            IconComponent={<LoginIcon />}
+            IconComponent={<InputIcon />}
           />
         )}
         <Divider />
@@ -247,14 +261,14 @@ const InputContextMenu: React.FC = () => {
           onClick={handleShowConnectableNodes}
           label="Show Connectable Nodes"
           addButtonClassName="show-connectable-nodes"
-          IconComponent={<ViewWeekIcon />}
+          IconComponent={<HubIcon />}
           tooltip={"Show nodes that can be connected to this input"}
         />
         <ContextMenuItem
           onClick={handleOpenNodeMenu}
-          label="Open filtered NodeMenu"
+          label="Open Filtered Menu"
           addButtonClassName="open-node-menu"
-          IconComponent={<ViewWeekIcon />}
+          IconComponent={<ListAltIcon />}
         />
       </Menu>
     </>
