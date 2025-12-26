@@ -73,6 +73,9 @@ const GlobalChat = React.lazy(
 const MiniAppPage = React.lazy(
   () => import("./components/miniapps/MiniAppPage")
 );
+const StandaloneMiniApp = React.lazy(
+  () => import("./components/miniapps/StandaloneMiniApp")
+);
 const ModelListIndex = React.lazy(
   () => import("./components/hugging_face/model_list/ModelListIndex")
 );
@@ -194,6 +197,14 @@ function getRoutes() {
               <PanelBottom />
             </div>
           </>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/miniapp/:workflowId",
+      element: (
+        <ProtectedRoute>
+          <StandaloneMiniApp />
         </ProtectedRoute>
       )
     },
