@@ -36,11 +36,12 @@ export const useCopyPaste = () => {
     })
   );
 
-  const { nodes, edges, setNodes, setEdges } = useNodes((state) => ({
+  const { nodes, edges, setNodes, setEdges, workflowId } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
     setNodes: state.setNodes,
-    setEdges: state.setEdges
+    setEdges: state.setEdges,
+    workflowId: state.workflow.id
   }));
 
   const selectedNodes = useMemo(() => {
@@ -222,6 +223,8 @@ export const useCopyPaste = () => {
         parentId: newParentId,
         data: {
           ...node.data,
+          // Fix: Update workflow_id to current workflow when pasting
+          workflow_id: workflowId,
           positionAbsolute: positionAbsolute
             ? {
                 x: positionAbsolute.x + offset.x,
@@ -264,7 +267,8 @@ export const useCopyPaste = () => {
     edges,
     setNodes,
     setEdges,
-    setIsClipboardValid
+    setIsClipboardValid,
+    workflowId
   ]);
 
   return { handleCopy, handleCut, handlePaste };
