@@ -7,6 +7,8 @@ import { execSync } from "child_process";
 import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning, isLlamaServerRunning } from "./server";
 import { fetchWorkflows } from "./api";
 import { readSettings, updateSetting } from "./settings";
+import { createMiniAppWindow } from "./workflowWindow";
+import type { Workflow } from "./types";
 
 let trayInstance: Electron.Tray | null = null;
 
@@ -203,6 +205,30 @@ function getCloseBehaviorMenuItems(): Electron.MenuItemConstructorOptions[] {
 }
 
 /**
+ * Builds the workflows submenu items from available workflows.
+ * @param {Workflow[]} workflows - Array of workflows to create menu items from
+ * @returns {Electron.MenuItemConstructorOptions[]} Menu items for workflows
+ */
+function buildWorkflowsSubmenu(workflows: Workflow[]): Electron.MenuItemConstructorOptions[] {
+  if (workflows.length === 0) {
+    return [
+      {
+        label: "No workflows available",
+        enabled: false,
+      },
+    ];
+  }
+
+  return workflows.map((workflow) => ({
+    label: workflow.name,
+    click: () => {
+      logMessage(`Opening mini app for workflow: ${workflow.name} (${workflow.id})`);
+      createMiniAppWindow(workflow.id, workflow.name);
+    },
+  }));
+}
+
+/**
  * Updates the tray menu with current application state and available workflows.
  * Includes service status, workflow list, and application controls.
  * @returns {Promise<void>}
@@ -228,6 +254,18 @@ async function updateTrayMenu(): Promise<void> {
     : state.llamaExternalManaged
       ? `🟢 Llama.cpp (external): ${state.llamaPort ?? "unknown"}`
       : "🔴 Llama.cpp: stopped";
+
+  // Fetch workflows if connected
+  let workflows: Workflow[] = [];
+  if (connected) {
+    try {
+      workflows = await fetchWorkflows();
+    } catch (error) {
+      if (error instanceof Error) {
+        logMessage(`Failed to fetch workflows for tray menu: ${error.message}`, "error");
+      }
+    }
+  }
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -269,6 +307,11 @@ async function updateTrayMenu(): Promise<void> {
       label: "Show NodeTool",
       enabled: true,
       click: async () => focusNodeTool(),
+    },
+    {
+      label: "Mini Apps",
+      enabled: connected && workflows.length > 0,
+      submenu: buildWorkflowsSubmenu(workflows),
     },
     {
       label: "Package Manager",
