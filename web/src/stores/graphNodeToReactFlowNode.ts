@@ -9,16 +9,29 @@ export function graphNodeToReactFlowNode(
 ): Node<NodeData> {
   const ui_properties = node.ui_properties as NodeUIProperties;
   const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
-  
+
   // Debug: warn if node.data contains a stale workflow_id
-  if (node.data && typeof node.data === 'object' && 'workflow_id' in node.data) {
-    console.warn(`[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`, (node.data as any).workflow_id, 'will use:', workflow.id);
+  if (
+    node.data &&
+    typeof node.data === "object" &&
+    "workflow_id" in node.data
+  ) {
+    console.warn(
+      `[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`,
+      (node.data as any).workflow_id,
+      "will use:",
+      workflow.id
+    );
   }
-  
+
   // Set default size for Preview nodes if not already set
-  const defaultWidth = isPreviewNode && !ui_properties?.width ? 400 : (ui_properties?.width || DEFAULT_NODE_WIDTH);
-  const defaultHeight = isPreviewNode && !ui_properties?.height ? 300 : ui_properties?.height;
-  
+  const defaultWidth =
+    isPreviewNode && !ui_properties?.width
+      ? 400
+      : ui_properties?.width || DEFAULT_NODE_WIDTH;
+  const defaultHeight =
+    isPreviewNode && !ui_properties?.height ? 300 : ui_properties?.height;
+
   return {
     type: node.type,
     id: node.id,
