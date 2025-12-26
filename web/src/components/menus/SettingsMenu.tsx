@@ -69,7 +69,6 @@ interface SettingsMenuProps {
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const {
     isMenuOpen,
     setMenuOpen,
@@ -363,14 +362,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             gap: "0.75em"
                           }}
                         >
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={handleExport}
-                            disabled={exportMutation.isPending}
-                          >
-                            Export Debug Bundle
-                          </Button>
+                          {isLocalhost && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={handleExport}
+                              disabled={exportMutation.isPending}
+                            >
+                              Export Debug Bundle
+                            </Button>
+                          )}
                           {lastExportPath && (
                             <div
                               style={{
