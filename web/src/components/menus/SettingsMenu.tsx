@@ -102,23 +102,30 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
   const [, setSecretsUpdated] = useState({});
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
-  const [closeBehavior, setCloseBehavior] = useState<"ask" | "quit" | "background">("ask");
+  const [closeBehavior, setCloseBehavior] = useState<
+    "ask" | "quit" | "background"
+  >("ask");
 
   // Load close behavior setting on mount (Electron only)
   useEffect(() => {
     if (isElectron && window.api?.settings?.getCloseBehavior) {
-      window.api.settings.getCloseBehavior().then((action: "ask" | "quit" | "background") => {
-        setCloseBehavior(action);
-      });
+      window.api.settings
+        .getCloseBehavior()
+        .then((action: "ask" | "quit" | "background") => {
+          setCloseBehavior(action);
+        });
     }
   }, []);
 
-  const handleCloseBehaviorChange = useCallback((action: "ask" | "quit" | "background") => {
-    setCloseBehavior(action);
-    if (window.api?.settings?.setCloseBehavior) {
-      window.api.settings.setCloseBehavior(action);
-    }
-  }, []);
+  const handleCloseBehaviorChange = useCallback(
+    (action: "ask" | "quit" | "background") => {
+      setCloseBehavior(action);
+      if (window.api?.settings?.setCloseBehavior) {
+        window.api.settings.setCloseBehavior(action);
+      }
+    },
+    []
+  );
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -203,13 +210,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         alert: true
       });
       setLastExportPath(data.file_path);
-      
+
       // Show in folder using the new shell API
       if (typeof window.api?.shell?.showItemInFolder === "function") {
         window.api.shell.showItemInFolder(data.file_path);
-        
+
         // Play notification sound if enabled
-        if (settings.soundNotifications && typeof window.api.shell.beep === "function") {
+        if (
+          settings.soundNotifications &&
+          typeof window.api.shell.beep === "function"
+        ) {
           window.api.shell.beep();
         }
       } else if (typeof window.api?.showItemInFolder === "function") {
@@ -234,7 +244,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   });
 
   const handleExport = useCallback(() => {
-    if (exportMutation.isPending) {return;}
+    if (exportMutation.isPending) {
+      return;
+    }
     exportMutation.mutate();
   }, [exportMutation]);
 
@@ -352,7 +364,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                 <div className="settings-content">
                   <TabPanel value={settingsTab} index={0}>
                     <div className="settings-section">
-                      <Typography variant="h3" id="debug-tools" style={{ margin: 0, borderBottom: "none" }}>
+                      <Typography
+                        variant="h3"
+                        id="debug-tools"
+                        style={{ margin: 0, borderBottom: "none" }}
+                      >
                         Debug Tools
                       </Typography>
                       <div className="settings-item">
@@ -363,14 +379,23 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             gap: "0.75em"
                           }}
                         >
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={handleExport}
-                            disabled={exportMutation.isPending}
-                          >
-                            Export Debug Bundle
-                          </Button>
+                          {isLocalhost && (
+                            <>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={handleExport}
+                                disabled={exportMutation.isPending}
+                              >
+                                Export Debug Bundle
+                              </Button>
+                              <Typography className="description">
+                                Collect logs, environment info, and the last
+                                workflow context into a ZIP in your Downloads
+                                folder.
+                              </Typography>
+                            </>
+                          )}
                           {lastExportPath && (
                             <div
                               style={{
@@ -378,14 +403,17 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 flexDirection: "column",
                                 gap: "0.5em",
                                 padding: "0.5em",
-                                backgroundColor: "var(--palette-background-paper)",
+                                backgroundColor:
+                                  "var(--palette-background-paper)",
                                 borderRadius: "4px",
                                 border: "1px solid var(--palette-divider)"
                               }}
                             >
                               <Typography
                                 variant="caption"
-                                style={{ color: "var(--palette-text-secondary)" }}
+                                style={{
+                                  color: "var(--palette-text-secondary)"
+                                }}
                               >
                                 Last exported to:
                               </Typography>
@@ -406,7 +434,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                   onClick={() => {
                                     const api = (window as any)?.api;
                                     if (api?.shell?.showItemInFolder) {
-                                      api.shell.showItemInFolder(lastExportPath);
+                                      api.shell.showItemInFolder(
+                                        lastExportPath
+                                      );
                                     } else if (api?.showItemInFolder) {
                                       api.showItemInFolder(lastExportPath);
                                     }
@@ -419,10 +449,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             </div>
                           )}
                         </div>
-                        <Typography className="description">
-                          Collect logs, environment info, and the last workflow
-                          context into a ZIP in your Downloads folder.
-                        </Typography>
                       </div>
                     </div>
 
@@ -510,7 +536,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                               variant="standard"
                               onChange={(e) =>
                                 handleCloseBehaviorChange(
-                                  e.target.value as "ask" | "quit" | "background"
+                                  e.target.value as
+                                    | "ask"
+                                    | "quit"
+                                    | "background"
                                 )
                               }
                             >
@@ -711,8 +740,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             </FormControl>
                             <div className="description">
                               <Typography>
-                                This token is used to authenticate your
-                                account with the Nodetool API.
+                                This token is used to authenticate your account
+                                with the Nodetool API.
                               </Typography>
                               <div className="secrets">
                                 <WarningIcon sx={{ color: "#ff9800" }} />
