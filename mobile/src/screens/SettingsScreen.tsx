@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import axios from 'axios';
 import { apiService } from '../services/api';
 
 export default function SettingsScreen() {
@@ -58,8 +59,15 @@ export default function SettingsScreen() {
 
     try {
       setIsSaving(true);
+      // Create a temporary client to test the connection without saving
+      const testClient = axios.create({
+        baseURL: apiHost.trim(),
+        timeout: 30000,
+      });
+      await testClient.get('/api/workflows/', { params: { limit: 1 } });
+      
+      // Only save if the test succeeds
       await apiService.saveApiHost(apiHost.trim());
-      await apiService.getWorkflows(1);
       Alert.alert('Success', 'Connection successful!');
     } catch (error) {
       console.error('Connection test failed:', error);

@@ -1,4 +1,6 @@
 // Types for mini apps - adapted from web/src/components/miniapps/types.ts
+// Note: These types are duplicated here for simplicity. In a production setup,
+// consider creating a shared types package or monorepo to avoid duplication.
 
 export type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path";
 

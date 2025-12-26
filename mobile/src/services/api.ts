@@ -48,13 +48,7 @@ class ApiService {
   }
 
   private updateBaseURL(host: string): void {
-    this.client = axios.create({
-      baseURL: host,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    this.client.defaults.baseURL = host;
   }
 
   async getWorkflows(limit: number = 100): Promise<any> {

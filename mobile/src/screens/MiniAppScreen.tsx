@@ -165,9 +165,11 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
           onChangeText={(text) => {
             let newValue: any = text;
             if (input.kind === 'integer') {
-              newValue = text ? parseInt(text, 10) : 0;
+              const parsed = parseInt(text, 10);
+              newValue = text ? (isNaN(parsed) ? 0 : parsed) : 0;
             } else if (input.kind === 'float') {
-              newValue = text ? parseFloat(text) : 0;
+              const parsed = parseFloat(text);
+              newValue = text ? (isNaN(parsed) ? 0 : parsed) : 0;
             }
             setInputValues({ ...inputValues, [key]: newValue });
           }}
