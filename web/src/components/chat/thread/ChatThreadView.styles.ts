@@ -154,7 +154,7 @@ export const createStyles = (theme: Theme) => ({
 
     ".loading-dots": {
       display: "flex",
-      justifyContent: "left",
+      justifyContent: "flex-start",
       alignItems: "center"
     },
 

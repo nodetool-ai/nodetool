@@ -168,7 +168,7 @@ const MiniAppPage: React.FC = () => {
   );
   return (
     <NodeContext.Provider value={activeNodeStore ?? null}>
-      <Box css={styles} component="section">
+      <Box css={styles} component="section" className="mini-app-page">
         {/* <MiniAppHero
         workflows={workflows}
         selectedWorkflowId={selectedWorkflowId}
