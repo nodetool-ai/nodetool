@@ -332,7 +332,7 @@ export const MessageView: React.FC<
     return (
       <Box
         className="tool-call-card"
-        sx={isRunning ? { borderColor: "#42a5f5" } : undefined}
+        sx={isRunning ? { borderColor: (theme) => theme.vars.palette.info.main } : undefined}
       >
         <Box className="tool-call-header">
           <Chip
