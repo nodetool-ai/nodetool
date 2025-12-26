@@ -14,12 +14,10 @@ import useResultsStore from "../../../stores/ResultsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
-import { serializeValue } from "../../../utils/serializeValue";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
-import { useCopyToClipboard } from "../output";
 import PreviewActions from "./PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
@@ -266,7 +264,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     (state) => state.addNotification
   );
   const createAsset = useAssetStore((state) => state.createAsset);
-  const copyToClipboard = useCopyToClipboard();
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
 
@@ -286,27 +283,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     () => getCopySource(previewOutput ?? result ?? null),
     [previewOutput, result]
   );
-  const copyPayload = useMemo(
-    () => serializeValue(copyPayloadSource),
-    [copyPayloadSource]
-  );
-  const hasCopyableOutput = copyPayload !== null;
-
-  const handleCopy = useCallback(() => {
-    if (!copyPayload) {
-      addNotification({
-        type: "warning",
-        content: "No content available to copy"
-      });
-      return;
-    }
-
-    copyToClipboard(copyPayload);
-    addNotification({
-      type: "success",
-      content: "Preview copied to clipboard"
-    });
-  }, [copyPayload, copyToClipboard, addNotification]);
 
   const handleAddToAssets = useCallback(async () => {
     if (previewOutput === null || previewOutput === undefined) {
@@ -470,10 +446,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             </Typography>
           )}
           <PreviewActions
-            onCopy={handleCopy}
             onDownload={handleDownload}
             onAddToAssets={handleAddToAssets}
-            canCopy={hasCopyableOutput}
+            copyValue={copyPayloadSource}
           />
         </>
 
