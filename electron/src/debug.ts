@@ -117,7 +117,8 @@ export function redactSecrets(data: unknown, parentKey = ""): unknown {
  */
 export function redactLogSecrets(logContent: string): string {
   const patterns: [RegExp, string][] = [
-    [/(?:api[_-]?key|token|secret|password|bearer|authorization)["'\s:=]+["']?([a-zA-Z0-9_-]{20,})["']?/gi, `$1: ${REDACTED}`],
+    // Match key-value pairs like 'api_key: secret' or 'token = "secret"' and keep the key name but redact the value
+    [/(api[_-]?key|token|secret|password|bearer|authorization)["'\s:=]+["']?[a-zA-Z0-9_-]{20,}["']?/gi, `$1: ${REDACTED}`],
     [/sk-[a-zA-Z0-9]{20,}/g, REDACTED], // OpenAI
     [/sk-ant-[a-zA-Z0-9-]{20,}/g, REDACTED], // Anthropic
     [/hf_[a-zA-Z0-9]{20,}/g, REDACTED], // HuggingFace
@@ -223,25 +224,14 @@ function getGpuName(): string | null {
  * Collect environment information.
  */
 function collectEnvInfo(): Record<string, unknown> {
-  const homeDir = os.homedir();
   const totalMemoryGb = Math.round((os.totalmem() / (1024 ** 3)) * 100) / 100;
   const freeMemoryGb = Math.round((os.freemem() / (1024 ** 3)) * 100) / 100;
   const usedMemoryGb = Math.round((totalMemoryGb - freeMemoryGb) * 100) / 100;
   const memoryPercent = Math.round((usedMemoryGb / totalMemoryGb) * 100);
 
-  let diskTotalGb: number | null = null;
-  let diskFreeGb: number | null = null;
-
-  try {
-    // Get disk usage for home directory
-    const diskStats = fs.statfsSync ? fs.statfsSync(homeDir) : null;
-    if (diskStats) {
-      diskTotalGb = Math.round((diskStats.blocks * diskStats.bsize / (1024 ** 3)) * 100) / 100;
-      diskFreeGb = Math.round((diskStats.bfree * diskStats.bsize / (1024 ** 3)) * 100) / 100;
-    }
-  } catch {
-    // statfsSync may not be available on all platforms
-  }
+  // Note: Disk space info is not easily available in Node.js without platform-specific APIs
+  // The Python version uses shutil.disk_usage which has no direct equivalent
+  // We omit disk info here as it's not critical for debugging
 
   return {
     os: process.platform,
@@ -254,8 +244,8 @@ function collectEnvInfo(): Record<string, unknown> {
     memory_used_gb: usedMemoryGb,
     memory_percent: memoryPercent,
     gpu_model: getGpuName(),
-    disk_total_gb: diskTotalGb,
-    disk_free_gb: diskFreeGb,
+    disk_total_gb: null,
+    disk_free_gb: null,
     nodetool_version: getNodeToolVersion(),
   };
 }
