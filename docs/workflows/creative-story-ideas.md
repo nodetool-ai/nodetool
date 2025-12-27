@@ -3,6 +3,30 @@ layout: page
 title: "Creative Story Ideas"
 ---
 
+## What You'll Achieve
+
+**Generate dozens of story ideas in seconds**—perfect for writers, game designers, and content creators who need creative inspiration fast. This beginner-friendly workflow demonstrates NodeTool's core concepts while producing real, usable story prompts.
+
+**Learning outcomes:**
+- ✅ Understand how data flows through visual workflows
+- ✅ See AI streaming results in real-time
+- ✅ Learn to customize prompts with input nodes
+- ✅ Master the template pattern for reusable workflows
+
+**Time to complete:** 5 minutes  
+**Difficulty:** Beginner (perfect first workflow)
+
+---
+
+## Why This Workflow Matters
+
+**For writers:** Never stare at a blank page again. Generate story hooks instantly.  
+**For game designers:** Create NPC backstories and quest ideas at scale.  
+**For students:** Learn AI workflow design with immediate visual feedback.  
+**For teams:** Share this workflow as a Mini-App—teammates can generate ideas without seeing the technical details.
+
+---
+
 ## Overview
 
 A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.
@@ -76,11 +100,34 @@ graph TD
 
 ## How to Use
 
-1. Open NodeTool and create a new workflow
-2. Import this workflow from the examples gallery or build it manually following the diagram above
-3. Configure the input nodes with your data
-4. Run the workflow to see results
+1. Open NodeTool and find "Creative Story Ideas" in the Templates panel
+2. Click to open in the editor (or build manually following the diagram above)
+3. **Customize inputs** – Click the Genre, Character Type, and Setting nodes to enter your preferences
+4. **Run workflow** – Press <kbd>Ctrl/⌘ + Enter</kbd> or click the Run button
+5. **Watch streaming** – Ideas appear one at a time in the Preview node (not all at once!)
+6. **Export results** – Right-click Preview node → Copy to use ideas in your writing
 
-## Related Workflows
+**Pro tip:** Save as a Mini-App (top-right button) to share with teammates. They'll see a simple form interface without the workflow complexity.
 
-Browse other [workflow examples](/cookbook.md) to discover more capabilities.
+---
+
+## Real-World Applications
+
+**Content creators:** Generate video ideas, blog post hooks, and social media content  
+**Novelists:** Overcome writer's block with fresh plot concepts  
+**Game developers:** Create quest descriptions, character backstories, and world-building elements  
+**Educators:** Teach creative writing with AI-assisted brainstorming  
+**Marketing teams:** Brainstorm campaign concepts and ad copy angles
+
+---
+
+## Next Steps After This Workflow
+
+Now that you understand the basics, try these progressively advanced workflows:
+
+1. **[Transcribe Audio](transcribe-audio.md)** – Work with media files (audio → text)
+2. **[Image Enhance](image-enhance.md)** – Chain multiple transformations
+3. **[Chat with Docs](chat-with-docs.md)** – Build a RAG system with vector search
+4. **[Movie Posters](movie-posters.md)** – Multi-stage agent planning workflow
+
+Or explore all [workflow examples](/workflows/) to see what's possible.

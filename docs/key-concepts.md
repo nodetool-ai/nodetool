@@ -10,9 +10,15 @@ This page explains the fundamental concepts you need to understand NodeTool. **N
 
 ## What is NodeTool?
 
-NodeTool is a **visual tool for building AI workflows**. Think of it like connecting building blocks: each block does one thing (like generating an image or transcribing audio), and you connect them together to create something more complex.
+NodeTool is a **visual tool for building AI workflows that you own and control**. Think of it like connecting building blocks: each block does one thing (like generating an image or transcribing audio), and you connect them together to create something more complex.
 
-**Real-world analogy**: Imagine an assembly line in a factory. Each station does one job (cut, paint, assemble), and products move from one station to the next. NodeTool works the same way – data flows from one node to the next, getting transformed at each step.
+**Why this matters for you:**
+- **Privacy:** Your data never leaves your machine unless you explicitly choose cloud services
+- **Portability:** Workflows run identically on your laptop, RunPod, Cloud Run, or self-hosted servers
+- **Transparency:** See exactly what happens at each step—no black boxes or hidden API calls
+- **Cost control:** Use free local models or pay-per-use cloud APIs—you decide
+
+**Real-world analogy**: Imagine an assembly line in a factory where you control every station, can see inside every machine, and can move the entire line to a different building without reassembly. NodeTool gives you that same flexibility for AI pipelines.
 
 ---
 
