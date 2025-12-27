@@ -118,6 +118,89 @@ cd mobile && npm install && npm start
 
 See [mobile/README.md](mobile/README.md) for detailed setup and usage instructions.
 
+______________________________________________________________________
+
+## 📱 Your Personal AI Stack
+
+**The future of AI isn't in the cloud. It's in your pocket, connected to your own infrastructure.**
+
+NodeTool enables a revolutionary personal AI architecture: your mobile device becomes a window into your own AI-powered world—running on hardware you control, accessing data you own, with privacy guaranteed by design.
+
+### The Vision: AI Without Compromise
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        YOUR PERSONAL AI STACK                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   📱 Mobile App                                                         │
+│       │                                                                 │
+│       │ (Secure Connection)                                             │
+│       ▼                                                                 │
+│   🔒 VPN / Tailscale / WireGuard                                        │
+│       │                                                                 │
+│       │ (Encrypted Tunnel)                                              │
+│       ▼                                                                 │
+│   🖥️  NodeTool Server (Your Hardware)                                   │
+│       │                                                                 │
+│       ├──────────────────┬──────────────────┐                          │
+│       ▼                  ▼                  ▼                          │
+│   🧠 Local LLMs      📁 Personal Data    🎨 Creative Tools             │
+│   (Llama, Flux)      (Documents, Photos)  (Audio, Video)               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Changes Everything
+
+| Traditional Cloud AI | Your Personal AI Stack |
+| :--- | :--- |
+| Your data on someone else's servers | Your data stays on your hardware |
+| Monthly subscriptions, usage fees | One-time hardware investment |
+| Limited by API rate limits | Unlimited local inference |
+| Internet required | Works on your LAN, offline-capable |
+| Privacy policies you can't verify | Privacy you can mathematically prove |
+| Vendor lock-in | Full portability and control |
+
+### Deployment Architectures
+
+NodeTool supports multiple deployment patterns to fit your needs:
+
+#### 🏠 **Fully Local Stack** (Maximum Privacy)
+```
+[Mobile] → [VPN] → [Home Server] → [Local LLMs] + [Personal Data]
+```
+*Perfect for: Privacy-conscious individuals, sensitive work, offline environments*
+
+#### ☁️ **NodeTool Cloud** (Zero Configuration)
+```
+[Mobile] → [NodeTool Cloud] → [Managed LLMs] + [Encrypted Storage]
+```
+*Perfect for: Quick start, no hardware management, team collaboration*
+
+#### 🏢 **Private Cloud** (Enterprise Control)
+```
+[Mobile] → [VPN] → [Your Cloud VPC] → [Self-Hosted NodeTool] → [Private LLMs]
+```
+*Perfect for: Enterprises, compliance requirements, multi-user deployments*
+
+#### 🌐 **Hybrid Stack** (Best of Both Worlds)
+```
+[Mobile] → [VPN] → [Local Server] → [Local LLMs] + [Cloud APIs when needed]
+```
+*Perfect for: Flexibility—use local for privacy, cloud for cutting-edge models*
+
+### Getting Started with Your Personal Stack
+
+1. **Set up NodeTool Server** on your home machine or cloud instance
+2. **Configure secure access** via Tailscale, WireGuard, or your preferred VPN
+3. **Install the Mobile App** on iOS or Android
+4. **Connect** and access your AI workflows from anywhere in the world
+
+**Your AI. Your data. Your rules.**
+
+See the [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/self_hosted.md) for detailed setup instructions.
+
 ## Testing
 
 ```bash

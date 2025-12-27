@@ -4,9 +4,9 @@ layout: home
 
 <section class="home-hero">
   <p class="eyebrow">Open-Source Local-First AI Workflow Builder</p>
-  <h1>Build AI workflows once. Deploy them anywhere. Keep your data private.</h1>
+  <h1>Build AI Workflows. Visually. Locally.</h1>
   <p class="lead">
-    NodeTool is the visual workflow builder for teams who need control. Design multi-step AI pipelines mixing LLMs, vision, speech, and custom logic on a single canvas. Run locally for privacy, deploy to RunPod or Cloud Run for scale—no rewrites, no vendor lock-in, no black boxes.
+   Drag, drop, and connect powerful AI models. Run them locally on your machine or use your own API keys with any provider. Your workflows, your data—always under your control.
   </p>
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
@@ -126,6 +126,85 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
 </div>
 
 <section class="home-section">
+  <h2 id="personal-ai-stack">📱 Your Personal AI Stack</h2>
+  <p class="lead">
+    <strong>The future of AI isn't in the cloud—it's in your pocket, connected to your own infrastructure.</strong>
+  </p>
+  <p>
+    NodeTool's mobile app transforms your phone into a portal to your personal AI universe. Run AI workflows from anywhere in the world, accessing models and data hosted on hardware you control. Your AI assistant, your creative tools, your knowledge base—always available, always private.
+  </p>
+
+  <div class="architecture-diagram">
+    <pre>
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        YOUR PERSONAL AI STACK                            │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   📱 NodeTool Mobile                                                     │
+│       │                                                                  │
+│       │ (Secure Connection)                                              │
+│       ▼                                                                  │
+│   🔒 VPN / Tailscale / WireGuard                                        │
+│       │                                                                  │
+│       │ (Encrypted Tunnel to Your Network)                               │
+│       ▼                                                                  │
+│   🖥️  NodeTool Server (Your Hardware)                                    │
+│       │                                                                  │
+│       ├─────────────────┬────────────────┬─────────────────┐            │
+│       ▼                 ▼                ▼                 ▼            │
+│   🧠 Local LLMs     📁 Your Data     🎨 Creative AI    🔌 Integrations │
+│   Llama, Mistral    Documents         Flux, Whisper    APIs, Tools     │
+│   Qwen, Phi         Photos, Notes     Music, Video     Home Automation │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <h3>Choose Your Architecture</h3>
+  <div class="pattern-grid">
+    <article class="pattern-card">
+      <h5>🏠 Fully Local Stack</h5>
+      <p><strong>Maximum privacy.</strong> Your mobile device connects through VPN to your home server. All AI processing happens on your hardware. Your documents, photos, and conversations never leave your network.</p>
+      <p><code>[Mobile] → [VPN] → [Home Server] → [Local LLMs + Your Data]</code></p>
+      <p><em>Perfect for: Privacy advocates, sensitive work, air-gapped environments</em></p>
+    </article>
+    <article class="pattern-card">
+      <h5>☁️ NodeTool Cloud</h5>
+      <p><strong>Zero configuration.</strong> Connect to NodeTool's managed infrastructure. Get started in minutes with no hardware to manage. Your workflows sync across devices automatically.</p>
+      <p><code>[Mobile] → [NodeTool Cloud] → [Managed LLMs + Encrypted Storage]</code></p>
+      <p><em>Perfect for: Quick start, teams, users without dedicated hardware</em></p>
+    </article>
+    <article class="pattern-card">
+      <h5>🏢 Private Cloud</h5>
+      <p><strong>Enterprise control.</strong> Deploy NodeTool to your organization's cloud VPC. Meet compliance requirements while enabling mobile access for your entire team.</p>
+      <p><code>[Mobile] → [VPN] → [Your VPC] → [Self-Hosted NodeTool + Private Data]</code></p>
+      <p><em>Perfect for: Enterprises, regulated industries, multi-user deployments</em></p>
+    </article>
+    <article class="pattern-card">
+      <h5>🌐 Hybrid Stack</h5>
+      <p><strong>Best of both worlds.</strong> Run sensitive workflows locally while tapping into cloud APIs for cutting-edge models. You control which data stays local and which goes to the cloud.</p>
+      <p><code>[Mobile] → [Local Server] → [Local LLMs + Cloud APIs when needed]</code></p>
+      <p><em>Perfect for: Power users who want flexibility and the latest models</em></p>
+    </article>
+  </div>
+
+  <h3>What This Enables</h3>
+  <ul>
+    <li><strong>Your Personal AI Assistant</strong> — Chat with an AI that has access to your documents, notes, and knowledge base. Unlike cloud assistants, this one runs on your hardware and keeps your data private.</li>
+    <li><strong>Mobile Creative Studio</strong> — Generate images, music, and video from your phone using Flux, Whisper, and other models running on your home GPU. No subscriptions, no rate limits.</li>
+    <li><strong>Private Knowledge Base</strong> — Index your PDFs, notes, and research papers. Query them with RAG from anywhere. Your intellectual property never touches third-party servers.</li>
+    <li><strong>Home Automation AI</strong> — Connect NodeTool to your smart home. Voice-controlled workflows that understand context and execute across your devices.</li>
+    <li><strong>Secure Team Collaboration</strong> — Share workflows with your team while keeping data in your private cloud. Everyone gets AI superpowers without compromising security.</li>
+  </ul>
+
+  <div class="cta-row">
+    <a href="getting-started.md" class="cta-button primary">Get Started →</a>
+    <a href="self_hosted.md" class="cta-button">Self-Hosted Setup →</a>
+    <a href="deployment.md" class="cta-button ghost">Deployment Guide →</a>
+  </div>
+</section>
+
+<section class="home-section">
   <h2>Why teams choose NodeTool</h2>
   <div class="feature-grid">
     <article class="feature-card">
@@ -148,6 +227,7 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
   <ul class="link-grid">
     <li><a href="{{ '/' | relative_url }}#start-here">Orientation →</a></li>
     <li><a href="{{ '/getting-started' | relative_url }}">Install & first workflow →</a></li>
+    <li><a href="{{ '/' | relative_url }}#personal-ai-stack">📱 Personal AI Stack →</a></li>
     <li><a href="{{ '/key-concepts' | relative_url }}">Core concepts →</a></li>
     <li><a href="{{ '/user-interface' | relative_url }}">UI overview →</a></li>
     <li><a href="{{ '/workflows/' | relative_url }}">Example gallery →</a></li>
