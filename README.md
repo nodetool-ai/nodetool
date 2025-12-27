@@ -13,32 +13,32 @@
 
 **Build AI Workflows Visually. Run Them Anywhere.**
 
-NodeTool is an open-source visual workflow builder that lets you design AI pipelines once on your machine and deploy them anywhere—from laptop to RunPod to Cloud Run—without rewriting code or sacrificing privacy. Connect powerful models running locally or in the cloud. No API keys needed for local inference. Your data stays with you.
+NodeTool is an open-source visual workflow builder. Design AI pipelines on your laptop, then deploy the same workflow to RunPod, Cloud Run, or your own servers—no code changes needed. Run powerful models locally or in the cloud. Your data stays with you.
 
 ![Screenshot](screenshot.png)
 
 ## Core Principles
 
-- **Privacy-First Control**: Run sensitive AI workflows entirely on your infrastructure without sending data to third parties. Meet GDPR, HIPAA, or SOC 2 requirements with local execution. No telemetry. No tracking. Your data is yours.
-- **Build Once, Deploy Anywhere**: Design on your laptop, deploy to RunPod, Cloud Run, or self-hosted servers with a single command. No rewrites. No vendor lock-in. The same workflow JSON runs identically everywhere.
-- **Transparent & Debuggable**: See every step of your AI pipeline in real-time. Inspect intermediate outputs, understand exactly what each node does, and debug with confidence. No black-box mystery.
-- **Open Source**: AGPL-3.0 licensed. Inspect, modify, and self-host the entire stack.
+- **Local First**: Run models on your machine. No mandatory cloud calls. Your data never leaves unless you want it to.
+- **Portable**: Build on your laptop, deploy anywhere. Same workflow runs on RunPod, Cloud Run, or self-hosted—no rewrites.
+- **Open & Inspectable**: See every step in real-time. Debug with confidence. AGPL-3.0 licensed—inspect and modify everything.
+- **Flexible**: Start with local models (free, private), switch to cloud APIs when you need them. You choose.
 
 ## Features
 
-- **Visual Workflow Engine**: Design complex AI pipelines without code. Drag-and-drop interface with real-time execution, type safety, and multimodal support (text, image, audio, video). See results stream as they generate.
-- **Universal Inference**: Run SOTA models (LLMs, Flux, SDXL) natively on Apple Silicon (MLX), NVIDIA GPUs, or CPU (llama.cpp). No API fees. Works offline. Process sensitive data locally.
-- **HuggingFace Integration**: Access 500,000+ models directly from the Hub. Download and run thousands of models in your workflows without code.
-- **Flexible Providers**: Mix local models with APIs from OpenAI, Anthropic, Gemini, Replicate, and more. Use the best tool for each task. Control costs by choosing when to pay.
-- **One-Click Deployment**: Scale from local development to serverless GPUs with `nodetool deploy`. Push workflows to RunPod, Cloud Run, or self-hosted infrastructure. Same code, any environment.
-- **Asset Management**: Built-in manager for all your media files. Organize assets, persist across workflows, access from any node.
+- **Visual Workflow Engine**: Drag-and-drop AI pipelines. Real-time execution, type safety, multimodal support (text, image, audio, video). Watch results stream as they generate.
+- **Universal Inference**: Run SOTA models (LLMs, Flux, SDXL) on Apple Silicon (MLX), NVIDIA GPUs, or CPU (llama.cpp). No API fees. Works offline.
+- **HuggingFace Integration**: Access 500,000+ models from the Hub. Download and run them directly in your workflows.
+- **Flexible Providers**: Mix local models with cloud APIs (OpenAI, Anthropic, Gemini, Replicate). Use the best tool for each job.
+- **One-Click Deployment**: `nodetool deploy` pushes your workflow to RunPod, Cloud Run, or self-hosted. Same code, any environment.
+- **Asset Management**: Built-in manager for media files. Organize, persist, and access from any node.
 
 ## Use Cases
 
-- **Smart Assistants**: Chat with local documents privately. Build RAG systems that ground LLM responses in your data without API calls.
-- **Agentic Workflows**: Create autonomous workflows that plan, execute, and adapt. Search, classify, and automate with LLM-powered agents.
-- **Content Creation**: Generate text, images, video, and music. Build repeatable creative pipelines mixing multiple AI models.
-- **Data Analysis**: Process data with AI-powered transformations. Extract insights, generate visualizations, and automate reporting.
+- **Smart Assistants**: Chat with local documents. Build RAG systems that keep your data private.
+- **Agentic Workflows**: Create AI agents that plan and execute. Search, classify, automate—all visual.
+- **Content Creation**: Generate images, video, music. Chain multiple AI models into creative pipelines.
+- **Data Analysis**: Transform data with AI. Extract insights, create visualizations, automate reports.
 
 ## Quick Start
 
