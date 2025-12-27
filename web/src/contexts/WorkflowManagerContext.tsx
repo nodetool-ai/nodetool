@@ -165,23 +165,7 @@ const storage = {
       STORAGE_KEYS.OPEN_WORKFLOWS,
       JSON.stringify(workflowIds)
     );
-  }, 100),
-
-  // Adds a workflow ID to the list of open workflows.
-  addOpenWorkflow: (workflowId: string) => {
-    const currentWorkflows = storage.getOpenWorkflows();
-    if (!currentWorkflows.includes(workflowId)) {
-      const updatedWorkflows = [...currentWorkflows, workflowId];
-      storage.setOpenWorkflows(updatedWorkflows);
-    }
-  },
-
-  // Removes a workflow ID from the list of open workflows.
-  removeOpenWorkflow: (workflowId: string) => {
-    const currentWorkflows = storage.getOpenWorkflows();
-    const updatedWorkflows = currentWorkflows.filter((id) => id !== workflowId);
-    storage.setOpenWorkflows(updatedWorkflows);
-  }
+  }, 100)
 };
 
 // -----------------------------------------------------------------
@@ -512,11 +496,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         const newStore = createNodeStore(workflow);
         const workflowAttributes = omit(workflow, "graph");
+        const newOpenWorkflows = [...get().openWorkflows, workflowAttributes];
+        
         set((state) => ({
           nodeStores: { ...state.nodeStores, [workflow.id]: newStore },
-          openWorkflows: [...state.openWorkflows, workflowAttributes]
+          openWorkflows: newOpenWorkflows
         }));
-        storage.addOpenWorkflow(workflow.id);
+        storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
       },
 
       /**
@@ -546,7 +532,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           loadingStates: {}
         });
 
-        storage.removeOpenWorkflow(workflowId);
+        storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
 
         if (newCurrentId) {
           storage.setCurrentWorkflow(newCurrentId);

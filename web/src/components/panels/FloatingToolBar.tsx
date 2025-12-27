@@ -123,7 +123,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       overflow: "hidden",
       backgroundColor: "var(--palette-primary-main)",
-      color: "primary.contrastText",
+      color: "#0B1220",
       borderColor: "var(--palette-primary-main)",
       boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px var(--palette-primary-main)20`,
       filter: "saturate(1.1)",
@@ -133,7 +133,7 @@ const styles = (theme: Theme) =>
       },
       "&.running": {
         backgroundColor: theme.vars.palette.grey[900],
-        color: theme.vars.palette.grey[400],
+        color: theme.vars.palette.grey[0],
         borderColor: theme.vars.palette.grey[700],
         boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
         "&::before": {
