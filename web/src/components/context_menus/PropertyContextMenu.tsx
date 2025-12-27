@@ -3,17 +3,24 @@ import React from "react";
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Property } from "../../stores/ApiTypes";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { useClipboard } from "../../hooks/browser/useClipboard";
+import { serializeValue } from "../../utils/serializeValue";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const PropertyContextMenu: React.FC = () => {
   const theme = useTheme();
+  const { writeClipboard } = useClipboard();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const {
     menuPosition,
     closeContextMenu,
@@ -40,7 +47,9 @@ const PropertyContextMenu: React.FC = () => {
   );
   const metadata = useMetadataStore((state) => state.metadata);
 
-  if (!menuPosition) {return null;}
+  if (!menuPosition) {
+    return null;
+  }
 
   const handleRemoveDynamicProperty = (
     event?: React.MouseEvent<HTMLElement>
@@ -60,6 +69,47 @@ const PropertyContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
+  const handleCopyValue = async (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (nodeId && handleId) {
+      const node = findNode(nodeId);
+      if (!node) {
+        closeContextMenu();
+        return;
+      }
+
+      const value = isDynamicProperty
+        ? node.data.dynamic_properties?.[handleId]
+        : node.data.properties?.[handleId];
+
+      const serialized = serializeValue(value);
+      if (serialized !== null && serialized.trim().length > 0) {
+        try {
+          await writeClipboard(serialized, true);
+          addNotification({
+            type: "success",
+            content: "Value copied to clipboard"
+          });
+        } catch {
+          addNotification({
+            type: "error",
+            content: "Failed to copy to clipboard"
+          });
+        }
+      } else {
+        addNotification({
+          type: "warning",
+          content: "No value to copy"
+        });
+      }
+    }
+    closeContextMenu();
+  };
+
   const handleReset = (event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
@@ -68,7 +118,9 @@ const PropertyContextMenu: React.FC = () => {
 
     if (nodeId && handleId) {
       const node = findNode(nodeId);
-      if (!node) {return;}
+      if (!node) {
+        return;
+      }
 
       if (isDynamicProperty) {
         // For dynamic properties, we need to find the property definition from metadata
@@ -141,6 +193,13 @@ const PropertyContextMenu: React.FC = () => {
       )}
 
       <Divider />
+      <ContextMenuItem
+        onClick={handleCopyValue}
+        label="Copy Value"
+        addButtonClassName="copy-value"
+        IconComponent={<ContentCopyIcon />}
+        tooltip="Copy property value to clipboard"
+      />
       <ContextMenuItem
         onClick={handleReset}
         label="Reset To Default Value"
