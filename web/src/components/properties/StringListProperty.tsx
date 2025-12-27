@@ -33,7 +33,7 @@ const StringListProperty = (props: PropertyProps) => {
           "& .MuiInputBase-root": {
             padding: "2px 6px",
             minHeight: "32px",
-            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            backgroundColor: "action.disabledBackground",
             borderRadius: "6px",
             border: "1px solid var(--palette-grey-700)",
             color: "var(--palette-grey-100)",
@@ -41,11 +41,11 @@ const StringListProperty = (props: PropertyProps) => {
             transition: "all 0.2s",
             "&:hover": {
               borderColor: "var(--palette-grey-600)",
-              backgroundColor: "rgba(0, 0, 0, 0.3)"
+              backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`
             },
             "&.Mui-focused": {
               borderColor: "var(--palette-grey-500)",
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
+              backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.4)`,
               "& .MuiOutlinedInput-notchedOutline": {
                 borderWidth: 0
               }

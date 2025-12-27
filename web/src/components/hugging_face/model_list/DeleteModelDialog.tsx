@@ -186,7 +186,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         backdrop: {
           sx: {
             backdropFilter: "blur(4px)",
-            backgroundColor: "rgba(0, 0, 0, 0.4)"
+            backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.4)`
           }
         },
         paper: {

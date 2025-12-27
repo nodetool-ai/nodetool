@@ -113,7 +113,7 @@ const OverallDownloadProgress: React.FC = () => {
                 borderRadius: "2px",
                 overflow: "hidden",
                 position: "relative",
-                background: "#555",
+                background: "var(--palette-grey-600)",
                 flex: 1
               }}
             >

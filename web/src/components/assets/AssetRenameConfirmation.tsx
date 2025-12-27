@@ -169,7 +169,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             PaperProps={{
               className: "asset-rename-dialog-paper",
               style: {
-                backgroundColor: "rgba(0, 0, 0, 0.9)",
+                backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.9)`,
                 backdropFilter: "blur(10px)",
                 position: "absolute",
                 left: `${safeLeft}px`,

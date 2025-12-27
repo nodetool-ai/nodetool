@@ -63,7 +63,7 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
       slotProps={{
         backdrop: {
           style: {
-            backgroundColor: "rgba(0, 0, 0, 0.8)"
+            backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.8)`
           }
         }
       }}

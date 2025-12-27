@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       outline: "none"
     },
     ".error-line": {
-      backgroundColor: "rgba(255, 0, 0, 0.4)",
+      backgroundColor: `rgba(${theme.vars.palette.error.mainChannel} / 0.4)`,
       width: "100%",
       display: "inline-block"
     },

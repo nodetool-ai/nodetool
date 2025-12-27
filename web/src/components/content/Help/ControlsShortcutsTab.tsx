@@ -46,7 +46,7 @@ const ControlsShortcutsTab: React.FC = () => {
           if (!list.length) {return null;}
           return (
             <Box key={cat} sx={{ mb: 3 }}>
-              <Typography variant="h2" color="#999" sx={{ mb: 4 }}>
+              <Typography variant="h2" color="text.secondary" sx={{ mb: 4 }}>
                 {SHORTCUT_CATEGORIES[cat] ??
                   cat.charAt(0).toUpperCase() + cat.slice(1)}
               </Typography>
