@@ -1,7 +1,8 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import RemoteSettingsMenuComponent from "../RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -19,6 +20,36 @@ jest.mock("../../common/ExternalLink", () => {
 });
 jest.mock("../sharedSettingsStyles", () => ({
   getSharedSettingsStyles: () => ({})
+}));
+
+// Mock MUI components to avoid theme complexity
+jest.mock("@mui/material", () => ({
+  ...jest.requireActual("@mui/material"),
+  Button: ({ children, onClick, ...props }: any) => (
+    <button onClick={onClick} {...props}>{children}</button>
+  ),
+  TextField: ({ label, value, children, ...props }: any) => (
+    <div data-testid="TextField">
+      {label && <span className="textfield-label">{label}</span>}
+      <input {...props} value={value || ""} />
+      {children}
+    </div>
+  ),
+  Typography: ({ children, ...props }: any) => (
+    <span {...props}>{children}</span>
+  ),
+  Select: ({ children, ...props }: any) => (
+    <select {...props} data-testid="Select">{children}</select>
+  ),
+  MenuItem: ({ children, ...props }: any) => (
+    <option {...props}>{children}</option>
+  ),
+  FormControl: ({ children, ...props }: any) => (
+    <div {...props}>{children}</div>
+  ),
+  InputLabel: ({ children, ...props }: any) => (
+    <label {...props}>{children}</label>
+  )
 }));
 
 const mockUseRemoteSettingsStore = useRemoteSettingsStore as jest.MockedFunction<
@@ -39,7 +70,7 @@ const mockNotificationStore = {
   addNotification: jest.fn()
 };
 
-const theme = createTheme();
+const theme = mockTheme;
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: false },
