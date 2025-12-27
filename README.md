@@ -11,34 +11,34 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
-**Build AI Workflows Visually. Locally.**
+**Build AI Workflows Visually. Run Them Anywhere.**
 
-NodeTool is an open-source visual environment for building, testing, and deploying AI workflows. Connect powerful models running locally or in the cloud. No API keys needed for local inference. Your data stays with you.
+NodeTool is an open-source visual workflow builder. Design AI pipelines on your laptop, then deploy the same workflow to RunPod, Cloud Run, or your own servers—no code changes needed. Run powerful models locally or in the cloud. Your data stays with you.
 
 ![Screenshot](screenshot.png)
 
 ## Core Principles
 
-- **Local First**: Run entirely on your machine. No cloud dependency.
-- **Open Source**: AGPL-3.0 licensed. Inspect, modify, and self-host.
-- **Private**: No telemetry. No tracking. Your data is yours.
-- **Portable**: Workflows run anywhere, from laptop to cloud.
+- **Local First**: Run models on your machine. No mandatory cloud calls. Your data never leaves unless you want it to.
+- **Portable**: Build on your laptop, deploy anywhere. Same workflow runs on RunPod, Cloud Run, or self-hosted—no rewrites.
+- **Open & Inspectable**: See every step in real-time. Debug with confidence. AGPL-3.0 licensed—inspect and modify everything.
+- **Flexible**: Start with local models (free, private), switch to cloud APIs when you need them. You choose.
 
 ## Features
 
-- **Visual Workflow Engine**: Drag-and-drop interface with real-time execution, type safety, and multimodal support (text, image, audio, video).
-- **Universal Inference**: Run SOTA models (LLMs, Flux, SDXL) natively on Apple Silicon (MLX), NVIDIA GPUs, or CPU (llama.cpp).
-- **HuggingFace Integration**: Download and run thousands of models directly from the Hub.
-- **Flexible Providers**: Mix local models with APIs from OpenAI, Anthropic, Gemini, Replicate, and more.
-- **One-Click Deployment**: Scale from local dev to serverless GPUs with `nodetool deploy`.
-- **Asset Management**: Built-in manager for all your media files.
+- **Visual Workflow Engine**: Drag-and-drop AI pipelines. Real-time execution, type safety, multimodal support (text, image, audio, video). Watch results stream as they generate.
+- **Universal Inference**: Run SOTA models (LLMs, Flux, SDXL) on Apple Silicon (MLX), NVIDIA GPUs, or CPU (llama.cpp). No API fees. Works offline.
+- **HuggingFace Integration**: Access 500,000+ models from the Hub. Download and run them directly in your workflows.
+- **Flexible Providers**: Mix local models with cloud APIs (OpenAI, Anthropic, Gemini, Replicate). Use the best tool for each job.
+- **One-Click Deployment**: `nodetool deploy` pushes your workflow to RunPod, Cloud Run, or self-hosted. Same code, any environment.
+- **Asset Management**: Built-in manager for media files. Organize, persist, and access from any node.
 
 ## Use Cases
 
-- **Smart Assistants**: Chat with local documents.
-- **Agentic Workflows**: Search, classify, and automate.
-- **Content Creation**: Generate text, images, video, and music.
-- **Data Analysis**: Process data and extract insights.
+- **Smart Assistants**: Chat with local documents. Build RAG systems that keep your data private.
+- **Agentic Workflows**: Create AI agents that plan and execute. Search, classify, automate—all visual.
+- **Content Creation**: Generate images, video, music. Chain multiple AI models into creative pipelines.
+- **Data Analysis**: Transform data with AI. Extract insights, create visualizations, automate reports.
 
 ## Quick Start
 
