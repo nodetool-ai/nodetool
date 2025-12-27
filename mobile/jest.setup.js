@@ -25,6 +25,34 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
+// Mock expo-av for audio/video playback
+jest.mock('expo-av', () => ({
+  Video: jest.fn().mockImplementation(({ testID, ...props }) => {
+    const React = require('react');
+    const { View } = require('react-native');
+    return React.createElement(View, { testID: testID || 'mock-video', ...props });
+  }),
+  Audio: {
+    Sound: {
+      createAsync: jest.fn().mockResolvedValue({
+        sound: {
+          playAsync: jest.fn(),
+          pauseAsync: jest.fn(),
+          unloadAsync: jest.fn(),
+          setOnPlaybackStatusUpdate: jest.fn(),
+        },
+        status: { isLoaded: true, durationMillis: 60000 },
+      }),
+    },
+    setAudioModeAsync: jest.fn(),
+  },
+  ResizeMode: {
+    CONTAIN: 'contain',
+    COVER: 'cover',
+    STRETCH: 'stretch',
+  },
+}));
+
 // Mock react-syntax-highlighter
 jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
   atomDark: {},
