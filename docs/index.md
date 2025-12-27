@@ -135,29 +135,22 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
   </p>
 
   <div class="architecture-diagram">
-    <pre>
-┌──────────────────────────────────────────────────────────────────────────┐
-│                        YOUR PERSONAL AI STACK                            │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   📱 NodeTool Mobile                                                     │
-│       │                                                                  │
-│       │ (Secure Connection)                                              │
-│       ▼                                                                  │
-│   🔒 VPN / Tailscale / WireGuard                                        │
-│       │                                                                  │
-│       │ (Encrypted Tunnel to Your Network)                               │
-│       ▼                                                                  │
-│   🖥️  NodeTool Server (Your Hardware)                                    │
-│       │                                                                  │
-│       ├─────────────────┬────────────────┬─────────────────┐            │
-│       ▼                 ▼                ▼                 ▼            │
-│   🧠 Local LLMs     📁 Your Data     🎨 Creative AI    🔌 Integrations │
-│   Llama, Mistral    Documents         Flux, Whisper    APIs, Tools     │
-│   Qwen, Phi         Photos, Notes     Music, Video     Home Automation │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
-    </pre>
+    {% mermaid %}
+    flowchart TB
+      Mobile["📱 NodeTool Mobile"] --> |Secure Connection| VPN
+      VPN["🔒 VPN / Tailscale / WireGuard"] --> |Encrypted Tunnel| Server
+      Server["🖥️ NodeTool Server<br/>(Your Hardware)"]
+
+      subgraph Stack["Your AI Stack"]
+        direction TB
+        LLMs["🧠 Local LLMs<br/>Llama, Mistral, Qwen, Phi"]
+        Data["📁 Your Data<br/>Documents, Photos, Notes"]
+        Creative["🎨 Creative AI<br/>Flux, Whisper, Music, Video"]
+        Integrations["🔌 Integrations<br/>APIs, Tools, Home Automation"]
+      end
+
+      Server --> Stack
+    {% endmermaid %}
   </div>
 
   <h3>Choose Your Architecture</h3>
