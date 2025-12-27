@@ -406,9 +406,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {task && <TaskView task={task} />}
       {meta.showFooter && (
         <NodeFooter
+          id={id}
           nodeNamespace={meta.nodeNamespace}
           metadata={metadata}
           nodeType={type}
+          data={data}
         />
       )}
 
