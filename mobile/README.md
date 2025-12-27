@@ -1,13 +1,19 @@
 # NodeTool Mobile App
 
-React Native mobile application for running NodeTool Mini Apps.
+React Native mobile application for running NodeTool Mini Apps and AI Chat.
 
 ## Features
 
-- Browse and run Mini Apps (workflows)
-- Configure server host URL
-- Real-time workflow execution
-- Support for text, number, and boolean inputs
+- **AI Chat**: Real-time chat with AI assistants
+  - WebSocket-based streaming responses
+  - Markdown rendering with syntax highlighting
+  - Model selection (provider/model picker)
+  - Auto-scroll and loading indicators
+  - Stop generation support
+- **Mini Apps**: Browse and run workflows
+  - Configure server host URL
+  - Real-time workflow execution
+  - Support for text, number, and boolean inputs
 - Cross-platform support (iOS, Android, Web)
 
 ## Prerequisites
@@ -65,16 +71,35 @@ npm run web
 ```
 mobile/
 ├── src/
+│   ├── components/     # Reusable components
+│   │   ├── chat/       # Chat components
+│   │   │   ├── ChatView.tsx        # Main chat container
+│   │   │   ├── ChatComposer.tsx    # Input + send button
+│   │   │   ├── ChatMessageList.tsx # Message list
+│   │   │   ├── MessageView.tsx     # Individual message
+│   │   │   ├── ChatMarkdown.tsx    # Markdown renderer
+│   │   │   └── LoadingIndicator.tsx # Pulsating animation
+│   │   ├── properties/ # Input property components
+│   │   └── outputs/    # Output rendering components
 │   ├── navigation/     # Navigation configuration
 │   │   └── types.ts    # Navigation type definitions
 │   ├── screens/        # App screens
 │   │   ├── MiniAppsListScreen.tsx  # List of mini apps
 │   │   ├── MiniAppScreen.tsx       # Mini app detail/run screen
+│   │   ├── ChatScreen.tsx          # AI Chat screen
+│   │   ├── LanguageModelSelectionScreen.tsx # Model picker
 │   │   └── SettingsScreen.tsx      # Server settings
-│   ├── services/       # API services
-│   │   └── api.ts      # API client with configurable host
+│   ├── services/       # API and WebSocket services
+│   │   ├── api.ts          # API client
+│   │   └── WebSocketManager.ts # WebSocket with msgpack
+│   ├── stores/         # State management (Zustand)
+│   │   ├── ChatStore.ts    # Chat state
+│   │   └── ThemeStore.ts   # Theme state
 │   └── types/          # TypeScript types
-│       └── miniapp.ts  # Mini app related types
+│       ├── ApiTypes.ts     # Generated API types
+│       ├── chat.ts         # Chat types
+│       ├── miniapp.ts      # Mini app types
+│       └── workflow.ts     # Workflow types
 ├── App.tsx             # Main app component
 └── package.json        # Dependencies and scripts
 ```
@@ -82,8 +107,15 @@ mobile/
 ## Usage
 
 1. **Configure Server**: Open Settings and enter your NodeTool server URL
-2. **Browse Mini Apps**: View the list of available workflows
-3. **Run a Mini App**: 
+2. **AI Chat**:
+   - Tap the chat icon in the header to open Chat
+   - Select a model (tap model name in header)
+   - Type a message and tap send
+   - View streaming AI responses with markdown formatting
+   - Tap stop button to halt generation
+   - Tap + to start a new conversation
+3. **Browse Mini Apps**: View the list of available workflows
+4. **Run a Mini App**: 
    - Select a mini app from the list
    - Fill in the required inputs
    - Tap "Run" to execute the workflow
