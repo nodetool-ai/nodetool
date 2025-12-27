@@ -4,6 +4,12 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import AssetItem from "../AssetItem";
 import { Asset } from "../../../stores/ApiTypes";
+import { useSettingsStore } from "../../../stores/SettingsStore";
+
+// Mock the settings store to return a larger assetItemSize so the name is rendered
+jest.mock("../../../stores/SettingsStore", () => ({
+  useSettingsStore: jest.fn()
+}));
 
 // Mock the asset actions hook to isolate UI behavior
 jest.mock("../useAssetActions", () => ({
@@ -43,7 +49,13 @@ const baseImageAsset: Asset = {
   metadata: {}
 };
 
+// Mock the settings store to return a larger assetItemSize so the name is rendered
+const mockUseSettingsStore = useSettingsStore as jest.MockedFunction<typeof useSettingsStore>;
+
 describe("AssetItem", () => {
+  beforeEach(() => {
+    mockUseSettingsStore.mockReturnValue(4);  // Return assetItemSize directly
+  });
   it("renders name and filetype info", () => {
     renderWithTheme(
       <AssetItem asset={baseImageAsset} isSelected={false} showDeleteButton={false} />

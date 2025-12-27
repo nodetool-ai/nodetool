@@ -35,6 +35,7 @@ const createMockNode = (
     description: "",
     type: p.type || { type: "str", optional: false, values: null, type_args: [], type_name: null },
     default: null,
+    required: !p.type?.optional,
   })),
   recommended_models: recommendedModels.map((m) => ({
     id: m.id || "model-id",
