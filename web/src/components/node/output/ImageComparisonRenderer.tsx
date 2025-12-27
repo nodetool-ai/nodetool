@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo, useRef } from "react";
 import { ImageComparer } from "../../widgets";
-import { createImageUrl, ImageData } from "./image";
+import { createImageUrl, ImageData } from "../../../utils/imageUtils";
 
 export interface ImageComparisonData {
   type: "image_comparison";

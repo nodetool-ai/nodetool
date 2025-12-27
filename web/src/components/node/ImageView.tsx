@@ -4,7 +4,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import AssetViewer from "../assets/AssetViewer";
 import { isElectron } from "../../utils/browser";
-import { createImageUrl } from "./output/image";
+import { createImageUrl } from "../../utils/imageUtils";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
