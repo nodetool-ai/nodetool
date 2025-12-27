@@ -10,6 +10,7 @@ import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CompareIcon from "@mui/icons-material/Compare";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -50,6 +51,13 @@ const AssetItemContextMenu = () => {
   const isSingleImage =
     selectedAssets.length === 1 &&
     selectedAssets[0]?.content_type?.startsWith("image/");
+
+  // Check if exactly 2 images are selected for comparison
+  const isTwoImages =
+    selectedAssets.length === 2 &&
+    selectedAssets.every((asset) => asset.content_type?.startsWith("image/"));
+
+  const openCompareView = useAssetGridStore((state) => state.openCompareView);
 
   // Determine if we have non-folder assets selected for moving to new folder
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
@@ -130,6 +138,11 @@ const AssetItemContextMenu = () => {
   const copyImageToClipboard = withMenuClose(async () => {
     await handleCopyImageToClipboard();
   });
+  const handleCompareImages = withMenuClose(() => {
+    if (isTwoImages) {
+      openCompareView(selectedAssets[0], selectedAssets[1]);
+    }
+  });
 
   if (!menuPosition) {return null;}
   return (
@@ -193,6 +206,14 @@ const AssetItemContextMenu = () => {
             label="Copy Image"
             IconComponent={<ContentCopyIcon />}
             tooltip="Copy image to clipboard"
+          />
+        )}
+        {isTwoImages && (
+          <ContextMenuItem
+            onClick={handleCompareImages}
+            label="Compare Images"
+            IconComponent={<CompareIcon />}
+            tooltip="Compare the two selected images side-by-side"
           />
         )}
         <Divider />

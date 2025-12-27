@@ -12,14 +12,11 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
+import CompareIcon from "@mui/icons-material/Compare";
 import AssetItem from "./AssetItem";
+import { ImageComparer } from "../widgets";
 //
 //components
-import ImageViewer from "../asset_viewer/ImageViewer";
-import AudioViewer from "../asset_viewer/AudioViewer";
-import TextViewer from "../asset_viewer/TextViewer";
-import VideoViewer from "../asset_viewer/VideoViewer";
-import PDFViewer from "../asset_viewer/PDFViewer";
 //store
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
@@ -200,6 +197,41 @@ const styles = (theme: Theme) =>
     },
     ".prev-next-items .item .asset-item": {
       cursor: "pointer"
+    },
+    ".compare-mode-bar": {
+      position: "absolute",
+      top: "1em",
+      left: "50%",
+      transform: "translateX(-50%)",
+      display: "flex",
+      gap: "1em",
+      alignItems: "center",
+      padding: "8px 16px",
+      backgroundColor: "rgba(0,0,0,0.85)",
+      borderRadius: 8,
+      zIndex: 10001,
+      color: "#fff",
+      fontSize: 13
+    },
+    ".compare-mode-bar button": {
+      color: "#fff",
+      textTransform: "none"
+    },
+    ".select-for-compare": {
+      position: "absolute",
+      bottom: "130px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 10001,
+      padding: "6px 12px",
+      backgroundColor: "rgba(0,0,0,0.7)",
+      borderRadius: 6,
+      fontSize: 12,
+      color: "#fff"
+    },
+    ".prev-next-items .item.compare-selected": {
+      outline: "3px solid",
+      outlineColor: theme.vars.palette.primary.main
     }
   });
 
@@ -231,6 +263,20 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const prevNextAmount = 5;
 
+  // Compare mode state
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareAssetA, setCompareAssetA] = useState<Asset | null>(null);
+  const [compareAssetB, setCompareAssetB] = useState<Asset | null>(null);
+
+  // Reset compare mode when viewer closes
+  useEffect(() => {
+    if (!open) {
+      setCompareMode(false);
+      setCompareAssetA(null);
+      setCompareAssetB(null);
+    }
+  }, [open]);
+
   const { folderFiles } = useAssets();
 
   const assetsToUse = useMemo(
@@ -246,16 +292,56 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     return ct?.startsWith("image/") || false;
   }, [currentAsset?.content_type, contentType]);
 
+  // Check if there are multiple images to compare
+  const imageAssets = useMemo(
+    () => assetsToUse.filter((a) => a.content_type?.startsWith("image/")),
+    [assetsToUse]
+  );
+  const canCompare = isImage && imageAssets.length >= 2;
+
+  // Compare mode handlers
+  const startCompareMode = useCallback(() => {
+    if (currentAsset) {
+      setCompareMode(true);
+      setCompareAssetA(currentAsset);
+      setCompareAssetB(null);
+    }
+  }, [currentAsset]);
+
+  const cancelCompareMode = useCallback(() => {
+    setCompareMode(false);
+    setCompareAssetA(null);
+    setCompareAssetB(null);
+  }, []);
+
+  const selectAssetForCompare = useCallback(
+    (selectedAsset: Asset) => {
+      if (!compareMode) {
+        return;
+      }
+      if (compareAssetA && selectedAsset.id !== compareAssetA.id) {
+        setCompareAssetB(selectedAsset);
+      }
+    },
+    [compareMode, compareAssetA]
+  );
+
+  const exitCompareView = useCallback(() => {
+    setCompareAssetB(null);
+  }, []);
+
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
   const handleCopyToClipboard = useCallback(async () => {
     const imageSrc = currentAsset?.get_url || url;
-    if (!imageSrc || !isImage) {return;}
+    if (!imageSrc || !isImage) {
+      return;
+    }
 
     try {
       const response = await fetch(imageSrc);
       const blob = await response.blob();
-      
+
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
@@ -273,7 +359,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const handleChangeAsset = useCallback(
     (index: number) => {
-      if (!assetsToUse) {return;}
+      if (!assetsToUse) {
+        return;
+      }
       const newAsset = assetsToUse[index];
       setTimeout(() => {
         setCurrentAsset(newAsset);
@@ -347,8 +435,28 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     contentType
   });
 
+  // Handle clicking a thumbnail - either navigate or select for compare
+  const handleThumbnailClick = useCallback(
+    (thumbnailAsset: Asset, assetIndex: number) => {
+      if (compareMode && !compareAssetB) {
+        // In compare mode - select second asset
+        selectAssetForCompare(thumbnailAsset);
+      } else {
+        // Normal mode - navigate to asset
+        handleChangeAsset(assetIndex);
+      }
+    },
+    [compareMode, compareAssetB, selectAssetForCompare, handleChangeAsset]
+  );
+
   const navigation = useMemo(() => {
-    if (currentIndex === null) {return null;}
+    if (currentIndex === null) {
+      return null;
+    }
+    // Hide navigation when showing comparison
+    if (compareAssetB) {
+      return null;
+    }
     const prevAssets =
       assetsToUse?.slice(
         Math.max(0, currentIndex - prevNextAmount),
@@ -357,39 +465,58 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     const nextAssets =
       assetsToUse?.slice(currentIndex + 1, currentIndex + prevNextAmount + 1) ||
       [];
+
+    // Filter to images only when in compare mode
+    const filterForCompare = (assets: Asset[]) =>
+      compareMode
+        ? assets.filter((a) => a.content_type?.startsWith("image/"))
+        : assets;
+
+    const displayPrevAssets = filterForCompare(prevAssets);
+    const displayNextAssets = filterForCompare(nextAssets);
+
     return (
       <>
-        <IconButton
-          className="prev-next-button left"
-          onMouseDown={() => handleChangeAsset(Math.max(0, currentIndex - 1))}
-          disabled={prevAssets?.length === 0}
-        >
-          <KeyboardArrowLeftIcon />
-        </IconButton>
-        <IconButton
-          className="prev-next-button right"
-          onMouseDown={() =>
-            handleChangeAsset(
-              Math.min(assetsToUse.length - 1, currentIndex + 1)
-            )
-          }
-          disabled={nextAssets?.length === 0}
-        >
-          <KeyboardArrowRightIcon />
-        </IconButton>
+        {!compareMode && (
+          <>
+            <IconButton
+              className="prev-next-button left"
+              onMouseDown={() =>
+                handleChangeAsset(Math.max(0, currentIndex - 1))
+              }
+              disabled={prevAssets?.length === 0}
+            >
+              <KeyboardArrowLeftIcon />
+            </IconButton>
+            <IconButton
+              className="prev-next-button right"
+              onMouseDown={() =>
+                handleChangeAsset(
+                  Math.min(assetsToUse.length - 1, currentIndex + 1)
+                )
+              }
+              disabled={nextAssets?.length === 0}
+            >
+              <KeyboardArrowRightIcon />
+            </IconButton>
+          </>
+        )}
         <div className="asset-navigation">
           <div className="prev-next-items left">
-            {prevAssets?.map((asset, idx) => {
+            {displayPrevAssets?.map((asset, idx) => {
               // Calculate the actual index in the assetsToUse array
               const assetIndex = Math.max(
                 0,
                 currentIndex - prevAssets.length + idx
               );
+              const isCompareSelected = compareAssetA?.id === asset.id;
               return (
                 <Button
-                  className="item"
+                  className={`item ${
+                    isCompareSelected ? "compare-selected" : ""
+                  }`}
                   key={asset.id || idx}
-                  onMouseDown={() => handleChangeAsset(assetIndex)}
+                  onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
                 >
                   <AssetItem
                     asset={asset}
@@ -405,7 +532,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               );
             })}
           </div>
-          <div className="prev-next-items current">
+          <div
+            className={`prev-next-items current ${
+              compareAssetA?.id === currentAsset?.id ? "compare-selected" : ""
+            }`}
+          >
             <AssetItem
               asset={currentAsset as Asset}
               draggable={false}
@@ -418,14 +549,17 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             />
           </div>
           <div className="prev-next-items right">
-            {nextAssets?.map((asset, idx) => {
+            {displayNextAssets?.map((asset, idx) => {
               // Calculate the actual index in the assetsToUse array
               const assetIndex = currentIndex + 1 + idx;
+              const isCompareSelected = compareAssetA?.id === asset.id;
               return (
                 <Button
-                  className="item"
+                  className={`item ${
+                    isCompareSelected ? "compare-selected" : ""
+                  }`}
                   key={asset.id || idx}
-                  onMouseDown={() => handleChangeAsset(assetIndex)}
+                  onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
                 >
                   <AssetItem
                     asset={asset}
@@ -461,7 +595,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     assetsToUse,
     currentAsset,
     currentFolderName,
-    handleChangeAsset
+    handleChangeAsset,
+    handleThumbnailClick,
+    compareMode,
+    compareAssetA,
+    compareAssetB
   ]);
 
   if (!open) {
@@ -501,12 +639,25 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               </IconButton>
             </Tooltip>
           )}
+          {canCompare && !compareMode && !compareAssetB && (
+            <Tooltip title="Compare with another image">
+              <IconButton
+                className="button compare"
+                edge="end"
+                color="inherit"
+                onMouseDown={startCompareMode}
+                aria-label="compare"
+              >
+                <CompareIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Close" enterDelay={TOOLTIP_ENTER_DELAY}>
             <IconButton
               className="button close"
               edge="end"
               color="inherit"
-              onMouseDown={handleClose}
+              onMouseDown={compareAssetB ? exitCompareView : handleClose}
               aria-label="close"
             >
               <CloseIcon />
@@ -514,7 +665,34 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           </Tooltip>
         </div>
 
-        {assetViewer}
+        {/* Compare mode instruction bar */}
+        {compareMode && !compareAssetB && (
+          <div className="compare-mode-bar">
+            <Typography variant="body2">
+              Select another image from the thumbnails below to compare
+            </Typography>
+            <Button size="small" onClick={cancelCompareMode}>
+              Cancel
+            </Button>
+          </div>
+        )}
+
+        {/* Show ImageComparer when both assets selected, otherwise show normal viewer */}
+        {compareAssetA && compareAssetB ? (
+          <div style={{ width: "100%", height: "calc(100% - 120px)" }}>
+            <ImageComparer
+              imageA={compareAssetA.get_url || ""}
+              imageB={compareAssetB.get_url || ""}
+              labelA={compareAssetA.name || "A"}
+              labelB={compareAssetB.name || "B"}
+              showLabels={true}
+              showMetadata={true}
+              initialMode="horizontal"
+            />
+          </div>
+        ) : (
+          assetViewer
+        )}
         {navigation}
       </Dialog>
     </div>

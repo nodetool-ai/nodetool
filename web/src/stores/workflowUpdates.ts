@@ -73,7 +73,7 @@ export const handleUpdate = (
   const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
 
-  console.log("handleUpdate", data);
+  // console.log("handleUpdate", data);
 
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;
@@ -288,7 +288,9 @@ export const handleUpdate = (
         workflowName: workflow.name,
         nodeId: update.node_id,
         nodeName: update.node_name || update.node_id,
-        content: `${update.node_name || update.node_id} status: ${update.status}`,
+        content: `${update.node_name || update.node_id} status: ${
+          update.status
+        }`,
         severity: "info",
         timestamp: Date.now(),
         data: update.result

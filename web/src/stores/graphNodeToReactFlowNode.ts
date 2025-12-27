@@ -9,6 +9,7 @@ export function graphNodeToReactFlowNode(
 ): Node<NodeData> {
   const ui_properties = node.ui_properties as NodeUIProperties;
   const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
+  const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
 
   // Debug: warn if node.data contains a stale workflow_id
   if (
@@ -24,13 +25,22 @@ export function graphNodeToReactFlowNode(
     );
   }
 
-  // Set default size for Preview nodes if not already set
-  const defaultWidth =
-    isPreviewNode && !ui_properties?.width
-      ? 400
-      : ui_properties?.width || DEFAULT_NODE_WIDTH;
-  const defaultHeight =
-    isPreviewNode && !ui_properties?.height ? 300 : ui_properties?.height;
+  // Set default size for Preview and CompareImages nodes if not already set
+  let defaultWidth = ui_properties?.width || DEFAULT_NODE_WIDTH;
+  let defaultHeight = ui_properties?.height;
+
+  if (isPreviewNode && !ui_properties?.width) {
+    defaultWidth = 400;
+  }
+  if (isPreviewNode && !ui_properties?.height) {
+    defaultHeight = 300;
+  }
+  if (isCompareImagesNode && !ui_properties?.width) {
+    defaultWidth = 450;
+  }
+  if (isCompareImagesNode && !ui_properties?.height) {
+    defaultHeight = 350;
+  }
 
   return {
     type: node.type,

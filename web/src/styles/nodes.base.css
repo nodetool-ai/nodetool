@@ -7,7 +7,7 @@
 .react-flow__nodes
   .react-flow__node:not([class*="Preview"]):not([class*="Loop"]):not(
     [class*="Group"]
-  ):not([class*="Comment"]) {
+  ):not([class*="Comment"]):not([class*="CompareImages"]) {
   height: auto !important;
   /* max-height: 500px; */
 }
