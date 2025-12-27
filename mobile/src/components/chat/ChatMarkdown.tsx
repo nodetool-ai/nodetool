@@ -1,16 +1,20 @@
 import React from 'react';
-import { StyleSheet, View, ScrollView, Platform } from 'react-native';
+import { StyleSheet, View, ScrollView, Platform, Text } from 'react-native';
 import Markdown, { RenderRules } from 'react-native-markdown-display';
 import SyntaxHighlighter from 'react-native-syntax-highlighter';
 import { atomDark, tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useTheme } from '../hooks/useTheme';
+import { useTheme } from '../../hooks/useTheme';
 
-interface MarkdownRendererProps {
+interface ChatMarkdownProps {
   content: string;
 }
 
-const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
   const { colors, mode } = useTheme();
+  
+  if (!content) {
+    return null;
+  }
 
   const codeTheme = mode === 'dark' ? atomDark : tomorrow;
 
@@ -70,36 +74,50 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   const markdownStyles = StyleSheet.create({
     body: {
       color: colors.text,
-      fontSize: 16,
+      fontSize: 15,
+      lineHeight: 22,
     },
     heading1: {
+      color: colors.text,
       fontSize: 24,
       fontWeight: 'bold',
+      marginTop: 12,
       marginBottom: 8,
-      marginTop: 16,
-      color: colors.text,
     },
     heading2: {
+      color: colors.text,
       fontSize: 20,
       fontWeight: 'bold',
-      marginBottom: 8,
-      marginTop: 16,
-      color: colors.text,
+      marginTop: 10,
+      marginBottom: 6,
     },
-    paragraph: {
-      marginBottom: 10,
-      lineHeight: 22,
+    heading3: {
       color: colors.text,
+      fontSize: 18,
+      fontWeight: '600',
+      marginTop: 8,
+      marginBottom: 4,
     },
     link: {
       color: colors.primary,
+      textDecorationLine: 'underline',
+    },
+    blockquote: {
+      backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+      borderLeftWidth: 3,
+      borderLeftColor: colors.primary,
+      paddingLeft: 12,
+      paddingVertical: 4,
+      marginVertical: 8,
     },
     code_inline: {
       backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-      padding: 2,
-      borderRadius: 4,
+      color: colors.primary,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-      color: mode === 'dark' ? '#FF79C6' : '#D00060',
+      fontSize: 13,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
     },
     code_block: {
       backgroundColor: mode === 'dark' ? '#1E1E1E' : '#F5F5F5',
@@ -117,21 +135,56 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       borderWidth: 1,
       borderColor: colors.border,
     },
+    bullet_list_icon: {
+      color: colors.primary,
+      marginRight: 8,
+    },
+    ordered_list_icon: {
+      color: colors.primary,
+      marginRight: 8,
+    },
+    table: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 4,
+      marginVertical: 8,
+    },
+    thead: {
+      backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    th: {
+      padding: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      color: colors.text,
+      fontWeight: '600',
+    },
+    td: {
+      padding: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      color: colors.text,
+    },
+    hr: {
+      backgroundColor: colors.border,
+      height: 1,
+      marginVertical: 12,
+    },
+    strong: {
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+    em: {
+      fontStyle: 'italic',
+      color: colors.text,
+    },
   });
 
   return (
-    <View style={styles.container}>
-      <Markdown style={markdownStyles} rules={rules}>
-        {content}
-      </Markdown>
-    </View>
+    <Markdown style={markdownStyles} rules={rules}>
+      {content}
+    </Markdown>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 8,
-  },
-});
-
-export default MarkdownRenderer;
+export default ChatMarkdown;

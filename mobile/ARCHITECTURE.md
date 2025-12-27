@@ -48,19 +48,44 @@ mobile/
 │   ├── screens/             # Screen components
 │   │   ├── MiniAppsListScreen.tsx   # List of available mini apps
 │   │   ├── MiniAppScreen.tsx        # Mini app execution screen
-│   │   └── SettingsScreen.tsx       # Server configuration
+│   │   ├── SettingsScreen.tsx       # Server configuration
+│   │   └── ChatScreen.tsx           # AI chat interface
+│   │
+│   ├── components/          # Reusable components
+│   │   └── chat/           # Chat-specific components
+│   │       ├── index.ts           # Component exports
+│   │       ├── ChatView.tsx       # Main chat container
+│   │       ├── ChatComposer.tsx   # Input field + send button
+│   │       ├── ChatMessageList.tsx # Message list with auto-scroll
+│   │       ├── MessageView.tsx    # Individual message rendering
+│   │       ├── ChatMarkdown.tsx   # Markdown renderer
+│   │       └── LoadingIndicator.tsx # Pulsating animation
 │   │
 │   ├── services/            # Service layer
-│   │   └── api.ts          # API client with configurable host
+│   │   ├── api.ts          # API client with configurable host
+│   │   └── WebSocketManager.ts # WebSocket with reconnect
+│   │
+│   ├── stores/              # State management
+│   │   ├── WorkflowRunner.ts # Workflow execution state
+│   │   └── ChatStore.ts      # Chat state (Zustand)
+│   │
+│   ├── hooks/               # Custom React hooks
+│   │   └── useMiniAppInputs.ts
 │   │
 │   └── types/              # TypeScript type definitions
-│       └── miniapp.ts      # Mini app domain types
+│       ├── index.ts        # Type exports
+│       ├── ApiTypes.ts     # API-generated types
+│       ├── miniapp.ts      # Mini app domain types
+│       ├── workflow.ts     # Workflow types
+│       └── chat.ts         # Chat-specific types
 │
 ├── assets/                 # Images, icons, splash screens
 ├── App.tsx                # Root component with navigation
 ├── app.json               # Expo configuration
 ├── package.json           # Dependencies
-└── tsconfig.json          # TypeScript configuration
+├── tsconfig.json          # TypeScript configuration
+├── ARCHITECTURE.md        # Architecture documentation
+└── PRD_CHAT_FEATURE.md    # Chat feature PRD
 ```
 
 ## Component Architecture
@@ -224,6 +249,7 @@ type RootStackParamList = {
     workflowName: string;
   };
   Settings: undefined;
+  Chat: undefined;
 };
 ```
 
@@ -232,9 +258,86 @@ type RootStackParamList = {
 ```
 MiniAppsListScreen
 ├── Settings (from header button)
+├── Chat (from header button)
 └── MiniApp (from workflow card tap)
     └── Settings (from error alert)
 ```
+
+## Chat Feature Architecture
+
+### Overview
+
+The Chat screen provides AI assistant functionality using WebSocket-based real-time communication, adapted from the web application.
+
+### Components
+
+```
+ChatScreen
+├── ChatView
+│   ├── ChatMessageList
+│   │   └── MessageView (for each message)
+│   │       └── ChatMarkdown (for assistant responses)
+│   ├── LoadingIndicator (during AI response)
+│   └── ChatComposer
+│       ├── TextInput
+│       └── SendButton / StopButton
+```
+
+### State Management
+
+The `ChatStore` (Zustand) manages:
+
+```typescript
+interface ChatState {
+  status: ChatStatus;           // Connection state
+  statusMessage: string | null; // Progress messages
+  error: string | null;         // Error messages
+  threads: Record<string, Thread>;
+  currentThreadId: string | null;
+  messageCache: Record<string, Message[]>;
+}
+```
+
+### WebSocket Communication
+
+**WebSocketManager** handles:
+- Connection lifecycle with auto-reconnect
+- Msgpack encoding/decoding
+- Exponential backoff for reconnection
+- Message queueing during disconnection
+
+**Message Protocol:**
+- User messages sent with `type: "message"`
+- Server responds with `chunk` (streaming) or `message` (complete)
+- `job_update` and `node_update` for progress
+- `generation_stopped` for stop confirmation
+
+### Key Adaptations from Web
+
+| Web Pattern | Mobile Adaptation |
+|-------------|-------------------|
+| `@emotion/react` CSS | `StyleSheet.create()` |
+| `TextareaAutosize` | `TextInput` with `multiline` |
+| `react-markdown` | `react-native-markdown-display` |
+| CSS `@keyframes` animation | `Animated` API |
+| EventEmitter | Callback-based |
+| `window` events | React Native lifecycle |
+
+### Message Rendering
+
+- **User messages**: Plain text with accent background
+- **Assistant messages**: Full markdown rendering with:
+  - Headers, bold, italic
+  - Code blocks with syntax highlighting
+  - Links, lists, tables
+  - Blockquotes
+
+### Loading Indicator
+
+Pulsating animation using React Native's `Animated` API:
+- Scale animation: 0.8 → 1.2 → 0.8
+- Opacity animation: 0.5 → 1.0 → 0.5
+- 1.4s cycle duration
 
 ## Type System
 

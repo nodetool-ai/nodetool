@@ -20,3 +20,16 @@ export type {
   MiniAppResult,
   MiniAppProgress,
 } from "./miniapp";
+// Export chat types selectively to avoid conflicts with ApiTypes
+export type {
+  ConnectionState,
+  ChatStatus,
+  WebSocketMessageData,
+  GenerationStoppedUpdate,
+  ErrorUpdate,
+  ChatMessageRequest,
+  StopGenerationRequest,
+  ChatState,
+  ChatActions,
+  WebSocketConfig,
+} from "./chat";
