@@ -32,6 +32,8 @@ import FoldersSettings from "./FoldersSettingsMenu";
 import { getFoldersSidebarSections } from "./foldersSidebarUtils";
 import SecretsMenu from "./SecretsMenu";
 import { getSecretsSidebarSections } from "./secretsSidebarUtils";
+import AboutMenu from "./AboutMenu";
+import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -340,6 +342,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   <Tab label="API Settings" id="settings-tab-1" />
                   <Tab label="Folders" id="settings-tab-2" />
                   <Tab label="API Secrets" id="settings-tab-3" />
+                  <Tab label="About" id="settings-tab-4" />
                 </Tabs>
               </div>
 
@@ -356,6 +359,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       ? getFoldersSidebarSections()
                       : settingsTab === 3
                       ? getSecretsSidebarSections()
+                      : settingsTab === 4
+                      ? getAboutSidebarSections()
                       : []
                   }
                   onSectionClick={scrollToSection}
@@ -776,6 +781,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </TabPanel>
                   <TabPanel value={settingsTab} index={3}>
                     <SecretsMenu />
+                  </TabPanel>
+                  <TabPanel value={settingsTab} index={4}>
+                    <AboutMenu />
                   </TabPanel>
                 </div>
               </div>

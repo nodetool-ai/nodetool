@@ -171,28 +171,28 @@ export const DownloadProgress: React.FC<{
       download.status === "running" ||
       download.status === "progress" ||
       download.status === "start";
-    if (!isActive) return false;
+    if (!isActive) {return false;}
 
     // If WebSocket is disconnected, consider it stalled
-    if (isDisconnected) return true;
+    if (isDisconnected) {return true;}
 
     // Check for time-based stall
-    if (!download.lastUpdated) return false;
+    if (!download.lastUpdated) {return false;}
     return now - download.lastUpdated > STALL_THRESHOLD_MS;
   }, [download.lastUpdated, download.status, now, isDisconnected]);
 
   // Calculate time since last update for display
   const timeSinceUpdate = useMemo(() => {
-    if (!download.lastUpdated || !isStalled) return null;
+    if (!download.lastUpdated || !isStalled) {return null;}
     const seconds = Math.floor((now - download.lastUpdated) / 1000);
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) {return `${seconds}s`;}
     const minutes = Math.floor(seconds / 60);
     return `${minutes}m ${seconds % 60}s`;
   }, [download.lastUpdated, isStalled, now]);
 
   const eta = useMemo(() => {
     // Don't show ETA if stalled
-    if (isStalled) return null;
+    if (isStalled) {return null;}
     if (download.speed && download.speed > 0) {
       const remainingBytes = totalBytes - downloadedBytes;
       const remainingSeconds = remainingBytes / download.speed;
@@ -205,9 +205,9 @@ export const DownloadProgress: React.FC<{
 
   // Display speed - show as stalled/disconnected if no recent updates
   const displaySpeed = useMemo(() => {
-    if (isDisconnected) return "Disconnected";
-    if (isReconnecting) return "Reconnecting...";
-    if (isStalled) return "Stalled";
+    if (isDisconnected) {return "Disconnected";}
+    if (isReconnecting) {return "Reconnecting...";}
+    if (isStalled) {return "Stalled";}
     if (download.speed) {
       return `${(download.speed / 1024 / 1024).toFixed(2)} MB/s`;
     }
