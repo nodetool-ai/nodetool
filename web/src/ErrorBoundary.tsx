@@ -107,7 +107,7 @@ const ErrorBoundary: React.FC = () => {
         <Typography variant="h6" className="error-message">
           If this happens again, please let us know in the
           <a
-            href="https:forum.nodetool.ai"
+            href="https://forum.nodetool.ai"
             style={{
               textDecoration: "none",
               border: "1px solid",

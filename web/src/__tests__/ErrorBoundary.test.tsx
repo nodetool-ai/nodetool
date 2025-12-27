@@ -143,7 +143,7 @@ describe("ErrorBoundary", () => {
 
     const forumLink = screen.getByRole("link", { name: /forum/i });
     expect(forumLink).toBeInTheDocument();
-    expect(forumLink).toHaveAttribute("href", "https:forum.nodetool.ai");
+    expect(forumLink).toHaveAttribute("href", "https://forum.nodetool.ai");
     expect(forumLink).toHaveAttribute("target", "_blank");
   });
 
