@@ -10,6 +10,37 @@ jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid-1234'),
 }));
 
+// Mock @expo/vector-icons
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react');
+  return {
+    Ionicons: ({ name, size, color, testID, ...props }) =>
+      React.createElement('Icon', {
+        testID: testID || `icon-${name}`,
+        name,
+        size,
+        color,
+        ...props,
+      }),
+  };
+});
+
+// Mock react-syntax-highlighter
+jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
+  atomDark: {},
+  tomorrow: {},
+}));
+
+jest.mock('react-native-syntax-highlighter', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: ({ children, language, highlighter, ...props }) =>
+      React.createElement(Text, { testID: 'syntax-highlighter', ...props }, children),
+  };
+});
+
 // Silence console methods to reduce noise in tests
 const originalConsole = { ...console };
 beforeAll(() => {

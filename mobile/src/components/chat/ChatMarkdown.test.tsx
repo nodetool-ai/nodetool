@@ -6,7 +6,26 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ChatMarkdown } from './ChatMarkdown';
 
+// Mock useTheme hook
+jest.mock('../../hooks/useTheme', () => ({
+  useTheme: jest.fn(() => ({
+    colors: {
+      text: '#FFFFFF',
+      textSecondary: '#AAAAAA',
+      background: '#000000',
+      primary: '#007AFF',
+      border: '#444444',
+      inputBg: '#1E1E1E',
+    },
+    mode: 'dark',
+  })),
+}));
+
 describe('ChatMarkdown', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('renders null when content is empty', () => {
     const { toJSON } = render(<ChatMarkdown content="" />);
     expect(toJSON()).toBeNull();
@@ -23,6 +42,42 @@ describe('ChatMarkdown', () => {
   });
 
   it('renders simple text content', () => {
+    const { UNSAFE_root } = render(<ChatMarkdown content="Hello world" />);
+    expect(UNSAFE_root).toBeTruthy();
+  });
+
+  it('uses dark theme for code by default', () => {
+    const content = '```javascript\nconst x = 1;\n```';
+    const { UNSAFE_root } = render(<ChatMarkdown content={content} />);
+    expect(UNSAFE_root).toBeTruthy();
+  });
+
+  it('uses light theme for code when in light mode', () => {
+    const { useTheme } = require('../../hooks/useTheme');
+    useTheme.mockReturnValue({
+      colors: {
+        text: '#000000',
+        textSecondary: '#666666',
+        background: '#FFFFFF',
+        primary: '#007AFF',
+        border: '#CCCCCC',
+        inputBg: '#F5F5F5',
+      },
+      mode: 'light',
+    });
+
+    const content = '```javascript\nconst x = 1;\n```';
+    const { UNSAFE_root } = render(<ChatMarkdown content={content} />);
+    expect(UNSAFE_root).toBeTruthy();
+  });
+
+  it('renders code block without language', () => {
+    const content = '```\nplain code\n```';
+    const { UNSAFE_root } = render(<ChatMarkdown content={content} />);
+    expect(UNSAFE_root).toBeTruthy();
+  });
+
+  it('renders markdown with bold text', () => {
     const { UNSAFE_root } = render(<ChatMarkdown content="Hello world" />);
     expect(UNSAFE_root).toBeTruthy();
   });

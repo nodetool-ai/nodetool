@@ -758,4 +758,38 @@ describe('ChatStore', () => {
       });
     });
   });
+
+  describe('setSelectedModel', () => {
+    it('sets the selected language model', () => {
+      const model = {
+        id: 'gpt-4',
+        name: 'GPT-4',
+        provider: 'openai',
+      };
+
+      useChatStore.getState().setSelectedModel(model);
+      
+      expect(useChatStore.getState().selectedModel).toEqual(model);
+    });
+
+    it('replaces previously selected model', () => {
+      const model1 = {
+        id: 'gpt-3.5-turbo',
+        name: 'GPT-3.5 Turbo',
+        provider: 'openai',
+      };
+      
+      const model2 = {
+        id: 'gpt-4',
+        name: 'GPT-4',
+        provider: 'openai',
+      };
+
+      useChatStore.getState().setSelectedModel(model1);
+      expect(useChatStore.getState().selectedModel).toEqual(model1);
+      
+      useChatStore.getState().setSelectedModel(model2);
+      expect(useChatStore.getState().selectedModel).toEqual(model2);
+    });
+  });
 });
