@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useMemo, useRef } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -17,6 +17,7 @@ import { ImageComparer } from "../../widgets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import HandleTooltip from "../../HandleTooltip";
 import { Slugify } from "../../../utils/TypeHandler";
+import { createImageUrl, ImageData } from "../output/image";
 
 const styles = (theme: Theme) =>
   css({
@@ -126,42 +127,32 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
     }
     return result as {
       type: string;
-      image_a: { uri?: string; data?: string; type?: string };
-      image_b: { uri?: string; data?: string; type?: string };
+      image_a: { uri?: string; data?: ImageData; type?: string };
+      image_b: { uri?: string; data?: ImageData; type?: string };
       label_a?: string;
       label_b?: string;
     };
   }, [result]);
 
-  // Get image URL from normalized image data
-  const getImageUrl = (
-    imageData: { uri?: string; data?: string } | null | undefined
-  ): string => {
-    if (!imageData) {
-      return "";
-    }
-    if (imageData.uri) {
-      return imageData.uri;
-    }
-    if (imageData.data) {
-      if (typeof imageData.data === "string") {
-        if (imageData.data.startsWith("data:")) {
-          return imageData.data;
-        }
-        return `data:image/png;base64,${imageData.data}`;
-      }
-    }
-    return "";
-  };
+  // Track blob URLs for cleanup
+  const blobUrlARef = useRef<string | null>(null);
+  const blobUrlBRef = useRef<string | null>(null);
 
-  const imageAUrl = useMemo(
-    () => getImageUrl(comparisonData?.image_a),
-    [comparisonData]
-  );
-  const imageBUrl = useMemo(
-    () => getImageUrl(comparisonData?.image_b),
-    [comparisonData]
-  );
+  const { imageAUrl, imageBUrl } = useMemo(() => {
+    const resultA = createImageUrl(
+      comparisonData?.image_a,
+      blobUrlARef.current
+    );
+    const resultB = createImageUrl(
+      comparisonData?.image_b,
+      blobUrlBRef.current
+    );
+
+    blobUrlARef.current = resultA.blobUrl;
+    blobUrlBRef.current = resultB.blobUrl;
+
+    return { imageAUrl: resultA.url, imageBUrl: resultB.url };
+  }, [comparisonData]);
 
   const hasImages = imageAUrl !== "" && imageBUrl !== "";
 
