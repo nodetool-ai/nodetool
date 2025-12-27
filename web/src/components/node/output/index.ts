@@ -1,5 +1,4 @@
 export * from "./audio";
-export * from "./image";
 export * from "./markdown";
 export * from "./svg";
 export * from "./styles";

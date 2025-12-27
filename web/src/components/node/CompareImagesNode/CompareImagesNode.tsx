@@ -17,7 +17,7 @@ import { ImageComparer } from "../../widgets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import HandleTooltip from "../../HandleTooltip";
 import { Slugify } from "../../../utils/TypeHandler";
-import { createImageUrl, ImageData } from "../output/image";
+import { createImageUrl, ImageData } from "../../../utils/imageUtils";
 
 const styles = (theme: Theme) =>
   css({

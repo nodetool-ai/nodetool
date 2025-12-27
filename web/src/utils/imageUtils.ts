@@ -1,5 +1,5 @@
 /**
- * Image utility functions for node outputs
+ * Image utility functions for converting various image data formats to displayable URLs.
  */
 
 export type ImageData = string | Uint8Array | number[];
@@ -92,3 +92,4 @@ export const createImageUrl = (
   const blobUrl = URL.createObjectURL(blob);
   return { url: blobUrl, blobUrl };
 };
+
