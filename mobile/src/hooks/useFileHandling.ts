@@ -7,52 +7,53 @@ import { useState, useCallback } from 'react';
 import { MessageContent } from '../types/ApiTypes';
 import { DroppedFile, DOC_TYPES_REGEX } from '../types/chat.types';
 
+/**
+ * Converts a DroppedFile to MessageContent format.
+ * Extracted outside the hook to prevent recreation on every render.
+ */
+const makeMessageContent = (file: DroppedFile): MessageContent => {
+  if (file.type.startsWith('image/')) {
+    return {
+      type: 'image_url',
+      image: {
+        type: 'image',
+        uri: file.dataUri,
+      },
+    };
+  } else if (file.type.startsWith('audio/')) {
+    return {
+      type: 'audio',
+      audio: {
+        type: 'audio',
+        uri: file.dataUri,
+      },
+    };
+  } else if (file.type.startsWith('video/')) {
+    return {
+      type: 'video',
+      video: {
+        type: 'video',
+        uri: file.dataUri,
+      },
+    };
+  } else if (file.type.match(DOC_TYPES_REGEX)) {
+    return {
+      type: 'document',
+      document: {
+        type: 'document',
+        uri: file.dataUri,
+      },
+    };
+  } else {
+    return {
+      type: 'text',
+      text: file.name,
+    };
+  }
+};
+
 export const useFileHandling = () => {
   const [droppedFiles, setDroppedFiles] = useState<DroppedFile[]>([]);
-
-  /**
-   * Converts a DroppedFile to MessageContent format
-   */
-  const makeMessageContent = (file: DroppedFile): MessageContent => {
-    if (file.type.startsWith('image/')) {
-      return {
-        type: 'image_url',
-        image: {
-          type: 'image',
-          uri: file.dataUri,
-        },
-      };
-    } else if (file.type.startsWith('audio/')) {
-      return {
-        type: 'audio',
-        audio: {
-          type: 'audio',
-          uri: file.dataUri,
-        },
-      };
-    } else if (file.type.startsWith('video/')) {
-      return {
-        type: 'video',
-        video: {
-          type: 'video',
-          uri: file.dataUri,
-        },
-      };
-    } else if (file.type.match(DOC_TYPES_REGEX)) {
-      return {
-        type: 'document',
-        document: {
-          type: 'document',
-          uri: file.dataUri,
-        },
-      };
-    } else {
-      return {
-        type: 'text',
-        text: file.name,
-      };
-    }
-  };
 
   /**
    * Add files from a native file picker or similar source

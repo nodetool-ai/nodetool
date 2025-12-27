@@ -167,12 +167,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Use a simpler touch handler to avoid import issues
+  // Import TouchableOpacity directly to fix type issues
+  const { TouchableOpacity } = require('react-native');
+
   return (
     <View style={styles.audioPlayerContainer}>
-      <View 
+      <TouchableOpacity 
         style={styles.playButton}
-        onTouchEnd={togglePlayback}
+        onPress={togglePlayback}
         accessible
         accessibilityRole="button"
         accessibilityLabel={isPlaying ? 'Pause audio' : 'Play audio'}
@@ -180,7 +182,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
         <Text style={[styles.playButtonText, { color: colors.primary }]}>
           {isPlaying ? '⏸' : '▶'}
         </Text>
-      </View>
+      </TouchableOpacity>
       <View style={styles.audioInfo}>
         <View style={styles.progressBar}>
           <View
