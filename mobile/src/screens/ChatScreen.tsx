@@ -51,11 +51,10 @@ export default function ChatScreen({ navigation }: Props) {
 
     initializeChat();
 
-    // Cleanup on unmount
-    return () => {
-      // Don't disconnect on unmount to keep connection alive
-      // disconnect();
-    };
+    // Note: We intentionally keep the WebSocket connection alive when navigating
+    // away from the chat screen to provide a seamless experience when returning.
+    // The connection will be cleaned up when the app is backgrounded/closed
+    // via the WebSocketManager's destroy method in the ChatStore.
   }, [connect, currentThreadId, createNewThread]);
 
   // Handle new chat

@@ -91,9 +91,9 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           editable={!isDisconnected && !disabled}
           returnKeyType="default"
           blurOnSubmit={false}
-          autoCorrect={false}
-          autoCapitalize="none"
-          spellCheck={false}
+          autoCorrect={true}
+          autoCapitalize="sentences"
+          spellCheck={true}
         />
         
         {isGenerating && onStop ? (

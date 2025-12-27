@@ -400,6 +400,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
+  /**
+   * Creates a new thread locally.
+   * 
+   * Note: Threads are created client-side and auto-created on the server
+   * when the first message is sent. This matches the web implementation
+   * where the server auto-creates threads on first message.
+   */
   createNewThread: async (title?: string) => {
     const id = uuidv4();
     const now = new Date().toISOString();
@@ -438,6 +445,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return messageCache[currentThreadId] || [];
   },
 
+  /**
+   * Clears all messages in the current thread.
+   * Reserved for future use (e.g., reset conversation feature).
+   */
   resetMessages: () => {
     const threadId = get().currentThreadId;
     if (threadId) {
