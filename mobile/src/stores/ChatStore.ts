@@ -37,9 +37,13 @@ interface ChatState {
   // Thread management
   threads: Record<string, Thread>;
   currentThreadId: string | null;
+  lastUsedThreadId: string | null;
+  isLoadingThreads: boolean;
+  threadsLoaded: boolean;
 
   // Message cache
   messageCache: Record<string, Message[]>;
+  messageCursors: Record<string, string | null>;
   isLoadingMessages: boolean;
 
   // Model selection
@@ -52,9 +56,16 @@ interface ChatState {
   stopGeneration: () => void;
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
+  deleteThread: (threadId: string) => Promise<void>;
+  fetchThreads: () => Promise<void>;
+  fetchThread: (threadId: string) => Promise<Thread | null>;
+  loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
   getCurrentMessages: () => Message[];
   resetMessages: () => void;
   setSelectedModel: (model: LanguageModel) => void;
+  setLastUsedThreadId: (threadId: string | null) => void;
+  clearMessageCache: (threadId: string) => void;
+  getThreadList: () => Thread[];
 
   // Internal actions
   addMessageToCache: (threadId: string, message: Message) => void;
@@ -216,7 +227,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   wsManager: null,
   threads: {},
   currentThreadId: null,
+  lastUsedThreadId: null,
+  isLoadingThreads: false,
+  threadsLoaded: false,
   messageCache: {},
+  messageCursors: {},
   isLoadingMessages: false,
   selectedModel: null,
 
@@ -431,6 +446,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         [id]: localThread,
       },
       currentThreadId: id,
+      lastUsedThreadId: id,
       messageCache: {
         ...state.messageCache,
         [id]: [],
@@ -440,11 +456,166 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return id;
   },
 
+  /**
+   * Fetches all threads from the API.
+   */
+  fetchThreads: async () => {
+    set({ isLoadingThreads: true });
+    try {
+      const data = await apiService.getThreads();
+      
+      // Convert array to Record keyed by thread ID
+      const threadsRecord: Record<string, Thread> = {};
+      (data.threads || []).forEach((thread: Thread) => {
+        threadsRecord[thread.id] = thread;
+      });
+
+      set({ threads: threadsRecord, threadsLoaded: true });
+    } catch (error) {
+      console.error('Failed to fetch threads:', error);
+      set({ threadsLoaded: true }); // Mark as loaded even on error
+    } finally {
+      set({ isLoadingThreads: false });
+    }
+  },
+
+  /**
+   * Fetches a single thread from the API.
+   */
+  fetchThread: async (threadId: string) => {
+    try {
+      const data = await apiService.getThread(threadId);
+      
+      set((state) => ({
+        threads: {
+          ...state.threads,
+          [threadId]: data,
+        },
+      }));
+
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch thread:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Switches to an existing thread and loads its messages.
+   */
   switchThread: (threadId: string) => {
     const exists = !!get().threads[threadId];
     if (!exists) return;
 
-    set({ currentThreadId: threadId });
+    set({ currentThreadId: threadId, lastUsedThreadId: threadId });
+    get().loadMessages(threadId);
+  },
+
+  /**
+   * Deletes a thread and its messages.
+   */
+  deleteThread: async (threadId: string) => {
+    try {
+      await apiService.deleteThread(threadId);
+
+      // Update local state
+      set((state) => {
+        const { [threadId]: deleted, ...remainingThreads } = state.threads;
+        const { [threadId]: deletedCache, ...remainingCache } = state.messageCache;
+        const { [threadId]: deletedCursor, ...remainingCursors } = state.messageCursors;
+
+        const newState: Partial<ChatState> = {
+          threads: remainingThreads,
+          messageCache: remainingCache,
+          messageCursors: remainingCursors,
+        };
+
+        // If deleting current thread, switch to another or create new
+        if (state.currentThreadId === threadId) {
+          const threadIds = Object.keys(remainingThreads);
+          if (threadIds.length > 0) {
+            const newCurrentThreadId = threadIds[threadIds.length - 1];
+            newState.currentThreadId = newCurrentThreadId;
+            newState.lastUsedThreadId = newCurrentThreadId;
+            // Auto-load messages for the new current thread
+            setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
+          } else {
+            newState.currentThreadId = null;
+            newState.lastUsedThreadId = null;
+          }
+        } else if (state.lastUsedThreadId === threadId) {
+          const threadIds = Object.keys(remainingThreads);
+          newState.lastUsedThreadId = threadIds.length ? threadIds[threadIds.length - 1] : null;
+        }
+
+        return newState as ChatState;
+      });
+
+      // If no threads remain, create a new one
+      const { threads, currentThreadId } = get();
+      if (!currentThreadId && Object.keys(threads).length === 0) {
+        await get().createNewThread();
+      }
+    } catch (error) {
+      console.error('Failed to delete thread:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Loads messages for a thread from the API.
+   */
+  loadMessages: async (threadId: string, cursor?: string) => {
+    const { messageCache, isLoadingMessages } = get();
+
+    // If already loading, return cached messages
+    if (isLoadingMessages) {
+      return messageCache[threadId] || [];
+    }
+
+    // If no cursor provided and we have cached messages, return them
+    if (!cursor && messageCache[threadId]) {
+      return messageCache[threadId];
+    }
+
+    set({ isLoadingMessages: true, error: null });
+
+    try {
+      const data = await apiService.getMessages(threadId, cursor);
+
+      const messages = data.messages || [];
+      const nextCursor = data.next;
+
+      set((state) => {
+        const existingMessages = state.messageCache[threadId] || [];
+        const updatedMessages = cursor
+          ? [...existingMessages, ...messages]
+          : messages;
+
+        return {
+          messageCache: {
+            ...state.messageCache,
+            [threadId]: updatedMessages,
+          },
+          messageCursors: {
+            ...state.messageCursors,
+            [threadId]: nextCursor,
+          },
+          isLoadingMessages: false,
+        };
+      });
+
+      return cursor
+        ? [...(messageCache[threadId] || []), ...messages]
+        : messages;
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to load messages',
+        isLoadingMessages: false,
+      });
+      return messageCache[threadId] || [];
+    }
   },
 
   getCurrentMessages: () => {
@@ -478,6 +649,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
           [threadId]: [...existingMessages, message],
         },
       };
+    });
+  },
+
+  clearMessageCache: (threadId: string) => {
+    set((state) => {
+      const { [threadId]: deleted, ...remainingCache } = state.messageCache;
+      const { [threadId]: deletedCursor, ...remainingCursors } = state.messageCursors;
+
+      return {
+        messageCache: remainingCache,
+        messageCursors: remainingCursors,
+      };
+    });
+  },
+
+  setLastUsedThreadId: (threadId: string | null) => {
+    set({ lastUsedThreadId: threadId });
+  },
+
+  /**
+   * Returns a list of threads sorted by updated_at date (most recent first).
+   */
+  getThreadList: () => {
+    const { threads } = get();
+    return Object.values(threads).sort((a, b) => {
+      const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+      const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+      return dateB - dateA;
     });
   },
 

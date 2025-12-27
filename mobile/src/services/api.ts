@@ -128,6 +128,61 @@ class ApiService {
     const url = this.apiHost.replace(/^https?:/, wsProtocol);
     return `${url}${path}`;
   }
+
+  /**
+   * Get all threads for the current user
+   */
+  async getThreads(limit: number = 100): Promise<any> {
+    const { data, error } = await this.client.GET('/api/threads/', {
+      params: {
+        query: { limit },
+      },
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Get a specific thread by ID
+   */
+  async getThread(threadId: string): Promise<any> {
+    const { data, error } = await this.client.GET('/api/threads/{thread_id}', {
+      params: {
+        path: { thread_id: threadId },
+      },
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Delete a thread
+   */
+  async deleteThread(threadId: string): Promise<void> {
+    const { error } = await this.client.DELETE('/api/threads/{thread_id}', {
+      params: {
+        path: { thread_id: threadId },
+      },
+    });
+    if (error) throw error;
+  }
+
+  /**
+   * Get messages for a thread
+   */
+  async getMessages(threadId: string, cursor?: string, limit: number = 100): Promise<any> {
+    const { data, error } = await this.client.GET('/api/messages/', {
+      params: {
+        query: { 
+          thread_id: threadId,
+          cursor: cursor || undefined,
+          limit,
+        },
+      },
+    });
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const apiService = new ApiService();

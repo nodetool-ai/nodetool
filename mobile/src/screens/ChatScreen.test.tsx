@@ -46,7 +46,10 @@ describe('ChatScreen', () => {
     sendMessage: jest.fn().mockResolvedValue(undefined),
     stopGeneration: jest.fn(),
     createNewThread: jest.fn().mockResolvedValue('new-thread-id'),
+    fetchThreads: jest.fn().mockResolvedValue(undefined),
+    threadsLoaded: true,
     getCurrentMessages: jest.fn().mockReturnValue([]),
+    selectedModel: null,
   };
 
   const mockNavigation = {
@@ -95,6 +98,8 @@ describe('ChatScreen', () => {
       const storeWithoutThread = {
         ...mockStore,
         currentThreadId: null,
+        threadsLoaded: true,
+        createNewThread: jest.fn().mockResolvedValue('new-thread-id'),
       };
       
       (useChatStore as any).mockImplementation((selector?: any) => {
@@ -108,6 +113,27 @@ describe('ChatScreen', () => {
       
       await waitFor(() => {
         expect(storeWithoutThread.createNewThread).toHaveBeenCalled();
+      });
+    });
+
+    it('fetches threads if not loaded', async () => {
+      const storeNotLoaded = {
+        ...mockStore,
+        threadsLoaded: false,
+        fetchThreads: jest.fn().mockResolvedValue(undefined),
+      };
+      
+      (useChatStore as any).mockImplementation((selector?: any) => {
+        if (selector) {
+          return selector(storeNotLoaded);
+        }
+        return storeNotLoaded;
+      });
+      
+      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      
+      await waitFor(() => {
+        expect(storeNotLoaded.fetchThreads).toHaveBeenCalled();
       });
     });
 

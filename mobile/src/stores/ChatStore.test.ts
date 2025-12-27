@@ -23,6 +23,10 @@ jest.mock('../services/WebSocketManager', () => ({
 jest.mock('../services/api', () => ({
   apiService: {
     getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:8000/ws/chat'),
+    getThreads: jest.fn().mockResolvedValue({ threads: [] }),
+    getThread: jest.fn().mockResolvedValue(null),
+    deleteThread: jest.fn().mockResolvedValue(undefined),
+    getMessages: jest.fn().mockResolvedValue({ messages: [], next: null }),
   },
 }));
 
@@ -40,8 +44,13 @@ describe('ChatStore', () => {
       wsManager: null,
       threads: {},
       currentThreadId: null,
+      lastUsedThreadId: null,
+      isLoadingThreads: false,
+      threadsLoaded: false,
       messageCache: {},
+      messageCursors: {},
       isLoadingMessages: false,
+      selectedModel: null,
     });
 
     // Setup mock WebSocket manager
@@ -68,7 +77,11 @@ describe('ChatStore', () => {
       expect(state.wsManager).toBeNull();
       expect(state.threads).toEqual({});
       expect(state.currentThreadId).toBeNull();
+      expect(state.lastUsedThreadId).toBeNull();
+      expect(state.isLoadingThreads).toBe(false);
+      expect(state.threadsLoaded).toBe(false);
       expect(state.messageCache).toEqual({});
+      expect(state.messageCursors).toEqual({});
       expect(state.isLoadingMessages).toBe(false);
     });
   });
@@ -796,6 +809,336 @@ describe('ChatStore', () => {
       
       useChatStore.getState().setSelectedModel(model2);
       expect(useChatStore.getState().selectedModel).toEqual(model2);
+    });
+  });
+
+  describe('fetchThreads', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('fetches threads from API and stores them', async () => {
+      const mockThreads = [
+        { id: 'thread-1', title: 'Thread 1', created_at: '2024-01-01', updated_at: '2024-01-01' },
+        { id: 'thread-2', title: 'Thread 2', created_at: '2024-01-02', updated_at: '2024-01-02' },
+      ];
+      
+      (apiService.getThreads as jest.Mock).mockResolvedValueOnce({ threads: mockThreads });
+
+      await useChatStore.getState().fetchThreads();
+      
+      expect(apiService.getThreads).toHaveBeenCalled();
+      expect(useChatStore.getState().threads).toEqual({
+        'thread-1': mockThreads[0],
+        'thread-2': mockThreads[1],
+      });
+      expect(useChatStore.getState().threadsLoaded).toBe(true);
+      expect(useChatStore.getState().isLoadingThreads).toBe(false);
+    });
+
+    it('sets threadsLoaded even on error', async () => {
+      (apiService.getThreads as jest.Mock).mockRejectedValueOnce(new Error('API error'));
+
+      await useChatStore.getState().fetchThreads();
+      
+      expect(useChatStore.getState().threadsLoaded).toBe(true);
+      expect(useChatStore.getState().isLoadingThreads).toBe(false);
+    });
+
+    it('sets isLoadingThreads during fetch', async () => {
+      let resolvePromise: (value: any) => void;
+      const promise = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+      
+      (apiService.getThreads as jest.Mock).mockReturnValueOnce(promise);
+
+      const fetchPromise = useChatStore.getState().fetchThreads();
+      
+      expect(useChatStore.getState().isLoadingThreads).toBe(true);
+      
+      resolvePromise!({ threads: [] });
+      await fetchPromise;
+      
+      expect(useChatStore.getState().isLoadingThreads).toBe(false);
+    });
+  });
+
+  describe('fetchThread', () => {
+    it('fetches a single thread and updates store', async () => {
+      const mockThread = { id: 'thread-1', title: 'Thread 1', created_at: '2024-01-01', updated_at: '2024-01-01' };
+      
+      (apiService.getThread as jest.Mock).mockResolvedValueOnce(mockThread);
+
+      const result = await useChatStore.getState().fetchThread('thread-1');
+      
+      expect(apiService.getThread).toHaveBeenCalledWith('thread-1');
+      expect(result).toEqual(mockThread);
+      expect(useChatStore.getState().threads['thread-1']).toEqual(mockThread);
+    });
+
+    it('returns null on error', async () => {
+      (apiService.getThread as jest.Mock).mockRejectedValueOnce(new Error('API error'));
+
+      const result = await useChatStore.getState().fetchThread('thread-1');
+      
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('deleteThread', () => {
+    beforeEach(() => {
+      // Manually set up threads with different IDs since uuid mock returns same value
+      useChatStore.setState({
+        threads: {
+          'thread-1': { 
+            id: 'thread-1', 
+            title: 'Thread 1', 
+            created_at: '2024-01-01T00:00:00Z', 
+            updated_at: '2024-01-01T00:00:00Z' 
+          } as any,
+          'thread-2': { 
+            id: 'thread-2', 
+            title: 'Thread 2', 
+            created_at: '2024-01-02T00:00:00Z', 
+            updated_at: '2024-01-02T00:00:00Z' 
+          } as any,
+        },
+        currentThreadId: 'thread-1',
+        lastUsedThreadId: 'thread-1',
+        messageCache: {
+          'thread-1': [],
+          'thread-2': [],
+        },
+      });
+    });
+
+    it('deletes thread from API and local state', async () => {
+      await useChatStore.getState().deleteThread('thread-2');
+      
+      expect(apiService.deleteThread).toHaveBeenCalledWith('thread-2');
+      expect(useChatStore.getState().threads['thread-2']).toBeUndefined();
+      expect(useChatStore.getState().threads['thread-1']).toBeDefined();
+    });
+
+    it('switches to another thread when current is deleted', async () => {
+      await useChatStore.getState().deleteThread('thread-1');
+      
+      // Should have switched to thread-2
+      expect(useChatStore.getState().currentThreadId).toBe('thread-2');
+      expect(useChatStore.getState().lastUsedThreadId).toBe('thread-2');
+    });
+
+    it('creates new thread if last one is deleted', async () => {
+      // Delete both threads
+      await useChatStore.getState().deleteThread('thread-1');
+      await useChatStore.getState().deleteThread('thread-2');
+      
+      // Should have created a new thread (will have uuid mock id)
+      expect(Object.keys(useChatStore.getState().threads).length).toBeGreaterThan(0);
+    });
+
+    it('throws error on API failure', async () => {
+      (apiService.deleteThread as jest.Mock).mockRejectedValueOnce(new Error('Delete failed'));
+      
+      await expect(useChatStore.getState().deleteThread('thread-1')).rejects.toThrow('Delete failed');
+    });
+
+    it('clears message cache for deleted thread', async () => {
+      // Add messages to cache
+      useChatStore.setState({
+        messageCache: {
+          ...useChatStore.getState().messageCache,
+          'thread-1': [{ id: 'msg-1', type: 'message', role: 'user', content: 'Hello' }] as any,
+        },
+      });
+      
+      await useChatStore.getState().deleteThread('thread-1');
+      
+      expect(useChatStore.getState().messageCache['thread-1']).toBeUndefined();
+    });
+  });
+
+  describe('loadMessages', () => {
+    beforeEach(async () => {
+      await useChatStore.getState().createNewThread();
+    });
+
+    it('loads messages from API', async () => {
+      const mockMessages = [
+        { id: 'msg-1', type: 'message', role: 'user', content: 'Hello' },
+        { id: 'msg-2', type: 'message', role: 'assistant', content: 'Hi there' },
+      ];
+      
+      (apiService.getMessages as jest.Mock).mockResolvedValueOnce({ 
+        messages: mockMessages, 
+        next: null 
+      });
+
+      const threadId = useChatStore.getState().currentThreadId!;
+      // Clear the cache first to force API call
+      useChatStore.setState({ messageCache: {} });
+      
+      const result = await useChatStore.getState().loadMessages(threadId);
+      
+      expect(apiService.getMessages).toHaveBeenCalledWith(threadId, undefined);
+      expect(result).toEqual(mockMessages);
+      expect(useChatStore.getState().messageCache[threadId]).toEqual(mockMessages);
+    });
+
+    it('returns cached messages if available', async () => {
+      const threadId = useChatStore.getState().currentThreadId!;
+      const cachedMessages = [{ id: 'cached', type: 'message', role: 'user', content: 'Cached' }] as any;
+      
+      useChatStore.setState({
+        messageCache: {
+          [threadId]: cachedMessages,
+        },
+      });
+
+      const result = await useChatStore.getState().loadMessages(threadId);
+      
+      expect(result).toEqual(cachedMessages);
+    });
+
+    it('handles pagination with cursor', async () => {
+      const threadId = useChatStore.getState().currentThreadId!;
+      const existingMessages = [{ id: 'msg-1', type: 'message', role: 'user', content: 'First' }] as any;
+      const newMessages = [{ id: 'msg-2', type: 'message', role: 'assistant', content: 'Second' }] as any;
+      
+      useChatStore.setState({
+        messageCache: {
+          [threadId]: existingMessages,
+        },
+      });
+      
+      (apiService.getMessages as jest.Mock).mockResolvedValueOnce({ 
+        messages: newMessages, 
+        next: 'cursor-2' 
+      });
+
+      await useChatStore.getState().loadMessages(threadId, 'cursor-1');
+      
+      expect(apiService.getMessages).toHaveBeenCalledWith(threadId, 'cursor-1');
+      expect(useChatStore.getState().messageCache[threadId]).toEqual([...existingMessages, ...newMessages]);
+      expect(useChatStore.getState().messageCursors[threadId]).toBe('cursor-2');
+    });
+
+    it('sets error on API failure', async () => {
+      const threadId = useChatStore.getState().currentThreadId!;
+      // Clear cache to force API call
+      useChatStore.setState({ messageCache: {} });
+      
+      (apiService.getMessages as jest.Mock).mockRejectedValueOnce(new Error('Load failed'));
+
+      await useChatStore.getState().loadMessages(threadId);
+      
+      expect(useChatStore.getState().error).toBe('Load failed');
+    });
+  });
+
+  describe('switchThread with loadMessages', () => {
+    beforeEach(async () => {
+      await useChatStore.getState().createNewThread('Thread 1');
+      const thread1Id = useChatStore.getState().currentThreadId;
+      
+      await useChatStore.getState().createNewThread('Thread 2');
+      
+      // Store the thread 1 id for switching
+      useChatStore.setState({
+        threads: {
+          ...useChatStore.getState().threads,
+          [thread1Id!]: { id: thread1Id!, title: 'Thread 1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any,
+        },
+      });
+    });
+
+    it('updates lastUsedThreadId when switching', () => {
+      const threadIds = Object.keys(useChatStore.getState().threads);
+      const otherThread = threadIds.find(id => id !== useChatStore.getState().currentThreadId);
+      
+      if (otherThread) {
+        useChatStore.getState().switchThread(otherThread);
+        
+        expect(useChatStore.getState().lastUsedThreadId).toBe(otherThread);
+      }
+    });
+  });
+
+  describe('clearMessageCache', () => {
+    it('clears message cache for specified thread', async () => {
+      const threadId = await useChatStore.getState().createNewThread();
+      
+      useChatStore.setState({
+        messageCache: {
+          [threadId]: [{ id: 'msg-1', type: 'message', role: 'user', content: 'Test' }] as any,
+        },
+        messageCursors: {
+          [threadId]: 'cursor-1',
+        },
+      });
+
+      useChatStore.getState().clearMessageCache(threadId);
+      
+      expect(useChatStore.getState().messageCache[threadId]).toBeUndefined();
+      expect(useChatStore.getState().messageCursors[threadId]).toBeUndefined();
+    });
+  });
+
+  describe('setLastUsedThreadId', () => {
+    it('sets lastUsedThreadId', () => {
+      useChatStore.getState().setLastUsedThreadId('thread-123');
+      
+      expect(useChatStore.getState().lastUsedThreadId).toBe('thread-123');
+    });
+
+    it('clears lastUsedThreadId when null', () => {
+      useChatStore.setState({ lastUsedThreadId: 'thread-123' });
+      
+      useChatStore.getState().setLastUsedThreadId(null);
+      
+      expect(useChatStore.getState().lastUsedThreadId).toBeNull();
+    });
+  });
+
+  describe('getThreadList', () => {
+    it('returns threads sorted by updated_at descending', async () => {
+      const threads = {
+        'thread-1': { 
+          id: 'thread-1', 
+          title: 'Old Thread', 
+          created_at: '2024-01-01T00:00:00Z', 
+          updated_at: '2024-01-01T00:00:00Z' 
+        } as any,
+        'thread-2': { 
+          id: 'thread-2', 
+          title: 'New Thread', 
+          created_at: '2024-01-02T00:00:00Z', 
+          updated_at: '2024-01-02T00:00:00Z' 
+        } as any,
+        'thread-3': { 
+          id: 'thread-3', 
+          title: 'Middle Thread', 
+          created_at: '2024-01-01T12:00:00Z', 
+          updated_at: '2024-01-01T12:00:00Z' 
+        } as any,
+      };
+      
+      useChatStore.setState({ threads });
+
+      const result = useChatStore.getState().getThreadList();
+      
+      expect(result[0].id).toBe('thread-2'); // Newest
+      expect(result[1].id).toBe('thread-3'); // Middle
+      expect(result[2].id).toBe('thread-1'); // Oldest
+    });
+
+    it('returns empty array when no threads', () => {
+      useChatStore.setState({ threads: {} });
+
+      const result = useChatStore.getState().getThreadList();
+      
+      expect(result).toEqual([]);
     });
   });
 });

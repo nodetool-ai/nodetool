@@ -7,6 +7,7 @@ import MiniAppsListScreen from './src/screens/MiniAppsListScreen';
 import MiniAppScreen from './src/screens/MiniAppScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChatScreen from './src/screens/ChatScreen';
+import ThreadListScreen from './src/screens/ThreadListScreen';
 import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionScreen';
 import { apiService } from './src/services/api';
 import { useTheme } from './src/hooks/useTheme';
@@ -62,6 +63,11 @@ export default function App() {
           options={{
             title: 'Chat',
           }}
+        />
+        <Stack.Screen
+          name="ThreadList"
+          component={ThreadListScreen}
+          options={{ title: 'Conversations' }}
         />
         <Stack.Screen
           name="LanguageModelSelection"

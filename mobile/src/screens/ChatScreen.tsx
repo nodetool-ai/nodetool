@@ -29,6 +29,8 @@ export default function ChatScreen({ navigation }: Props) {
     currentThreadId,
     connect,
     createNewThread,
+    fetchThreads,
+    threadsLoaded,
     getCurrentMessages,
     selectedModel,
     sendMessage,
@@ -43,6 +45,10 @@ export default function ChatScreen({ navigation }: Props) {
     const initializeChat = async () => {
       try {
         await connect();
+        // Fetch threads if not loaded
+        if (!threadsLoaded) {
+          await fetchThreads();
+        }
         // Create initial thread if none exists
         if (!currentThreadId) {
           await createNewThread();
@@ -53,7 +59,7 @@ export default function ChatScreen({ navigation }: Props) {
     };
 
     initializeChat();
-  }, [connect, currentThreadId, createNewThread]);
+  }, [connect, currentThreadId, createNewThread, fetchThreads, threadsLoaded]);
 
   // Handle new chat
   const handleNewChat = useCallback(async () => {
@@ -64,9 +70,19 @@ export default function ChatScreen({ navigation }: Props) {
     }
   }, [createNewThread]);
 
-  // Configure header with New Chat button
+  // Configure header with thread list and New Chat buttons
   useEffect(() => {
     navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('ThreadList')}
+          style={styles.headerButton}
+          activeOpacity={0.7}
+          testID="thread-list-button"
+        >
+          <Ionicons name="chatbubbles-outline" size={24} color={colors.text} />
+        </TouchableOpacity>
+      ),
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
