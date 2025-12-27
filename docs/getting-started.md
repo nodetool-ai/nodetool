@@ -1,12 +1,18 @@
 ---
 layout: page
 title: "Getting Started"
-description: "Build your first AI workflow in 10 minutes – no coding or AI experience required."
+description: "Build your first AI workflow in 10 minutes and see how it runs in three different ways—no coding required."
 ---
 
-Welcome! This hands-on tutorial guides you through installing NodeTool and running your first AI workflow. **No prior experience with AI or coding is required** – we'll explain everything as we go.
+Welcome! This hands-on tutorial shows you how NodeTool turns AI ideas into working workflows—fast. **No prior experience with AI or coding is required** – we'll explain everything as we go.
 
-> **What you'll accomplish**: In about 10 minutes, you'll install NodeTool, run a template workflow, and learn how to trigger it from chat and as a standalone app.
+> **What you'll accomplish**: In about 10 minutes, you'll:
+> - ✅ Run a complete AI workflow that generates creative content
+> - ✅ See results stream in real-time as the AI works
+> - ✅ Trigger the same workflow from chat, Mini-App, and the editor
+> - ✅ Understand why local-first AI matters for privacy and control
+
+**Why this matters:** You're not just learning a tool—you're experiencing how to build private, portable AI workflows that you control from prototype to production.
 
 If you'd like a high-level overview first, read the [Start Here guide](index.md#start-here).
 

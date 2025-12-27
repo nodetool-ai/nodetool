@@ -3,10 +3,10 @@ layout: home
 ---
 
 <section class="home-hero">
-  <p class="eyebrow">Local-first AI workflow builder</p>
-  <h1>Build AI workflows visually. Deploy anywhere.</h1>
+  <p class="eyebrow">Open-Source Local-First AI Workflow Builder</p>
+  <h1>Build AI workflows once. Deploy them anywhere. Keep your data private.</h1>
   <p class="lead">
-    NodeTool lets you compose text, audio, video, and automation nodes on a single canvas, run them on your machine, then ship the identical workflow to RunPod, Cloud Run, or your own infrastructure.
+    NodeTool is the visual workflow builder for teams who need control. Design multi-step AI pipelines mixing LLMs, vision, speech, and custom logic on a single canvas. Run locally for privacy, deploy to RunPod or Cloud Run for scale—no rewrites, no vendor lock-in, no black boxes.
   </p>
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
@@ -95,9 +95,10 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
 ### Choose your path
 
 - **I'm new to NodeTool:** [Getting Started](getting-started.md), [Workflow Editor](workflow-editor.md), [Tips & Tricks](tips-and-tricks.md), [Example gallery](/workflows/).
+- **I'm evaluating NodeTool:** [Value Proposition Review](value-proposition-review.md), [How NodeTool Compares](comparisons.md), [Cost Analysis](cost-analysis.md).
 - **I deploy NodeTool:** [Deployment Guide](deployment.md), [Self-Hosted Deployment](self_hosted.md), [Proxy Reference](proxy.md), [Security Hardening](security-hardening.md), [Terminal WebSocket](terminal-websocket.md), [Storage](storage.md).
 - **I build or integrate:** [Developer Guide](developer/index.md), [Workflow API](workflow-api.md), [Chat Module](chat.md) + [Chat API](chat-api.md), [CLI Reference](cli.md), [Architecture](architecture.md).
-- **Reference shortcuts:** [Cookbook Patterns]({{ '/cookbook/patterns' | relative_url }}), [Glossary](glossary.md), [Indexing](indexing.md), [Asset Management](asset-management.md), [Node Packs](node-packs.md).
+- **Reference shortcuts:** [Cookbook Patterns]({{ '/cookbook/patterns' | relative_url }}), [Glossary](glossary.md), [Indexing](indexing.md), [Asset Management](asset-management.md), [Node Packs](node-packs.md), [Troubleshooting](troubleshooting.md).
 
 ### Local-first or cloud-augmented
 
@@ -128,16 +129,16 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
   <h2>Why teams choose NodeTool</h2>
   <div class="feature-grid">
     <article class="feature-card">
-      <h3>Privacy-first</h3>
-      <p>Run LLMs, Whisper, and diffusion models locally without shipping data to third parties. Opt into APIs only when needed.</p>
+      <h3>🔒 Privacy-first by design</h3>
+      <p>Run LLMs, Whisper, and diffusion models entirely on your infrastructure without sending data to third parties. Meet GDPR, HIPAA, or SOC 2 requirements with local execution. Opt into cloud APIs only when you choose—never by default.</p>
     </article>
     <article class="feature-card">
-      <h3>Single workflow, many surfaces</h3>
-      <p>Create once in the editor, trigger from Global Chat, expose via Mini-Apps, or call it from the Workflow API—all backed by the same graph.</p>
+      <h3>🎯 Build once, run everywhere</h3>
+      <p>Design workflows in the visual editor, then run them from Global Chat, Mini-Apps, CLI, or REST API—all backed by the same JSON graph. Deploy from your laptop to RunPod or Cloud Run with a single command. No code changes. No vendor lock-in.</p>
     </article>
     <article class="feature-card">
-      <h3>Deploy without rewrites</h3>
-      <p>When you outgrow your laptop, push the same workflow to RunPod or Cloud Run. No refactoring required.</p>
+      <h3>👁️ Transparent & debuggable</h3>
+      <p>See every step of your AI pipeline in real-time. Inspect intermediate outputs with Preview nodes. Understand exactly what each node does—no black-box mystery. Streaming execution shows progress as it happens, not after it's done.</p>
     </article>
   </div>
 </section>
