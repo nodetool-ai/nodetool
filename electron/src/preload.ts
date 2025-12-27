@@ -533,6 +533,9 @@ const api = {
     /** Set the window close behavior setting (Windows only) */
     setCloseBehavior: (action: "ask" | "quit" | "background") =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR, action),
+
+    /** Get system information for about dialog */
+    getSystemInfo: () => ipcRenderer.invoke(IpcChannels.GET_SYSTEM_INFO),
   },
 };
 
