@@ -23,6 +23,8 @@
     "axios": "^1.13.2",
     "expo": "~54.0.30",
     "expo-av": "~16.0.8",
+    "expo-document-picker": "~14.0.8",
+    "expo-image-picker": "~17.0.10",
     "expo-status-bar": "~3.0.9",
     "openapi-fetch": "^0.15.0",
     "openapi-typescript": "^7.8.0",

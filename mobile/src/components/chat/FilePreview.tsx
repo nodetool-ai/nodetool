@@ -21,6 +21,12 @@ import { useTheme } from '../../hooks/useTheme';
 const isValidImageDataUri = (uri: string): boolean =>
   /^data:image\/(jpeg|jpg|png|gif|webp);base64,/.test(uri);
 
+/**
+ * Check if a URI is a valid native file URI
+ */
+const isValidNativeUri = (uri: string): boolean =>
+  uri.startsWith('file://') || uri.startsWith('content://') || uri.startsWith('ph://');
+
 interface FilePreviewProps {
   file: DroppedFile;
   onRemove: () => void;
@@ -28,13 +34,20 @@ interface FilePreviewProps {
 
 export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => {
   const { colors } = useTheme();
-  const isImage = file.type.startsWith('image/') && isValidImageDataUri(file.dataUri);
+  
+  // Get the URI to use (prefer dataUri, fall back to uri)
+  const imageUri = file.dataUri || file.uri || '';
+  
+  // Check if this is a displayable image
+  const isImage = file.type.startsWith('image/') && (
+    isValidImageDataUri(imageUri) || isValidNativeUri(imageUri)
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>
       {isImage ? (
         <Image
-          source={{ uri: file.dataUri }}
+          source={{ uri: imageUri }}
           style={styles.imagePreview}
           resizeMode="cover"
         />

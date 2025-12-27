@@ -10,14 +10,18 @@ import { DroppedFile, DOC_TYPES_REGEX } from '../types/chat.types';
 /**
  * Converts a DroppedFile to MessageContent format.
  * Extracted outside the hook to prevent recreation on every render.
+ * Supports both dataUri (web) and uri (native) file sources.
  */
 const makeMessageContent = (file: DroppedFile): MessageContent => {
+  // Use dataUri if available, otherwise fall back to uri
+  const fileUri = file.dataUri || file.uri || '';
+  
   if (file.type.startsWith('image/')) {
     return {
       type: 'image_url',
       image: {
         type: 'image',
-        uri: file.dataUri,
+        uri: fileUri,
       },
     };
   } else if (file.type.startsWith('audio/')) {
@@ -25,7 +29,7 @@ const makeMessageContent = (file: DroppedFile): MessageContent => {
       type: 'audio',
       audio: {
         type: 'audio',
-        uri: file.dataUri,
+        uri: fileUri,
       },
     };
   } else if (file.type.startsWith('video/')) {
@@ -33,7 +37,7 @@ const makeMessageContent = (file: DroppedFile): MessageContent => {
       type: 'video',
       video: {
         type: 'video',
-        uri: file.dataUri,
+        uri: fileUri,
       },
     };
   } else if (file.type.match(DOC_TYPES_REGEX)) {
@@ -41,7 +45,7 @@ const makeMessageContent = (file: DroppedFile): MessageContent => {
       type: 'document',
       document: {
         type: 'document',
-        uri: file.dataUri,
+        uri: fileUri,
       },
     };
   } else {

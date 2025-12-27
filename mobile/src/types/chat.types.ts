@@ -5,11 +5,18 @@
 
 /**
  * Represents a dropped/attached file ready for upload
+ * - dataUri: Base64 data URI for web environments
+ * - uri: File URI for native environments (from expo-image-picker, expo-document-picker)
  */
 export type DroppedFile = {
-  dataUri: string;
+  /** Base64 encoded data URI (web) */
+  dataUri?: string;
+  /** File URI path (native) */
+  uri?: string;
   type: string;
   name: string;
+  /** File size in bytes (optional) */
+  size?: number;
 };
 
 /**
