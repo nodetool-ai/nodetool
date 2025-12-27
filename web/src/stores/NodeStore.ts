@@ -1018,17 +1018,19 @@ export const createNodeStore = (
             const nodeId = get().generateNodeId();
             useResultsStore.getState().clearResults(nodeId);
 
-            // Set default size for Preview nodes
+            // Set default size for Preview and CompareImages nodes
             const isPreviewNode =
               metadata.node_type === "nodetool.workflows.base_node.Preview";
-            const defaultStyle = isPreviewNode
-              ? {
-                  width: 400,
-                  height: 300
-                }
-              : {
-                  width: DEFAULT_NODE_WIDTH
-                };
+            const isCompareImagesNode =
+              metadata.node_type === "nodetool.compare.CompareImages";
+            let defaultStyle: { width: number; height?: number };
+            if (isPreviewNode) {
+              defaultStyle = { width: 400, height: 300 };
+            } else if (isCompareImagesNode) {
+              defaultStyle = { width: 450, height: 350 };
+            } else {
+              defaultStyle = { width: DEFAULT_NODE_WIDTH };
+            }
 
             const defaultTitle =
               metadata.node_type === GROUP_NODE_TYPE

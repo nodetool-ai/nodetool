@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo, useMemo } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Container, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
@@ -12,14 +12,16 @@ import { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
+import NodeResizer from "../NodeResizer";
 import { ImageComparer } from "../../widgets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
+import HandleTooltip from "../../HandleTooltip";
+import { Slugify } from "../../../utils/TypeHandler";
 
 const styles = (theme: Theme) =>
   css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
+    "&.compare-images-node": {
+      display: "block",
       overflow: "visible",
       padding: 0,
       width: "100%",
@@ -28,53 +30,46 @@ const styles = (theme: Theme) =>
       maxWidth: "unset",
       minHeight: "250px",
       borderRadius: "var(--rounded-node)",
-      border: `1px solid ${theme.vars.palette.grey[700]}`
-    },
-    "&.compare-images-node": {
-      padding: 0,
-      margin: 0,
-      label: {
-        display: "none"
-      }
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.c_node_bg,
+      position: "relative"
     },
     ".compare-node-content": {
-      height: "100%",
-      width: "100%",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       backgroundColor: "transparent",
-      display: "flex",
-      position: "relative",
-      overflow: "hidden",
-      flexDirection: "column"
+      overflow: "visible"
     },
-    ".compare-container": {
-      flex: 1,
-      minHeight: 0,
-      height: 0,
-      overflow: "hidden",
-      position: "relative"
+    ".content": {
+      position: "absolute",
+      top: "30px", // Below header
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: "hidden"
     },
     ".node-header": {
       width: "100%",
       minHeight: "unset",
+      flexShrink: 0,
       top: 0,
       left: 0,
       margin: 0,
       padding: 0,
       border: 0
     },
-    "& .react-flow__resize-control.handle.bottom.right": {
-      opacity: 0,
+    // Resize handle - corner icon
+    ".node-resize-handle": {
       position: "absolute",
-      right: "-8px",
-      bottom: "-9px",
-      transition: "opacity 0.2s"
-    },
-    "&:hover .react-flow__resize-control.handle.bottom.right": {
-      opacity: 1
+      right: 0,
+      bottom: 0,
+      zIndex: 100
     },
     ".hint": {
       position: "absolute",
-      opacity: 0,
       textAlign: "center",
       top: "50%",
       left: "50%",
@@ -82,14 +77,30 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: "300",
       transform: "translate(-50%, -50%)",
-      zIndex: 0,
-      color: theme.vars.palette.grey[200],
-      transition: "opacity 0.2s 1s ease-out"
+      zIndex: 1,
+      color: theme.vars.palette.grey[400],
+      opacity: 0.8,
+      pointerEvents: "none"
     },
-    "&:hover .hint": {
-      opacity: 0.7
+    // Handle positioning - use fixed pixel values for consistent spacing
+    ".handle-popup": {
+      position: "absolute",
+      left: 0
+    },
+    ".handle-popup.image_a": {
+      top: "60px"
+    },
+    ".handle-popup.image_b": {
+      top: "100px"
     }
   });
+
+// Type metadata for image handles
+const imageTypeMetadata = {
+  type: "image",
+  type_args: [],
+  optional: false
+};
 
 interface CompareImagesNodeProps extends NodeProps {
   data: NodeData;
@@ -115,81 +126,89 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
     }
     return result as {
       type: string;
-      image_a: { uri?: string; data?: string };
-      image_b: { uri?: string; data?: string };
+      image_a: { uri?: string; data?: string; type?: string };
+      image_b: { uri?: string; data?: string; type?: string };
       label_a?: string;
       label_b?: string;
     };
   }, [result]);
 
-  // Get image URLs
-  const imageAUrl = useMemo(() => {
-    if (!comparisonData?.image_a) {
+  // Get image URL from normalized image data
+  const getImageUrl = (
+    imageData: { uri?: string; data?: string } | null | undefined
+  ): string => {
+    if (!imageData) {
       return "";
     }
-    if (comparisonData.image_a.uri) {
-      return comparisonData.image_a.uri;
+    if (imageData.uri) {
+      return imageData.uri;
     }
-    if (comparisonData.image_a.data) {
-      if (comparisonData.image_a.data.startsWith("data:")) {
-        return comparisonData.image_a.data;
+    if (imageData.data) {
+      if (typeof imageData.data === "string") {
+        if (imageData.data.startsWith("data:")) {
+          return imageData.data;
+        }
+        return `data:image/png;base64,${imageData.data}`;
       }
-      return `data:image/png;base64,${comparisonData.image_a.data}`;
     }
     return "";
-  }, [comparisonData]);
+  };
 
-  const imageBUrl = useMemo(() => {
-    if (!comparisonData?.image_b) {
-      return "";
-    }
-    if (comparisonData.image_b.uri) {
-      return comparisonData.image_b.uri;
-    }
-    if (comparisonData.image_b.data) {
-      if (comparisonData.image_b.data.startsWith("data:")) {
-        return comparisonData.image_b.data;
-      }
-      return `data:image/png;base64,${comparisonData.image_b.data}`;
-    }
-    return "";
-  }, [comparisonData]);
+  const imageAUrl = useMemo(
+    () => getImageUrl(comparisonData?.image_a),
+    [comparisonData]
+  );
+  const imageBUrl = useMemo(
+    () => getImageUrl(comparisonData?.image_b),
+    [comparisonData]
+  );
+
+  const hasImages = imageAUrl !== "" && imageBUrl !== "";
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 
   return (
-    <Container
+    <Box
       css={styles(theme)}
-      sx={{
-        display: "flex",
-        border: "inherit",
-        backgroundColor: theme.vars.palette.c_node_bg,
-        backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
-        WebkitBackdropFilter: props.selected
-          ? theme.vars.palette.glass.blur
-          : "none"
-      }}
       className={`compare-images-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
       }`}
     >
       <div className="compare-node-content">
-        <Handle
-          style={{ top: "30%" }}
-          id="image_a"
-          type="target"
-          position={Position.Left}
-          isConnectable={true}
-        />
-        <Handle
-          style={{ top: "50%" }}
-          id="image_b"
-          type="target"
-          position={Position.Left}
-          isConnectable={true}
-        />
+        {/* Handle for image_a */}
+        <div className="handle-popup image_a">
+          <HandleTooltip
+            typeMetadata={imageTypeMetadata}
+            paramName="image_a"
+            handlePosition="left"
+          >
+            <Handle
+              type="target"
+              id="image_a"
+              position={Position.Left}
+              isConnectable={true}
+              className={Slugify("image")}
+            />
+          </HandleTooltip>
+        </div>
 
-        <NodeResizeHandle minWidth={300} minHeight={250} />
+        {/* Handle for image_b */}
+        <div className="handle-popup image_b">
+          <HandleTooltip
+            typeMetadata={imageTypeMetadata}
+            paramName="image_b"
+            handlePosition="left"
+          >
+            <Handle
+              type="target"
+              id="image_b"
+              position={Position.Left}
+              isConnectable={true}
+              className={Slugify("image")}
+            />
+          </HandleTooltip>
+        </div>
+
         <NodeHeader
           id={props.id}
           data={props.data}
@@ -202,14 +221,8 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
           showIcon={false}
         />
 
-        {!comparisonData && (
-          <Typography className="hint">
-            Connect two images to compare them
-          </Typography>
-        )}
-
-        <div className="compare-container">
-          {imageAUrl && imageBUrl && (
+        <div className="content">
+          {hasImages ? (
             <ImageComparer
               imageA={imageAUrl}
               imageB={imageBUrl}
@@ -219,10 +232,17 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
               showMetadata={true}
               initialMode="horizontal"
             />
+          ) : (
+            <Typography className="hint">
+              Connect two images and run workflow to compare
+            </Typography>
           )}
         </div>
+
+        <NodeResizeHandle minWidth={300} minHeight={250} />
+        <NodeResizer minWidth={300} minHeight={250} />
       </div>
-    </Container>
+    </Box>
   );
 };
 
