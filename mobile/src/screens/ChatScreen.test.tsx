@@ -130,6 +130,50 @@ describe('ChatScreen', () => {
       expect(mockNavigation.setOptions).toHaveBeenCalled();
     });
 
+    it('displays selected model name in header', () => {
+      const storeWithModel = {
+        ...mockStore,
+        selectedModel: { id: 'gpt-4', name: 'GPT-4', provider: 'openai' },
+      };
+      
+      (useChatStore as any).mockImplementation((selector?: any) => {
+        if (selector) {
+          return selector(storeWithModel);
+        }
+        return storeWithModel;
+      });
+
+      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      
+      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const HeaderRight = setOptionsCall.headerRight;
+      
+      const { getByText } = render(<HeaderRight />);
+      expect(getByText('GPT-4')).toBeTruthy();
+    });
+
+    it('displays "Model" when no model selected', () => {
+      const storeWithoutModel = {
+        ...mockStore,
+        selectedModel: null,
+      };
+      
+      (useChatStore as any).mockImplementation((selector?: any) => {
+        if (selector) {
+          return selector(storeWithoutModel);
+        }
+        return storeWithoutModel;
+      });
+
+      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      
+      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const HeaderRight = setOptionsCall.headerRight;
+      
+      const { getByText } = render(<HeaderRight />);
+      expect(getByText('Model')).toBeTruthy();
+    });
+
     it('header button creates new chat', async () => {
       render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
       
