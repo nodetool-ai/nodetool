@@ -160,6 +160,7 @@ export class WebSocketManager {
     }
 
     try {
+      console.log('[WS Send]', message);
       const encoded = encode(message);
       this.ws!.send(encoded);
     } catch (error) {
@@ -219,6 +220,7 @@ export class WebSocketManager {
         data = decode(new Uint8Array(buffer));
       }
 
+      console.log('[WS Receive]', data);
       this.callbacks.onMessage?.(data);
     } catch (error) {
       console.error('Failed to process message:', error);

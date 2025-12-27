@@ -12,10 +12,12 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { ChatView } from '../components/chat';
 import { useChatStore } from '../stores/ChatStore';
+import { useTheme } from '../hooks/useTheme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
@@ -26,12 +28,13 @@ export default function ChatScreen({ navigation }: Props) {
     statusMessage,
     currentThreadId,
     connect,
-    disconnect,
-    sendMessage,
-    stopGeneration,
     createNewThread,
     getCurrentMessages,
+    selectedModel,
+    sendMessage,
+    stopGeneration,
   } = useChatStore();
+  const { colors, mode } = useTheme();
 
   const messages = getCurrentMessages();
 
@@ -50,11 +53,6 @@ export default function ChatScreen({ navigation }: Props) {
     };
 
     initializeChat();
-
-    // Note: We intentionally keep the WebSocket connection alive when navigating
-    // away from the chat screen to provide a seamless experience when returning.
-    // The connection will be cleaned up when the app is backgrounded/closed
-    // via the WebSocketManager's destroy method in the ChatStore.
   }, [connect, currentThreadId, createNewThread]);
 
   // Handle new chat
@@ -70,20 +68,32 @@ export default function ChatScreen({ navigation }: Props) {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          onPress={handleNewChat}
-          style={styles.headerButton}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.headerButtonText}>New Chat</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('LanguageModelSelection')}
+            style={[styles.headerButton, { marginRight: 0, flexDirection: 'row', alignItems: 'center' }]}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.headerButtonText, { color: colors.text, marginRight: 2 }]}>
+              {selectedModel ? selectedModel.name : 'Model'}
+            </Text>
+            <Ionicons name="chevron-down-outline" size={14} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleNewChat}
+            style={styles.headerButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add-outline" size={28} color={colors.text} />
+          </TouchableOpacity>
+        </View>
       ),
     });
-  }, [navigation, handleNewChat]);
+  }, [navigation, handleNewChat, selectedModel, colors.text]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ChatView
         status={status}
         messages={messages}
@@ -99,14 +109,12 @@ export default function ChatScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
   },
   headerButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   headerButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '500',
   },

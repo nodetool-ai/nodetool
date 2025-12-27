@@ -9,10 +9,13 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { apiService } from '../services/api';
 import { Workflow } from '../types/miniapp';
 import { RootStackParamList } from '../navigation/types';
+import { useTheme } from '../hooks/useTheme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type MiniAppsListScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MiniAppsList'>;
@@ -22,6 +25,8 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     initializeAndLoadWorkflows();
@@ -73,58 +78,66 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
 
   const renderWorkflowItem = ({ item }: { item: Workflow }) => (
     <TouchableOpacity
-      style={styles.workflowCard}
+      style={[styles.workflowCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
       onPress={() => handleWorkflowPress(item)}
     >
       <View style={styles.workflowContent}>
-        <Text style={styles.workflowName}>{item.name}</Text>
+        <Text style={[styles.workflowName, { color: colors.text }]}>{item.name}</Text>
         {item.description && (
-          <Text style={styles.workflowDescription} numberOfLines={2}>
+          <Text style={[styles.workflowDescription, { color: colors.textSecondary }]} numberOfLines={2}>
             {item.description}
           </Text>
         )}
       </View>
-      <Text style={styles.arrow}>›</Text>
+      <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
   if (isLoading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading mini apps...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.text} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading mini apps...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Mini Apps</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[
+        styles.header, 
+        { 
+          backgroundColor: colors.surfaceHeader, 
+          borderBottomColor: colors.border,
+          paddingTop: insets.top + 10 
+        }
+      ]}>
+        <Text style={[styles.title, { color: colors.text }]}>Mini Apps</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => navigation.navigate('Chat')}
           >
-            <Text style={styles.headerButtonText}>💬 Chat</Text>
+            <Ionicons name="chatbubble-ellipses-outline" size={26} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Text style={styles.headerButtonText}>⚙️</Text>
+            <Ionicons name="settings-outline" size={26} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
 
       {workflows.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <Text style={styles.emptyText}>No mini apps found</Text>
-          <Text style={styles.emptySubtext}>
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="apps-outline" size={64} color={colors.border} style={{ marginBottom: 16 }} />
+          <Text style={[styles.emptyText, { color: colors.text }]}>No mini apps found</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
             Make sure your server is running and configured correctly
           </Text>
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.button, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('Settings')}
           >
             <Text style={styles.buttonText}>Go to Settings</Text>
@@ -140,7 +153,8 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor="#007AFF"
+              tintColor={colors.text}
+              colors={[colors.primary]}
             />
           }
         />
@@ -152,7 +166,6 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   centerContainer: {
     flex: 1,
@@ -165,9 +178,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -179,33 +190,25 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 16,
-    color: '#007AFF',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
   },
   listContent: {
     padding: 16,
   },
   workflowCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
   },
   workflowContent: {
     flex: 1,
@@ -213,38 +216,32 @@ const styles = StyleSheet.create({
   workflowName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 4,
   },
   workflowDescription: {
     fontSize: 14,
-    color: '#666',
   },
   arrow: {
     fontSize: 28,
-    color: '#ccc',
     marginLeft: 12,
   },
   emptyText: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
     marginBottom: 24,
   },
   button: {
-    backgroundColor: '#007AFF',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },

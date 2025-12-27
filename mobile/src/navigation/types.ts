@@ -6,4 +6,5 @@ export type RootStackParamList = {
   };
   Settings: undefined;
   Chat: undefined;
+  LanguageModelSelection: undefined;
 };

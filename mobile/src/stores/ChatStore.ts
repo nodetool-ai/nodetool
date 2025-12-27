@@ -22,6 +22,7 @@ import {
   Chunk,
   ChatMessageRequest,
   WebSocketMessageData,
+  LanguageModel,
 } from '../types';
 
 interface ChatState {
@@ -41,6 +42,9 @@ interface ChatState {
   messageCache: Record<string, Message[]>;
   isLoadingMessages: boolean;
 
+  // Model selection
+  selectedModel: LanguageModel | null;
+
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -50,6 +54,7 @@ interface ChatState {
   switchThread: (threadId: string) => void;
   getCurrentMessages: () => Message[];
   resetMessages: () => void;
+  setSelectedModel: (model: LanguageModel) => void;
 
   // Internal actions
   addMessageToCache: (threadId: string, message: Message) => void;
@@ -213,6 +218,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentThreadId: null,
   messageCache: {},
   isLoadingMessages: false,
+  selectedModel: null,
 
   connect: async () => {
     const state = get();
@@ -343,6 +349,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       role: 'user',
       content: content,
       thread_id: threadId,
+      model: get().selectedModel?.id,
+      provider: get().selectedModel?.provider,
     };
 
     try {
@@ -479,5 +487,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setError: (error: string | null) => {
     set({ error });
+  },
+
+  setSelectedModel: (model: LanguageModel) => {
+    set({ selectedModel: model });
   },
 }));

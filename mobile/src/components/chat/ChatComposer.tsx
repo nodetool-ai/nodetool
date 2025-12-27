@@ -12,21 +12,9 @@ import {
   Keyboard,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { MessageContent, ChatStatus } from '../../types';
-
-// Send icon SVG as a simple Text (you could use a proper icon library)
-const SendIcon = () => (
-  <View style={styles.sendIcon}>
-    <View style={styles.sendArrow} />
-  </View>
-);
-
-// Stop icon
-const StopIcon = () => (
-  <View style={styles.stopIcon}>
-    <View style={styles.stopSquare} />
-  </View>
-);
+import { useTheme } from '../../hooks/useTheme';
 
 interface ChatComposerProps {
   status: ChatStatus;
@@ -42,13 +30,11 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   disabled = false,
 }) => {
   const [text, setText] = useState('');
+  const { colors } = useTheme();
 
   const isGenerating = status === 'loading' || status === 'streaming';
   const isDisconnected = status === 'disconnected' || status === 'connecting';
-  const canSend =
-    !disabled &&
-    !isDisconnected &&
-    text.trim().length > 0;
+  const canSend = !disabled && !isDisconnected && text.trim().length > 0;
 
   const handleSend = useCallback(() => {
     if (!canSend) return;
@@ -77,23 +63,24 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     return 'Type a message...';
   };
 
+  const inputContainerBg = (colors.background === '#FAF7F2' || colors.background === '#FFFFFF')
+    ? 'rgba(0,0,0,0.05)'
+    : 'rgba(255, 255, 255, 0.08)';
+
   return (
-    <View style={styles.container}>
-      <View style={styles.inputContainer}>
+    <View style={[styles.container, { backgroundColor: colors.surfaceHeader, borderTopColor: colors.border }]}>
+      <View style={[styles.inputContainer, { backgroundColor: inputContainerBg }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: colors.text }]}
           value={text}
           onChangeText={setText}
           placeholder={getPlaceholder()}
-          placeholderTextColor="#808080"
+          placeholderTextColor={colors.textSecondary}
           multiline
           maxLength={10000}
           editable={!isDisconnected && !disabled}
-          returnKeyType="default"
-          blurOnSubmit={false}
           autoCorrect={true}
           autoCapitalize="sentences"
-          spellCheck={true}
         />
         
         {isGenerating && onStop ? (
@@ -102,20 +89,20 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             onPress={handleStop}
             activeOpacity={0.7}
           >
-            <StopIcon />
+            <Ionicons name="square" size={16} color="#FFFFFF" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={[
               styles.button,
-              styles.sendButton,
+              { backgroundColor: colors.primary },
               !canSend && styles.buttonDisabled,
             ]}
             onPress={handleSend}
             disabled={!canSend}
             activeOpacity={0.7}
           >
-            <SendIcon />
+            <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         )}
       </View>
@@ -128,14 +115,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-    backgroundColor: '#1C1C1E',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 20,
     paddingLeft: 16,
     paddingRight: 4,
@@ -144,7 +128,6 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#FFFFFF',
     fontSize: 16,
     maxHeight: 120,
     paddingVertical: 8,
@@ -158,44 +141,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 2,
   },
-  sendButton: {
-    backgroundColor: '#0A84FF',
-  },
   stopButton: {
     backgroundColor: '#FF453A',
   },
   buttonDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(128, 128, 128, 0.2)',
     opacity: 0.5,
-  },
-  sendIcon: {
-    width: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderBottomWidth: 12,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#FFFFFF',
-    transform: [{ rotate: '45deg' }],
-  },
-  stopIcon: {
-    width: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stopSquare: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 2,
   },
 });
 

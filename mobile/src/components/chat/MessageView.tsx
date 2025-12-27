@@ -5,8 +5,9 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Message, MessageContent } from '../../types';
+import { Message } from '../../types';
 import { ChatMarkdown } from './ChatMarkdown';
+import { useTheme } from '../../hooks/useTheme';
 
 interface MessageViewProps {
   message: Message;
@@ -42,6 +43,7 @@ function getTextContent(content: Message['content']): string {
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
+  const { colors, mode } = useTheme();
   
   // Skip non-user/assistant messages
   if (!isUser && !isAssistant) {
@@ -60,12 +62,14 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
       <View
         style={[
           styles.bubble,
-          isUser ? styles.userBubble : styles.assistantBubble,
+          isUser 
+            ? [styles.userBubble, { backgroundColor: '#EFEFEF' }] 
+            : [styles.assistantBubble, { backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.05)' }],
         ]}
       >
         {isUser ? (
           // User messages: plain text
-          <Text style={styles.userText}>{textContent}</Text>
+          <Text style={[styles.userText, { color: '#2A2A2A' }]}>{textContent}</Text>
         ) : (
           // Assistant messages: markdown rendered
           <ChatMarkdown content={textContent} />
@@ -94,15 +98,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   userBubble: {
-    backgroundColor: '#0A84FF',
     borderBottomRightRadius: 4,
   },
   assistantBubble: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderBottomLeftRadius: 4,
   },
   userText: {
-    color: '#FFFFFF',
     fontSize: 15,
     lineHeight: 22,
   },

@@ -5,6 +5,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Easing } from 'react-native';
+import { useTheme } from '../../hooks/useTheme';
 
 interface LoadingIndicatorProps {
   size?: number;
@@ -13,8 +14,10 @@ interface LoadingIndicatorProps {
 
 export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
   size = 10,
-  color = '#6BA6FF',
+  color,
 }) => {
+  const { colors } = useTheme();
+  const dotColor = color || colors.primary;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0.5)).current;
 
@@ -68,7 +71,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: color,
+            backgroundColor: dotColor,
             transform: [{ scale: scaleAnim }],
             opacity: opacityAnim,
           },

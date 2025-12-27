@@ -14,6 +14,7 @@ import {
 import { Message, MessageContent, ChatStatus } from '../../types';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatComposer } from './ChatComposer';
+import { useTheme } from '../../hooks/useTheme';
 
 interface ChatViewProps {
   status: ChatStatus;
@@ -32,6 +33,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   error,
   statusMessage,
 }) => {
+  const { colors } = useTheme();
   const isLoading = status === 'loading';
   const isStreaming = status === 'streaming';
 
@@ -46,8 +48,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
     if (messages.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>Welcome to Chat</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Welcome to Chat</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             Start a conversation by typing a message below
           </Text>
         </View>
@@ -59,16 +61,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const renderStatusBanner = () => {
     if (error) {
       return (
-        <View style={[styles.banner, styles.errorBanner]}>
-          <Text style={styles.bannerText}>{error}</Text>
+        <View style={[styles.banner, { backgroundColor: 'rgba(255, 59, 48, 0.2)' }]}>
+          <Text style={[styles.bannerText, { color: colors.text }]}>{error}</Text>
         </View>
       );
     }
 
     if (status === 'disconnected' || status === 'connecting') {
       return (
-        <View style={[styles.banner, styles.warningBanner]}>
-          <Text style={styles.bannerText}>
+        <View style={[styles.banner, { backgroundColor: 'rgba(255, 159, 10, 0.2)' }]}>
+          <Text style={[styles.bannerText, { color: colors.text }]}>
             {status === 'connecting' ? 'Connecting...' : 'Disconnected'}
           </Text>
         </View>
@@ -77,8 +79,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
     if (status === 'reconnecting') {
       return (
-        <View style={[styles.banner, styles.infoBanner]}>
-          <Text style={styles.bannerText}>
+        <View style={[styles.banner, { backgroundColor: 'rgba(10, 132, 255, 0.2)' }]}>
+          <Text style={[styles.bannerText, { color: colors.text }]}>
             {statusMessage || 'Reconnecting...'}
           </Text>
         </View>
@@ -90,7 +92,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
@@ -120,7 +122,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
   },
   messagesContainer: {
     flex: 1,
@@ -132,14 +133,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyTitle: {
-    color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtitle: {
-    color: '#808080',
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
@@ -149,17 +148,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
   },
-  errorBanner: {
-    backgroundColor: 'rgba(255, 59, 48, 0.2)',
-  },
-  warningBanner: {
-    backgroundColor: 'rgba(255, 159, 10, 0.2)',
-  },
-  infoBanner: {
-    backgroundColor: 'rgba(10, 132, 255, 0.2)',
-  },
   bannerText: {
-    color: '#FFFFFF',
     fontSize: 13,
   },
 });
