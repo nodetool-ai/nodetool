@@ -12,6 +12,7 @@ import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 import AssetGridContextMenu from "../context_menus/AssetGridContextMenu";
 import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
+import ImageCompareDialog from "./ImageCompareDialog";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
 import Dropzone from "./Dropzone";
@@ -310,6 +311,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       <AssetDeleteConfirmation assets={selectedAssetIds} />
       <AssetRenameConfirmation assets={selectedAssetIds} />
       <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
+      <ImageCompareDialog />
       {isUploading && <AssetUploadOverlay />}
     </Box>
   );

@@ -12,4 +12,5 @@ export { BooleanRenderer } from "./BooleanRenderer";
 export { DatetimeRenderer } from "./DatetimeRenderer";
 export { EmailRenderer } from "./EmailRenderer";
 export { TextRenderer } from "./TextRenderer";
+export { ImageComparisonRenderer } from "./ImageComparisonRenderer";
 export { default as RealtimeAudioOutput } from "./RealtimeAudioOutput";
