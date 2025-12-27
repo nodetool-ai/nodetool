@@ -12,8 +12,8 @@ This guide helps you make informed decisions about when to use local models vers
 
 **Key Findings:**
 - **Local execution:** High upfront hardware cost ($1,000-$3,000), zero ongoing costs
-- **Cloud APIs:** Zero upfront cost, $0.0001-$0.03 per task
-- **Break-even:** 10,000-100,000 API calls depending on workload type
+- **Cloud APIs:** Zero upfront cost, $0.20-$25.00 per 1M tokens (depending on model tier)
+- **Break-even:** Highly dependent on volume—from days (high volume) to years (low volume)
 - **Hybrid approach:** Mix local and cloud models for optimal cost/quality balance
 
 ---
@@ -22,24 +22,39 @@ This guide helps you make informed decisions about when to use local models vers
 
 ### Text Generation (LLM Tasks)
 
-| Provider | Model | Cost per 1K tokens | Equivalent Local | Notes |
-|----------|-------|-------------------|------------------|-------|
-| OpenAI | GPT-4 Turbo | $0.01 (input) / $0.03 (output) | Llama-70B | Best quality, highest cost |
-| OpenAI | GPT-3.5 Turbo | $0.0005 / $0.0015 | Llama-13B | Good balance |
-| Anthropic | Claude 3 Haiku | $0.00025 / $0.00125 | Llama-7B | Fast, affordable |
-| Local | Llama-3-70B-Q4 | $0.00 | — | One-time download ~40GB |
-| Local | Llama-3-8B-Q4 | $0.00 | — | One-time download ~5GB |
+| Provider | Model | Input $/1M tokens | Output $/1M tokens | Equivalent Local | Notes |
+|----------|-------|-------------------|-------------------|------------------|-------|
+| OpenAI | GPT-5.2 | $1.75 | $14.00 | Llama-70B+ | Current flagship |
+| OpenAI | GPT-4.1 | $1.00 | $5.00 | Llama-70B | Mid-tier general use |
+| OpenAI | GPT-4.1-mini | $0.15 | $0.60 | Llama-13B | Budget/high-volume |
+| Anthropic | Claude Opus 4.5 | $5.00 | $25.00 | Llama-70B+ | Highest capability |
+| Anthropic | Claude Sonnet 3.7 | $3.00 | $15.00 | Llama-70B | Balanced cost/performance |
+| Anthropic | Claude Haiku 3.7 | $0.80 | $4.00 | Llama-13B | Lightweight |
+| Google | Gemini 3 Pro | $2.00 | $12.00 | Llama-70B | Pro tier |
+| Google | Gemini 3 Flash | $0.50 | $3.00 | Llama-13B | Flash tier |
+| Google | Gemini 2.5 Flash | $0.20 | $1.00 | Llama-7B | Ultra-cheap |
+| Zhipu | GLM-4.7 | $0.60 | $2.20 | Llama-13B | Latest GLM pricing |
+| MiniMax | MiniMax M2.1 | $0.30 | $1.20 | Llama-7B | Latest MiniMax pricing |
+| Local | Llama-3-70B-Q4 | $0.00 | $0.00 | — | One-time download ~40GB |
+| Local | Llama-3-13B-Q4 | $0.00 | $0.00 | — | One-time download ~8GB |
+| Local | Llama-3-8B-Q4 | $0.00 | $0.00 | — | One-time download ~5GB |
 
-**Break-even analysis (GPT-3.5 vs local Llama-13B):**
+**Break-even analysis (GPT-4.1-mini vs local Llama-13B):**
 - Assumption: 1,000 tokens per request (500 in, 500 out)
-- Cloud cost: $0.001 per request
+- Cloud cost: $0.000375 per request ($0.15/1M × 500 + $0.60/1M × 500)
 - Local hardware: $1,500 (M2 Mac or RTX 4070)
-- **Break-even: 1.5 million requests** (~$1,500 in API fees)
+- **Break-even: 4 million requests** (~$1,500 in API fees)
 
 **Real-world scenario:**
-- **10 requests/day** → 2.7 years to break even (cloud better)
-- **1,000 requests/day** → 50 days to break even (local better)
-- **10,000 requests/day** → 5 days to break even (local MUCH better)
+- **10 requests/day** → 1,096 days (3 years) to break even (cloud better)
+- **1,000 requests/day** → 11 days to break even (local better)
+- **10,000 requests/day** → 1.1 days to break even (local MUCH better)
+
+**Cost comparison by model tier:**
+- **Budget tier** (GPT-4.1-mini, Gemini 2.5 Flash, MiniMax M2.1): $0.20-0.40 per 1M tokens blended
+- **Mid tier** (GPT-4.1, Gemini 3 Flash, GLM-4.7): $1.00-3.00 per 1M tokens blended
+- **Premium tier** (GPT-5.2, Claude Opus 4.5, Gemini 3 Pro): $5.00-15.00 per 1M tokens blended
+- **Local execution**: $0.00 ongoing (hardware amortized over time)
 
 ---
 
@@ -176,14 +191,14 @@ This guide helps you make informed decisions about when to use local models vers
 **Use cloud APIs for:**
 - ✅ Low-volume tasks (<100/day)
 - ✅ Peak capacity bursts
-- ✅ Cutting-edge model access (GPT-4, Claude 3)
+- ✅ Cutting-edge model access (GPT-5.2, Claude Opus 4.5)
 - ✅ Specialized tasks (vision, audio cloning)
 - ✅ When highest quality is required
 
 **Example hybrid workflow:**
 1. **Batch generation (local):** Generate 1,000 article outlines with local Llama (free)
 2. **Quality filter (local):** Score outlines with classifier (free)
-3. **Final polish (cloud):** Expand top 10 outlines with GPT-4 ($0.20 total)
+3. **Final polish (cloud):** Expand top 10 outlines with GPT-4.1 ($0.03 total)
 4. **Result:** 90% cost reduction vs all-cloud
 
 ---
@@ -194,10 +209,10 @@ Don't use expensive models when simpler ones work:
 
 | Task Complexity | Recommended Model | Why |
 |----------------|------------------|-----|
-| Simple extraction | Llama-7B / GPT-3.5 Turbo | Fast, cheap, accurate for structured tasks |
-| General chat | Llama-13B / GPT-3.5 Turbo | Good balance of quality and speed |
-| Complex reasoning | Llama-70B / GPT-4 | Only when needed; 10x more expensive |
-| Creative writing | GPT-4 / Claude 3 Opus | Highest quality for subjective tasks |
+| Simple extraction | Llama-7B / Gemini 2.5 Flash | Fast, cheap, accurate for structured tasks |
+| General chat | Llama-13B / GPT-4.1-mini | Good balance of quality and speed |
+| Complex reasoning | Llama-70B / GPT-4.1 | Only when needed; 10x more expensive |
+| Creative writing | GPT-5.2 / Claude Opus 4.5 | Highest quality for subjective tasks |
 
 **Rule of thumb:** Start with smallest model that works, upgrade only if quality suffers.
 
@@ -208,8 +223,8 @@ Don't use expensive models when simpler ones work:
 Process multiple items together to amortize costs:
 
 **Example: Email categorization**
-- **Naive approach:** 1 API call per email = $0.001 × 1,000 emails = $1.00
-- **Batched approach:** 1 API call for 50 emails = $0.005 × 20 batches = $0.10
+- **Naive approach:** 1 API call per email = 100 tokens × $0.375/1M × 1,000 emails = $0.38
+- **Batched approach:** 1 API call for 50 emails = 500 tokens × $0.375/1M × 20 batches = $0.038
 - **Savings:** 90% cost reduction
 
 **NodeTool implementation:**
@@ -240,7 +255,7 @@ Cache results to avoid redundant API calls:
 **Example: Document Q&A system**
 - Cache embeddings after first generation
 - Reuse indexed documents across queries
-- Save $0.0001 × 1M tokens = $100 on repeated embeddings
+- Save $0.02 × 1M tokens (using text-embedding model) on repeated embeddings
 
 **NodeTool implementation:**
 - Use `SaveText` / `ReadTextFile` for caching
@@ -259,17 +274,17 @@ Cache results to avoid redundant API calls:
 - Create 20 featured images per week
 
 **Cloud-only cost (monthly):**
-- Posts: 100 × 30 × $0.001 = $3.00
+- Posts: 100 × 30 × 200 tokens × $0.375/1M = $0.23
 - Transcription: 20 hours × $0.36/hour = $7.20
 - Images: 20 × 4 × $0.02 = $1.60
-- **Total:** $11.80/month ($141.60/year)
+- **Total:** $9.03/month ($108.36/year)
 
 **Local-only cost:**
 - Hardware: M2 Mac Mini ($800 upfront)
 - Electricity: ~$5/month
 - **Total:** $800 + $60/year = $860 first year, $60/year after
 
-**Break-even:** 6 years... but consider:
+**Break-even:** 7.4 years... but consider:
 - Privacy (client data stays local)
 - No API rate limits
 - Instant experimentation
@@ -286,8 +301,8 @@ Cache results to avoid redundant API calls:
 
 **Cloud-only cost (monthly):**
 - Transcription: 100 × 30 × 15 min × $0.006/min = $270.00
-- Summarization: 100 × 30 × $0.005 = $15.00
-- **Total:** $285/month ($3,420/year)
+- Summarization: 100 × 30 × 500 tokens × $0.375/1M = $0.56
+- **Total:** $270.56/month ($3,246.72/year)
 - **PROBLEM:** HIPAA compliance risk with cloud APIs
 
 **Local-only cost:**
@@ -295,7 +310,7 @@ Cache results to avoid redundant API calls:
 - Electricity: ~$20/month
 - **Total:** $1,500 + $240/year = $1,740 first year, $240/year after
 
-**Break-even:** 5 months
+**Break-even:** 5.5 months
 **Verdict:** Local is clear winner (cost + compliance)
 
 ---
@@ -309,16 +324,16 @@ Cache results to avoid redundant API calls:
 
 **Cloud-only cost (monthly):**
 - Images: 10 × 30 × $0.02 = $6.00
-- Dialogue: 50 × 4 × $0.001 = $0.20
+- Dialogue: 50 × 4 × 100 tokens × $0.375/1M = $0.0075
 - Voice: 100 × 200 chars × $0.000015 = $0.30
-- **Total:** $6.50/month ($78/year)
+- **Total:** $6.31/month ($75.72/year)
 
 **Local-only cost:**
 - Hardware: RTX 3060 ($600 upfront)
 - Electricity: ~$10/month
 - **Total:** $600 + $120/year = $720 first year, $120/year after
 
-**Break-even:** 9 years
+**Break-even:** 9.5 years
 **Verdict:** Cloud better for now, switch to local when scaling (100+ images/day)
 
 ---
@@ -426,7 +441,7 @@ A: ~$5-20/month depending on usage and local rates. Much less than cloud fees at
 A: Technically yes, but check local laws and ToS of models. Some licenses restrict commercial use.
 
 **Q: What about model quality differences?**  
-A: GPT-4 often beats local Llama-70B, but gap is closing. Test with your specific use case to decide if quality difference justifies cost.
+A: Latest models (GPT-5.2, Claude Opus 4.5) often beat local Llama-70B, but gap is closing with newer open models. Test with your specific use case to decide if quality difference justifies cost.
 
 ---
 
@@ -440,4 +455,4 @@ A: GPT-4 often beats local Llama-70B, but gap is closing. Test with your specifi
 ---
 
 **Last updated:** December 2025  
-**Pricing sources:** OpenAI, Anthropic, Replicate public pricing (subject to change)
+**Pricing sources:** OpenAI, Anthropic, Google (Gemini), Zhipu (GLM), MiniMax public pricing (subject to change)
