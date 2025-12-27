@@ -302,7 +302,7 @@ const styles = (theme: Theme) =>
         borderColor: `${theme.vars.palette.primary.main}`,
         boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}40, var(--quick-shadow)`,
         "& svg": {
-          color: "#fff"
+          color: "var(--palette-text-primary)"
         }
       }
     },
