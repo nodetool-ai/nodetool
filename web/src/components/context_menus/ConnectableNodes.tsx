@@ -45,10 +45,11 @@ const menuStyles = (theme: Theme) =>
       height: "70vh",
       display: "flex",
       flexDirection: "column",
-      width: "300px",
-      borderRadius: 8,
-      boxShadow: theme.shadows[6],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      width: "320px",
+      borderRadius: "12px",
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: theme.shadows[8],
       overflow: "hidden"
     }
   });
@@ -57,58 +58,72 @@ const scrollableContentStyles = (theme: Theme) =>
   css({
     overflowY: "auto",
     flex: 1,
-    backgroundColor: "var(--palette-grey-800)",
+    backgroundColor: "transparent",
     "&.connectable-nodes-content": {
       minHeight: 0,
       maxHeight: "calc(70vh - 130px)",
-      padding: "0 0 1em .5em",
+      padding: "0",
       overflowX: "hidden"
     },
     ".namespace": {
-      backgroundColor: "transparent",
-      padding: "1em 0 .25em .3em",
-      borderTop: `1px solid ${theme.vars.palette.grey[700]}`
+      backgroundColor: theme.vars.palette.action.hover,
+      padding: "4px 0 4px 12px",
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      minHeight: "32px"
+    },
+    ".node-item-container": {
+        padding: "2px 8px",
     },
     ".node": {
       display: "flex",
       alignItems: "center",
-      margin: "0",
-      padding: ".2em",
-      borderRadius: "3px",
+      margin: "2px 0",
+      padding: "6px 8px",
+      borderRadius: "6px",
       cursor: "pointer",
+      transition: "background-color 0.2s ease",
       ".node-button": {
-        padding: ".1em",
+        padding: "0 8px",
         flexGrow: 1,
         "& .MuiTypography-root": {
-          fontSize: theme.fontSizeSmall
+          fontSize: theme.fontSizeSmall,
+          fontWeight: 400
         }
       },
       ".icon-bg": {
-        backgroundColor: "transparent !important"
+        backgroundColor: "rgba(255,255,255,0.05) !important",
+        borderRadius: "4px",
+        padding: "4px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
       },
       ".icon-bg svg": {
-        color: theme.vars.palette.grey[400]
+        color: theme.vars.palette.grey[400],
+        fontSize: "1.2rem"
       }
     },
     ".node:hover": {
-      backgroundColor: theme.vars.palette.grey[600]
+      backgroundColor: "rgba(255,255,255,0.08)"
     },
     ".node.focused": {
       color: "var(--palette-primary-main)",
-      backgroundColor: theme.vars.palette.grey[600],
-      borderRadius: "3px",
-      boxShadow: "inset 1px 1px 2px #00000044"
+      backgroundColor: "rgba(255,255,255,0.1)",
+      borderRadius: "6px",
+      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)"
     },
     ".Mui-disabled": {
-      opacity: 0.7,
-      color: "white"
+      opacity: 1,
+      color: "text.primary"
     },
     h4: {
-      padding: ".25em"
+      padding: "0",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
+      fontWeight: 600,
+      opacity: 0.7
     }
-    // ".node-tooltip": {
-    //   backgroundColor: "red"
-    // }
   });
 
 const fixedHeaderStyles = (theme: Theme) =>
@@ -117,10 +132,9 @@ const fixedHeaderStyles = (theme: Theme) =>
     top: 0,
     backgroundColor: theme.vars.palette.background.paper,
     zIndex: theme.zIndex.modal + 1,
+    borderBottom: `1px solid ${theme.vars.palette.divider}`,
     "&.connectable-nodes-header": {
-      padding: ".5em .5em",
-      backgroundColor: theme.vars.palette.background.paper,
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+      padding: "12px 16px"
     }
   });
 
@@ -265,14 +279,6 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
 
   return (
     <Menu
-      slotProps={{
-        paper: {
-          sx: {
-            backgroundColor: theme.vars.palette.c_editor_bg_color,
-            backgroundImage: "none"
-          }
-        }
-      }}
       css={menuStyles}
       open={isVisible}
       onContextMenu={(event) => event.preventDefault()}
@@ -281,9 +287,15 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
       }
       onClose={hideMenu}
+      transitionDuration={200}
+      slotProps={{
+        paper: {
+            elevation: 0
+        }
+      }}
     >
       <Box css={fixedHeaderStyles} className="connectable-nodes-header">
-        <MenuItem disabled>
+        <MenuItem disabled sx={{ opacity: "1 !important", p: 0, mb: 1 }}>
           <Box
             sx={{
               display: "flex",
@@ -292,13 +304,15 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
               width: "100%"
             }}
           >
-            <Typography variant="body1">Connectable Nodes</Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+              Connectable Nodes
+            </Typography>
+            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", bgcolor: "rgba(255,255,255,0.1)", px: 1, py: 0.5, borderRadius: 1 }}>
               {totalCount}
             </Typography>
           </Box>
         </MenuItem>
-        <MenuItem>
+        <MenuItem sx={{ p: 0, "&:hover": { bgcolor: "transparent" }, cursor: "default" }} disableRipple>
           <TextField
             className="connectable-nodes-search"
             size="small"
@@ -316,13 +330,22 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             }}
             autoFocus={isVisible}
             aria-label="Search nodes"
+            sx={{
+                "& .MuiOutlinedInput-root": {
+                    backgroundColor: "rgba(0,0,0,0.2)",
+                    borderRadius: "8px",
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.1)" },
+                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                    "&.Mui-focused fieldset": { borderColor: theme.vars.palette.primary.main },
+                }
+            }}
             slotProps={{
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
                     <SearchIcon
                       fontSize="small"
-                      sx={{ color: theme.vars.palette.grey[400] }}
+                      sx={{ color: "rgba(255,255,255,0.4)" }}
                     />
                   </InputAdornment>
                 ),
@@ -334,7 +357,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                       edge="end"
                       size="small"
                     >
-                      <ClearIcon />
+                      <ClearIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </InputAdornment>
                 ) : null
@@ -346,7 +369,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
 
       <Box css={scrollableContentStyles} className="connectable-nodes-content">
         {totalCount === 0 ? (
-          <Box sx={{ p: 2, color: "text.secondary" }}>
+          <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
             <Typography variant="body2">
               No nodes match &quot;{searchTerm}&quot;.
             </Typography>
@@ -354,21 +377,20 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         ) : (
           Object.entries(groupedNodes).map(([namespace, nodes]) => (
             <React.Fragment key={namespace}>
-              <MenuItem className="namespace" disabled>
+              <MenuItem className="namespace" disabled sx={{ opacity: "1 !important" }}>
                 <Typography
-                  variant="h4"
+                  variant="caption"
                   color="textSecondary"
-                  fontSize={theme.fontSizeSmaller}
-                  padding={0}
-                  margin={0}
+                  fontSize={10}
+                  fontWeight={700}
                 >
-                  {namespace} ({nodes.length})
+                  {namespace.toUpperCase()}
                 </Typography>
               </MenuItem>
               {nodes.map((nodeMetadata: NodeMetadata) => (
                 <Tooltip
                   leaveDelay={10}
-                  enterDelay={200}
+                  enterDelay={500}
                   key={nodeMetadata.node_type}
                   TransitionProps={{ timeout: 0 }}
                   placement="right"
