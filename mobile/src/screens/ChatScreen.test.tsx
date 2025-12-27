@@ -137,9 +137,10 @@ describe('ChatScreen', () => {
       const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
-      const { getByText } = render(<HeaderRight />);
+      const { getByTestId } = render(<HeaderRight />);
       
-      fireEvent.press(getByText('New Chat'));
+      // Click the add icon button (new chat button)
+      fireEvent.press(getByTestId('icon-add-outline'));
       
       await waitFor(() => {
         expect(mockStore.createNewThread).toHaveBeenCalled();
@@ -154,9 +155,10 @@ describe('ChatScreen', () => {
       const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
-      const { getByText } = render(<HeaderRight />);
+      const { getByTestId } = render(<HeaderRight />);
       
-      fireEvent.press(getByText('New Chat'));
+      // Click the add icon button (new chat button)
+      fireEvent.press(getByTestId('icon-add-outline'));
       
       // Should not throw
       await waitFor(() => {
