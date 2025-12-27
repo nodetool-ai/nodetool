@@ -33,3 +33,6 @@ export type {
   ChatActions,
   WebSocketConfig,
 } from "./chat";
+// Export chat file handling types
+export type { DroppedFile } from "./chat.types";
+export { DOC_TYPES_REGEX } from "./chat.types";

@@ -22,6 +22,7 @@
     "@types/uuid": "10.0.0",
     "axios": "^1.13.2",
     "expo": "~54.0.30",
+    "expo-av": "~16.0.8",
     "expo-status-bar": "~3.0.9",
     "openapi-fetch": "^0.15.0",
     "openapi-typescript": "^7.8.0",

@@ -1,6 +1,6 @@
 /**
- * Chat composer component with input field and send button.
- * Handles message composition and sending.
+ * Chat composer component with input field, send button, and file attachments.
+ * Handles message composition, file attachments, and sending.
  */
 
 import React, { useState, useCallback } from 'react';
@@ -11,16 +11,26 @@ import {
   StyleSheet,
   Keyboard,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MessageContent, ChatStatus } from '../../types';
+import { DroppedFile } from '../../types/chat.types';
 import { useTheme } from '../../hooks/useTheme';
+import { useFileHandling } from '../../hooks/useFileHandling';
+import { FilePreview } from './FilePreview';
 
 interface ChatComposerProps {
   status: ChatStatus;
   onSendMessage: (content: MessageContent[], text: string) => void;
   onStop?: () => void;
   disabled?: boolean;
+  /** Called when attachment button is pressed - parent should handle file picker */
+  onAttachmentPress?: () => void;
+  /** External files that were picked (allows parent to control file picking) */
+  externalFiles?: DroppedFile[];
+  /** Callback when external files change (for parent to clear them after send) */
+  onExternalFilesChange?: (files: DroppedFile[]) => void;
 }
 
 export const ChatComposer: React.FC<ChatComposerProps> = ({
@@ -28,33 +38,67 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   onSendMessage,
   onStop,
   disabled = false,
+  onAttachmentPress,
+  externalFiles,
+  onExternalFilesChange,
 }) => {
   const [text, setText] = useState('');
   const { colors } = useTheme();
+  const { droppedFiles, addDroppedFiles, removeFile, clearFiles, getFileContents } = useFileHandling();
+
+  // Use external files if provided, otherwise use internal state
+  const files = externalFiles ?? droppedFiles;
+  const hasFiles = files.length > 0;
 
   const isGenerating = status === 'loading' || status === 'streaming';
   const isDisconnected = status === 'disconnected' || status === 'connecting';
-  const canSend = !disabled && !isDisconnected && text.trim().length > 0;
+  const canSend = !disabled && !isDisconnected && (text.trim().length > 0 || hasFiles);
 
   const handleSend = useCallback(() => {
     if (!canSend) return;
 
     const trimmedText = text.trim();
-    const content: MessageContent[] = [
-      {
+    const content: MessageContent[] = [];
+
+    // Add file contents first
+    if (hasFiles) {
+      const fileContents = getFileContents();
+      content.push(...fileContents);
+    }
+
+    // Add text content if present
+    if (trimmedText) {
+      content.push({
         type: 'text',
         text: trimmedText,
-      } as MessageContent,
-    ];
+      } as MessageContent);
+    }
 
     onSendMessage(content, trimmedText);
     setText('');
+    
+    // Clear files
+    if (externalFiles && onExternalFilesChange) {
+      onExternalFilesChange([]);
+    } else {
+      clearFiles();
+    }
+    
     Keyboard.dismiss();
-  }, [canSend, text, onSendMessage]);
+  }, [canSend, text, hasFiles, getFileContents, onSendMessage, externalFiles, onExternalFilesChange, clearFiles]);
 
   const handleStop = useCallback(() => {
     onStop?.();
   }, [onStop]);
+
+  const handleRemoveFile = useCallback((index: number) => {
+    if (externalFiles && onExternalFilesChange) {
+      const newFiles = externalFiles.filter((_, i) => i !== index);
+      onExternalFilesChange(newFiles);
+    } else {
+      removeFile(index);
+    }
+  }, [externalFiles, onExternalFilesChange, removeFile]);
 
   const getPlaceholder = () => {
     if (isDisconnected) {
@@ -69,7 +113,42 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceHeader, borderTopColor: colors.border }]}>
+      {/* File previews */}
+      {hasFiles && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filePreviewContainer}
+          contentContainerStyle={styles.filePreviewContent}
+        >
+          {files.map((file, index) => (
+            <FilePreview
+              key={`${file.name}-${index}`}
+              file={file}
+              onRemove={() => handleRemoveFile(index)}
+            />
+          ))}
+        </ScrollView>
+      )}
+
       <View style={[styles.inputContainer, { backgroundColor: inputContainerBg }]}>
+        {/* Attachment button */}
+        {onAttachmentPress && (
+          <TouchableOpacity
+            style={styles.attachButton}
+            onPress={onAttachmentPress}
+            disabled={isDisconnected || disabled}
+            accessibilityLabel="Attach file"
+            accessibilityRole="button"
+          >
+            <Ionicons 
+              name="add-circle-outline" 
+              size={24} 
+              color={isDisconnected || disabled ? colors.textSecondary : colors.primary} 
+            />
+          </TouchableOpacity>
+        )}
+
         <TextInput
           style={[styles.input, { color: colors.text }]}
           value={text}
@@ -117,14 +196,27 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
     borderTopWidth: 1,
   },
+  filePreviewContainer: {
+    marginBottom: 8,
+  },
+  filePreviewContent: {
+    paddingRight: 8,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     borderRadius: 20,
-    paddingLeft: 16,
+    paddingLeft: 8,
     paddingRight: 4,
     paddingVertical: 4,
     minHeight: 44,
+  },
+  attachButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
   },
   input: {
     flex: 1,
