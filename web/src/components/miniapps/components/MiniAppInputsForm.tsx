@@ -1,11 +1,8 @@
-import React, { FormEvent, useCallback, useEffect, useMemo } from "react";
+import React, { FormEvent, useCallback, useMemo } from "react";
 import { Button, Tooltip, Typography } from "@mui/material";
-import { ReactFlowProvider } from "@xyflow/react";
 import SendIcon from "@mui/icons-material/Send";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
-import { createNodeStore } from "../../../stores/NodeStore";
-import { NodeContext } from "../../../contexts/NodeContext";
 import { PropertyProps } from "../../node/PropertyInput";
 import StringProperty from "../../properties/StringProperty";
 import IntegerProperty from "../../properties/IntegerProperty";

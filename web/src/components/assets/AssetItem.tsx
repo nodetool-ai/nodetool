@@ -470,7 +470,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       </div>
       {showInfo && (
         <>
-          {showFiletype && assetFileEnding && assetItemSize > 2 && (
+          {showFiletype && assetFileEnding && assetItemSize > 3 && (
             <Typography
               className="filetype info"
               title={asset.content_type || "Unknown content type"}
@@ -493,7 +493,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           {showFileSize &&
             (asset as any).size !== undefined &&
             (asset as any).size > 0 &&
-            assetItemSize > 2 && (
+            assetItemSize > 3 && (
               <Typography
                 className="filesize info"
                 title={`File size: ${formatFileSize((asset as any).size)}`}
@@ -505,7 +505,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 {formatFileSize((asset as any).size)}
               </Typography>
             )}
-          {showName && assetItemSize > 1 && (
+          {showName && assetItemSize > 2 && (
             <Typography
               aria-label={asset.name}
               data-microtip-position="bottom"
