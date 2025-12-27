@@ -6,17 +6,15 @@ const createMockAsset = (id: string, name: string = `Asset ${id}`): Asset => ({
   id,
   user_id: "user1",
   workflow_id: null,
-  parent_id: null,
+  parent_id: "",
   name,
   content_type: "image/png",
-  file_size: 1024,
-  duration: null,
+  size: 1024,
   created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  deleted_at: null,
-  content: null,
-  temp_id: null,
-  error: null
+  get_url: null,
+  thumb_url: null,
+  duration: null,
+  metadata: null
 });
 
 describe("AssetGridStore", () => {
@@ -223,8 +221,8 @@ describe("AssetGridStore", () => {
 
     it("sets global search results", () => {
       const results = [
-        { ...createMockAsset("1"), folder_path: "/folder1" },
-        { ...createMockAsset("2"), folder_path: "/folder2" }
+        { ...createMockAsset("1"), folder_path: "/folder1", folder_name: "Folder 1", folder_id: "folder1" },
+        { ...createMockAsset("2"), folder_path: "/folder2", folder_name: "Folder 2", folder_id: "folder2" }
       ];
 
       act(() => {

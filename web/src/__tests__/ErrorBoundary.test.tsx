@@ -69,8 +69,8 @@ describe("ErrorBoundary", () => {
     );
 
     const stackTrace = screen.getByText((content, element) => {
-      return element?.className?.includes("error-stack-trace") &&
-        content.includes("Error: Test error");
+      return !!(element?.className?.includes("error-stack-trace") &&
+        content.includes("Error: Test error"));
     });
     expect(stackTrace).toBeInTheDocument();
   });
