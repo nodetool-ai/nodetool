@@ -135,7 +135,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.7)`,
       zIndex: 10,
       borderRadius: "4px",
       backdropFilter: "blur(2px)",
@@ -172,7 +172,7 @@ const styles = (theme: Theme) =>
       left: "8px",
       fontSize: "0.7rem",
       lineHeight: "1.2",
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.common.white,
       padding: "4px 8px",
@@ -816,7 +816,7 @@ const TemplateGrid = () => {
                         "noopener,noreferrer"
                       );
                     }}
-                    style={{ color: "#61dafb" }}
+                    style={{ color: "var(--palette-info-light)" }}
                   >
                     Join our Discord
                   </a>
@@ -832,7 +832,7 @@ const TemplateGrid = () => {
                         "noopener,noreferrer"
                       );
                     }}
-                    style={{ color: "#61dafb" }}
+                    style={{ color: "var(--palette-info-light)" }}
                   >
                     Join the Nodetool Forum
                   </a>

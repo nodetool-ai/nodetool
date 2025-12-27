@@ -375,14 +375,14 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       <Typography
         variant="body1"
         className={`${fontSize} filename`}
-        style={{ color: "#ccc" }}
+        style={{ color: "var(--palette-text-primary)" }}
       >
         {filename}
       </Typography>
       <Typography
         variant="body1"
         className={`${fontSize} filename`}
-        style={{ color: "#999" }}
+        style={{ color: "var(--palette-text-secondary)" }}
       >
         {`${formatTime(displayTime)} | ${formatTime(duration)}`}
       </Typography>

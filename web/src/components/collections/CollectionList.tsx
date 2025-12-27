@@ -82,7 +82,7 @@ const CollectionList = () => {
                 borderRadius: 2.5,
                 px: 2,
                 backgroundColor: (theme) => theme.vars.palette.primary.main,
-                color: "#0b1220",
+                color: "primary.contrastText",
                 border: (theme) =>
                   `1px solid ${theme.vars.palette.primary.main}`,
                 boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",

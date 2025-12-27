@@ -307,7 +307,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       <Box css={styles(theme)} className="asset-list-view">
         <Typography
           variant="body2"
-          style={{ textAlign: "center", padding: "2em", color: "#999" }}
+          style={{ textAlign: "center", padding: "2em", color: "var(--palette-text-secondary)" }}
         >
           No assets to display
         </Typography>

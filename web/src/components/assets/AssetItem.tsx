@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
       pointerEvents: "none",
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[0],
-      backgroundColor: "rgba(17, 17, 17, 0.53)",
+      backgroundColor: `rgba(${theme.vars.palette.grey[900]} / 0.53)`,
       margin: "0",
       padding: "0.2em 0.5em",
       wordBreak: "break-word",
@@ -178,7 +178,7 @@ const styles = (theme: Theme) =>
     "&.selected:after": {
       border: `4px solid ${theme.vars.palette.grey[900]}`,
       outline: `8px solid ${"var(--palette-primary-main)"}`,
-      backgroundColor: "rgba(17, 17, 17, 0.33)",
+      backgroundColor: `rgba(${theme.vars.palette.grey[900]} / 0.33)`,
       outlineOffset: "-2px",
       borderRadius: ".75em",
       zIndex: 2000
@@ -195,7 +195,7 @@ const styles = (theme: Theme) =>
     },
     "&:hover:after": {
       border: `2px solid ${theme.vars.palette.grey[600]}`,
-      backgroundColor: "rgba(67, 124, 181, 0.13)"
+      backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.13)`
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
@@ -499,7 +499,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 title={`File size: ${formatFileSize((asset as any).size)}`}
                 style={{
                   color: "white",
-                  backgroundColor: "#333aa"
+                  backgroundColor: "var(--palette-grey-700)"
                 }}
               >
                 {formatFileSize((asset as any).size)}

@@ -42,7 +42,7 @@ const styles = (theme: Theme) =>
       WebkitAppearance: "none",
       MozAppearance: "none",
       appearance: "none",
-      color: "#ffffff",
+      color: "var(--palette-text-primary)",
       backgroundColor: "var(--palette-grey-800)",
       borderRadius: "8px",
       transition: "all 0.2s"

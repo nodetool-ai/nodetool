@@ -123,7 +123,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       overflow: "hidden",
       backgroundColor: "var(--palette-primary-main)",
-      color: "#0b1220",
+      color: "primary.contrastText",
       borderColor: "var(--palette-primary-main)",
       boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px var(--palette-primary-main)20`,
       filter: "saturate(1.1)",
@@ -218,14 +218,14 @@ const styles = (theme: Theme) =>
 
     /* Mini app button: vibrant inviting color */
     ".floating-action-button.mini-app": {
-      backgroundColor: "#00BCD4",
-      color: "#0b1220",
-      borderColor: "#00BCD4",
+      backgroundColor: "info.main",
+      color: "info.contrastText",
+      borderColor: "info.main",
       boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)`,
       filter: "saturate(1.1)",
       "&:hover": {
-        backgroundColor: "#00ACC1",
-        borderColor: "#00ACC1",
+        backgroundColor: "info.dark",
+        borderColor: "info.dark",
         boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)`,
         transform: "scale(1.06)"
       },
@@ -504,7 +504,7 @@ const FloatingToolBar: React.FC<{
                 showQuickActions
                   ? {
                       backgroundColor: theme.vars.palette.primary.main,
-                      color: "#fff",
+                      color: "primary.contrastText",
                       borderColor: theme.vars.palette.primary.main,
                       boxShadow: `0 0 12px ${theme.vars.palette.primary.main}60`
                     }

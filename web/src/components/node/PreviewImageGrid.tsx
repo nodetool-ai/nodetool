@@ -56,8 +56,8 @@ const styles = (theme: Theme, gap: number) =>
       padding: "2px 6px",
       fontSize: 11,
       borderRadius: 4,
-      background: "rgba(0,0,0,0.5)",
-      color: "#fff",
+      background: `rgba(${theme.vars.palette.background.defaultChannel} / 0.5)`,
+      color: "var(--palette-text-primary)",
       userSelect: "none" as const
     },
     ".name": {

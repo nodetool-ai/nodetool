@@ -84,10 +84,10 @@ const styles = (theme: Theme) =>
       minWidth: "unset",
       padding: "6px 12px",
       borderRadius: 10,
-      color: (theme as any).vars?.palette?.primary?.contrastText || "#fff",
+      color: (theme as any).vars?.palette?.primary?.contrastText || "var(--palette-text-primary)",
       backgroundImage: `linear-gradient(135deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
       backgroundSize: "200% 200%",
-      border: "1px solid rgba(255,255,255,0.15)",
+      border: `1px solid ${theme.vars.palette.action.selected}`,
       boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
       transition:
         "transform 200ms ease, box-shadow 200ms ease, background-position 300ms ease",

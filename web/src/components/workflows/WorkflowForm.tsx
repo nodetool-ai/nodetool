@@ -256,7 +256,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: "1px",
       right: "1px",
-      backgroundColor: "rgba(51, 51, 51, 0.8)"
+      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.8)`
     }
   });
 
