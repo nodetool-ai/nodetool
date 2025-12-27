@@ -9,25 +9,21 @@ import { VERSION } from "../../config/constants";
 import { isElectron } from "../../stores/ApiClient";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
-// System info interface matching the Electron types
-interface SystemInfo {
-  // App information
+// Note: This interface mirrors the SystemInfo type from window.d.ts
+// We use a local copy to avoid type export complexity
+interface SystemInfoData {
   appVersion: string;
   electronVersion: string;
   chromeVersion: string;
   nodeVersion: string;
-  // OS information
   os: string;
   osVersion: string;
   arch: string;
-  // Paths
   installPath: string;
   condaEnvPath: string;
   dataPath: string;
   logsPath: string;
-  // Python and package versions
   pythonVersion: string | null;
-  // Feature availability
   cudaAvailable: boolean;
   cudaVersion: string | null;
   ollamaInstalled: boolean;
@@ -161,7 +157,7 @@ const FeatureStatus: React.FC<{
 
 const AboutMenu: React.FC = () => {
   const theme = useTheme();
-  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [systemInfo, setSystemInfo] = useState<SystemInfoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const addNotification = useNotificationStore(
