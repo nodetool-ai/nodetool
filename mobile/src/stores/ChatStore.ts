@@ -502,13 +502,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   /**
    * Switches to an existing thread and loads its messages.
+   * Note: loadMessages is intentionally not awaited to avoid blocking the UI.
+   * Messages will be loaded asynchronously and the UI will update via state changes.
    */
   switchThread: (threadId: string) => {
     const exists = !!get().threads[threadId];
     if (!exists) return;
 
     set({ currentThreadId: threadId, lastUsedThreadId: threadId });
-    get().loadMessages(threadId);
+    // Load messages asynchronously - errors are handled within loadMessages
+    get().loadMessages(threadId).catch((error) => {
+      console.error('Failed to load messages on thread switch:', error);
+    });
   },
 
   /**
@@ -537,8 +542,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const newCurrentThreadId = threadIds[threadIds.length - 1];
             newState.currentThreadId = newCurrentThreadId;
             newState.lastUsedThreadId = newCurrentThreadId;
-            // Auto-load messages for the new current thread
-            setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
+            // Auto-load messages for the new current thread using Promise.resolve
+            // to defer execution until after state update completes
+            Promise.resolve().then(() => {
+              get().loadMessages(newCurrentThreadId).catch((error) => {
+                console.error('Failed to load messages after thread deletion:', error);
+              });
+            });
           } else {
             newState.currentThreadId = null;
             newState.lastUsedThreadId = null;
@@ -586,35 +596,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const messages = data.messages || [];
       const nextCursor = data.next;
 
-      set((state) => {
-        const existingMessages = state.messageCache[threadId] || [];
-        const updatedMessages = cursor
-          ? [...existingMessages, ...messages]
-          : messages;
-
-        return {
-          messageCache: {
-            ...state.messageCache,
-            [threadId]: updatedMessages,
-          },
-          messageCursors: {
-            ...state.messageCursors,
-            [threadId]: nextCursor,
-          },
-          isLoadingMessages: false,
-        };
-      });
-
-      return cursor
-        ? [...(messageCache[threadId] || []), ...messages]
+      // Calculate updated messages based on whether we're paginating
+      const existingMessages = get().messageCache[threadId] || [];
+      const updatedMessages = cursor
+        ? [...existingMessages, ...messages]
         : messages;
+
+      set((state) => ({
+        messageCache: {
+          ...state.messageCache,
+          [threadId]: updatedMessages,
+        },
+        messageCursors: {
+          ...state.messageCursors,
+          [threadId]: nextCursor,
+        },
+        isLoadingMessages: false,
+      }));
+
+      // Return the updated messages from state
+      return updatedMessages;
     } catch (error) {
       console.error('Failed to load messages:', error);
       set({
         error: error instanceof Error ? error.message : 'Failed to load messages',
         isLoadingMessages: false,
       });
-      return messageCache[threadId] || [];
+      // Return current state's cache instead of stale reference
+      return get().messageCache[threadId] || [];
     }
   },
 
