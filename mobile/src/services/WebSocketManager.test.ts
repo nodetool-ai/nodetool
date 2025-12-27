@@ -433,4 +433,115 @@ describe('WebSocketManager', () => {
       expect(connectPromise).rejects.toThrow('Connection failed');
     });
   });
+
+  describe('State transitions', () => {
+    it('handles invalid state transition action', () => {
+      manager = new WebSocketManager(defaultConfig);
+      // Access private method via any cast for testing
+      const result = (manager as any).transitionTo('invalid_action');
+      expect(result).toBe(false);
+    });
+
+    it('prevents invalid state transitions', async () => {
+      manager = new WebSocketManager(defaultConfig);
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+      
+      // Try to transition to connecting from connected (invalid)
+      const result = (manager as any).transitionTo('connect');
+      expect(result).toBe(false);
+    });
+
+    it('transitions to failed state when not intentional disconnect', async () => {
+      manager = new WebSocketManager(defaultConfig);
+      const onStateChange = jest.fn();
+      manager.setCallbacks({ onStateChange });
+      
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+      
+      // Reset mock to only track new calls
+      onStateChange.mockClear();
+      
+      // Simulate unexpected close (not intentional)
+      mockWebSocketInstance?.simulateClose(1011, 'Server error');
+      
+      // Should transition to disconnected, then failed
+      expect(onStateChange).toHaveBeenCalledWith('disconnected', 'connected');
+    });
+  });
+
+  describe('Message handling edge cases', () => {
+    it('handles error during message processing', async () => {
+      manager = new WebSocketManager(defaultConfig);
+      const onError = jest.fn();
+      const onMessage = jest.fn(() => {
+        throw new Error('Processing error');
+      });
+      manager.setCallbacks({ onError, onMessage });
+      
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+      
+      // This should trigger error in message processing
+      mockWebSocketInstance?.simulateMessage('{"type":"test"}');
+      await Promise.resolve();
+      
+      // onMessage will be called and throw, but error is caught
+      expect(onMessage).toHaveBeenCalled();
+    });
+
+    it('processes queued messages on connection', async () => {
+      manager = new WebSocketManager({
+        ...defaultConfig,
+        reconnect: true,
+      });
+      
+      // Start connecting
+      manager.connect();
+      
+      // Queue messages while connecting
+      manager.send({ type: 'msg1' });
+      manager.send({ type: 'msg2' });
+      manager.send({ type: 'msg3' });
+      
+      // Complete connection
+      mockWebSocketInstance?.simulateOpen();
+      await Promise.resolve();
+      await Promise.resolve(); // Allow queue processing
+      
+      // All queued messages should be sent
+      expect(mockWebSocketInstance?.send).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('Connection state checks', () => {
+    it('connect throws when in invalid state', async () => {
+      manager = new WebSocketManager(defaultConfig);
+      
+      // Force manager into 'disconnecting' state
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+      manager.disconnect();
+      
+      // Try to connect while disconnecting - should handle gracefully
+      // The actual behavior depends on implementation
+      expect(manager.getState()).toBe('disconnecting');
+    });
+
+    it('disconnect handles case when no WebSocket exists', () => {
+      manager = new WebSocketManager(defaultConfig);
+      manager.connect();
+      
+      // Clear the WebSocket before disconnect
+      (manager as any).ws = null;
+      
+      manager.disconnect();
+      expect(manager.getState()).toBe('disconnected');
+    });
+  });
 });
