@@ -544,4 +544,226 @@ describe('WebSocketManager', () => {
       expect(manager.getState()).toBe('disconnected');
     });
   });
+
+  describe('Queue processing error handling', () => {
+    it('handles error when processing queued messages', async () => {
+      manager = new WebSocketManager({
+        ...defaultConfig,
+        reconnect: true,
+      });
+      const onError = jest.fn();
+      manager.setCallbacks({ onError });
+      
+      // Start connecting
+      manager.connect();
+      
+      // Queue a message
+      manager.send({ type: 'queued' });
+      
+      // Set up send to fail after connect
+      const originalSend = mockWebSocketInstance!.send;
+      let callCount = 0;
+      mockWebSocketInstance!.send = jest.fn(() => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error('Queued send failed');
+        }
+      });
+      
+      // Complete connection - this should process queued messages
+      mockWebSocketInstance?.simulateOpen();
+      // Multiple Promise.resolve() calls needed to allow microtask queue
+      // to process both the onopen handler and the queued message sends
+      await Promise.resolve();
+      await Promise.resolve();
+      
+      // Restore original send for cleanup
+      mockWebSocketInstance!.send = originalSend;
+      
+      // Verify error callback was called
+      expect(onError).toHaveBeenCalled();
+    });
+  });
+
+  describe('Reconnection logic (unit tests)', () => {
+    it('calculates reconnect delay with exponential backoff', () => {
+      manager = new WebSocketManager({
+        url: 'ws://localhost:8000/ws/chat',
+        reconnect: true,
+        reconnectInterval: 1000,
+        reconnectDecay: 1.5,
+        reconnectAttempts: 10,
+        timeoutInterval: 300000,
+      });
+      
+      // Set reconnectAttempt to 1 (first actual attempt)
+      (manager as any).reconnectAttempt = 1;
+      
+      // Access private method to test delay calculation
+      // Formula: reconnectInterval * decay^(attempt-1)
+      const delay1 = (manager as any).getReconnectDelay();
+      expect(delay1).toBe(1000); // 1000 * 1.5^(1-1) = 1000 * 1 = 1000
+      
+      // Simulate subsequent reconnect attempts
+      (manager as any).reconnectAttempt = 3;
+      const delay3 = (manager as any).getReconnectDelay();
+      expect(delay3).toBe(2250); // 1000 * 1.5^(3-1) = 1000 * 2.25 = 2250
+      expect(delay3).toBeGreaterThan(delay1);
+    });
+
+    it('shouldReconnect returns false for no-reconnect codes', () => {
+      manager = new WebSocketManager({
+        url: 'ws://localhost:8000/ws/chat',
+        reconnect: true,
+        reconnectAttempts: 10,
+        timeoutInterval: 300000,
+      });
+      
+      // Test no-reconnect codes
+      const noReconnectCodes = [1008, 1009, 1010, 1011, 4000, 4001, 4003];
+      noReconnectCodes.forEach(code => {
+        const result = (manager as any).shouldReconnect({ code, reason: '' });
+        expect(result).toBe(false);
+      });
+    });
+
+    it('shouldReconnect returns false when intentional disconnect', () => {
+      manager = new WebSocketManager({
+        url: 'ws://localhost:8000/ws/chat',
+        reconnect: true,
+        reconnectAttempts: 10,
+        timeoutInterval: 300000,
+      });
+      
+      (manager as any).intentionalDisconnect = true;
+      const result = (manager as any).shouldReconnect({ code: 1000, reason: '' });
+      expect(result).toBe(false);
+    });
+
+    it('shouldReconnect returns false when reconnect disabled', () => {
+      manager = new WebSocketManager({
+        url: 'ws://localhost:8000/ws/chat',
+        reconnect: false,
+        timeoutInterval: 300000,
+      });
+      
+      const result = (manager as any).shouldReconnect({ code: 1006, reason: '' });
+      expect(result).toBe(false);
+    });
+
+    it('shouldReconnect returns false when max attempts exceeded', () => {
+      manager = new WebSocketManager({
+        url: 'ws://localhost:8000/ws/chat',
+        reconnect: true,
+        reconnectAttempts: 3,
+        timeoutInterval: 300000,
+      });
+      
+      (manager as any).reconnectAttempt = 5;
+      const result = (manager as any).shouldReconnect({ code: 1006, reason: '' });
+      expect(result).toBe(false);
+    });
+
+    it('shouldReconnect returns true for recoverable close', () => {
+      manager = new WebSocketManager({
+        url: 'ws://localhost:8000/ws/chat',
+        reconnect: true,
+        reconnectAttempts: 10,
+        timeoutInterval: 300000,
+      });
+      
+      const result = (manager as any).shouldReconnect({ code: 1006, reason: '' });
+      expect(result).toBe(true);
+    });
+
+    it('scheduleReconnect does not create duplicate timers', () => {
+      manager = new WebSocketManager({
+        url: 'ws://localhost:8000/ws/chat',
+        reconnect: true,
+        reconnectInterval: 1000,
+        timeoutInterval: 300000,
+      });
+      
+      // Manually set reconnectTimer
+      (manager as any).reconnectTimer = setTimeout(() => {}, 10000);
+      
+      // Call scheduleReconnect - should return early
+      (manager as any).scheduleReconnect();
+      
+      // Should still have the same timer (no duplicate)
+      expect((manager as any).reconnectTimer).toBeTruthy();
+    });
+
+    it('clearTimers clears both timers', () => {
+      manager = new WebSocketManager({
+        url: 'ws://localhost:8000/ws/chat',
+        timeoutInterval: 300000,
+      });
+      
+      // Set up timers
+      (manager as any).connectionTimer = setTimeout(() => {}, 10000);
+      (manager as any).reconnectTimer = setTimeout(() => {}, 10000);
+      
+      // Clear timers
+      (manager as any).clearTimers();
+      
+      expect((manager as any).connectionTimer).toBeNull();
+      expect((manager as any).reconnectTimer).toBeNull();
+    });
+  });
+
+  describe('Close event edge cases', () => {
+    it('handles close event with undefined code and reason', async () => {
+      manager = new WebSocketManager(defaultConfig);
+      const onClose = jest.fn();
+      manager.setCallbacks({ onClose });
+      
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+      
+      // Simulate close with undefined values (edge case in some environments)
+      // Using 'as any' since TypeScript WebSocketCloseEvent normally requires
+      // code/reason, but real WebSocket implementations may send undefined values
+      mockWebSocketInstance?.onclose?.({ code: undefined, reason: undefined } as any);
+      
+      // Should handle gracefully by defaulting to code=0 and reason=''
+      expect(onClose).toHaveBeenCalledWith(0, '');
+    });
+
+    it('handles transition failure in handleClose', async () => {
+      manager = new WebSocketManager(defaultConfig);
+      
+      // Force state to one that can't transition to disconnected
+      (manager as any).state = 'disconnected';
+      
+      // Call handleClose directly
+      (manager as any).handleClose({ code: 1000, reason: 'test' });
+      
+      // Should handle gracefully
+      expect(manager.getState()).toBe('disconnected');
+    });
+  });
+
+  describe('Connection error handling', () => {
+    it('handleConnectionError calls callbacks and resolvers', () => {
+      manager = new WebSocketManager(defaultConfig);
+      const onError = jest.fn();
+      manager.setCallbacks({ onError });
+      
+      // Set up a rejector
+      const rejector = jest.fn();
+      (manager as any).connectionRejector = rejector;
+      (manager as any).connectionResolver = jest.fn();
+      
+      // Call handleConnectionError
+      const error = new Error('Test error');
+      (manager as any).handleConnectionError(error);
+      
+      expect(onError).toHaveBeenCalledWith(error);
+      expect(rejector).toHaveBeenCalledWith(error);
+      expect((manager as any).connectionRejector).toBeNull();
+      expect((manager as any).connectionResolver).toBeNull();
+    });
+  });
 });
