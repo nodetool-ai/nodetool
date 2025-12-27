@@ -50,6 +50,11 @@ interface AssetGridState {
   isRenaming: string | null;
   setIsRenaming: (isRenaming: string | null) => void;
 
+  // Image comparison
+  compareAssets: [Asset, Asset] | null;
+  openCompareView: (a: Asset, b: Asset) => void;
+  closeCompareView: () => void;
+
   // Global search properties
   globalSearchResults: AssetWithPath[];
   isGlobalSearchActive: boolean;
@@ -131,6 +136,11 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
   isRenaming: null,
   setIsRenaming: (isRenaming) => set({ isRenaming }),
+
+  // Image comparison
+  compareAssets: null,
+  openCompareView: (a, b) => set({ compareAssets: [a, b] }),
+  closeCompareView: () => set({ compareAssets: null }),
 
   // Global search initial state
   globalSearchResults: [],

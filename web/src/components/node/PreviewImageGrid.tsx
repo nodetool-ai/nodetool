@@ -1,8 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useRef, useEffect, useState } from "react";
+import React, { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { Box, Button, IconButton, Checkbox, Tooltip, Dialog } from "@mui/material";
+import CompareIcon from "@mui/icons-material/Compare";
+import ClearIcon from "@mui/icons-material/Clear";
+import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import { ImageComparer } from "../widgets";
+
 export type ImageSource = Uint8Array | string;
 
 export interface PreviewImageGridProps {
@@ -10,6 +17,7 @@ export interface PreviewImageGridProps {
   onDoubleClick?: (index: number) => void;
   itemSize?: number; // base min size for tiles
   gap?: number; // grid gap in px
+  enableSelection?: boolean; // enable multi-select mode
 }
 
 const styles = (theme: Theme, gap: number) =>
@@ -85,6 +93,62 @@ const styles = (theme: Theme, gap: number) =>
       fontSize: 12,
       color: theme.vars.palette.text.secondary,
       background: theme.vars.palette.grey[900]
+    },
+    ".tile.selected": {
+      outline: `3px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: -3
+    },
+    ".tile .select-checkbox": {
+      position: "absolute",
+      top: 4,
+      right: 4,
+      zIndex: 5,
+      padding: 2,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      borderRadius: 4,
+      color: "#fff",
+      "&:hover": {
+        backgroundColor: "rgba(0,0,0,0.7)"
+      }
+    },
+    ".action-bar": {
+      position: "absolute",
+      bottom: 16,
+      left: "50%",
+      transform: "translateX(-50%)",
+      display: "flex",
+      gap: 8,
+      padding: "8px 16px",
+      backgroundColor: "rgba(0,0,0,0.85)",
+      borderRadius: 8,
+      zIndex: 100,
+      alignItems: "center"
+    },
+    ".action-bar .action-button": {
+      color: "#fff",
+      fontSize: 13,
+      textTransform: "none"
+    },
+    ".select-mode-toggle": {
+      position: "absolute",
+      top: 8,
+      right: 8,
+      zIndex: 50,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      color: "#fff",
+      fontSize: 12,
+      textTransform: "none",
+      padding: "4px 12px",
+      "&:hover": {
+        backgroundColor: "rgba(0,0,0,0.8)"
+      }
+    },
+    ".compare-dialog .MuiPaper-root": {
+      maxWidth: "90vw",
+      maxHeight: "90vh",
+      width: "90vw",
+      height: "90vh",
+      overflow: "hidden"
     }
   });
 
@@ -111,10 +175,68 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   images,
   onDoubleClick,
   itemSize = 128,
-  gap = 8
+  gap = 8,
+  enableSelection = true
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
+  const [compareImages, setCompareImages] = useState<[string, string] | null>(null);
+
+  // Reset selection when images change
+  useEffect(() => {
+    setSelectedIndices(new Set());
+    setSelectionMode(false);
+  }, [images.length]);
+
+  const toggleSelect = useCallback((index: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIndices(new Set());
+  }, []);
+
+  const handleCompare = useCallback(() => {
+    if (selectedIndices.size !== 2) return;
+    const indices = Array.from(selectedIndices);
+    const map = urlMapRef.current;
+    const urlA = map.get(images[indices[0]]);
+    const urlB = map.get(images[indices[1]]);
+    if (urlA && urlB) {
+      setCompareImages([urlA, urlB]);
+      setCompareDialogOpen(true);
+    }
+  }, [selectedIndices, images]);
+
+  const handleCloseCompare = useCallback(() => {
+    setCompareDialogOpen(false);
+    setCompareImages(null);
+  }, []);
+
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionMode((prev) => {
+      if (prev) {
+        setSelectedIndices(new Set());
+      }
+      return !prev;
+    });
+  }, []);
+
+  const showSelectionFeatures = enableSelection && images.length >= 2;
 
   // Map each ImageSource to a persistent URL. Strings map to themselves.
   const urlMapRef = useRef<Map<ImageSource, string>>(new Map());
@@ -188,31 +310,128 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
   return (
     <div css={styles(theme as any, gap)} ref={containerRef}>
+      {/* Selection mode toggle button */}
+      {showSelectionFeatures && (
+        <Button
+          className="select-mode-toggle"
+          size="small"
+          onClick={toggleSelectionMode}
+          startIcon={selectionMode ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
+        >
+          {selectionMode ? "Exit Select" : "Select"}
+        </Button>
+      )}
+
       <div
         className="grid"
         style={{
           gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`
         }}
       >
-        {images.map((img, idx) => (
-          <div
-            key={idx}
-            className="tile"
-            onDoubleClick={() => onDoubleClick && onDoubleClick(idx)}
-          >
-            {urlMapRef.current.get(img) ? (
-              <img
-                className="img"
-                src={urlMapRef.current.get(img) as string}
-                alt={`image-${idx + 1}`}
-                loading="lazy"
-              />
-            ) : (
-              <div className="placeholder">IMAGE</div>
-            )}
-          </div>
-        ))}
+        {images.map((img, idx) => {
+          const isSelected = selectedIndices.has(idx);
+          return (
+            <div
+              key={idx}
+              className={`tile ${isSelected ? "selected" : ""}`}
+              onDoubleClick={() => {
+                if (!selectionMode && onDoubleClick) {
+                  onDoubleClick(idx);
+                }
+              }}
+              onClick={(e) => {
+                if (selectionMode) {
+                  toggleSelect(idx, e);
+                }
+              }}
+            >
+              {urlMapRef.current.get(img) ? (
+                <img
+                  className="img"
+                  src={urlMapRef.current.get(img) as string}
+                  alt={`image-${idx + 1}`}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="placeholder">IMAGE</div>
+              )}
+              {selectionMode && (
+                <Checkbox
+                  className="select-checkbox"
+                  checked={isSelected}
+                  onClick={(e) => toggleSelect(idx, e)}
+                  icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                  checkedIcon={<CheckBoxIcon fontSize="small" />}
+                  sx={{ padding: "2px" }}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {/* Action bar when items are selected */}
+      {selectionMode && selectedIndices.size > 0 && (
+        <Box className="action-bar">
+          <Tooltip title="Compare the two selected images">
+            <span>
+              <Button
+                className="action-button"
+                size="small"
+                startIcon={<CompareIcon />}
+                onClick={handleCompare}
+                disabled={selectedIndices.size !== 2}
+              >
+                Compare
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Clear selection">
+            <IconButton size="small" onClick={clearSelection} sx={{ color: "#fff" }}>
+              <ClearIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Box sx={{ fontSize: 12, color: "grey.400", ml: 1 }}>
+            {selectedIndices.size} selected
+          </Box>
+        </Box>
+      )}
+
+      {/* Compare dialog */}
+      {compareImages && (
+        <Dialog
+          className="compare-dialog"
+          open={compareDialogOpen}
+          onClose={handleCloseCompare}
+          maxWidth={false}
+        >
+          <Box sx={{ width: "90vw", height: "90vh", position: "relative" }}>
+            <IconButton
+              onClick={handleCloseCompare}
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                zIndex: 10,
+                backgroundColor: "rgba(0,0,0,0.6)",
+                color: "#fff",
+                "&:hover": { backgroundColor: "rgba(0,0,0,0.8)" }
+              }}
+            >
+              <ClearIcon />
+            </IconButton>
+            <ImageComparer
+              imageA={compareImages[0]}
+              imageB={compareImages[1]}
+              labelA="Image 1"
+              labelB="Image 2"
+              showLabels={true}
+              showMetadata={true}
+              initialMode="horizontal"
+            />
+          </Box>
+        </Dialog>
+      )}
     </div>
   );
 };

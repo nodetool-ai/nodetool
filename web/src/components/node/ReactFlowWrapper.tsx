@@ -32,6 +32,7 @@ import EdgeContextMenu from "../context_menus/EdgeContextMenu";
 import ConnectionMatchMenu from "../context_menus/ConnectionMatchMenu";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
+import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
 //utils
@@ -245,6 +246,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   nodeTypes["nodetool.workflows.base_node.Group"] = GroupNode;
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
+  nodeTypes["nodetool.compare.CompareImages"] = CompareImagesNode;
   nodeTypes["nodetool.control.Reroute"] = RerouteNode;
   nodeTypes["default"] = PlaceholderNode;
 
