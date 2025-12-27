@@ -49,7 +49,7 @@ const mockTheme = createTheme({
       1000: "#ffffff"
     },
     // Add missing palette properties used by components
-    primary: { main: "#77b4e6", dark: "#5a9ace" },
+    primary: { main: "#77b4e6", dark: "#5a9ace", light: "#9ccce8" },
     secondary: { main: "#9c27b0" },
     info: { main: "#2196f3" },
     error: { main: "#f44336" },
@@ -74,7 +74,24 @@ const mockTheme = createTheme({
       paper: "#232323"
     },
     c_link: "#77b4e6",
-    c_link_visited: "#5a9ace"
+    c_link_visited: "#5a9ace",
+    // Add color channels for MUI v7 Button component
+    common: {
+      white: "#ffffff",
+      black: "#000000"
+    },
+    // Add color channels for proper alpha value calculation
+    primaryChannel: "119 180 230",
+    secondaryChannel: "156 39 176",
+    infoChannel: "33 150 243",
+    errorChannel: "244 67 54",
+    warningChannel: "255 152 0",
+    successChannel: "76 175 80",
+    greyChannel: "158 158 158",
+    textChannel: "255 255 255",
+    dividerChannel: "47 47 47",
+    backgroundDefaultChannel: "32 32 32",
+    backgroundPaperChannel: "35 35 35"
   },
   // Provide spacing variables expected by MUI components (e.g., Button)
   // MUI expects spacing to be a function that multiplies by 8px
@@ -92,6 +109,47 @@ const mockTheme = createTheme({
 
 // Add tooltip property to theme
 (mockTheme as any).tooltip = {};
+(mockTheme as any).vars.tooltip = {};
+
+// Add zIndex for MUI components
+(mockTheme as any).zIndex = {
+  mobileStepper: 1000,
+  fab: 1050,
+  speedDial: 1050,
+  appBar: 1100,
+  drawer: 1200,
+  modal: 1300,
+  snackbar: 1400,
+  tooltip: 1500
+};
+(mockTheme as any).vars.zIndex = {
+  mobileStepper: 1000,
+  fab: 1050,
+  speedDial: 1050,
+  appBar: 1100,
+  drawer: 1200,
+  modal: 1300,
+  snackbar: 1400,
+  tooltip: 1500
+};
+
+// Add avatar properties for MUI Chip component
+(mockTheme as any).vars.avatar = {
+  defaultColor: "#9e9e9e",
+  defaultAvatarColor: "#9e9e9e"
+};
+(mockTheme as any).avatar = {
+  defaultColor: "#9e9e9e",
+  defaultAvatarColor: "#9e9e9e"
+};
+
+// Add chip properties for MUI Chip component
+(mockTheme as any).vars.chip = {
+  defaultColor: "#616161"
+};
+(mockTheme as any).chip = {
+  defaultColor: "#616161"
+};
 
 // Ensure components overrides exist for MUI that reference theme.components
 (mockTheme as any).components = {
@@ -99,6 +157,13 @@ const mockTheme = createTheme({
   MuiTooltip: {
     styleOverrides: {
       tooltip: {}
+    }
+  },
+  MuiChip: {
+    styleOverrides: {
+      root: {},
+      filled: {},
+      outlined: {}
     }
   }
 };

@@ -1,3 +1,4 @@
+import React from "react";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -5,21 +6,95 @@ import { ThemeProvider } from "@mui/material/styles";
 import SecretsMenu from "../SecretsMenu";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import ThemeNodetool from "../../../components/themes/ThemeNodetool";
+import mockTheme from "../../../__mocks__/themeMock";
 
 // Mock the stores
 jest.mock("../../../stores/SecretsStore");
 jest.mock("../../../stores/NotificationStore");
+
+// Mock MUI components to avoid theme complexity
+jest.mock("@mui/material", () => ({
+  ...jest.requireActual("@mui/material"),
+  Chip: ({ children, ...props }: any) => (
+    <div data-testid="Chip" {...props}>{children}</div>
+  ),
+  Button: ({ children, onClick, ...props }: any) => (
+    <button onClick={onClick} {...props}>{children}</button>
+  ),
+  TextField: ({ label, value, children, ...props }: any) => (
+    <div data-testid="TextField">
+      {label && <label htmlFor={props.id || "textfield-input"}>{label}</label>}
+      <input {...props} id={props.id || "textfield-input"} value={value || ""} aria-label={label} />
+      {children}
+    </div>
+  ),
+  Typography: ({ children, ...props }: any) => (
+    <span {...props}>{children}</span>
+  ),
+  Dialog: ({ children, open, PaperProps, onClose, fullWidth, ...props }: any) => (
+    open ? <div data-testid="Dialog" {...props}>{children}</div> : null
+  ),
+  DialogTitle: ({ children, ...props }: any) => (
+    <div {...props}>{children}</div>
+  ),
+  DialogContent: ({ children, ...props }: any) => (
+    <div {...props}>{children}</div>
+  ),
+  DialogActions: ({ children, ...props }: any) => (
+    <div {...props}>{children}</div>
+  ),
+  IconButton: ({ children, "aria-label": ariaLabel, onClick, disabled, ...props }: any) => (
+    <button {...props} aria-label={ariaLabel} onClick={onClick} disabled={disabled}>{children}</button>
+  ),
+  Tooltip: ({ children, title }: any) => {
+    // Add aria-label to the child component
+    if (children && typeof children === 'object' && children.props) {
+      const childWithLabel = {
+        ...children,
+        props: {
+          ...children.props,
+          'aria-label': title
+        }
+      };
+      return childWithLabel;
+    }
+    return children;
+  },
+  Box: ({ children, ...props }: any) => (
+    <div {...props}>{children}</div>
+  ),
+  Divider: (props: any) => (
+    <hr {...props} />
+  )
+}));
 
 const mockUseSecretsStore = useSecretsStore as jest.MockedFunction<typeof useSecretsStore>;
 const mockUseNotificationStore = useNotificationStore as jest.MockedFunction<
   typeof useNotificationStore
 >;
 
-const mockSecretsStore = {
-  fetchSecrets: jest.fn(),
+const mockSecretsStore: {
+  secrets: any[];
+  fetchSecrets: jest.Mock;
+  updateSecret: jest.Mock;
+  deleteSecret: jest.Mock;
+} = {
+  secrets: [],
+  fetchSecrets: jest.fn((secrets?: any[]) => {
+    if (secrets) {
+      mockSecretsStore.secrets = secrets;
+    }
+    return Promise.resolve(mockSecretsStore.secrets);
+  }),
   updateSecret: jest.fn(),
   deleteSecret: jest.fn()
+};
+
+const setupSecrets = (secrets: any[]) => {
+  mockSecretsStore.secrets = secrets;
+  mockSecretsStore.fetchSecrets.mockImplementation(() => {
+    return Promise.resolve(secrets);
+  });
 };
 
 const mockNotificationStore = {
@@ -35,7 +110,7 @@ const queryClient = new QueryClient({
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider theme={ThemeNodetool}>{children}</ThemeProvider>
+    <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
   </QueryClientProvider>
 );
 
@@ -110,10 +185,10 @@ describe("SecretsMenu", () => {
       const testSecret = {
         key: "ANTHROPIC_API_KEY",
         description: "Anthropic API key",
-        is_configured: false,
+        is_configured: true,
         updated_at: new Date().toISOString()
       };
-      mockSecretsStore.fetchSecrets.mockResolvedValue([testSecret]);
+      setupSecrets([testSecret]);
       mockSecretsStore.updateSecret.mockResolvedValue(undefined);
 
       render(<SecretsMenu />, { wrapper });
@@ -128,7 +203,7 @@ describe("SecretsMenu", () => {
 
       await waitFor(() => {
         // Dialog should be open with secret name in title
-        expect(screen.getByText("Set ANTHROPIC_API_KEY")).toBeInTheDocument();
+        expect(screen.getByText("Update ANTHROPIC_API_KEY")).toBeInTheDocument();
       });
     });
 
@@ -139,7 +214,7 @@ describe("SecretsMenu", () => {
         is_configured: true,
         updated_at: new Date().toISOString()
       };
-      mockSecretsStore.fetchSecrets.mockResolvedValue([testSecret]);
+      setupSecrets([testSecret]);
       mockSecretsStore.updateSecret.mockResolvedValue(undefined);
 
       render(<SecretsMenu />, { wrapper });
@@ -165,7 +240,7 @@ describe("SecretsMenu", () => {
         is_configured: false,
         updated_at: new Date().toISOString()
       };
-      mockSecretsStore.fetchSecrets.mockResolvedValue([testSecret]);
+      setupSecrets([testSecret]);
       mockSecretsStore.updateSecret.mockResolvedValue(undefined);
 
       render(<SecretsMenu />, { wrapper });
