@@ -231,7 +231,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
         elevation: 0
       }}
       BackdropProps={{
-        style: { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+        style: { backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.8)` }
       }}
     >
       <div className="menu-header">
