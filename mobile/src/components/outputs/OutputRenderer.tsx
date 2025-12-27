@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
-import { Asset } from '../../types/workflow';
+import { View, Text, Image, StyleSheet, ScrollView, Platform } from 'react-native';
+import SyntaxHighlighter from 'react-native-syntax-highlighter';
+import { atomDark, tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MarkdownRenderer from '../../utils/MarkdownRenderer';
+import { useTheme } from '../../hooks/useTheme';
 
 type OutputRendererProps = {
   value: any;
@@ -24,26 +26,27 @@ const getType = (value: any): string => {
 
 export const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   const type = getType(value);
+  const { colors, mode } = useTheme();
 
   if (value === null || value === undefined) {
     return null;
   }
 
+  const codeTheme = mode === 'dark' ? atomDark : tomorrow;
+
   switch (type) {
     case 'string':
       return <MarkdownRenderer content={value} />;
     case 'number':
-      return <Text style={styles.text}>{String(value)}</Text>;
+      return <Text style={[styles.text, { color: colors.text }]}>{String(value)}</Text>;
     case 'boolean':
-      return <Text style={styles.text}>{value ? 'True' : 'False'}</Text>;
+      return <Text style={[styles.text, { color: colors.text }]}>{value ? 'True' : 'False'}</Text>;
     case 'image':
-      // Match web OutputRenderer logic: prefer uri over data
-      // Handle multiple images (value.data is array) or single image
       if (Array.isArray(value?.data)) {
         return (
           <View style={styles.container}>
             {value.data.map((v: any, i: number) => (
-              <View key={i} style={styles.arrayItem}>
+              <View key={i} style={[styles.arrayItem, { borderLeftColor: colors.border }]}>
                 <OutputRenderer value={v} />
               </View>
             ))}
@@ -52,43 +55,26 @@ export const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       }
 
       const source = value?.uri || value?.data;
-      if (!source) return <Text style={styles.error}>Invalid Image Data</Text>;
+      if (!source) return <Text style={[styles.error, { color: colors.error }]}>Invalid Image Data</Text>;
 
-      // Handle string source
       if (typeof source === 'string') {
         return (
           <Image
             source={{ uri: source.startsWith('http') || source.startsWith('data:') ? source : `data:image/png;base64,${source}` }}
-            style={styles.image}
+            style={[styles.image, { backgroundColor: colors.inputBg }]}
             resizeMode="contain"
           />
         );
       }
 
-      // Handle binary data (Uint8Array, ArrayBuffer)
-      if (source instanceof Uint8Array || source instanceof ArrayBuffer) {
-        const bytes = source instanceof ArrayBuffer ? new Uint8Array(source) : source;
-        let binary = '';
-        bytes.forEach((byte) => binary += String.fromCharCode(byte));
-        const base64 = btoa(binary);
-        return (
-          <Image
-            source={{ uri: `data:image/png;base64,${base64}` }}
-            style={styles.image}
-            resizeMode="contain"
-          />
-        );
-      }
-
-      // Handle other source types
-      return <Text style={styles.placeholder}>[Unsupported image format: {typeof source}]</Text>;
+      return <Text style={[styles.placeholder, { color: colors.textSecondary }]}>[Unsupported image format: {typeof source}]</Text>;
     case 'audio':
-       return <Text style={styles.placeholder}>[Audio Output: {value?.uri || 'Data'}]</Text>;
+       return <Text style={[styles.placeholder, { color: colors.textSecondary }]}>[Audio Output: {value?.uri || 'Data'}]</Text>;
     case 'array':
        return (
          <View style={styles.container}>
            {value.map((item: any, index: number) => (
-             <View key={index} style={styles.arrayItem}>
+             <View key={index} style={[styles.arrayItem, { borderLeftColor: colors.border }]}>
                 <OutputRenderer value={item} />
              </View>
            ))}
@@ -96,26 +82,41 @@ export const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
        );
     case 'object':
       return (
-        <ScrollView style={styles.codeBlock}>
-          <Text style={styles.code}>{JSON.stringify(value, null, 2)}</Text>
-        </ScrollView>
+        <View style={[styles.codeBlock, { backgroundColor: mode === 'dark' ? '#1E1E1E' : '#F5F5F5', borderColor: colors.border }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <SyntaxHighlighter
+              language="json"
+              highlighter="prism"
+              style={codeTheme}
+              customStyle={{
+                backgroundColor: 'transparent',
+                padding: 0,
+                margin: 0,
+              }}
+              fontSize={12}
+              fontFamily={Platform.OS === 'ios' ? 'Menlo' : 'monospace'}
+              PreTag={View}
+              CodeTag={View}
+            >
+              {JSON.stringify(value, null, 2)}
+            </SyntaxHighlighter>
+          </ScrollView>
+        </View>
       );
     default:
-      return <Text style={styles.text}>{String(value)}</Text>;
+      return <Text style={[styles.text, { color: colors.text }]}>{String(value)}</Text>;
   }
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+     paddingVertical: 8,
   },
   text: {
     fontSize: 16,
-    color: '#000',
     marginBottom: 8,
   },
   error: {
-    color: 'red',
     fontSize: 14,
   },
   image: {
@@ -123,27 +124,21 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: '#f0f0f0',
   },
   placeholder: {
     fontStyle: 'italic',
-    color: '#666',
     marginBottom: 8,
   },
   arrayItem: {
     marginBottom: 8,
     paddingLeft: 8,
     borderLeftWidth: 2,
-    borderLeftColor: '#ddd',
   },
   codeBlock: {
-    backgroundColor: '#f5f5f5',
     padding: 12,
     borderRadius: 8,
-    maxHeight: 200,
-  },
-  code: {
-    fontFamily: 'monospace',
-    fontSize: 12,
+    maxHeight: 300,
+    borderWidth: 1,
+    marginVertical: 4,
   },
 });

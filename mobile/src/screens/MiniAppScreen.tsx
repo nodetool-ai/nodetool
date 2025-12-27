@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   Alert,
-  Switch,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { apiService } from '../services/api';
@@ -19,6 +18,7 @@ import { useWorkflowRunner } from '../stores/WorkflowRunner';
 import { useMiniAppInputs } from '../hooks/useMiniAppInputs';
 import { PropertyRenderer } from '../components/properties';
 import { MiniAppResults } from '../components/miniapps/MiniAppResults';
+import { useTheme } from '../hooks/useTheme';
 
 type MiniAppScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MiniApp'>;
@@ -27,8 +27,9 @@ type MiniAppScreenProps = {
 
 export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps) {
   const { workflowId, workflowName } = route.params;
-  const [workflow, setWorkflow] = useState<Workflow | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [workflow, setWorkflow] = React.useState<Workflow | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const { colors } = useTheme();
   
   // Use the workflow runner store
   const runnerStore = useWorkflowRunner(workflowId);
@@ -41,7 +42,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   const cleanup = runnerStore((state) => state.cleanup);
 
   // Use the new hook for inputs
-  const { inputDefinitions, inputValues, updateInputValue, setInputValues } = useMiniAppInputs(workflow);
+  const { inputDefinitions, inputValues, updateInputValue } = useMiniAppInputs(workflow);
 
   const isRunning = state === 'running' || state === 'connecting';
   
@@ -86,7 +87,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
       return;
     }
 
-    // Normalize inputs (logic ported from web MiniAppPage.tsx)
+    // Normalize inputs
     const params = inputDefinitions.reduce<Record<string, unknown>>(
       (accumulator, definition) => {
         const value = inputValues[definition.data.name];
@@ -99,7 +100,6 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
           (definition.kind === "integer" || definition.kind === "float") &&
           typeof value === "number"
         ) {
-          // Clamp and round if necessary
           let normalized = value;
           if (definition.kind === "integer") {
              normalized = Math.round(value);
@@ -129,32 +129,34 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
     }
   };
 
-
-
   if (isLoading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.text} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading...</Text>
       </View>
     );
   }
 
   if (!workflow) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Failed to load workflow</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>Failed to load workflow</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Inputs</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Inputs</Text>
           {inputDefinitions.length === 0 ? (
-            <Text style={styles.noInputsText}>This mini app has no inputs</Text>
+            <Text style={[styles.noInputsText, { color: colors.textSecondary }]}>This mini app has no inputs</Text>
           ) : (
             inputDefinitions.map((def) => (
               <PropertyRenderer
@@ -168,37 +170,42 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
         </View>
 
         <TouchableOpacity
-          style={[styles.runButton, isRunning && styles.runButtonDisabled]}
+          style={[
+            styles.runButton, 
+            { backgroundColor: colors.primary },
+            isRunning && styles.runButtonDisabled
+          ]}
           onPress={handleRun}
           disabled={isRunning}
         >
           {isRunning ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.runButtonText}>▶ Run</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="play" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.runButtonText}>Run Mini App</Text>
+            </View>
           )}
         </TouchableOpacity>
 
         {/* Execution Status & Logs - Only show while running */}
         {isRunning && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Execution</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Execution</Text>
             {statusMessage && (
-               <Text style={styles.statusText}>{statusMessage}</Text>
+               <Text style={[styles.statusText, { color: colors.primary }]}>{statusMessage}</Text>
             )}
-            <View style={styles.terminalContainer}>
+            <View style={[styles.terminalContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
                <ScrollView 
                   style={styles.terminalScroll} 
                   nestedScrollEnabled
                   onContentSizeChange={(w, h) => {
-                    // Auto-scroll to bottom
-                    scrollViewRef.current?.scrollTo({ y: h, animated: true }); 
+                    scrollViewRef.current?.scrollTo({ y: 100000, animated: true }); 
                   }}
-                  ref={scrollViewRef}
                >
                   {logs.map((log, index) => (
-                     <Text key={index} style={styles.terminalText}>
-                       <Text style={styles.terminalPrompt}>{'> '}</Text>
+                     <Text key={index} style={[styles.terminalText, { color: colors.text }]}>
+                       <Text style={[styles.terminalPrompt, { color: colors.primary }]}>{'> '}</Text>
                        {log}
                      </Text>
                   ))}
@@ -210,16 +217,15 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
         {/* Results Section - Only show when finished */}
         {!isRunning && runResults && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Results</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Results</Text>
             
             <MiniAppResults 
               results={(() => {
                 if (!runResults) return [];
                 if (Array.isArray(runResults)) {
-                   // If it's an array of results
                    return runResults.map((r, i) => ({
                       id: `res-${i}`,
-                      nodeId: 'unknown', // metadata not avail in raw results
+                      nodeId: 'unknown',
                       nodeName: 'Output',
                       outputName: `Output ${i+1}`,
                       outputType: typeof r === 'string' ? 'string' : 'unknown',
@@ -238,7 +244,6 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
                     receivedAt: Date.now()
                   })) as MiniAppResult[];
                 }
-                // Primitive value
                 return [{
                    id: 'res-single',
                    nodeId: 'output',
@@ -260,13 +265,11 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   scrollView: {
     flex: 1,
@@ -281,46 +284,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 16,
-    color: '#333',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 6,
-    color: '#333',
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    fontSize: 16,
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  switchLabel: {
-    flex: 1,
-    marginRight: 12,
   },
   runButton: {
-    backgroundColor: '#007AFF',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -330,77 +295,40 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   runButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
-  },
-  resultsContainer: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    maxHeight: 300,
-  },
-  resultsText: {
-    fontFamily: 'monospace',
-    fontSize: 12,
-    color: '#333',
-  },
-  logText: {
-    fontFamily: 'monospace',
-    fontSize: 10,
-    color: '#666',
-    marginBottom: 2,
   },
   statusText: {
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#007AFF',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
   },
   errorText: {
-    color: '#ff3b30',
   },
   noInputsText: {
     fontSize: 16,
-    color: '#666',
     fontStyle: 'italic',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 8,
-  },
   terminalContainer: {
-    backgroundColor: '#1E1E1E',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#333',
     height: 200,
   },
   terminalScroll: {
     flex: 1,
   },
   terminalText: {
-    fontFamily: 'Menlo', // or monospace
+    fontFamily: 'Menlo',
     fontSize: 12,
-    color: '#A9B7C6',
     marginBottom: 4,
   },
   terminalPrompt: {
-    color: '#9876AA',
+    fontWeight: 'bold',
   },
-  resultTitle: {
-    fontWeight: '600',
-    fontSize: 12,
-    marginBottom: 4,
-    color: '#333',
-  }
 });
