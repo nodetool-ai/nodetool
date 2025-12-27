@@ -45,10 +45,11 @@ const mockTheme = createTheme({
       600: "#757575",
       700: "#616161",
       800: "#424242",
-      900: "#212121"
+      900: "#212121",
+      1000: "#ffffff"
     },
     // Add missing palette properties used by components
-    primary: { main: "#77b4e6" },
+    primary: { main: "#77b4e6", dark: "#5a9ace" },
     secondary: { main: "#9c27b0" },
     info: { main: "#2196f3" },
     error: { main: "#f44336" },
@@ -67,11 +68,26 @@ const mockTheme = createTheme({
       primary: "#ffffff",
       secondary: "#bdbdbd",
       disabled: "#9e9e9e"
-    }
+    },
+    background: {
+      default: "#202020",
+      paper: "#232323"
+    },
+    c_link: "#77b4e6",
+    c_link_visited: "#5a9ace"
   },
   // Provide spacing variables expected by MUI components (e.g., Button)
   // MUI expects spacing to be a function that multiplies by 8px
-  spacing: (factor: number) => `${factor * 8}px`
+  spacing: (factor: number) => `${factor * 8}px`,
+  // Add shadows for Button component
+  shadows: [
+    "none",
+    "0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)",
+    "0px 3px 1px -2px rgba(0,0,0,0.2),0px 2px 2px 0px rgba(0,0,0,0.14),0px 1px 5px 0px rgba(0,0,0,0.12)",
+    "0px 3px 3px -2px rgba(0,0,0,0.2),0px 3px 4px 0px rgba(0,0,0,0.14),0px 1px 8px 0px rgba(0,0,0,0.12)",
+    "0px 2px 4px -1px rgba(0,0,0,0.2),0px 4px 5px 0px rgba(0,0,0,0.14),0px 1px 10px 0px rgba(0,0,0,0.12)",
+    ...Array(20).fill("none") // Fill remaining shadow values
+  ]
 };
 
 // Add tooltip property to theme
