@@ -49,6 +49,7 @@ import { EmailRenderer } from "./output/EmailRenderer";
 import { ArrayRenderer } from "./output/ArrayRenderer";
 import { AssetGrid } from "./output/AssetGrid";
 import { ChunkRenderer } from "./output/ChunkRenderer";
+import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
 
@@ -165,6 +166,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             />
           </div>
         );
+      case "image_comparison":
+        return <ImageComparisonRenderer value={value} />;
       case "image":
         if (Array.isArray(value.data)) {
           return value.data.map((v: any, i: number) => (
