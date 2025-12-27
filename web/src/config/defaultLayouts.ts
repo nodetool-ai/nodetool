@@ -8,11 +8,11 @@ export const defaultLayout: SerializedDockview = {
         {
           type: "leaf",
           data: {
-            views: ["welcome"],
-            activeView: "welcome",
-            id: "welcome"
+            views: ["getting-started"],
+            activeView: "getting-started",
+            id: "getting-started"
           },
-          size: 300
+          size: 320
         },
         {
           type: "leaf",
@@ -33,17 +33,17 @@ export const defaultLayout: SerializedDockview = {
           size: 400
         }
       ],
-      size: 1200
+      size: 1220
     },
-    width: 1200,
+    width: 1220,
     height: 800,
     orientation: Orientation.HORIZONTAL
   },
   panels: {
-    welcome: {
-      id: "welcome",
-      contentComponent: "welcome",
-      title: "Welcome"
+    "getting-started": {
+      id: "getting-started",
+      contentComponent: "getting-started",
+      title: "Getting Started"
     },
     templates: {
       id: "templates",
