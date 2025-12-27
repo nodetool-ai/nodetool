@@ -4,6 +4,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import AssetViewer from "../assets/AssetViewer";
 import { isElectron } from "../../utils/browser";
+import { createImageUrl } from "./output/image";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -12,44 +13,13 @@ interface ImageViewProps {
 const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const [openViewer, setOpenViewer] = React.useState(false);
   const [copied, setCopied] = useState(false);
-  const objectUrlRef = useRef<string | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
   const imageUrl = useMemo(() => {
-    if (!source) {return undefined;}
-    if (typeof source === "string") {
-      // If it's already a URL string (data URL, blob URL, or http URL), return it directly
-      if (
-        source.startsWith("data:") ||
-        source.startsWith("blob:") ||
-        source.startsWith("http")
-      ) {
-        return source;
-      }
-      // If it's a regular string that's not a URL, treat it as data
-    }
-
-    // Revoke previous object URL if it exists
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-    }
-
-    // Create new object URL
-    const newObjectUrl = URL.createObjectURL(
-      new Blob([source as BlobPart], { type: "image/png" })
-    );
-    objectUrlRef.current = newObjectUrl;
-    return newObjectUrl;
+    const result = createImageUrl(source, blobUrlRef.current);
+    blobUrlRef.current = result.blobUrl;
+    return result.url || undefined;
   }, [source]);
-
-  // this cleanup is broken, at least in dev mode
-  // useEffect(() => {
-  //   return () => {
-  //     if (objectUrlRef.current) {
-  //       URL.revokeObjectURL(objectUrlRef.current);
-  //       objectUrlRef.current = null;
-  //     }
-  //   };
-  // }, []);
 
   const handleCopyToClipboard = useCallback(async () => {
     if (!imageUrl) {return;}

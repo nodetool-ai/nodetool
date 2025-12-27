@@ -13,12 +13,16 @@ export interface ImageSource {
  * Converts image data to a displayable URL.
  * Handles: URI strings, data URIs, base64 strings, Uint8Array, and number arrays.
  *
- * @param image - The image source object with uri or data
+ * Accepts either:
+ * - An ImageSource object with `uri` and/or `data` properties
+ * - A raw value (string, Uint8Array, or number[])
+ *
+ * @param source - The image source (object or raw value)
  * @param previousBlobUrl - Previous blob URL to revoke (prevents memory leaks)
  * @returns Object containing the URL and the new blob URL (if created)
  */
 export const createImageUrl = (
-  image: ImageSource | null | undefined,
+  source: ImageSource | ImageData | null | undefined,
   previousBlobUrl: string | null
 ): { url: string; blobUrl: string | null } => {
   // Revoke previous blob URL if it exists
@@ -26,38 +30,55 @@ export const createImageUrl = (
     URL.revokeObjectURL(previousBlobUrl);
   }
 
-  if (!image) {
+  if (!source) {
     return { url: "", blobUrl: null };
   }
 
-  // Case 1: URI is provided
-  if (image.uri) {
-    return { url: image.uri, blobUrl: null };
+  // Normalize: if source is an object with uri/data, extract; otherwise treat as raw data
+  let uri: string | undefined;
+  let data: ImageData | undefined;
+
+  if (
+    typeof source === "object" &&
+    !Array.isArray(source) &&
+    !(source instanceof Uint8Array)
+  ) {
+    // It's an ImageSource object
+    uri = (source as ImageSource).uri;
+    data = (source as ImageSource).data;
+  } else {
+    // It's a raw value (string, Uint8Array, or number[])
+    data = source as ImageData;
   }
 
-  if (!image.data) {
+  // Case 1: URI is provided
+  if (uri) {
+    return { url: uri, blobUrl: null };
+  }
+
+  if (!data) {
     return { url: "", blobUrl: null };
   }
 
   // Case 2: Data is a string
-  if (typeof image.data === "string") {
+  if (typeof data === "string") {
     if (
-      image.data.startsWith("data:") ||
-      image.data.startsWith("blob:") ||
-      image.data.startsWith("http")
+      data.startsWith("data:") ||
+      data.startsWith("blob:") ||
+      data.startsWith("http")
     ) {
-      return { url: image.data, blobUrl: null };
+      return { url: data, blobUrl: null };
     }
     // Assume base64 encoded
-    return { url: `data:image/png;base64,${image.data}`, blobUrl: null };
+    return { url: `data:image/png;base64,${data}`, blobUrl: null };
   }
 
   // Case 3: Data is Uint8Array or number array - create blob URL
   let bytes: Uint8Array;
-  if (image.data instanceof Uint8Array) {
-    bytes = image.data;
-  } else if (Array.isArray(image.data)) {
-    bytes = new Uint8Array(image.data);
+  if (data instanceof Uint8Array) {
+    bytes = data;
+  } else if (Array.isArray(data)) {
+    bytes = new Uint8Array(data);
   } else {
     return { url: "", blobUrl: null };
   }
@@ -71,4 +92,3 @@ export const createImageUrl = (
   const blobUrl = URL.createObjectURL(blob);
   return { url: blobUrl, blobUrl };
 };
-
