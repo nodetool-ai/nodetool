@@ -4,9 +4,9 @@ layout: home
 
 <section class="home-hero">
   <p class="eyebrow">Open-Source Local-First AI Workflow Builder</p>
-  <h1>Build AI workflows once. Deploy them anywhere. Keep your data private.</h1>
+  <h1>Build AI Workflows. Visually. Locally.</h1>
   <p class="lead">
-    NodeTool is the visual workflow builder for teams who need control. Design multi-step AI pipelines mixing LLMs, vision, speech, and custom logic on a single canvas. Run locally for privacy, deploy to RunPod or Cloud Run for scale—no rewrites, no vendor lock-in, no black boxes.
+   Drag, drop, and connect powerful AI models. Run them locally on your machine or use your own API keys with any provider. Your workflows, your data—always under your control.
   </p>
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
