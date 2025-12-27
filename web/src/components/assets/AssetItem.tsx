@@ -499,7 +499,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 title={`File size: ${formatFileSize((asset as any).size)}`}
                 style={{
                   color: "white",
-                  backgroundColor: "#333aa"
+                  backgroundColor: "var(--palette-grey-700)"
                 }}
               >
                 {formatFileSize((asset as any).size)}

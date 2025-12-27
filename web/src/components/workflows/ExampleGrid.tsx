@@ -816,7 +816,7 @@ const TemplateGrid = () => {
                         "noopener,noreferrer"
                       );
                     }}
-                    style={{ color: "#61dafb" }}
+                    style={{ color: "var(--palette-info-light)" }}
                   >
                     Join our Discord
                   </a>
@@ -832,7 +832,7 @@ const TemplateGrid = () => {
                         "noopener,noreferrer"
                       );
                     }}
-                    style={{ color: "#61dafb" }}
+                    style={{ color: "var(--palette-info-light)" }}
                   >
                     Join the Nodetool Forum
                   </a>
