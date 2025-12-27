@@ -265,7 +265,9 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
 
   // Check if any provider is configured
   const hasProviderConfigured = useMemo(() => {
-    if (!secrets || secrets.length === 0) {return false;}
+    if (!secrets || secrets.length === 0) {
+      return false;
+    }
     return secrets.some(
       (secret) => secret.is_configured && PROVIDER_KEYS.includes(secret.key)
     );
@@ -353,7 +355,10 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
         icon: <DownloadIcon />,
         action: handleOpenModels,
         actionLabel: "Open Models",
-        isCompleted: false, // Would need model status from store
+        // Local model download status is marked optional and defaults to incomplete
+        // because checking download status requires backend API calls that may not be
+        // available on first load. Users can always verify status in the Models panel.
+        isCompleted: false,
         isOptional: true
       });
     }

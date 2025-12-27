@@ -383,7 +383,9 @@ const Dashboard: React.FC = () => {
 
   const handleAddPanel = useCallback(
     (panelId: string) => {
-      if (!dockviewApi) {return;}
+      if (!dockviewApi) {
+        return;
+      }
       
       // Position getting-started panel to the left of the first panel if it exists
       if (panelId === "getting-started") {
