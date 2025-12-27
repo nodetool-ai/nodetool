@@ -5,4 +5,5 @@ export type RootStackParamList = {
     workflowName: string;
   };
   Settings: undefined;
+  Chat: undefined;
 };

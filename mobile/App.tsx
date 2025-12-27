@@ -6,6 +6,7 @@ import { RootStackParamList } from './src/navigation/types';
 import MiniAppsListScreen from './src/screens/MiniAppsListScreen';
 import MiniAppScreen from './src/screens/MiniAppScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import ChatScreen from './src/screens/ChatScreen';
 import { apiService } from './src/services/api';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -45,6 +46,16 @@ export default function App() {
           name="Settings"
           component={SettingsScreen}
           options={{ title: 'Settings' }}
+        />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{
+            title: 'Chat',
+            headerStyle: {
+              backgroundColor: '#1C1C1E',
+            },
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

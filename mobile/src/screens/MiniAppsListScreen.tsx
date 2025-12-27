@@ -101,12 +101,20 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Mini Apps</Text>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => navigation.navigate('Settings')}
-        >
-          <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.navigate('Chat')}
+          >
+            <Text style={styles.headerButtonText}>💬 Chat</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.navigate('Settings')}
+          >
+            <Text style={styles.headerButtonText}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {workflows.length === 0 ? (
@@ -161,17 +169,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerButton: {
+    padding: 8,
+  },
+  headerButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  settingsButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
   },
   loadingText: {
     marginTop: 12,
