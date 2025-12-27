@@ -234,6 +234,9 @@ describe('ChatStore', () => {
     it('truncates long titles', async () => {
       const longText = 'A'.repeat(100);
       const threadId = useChatStore.getState().currentThreadId!;
+      // Thread title max length: 50 characters + 3 for ellipsis ('...')
+      const MAX_TITLE_LENGTH = 50;
+      const ELLIPSIS_LENGTH = 3;
       
       await useChatStore.getState().sendMessage(
         [{ type: 'text', text: longText } as any],
@@ -241,7 +244,7 @@ describe('ChatStore', () => {
       );
       
       const thread = useChatStore.getState().threads[threadId];
-      expect(thread.title?.length ?? 0).toBeLessThanOrEqual(53); // 50 + '...'
+      expect(thread.title?.length ?? 0).toBeLessThanOrEqual(MAX_TITLE_LENGTH + ELLIPSIS_LENGTH);
     });
 
     it('handles send error', async () => {

@@ -2,7 +2,7 @@
 
 ## Overview
 
-A React Native mobile application built with Expo that allows users to browse and execute NodeTool Mini Apps (workflows) from iOS and Android devices.
+A React Native mobile application built with Expo that allows users to browse and execute NodeTool Mini Apps (workflows) and chat with AI assistants from iOS and Android devices.
 
 ## What Was Implemented
 
@@ -13,16 +13,24 @@ A React Native mobile application built with Expo that allows users to browse an
 - Expo SDK 54.0.30
 - TypeScript 5.9.2
 - React Navigation 7 (Native Stack)
+- Zustand 5.0.9 for state management
 - AsyncStorage for persistence
-- Axios for HTTP requests
+- msgpack for WebSocket encoding
+- react-native-markdown-display for markdown
 
 **Directory Structure:**
 ```
 mobile/
 ├── src/
+│   ├── components/        # Reusable components
+│   │   ├── chat/          # Chat UI components
+│   │   ├── properties/    # Input property components
+│   │   └── outputs/       # Output rendering
+│   ├── hooks/             # Custom hooks
 │   ├── navigation/        # Navigation types
 │   ├── screens/           # UI screens
-│   ├── services/          # API client
+│   ├── services/          # API client & WebSocket
+│   ├── stores/            # Zustand state stores
 │   └── types/             # TypeScript types
 ├── App.tsx                # Root component
 ├── package.json           # Dependencies
@@ -31,10 +39,25 @@ mobile/
 
 ### 2. Key Features
 
+#### Chat Feature (MVP Complete)
+- Real-time AI chat with WebSocket communication
+- msgpack encoding/decoding for efficient messaging
+- Message display with markdown rendering
+- Syntax highlighting for code blocks
+- Streaming response support
+- Stop generation functionality
+- Model selection (provider/model picker)
+- New chat/conversation creation
+- Auto-scroll to latest messages
+- Loading indicator during AI response
+- Connection status display
+- Reconnection with exponential backoff
+
 #### Mini Apps List Screen
 - Fetches and displays all available workflows from server
 - Pull-to-refresh functionality
 - Navigation to individual mini apps
+- Navigation to Chat screen
 - Error handling with option to configure server
 - Empty state when no workflows available
 
@@ -65,15 +88,29 @@ Configurable API client with:
   - `getWorkflows()` - List all workflows
   - `getWorkflow(id)` - Get workflow details
   - `runWorkflow(id, params)` - Execute workflow
-- WebSocket URL generation (for future features)
+- HTTP methods for models:
+  - `getLanguageModelProviders()` - Get available providers
+  - `getLanguageModels(provider)` - Get models for provider
+- WebSocket URL generation for chat
 
-### 4. Type System
+### 4. WebSocket Communication
+
+WebSocket manager with:
+- msgpack binary encoding/decoding
+- Auto-reconnection with exponential backoff
+- Message queuing during reconnection
+- State machine for connection lifecycle
+- Configurable timeout and retry settings
+
+### 5. Type System
 
 Reused types from web application:
 - `Workflow` - Workflow metadata and graph
 - `MiniAppInputDefinition` - Input field definitions
 - `MiniAppInputKind` - Supported input types
 - `GraphNode` & `GraphEdge` - Workflow structure
+- `Message`, `Chunk`, `Thread` - Chat types
+- `LanguageModel` - Model selection types
 
 Note: Types are duplicated for simplicity. Future improvement: shared types package.
 
@@ -178,7 +215,7 @@ For testing:
 ## Future Enhancements
 
 ### Short Term
-- WebSocket integration for real-time updates
+- ~~WebSocket integration for real-time updates~~ ✅ Implemented (Chat feature)
 - Image/file input support
 - Rich media result display
 - Better loading states and animations
@@ -188,12 +225,15 @@ For testing:
 - Workflow execution history
 - Offline mode with caching
 - Search and filter workflows
+- Thread management (list, switch, delete)
+- Tool integration for chat
 
 ### Long Term
 - Push notifications for long-running workflows
 - Workflow creation on mobile
 - Collaboration features
 - Analytics and usage tracking
+- Agent mode for chat
 
 ## Platform Support
 
@@ -205,7 +245,7 @@ For testing:
 
 1. **Input Types**: Currently supports text, number, and boolean. Image/audio/file inputs not yet implemented.
 2. **Results Display**: Shows raw JSON. No rich media rendering yet.
-3. **Real-time Updates**: No WebSocket support yet. Results shown after completion only.
+3. **Chat**: Single thread only. No thread management yet.
 4. **Authentication**: No user login or API tokens yet.
 5. **Offline Mode**: Requires active internet connection.
 
