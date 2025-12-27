@@ -120,7 +120,7 @@ const styles = (theme: Theme) =>
     },
     ".metadata.metadata-b.horizontal": {
       bottom: "8px",
-      right: "8px"
+      right: "48px"
     },
     ".metadata.metadata-a.vertical": {
       top: "32px",
@@ -133,7 +133,7 @@ const styles = (theme: Theme) =>
     ".toggle-button": {
       position: "absolute",
       bottom: "8px",
-      right: "8px",
+      right: "12px",
       zIndex: 20,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
       color: theme.vars.palette.common.white,

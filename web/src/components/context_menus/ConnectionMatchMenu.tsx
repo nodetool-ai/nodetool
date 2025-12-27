@@ -63,56 +63,57 @@ const ConnectionMatchMenu: React.FC = () => {
           Select Connection
         </Typography>
       </MenuItem>
-      {options.map((option) => (
-        <>
-          <Divider />
-
-          <MenuItem
-            sx={{
-              "& .MuiListItemText-root": {
-                padding: "0.5em 0"
-              }
-            }}
-            key={option.id}
-            onClick={() => {
-              data?.onSelect?.(option);
-              closeContextMenu();
-            }}
-          >
-            <ListItemText
-              primary={
-                <Typography variant="body2" fontWeight={600}>
-                  {option.label}
-                </Typography>
-              }
-              secondary={
-                <Box display="flex" flexDirection="column">
-                  {option.typeLabel && (
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      component="div"
-                      sx={{ whiteSpace: "normal", lineHeight: 1.4 }}
-                    >
-                      {option.typeLabel.toUpperCase()}
-                    </Typography>
-                  )}
-                  {option.description && (
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      component="div"
-                      sx={{ whiteSpace: "normal", lineHeight: 1.4 }}
-                    >
-                      {option.description}
-                    </Typography>
-                  )}
-                </Box>
-              }
-            />
-          </MenuItem>
-        </>
-      ))}
+      {options.map((option) => [
+        <Divider key={`divider-${option.id}`} />,
+        <MenuItem
+          sx={{
+            "& .MuiListItemText-root": {
+              padding: "0.5em 0"
+            }
+          }}
+          key={option.id}
+          onClick={() => {
+            data?.onSelect?.(option);
+            closeContextMenu();
+          }}
+        >
+          <ListItemText
+            primary={
+              <Typography variant="body2" fontWeight={600}>
+                {option.label}
+              </Typography>
+            }
+            secondary={
+              <Box
+                component="span"
+                display="flex"
+                flexDirection="column"
+              >
+                {option.typeLabel && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    component="span"
+                    sx={{ whiteSpace: "normal", lineHeight: 1.4 }}
+                  >
+                    {option.typeLabel.toUpperCase()}
+                  </Typography>
+                )}
+                {option.description && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    component="span"
+                    sx={{ whiteSpace: "normal", lineHeight: 1.4 }}
+                  >
+                    {option.description}
+                  </Typography>
+                )}
+              </Box>
+            }
+          />
+        </MenuItem>
+      ])}
     </Menu>
   );
 };
