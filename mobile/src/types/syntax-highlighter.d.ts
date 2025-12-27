@@ -1,5 +1,5 @@
 declare module 'react-native-syntax-highlighter' {
-  import { Component } from 'react';
+  import { Component, ComponentType } from 'react';
   import { ViewStyle, TextStyle } from 'react-native';
 
   interface SyntaxHighlighterProps {
@@ -12,6 +12,9 @@ declare module 'react-native-syntax-highlighter' {
     fontSize?: number;
     highlighter?: string;
     children?: string;
+    fontFamily?: string;
+    PreTag?: ComponentType<any>;
+    CodeTag?: ComponentType<any>;
   }
 
   export default class SyntaxHighlighter extends Component<SyntaxHighlighterProps> {}

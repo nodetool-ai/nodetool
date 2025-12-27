@@ -241,7 +241,7 @@ describe('ChatStore', () => {
       );
       
       const thread = useChatStore.getState().threads[threadId];
-      expect(thread.title.length).toBeLessThanOrEqual(53); // 50 + '...'
+      expect(thread.title?.length ?? 0).toBeLessThanOrEqual(53); // 50 + '...'
     });
 
     it('handles send error', async () => {
@@ -762,9 +762,10 @@ describe('ChatStore', () => {
   describe('setSelectedModel', () => {
     it('sets the selected language model', () => {
       const model = {
+        type: 'language_model' as const,
         id: 'gpt-4',
         name: 'GPT-4',
-        provider: 'openai',
+        provider: 'openai' as const,
       };
 
       useChatStore.getState().setSelectedModel(model);
@@ -774,15 +775,17 @@ describe('ChatStore', () => {
 
     it('replaces previously selected model', () => {
       const model1 = {
+        type: 'language_model' as const,
         id: 'gpt-3.5-turbo',
         name: 'GPT-3.5 Turbo',
-        provider: 'openai',
+        provider: 'openai' as const,
       };
       
       const model2 = {
+        type: 'language_model' as const,
         id: 'gpt-4',
         name: 'GPT-4',
-        provider: 'openai',
+        provider: 'openai' as const,
       };
 
       useChatStore.getState().setSelectedModel(model1);
