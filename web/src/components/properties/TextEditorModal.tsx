@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
       width: "calc(100vw - 51px)",
       height: "fit-content",
       padding: ".5em .5em 0 .5em",
-      backgroundColor: "rgba(0, 0, 0, 0.2)", // Darker, more subtle overlay
+      backgroundColor: "action.disabledBackground", // Darker, more subtle overlay
       backdropFilter: "blur(4px)",
       zIndex: 10000,
       display: "flex",
@@ -123,10 +123,10 @@ const styles = (theme: Theme) =>
       width: "100vw",
       height: "100vh",
       padding: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.4)"
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.4)`
     },
     ".modal-content": {
-      background: "rgba(20, 23, 28, 0.75)", // More opaque for better readability
+      background: theme.vars.palette.glass.backgroundDialogContent, // More opaque for better readability
       backdropFilter: "blur(16px)", // Stronger blur
       WebkitBackdropFilter: "blur(16px)",
       color: theme.vars.palette.grey[100],
@@ -159,7 +159,7 @@ const styles = (theme: Theme) =>
       alignItems: "center", // Center aligned items
       padding: "0.75em 1.5em",
       minHeight: "3.5em",
-      background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.0) 100%)",
+      background: `linear-gradient(180deg, ${theme.vars.palette.action.hover} 0%, transparent 100%)`,
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       position: "relative", // Changed from sticky to avoid layout issues if not needed, or keep sticky if content scrolls
       zIndex: 5,
@@ -209,7 +209,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       "&:hover": {
         borderColor: theme.vars.palette.grey[500],
-        background: "rgba(255,255,255,0.05)"
+        background: "action.selected"
       },
       "&:focus": {
         borderColor: theme.vars.palette.primary.main
@@ -295,7 +295,7 @@ const styles = (theme: Theme) =>
         minWidth: "300px",
         maxWidth: "500px",
         borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
-        background: "rgba(0,0,0,0.1)", // Subtle transform
+        background: "action.disabledBackground", // Subtle transform
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -314,7 +314,7 @@ const styles = (theme: Theme) =>
       top: "1em",
       zIndex: 10,
       padding: "6px !important",
-      backgroundColor: "rgba(0,0,0,0.3)",
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`,
       color: `${theme.vars.palette.grey[200]} !important`,
       borderRadius: "6px !important",
       fontSize: "var(--fontSizeSmaller)",
@@ -343,18 +343,18 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       minWidth: "32px",
       minHeight: "32px",
-      background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
+      background: `linear-gradient(180deg, ${theme.vars.palette.action.hover} 0%, ${theme.vars.palette.action.hover} 100%)`,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
       "&:hover": {
         transform: "translateY(-1px)",
-        background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.08) 100%)",
+        background: `linear-gradient(180deg, ${theme.vars.palette.action.focus} 0%, ${theme.vars.palette.action.selected} 100%)`,
         borderColor: theme.vars.palette.grey[500],
         boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
       },
       "&:active": {
         transform: "translateY(0)",
-        background: "rgba(0,0,0,0.2)",
+        background: "action.disabledBackground",
         boxShadow: "inset 0 1px 2px rgba(0,0,0,0.2)"
       }
     },
@@ -367,8 +367,8 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: "rgba(255, 59, 48, 0.2)", // Subtle red hover
-        color: "#ff3b30",
+        backgroundColor: `rgba(${theme.vars.palette.error.mainChannel} / 0.2)`, // Subtle red hover
+        color: "error.main",
         transform: "rotate(90deg)"
       }
     },
@@ -387,9 +387,9 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.1)",
+        backgroundColor: "action.selected",
         color: theme.vars.palette.text.primary,
-        borderColor: "rgba(255,255,255,0.1)"
+        borderColor: "action.selected"
       }
     },
     ".resize-handle": {
@@ -404,7 +404,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.02)"
+        backgroundColor: "action.hover"
       },
       "&:hover .resize-handle-thumb": {
         backgroundColor: theme.vars.palette.primary.main,

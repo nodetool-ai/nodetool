@@ -94,7 +94,7 @@ const DataTypesList = ({
         }}
       >
         <AccordionSummary
-          expandIcon={<ExpandMoreIcon sx={{ color: "#fff" }} />}
+          expandIcon={<ExpandMoreIcon sx={{ color: "text.primary" }} />}
           aria-controls="panel1bh-content"
           id="panel1bh-header"
           sx={{
@@ -105,7 +105,7 @@ const DataTypesList = ({
             }
           }}
         >
-          <Typography variant="h5" color="#999">
+          <Typography variant="h5" color="text.secondary">
             {title}
           </Typography>
         </AccordionSummary>

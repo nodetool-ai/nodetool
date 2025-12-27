@@ -365,7 +365,7 @@ const OpenOrCreateDialog = () => {
       <Typography
         variant="body2"
         style={{
-          color: "#666",
+          color: "var(--palette-text-secondary)",
           marginTop: "2em",
           fontSize: theme.fontSizeSmaller
         }}

@@ -22,12 +22,12 @@ const baseButtonStyle: React.CSSProperties = {
 };
 
 const hoverStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.06)"
+  background: "action.hover"
 };
 
 const closeHoverStyle: React.CSSProperties = {
-  background: "#ff4d4f",
-  color: "#000"
+  background: "error.main",
+  color: "error.contrastText"
 };
 
 const TitleBar: React.FC = memo(function TitleBar() {

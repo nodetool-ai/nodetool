@@ -69,18 +69,10 @@ const styles = (theme: Theme) =>
       padding: "0",
       top: "80px",
       height: "calc(100vh - 80px)",
-      // Light mode defaults
-      borderRight: "1px solid rgba(0, 0, 0, 0.06)",
-      borderTop: "1px solid rgba(0, 0, 0, 0.06)",
-      boxShadow: "0 8px 24px rgba(16,24,40,0.14), 0 2px 8px rgba(16,24,40,0.08)",
-
-      // Dark mode overrides
-      "[data-mui-color-scheme='dark'] &": {
-        backgroundColor: "rgba(18, 18, 18, 0.6)",
-        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
-        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: `0 14px 32px rgba(0,0,0,0.85), 0 4px 14px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14), 0 0 24px ${theme.vars.palette.primary.main}33`
-      }
+      backgroundColor: theme.vars.palette.background.paper,
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: `0 8px 24px ${theme.vars.palette.action.selected}, 0 2px 8px ${theme.vars.palette.action.hover}`
     },
     ".panel-button": {
       position: "absolute",
@@ -302,7 +294,7 @@ const styles = (theme: Theme) =>
         borderColor: `${theme.vars.palette.primary.main}`,
         boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}40, var(--quick-shadow)`,
         "& svg": {
-          color: "#fff"
+          color: "var(--palette-text-primary)"
         }
       }
     },
@@ -734,9 +726,10 @@ const PanelLeft: React.FC = () => {
               ? `${
                   isMobile
                     ? Math.min(panelSize, Math.floor(window.innerWidth * 0.75))
-                    : panelSize
+                    : Math.max(panelSize, 300)
                 }px`
               : PANEL_WIDTH_COLLAPSED,
+            minWidth: isVisible ? "300px" : PANEL_WIDTH_COLLAPSED,
             maxWidth: isMobile ? "75vw" : "none",
             // Match the panel height to avoid any gap beneath the drawer
             height: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 80px)",

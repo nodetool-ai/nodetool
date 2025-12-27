@@ -108,15 +108,15 @@ const treeStyles = (theme: Theme) =>
       top: "8px",
       right: "8px",
       zIndex: 150,
-      color: "rgba(255, 255, 255, 0.5)",
+      color: "text.secondary",
       width: "32px",
       height: "32px",
       padding: "4px",
       borderRadius: "50%",
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
-        color: "rgba(255, 255, 255, 0.9)",
+        backgroundColor: "action.selected",
+        color: "text.primary",
         transform: "rotate(90deg)"
       }
     },

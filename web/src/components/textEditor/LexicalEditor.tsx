@@ -18,10 +18,10 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 const styles = (theme: Theme) =>
   css({
     "::highlight(findMatches)": {
-      backgroundColor: "rgba(255, 255, 0, 0.4)"
+      backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.4)`
     },
     "::highlight(findCurrent)": {
-      backgroundColor: "rgba(255, 165, 0, 0.7)"
+      backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.7)`
     },
     ".editor-link": {
       color: theme.vars.palette.c_link,
@@ -48,14 +48,14 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall
     },
     ".editor-text-code": {
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      backgroundColor: theme.vars.palette.action.selected,
       padding: "2px 4px",
       borderRadius: "3px",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall
     },
     ".editor-code": {
-      backgroundColor: "rgba(0, 0, 0, 0.3)",
+      backgroundColor: theme.vars.palette.action.disabledBackground,
       padding: "8px 12px",
       borderRadius: "4px",
       fontFamily: theme.fontFamily2,
@@ -80,11 +80,11 @@ const styles = (theme: Theme) =>
       margin: "0.5em 0"
     },
     ".editor-quote": {
-      borderLeft: "4px solid rgba(255, 255, 255, 0.3)",
+      borderLeft: `4px solid ${theme.vars.palette.action.selected}`,
       paddingLeft: "12px",
       margin: "8px 0",
       fontStyle: "italic",
-      color: "rgba(255, 255, 255, 0.8)"
+      color: theme.vars.palette.text.secondary
     },
     ".editor-list-ul, .editor-list-ol": {
       paddingLeft: "20px",
@@ -130,7 +130,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".editor-placeholder": {
-      color: "rgba(0, 0, 0, 0.6)",
+      color: theme.vars.palette.text.disabled,
       position: "absolute",
       fontSize: theme.fontSizeSmall,
       top: "1.5em",

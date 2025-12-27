@@ -7,7 +7,8 @@ import {
   DialogContentText,
   DialogTitle,
   CircularProgress,
-  Box
+  Box,
+  useTheme
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
@@ -31,6 +32,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   modelId,
   onClose
 }) => {
+  const theme = useTheme();
   const { allModels } = useModels();
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
@@ -186,7 +188,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         backdrop: {
           sx: {
             backdropFilter: "blur(4px)",
-            backgroundColor: "rgba(0, 0, 0, 0.4)"
+            backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.4)`
           }
         },
         paper: {

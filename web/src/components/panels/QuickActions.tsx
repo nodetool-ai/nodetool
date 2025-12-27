@@ -394,7 +394,7 @@ const QuickActions = memo(function QuickActions() {
                   border: `1px solid rgba(255, 255, 255, 0.08)`,
                   boxShadow:
                     "var(--quick-shadow, 0 2px 8px rgba(0, 0, 0, 0.16))",
-                  color: "#f5f5f5",
+                  color: "var(--palette-grey-100)",
                   transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
                   display: "flex",
                   alignItems: "center",
@@ -406,7 +406,7 @@ const QuickActions = memo(function QuickActions() {
               sx={{
                 "& svg": {
                   fontSize: "1.75rem",
-                  color: "var(--quick-icon-color, #fff)",
+                  color: "var(--quick-icon-color, var(--palette-text-primary))",
                   position: "relative",
                   zIndex: 1,
                   filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
@@ -452,7 +452,7 @@ const QuickActions = memo(function QuickActions() {
                   borderColor: `var(--mui-palette-primary-main)`,
                   boxShadow: `0 0 0 2px var(--mui-palette-primary-main), var(--quick-shadow)`,
                   "& svg": {
-                    color: "#fff"
+                    color: "var(--palette-text-primary)"
                   }
                 }
               }}

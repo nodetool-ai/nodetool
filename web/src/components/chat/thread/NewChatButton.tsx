@@ -28,7 +28,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
               position: "relative",
               overflow: "hidden",
               borderRadius: "16px",
-              color: "#fff",
+              color: "primary.contrastText",
               background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.main}, ${(theme as any).vars.palette.primary.dark})`,
               boxShadow: `0 4px 20px ${(theme as any).vars.palette.primary.main}40`,
               textTransform: "none",

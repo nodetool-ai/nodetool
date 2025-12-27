@@ -596,7 +596,7 @@ const InfoBox = memo(function InfoBox({
     <Box className="info-box">
       <Tooltip
         title={
-          <div style={{ color: "#eee", fontSize: "1.25em" }}>
+          <div style={{ color: "var(--palette-text-primary)", fontSize: "1.25em" }}>
             {selectedPathString && (
               <div>Current namespace: {searchResults?.length} nodes</div>
             )}
@@ -606,7 +606,7 @@ const InfoBox = memo(function InfoBox({
                 <div
                   style={{
                     fontSize: "0.8em",
-                    color: "#aaa",
+                    color: "var(--palette-text-secondary)",
                     marginTop: "0.5em"
                   }}
                 ></div>
@@ -617,7 +617,7 @@ const InfoBox = memo(function InfoBox({
                 <div
                   style={{
                     fontSize: "0.8em",
-                    color: "#aaa",
+                    color: "var(--palette-text-secondary)",
                     marginTop: "0.5em"
                   }}
                 ></div>

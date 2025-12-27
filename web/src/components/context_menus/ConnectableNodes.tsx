@@ -105,13 +105,13 @@ const scrollableContentStyles = (theme: Theme) =>
       }
     },
     ".node:hover": {
-      backgroundColor: "rgba(255,255,255,0.08)"
+      backgroundColor: "action.hover"
     },
     ".node.focused": {
       color: "var(--palette-primary-main)",
-      backgroundColor: "rgba(255,255,255,0.1)",
+      backgroundColor: "action.selected",
       borderRadius: "6px",
-      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)"
+      boxShadow: `inset 0 0 0 1px ${theme.vars.palette.action.selected}`
     },
     ".Mui-disabled": {
       opacity: 1,
@@ -307,7 +307,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             <Typography variant="subtitle1" fontWeight={600} color="text.primary">
               Connectable Nodes
             </Typography>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", bgcolor: "rgba(255,255,255,0.1)", px: 1, py: 0.5, borderRadius: 1 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", bgcolor: "action.selected", px: 1, py: 0.5, borderRadius: 1 }}>
               {totalCount}
             </Typography>
           </Box>
@@ -332,10 +332,10 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             aria-label="Search nodes"
             sx={{
                 "& .MuiOutlinedInput-root": {
-                    backgroundColor: "rgba(0,0,0,0.2)",
+                    backgroundColor: "action.disabledBackground",
                     borderRadius: "8px",
-                    "& fieldset": { borderColor: "rgba(255,255,255,0.1)" },
-                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                    "& fieldset": { borderColor: "action.selected" },
+                    "&:hover fieldset": { borderColor: "action.focus" },
                     "&.Mui-focused fieldset": { borderColor: theme.vars.palette.primary.main },
                 }
             }}
@@ -345,7 +345,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                   <InputAdornment position="start">
                     <SearchIcon
                       fontSize="small"
-                      sx={{ color: "rgba(255,255,255,0.4)" }}
+                      sx={{ color: "action.disabled" }}
                     />
                   </InputAdornment>
                 ),

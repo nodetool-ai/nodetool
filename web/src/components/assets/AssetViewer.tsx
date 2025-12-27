@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
     ".actions .button": {
       width: "1.75em",
       height: "1.75em",
-      backgroundColor: "rgba(153, 153, 153, 0.67)",
+      backgroundColor: `rgba(${theme.vars.palette.grey[500]} / 0.67)`,
       color: theme.vars.palette.grey[900],
       borderRadius: "0.2em",
       padding: "0.3em"
@@ -140,21 +140,21 @@ const styles = (theme: Theme) =>
       zIndex: 20000,
       cursor: "pointer",
       color: theme.vars.palette.grey[200],
-      backgroundColor: "rgba(68, 68, 68, 0.6)",
-      border: "2px solid rgba(170, 170, 170, 0.2)"
+      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.6)`,
+      border: `2px solid rgba(${theme.vars.palette.grey[500]} / 0.2)`
     },
     ".prev-next-button img": {
       cursor: "pointer !important",
       pointerEvents: "none"
     },
     ".prev-next-button:hover": {
-      backgroundColor: "rgba(34, 34, 34, 0.93)"
+      backgroundColor: `rgba(${theme.vars.palette.grey[800]} / 0.93)`
     },
     ".prev-next-button.Mui-disabled": {
       color: theme.vars.palette.grey[600],
-      backgroundColor: "rgba(102, 102, 102, 0.27)",
+      backgroundColor: `rgba(${theme.vars.palette.grey[600]} / 0.27)`,
       cursor: "default",
-      border: "1px solid rgba(204, 204, 204, 0.2)",
+      border: `1px solid rgba(${theme.vars.palette.grey[400]} / 0.2)`,
       pointerEvents: "none"
     },
     ".prev-next-button svg": {
@@ -191,7 +191,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[0]}`
     },
     ".prev-next-items .item": {
-      backgroundColor: "rgba(68, 68, 68, 0.4)",
+      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.4)`,
       padding: "0",
       width: "120px",
       height: "80px",

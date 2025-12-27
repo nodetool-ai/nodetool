@@ -58,10 +58,10 @@ const nodeInfoStyles = (theme: Theme) =>
       height: "1.5em"
     },
     ".replicate-status.online": {
-      backgroundColor: "#10a37f"
+      backgroundColor: "success.main"
     },
     ".replicate-status.offline": {
-      backgroundColor: "#ff4500"
+      backgroundColor: "error.main"
     },
     ".node-description": {
       fontWeight: "400",

@@ -23,7 +23,7 @@ interface SettingsSidebarProps {
 const sidebarStyles = (theme: Theme) => css`
   width: 220px;
   min-width: 220px;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: ${theme.vars.palette.action.disabledBackground};
   padding: 1.5em 0;
   position: sticky;
   top: 0;
