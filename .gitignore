@@ -43,6 +43,9 @@ docs.chromadb
 # Testing
 /coverage
 *.lcov
+playwright-report/
+test-results/
+.last-run.json
 
 # Environment variables
 *.override.env
