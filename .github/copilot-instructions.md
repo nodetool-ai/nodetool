@@ -643,6 +643,11 @@ cd web && npm test               # Run all tests
 cd web && npm run test:watch     # Watch mode
 cd web && npm run test:coverage  # With coverage
 
+# E2E Testing
+cd web && npm run test:e2e          # Run e2e tests
+cd web && npm run test:e2e:ui       # Run with Playwright UI
+cd web && npm run test:e2e:headed   # Run in headed mode (see browser)
+
 # Quality
 cd web && npm run typecheck      # TypeScript check
 cd web && npm run lint           # ESLint
@@ -651,6 +656,110 @@ cd web && npm run lint:fix       # Auto-fix lint issues
 # Building
 cd web && npm run build          # Production build
 ```
+
+## Setting Up for E2E Tests
+
+E2E tests require both the Python backend and Node.js frontend to be running. Follow these steps:
+
+### 1. Set Up Python Environment
+
+```bash
+# Create conda environment (first time only)
+conda env create -f environment.yml -n nodetool
+
+# Activate the environment
+conda activate nodetool
+
+# Install nodetool packages
+uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+
+# Verify installation
+nodetool --help
+```
+
+### 2. Install Web Dependencies
+
+```bash
+cd web
+npm install
+
+# Install Playwright browsers (first time only)
+npx playwright install chromium
+```
+
+### 3. Run E2E Tests
+
+**Option A: Automatic Setup (Recommended)**
+The Playwright configuration automatically starts both servers:
+
+```bash
+cd web
+npm run test:e2e
+```
+
+**Option B: Manual Setup**
+Start servers manually for debugging:
+
+```bash
+# Terminal 1: Start backend
+conda activate nodetool
+nodetool serve --port 7777
+
+# Terminal 2: Start frontend
+cd web
+npm start
+
+# Terminal 3: Run tests
+cd web
+npx playwright test
+```
+
+### 4. E2E Test Structure
+
+E2E tests are located in `web/tests/e2e/` and use Playwright:
+
+- **app-loads.spec.ts**: Basic app loading, navigation, and API connectivity tests
+- **download_websocket.spec.ts**: Advanced WebSocket functionality tests
+
+### 5. Writing E2E Tests
+
+Follow these patterns when creating new e2e tests:
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+// Skip when run by Jest
+if (process.env.JEST_WORKER_ID) {
+  test.skip("skipped in jest runner", () => {});
+} else {
+  test.describe("Feature Name", () => {
+    test("should do something", async ({ page }) => {
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      
+      // Your test logic here
+      expect(await page.title()).toBeTruthy();
+    });
+  });
+}
+```
+
+### 6. Debugging E2E Tests
+
+```bash
+# Run with UI mode for interactive debugging
+cd web
+npm run test:e2e:ui
+
+# Run in headed mode to see the browser
+cd web
+npm run test:e2e:headed
+
+# View trace files after failure
+npx playwright show-trace test-results/path-to-trace/trace.zip
+```
+
+For more details, see `web/TESTING.md`.
 
 ## Version Information
 
