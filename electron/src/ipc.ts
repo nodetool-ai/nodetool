@@ -31,6 +31,7 @@ import {
   searchNodes,
 } from "./packageManager";
 import { openModelDirectory, openPathInExplorer, openSystemDirectory } from "./fileExplorer";
+import { exportDebugBundle } from "./debug";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -546,9 +547,16 @@ export function initializeIpcHandlers(): void {
     }
   );
 
-  // System info handler
   createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {
     const { getSystemInfo } = await import("./systemInfo");
     return await getSystemInfo();
   });
+
+  createIpcMainHandler(
+    IpcChannels.DEBUG_EXPORT_BUNDLE,
+    async (_event, request) => {
+      logMessage("Exporting debug bundle");
+      return await exportDebugBundle(request);
+    }
+  );
 }

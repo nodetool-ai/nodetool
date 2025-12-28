@@ -192,11 +192,26 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   const exportMutation = useMutation({
     mutationFn: async () => {
-      const payload: any = {
+      const payload: {
+        workflow_id?: string;
+        graph?: Record<string, unknown>;
+        errors?: string[];
+        preferred_save?: "desktop" | "downloads";
+      } = {
         workflow_id: currentWorkflowId || undefined,
         errors: [],
         preferred_save: "downloads"
       };
+
+      // Use Electron's debug API if available (preferred for local debugging)
+      if (
+        isElectron &&
+        typeof window.api?.debug?.exportBundle === "function"
+      ) {
+        return await window.api.debug.exportBundle(payload);
+      }
+
+      // Fallback to Python API (for non-Electron or when Electron API is not available)
       const { error, data } = await client.POST("/api/debug/export", {
         body: payload
       });
