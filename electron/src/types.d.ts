@@ -94,6 +94,7 @@ declare global {
         openModelPath: (path: string) => Promise<FileExplorerResult>;
         openExternal: (url: string) => Promise<void>;
         checkOllamaInstalled: () => Promise<boolean>;
+        getSystemInfo: () => Promise<SystemInfo>;
       };
 
       // Clipboard operations
@@ -168,6 +169,13 @@ declare global {
         ) => boolean;
         readShortcutLink: (shortcutPath: string) => ShortcutDetails;
       };
+
+      // Settings
+      settings: {
+        getCloseBehavior: () => Promise<WindowCloseAction>;
+        setCloseBehavior: (action: WindowCloseAction) => Promise<void>;
+        getSystemInfo: () => Promise<SystemInfo>;
+      };
     };
 
     // Alias exposed by preload for legacy pages.
@@ -185,6 +193,33 @@ export interface ServerState {
   logs: string[];
   initialURL: string;
   serverPort?: number;
+}
+
+// System information for about dialog
+export interface SystemInfo {
+  // App information
+  appVersion: string;
+  electronVersion: string;
+  chromeVersion: string;
+  nodeVersion: string;
+  // OS information
+  os: string;
+  osVersion: string;
+  arch: string;
+  // Paths
+  installPath: string;
+  condaEnvPath: string;
+  dataPath: string;
+  logsPath: string;
+  // Python and package versions
+  pythonVersion: string | null;
+  // Feature availability
+  cudaAvailable: boolean;
+  cudaVersion: string | null;
+  ollamaInstalled: boolean;
+  ollamaVersion: string | null;
+  llamaServerInstalled: boolean;
+  llamaServerVersion: string | null;
 }
 
 export interface IntervalRef {
@@ -392,6 +427,8 @@ export enum IpcChannels {
   SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
   // System directory channels
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
+  // System info channel
+  GET_SYSTEM_INFO = "get-system-info",
 }
 
 
@@ -480,6 +517,8 @@ export interface IpcRequest {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
+  // System info
+  [IpcChannels.GET_SYSTEM_INFO]: void;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -542,6 +581,8 @@ export interface IpcResponse {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;
+  // System info
+  [IpcChannels.GET_SYSTEM_INFO]: SystemInfo;
 }
 
 

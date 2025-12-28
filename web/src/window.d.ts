@@ -10,6 +10,33 @@ type ModelDirectory = "huggingface" | "ollama";
 
 type SystemDirectory = "installation" | "logs";
 
+// System information for about dialog
+interface SystemInfo {
+  // App information
+  appVersion: string;
+  electronVersion: string;
+  chromeVersion: string;
+  nodeVersion: string;
+  // OS information
+  os: string;
+  osVersion: string;
+  arch: string;
+  // Paths
+  installPath: string;
+  condaEnvPath: string;
+  dataPath: string;
+  logsPath: string;
+  // Python and package versions
+  pythonVersion: string | null;
+  // Feature availability
+  cudaAvailable: boolean;
+  cudaVersion: string | null;
+  ollamaInstalled: boolean;
+  ollamaVersion: string | null;
+  llamaServerInstalled: boolean;
+  llamaServerVersion: string | null;
+}
+
 interface FileExplorerResult {
   status: "success" | "error";
   path?: string;
@@ -109,6 +136,7 @@ declare global {
       settings?: {
         getCloseBehavior: () => Promise<"ask" | "quit" | "background">;
         setCloseBehavior: (action: "ask" | "quit" | "background") => Promise<void>;
+        getSystemInfo: () => Promise<SystemInfo>;
       };
     };
     process: {

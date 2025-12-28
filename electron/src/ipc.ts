@@ -545,4 +545,10 @@ export function initializeIpcHandlers(): void {
       updateTrayMenu();
     }
   );
+
+  // System info handler
+  createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {
+    const { getSystemInfo } = await import("./systemInfo");
+    return await getSystemInfo();
+  });
 }
