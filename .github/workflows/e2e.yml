@@ -72,7 +72,7 @@ jobs:
         run: |
           echo "Waiting for nodetool server to start..."
           for i in {1..60}; do
-            if curl -s http://localhost:7777/health > /dev/null; then
+            if curl -f -s http://localhost:7777/health > /dev/null 2>&1; then
               echo "Nodetool server is ready!"
               exit 0
             fi
@@ -80,7 +80,8 @@ jobs:
             sleep 2
           done
           echo "Server failed to start within 120 seconds"
-          cat /tmp/nodetool-server.log
+          echo "Server logs:"
+          cat /tmp/nodetool-server.log || echo "No server logs available"
           exit 1
 
       - name: Run E2E tests
