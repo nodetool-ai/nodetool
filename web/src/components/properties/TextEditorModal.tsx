@@ -33,7 +33,6 @@ import isEqual from "lodash/isEqual";
 import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useCombo } from "../../stores/KeyPressedStore";
 
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
@@ -54,7 +53,6 @@ import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibilit
 import { useModalResize } from "../../hooks/editor/useModalResize";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useEditorActions } from "../../hooks/editor/useEditorActions";
-import { useCodeLanguage } from "../../hooks/editor/useCodeLanguage";
 import { useEditorKeyboardShortcuts } from "../../hooks/editor/useEditorKeyboardShortcuts";
 import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
 
@@ -109,7 +107,7 @@ const styles = (theme: Theme) =>
       width: "calc(100vw - 51px)",
       height: "fit-content",
       padding: ".5em .5em 0 .5em",
-      backgroundColor: "action.disabledBackground", // Darker, more subtle overlay
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.5)`,
       backdropFilter: "blur(4px)",
       zIndex: 10000,
       display: "flex",
@@ -311,23 +309,7 @@ const styles = (theme: Theme) =>
     ".copy-to-clipboard-button": {
       position: "absolute",
       right: "1.5em",
-      top: "1em",
-      zIndex: 10,
-      padding: "6px !important",
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`,
-      color: `${theme.vars.palette.grey[200]} !important`,
-      borderRadius: "6px !important",
-      fontSize: "var(--fontSizeSmaller)",
-      backdropFilter: "blur(2px)",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      minWidth: "28px",
-      minHeight: "28px",
-      transition: "all 0.2s ease",
-      "&:hover": {
-        backgroundColor: `${theme.vars.palette.grey[700]} !important`,
-        color: `${theme.vars.palette.text.primary} !important`,
-        borderColor: theme.vars.palette.grey[500]
-      }
+      top: "1em"
     },
     ".button": {
       padding: "6px 10px",
@@ -344,16 +326,13 @@ const styles = (theme: Theme) =>
       minWidth: "32px",
       minHeight: "32px",
       background: `linear-gradient(180deg, ${theme.vars.palette.action.hover} 0%, ${theme.vars.palette.action.hover} 100%)`,
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: "none",
       boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
       "&:hover": {
-        transform: "translateY(-1px)",
         background: `linear-gradient(180deg, ${theme.vars.palette.action.focus} 0%, ${theme.vars.palette.action.selected} 100%)`,
-        borderColor: theme.vars.palette.grey[500],
         boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
       },
       "&:active": {
-        transform: "translateY(0)",
         background: "action.disabledBackground",
         boxShadow: "inset 0 1px 2px rgba(0,0,0,0.2)"
       }
@@ -368,8 +347,7 @@ const styles = (theme: Theme) =>
       transition: "all 0.2s ease",
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.error.mainChannel} / 0.2)`, // Subtle red hover
-        color: "error.main",
-        transform: "rotate(90deg)"
+        color: "error.main"
       }
     },
     ".button-ghost": {
