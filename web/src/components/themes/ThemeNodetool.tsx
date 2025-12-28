@@ -175,7 +175,7 @@ const ThemeNodetool = createTheme({
     },
     MuiFormControl: {
       styleOverrides: {
-        root: ({ theme }) => ({
+        root: () => ({
           width: "100%"
         })
       }
@@ -219,9 +219,10 @@ const ThemeNodetool = createTheme({
           fontSize: theme.fontSizeSmall,
           borderRadius: "8px",
           padding: "8px 12px",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)"
+          boxShadow:
+            "0 10px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)"
         }),
-        arrow: ({ theme }) => ({
+        arrow: () => ({
           color: "rgba(10, 12, 16, 0.95)"
         })
       }
