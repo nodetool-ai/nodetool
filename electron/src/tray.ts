@@ -7,7 +7,7 @@ import { execSync } from "child_process";
 import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning, isLlamaServerRunning } from "./server";
 import { fetchWorkflows } from "./api";
 import { readSettings, updateSetting } from "./settings";
-import { createMiniAppWindow } from "./workflowWindow";
+import { createMiniAppWindow, createChatWindow } from "./workflowWindow";
 import type { Workflow } from "./types";
 import { EventEmitter } from "events";
 
@@ -366,6 +366,14 @@ async function updateTrayMenu(): Promise<void> {
       label: "Show NodeTool",
       enabled: true,
       click: async () => focusNodeTool(),
+    },
+    {
+      label: "Chat",
+      enabled: connected,
+      click: () => {
+        logMessage("Opening standalone chat window");
+        createChatWindow();
+      },
     },
     {
       label: "Mini Apps",
