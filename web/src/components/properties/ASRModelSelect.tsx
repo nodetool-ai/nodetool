@@ -1,18 +1,11 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import { Typography, Tooltip, Button } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { useQuery } from "@tanstack/react-query";
 import isEqual from "lodash/isEqual";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import {
-  isHuggingFaceProvider,
-  getProviderBaseName,
-  formatGenericProviderName
-} from "../../utils/providerDisplay";
 import ASRModelMenuDialog from "../model_menu/ASRModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ASRModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
+import { useQuery } from "@tanstack/react-query";
+import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface ASRModelSelectProps {
   onChange: (value: any) => void;
@@ -158,56 +151,14 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
 
   return (
     <>
-      <Tooltip
-        title={
-          <div style={{ textAlign: "center" }}>
-            <Typography variant="inherit">
-              {currentSelectedModelDetails?.name || value || "Select a model"}
-            </Typography>
-            <Typography variant="caption" display="block">
-              Select ASR Model
-            </Typography>
-          </div>
-        }
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <Button
-          ref={buttonRef}
-          className={`select-model-button asr-model-button ${
-            value ? "active" : ""
-          }`}
-          sx={{
-            fontSize: "var(--fontSizeTiny)",
-            border: "1px solid transparent",
-            borderRadius: "0.25em",
-            color: "var(--palette-grey-0)",
-            textTransform: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            lineHeight: 1,
-            height: "18px",
-            minHeight: 0,
-            padding: "0 0.5em !important",
-            "&:hover": {
-              backgroundColor: "var(--palette-grey-500)"
-            }
-          }}
-          onClick={handleClick}
-          size="small"
-        >
-          <Typography
-            variant="body2"
-            sx={{
-              color: "var(--palette-grey-200)",
-              lineHeight: 1,
-              display: "block"
-            }}
-          >
-            {currentSelectedModelDetails?.name || value || "Select Model"}
-          </Typography>
-        </Button>
-      </Tooltip>
+      <ModelSelectButton
+        ref={buttonRef}
+        className="asr-model-button"
+        active={!!value}
+        label={currentSelectedModelDetails?.name || value || "Select Model"}
+        subLabel="Select ASR Model"
+        onClick={handleClick}
+      />
       <ASRModelMenuDialog
         open={dialogOpen}
         onClose={handleClose}

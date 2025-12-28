@@ -1,19 +1,12 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import { Typography, Tooltip, Button } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { useQuery } from "@tanstack/react-query";
 import isEqual from "lodash/isEqual";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import {
-  isHuggingFaceProvider,
-  getProviderBaseName,
-  formatGenericProviderName
-} from "../../utils/providerDisplay";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { TTSModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import Select from "../inputs/Select";
+import { useQuery } from "@tanstack/react-query";
+import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface TTSModelSelectProps {
   onChange: (value: any) => void;
@@ -200,58 +193,14 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      <Tooltip
-        title={
-          <div style={{ textAlign: "center" }}>
-            <Typography variant="inherit">
-              {currentSelectedModelDetails?.name ||
-                modelId ||
-                "Select a TTS model"}
-            </Typography>
-            <Typography variant="caption" display="block">
-              Select Text-to-Speech Model
-            </Typography>
-          </div>
-        }
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <Button
-          ref={buttonRef}
-          className={`select-model-button tts-model-button ${
-            modelId ? "active" : ""
-          }`}
-          sx={{
-            fontSize: "var(--fontSizeTiny)",
-            border: "1px solid transparent",
-            borderRadius: "0.25em",
-            color: "var(--palette-grey-0)",
-            textTransform: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            lineHeight: 1,
-            height: "18px",
-            minHeight: 0,
-            padding: "0 0.5em !important",
-            "&:hover": {
-              backgroundColor: "var(--palette-grey-500)"
-            }
-          }}
-          onClick={handleClick}
-          size="small"
-        >
-          <Typography
-            variant="body2"
-            sx={{
-              color: "var(--palette-grey-200)",
-              lineHeight: 1,
-              display: "block"
-            }}
-          >
-            {currentSelectedModelDetails?.name || modelId || "Select TTS Model"}
-          </Typography>
-        </Button>
-      </Tooltip>
+      <ModelSelectButton
+        ref={buttonRef}
+        className="tts-model-button"
+        active={!!modelId}
+        label={currentSelectedModelDetails?.name || modelId || "Select TTS Model"}
+        subLabel="Select Text-to-Speech Model"
+        onClick={handleClick}
+      />
 
       {hasVoices && (
         <Select

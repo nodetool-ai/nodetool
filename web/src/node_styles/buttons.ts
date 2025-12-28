@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { themeVariables } from "./theme-variables";
 
 /**
  * Button Component Styles
@@ -17,7 +16,6 @@ export const buttonStyles = (_theme: Theme) =>
       lineHeight: "1.5em",
       minWidth: "24px",
       fontSize: "0.8em"
-      // backgroundColor: _theme.vars.palette.grey[800]
     },
     ".MuiButton-sizeSmall:hover": {
       backgroundColor: _theme.vars.palette.action.hover

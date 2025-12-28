@@ -1,19 +1,16 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import { Typography, Tooltip, Button } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ImageModelMenuDialog from "../model_menu/ImageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ImageModel } from "../../stores/ApiTypes";
 import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
+import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface ImageModelSelectProps {
   onChange: (value: any) => void;
   value: string;
   task?: "text_to_image" | "image_to_image";
 }
-
 
 const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   onChange,
@@ -23,15 +20,68 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
-  const theme = useTheme();
 
   // Use the same hook as the dialog to fetch models
   const { models: fetchedModels } = useImageModelsByProvider();
 
   const currentSelectedModelDetails = useMemo(() => {
-    if (!fetchedModels || !value) {return null;}
+    if (!fetchedModels || !value) {
+      return null;
+    }
     return fetchedModels.find((m) => m.id === value);
   }, [fetchedModels, value]);
+
+  const displayInfo = useMemo(() => {
+    if (currentSelectedModelDetails) {
+      // Try to split by colon first (HF style)
+      if (currentSelectedModelDetails.id?.includes(":")) {
+        const [repo, ...rest] = currentSelectedModelDetails.id.split(":");
+        return {
+          label: repo,
+          secondaryLabel:
+            rest.join(":") || currentSelectedModelDetails.path || undefined
+        };
+      }
+
+      // Try to use explicit path
+      if (currentSelectedModelDetails.path) {
+        return {
+          label: currentSelectedModelDetails.name || "",
+          secondaryLabel: currentSelectedModelDetails.path
+        };
+      }
+
+      // Try to split by slash (file path style)
+      const name = currentSelectedModelDetails.name || "";
+      if (name.includes("/")) {
+        const lastSlash = name.lastIndexOf("/");
+        return {
+          label: name.substring(0, lastSlash),
+          secondaryLabel: name.substring(lastSlash + 1)
+        };
+      }
+
+      return { label: name, secondaryLabel: undefined };
+    }
+
+    // Fallback for value string
+    if (value) {
+      if (value.includes(":")) {
+        const [repo, ...rest] = value.split(":");
+        return { label: repo, secondaryLabel: rest.join(":") };
+      }
+      if (value.includes("/")) {
+        const lastSlash = value.lastIndexOf("/");
+        return {
+          label: value.substring(0, lastSlash),
+          secondaryLabel: value.substring(lastSlash + 1)
+        };
+      }
+      return { label: value, secondaryLabel: undefined };
+    }
+
+    return { label: "Select Image Model", secondaryLabel: undefined };
+  }, [currentSelectedModelDetails, value]);
 
   const handleClick = useCallback(() => {
     setDialogOpen(true);
@@ -63,58 +113,15 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
 
   return (
     <>
-      <Tooltip
-        title={
-          <div style={{ textAlign: "center" }}>
-            <Typography variant="inherit">
-              {currentSelectedModelDetails?.name ||
-                value ||
-                "Select an image model"}
-            </Typography>
-            <Typography variant="caption" display="block">
-              Select Image Generation Model
-            </Typography>
-          </div>
-        }
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <Button
-          ref={buttonRef}
-          className={`select-model-button image-model-button ${
-            value ? "active" : ""
-          }`}
-          sx={{
-            fontSize: "var(--fontSizeTiny)",
-            border: "1px solid transparent",
-            borderRadius: "0.25em",
-            color: "var(--palette-grey-0)",
-            textTransform: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            lineHeight: 1,
-            height: "18px",
-            minHeight: 0,
-            padding: "0 0.5em !important",
-            "&:hover": {
-              backgroundColor: "var(--palette-grey-500)"
-            }
-          }}
-          onClick={handleClick}
-          size="small"
-        >
-          <Typography
-            variant="body2"
-            sx={{
-              color: "var(--palette-grey-200)",
-              lineHeight: 1,
-              display: "block"
-            }}
-          >
-            {currentSelectedModelDetails?.name || value || "Select Image Model"}
-          </Typography>
-        </Button>
-      </Tooltip>
+      <ModelSelectButton
+        ref={buttonRef}
+        className="image-model-button"
+        active={!!value}
+        label={displayInfo.label}
+        secondaryLabel={displayInfo.secondaryLabel}
+        subLabel="Select Image Generation Model"
+        onClick={handleClick}
+      />
       <ImageModelMenuDialog
         open={dialogOpen}
         onClose={handleClose}
