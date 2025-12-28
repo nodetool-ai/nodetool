@@ -6,15 +6,13 @@ import {
   ListItemText,
   ListItemIcon,
   Typography,
-  Tooltip,
   CircularProgress,
-  Box,
-  Button
+  Box
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isElectron } from "../../stores/ApiClient";
+import ModelSelectButton from "./shared/ModelSelectButton";
 // no providers here; always Ollama
 
 interface LlamaModelSelectProps {
@@ -70,40 +68,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
 
   return (
     <>
-      <Tooltip
-        title={
-          <div style={{ textAlign: "center" }}>
-            <Typography variant="inherit">
-              {currentSelectedModelDetails?.name || value || "Select a model"}
-            </Typography>
-            <Typography variant="caption" display="block">
-              Select Model
-            </Typography>
-          </div>
-        }
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <Button
-          ref={buttonRef}
-          className={`select-model-button ${value ? "active" : ""}`}
-          sx={{
-            fontSize: "var(--fontSizeTiny)",
-            border: "1px solid transparent",
-            borderRadius: "0.25em",
-            color: "var(--palette-grey-0)",
-            padding: "0em 0.75em !important",
-            "&:hover": {
-              backgroundColor: "var(--palette-grey-500)"
-            }
-          }}
-          onClick={handleClick}
-          size="small"
-        >
-          <Typography variant="body2" sx={{ color: "var(--palette-grey-200)" }}>
-            {currentSelectedModelDetails?.name || value || "Select Model"}
-          </Typography>
-        </Button>
-      </Tooltip>
+      <ModelSelectButton
+        ref={buttonRef}
+        active={!!value}
+        label={currentSelectedModelDetails?.name || value || "Select Model"}
+        subLabel="Select Model"
+        onClick={handleClick}
+      />
       <Menu
         className="model-menu"
         anchorEl={anchorEl}

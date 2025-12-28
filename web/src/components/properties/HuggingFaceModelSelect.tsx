@@ -1,14 +1,12 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import { Typography, Tooltip, Button } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import HuggingFaceModelMenuDialog from "../model_menu/HuggingFaceModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ImageModel, UnifiedModel } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { useQuery } from "@tanstack/react-query";
+import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -36,7 +34,6 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
-  const theme = useTheme();
 
   // Determine task from modelType
   const task = useMemo(() => {
@@ -205,84 +202,15 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
 
   return (
     <>
-      <Tooltip
-        title={
-          <div style={{ textAlign: "center" }}>
-            <Typography variant="inherit">
-              {displayInfo.repoId}
-              {displayInfo.path && `:${displayInfo.path}`}
-            </Typography>
-            <Typography variant="caption" display="block">
-              Select HuggingFace Model
-            </Typography>
-          </div>
-        }
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <Button
-          ref={buttonRef}
-          className={`select-model-button huggingface-model-button ${
-            value ? "active" : ""
-          }`}
-          sx={{
-            fontSize: "var(--fontSizeTiny)",
-            border: "1px solid transparent",
-            borderRadius: "0.25em",
-            color: "var(--palette-grey-0)",
-            textTransform: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            lineHeight: 1,
-            height: displayInfo.path ? "auto" : "18px",
-            minHeight: 0,
-            padding: "0 0.5em !important",
-            maxWidth: "100%",
-            overflow: "hidden",
-            "&:hover": {
-              backgroundColor: "var(--palette-grey-500)"
-            }
-          }}
-          onClick={handleClick}
-          size="small"
-        >
-          <div className="model-label" style={{ textAlign: "left", maxWidth: "100%", overflow: "hidden" }}>
-            <div className="model-label-repo-id" style={{ lineHeight: 1, maxWidth: "100%", overflow: "hidden" }}>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "var(--palette-grey-200)",
-                  lineHeight: 1,
-                  display: "block",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis"
-                }}
-              >
-                {displayInfo.repoId}
-              </Typography>
-            </div>
-            {displayInfo.path && (
-              <div className="model-label-path" style={{ lineHeight: 1, maxWidth: "100%", overflow: "hidden" }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "var(--palette-grey-400)",
-                    lineHeight: 1,
-                    display: "block",
-                    fontSize: "0.75em",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis"
-                  }}
-                >
-                  {displayInfo.path}
-                </Typography>
-              </div>
-            )}
-          </div>
-        </Button>
-      </Tooltip>
+      <ModelSelectButton
+        ref={buttonRef}
+        className="huggingface-model-button"
+        active={!!(value?.repo_id || value?.id)}
+        label={displayInfo.repoId}
+        secondaryLabel={displayInfo.path}
+        subLabel="Select HuggingFace Model"
+        onClick={handleClick}
+      />
       <HuggingFaceModelMenuDialog
         open={dialogOpen}
         onClose={handleClose}

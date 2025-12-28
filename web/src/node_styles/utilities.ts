@@ -48,7 +48,7 @@ export const utilityStyles = (theme: Theme) =>
 
     /* MuiSvgIcon */
     ".MuiSvgIcon-root": {
-      fontSize: "1.2rem"
+      fontSize: "1rem"
     },
 
     ".MuiSvgIcon-fontSizeSmall": {
