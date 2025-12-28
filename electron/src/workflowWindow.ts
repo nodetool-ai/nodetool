@@ -76,11 +76,9 @@ function createMiniAppWindow(workflowId: string, workflowName?: string): Browser
 
   // Load the mini app route
   const port = app.isPackaged ? getServerPort() : 3000;
-  const baseUrl = app.isPackaged 
-    ? `http://127.0.0.1:${port}/index.html`
-    : `http://127.0.0.1:${port}`;
+  const baseUrl = `http://127.0.0.1:${port}`;
   
-  miniAppWindow.loadURL(`${baseUrl}#/miniapp/${workflowId}`);
+  miniAppWindow.loadURL(`${baseUrl}/miniapp/${workflowId}`);
 
   return miniAppWindow;
 }

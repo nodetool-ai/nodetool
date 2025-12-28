@@ -26,6 +26,8 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
+import ThemeToggle from "../ui/ThemeToggle";
+import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
 
 const MiniAppPage: React.FC = () => {
   const theme = useTheme();
@@ -206,10 +208,17 @@ const MiniAppPage: React.FC = () => {
                 <EditIcon />
               </Fab>
             </Tooltip>
-            <Box mb={2}>
+            <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
               <Typography variant="h5" fontWeight="500">
                 {workflow?.name}
               </Typography>
+              <Box display="flex" alignItems="center" gap={2}>
+                <MiniWorkflowGraph
+                  workflow={workflow}
+                  isRunning={runnerState === "running"}
+                />
+                <ThemeToggle />
+              </Box>
             </Box>
             <div className="content-grid">
               <MiniAppInputsForm

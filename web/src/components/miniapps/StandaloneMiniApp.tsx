@@ -22,6 +22,8 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
+import ThemeToggle from "../ui/ThemeToggle";
+import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
 
 const StandaloneMiniApp: React.FC = () => {
   const theme = useTheme();
@@ -161,7 +163,7 @@ const StandaloneMiniApp: React.FC = () => {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          background: ${theme.palette.background.default};
+          background: var(--palette-background-default);
           padding: 2rem;
           box-sizing: border-box;
         `}
@@ -198,15 +200,24 @@ const StandaloneMiniApp: React.FC = () => {
         )}
         {workflow && (
           <>
-            <Box mb={3}>
-              <Typography variant="h4" fontWeight="500">
-                {workflow?.name}
-              </Typography>
-              {workflow?.description && (
-                <Typography variant="body2" color="text.secondary" mt={1}>
-                  {workflow.description}
+            <Box mb={3} display="flex" justifyContent="space-between" alignItems="flex-start">
+              <Box>
+                <Typography variant="h4" fontWeight="500">
+                  {workflow?.name}
                 </Typography>
-              )}
+                {workflow?.description && (
+                  <Typography variant="body2" color="text.secondary" mt={1}>
+                    {workflow.description}
+                  </Typography>
+                )}
+              </Box>
+              <Box display="flex" alignItems="center" gap={2}>
+                <MiniWorkflowGraph
+                  workflow={workflow}
+                  isRunning={runnerState === "running"}
+                />
+                <ThemeToggle />
+              </Box>
             </Box>
             <div className="content-grid">
               <MiniAppInputsForm

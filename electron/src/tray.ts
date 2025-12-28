@@ -9,8 +9,63 @@ import { fetchWorkflows } from "./api";
 import { readSettings, updateSetting } from "./settings";
 import { createMiniAppWindow } from "./workflowWindow";
 import type { Workflow } from "./types";
+import { EventEmitter } from "events";
 
 let trayInstance: Electron.Tray | null = null;
+
+/**
+ * Internal event emitter for main-process events.
+ * Used to notify the tray when server state changes.
+ */
+export const trayEvents = new EventEmitter();
+
+// Event types for type safety
+export const TrayEventTypes = {
+  SERVER_STATE_CHANGED: "server-state-changed",
+  WORKFLOWS_CHANGED: "workflows-changed",
+} as const;
+
+/**
+ * Subscribe to server state changes and update the tray menu.
+ * This is the event-driven alternative to polling.
+ */
+function subscribeToServerEvents(): void {
+  trayEvents.on(TrayEventTypes.SERVER_STATE_CHANGED, () => {
+    logMessage("Tray: received server state change event", "info");
+    void updateTrayMenu();
+  });
+  
+  trayEvents.on(TrayEventTypes.WORKFLOWS_CHANGED, () => {
+    logMessage("Tray: received workflows change event", "info");
+    void updateTrayMenu();
+  });
+  
+  logMessage("Tray: subscribed to server events", "info");
+}
+
+/**
+ * Emit a server state change event to trigger tray updates.
+ * Call this whenever the server state changes.
+ */
+export function emitServerStateChanged(): void {
+  trayEvents.emit(TrayEventTypes.SERVER_STATE_CHANGED);
+}
+
+/**
+ * Emit a workflows change event to trigger tray updates.
+ * Call this when workflows are created, updated, or deleted.
+ */
+export function emitWorkflowsChanged(): void {
+  trayEvents.emit(TrayEventTypes.WORKFLOWS_CHANGED);
+}
+
+/**
+ * Cleanup function to remove event listeners.
+ */
+export function cleanupTrayEvents(): void {
+  trayEvents.removeAllListeners();
+  logMessage("Tray: cleaned up event listeners", "info");
+}
 
 /**
  * Module for managing the system tray functionality of the NodeTool application.
@@ -100,6 +155,10 @@ async function createTray(): Promise<Electron.Tray> {
   }
   // Initialize the tray menu immediately so it responds on first click
   await updateTrayMenu();
+  
+  // Subscribe to server events for real-time updates
+  subscribeToServerEvents();
+  
   return trayInstance;
 }
 
