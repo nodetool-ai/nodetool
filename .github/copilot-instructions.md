@@ -819,10 +819,16 @@ if (process.env.JEST_WORKER_ID) {
     test("should do something", async () => {
       // Launch Electron app
       const electronApp = await electron.launch({
-        args: [path.join(__dirname, '../../dist-electron/main.js')],
+        args: [
+          path.join(__dirname, '../../dist-electron/main.js'),
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage'
+        ],
         env: {
           ...process.env,
-          NODE_ENV: 'test'
+          NODE_ENV: 'test',
+          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
         }
       });
 
