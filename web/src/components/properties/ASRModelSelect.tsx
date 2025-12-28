@@ -1,11 +1,17 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
+import { useTheme } from "@mui/material/styles";
 import ASRModelMenuDialog from "../model_menu/ASRModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ASRModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import {
+  isHuggingFaceProvider,
+  getProviderBaseName,
+  formatGenericProviderName
+} from "../../utils/providerDisplay";
 
 interface ASRModelSelectProps {
   onChange: (value: any) => void;
