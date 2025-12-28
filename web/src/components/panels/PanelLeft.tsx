@@ -50,9 +50,12 @@ import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 const PANEL_WIDTH_COLLAPSED = "52px";
+const HEADER_HEIGHT = 80;
+const HEADER_HEIGHT_MOBILE = 56;
 
-const styles = (theme: Theme) =>
-  css({
+const styles = (theme: Theme, hasHeader: boolean = true, isMobile: boolean = false) => {
+  const headerHeight = hasHeader ? (isMobile ? HEADER_HEIGHT_MOBILE : HEADER_HEIGHT) : 0;
+  return css({
     position: "absolute",
     left: "0",
     ".panel-container": {
@@ -67,8 +70,8 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "80px",
-      height: "calc(100vh - 80px)",
+      top: `${headerHeight}px`,
+      height: `calc(100vh - ${headerHeight}px)`,
       backgroundColor: theme.vars.palette.background.paper,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       borderTop: `1px solid ${theme.vars.palette.divider}`,
@@ -80,11 +83,11 @@ const styles = (theme: Theme) =>
       left: "unset",
       right: "unset",
       width: "36px",
-      height: "calc(100vh - 83px)",
+      height: `calc(100vh - ${headerHeight + 3}px)`,
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: "80px",
+      top: `${headerHeight}px`,
       cursor: "e-resize",
       transition: "background-color 0.3s ease",
       "&::before": {
@@ -337,6 +340,7 @@ const styles = (theme: Theme) =>
       border: "0"
     }
   });
+};
 
 const RunningJobsList = () => {
   const { data: jobs, isLoading, error } = useRunningJobs();
@@ -672,6 +676,13 @@ const PanelContent = memo(function PanelContent({
 const PanelLeft: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const location = useLocation();
+  
+  // Detect routes that don't have AppHeader (standalone modes)
+  const isStandaloneMode = location.pathname.startsWith("/standalone-chat") ||
+                           location.pathname.startsWith("/miniapp");
+  const hasHeader = !isStandaloneMode;
+  
   const {
     ref: panelRef,
     size: panelSize,
@@ -697,10 +708,13 @@ const PanelLeft: React.FC = () => {
     },
     [handlePanelToggle]
   );
+  
+  // Calculate header height for inline styles
+  const headerHeight = hasHeader ? (isMobile ? HEADER_HEIGHT_MOBILE : HEADER_HEIGHT) : 0;
 
   return (
     <div
-      css={styles(theme)}
+      css={styles(theme, hasHeader, isMobile)}
       className={`panel-container ${isVisible ? "panel-visible" : ""}`}
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
@@ -732,12 +746,15 @@ const PanelLeft: React.FC = () => {
             minWidth: isVisible ? "300px" : PANEL_WIDTH_COLLAPSED,
             maxWidth: isMobile ? "75vw" : "none",
             // Match the panel height to avoid any gap beneath the drawer
-            height: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 80px)",
+            height: isMobile 
+              ? `calc(100dvh - ${headerHeight}px)` 
+              : `calc(100vh - ${headerHeight}px)`,
             contain: isMobile ? "layout style" : "none",
             boxSizing: "border-box",
             overflow: "hidden" // Prevent panel content from overflowing
           }
         }}
+
         variant="persistent"
         anchor="left"
         open={true}
