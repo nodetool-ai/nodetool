@@ -4,15 +4,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  Button,
   CircularProgress,
   LinearProgress,
-  Typography,
-  Fab,
-  Tooltip
+  Typography
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
@@ -29,12 +25,11 @@ import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 import ThemeToggle from "../ui/ThemeToggle";
 import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
 
-const MiniAppPage: React.FC = () => {
+const StandaloneMiniApp: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { workflowId } = useParams<{ workflowId?: string }>();
-  const navigate = useNavigate();
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
     fetchWorkflow: state.fetchWorkflow
@@ -45,7 +40,7 @@ const MiniAppPage: React.FC = () => {
     isLoading,
     error
   } = useQuery({
-    queryKey: ["unknown"],
+    queryKey: ["standalone-miniapp", workflowId],
     queryFn: async () => await fetchWorkflow(workflowId ?? ""),
     enabled: !!workflowId,
     staleTime: 0,
@@ -62,7 +57,6 @@ const MiniAppPage: React.FC = () => {
     runWorkflow,
     runnerState,
     statusMessage,
-    notifications,
     results,
     progress,
     resetWorkflowState
@@ -153,65 +147,70 @@ const MiniAppPage: React.FC = () => {
   const isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
-  const handleOpenInEditor = useCallback(() => {
-    if (workflow?.id) {
-      navigate(`/editor/${workflow.id}`);
-    }
-  }, [navigate, workflow?.id]);
-
-  const notificationsCount = notifications?.length ?? 0;
-  const showAlerts = submitError || notificationsCount > 0;
-
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
+
   return (
     <NodeContext.Provider value={activeNodeStore ?? null}>
-      <Box css={styles} component="section" className="mini-app-page">
-        {/* <MiniAppHero
-        workflows={workflows}
-        selectedWorkflowId={selectedWorkflowId}
-        onWorkflowChange={handleWorkflowChange}
-        onRefresh={() => refetch()}
-        workflowsLoading={workflowsLoading}
-        runnerState={runnerState}
-        statusMessage={statusMessage}
-        progress={progress}
-        showWorkflowControls={false}
-      /> */}
-        {isLoading && <CircularProgress />}
-        {error && <Typography color="error">{error.message}</Typography>}
+      <Box
+        css={css`
+          ${styles}
+          width: 100%;
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: var(--palette-background-default);
+          padding: 2rem;
+          box-sizing: border-box;
+        `}
+        component="section"
+      >
+        {isLoading && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100%"
+            }}
+          >
+            <CircularProgress />
+          </div>
+        )}
+        {error && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100%",
+              flexDirection: "column",
+              gap: "1rem"
+            }}
+          >
+            <Typography color="error" variant="h6">
+              Error Loading Workflow
+            </Typography>
+            <Typography color="error">{error.message}</Typography>
+          </div>
+        )}
         {workflow && (
           <>
-            <Tooltip title="Open in Editor" placement="left">
-              <Fab
-                size="medium"
-                onClick={handleOpenInEditor}
-                sx={{
-                  position: "absolute",
-                  top: 88,
-                  right: 50,
-                  zIndex: 100,
-                  backgroundColor: "info.main",
-                  color: "info.contrastText",
-                  boxShadow: "0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)",
-                  "&:hover": {
-                    backgroundColor: "info.dark",
-                    boxShadow: "0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)",
-                    transform: "scale(1.05)"
-                  },
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-                }}
-              >
-                <EditIcon />
-              </Fab>
-            </Tooltip>
-            <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h5" fontWeight="500">
-                {workflow?.name}
-              </Typography>
+            <Box mb={3} display="flex" justifyContent="space-between" alignItems="flex-start">
+              <Box>
+                <Typography variant="h4" fontWeight="500">
+                  {workflow?.name}
+                </Typography>
+                {workflow?.description && (
+                  <Typography variant="body2" color="text.secondary" mt={1}>
+                    {workflow.description}
+                  </Typography>
+                )}
+              </Box>
               <Box display="flex" alignItems="center" gap={2}>
                 <MiniWorkflowGraph
                   workflow={workflow}
@@ -301,4 +300,4 @@ const MiniAppPage: React.FC = () => {
   );
 };
 
-export default MiniAppPage;
+export default StandaloneMiniApp;

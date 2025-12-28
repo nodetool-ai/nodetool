@@ -26,6 +26,7 @@ import PanelRight from "./components/panels/PanelRight";
 import PanelBottom from "./components/panels/PanelBottom";
 import { CircularProgress } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
+import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 import { CssBaseline } from "@mui/material";
 
@@ -72,6 +73,9 @@ const GlobalChat = React.lazy(
 );
 const MiniAppPage = React.lazy(
   () => import("./components/miniapps/MiniAppPage")
+);
+const StandaloneMiniApp = React.lazy(
+  () => import("./components/miniapps/StandaloneMiniApp")
 );
 const ModelListIndex = React.lazy(
   () => import("./components/hugging_face/model_list/ModelListIndex")
@@ -198,6 +202,14 @@ function getRoutes() {
       )
     },
     {
+      path: "/miniapp/:workflowId",
+      element: (
+        <ProtectedRoute>
+          <StandaloneMiniApp />
+        </ProtectedRoute>
+      )
+    },
+    {
       path: "/editor",
       element: <NavigateToStart />
     },
@@ -313,6 +325,7 @@ const AppWrapper = () => {
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <JobReconnectionManager />
+        <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />
           <MobileClassProvider>
