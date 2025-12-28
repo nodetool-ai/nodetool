@@ -258,6 +258,6 @@ export const paletteDark: PaletteOptions = {
   glass: {
     blur: "blur(16px) saturate(180%)",
     backgroundDialog: "rgba(0, 0, 0, 0.2)",
-    backgroundDialogContent: "rgba(0, 0, 0, 0.5)"
+    backgroundDialogContent: "rgba(0, 0, 0, 0.6)"
   }
 };
