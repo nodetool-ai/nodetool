@@ -50,6 +50,7 @@ import { ArrayRenderer } from "./output/ArrayRenderer";
 import { AssetGrid } from "./output/AssetGrid";
 import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
+import { JSONRenderer } from "./output/JSONRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
 
@@ -61,7 +62,9 @@ const useDraggableScroll = () => {
   const scrollTop = useRef(0);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!scrollRef.current) {return;}
+    if (!scrollRef.current) {
+      return;
+    }
     isDragging.current = true;
     startY.current = e.clientY;
     scrollTop.current = scrollRef.current.scrollTop;
@@ -69,14 +72,18 @@ const useDraggableScroll = () => {
   }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging.current || !scrollRef.current) {return;}
+    if (!isDragging.current || !scrollRef.current) {
+      return;
+    }
     e.preventDefault();
     const deltaY = e.clientY - startY.current;
     scrollRef.current.scrollTop = scrollTop.current - deltaY;
   }, []);
 
   const handleMouseUp = useCallback(() => {
-    if (!scrollRef.current) {return;}
+    if (!scrollRef.current) {
+      return;
+    }
     isDragging.current = false;
     scrollRef.current.style.cursor = "grab";
   }, []);
@@ -219,21 +226,36 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ArrayRenderer array={value as NPArray} />
           </div>
         );
-      case "object":
-        if (Object.values(value).length === 0) {
-          const val = Object.values(value);
-          if (typeof val[0] === "string") {
+      case "object": {
+        const vals = Object.values(value);
+        // Check if any values are nested objects/arrays - use JSON renderer for complex structures
+        const hasNestedObjects = vals.some(
+          (v) => v !== null && typeof v === "object"
+        );
+        if (hasNestedObjects) {
+          return (
+            <JSONRenderer
+              value={value}
+              onCopy={copyToClipboard}
+              showActions={showTextActions}
+            />
+          );
+        }
+        // Simple key-value pairs - use DictTable
+        if (vals.length > 0) {
+          if (typeof vals[0] === "string") {
             return (
               <DictTable data={value} data_type="string" editable={false} />
             );
           }
-          if (typeof val[0] === "number") {
+          if (typeof vals[0] === "number") {
             return (
               <DictTable data={value} data_type="float" editable={false} />
             );
           }
         }
         return <DictTable data={value} editable={false} data_type="string" />;
+      }
       case "task":
         return <TaskView task={value as Task} />;
       case "task_plan":
@@ -416,7 +438,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       }
       case "datetime": {
         return (
-          <DatetimeRenderer value={value as Datetime} onCopy={copyToClipboard} />
+          <DatetimeRenderer
+            value={value as Datetime}
+            onCopy={copyToClipboard}
+          />
         );
       }
       case "email":
@@ -425,6 +450,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         const chunk = value as Chunk;
         return <ChunkRenderer chunk={chunk} onCopy={copyToClipboard} />;
       }
+      case "json":
+        return (
+          <JSONRenderer
+            value={value}
+            onCopy={copyToClipboard}
+            showActions={showTextActions}
+          />
+        );
       default:
         return (
           <TextRenderer
