@@ -265,8 +265,11 @@ The workflow:
 3. Sets up Node.js 20
 4. Installs web dependencies
 5. Installs Playwright browsers
-6. Runs Playwright tests (which start backend and frontend servers)
-7. Uploads test reports and results as artifacts on failure
+6. Starts nodetool server in the background (`nodetool serve --port 7777`)
+7. Waits for the server to be ready
+8. Runs Playwright tests (which start the frontend server)
+9. Stops the nodetool server
+10. Uploads test reports, results, and server logs as artifacts on failure
 
 ### Debugging E2E Test Failures in CI
 

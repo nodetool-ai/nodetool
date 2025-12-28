@@ -61,6 +61,28 @@ jobs:
           cd web
           npx playwright install --with-deps chromium
 
+      - name: Start nodetool server
+        shell: bash -el {0}
+        run: |
+          nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
+          echo $! > /tmp/nodetool-server.pid
+          
+      - name: Wait for nodetool server to be ready
+        shell: bash -el {0}
+        run: |
+          echo "Waiting for nodetool server to start..."
+          for i in {1..60}; do
+            if curl -s http://localhost:7777/health > /dev/null; then
+              echo "Nodetool server is ready!"
+              exit 0
+            fi
+            echo "Attempt $i: Server not ready yet, waiting..."
+            sleep 2
+          done
+          echo "Server failed to start within 120 seconds"
+          cat /tmp/nodetool-server.log
+          exit 1
+
       - name: Run E2E tests
         shell: bash -el {0}
         run: |
@@ -68,6 +90,22 @@ jobs:
           npx playwright test
         env:
           CI: true
+
+      - name: Stop nodetool server
+        if: always()
+        shell: bash -el {0}
+        run: |
+          if [ -f /tmp/nodetool-server.pid ]; then
+            kill $(cat /tmp/nodetool-server.pid) || true
+          fi
+          
+      - name: Upload nodetool server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodetool-server-logs
+          path: /tmp/nodetool-server.log
+          retention-days: 7
 
       - name: Upload Playwright report
         if: failure()
