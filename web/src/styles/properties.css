@@ -100,11 +100,11 @@
   font-family: var(--fontFamily1);
   font-size: var(--fontSizeSmall);
   font-weight: 400;
-  line-height: 1.25em;
+  line-height: 1.2em;
   color: var(--palette-grey-100);
   background-color: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--palette-grey-700);
-  border-radius: 6px;
+  border-radius: 3px;
   outline: none;
   transition: border-color 0.2s, background-color 0.2s;
   box-sizing: border-box;
@@ -197,7 +197,7 @@
 .string-property .MuiOutlinedInput-root textarea {
   resize: none;
   min-height: 18px !important;
-  padding: 4px 8px 0 8px;
+  padding: 2px 4px 0 4px;
   line-height: 18px;
   border: 1px solid var(--palette-grey-600);
   box-sizing: content-box;
@@ -331,7 +331,7 @@
 }
 
 .string-property {
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 /* STRING */
