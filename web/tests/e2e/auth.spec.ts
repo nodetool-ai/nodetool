@@ -13,9 +13,10 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // In localhost mode, should redirect to dashboard
-      await page.waitForTimeout(1000);
+      // Wait for URL to match expected pattern
+      await page.waitForURL(/\/(login|dashboard)/);
+      
       const url = page.url();
-
       // Should redirect to either login or dashboard
       expect(url).toMatch(/\/(login|dashboard)/);
     });
@@ -25,7 +26,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Wait for potential redirects
-      await page.waitForTimeout(1000);
+      await page.waitForURL(/\/(login|dashboard)/);
 
       const url = page.url();
       // Should either be on dashboard or login page
@@ -50,8 +51,8 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/editor/test-workflow");
       await page.waitForLoadState("networkidle");
 
-      // Wait for any redirects or loads
-      await page.waitForTimeout(1000);
+      // Wait for any redirects or loads to stabilize
+      await expect(page).toHaveURL(/.+/); // Wait for URL to be set
 
       const url = page.url();
       // Should either stay on the editor route (if authenticated) or redirect

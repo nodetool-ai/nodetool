@@ -23,11 +23,10 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/dashboard");
       await page.waitForLoadState("networkidle");
 
-      // Wait for dashboard content to load
-      await page.waitForTimeout(1000);
-
-      // Check that we have some content on the page
+      // Wait for dashboard content to load by checking body has content
       const body = await page.locator("body");
+      await expect(body).not.toBeEmpty();
+      
       const hasContent = await body.textContent();
       expect(hasContent).toBeTruthy();
       expect(hasContent!.length).toBeGreaterThan(0);

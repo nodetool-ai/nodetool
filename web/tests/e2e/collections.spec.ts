@@ -22,11 +22,10 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/collections");
       await page.waitForLoadState("networkidle");
 
-      // Wait for content to load
-      await page.waitForTimeout(1000);
-
-      // Check that the page has content
+      // Wait for content to load by checking body has content
       const body = await page.locator("body");
+      await expect(body).not.toBeEmpty();
+      
       const hasContent = await body.textContent();
       expect(hasContent).toBeTruthy();
       expect(hasContent!.length).toBeGreaterThan(0);
@@ -38,8 +37,8 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/collections");
       await page.waitForLoadState("networkidle");
 
-      // Wait for the page to fully render
-      await page.waitForTimeout(1000);
+      // Wait for the page to fully render by checking URL is stable
+      await expect(page).toHaveURL(/\/collections/);
 
       // The page should load even if there are no collections
       const url = page.url();

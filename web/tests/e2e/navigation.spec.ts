@@ -21,8 +21,12 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto(route.path);
         await page.waitForLoadState("networkidle");
 
-        // Wait for any redirects to complete
-        await page.waitForTimeout(500);
+        // Wait for any redirects to complete by checking URL matches pattern
+        if (route.expectedRedirect) {
+          await page.waitForURL(route.expectedRedirect);
+        } else {
+          await page.waitForURL(route.expectedUrl);
+        }
 
         // Check URL matches expected pattern
         const url = page.url();

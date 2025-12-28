@@ -22,11 +22,10 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/apps");
       await page.waitForLoadState("networkidle");
 
-      // Wait for content to load
-      await page.waitForTimeout(1000);
-
-      // Check that the page has content
+      // Wait for content to load by checking body has content
       const body = await page.locator("body");
+      await expect(body).not.toBeEmpty();
+      
       const hasContent = await body.textContent();
       expect(hasContent).toBeTruthy();
       expect(hasContent!.length).toBeGreaterThan(0);
