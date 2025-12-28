@@ -42,7 +42,7 @@ jobs:
         shell: bash -el {0}
         run: |
           which nodetool
-          nodetool --version
+          nodetool --help
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
