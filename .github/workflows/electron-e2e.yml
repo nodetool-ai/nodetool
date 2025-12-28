@@ -87,7 +87,17 @@ jobs:
           max-attempts: 60
           retry-delay: 2s
 
-      - name: Run E2E tests
+      - name: Run E2E tests (Linux)
+        if: runner.os == 'Linux'
+        shell: bash -el {0}
+        run: |
+          cd electron
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test
+        env:
+          CI: true
+
+      - name: Run E2E tests (macOS/Windows)
+        if: runner.os != 'Linux'
         shell: bash -el {0}
         run: |
           cd electron
