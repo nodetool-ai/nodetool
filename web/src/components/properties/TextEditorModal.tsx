@@ -132,7 +132,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       fontSize: "var(--fontSizeBigger)",
       width: "92%",
-      maxWidth: "1200px",
+      maxWidth: "1600px",
       height: "100%",
       margin: "auto",
       display: "flex",
@@ -236,7 +236,7 @@ const styles = (theme: Theme) =>
       flex: 1,
       display: "flex",
       flexDirection: "row",
-      padding: "0", // Removed padding to edge-to-edge look
+      padding: "0",
       background: "transparent",
       height: "100%",
       overflow: "hidden",
@@ -244,16 +244,16 @@ const styles = (theme: Theme) =>
         flex: 1,
         width: "100%",
         fontSize: "var(--fontSizeSmall)",
-        lineHeight: "1.5", // Slightly improved line height
+        lineHeight: "1.5",
         color: theme.vars.palette.grey[100],
         outline: "none",
         overflow: "auto !important",
         height: "100%",
-        padding: "1em 1.5em", // Add padding inside editor instead of parent
+        padding: "1em 1.5em",
         pre: {
           height: "100%",
           overflowWrap: "break-word",
-          fontFamily: "'JetBrains Mono', 'Fira Code', monospace" // Ensure nice code font if available
+          fontFamily: "'JetBrains Mono', 'Fira Code', monospace"
         },
         textarea: {
           overflowWrap: "break-word",
@@ -333,7 +333,7 @@ const styles = (theme: Theme) =>
       padding: "6px 10px",
       cursor: "pointer",
       color: theme.vars.palette.text.primary,
-      textTransform: "none", // Updated to mixed case for cleaner look
+      textTransform: "none",
       borderRadius: "6px",
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: "600",
@@ -438,7 +438,7 @@ const styles = (theme: Theme) =>
         gap: ".25em"
       },
       ".description": {
-        display: "none" // Hide description on small screens to save space
+        display: "none"
       },
       ".modal-body": {
         flexDirection: "column"
@@ -451,7 +451,7 @@ const styles = (theme: Theme) =>
         marginTop: "0",
         borderLeft: "none",
         borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
-        height: "40%" // Fixed height interaction on mobile
+        height: "40%"
       },
       ".button": {
         minWidth: "36px",
