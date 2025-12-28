@@ -140,6 +140,9 @@ function FavoritesList<TModel extends ModelSelectorModel>({
                   maxWidth: "100%"
                 }
               }}
+              secondaryTypographyProps={{
+                component: "div"
+              }}
             />
           </ListItemButton>
         );
