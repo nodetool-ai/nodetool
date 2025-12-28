@@ -1,4 +1,4 @@
- .PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron typecheck typecheck-web typecheck-electron clean clean-build check all format quickstart
+ .PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart
 
 # Default target
 help:
@@ -31,6 +31,9 @@ help:
 	@echo "  make lint             - Lint all packages"
 	@echo "  make lint-fix         - Fix linting issues"
 	@echo "  make typecheck        - Type check all packages"
+	@echo "  make typecheck-web    - Type check web package"
+	@echo "  make typecheck-electron - Type check electron package"
+	@echo "  make typecheck-mobile - Type check mobile package"
 	@echo "  make check            - Run all checks (typecheck, lint, test)"
 	@echo "  make format           - Format code (alias for lint-fix)"
 	@echo ""
@@ -137,7 +140,7 @@ lint-fix-electron:
 format: lint-fix
 
 # Type checking targets
-typecheck: typecheck-web typecheck-electron
+typecheck: typecheck-web typecheck-electron typecheck-mobile
 
 typecheck-web:
 	@echo "Type checking web package..."
@@ -146,6 +149,10 @@ typecheck-web:
 typecheck-electron:
 	@echo "Type checking electron package..."
 	cd electron && npm run typecheck
+
+typecheck-mobile:
+	@echo "Type checking mobile package..."
+	cd mobile && npx tsc --noEmit
 
 # Check target (run all checks)
 check: typecheck lint test
