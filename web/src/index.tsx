@@ -321,9 +321,30 @@ const handleRouteQueryParam = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const routeParam = urlParams.get("route");
   if (routeParam) {
-    // Replace current URL with the intended route
-    // This allows React Router to pick up the correct path
-    window.history.replaceState(null, "", routeParam);
+    // Validate that the route starts with a forward slash and matches allowed patterns
+    // This prevents potential open redirect attacks
+    const allowedRoutePatterns = [
+      /^\/miniapp\/[\w-]+$/,  // /miniapp/{workflowId}
+      /^\/standalone-chat(\/[\w-]*)?$/,  // /standalone-chat or /standalone-chat/{thread_id}
+      /^\/chat(\/[\w-]*)?$/,  // /chat or /chat/{thread_id}
+      /^\/apps(\/[\w-]*)?$/,  // /apps or /apps/{workflowId}
+      /^\/dashboard$/,  // /dashboard
+      /^\/editor\/[\w-]+$/,  // /editor/{workflow}
+      /^\/assets$/,  // /assets
+      /^\/collections$/,  // /collections
+      /^\/templates$/,  // /templates
+      /^\/models$/,  // /models
+    ];
+
+    const isValidRoute = allowedRoutePatterns.some((pattern) =>
+      pattern.test(routeParam)
+    );
+
+    if (isValidRoute) {
+      // Replace current URL with the intended route
+      // This allows React Router to pick up the correct path
+      window.history.replaceState(null, "", routeParam);
+    }
   }
 };
 handleRouteQueryParam();
