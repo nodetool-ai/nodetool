@@ -1,6 +1,4 @@
-import {
-  PaletteOptions
-} from "@mui/material/styles";
+import { PaletteOptions } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
   interface PaletteOptions {
@@ -196,7 +194,7 @@ export const paletteDark: PaletteOptions = {
   c_bg_group: "#A1A4AD30",
   c_editor_bg_color: "#232323",
   c_editor_grid_color: "#353535",
-  c_editor_axis_color: "#1F2330",
+  c_editor_axis_color: "#2A2A2A",
   c_selection_rect: "#cdcdcd33",
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",
