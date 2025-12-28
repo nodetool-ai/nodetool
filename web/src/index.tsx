@@ -321,7 +321,7 @@ const handleRouteQueryParam = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const routeParam = urlParams.get("route");
   if (routeParam) {
-    // Validate that the route starts with a forward slash and matches allowed patterns
+    // Validate that the route matches allowed patterns
     // This prevents potential open redirect attacks
     const allowedRoutePatterns = [
       /^\/miniapp\/[\w-]+$/,  // /miniapp/{workflowId}
