@@ -56,7 +56,6 @@ The Playwright configuration automatically:
 
 Current E2E tests:
 - `app-loads.spec.ts` - ✅ Basic page loading, navigation, API connectivity
-- `download_websocket.spec.ts` - ⚠️ Advanced WebSocket test (may fail without models)
 
 ### 5. Debugging
 

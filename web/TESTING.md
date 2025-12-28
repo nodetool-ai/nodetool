@@ -137,7 +137,6 @@ E2E tests are located in:
 ```
 web/tests/e2e/
 ├── app-loads.spec.ts          # Basic app loading and navigation tests
-├── download_websocket.spec.ts # WebSocket download functionality tests
 └── ...
 ```
 
@@ -184,7 +183,7 @@ npm run test:e2e:ui
 npm run test:e2e:headed
 
 # Run specific test file
-npx playwright test download_websocket.spec.ts
+npx playwright test app-loads.spec.ts
 
 # Debug a test
 npx playwright test --debug

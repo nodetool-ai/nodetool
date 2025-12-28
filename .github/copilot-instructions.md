@@ -719,7 +719,6 @@ npx playwright test
 E2E tests are located in `web/tests/e2e/` and use Playwright:
 
 - **app-loads.spec.ts**: Basic app loading, navigation, and API connectivity tests
-- **download_websocket.spec.ts**: Advanced WebSocket functionality tests
 
 ### 5. Writing E2E Tests
 
