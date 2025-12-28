@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -8,6 +10,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -42,6 +46,7 @@ const StringProperty = ({
   isInspector,
   isDynamicProperty
 }: PropertyProps) => {
+  const theme = useTheme();
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -76,7 +81,41 @@ const StringProperty = ({
 
   if (showTextEditor) {
     return (
-      <div className={`string-property ${isConstant ? "constant-node" : ""}`}>
+      <div
+        className={`string-property ${isConstant ? "constant-node" : ""}`}
+        css={css({
+          ".property-row": {
+            width: "100%",
+            display: "flex",
+            flexDirection: "column"
+          },
+          ".property-row > .property-label": {
+            order: 1
+          },
+          ".value-container": {
+            width: "100%",
+            order: 2
+          },
+          ".string-action-buttons": {
+            position: "absolute",
+            right: 0,
+            top: "-3px",
+            opacity: 0.8,
+            zIndex: 10
+          },
+          ".string-value-input": {
+            fontSize: "var(--fontSizeSmaller)",
+            lineHeight: "1.25em"
+          },
+          ".string-action-buttons .MuiIconButton-root": {
+            margin: "0 0 0 5px",
+            padding: 0
+          },
+          ".string-action-buttons .MuiIconButton-root svg": {
+            fontSize: "0.75rem"
+          }
+        })}
+      >
         <div
           className="property-row"
           onMouseEnter={() => setIsHovered(true)}
@@ -157,7 +196,16 @@ const StringProperty = ({
   }
 
   return (
-    <div className={`string-property ${isConstant ? "constant-node" : ""}`}>
+    <div
+      className={`string-property ${isConstant ? "constant-node" : ""}`}
+      css={css({
+        ".property-row": {
+          width: "100%",
+          display: "flex",
+          flexDirection: "column"
+        }
+      })}
+    >
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}

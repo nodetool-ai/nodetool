@@ -319,6 +319,22 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Use useMemo to cache the styles based on nodeColors
   const styles = useMemo(() => getNodeStyles(nodeColors), [nodeColors]);
+  const toolCallStyles = useMemo(
+    () =>
+      css({
+        ".tool-call-container": {
+          margin: "0.5em 1em",
+          padding: "0.5em",
+          background: "rgba(33, 150, 243, 0.1)",
+          borderRadius: "4px",
+          border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`,
+          fontSize: "0.75em",
+          color: theme.vars.palette.primary.light,
+          wordBreak: "break-word"
+        }
+      }),
+    [theme]
+  );
 
   if (!metadata) {
     throw new Error("Metadata is not loaded for node " + id);
@@ -330,7 +346,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      css={isLoading ? styles : undefined}
+      css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
       sx={{
         display: "flex",

@@ -98,12 +98,22 @@ const PropertyDropzone = ({
         border: "0"
       },
       ".dropzone": {
+        position: "relative",
         minHeight: "30px",
         width: showUrlInput ? "100%" : "100%",
         border: "0",
         maxWidth: "none",
         textAlign: "left",
         transition: "all 0.2s ease",
+        outline: `1px dashed ${theme.vars.palette.grey[600]}`,
+        margin: "5px 0",
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        borderRadius: "6px",
+
+        "&:hover": {
+          outline: `1px dashed ${theme.vars.palette.grey[400]}`,
+          backgroundColor: "rgba(0, 0, 0, 0.3)"
+        },
         "&.drag-over": {
           backgroundColor: theme.vars.palette.grey[600],
           outline: `2px dashed ${theme.vars.palette.grey[100]}`,
@@ -113,10 +123,35 @@ const PropertyDropzone = ({
       ".dropzone.dropped": {
         width: "100%",
         border: "0",
-        maxWidth: "none"
+        maxWidth: "none",
+        outline: `1px solid ${theme.vars.palette.grey[700]}`,
+        backgroundColor: "transparent",
+        padding: "4px"
       },
       ".dropzone p": {
         textAlign: "left"
+      },
+      ".dropzone p.centered": {
+        margin: "auto",
+        textAlign: "left",
+        padding: "1em",
+        minWidth: "60px",
+        minHeight: "14px",
+        lineHeight: "1.1em",
+        fontFamily: theme.fontFamily2,
+        textTransform: "uppercase",
+        letterSpacing: "1px",
+        fontSize: "10px",
+        color: theme.vars.palette.grey[500]
+      },
+      ".dropzone img": {
+        height: "auto",
+        maxWidth: "100%",
+        maxHeight: "300px",
+        margin: "0 auto",
+        display: "block",
+        width: "auto !important",
+        borderRadius: "4px"
       },
       ".prop-drop": {
         fontSize: theme.fontSizeTiny,

@@ -1,9 +1,11 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "lodash/isEqual";
 import Tooltip from "@mui/material/Tooltip";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useEditorTokens } from "../editor_ui";
 
 interface PropertyLabelProps {
   id: string;
@@ -25,6 +27,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   showTooltip = true,
   isDynamicProperty = false
 }) => {
+  const tokens = useEditorTokens();
   const formattedName = useMemo(() => {
     if (isDynamicProperty) {
       return name;
@@ -33,19 +36,36 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   }, [name, isDynamicProperty]);
 
   return (
-    <div className="property-label">
+    <div
+      className="property-label"
+      css={css({
+        width: "100%",
+        height: "auto",
+        padding: 0,
+        overflow: "visible",
+        flexGrow: 1,
+
+        "& label": {
+          display: "block",
+          fontWeight: 500,
+          fontSize: tokens.text.labelSize,
+          color: tokens.text.colorSecondary,
+          padding: 0,
+          margin: "0 0 4px 0",
+          lineHeight: "1em",
+          maxHeight: "2em",
+          minHeight: "13px",
+          textTransform: "capitalize",
+          letterSpacing: "0.01em",
+          userSelect: "none"
+        }
+      })}
+    >
       <Tooltip
-        // open={true}
         title={showTooltip ? description || "" : ""}
         enterDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
-        sx={{
-          maxWidth: "50px",
-          backgroundColor: "red",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap"
-        }}
+        disableInteractive
       >
         <label draggable={false} htmlFor={id}>
           {formattedName}

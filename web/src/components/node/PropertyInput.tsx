@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo } from "react";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
@@ -33,6 +34,8 @@ import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
@@ -40,6 +43,69 @@ import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
+
+const propertyInputContainerStyles = (theme: Theme) =>
+  css({
+    "&.property-input-container": {
+      position: "relative"
+    },
+
+    // Highlight changed values without relying on global CSS.
+    "&.value-changed .value": {
+      color: theme.vars.palette.primary.main
+    },
+
+    "&.value-changed::after": {
+      content: '""',
+      position: "absolute",
+      right: "-2px",
+      top: 0,
+      bottom: 0,
+      width: "2px",
+      background: theme.vars.palette.primary.main,
+      borderRadius: "1px"
+    },
+
+    ".action-icons": {
+      position: "absolute",
+      right: 0,
+      top: "25%",
+      transform: "translateY(-50%)",
+      display: "flex",
+      alignItems: "center",
+      opacity: 0,
+      transition: "opacity 0.2s",
+      backgroundColor: theme.vars.palette.background.default,
+      padding: "0 4px"
+    },
+
+    "&:hover .action-icons": {
+      opacity: 1
+    },
+
+    ".action-icon": {
+      fontSize: "1.2em",
+      cursor: "pointer",
+      margin: "0.2em 0.2em 0.2em 0.5em"
+    },
+
+    ".action-icon.close": {
+      margin: "0.2em 0.5em 0.2em 0"
+    },
+
+    ".property-input-form": {
+      display: "inline"
+    },
+
+    ".property-input-form input": {
+      padding: "2px 4px",
+      border: `1px solid ${theme.vars.palette.grey[500]}`,
+      borderRadius: "3px",
+      background: "transparent",
+      color: "inherit",
+      fontSize: "inherit"
+    }
+  });
 
 export type PropertyProps = {
   property: Property;
@@ -244,6 +310,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   isInspector,
   onValueChange
 }: PropertyInputProps) => {
+  const theme = useTheme();
   const { updateNodeProperties, findNode, updateNodeData } = useNodes(
     (state) => ({
       updateNodeProperties: state.updateNodeProperties,
@@ -440,6 +507,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   return (
     <div
       className={`${className} property-input-container`}
+      css={propertyInputContainerStyles(theme)}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >
