@@ -13,4 +13,5 @@ export { DatetimeRenderer } from "./DatetimeRenderer";
 export { EmailRenderer } from "./EmailRenderer";
 export { TextRenderer } from "./TextRenderer";
 export { ImageComparisonRenderer } from "./ImageComparisonRenderer";
+export { JSONRenderer } from "./JSONRenderer";
 export { default as RealtimeAudioOutput } from "./RealtimeAudioOutput";
