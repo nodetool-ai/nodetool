@@ -315,39 +315,18 @@ function getRoutes() {
 useAssetStore.getState().setQueryClient(queryClient);
 useModelDownloadStore.getState().setQueryClient(queryClient);
 
-// Handle route query parameter for packaged Electron apps
-// When loading index.html with ?route=/path, navigate to that path
-const handleRouteQueryParam = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const routeParam = urlParams.get("route");
-  if (routeParam) {
-    // Validate that the route matches allowed patterns
-    // This prevents potential open redirect attacks
-    const allowedRoutePatterns = [
-      /^\/miniapp\/[\w-]+$/,  // /miniapp/{workflowId}
-      /^\/standalone-chat(\/[\w-]*)?$/,  // /standalone-chat or /standalone-chat/{thread_id}
-      /^\/chat(\/[\w-]*)?$/,  // /chat or /chat/{thread_id}
-      /^\/apps(\/[\w-]*)?$/,  // /apps or /apps/{workflowId}
-      /^\/dashboard$/,  // /dashboard
-      /^\/editor\/[\w-]+$/,  // /editor/{workflow}
-      /^\/assets$/,  // /assets
-      /^\/collections$/,  // /collections
-      /^\/templates$/,  // /templates
-      /^\/models$/,  // /models
-    ];
-
-    const isValidRoute = allowedRoutePatterns.some((pattern) =>
-      pattern.test(routeParam)
-    );
-
-    if (isValidRoute) {
-      // Replace current URL with the intended route
-      // This allows React Router to pick up the correct path
-      window.history.replaceState(null, "", routeParam);
-    }
+// Handle hash route for packaged Electron apps
+// When loading index.html#/path, convert hash to regular route
+const handleHashRoute = () => {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith("#/")) {
+    // Convert hash route to regular route
+    // e.g., #/miniapp/workflowId -> /miniapp/workflowId
+    const route = hash.slice(1); // Remove the leading #
+    window.history.replaceState(null, "", route);
   }
 };
-handleRouteQueryParam();
+handleHashRoute();
 
 const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
