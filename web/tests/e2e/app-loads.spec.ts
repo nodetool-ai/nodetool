@@ -4,7 +4,7 @@ if (process.env.JEST_WORKER_ID) {
     it("skipped in jest runner", () => {});
   });
 } else {
-  const { test, expect } = require("@playwright/test");
+  const { test, expect } = await import("@playwright/test");
 
   test.describe("App Loading", () => {
     test("should load the home page successfully", async ({ page }) => {

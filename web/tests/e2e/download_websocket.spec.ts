@@ -4,13 +4,13 @@ if (process.env.JEST_WORKER_ID) {
     it("skipped in jest runner", () => {});
   });
 } else {
-  const { TransformStream } = require("stream/web");
+  const { TransformStream } = await import("stream/web");
   if (typeof globalThis.TransformStream === "undefined") {
     globalThis.TransformStream = TransformStream;
   }
 
   // Require after polyfill so Playwright's internals see TransformStream
-  const { test, expect } = require("@playwright/test");
+  const { test, expect } = await import("@playwright/test");
 
   test("should establish websocket connection when download starts", async ({
     page
