@@ -1,11 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import {
   Typography,
   Box,
   Button,
   LinearProgress,
   Tooltip,
+  Chip,
   Collapse,
   IconButton
 } from "@mui/material";
@@ -23,9 +24,13 @@ import { useTheme, Theme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
-import { Workflow } from "../../stores/ApiTypes";
+import { Workflow, UnifiedModel } from "../../stores/ApiTypes";
 import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../stores/ApiClient";
+import { isProduction, client } from "../../stores/ApiClient";
+import { DEFAULT_MODEL } from "../../config/constants";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { DownloadProgress } from "../hugging_face/DownloadProgress";
+import { useGettingStartedStore } from "../../stores/GettingStartedStore";
 
 interface GettingStartedPanelProps {
   sortedWorkflows: Workflow[];
@@ -176,57 +181,49 @@ const panelStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       marginLeft: "0.5em"
     },
-    ".quick-actions": {
-      marginTop: "1em",
-      padding: "0.875em",
-      borderRadius: "10px",
-      backgroundColor: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.grey[700]}`
+    ".local-models-list": {
+      listStyleType: "none",
+      padding: 0,
+      margin: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.75em"
     },
-    ".quick-actions-header": {
+    ".local-model-item": {
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.grey[850],
+      borderRadius: 8,
+      padding: "10px 12px"
+    },
+    ".local-model-header": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      cursor: "pointer",
-      marginBottom: "0.5em"
+      gap: "0.5em",
+      flexWrap: "wrap"
     },
-    ".quick-actions-title": {
+    ".local-model-title": {
       display: "flex",
       alignItems: "center",
-      gap: "0.5em",
-      fontWeight: 500,
-      fontSize: "0.95rem"
+      gap: "0.5em"
     },
-    ".quick-actions-grid": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-      gap: "0.5em",
-      marginTop: "0.75em"
-    },
-    ".quick-action-btn": {
+    ".local-model-actions": {
       display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: "0.25em",
-      padding: "0.75em",
-      borderRadius: "8px",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      backgroundColor: "transparent",
-      cursor: "pointer",
-      transition: "all 0.2s ease",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[850],
-        borderColor: theme.vars.palette.primary.main
-      }
+      alignItems: "center"
     },
-    ".quick-action-icon": {
-      fontSize: "1.5rem",
-      color: theme.vars.palette.primary.main
+    ".model-variant-buttons": {
+      display: "flex",
+      gap: 0.5,
+      flexWrap: "wrap"
     },
-    ".quick-action-label": {
-      fontSize: "0.8rem",
-      color: theme.vars.palette.text.primary,
-      textAlign: "center"
+    ".local-model-desc": {
+      marginTop: 6,
+      opacity: 0.95
+    },
+    ".model-note": {
+      color: theme.vars.palette.warning.main,
+      marginTop: 4,
+      fontSize: "0.85em"
     }
   });
 
@@ -239,6 +236,119 @@ const PROVIDER_KEYS = [
   "HF_TOKEN"
 ];
 
+// Inline Model Download Component
+const InlineModelDownload: React.FC<{
+  model: UnifiedModel;
+  label?: React.ReactNode;
+  isDefault?: boolean;
+  tooltip?: string;
+}> = ({ model, label, isDefault, tooltip }) => {
+  const { startDownload, downloads } = useModelDownloadStore((state) => ({
+    startDownload: state.startDownload,
+    downloads: state.downloads
+  }));
+  const downloadKey = model.repo_id || model.id;
+  const inProgress = !!downloads[downloadKey];
+  if (inProgress) {
+    return (
+      <Box
+        component="span"
+        sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}
+        className="inline-download-progress"
+      >
+        <DownloadProgress name={downloadKey} minimal />
+      </Box>
+    );
+  }
+  const button = (
+    <Button
+      size="small"
+      variant={isDefault ? "contained" : "outlined"}
+      color={isDefault ? "primary" : "inherit"}
+      startIcon={<DownloadIcon fontSize="small" />}
+      aria-label={`Download ${model.repo_id || model.id}`}
+      sx={{ ml: 1, verticalAlign: "middle" }}
+      className={`model-download-button ${isDefault ? "default-model" : ""}`}
+      onClick={() =>
+        startDownload(
+          model.repo_id || "",
+          model.type || "hf.model",
+          model.path ?? null,
+          model.allow_patterns ?? null,
+          model.ignore_patterns ?? null
+        )
+      }
+    >
+      {label ?? "Download"}
+    </Button>
+  );
+  return tooltip ? (
+    <Tooltip title={tooltip} arrow>
+      <span>{button}</span>
+    </Tooltip>
+  ) : (
+    button
+  );
+};
+
+interface FeaturedModel extends UnifiedModel {
+  displayName?: string;
+  note?: string;
+  vision?: boolean;
+  reasoning?: boolean;
+  base?: string;
+  variants?: string[];
+  defaultVariant?: string;
+}
+
+const recommendedModels: FeaturedModel[] = [
+  {
+    id: DEFAULT_MODEL,
+    name: "GPT - OSS",
+    displayName: "GPT - OSS",
+    type: "llama_model",
+    repo_id: DEFAULT_MODEL,
+    base: "gpt-oss",
+    variants: ["20b", "120b"],
+    defaultVariant: "20b",
+    description:
+      "Powerful reasoning and agentic tasks.",
+    reasoning: true,
+    vision: false,
+    downloaded: false
+  },
+  {
+    id: "gemma3:4b",
+    name: "Gemma 3 4B",
+    displayName: "Gemma 3",
+    type: "llama_model",
+    repo_id: "gemma3:4b",
+    base: "gemma3",
+    variants: ["1b", "4b", "12b", "27b"],
+    defaultVariant: "4b",
+    description:
+      "Lightweight, multimodal (text, images, video), 128K context.",
+    reasoning: true,
+    vision: true,
+    downloaded: false
+  },
+  {
+    id: "qwen3:4b",
+    name: "Qwen 3 4B",
+    displayName: "Qwen 3",
+    type: "llama_model",
+    repo_id: "qwen3:4b",
+    base: "qwen3",
+    variants: ["0.6b", "1.7b", "4b", "8b", "14b", "30b", "32b"],
+    defaultVariant: "4b",
+    description:
+      "Hybrid reasoning with multilingual support.",
+    reasoning: true,
+    vision: false,
+    downloaded: false
+  }
+];
+
 const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   sortedWorkflows,
   isLoadingWorkflows,
@@ -249,7 +359,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const [quickActionsExpanded, setQuickActionsExpanded] = React.useState(true);
+  const [modelsExpanded, setModelsExpanded] = useState(false);
 
   const shouldShowLocalModels =
     getIsElectronDetails().isElectron || !isProduction;
@@ -263,6 +373,23 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
     staleTime: 30000
   });
 
+  // Check for local models (Ollama)
+  const { data: ollamaModels } = useQuery({
+    queryKey: ["ollama-models"],
+    queryFn: async () => {
+      const { data } = await client.GET("/api/models/ollama");
+      // Handle potential response structures (array or object with models property)
+      if (Array.isArray(data)) {return data;}
+      
+      const responseData = data as any;
+      if (responseData?.models && Array.isArray(responseData.models)) {return responseData.models;}
+      return [];
+    },
+    refetchInterval: 5000 // Poll every 5s to check for new downloads
+  });
+
+  const hasLocalModels = (ollamaModels?.length ?? 0) > 0;
+
   // Check if any provider is configured
   const hasProviderConfigured = useMemo(() => {
     if (!secrets || secrets.length === 0) {
@@ -273,41 +400,38 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
     );
   }, [secrets]);
 
-  // Check if user has created a workflow
-  const hasCreatedWorkflow = useMemo(() => {
-    return !isLoadingWorkflows && sortedWorkflows.length > 0;
-  }, [isLoadingWorkflows, sortedWorkflows]);
+  // Getting started progress from store (persisted in localStorage)
+  const { 
+    progress, 
+    setHasCreatedWorkflow, 
+    setHasTriedTemplate 
+  } = useGettingStartedStore();
+  
+  const hasCreatedWorkflow = progress.hasCreatedWorkflow;
+  const hasTriedTemplate = progress.hasTriedTemplate;
 
-  // Check if user has tried a template
-  const hasTriedTemplate = useMemo(() => {
-    // For now, we consider this complete if they have any workflows
-    // In a more complete implementation, we might track this separately
-    return hasCreatedWorkflow;
-  }, [hasCreatedWorkflow]);
+  // Update hasCreatedWorkflow when user has workflows
+  React.useEffect(() => {
+    if (!isLoadingWorkflows && sortedWorkflows.length > 0 && !hasCreatedWorkflow) {
+      setHasCreatedWorkflow(true);
+    }
+  }, [isLoadingWorkflows, sortedWorkflows.length, hasCreatedWorkflow, setHasCreatedWorkflow]);
 
   const handleOpenSettings = useCallback(() => {
     navigate("/settings");
   }, [navigate]);
 
-  const handleOpenModels = useCallback(() => {
-    navigate("/models");
-  }, [navigate]);
-
-  const handleOpenTemplates = useCallback(() => {
-    navigate("/templates");
-  }, [navigate]);
-
-  const handleOpenChat = useCallback(() => {
-    navigate("/chat");
-  }, [navigate]);
-
   const handleTryTemplate = useCallback(() => {
+    // Mark template as tried when user clicks
+    if (!hasTriedTemplate) {
+      setHasTriedTemplate(true);
+    }
     if (startTemplates.length > 0) {
       handleExampleClick(startTemplates[0]);
     } else {
       navigate("/templates");
     }
-  }, [startTemplates, handleExampleClick, navigate]);
+  }, [startTemplates, handleExampleClick, navigate, hasTriedTemplate, setHasTriedTemplate]);
 
   // Define onboarding steps
   const steps: OnboardingStep[] = useMemo(() => {
@@ -353,12 +477,8 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
         description:
           "Download GPT-OSS or another model to run AI locally without API keys.",
         icon: <DownloadIcon />,
-        action: handleOpenModels,
-        actionLabel: "Open Models",
-        // Local model download status is marked optional and defaults to incomplete
-        // because checking download status requires backend API calls that may not be
-        // available on first load. Users can always verify status in the Models panel.
-        isCompleted: false,
+        // No action button - users can download directly from the collapsible models list
+        isCompleted: hasLocalModels,
         isOptional: true
       });
     }
@@ -372,16 +492,13 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
     handleOpenSettings,
     handleTryTemplate,
     handleCreateNewWorkflow,
-    handleOpenModels
+    hasLocalModels
   ]);
 
   // Calculate progress
   const completedSteps = steps.filter((s) => s.isCompleted).length;
-  const requiredSteps = steps.filter((s) => !s.isOptional).length;
-  const completedRequired = steps.filter(
-    (s) => s.isCompleted && !s.isOptional
-  ).length;
-  const progressPercentage = (completedRequired / requiredSteps) * 100;
+  const totalSteps = steps.length;
+  const progressPercentage = (completedSteps / totalSteps) * 100;
 
   return (
     <Box css={panelStyles(theme)} className="getting-started-panel">
@@ -403,7 +520,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
       <Box className="progress-section">
         <Box className="progress-header">
           <Typography className="progress-text">
-            {completedRequired} of {requiredSteps} steps completed
+            {completedSteps} of {totalSteps} steps completed
           </Typography>
           <Typography className="progress-text">
             {Math.round(progressPercentage)}%
@@ -461,6 +578,143 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                     </Button>
                   </Box>
                 )}
+                {/* Collapsible Popular Models section for download-model step */}
+                {step.id === "download-model" && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <Box
+                      onClick={() => setModelsExpanded(!modelsExpanded)}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        gap: 0.5,
+                        "&:hover": { opacity: 0.8 }
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.85rem",
+                          color: "primary.main"
+                        }}
+                      >
+                        Popular Models
+                      </Typography>
+                      <IconButton size="small" sx={{ p: 0 }}>
+                        {modelsExpanded ? (
+                          <ExpandLessIcon fontSize="small" />
+                        ) : (
+                          <ExpandMoreIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Box>
+                    <Collapse in={modelsExpanded}>
+                      <ul className="local-models-list" style={{ marginTop: "0.5em" }}>
+                        {recommendedModels.map((model) => (
+                          <li key={model.id} style={{ listStyle: "none" }}>
+                            <div className="local-model-item">
+                              <div className="local-model-header">
+                                <div className="local-model-title">
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 500 }}
+                                  >
+                                    {(model as FeaturedModel).displayName ||
+                                      model.name}
+                                  </Typography>
+                                </div>
+                                <div className="local-model-actions">
+                                  <Box className="model-variant-buttons">
+                                    {((model as FeaturedModel).variants &&
+                                    (model as FeaturedModel).variants!.length > 0
+                                      ? (model as FeaturedModel).variants!
+                                      : [model.id.split(":")[1] || "latest"]
+                                    ).map((variant) => {
+                                      const base =
+                                        (model as FeaturedModel).base ||
+                                        (model.id.includes(":")
+                                          ? model.id.split(":")[0]
+                                          : model.id);
+                                      const variantModel: UnifiedModel = {
+                                        ...model,
+                                        id: `${base}:${variant}`,
+                                        repo_id: `${base}:${variant}`
+                                      };
+                                      const defaultVariant =
+                                        (model as FeaturedModel).defaultVariant ||
+                                        (model.id.includes(":")
+                                          ? model.id.split(":")[1]
+                                          : "");
+                                      const isDefault =
+                                        variant.toLowerCase() ===
+                                        (defaultVariant || "").toLowerCase();
+                                      return (
+                                        <InlineModelDownload
+                                          key={`${model.id}-${variant}`}
+                                          model={variantModel}
+                                          isDefault={isDefault}
+                                          label={`${variant.toUpperCase()}`}
+                                          tooltip={`Download ${base}:${variant}`}
+                                        />
+                                      );
+                                    })}
+                                  </Box>
+                                </div>
+                              </div>
+                              <div className="local-model-desc">
+                                {model.description && (
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontSize: "0.85em" }}
+                                  >
+                                    {model.description}
+                                  </Typography>
+                                )}
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    gap: 0.5,
+                                    flexWrap: "wrap",
+                                    mt: 0.75
+                                  }}
+                                >
+                                  {((model as FeaturedModel).reasoning ??
+                                    false) && (
+                                    <Chip
+                                      size="small"
+                                      label="Reasoning"
+                                      color="primary"
+                                      variant="outlined"
+                                      sx={{ height: "20px", fontSize: "0.7em" }}
+                                    />
+                                  )}
+                                  {((model as FeaturedModel).vision ?? false) && (
+                                    <Chip
+                                      size="small"
+                                      label="Vision"
+                                      color="secondary"
+                                      variant="outlined"
+                                      sx={{ height: "20px", fontSize: "0.7em" }}
+                                    />
+                                  )}
+                                </Box>
+                                {(model as FeaturedModel).note && (
+                                  <Typography
+                                    variant="caption"
+                                    className="model-note"
+                                  >
+                                    {(model as FeaturedModel).note}
+                                  </Typography>
+                                )}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </Collapse>
+                  </Box>
+                )}
               </Box>
               <Box className="step-status">
                 {step.isCompleted ? (
@@ -479,49 +733,6 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
               </Box>
             </Box>
           ))}
-        </Box>
-
-        <Box className="quick-actions">
-          <Box
-            className="quick-actions-header"
-            onClick={() => setQuickActionsExpanded(!quickActionsExpanded)}
-          >
-            <Typography className="quick-actions-title">
-              Quick Actions
-            </Typography>
-            <IconButton size="small">
-              {quickActionsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
-          <Collapse in={quickActionsExpanded}>
-            <Box className="quick-actions-grid">
-              <Box
-                className="quick-action-btn"
-                onClick={handleCreateNewWorkflow}
-              >
-                <PlayArrowIcon className="quick-action-icon" />
-                <Typography className="quick-action-label">
-                  New Workflow
-                </Typography>
-              </Box>
-              <Box className="quick-action-btn" onClick={handleOpenTemplates}>
-                <LibraryBooksIcon className="quick-action-icon" />
-                <Typography className="quick-action-label">
-                  Templates
-                </Typography>
-              </Box>
-              <Box className="quick-action-btn" onClick={handleOpenChat}>
-                <RocketLaunchIcon className="quick-action-icon" />
-                <Typography className="quick-action-label">
-                  Open Chat
-                </Typography>
-              </Box>
-              <Box className="quick-action-btn" onClick={handleOpenSettings}>
-                <SettingsIcon className="quick-action-icon" />
-                <Typography className="quick-action-label">Settings</Typography>
-              </Box>
-            </Box>
-          </Collapse>
         </Box>
       </Box>
     </Box>

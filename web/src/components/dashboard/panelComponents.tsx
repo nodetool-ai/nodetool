@@ -2,11 +2,9 @@ import React from "react";
 import { Box } from "@mui/material";
 import { IDockviewPanelProps } from "dockview";
 import ChatView from "../chat/containers/ChatView";
-import ExamplesList from "./ExamplesList";
 import WorkflowsList from "./WorkflowsList";
 import RecentChats from "./RecentChats";
 import WelcomePanel from "./WelcomePanel";
-import SetupPanel from "./SetupPanel";
 import ProviderSetupPanel from "./ProviderSetupPanel";
 import GettingStartedPanel from "./GettingStartedPanel";
 import { DEFAULT_MODEL } from "../../config/constants";
@@ -113,11 +111,6 @@ export const createPanelComponents = () => ({
   welcome: (props: IDockviewPanelProps<PanelProps>) => (
     <Box sx={{ overflow: "auto", height: "100%" }}>
       <WelcomePanel />
-    </Box>
-  ),
-  setup: (props: IDockviewPanelProps<PanelProps>) => (
-    <Box sx={{ overflow: "auto", height: "100%" }}>
-      <SetupPanel />
     </Box>
   ),
   providers: (props: IDockviewPanelProps<PanelProps>) => (
