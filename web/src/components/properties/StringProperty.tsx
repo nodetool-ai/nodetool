@@ -38,7 +38,6 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isInspector,
   isDynamicProperty
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
@@ -119,7 +118,7 @@ const StringProperty = ({
                 onChange(e.target.value)
               }
               onFocus={(e) => {
-                // handleFocus(e);
+                e.preventDefault();
                 setIsFocused(true);
               }}
               onBlur={() => {

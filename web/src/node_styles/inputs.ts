@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { themeVariables } from "./theme-variables";
 import type { Theme } from "@mui/material/styles";
 
 /**
