@@ -18,7 +18,11 @@ describe('StringProperty', () => {
   const mockOnChange = jest.fn();
   
   const mockDefinition = {
+    nodeId: 'test-node',
+    nodeType: 'nodetool.input.StringInput',
+    kind: 'string' as const,
     data: {
+      name: 'testString',
       label: 'Test String',
       description: 'This is a test string property',
     },
@@ -54,7 +58,11 @@ describe('StringProperty', () => {
 
   it('renders without description when not provided', () => {
     const definitionWithoutDesc = {
+      nodeId: 'test-node',
+      nodeType: 'nodetool.input.StringInput',
+      kind: 'string' as const,
       data: {
+        name: 'testString',
         label: 'Test String',
       },
     };
@@ -123,7 +131,12 @@ describe('StringProperty', () => {
 
   it('shows default placeholder when label is missing', () => {
     const definitionWithoutLabel = {
-      data: {},
+      nodeId: 'test-node',
+      nodeType: 'nodetool.input.StringInput',
+      kind: 'string' as const,
+      data: {
+        name: 'testString',
+      },
     };
 
     const { getByPlaceholderText } = render(
@@ -146,7 +159,7 @@ describe('StringProperty', () => {
       />
     );
 
-    const input = UNSAFE_getByType('TextInput');
+    const input = UNSAFE_getByType('TextInput' as any);
     expect(input.props.multiline).toBe(true);
   });
 });

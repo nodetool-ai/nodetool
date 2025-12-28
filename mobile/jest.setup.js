@@ -69,6 +69,27 @@ jest.mock('react-native-syntax-highlighter', () => {
   };
 });
 
+// Mock expo-image-picker
+jest.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  launchImageLibraryAsync: jest.fn().mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: 'file:///test/image.jpg', type: 'image', fileName: 'test.jpg' }],
+  }),
+  launchCameraAsync: jest.fn().mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: 'file:///test/photo.jpg', type: 'image', fileName: 'photo.jpg' }],
+  }),
+}));
+
+// Mock expo-document-picker
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn().mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: 'file:///test/document.pdf', name: 'document.pdf', mimeType: 'application/pdf' }],
+  }),
+}));
+
 // Silence console methods to reduce noise in tests
 const originalConsole = { ...console };
 beforeAll(() => {

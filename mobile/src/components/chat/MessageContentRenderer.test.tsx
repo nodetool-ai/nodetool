@@ -58,7 +58,7 @@ describe('MessageContentRenderer', () => {
       const undefinedContent = {
         type: 'text',
         text: undefined,
-      } as MessageContent;
+      } as unknown as MessageContent;
 
       render(
         <MessageContentRenderer
