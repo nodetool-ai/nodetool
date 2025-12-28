@@ -85,6 +85,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
           size="small"
         >
           <div
+            className="model-select-button-label"
             style={{
               textAlign: "left",
               flexGrow: 1,
@@ -93,6 +94,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             }}
           >
             <Typography
+              className="model-select-button-label-text"
               component="div"
               variant="body2"
               sx={{
@@ -112,6 +114,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             </Typography>
             {secondaryLabel && (
               <Typography
+                className="model-select-button-label-text-secondary"
                 component="div"
                 variant="body2"
                 sx={{

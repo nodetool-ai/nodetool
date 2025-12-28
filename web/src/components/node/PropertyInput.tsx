@@ -50,35 +50,26 @@ const propertyInputContainerStyles = (theme: Theme) =>
       position: "relative"
     },
 
-    // Highlight changed values without relying on global CSS.
+    // VALUE CHANGED
     "&.value-changed .value": {
-      color: theme.vars.palette.primary.main
+      color: theme.vars.palette.primary.main + " !important"
     },
-
-    "&.value-changed::after": {
-      content: '""',
-      position: "absolute",
-      right: "-2px",
-      top: 0,
-      bottom: 0,
-      width: "2px",
-      background: theme.vars.palette.primary.main,
-      borderRadius: "1px"
+    "&.value-changed fieldset, &.value-changed .select-header": {
+      borderRight: `1px solid ${theme.vars.palette.primary.main} !important`
     },
-
-    ".action-icons": {
-      position: "absolute",
-      right: 0,
-      top: "25%",
-      transform: "translateY(-50%)",
-      display: "flex",
-      alignItems: "center",
-      opacity: 0,
-      transition: "opacity 0.2s",
-      backgroundColor: theme.vars.palette.background.default,
-      padding: "0 4px"
+    // select model button
+    "&.value-changed .select-model-button": {
+      backgroundColor: `${theme.vars.palette.primary.main} !important`,
+      color: `${theme.vars.palette.primary.contrastText} !important`
     },
-
+    "&.value-changed .select-model-button .model-select-button-label-text": {
+      color: `${theme.vars.palette.primary.contrastText} !important`
+    },
+    "&.value-changed .select-model-button .model-select-button-label-text-secondary":
+      {
+        color: `${theme.vars.palette.primary.text} !important`
+      },
+    // ACTION ICONS
     "&:hover .action-icons": {
       opacity: 1
     },
@@ -93,6 +84,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       margin: "0.2em 0.5em 0.2em 0"
     },
 
+    // INPUT FORM
     ".property-input-form": {
       display: "inline"
     },
