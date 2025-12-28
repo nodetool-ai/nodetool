@@ -33,7 +33,6 @@ import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
-import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
@@ -68,11 +67,6 @@ function InputProperty(props: PropertyProps) {
     </>
   );
 }
-
-const basicComponentTypeMap: Record<
-  string,
-  React.ComponentType<PropertyProps>
-> = {};
 
 function getComponentForProperty(
   property: Property
@@ -267,7 +261,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       }
       if (isDynamicProperty) {
         const node = findNode(id);
-        if (!node || !node.data) {return;}
+        if (!node || !node.data) {
+          return;
+        }
 
         const dynamicProperties = node.data.dynamic_properties || {};
         const updatedDynamicProperties = {
@@ -332,7 +328,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       if (controlKeyPressed) {
         // Reset to default value with Ctrl+Right-click
         const node = findNode(id);
-        if (!node || !node.data) {return;}
+        if (!node || !node.data) {
+          return;
+        }
 
         if (isDynamicProperty) {
           // For dynamic properties, get default from metadata
@@ -426,7 +424,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   }
   const handleDoubleClick = React.useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!isDynamicProperty) {return;}
+      if (!isDynamicProperty) {
+        return;
+      }
       const target = e.target as HTMLElement;
       if (target && target.closest && target.closest(".property-label")) {
         e.stopPropagation();

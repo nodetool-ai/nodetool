@@ -498,63 +498,10 @@
 /* --------------------------------------------- */
 /* Special cases                                  */
 /* --------------------------------------------- */
-/* Constant.String */
-.react-flow__node-nodetool\.constant\.String
-  .node-property
-  .string-property
-  textarea {
-  resize: vertical;
-  max-height: 1000px !important;
-}
-
 /* REROUTE NODE */
 .react-flow__node.react-flow__node-nodetool\.control\.Reroute {
   width: 60px !important;
   min-width: 40px !important;
   border: 0 !important;
   outline: 0 !important;
-}
-
-/* --------------------------------------------- */
-/* JSON Property Node Height Limit               */
-/* --------------------------------------------- */
-.react-flow__node .node-property.json-property {
-  max-height: 350px;
-  overflow-y: auto;
-}
-
-.react-flow__node .node-property.json-property .editor {
-  max-height: 200px;
-  overflow: hidden;
-}
-
-.react-flow__node .node-property.json-property .editor.nowheel {
-  pointer-events: none;
-}
-
-.react-flow__node .node-property.json-property:hover .editor,
-.react-flow__node .node-property.json-property .editor:focus-within {
-  max-height: 200px;
-  overflow: auto;
-}
-
-/* String/JSON property row layout */
-.react-flow__node .node-property .property-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 0;
-}
-
-.react-flow__node .node-property .value-container {
-  position: relative;
-}
-
-.react-flow__node .node-property .json-action-buttons,
-.react-flow__node .node-property .string-action-buttons {
-  position: absolute;
-  right: 4px;
-  top: -3px;
-  opacity: 0.8;
-  z-index: 10;
 }

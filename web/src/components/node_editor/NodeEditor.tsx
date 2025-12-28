@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useEffect, useState, useRef } from "react";
+import { memo, useState, useRef } from "react";
 import {
   Box,
   CircularProgress,
@@ -11,10 +11,8 @@ import {
   Button,
   TextField
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 //css
 import "../../styles/base.css";
 import "../../styles/nodes.css";
@@ -31,11 +29,10 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "lodash/isEqual";
 import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
+import { useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
-import { WORKER_URL } from "../../stores/BASE_URL";
 import { useTheme } from "@mui/material/styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
@@ -58,16 +55,8 @@ interface NodeEditorProps {
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
-  const { missingModelFiles, missingModelRepos, clearMissingModels } = useNodes(
-    (state) => ({
-      missingModelFiles: state.missingModelFiles,
-      missingModelRepos: state.missingModelRepos,
-      clearMissingModels: state.clearMissingModels
-    })
-  );
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -78,11 +67,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleConfirm,
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
-
-  // WorkflowRunner connection management
-  const { state } = useWebsocketRunner((state) => ({
-    state: state.state
-  }));
 
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);

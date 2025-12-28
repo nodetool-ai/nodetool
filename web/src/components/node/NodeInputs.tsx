@@ -67,7 +67,7 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   basicFields,
   isDynamicProperty
 }) {
-  const { edges, findNode } = useNodes((state) => ({
+  const { edges } = useNodes((state) => ({
     edges: state.edges,
     findNode: state.findNode
   }));
@@ -117,7 +117,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,
   properties,
   data,
-  nodeMetadata,
   nodeType,
   showHandle = true,
   showFields = true,

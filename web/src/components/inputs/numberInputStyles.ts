@@ -17,7 +17,13 @@ export const numberInputStyles = (theme: Theme) =>
       marginBottom: "10px"
     },
 
-    "label": {
+    // Highlight when the owning PropertyInput is marked as changed.
+    // PropertyInput applies `value-changed` on a wrapper above this component.
+    ".value-changed & .slider-value .value": {
+      color: theme.vars.palette.primary.main
+    },
+
+    label: {
       cursor: "ew-resize !important"
     },
 

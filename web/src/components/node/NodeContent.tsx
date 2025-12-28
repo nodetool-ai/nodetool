@@ -1,5 +1,4 @@
 import React, { memo } from "react";
-import { Typography } from "@mui/material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { ProcessTimer } from "./ProcessTimer";
@@ -10,7 +9,6 @@ import isEqual from "lodash/isEqual";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
-import useLogsStore from "../../stores/LogStore";
 
 interface NodeContentProps {
   id: string;
@@ -48,7 +46,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
     data.dynamic_properties as Record<string, any>
   );
 
-  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
   return (
     <>
       <NodeInputs
