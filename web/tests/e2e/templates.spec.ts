@@ -35,8 +35,8 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/templates");
       await page.waitForLoadState("networkidle");
 
-      // Wait for the page to fully render
-      await page.waitForTimeout(1000);
+      // Wait for the page to fully render by checking URL is stable
+      await expect(page).toHaveURL(/\/templates/);
 
       // The page should load even if there are no templates
       const url = page.url();

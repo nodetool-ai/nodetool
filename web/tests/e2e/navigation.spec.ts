@@ -79,7 +79,8 @@ if (process.env.JEST_WORKER_ID) {
       // Go back
       await page.goBack();
       await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(500);
+      // Wait for URL to stabilize after back navigation
+      await page.waitForURL(/\/(dashboard|login)/);
       
       const urlAfterBack = page.url();
       expect(urlAfterBack).toMatch(/\/(dashboard|login)/);
