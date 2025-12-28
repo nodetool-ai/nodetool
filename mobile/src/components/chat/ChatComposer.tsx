@@ -332,6 +332,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             style={[styles.button, styles.stopButton]}
             onPress={handleStop}
             activeOpacity={0.7}
+            testID="stop-button"
           >
             <Ionicons name="square" size={16} color="#FFFFFF" />
           </TouchableOpacity>
@@ -345,6 +346,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             onPress={handleSend}
             disabled={!canSend}
             activeOpacity={0.7}
+            testID="send-button"
           >
             <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
           </TouchableOpacity>

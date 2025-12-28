@@ -1,4 +1,4 @@
-.PHONY: help install build test lint typecheck clean dev start format check all
+ .PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron typecheck typecheck-web typecheck-electron clean clean-build check all format quickstart
 
 # Default target
 help:
@@ -6,9 +6,10 @@ help:
 	@echo "======================="
 	@echo ""
 	@echo "Setup & Installation:"
-	@echo "  make install          - Install all dependencies (web, electron, apps)"
+	@echo "  make install          - Install all dependencies (web, electron, mobile)"
 	@echo "  make install-web      - Install web dependencies"
 	@echo "  make install-electron - Install electron dependencies"
+	@echo "  make install-mobile   - Install mobile dependencies"
 	@echo ""
 	@echo "Development:"
 	@echo "  make electron         - Build web and start electron app"
@@ -22,6 +23,7 @@ help:
 	@echo "  make test             - Run all tests"
 	@echo "  make test-web         - Run web tests"
 	@echo "  make test-electron    - Run electron tests"
+	@echo "  make test-mobile      - Run mobile tests"
 	@echo "  make test-watch       - Run tests in watch mode"
 	@echo "  make test-coverage    - Run tests with coverage"
 	@echo ""
@@ -40,7 +42,7 @@ help:
 	@echo "  make all              - Install, typecheck, lint, test, and build"
 
 # Installation targets
-install: install-web install-electron
+install: install-web install-electron install-mobile
 
 install-web:
 	@echo "Installing web dependencies..."
@@ -49,6 +51,10 @@ install-web:
 install-electron:
 	@echo "Installing electron dependencies..."
 	cd electron && npm install
+
+install-mobile:
+	@echo "Installing mobile dependencies..."
+	cd mobile && npm install
 
 # Web build optimization
 WEB_DIR := web
@@ -76,7 +82,7 @@ build-electron:
 	cd electron && npm run build
 
 # Test targets
-test: test-web test-electron
+test: test-web test-electron test-mobile
 
 test-web:
 	@echo "Running web tests..."
@@ -86,19 +92,26 @@ test-electron:
 	@echo "Running electron tests..."
 	cd electron && npm test
 
+test-mobile:
+	@echo "Running mobile tests..."
+	cd mobile && npm test
+
 test-watch:
 	@echo "Running tests in watch mode (web)..."
 	cd web && npm run test:watch
 
 test-coverage:
 	@echo "Running tests with coverage..."
-	@$(MAKE) -j3 test-coverage-web test-coverage-electron
+	@$(MAKE) -j3 test-coverage-web test-coverage-electron test-coverage-mobile
 
 test-coverage-web:
 	cd web && npm run test:coverage
 
 test-coverage-electron:
 	cd electron && npm run test:coverage
+
+test-coverage-mobile:
+	cd mobile && npm run test:coverage
 
 # Linting targets
 lint: lint-web lint-electron
@@ -142,6 +155,7 @@ clean: clean-build
 	@echo "Removing all dependencies..."
 	rm -rf web/node_modules
 	rm -rf electron/node_modules
+	rm -rf mobile/node_modules
 	rm -rf node_modules
 
 clean-build:
