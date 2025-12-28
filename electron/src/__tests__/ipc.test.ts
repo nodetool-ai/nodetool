@@ -53,6 +53,7 @@ jest.mock('../shortcuts', () => ({
 
 jest.mock('../tray', () => ({
   updateTrayMenu: jest.fn(),
+  emitWorkflowsChanged: jest.fn(),
 }));
 
 jest.mock('../window', () => ({
@@ -103,7 +104,7 @@ import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell } from 'electr
 import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer, restartLlamaServer } from '../server';
 import { logMessage } from '../logger';
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
-import { updateTrayMenu } from '../tray';
+import { updateTrayMenu, emitWorkflowsChanged } from '../tray';
 import { createPackageManagerWindow } from '../window';
 import {
   fetchAvailablePackages,
@@ -182,6 +183,7 @@ const loggerMock = logMessage as jest.MockedFunction<typeof logMessage>;
 const registerWorkflowShortcutMock = registerWorkflowShortcut as jest.MockedFunction<typeof registerWorkflowShortcut>;
 const setupWorkflowShortcutsMock = setupWorkflowShortcuts as jest.MockedFunction<typeof setupWorkflowShortcuts>;
 const updateTrayMenuMock = updateTrayMenu as jest.MockedFunction<typeof updateTrayMenu>;
+const emitWorkflowsChangedMock = emitWorkflowsChanged as jest.MockedFunction<typeof emitWorkflowsChanged>;
 const createPackageManagerWindowMock = createPackageManagerWindow as jest.MockedFunction<typeof createPackageManagerWindow>;
 const shellMock = shell as jest.Mocked<typeof shell>;
 
@@ -264,7 +266,7 @@ describe('initializeIpcHandlers', () => {
     )?.[1] as any;
     await createHandler({}, { name: 'wf' });
     expect(registerWorkflowShortcutMock).toHaveBeenCalled();
-    expect(updateTrayMenuMock).toHaveBeenCalled();
+    expect(emitWorkflowsChangedMock).toHaveBeenCalled();
 
     const updateHandler = ipcMainMock.handle.mock.calls.find(
       ([channel]) => channel === Channels.ON_UPDATE_WORKFLOW
@@ -277,7 +279,7 @@ describe('initializeIpcHandlers', () => {
     )?.[1] as any;
     await deleteHandler({}, { name: 'wf3', settings: { shortcut: 's' } });
     expect(globalShortcutMock.unregister).toHaveBeenCalledWith('s');
-    expect(updateTrayMenuMock).toHaveBeenCalledTimes(3);
+    expect(emitWorkflowsChangedMock).toHaveBeenCalledTimes(3);
   });
 
   it('handles window events correctly', () => {
