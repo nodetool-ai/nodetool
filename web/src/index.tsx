@@ -314,6 +314,20 @@ function getRoutes() {
 
 useAssetStore.getState().setQueryClient(queryClient);
 useModelDownloadStore.getState().setQueryClient(queryClient);
+
+// Handle route query parameter for packaged Electron apps
+// When loading index.html with ?route=/path, navigate to that path
+const handleRouteQueryParam = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const routeParam = urlParams.get("route");
+  if (routeParam) {
+    // Replace current URL with the intended route
+    // This allows React Router to pick up the correct path
+    window.history.replaceState(null, "", routeParam);
+  }
+};
+handleRouteQueryParam();
+
 const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
