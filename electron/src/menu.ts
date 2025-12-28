@@ -1,7 +1,8 @@
-import { Menu, shell } from "electron";
+import { Menu, shell, dialog, app, clipboard } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
 import { createPackageManagerWindow, createLogViewerWindow } from "./window";
+import { getSystemInfo } from "./systemInfo";
 
 /**
  * Builds the application menu
@@ -244,11 +245,73 @@ const buildMenu = () => {
             await shell.openExternal("https://nodetool.ai");
           },
         },
+        { type: "separator" },
+        {
+          label: "System Information",
+          click: async () => {
+            await showSystemInfoDialog();
+          },
+        },
       ],
     },
   ]);
 
   Menu.setApplicationMenu(menu);
 };
+
+/**
+ * Shows a native dialog with system information
+ */
+async function showSystemInfoDialog(): Promise<void> {
+  const mainWindow = getMainWindow();
+  
+  try {
+    const info = await getSystemInfo();
+    
+    const message = `NodeTool ${info.appVersion}
+
+Application
+  Electron: ${info.electronVersion}
+  Chrome: ${info.chromeVersion}
+  Node.js: ${info.nodeVersion}
+
+Operating System
+  OS: ${info.os}
+  Version: ${info.osVersion}
+  Architecture: ${info.arch}
+
+Installation Paths
+  Application: ${info.installPath}
+  Conda Environment: ${info.condaEnvPath}
+  Data: ${info.dataPath}
+  Logs: ${info.logsPath}
+
+Features & Versions
+  Python: ${info.pythonVersion || "Not available"}
+  CUDA: ${info.cudaAvailable ? (info.cudaVersion || "Available") : "Not available"}
+  Ollama: ${info.ollamaInstalled ? (info.ollamaVersion || "Installed") : "Not installed"}
+  Llama Server: ${info.llamaServerInstalled ? (info.llamaServerVersion || "Installed") : "Not installed"}`;
+
+    const dialogOptions = {
+      type: "info" as const,
+      title: "System Information",
+      message: `NodeTool ${info.appVersion}`,
+      detail: message,
+      buttons: ["OK", "Copy to Clipboard"],
+    };
+
+    const showDialog = mainWindow 
+      ? dialog.showMessageBox(mainWindow, dialogOptions)
+      : dialog.showMessageBox(dialogOptions);
+    
+    const result = await showDialog;
+    if (result.response === 1) {
+      // Copy to clipboard
+      clipboard.writeText(message);
+    }
+  } catch (error) {
+    dialog.showErrorBox("Error", `Failed to gather system information: ${error}`);
+  }
+}
 
 export { buildMenu };
