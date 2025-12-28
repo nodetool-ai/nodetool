@@ -8,6 +8,7 @@ import { Tooltip } from "@mui/material";
 import { serializeValue } from "../../utils/serializeValue";
 
 const CHECKMARK_TIMEOUT = 2000;
+const TOOLTIP_ENTER_DELAY = 500;
 
 interface CopyToClipboardButtonProps extends Omit<IconButtonProps, "onClick"> {
   copyValue: unknown;
@@ -89,13 +90,17 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
   const tooltipText = showError ? "Nothing to copy" : title;
 
   return (
-    <Tooltip title={tooltipText} placement={tooltipPlacement}>
+    <Tooltip
+      title={tooltipText}
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement={tooltipPlacement}
+    >
       <IconButton
         tabIndex={-1}
         className="copy-to-clipboard-button"
         onClick={handleCopy}
         size={size}
-        sx={{ color: "var(--palette-grey-100)" }}
+        sx={{ color: "var(--palette-grey-100)", "&:hover": { opacity: 0.8 } }}
         {...props}
       >
         {showError ? (
