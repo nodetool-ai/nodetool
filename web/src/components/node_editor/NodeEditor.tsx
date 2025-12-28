@@ -37,12 +37,12 @@ import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/BASE_URL";
 import { useTheme } from "@mui/material/styles";
-import allNodeStyles from "../../node_styles/node-styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 import CommandMenu from "../menus/CommandMenu";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
+import { EditorUiProvider } from "../editor_ui";
 
 declare global {
   interface Window {
@@ -132,12 +132,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           onClose={closeDocumentation}
         />
       )}
-      <Box
-        ref={reactFlowWrapperRef}
-        css={allNodeStyles(theme)}
-        className="node-editor"
-        style={{ backgroundColor: theme.vars.palette.c_editor_bg_color }}
-      >
+      <EditorUiProvider scope="node">
+        <Box
+          ref={reactFlowWrapperRef}
+          className="node-editor"
+          style={{ backgroundColor: theme.vars.palette.c_editor_bg_color }}
+        >
         {isUploading && (
           <div className="loading-overlay">
             <CircularProgress /> Uploading assets...
@@ -187,6 +187,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </>
         )}
       </Box>
+      </EditorUiProvider>
 
       {/* Package Name Dialog */}
       <Dialog

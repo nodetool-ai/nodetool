@@ -12,7 +12,9 @@ import React, {
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
 import { Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { selectStyles } from "./selectStyles";
 
 interface Option {
   value: any;
@@ -58,6 +60,7 @@ const Select: React.FC<SelectProps> = ({
   tabIndex,
   fuseOptions
 }) => {
+  const theme = useTheme();
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -198,7 +201,7 @@ const Select: React.FC<SelectProps> = ({
   }, [searchQuery]);
 
   return (
-    <div className="select-container">
+    <div className="select-container" css={selectStyles(theme)}>
       <Tooltip placement="top" enterDelay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}

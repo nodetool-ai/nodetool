@@ -8,7 +8,6 @@ import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import NodeDescription from "./node/NodeDescription";
 import NodeExplorer from "./node/NodeExplorer";
-import allNodeStyles from "../node_styles/node-styles";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
@@ -17,6 +16,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { typesAreEqual } from "../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
+import { EditorUiProvider } from "./editor_ui";
 
 const styles = (theme: Theme) =>
   css({
@@ -263,14 +263,16 @@ const Inspector: React.FC = () => {
 
   if (selectedNodes.length === 0) {
     return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <Box className="top-content" css={allNodeStyles(theme)}>
-            <NodeExplorer />
+      <EditorUiProvider scope="inspector">
+        <Box className="inspector" css={inspectorStyles}>
+          <Box className="top">
+            <Box className="top-content">
+              <NodeExplorer />
+            </Box>
           </Box>
+          <Box className="bottom"></Box>
         </Box>
-        <Box className="bottom"></Box>
-      </Box>
+      </EditorUiProvider>
     );
   }
 
@@ -290,24 +292,25 @@ const Inspector: React.FC = () => {
     }
 
     return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <Box className="top-content" css={allNodeStyles(theme)}>
-            <div className="inspector-header">
-              <Typography variant="h5">Inspector</Typography>
-              <IconButton
-                className="close-button"
-                aria-label="Close inspector"
-                size="small"
-                onClick={handleInspectorClose}
-              >
-                <CloseRoundedIcon fontSize="small" />
-              </IconButton>
-              <div className="title">
-                {`Editing ${selectedNodes.length} nodes`}
+      <EditorUiProvider scope="inspector">
+        <Box className="inspector" css={inspectorStyles}>
+          <Box className="top">
+            <Box className="top-content">
+              <div className="inspector-header">
+                <Typography variant="h5">Inspector</Typography>
+                <IconButton
+                  className="close-button"
+                  aria-label="Close inspector"
+                  size="small"
+                  onClick={handleInspectorClose}
+                >
+                  <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+                <div className="title">
+                  {`Editing ${selectedNodes.length} nodes`}
+                </div>
               </div>
-            </div>
-            {multiPropertyEntries.length > 0 ? (
+              {multiPropertyEntries.length > 0 ? (
               multiPropertyEntries.map(({ property, value, isMixed }) => (
                 <div
                   className="multi-property-row"
@@ -352,6 +355,7 @@ const Inspector: React.FC = () => {
         </Box>
         <div className="bottom"></div>
       </Box>
+      </EditorUiProvider>
     );
   }
 
@@ -399,21 +403,22 @@ const Inspector: React.FC = () => {
   };
 
   return (
-    <Box className="inspector" css={inspectorStyles}>
-      <Box className="top">
-        <Box className="top-content" css={allNodeStyles(theme)}>
-          <div className="inspector-header">
-            <Typography variant="h5">Inspector</Typography>
-            <IconButton
-              className="close-button"
-              aria-label="Close inspector"
-              size="small"
-              onClick={handleInspectorClose}
-            >
-              <CloseRoundedIcon fontSize="small" />
-            </IconButton>
-            <div className="header-row">
-              <div className="title">{metadata.title}</div>
+    <EditorUiProvider scope="inspector">
+      <Box className="inspector" css={inspectorStyles}>
+        <Box className="top">
+          <Box className="top-content">
+            <div className="inspector-header">
+              <Typography variant="h5">Inspector</Typography>
+              <IconButton
+                className="close-button"
+                aria-label="Close inspector"
+                size="small"
+                onClick={handleInspectorClose}
+              >
+                <CloseRoundedIcon fontSize="small" />
+              </IconButton>
+              <div className="header-row">
+                <div className="title">{metadata.title}</div>
             </div>
           </div>
           {/* Base properties */}
@@ -501,6 +506,7 @@ const Inspector: React.FC = () => {
         </Tooltip>
       </div>
     </Box>
+    </EditorUiProvider>
   );
 };
 

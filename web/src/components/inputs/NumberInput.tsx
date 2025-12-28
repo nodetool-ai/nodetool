@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
@@ -8,6 +9,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { useDragHandling } from "../../hooks/useNumberInput";
 import DisplayValue from "./DisplayValue";
 import SpeedDisplay from "./SpeedDisplay";
+import { numberInputStyles } from "./numberInputStyles";
 
 // Drag-tuning constants
 export const DRAG_THRESHOLD = 10; // px before drag counts (to prevent accidental dragging when clicking to set value)
@@ -288,6 +290,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
   return (
     <div
       ref={containerRef}
+      css={numberInputStyles(theme)}
       className={`number-input ${props.inputType} ${
         inputIsFocused ? "focused" : ""
       }`}
