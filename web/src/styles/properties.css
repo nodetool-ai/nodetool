@@ -255,47 +255,6 @@
   font-size: inherit;
 }
 
-/* LANGUAGE MODEL SELECT STYLES */
-.model-menu button {
-  background-color: var(--palette-grey-800);
-  border: 1px solid var(--palette-grey-500);
-  min-width: 280px;
-  max-height: 400px;
-}
-
-.model-menu .provider-header {
-  margin-top: 1em;
-  padding: 0.5em 1em;
-  user-select: none;
-  background-color: var(--palette-grey-800);
-  color: var(--palette-grey-100);
-  font-size: var(--fontSizeNormal);
-  font-variant: small-caps;
-  text-transform: uppercase;
-}
-
-.model-menu .model-item:hover {
-  background-color: var(--palette-grey-600);
-}
-
-.model-menu .model-item.selected {
-  background-color: var(--palette-primary-dark);
-}
-
-.model-menu .model-item > div {
-  padding-left: 0;
-}
-
-.model-menu .model-name {
-  color: var(--palette-grey-0);
-}
-
-.model-menu .loading-container {
-  display: flex;
-  justify-content: center;
-  padding: 16px;
-}
-
 /* JSON PROPERTY */
 .node-property .json-property .property-row {
   display: flex;

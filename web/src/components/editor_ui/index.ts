@@ -31,7 +31,11 @@
  */
 
 // Context and hooks
-export { EditorUiProvider, useEditorTokens, useEditorScope } from "./EditorUiContext";
+export {
+  EditorUiProvider,
+  useEditorTokens,
+  useEditorScope
+} from "./EditorUiContext";
 
 // Token types and utilities
 export { getEditorTokens } from "./editorTokens";
@@ -46,6 +50,9 @@ export type { NodeSwitchProps } from "./NodeSwitch";
 
 export { NodeSelect, NodeMenuItem } from "./NodeSelect";
 export type { NodeSelectProps, NodeMenuItemProps } from "./NodeSelect";
+
+export { EditorMenu, EditorMenuItem } from "./EditorMenu";
+export type { EditorMenuProps, EditorMenuItemProps } from "./EditorMenu";
 
 // Utilities
 export {

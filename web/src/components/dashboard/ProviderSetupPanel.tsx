@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Typography,
   Box,
@@ -83,12 +83,6 @@ const panelStyles = (theme: Theme) =>
     },
     ".provider-setup-container": {
       padding: "1em"
-    },
-    ".provider-header": {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "1em"
     },
     ".provider-card": {
       display: "flex",
@@ -197,7 +191,7 @@ const ProviderSetupPanel: React.FC = () => {
   const queryClient = useQueryClient();
   const { secrets, fetchSecrets, updateSecret } = useSecretsStore();
   const { addNotification } = useNotificationStore();
-  
+
   const [isExpanded, setIsExpanded] = useState(true);
   const [apiKeys, setApiKeys] = useState<Record<ProviderKey, string>>({
     OPENAI_API_KEY: "",
@@ -220,7 +214,10 @@ const ProviderSetupPanel: React.FC = () => {
     const configured = new Set<string>();
     if (secrets) {
       secrets.forEach((secret) => {
-        if (secret.is_configured && PROVIDERS.some(p => p.key === secret.key)) {
+        if (
+          secret.is_configured &&
+          PROVIDERS.some((p) => p.key === secret.key)
+        ) {
           configured.add(secret.key);
         }
       });
@@ -241,11 +238,13 @@ const ProviderSetupPanel: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["language-models"] });
       addNotification({
         type: "success",
-        content: `${PROVIDERS.find(p => p.key === variables.key)?.name || variables.key} API key saved`,
+        content: `${
+          PROVIDERS.find((p) => p.key === variables.key)?.name || variables.key
+        } API key saved`,
         alert: true
       });
       // Clear the input after successful save
-      setApiKeys(prev => ({ ...prev, [variables.key as ProviderKey]: "" }));
+      setApiKeys((prev) => ({ ...prev, [variables.key as ProviderKey]: "" }));
     },
     onError: (error: any, variables) => {
       addNotification({
@@ -259,22 +258,25 @@ const ProviderSetupPanel: React.FC = () => {
     }
   });
 
-  const handleSaveKey = useCallback((key: ProviderKey) => {
-    const value = apiKeys[key] || "";
-    if (!value.trim()) {
-      addNotification({
-        type: "error",
-        content: "Please enter an API key",
-        dismissable: true
-      });
-      return;
-    }
-    setSavingKey(key);
-    updateMutation.mutate({ key, value: value.trim() });
-  }, [apiKeys, updateMutation, addNotification]);
+  const handleSaveKey = useCallback(
+    (key: ProviderKey) => {
+      const value = apiKeys[key] || "";
+      if (!value.trim()) {
+        addNotification({
+          type: "error",
+          content: "Please enter an API key",
+          dismissable: true
+        });
+        return;
+      }
+      setSavingKey(key);
+      updateMutation.mutate({ key, value: value.trim() });
+    },
+    [apiKeys, updateMutation, addNotification]
+  );
 
   const handleKeyChange = useCallback((key: ProviderKey, value: string) => {
-    setApiKeys(prev => ({ ...prev, [key]: value }));
+    setApiKeys((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const handleOpenLink = useCallback((url: string) => {
@@ -290,7 +292,10 @@ const ProviderSetupPanel: React.FC = () => {
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="section-title">
-              <Typography variant="h6" sx={{ fontSize: "1em", fontWeight: 600 }}>
+              <Typography
+                variant="h6"
+                sx={{ fontSize: "1em", fontWeight: 600 }}
+              >
                 AI Provider Setup
               </Typography>
               <span className="configured-count">
@@ -313,18 +318,22 @@ const ProviderSetupPanel: React.FC = () => {
                   variant="body2"
                   sx={{ mb: 2, color: "text.secondary" }}
                 >
-                  Configure API keys for AI providers. Keys are encrypted and stored securely.
+                  Configure API keys for AI providers. Keys are encrypted and
+                  stored securely.
                 </Typography>
 
                 {PROVIDERS.map((provider) => {
                   const isConfigured = configuredKeys.has(provider.key);
                   const isSaving = savingKey === provider.key;
-                  const hasInput = (apiKeys[provider.key] || "").trim().length > 0;
+                  const hasInput =
+                    (apiKeys[provider.key] || "").trim().length > 0;
 
                   return (
                     <div
                       key={provider.key}
-                      className={`provider-card ${isConfigured ? "configured" : ""}`}
+                      className={`provider-card ${
+                        isConfigured ? "configured" : ""
+                      }`}
                     >
                       <div className="provider-card-header">
                         <div className="provider-info">
@@ -358,7 +367,9 @@ const ProviderSetupPanel: React.FC = () => {
                           type="password"
                           size="small"
                           fullWidth
-                          placeholder={isConfigured ? "••••••••••••" : provider.placeholder}
+                          placeholder={
+                            isConfigured ? "••••••••••••" : provider.placeholder
+                          }
                           value={apiKeys[provider.key]}
                           onChange={(e) =>
                             handleKeyChange(provider.key, e.target.value)
@@ -376,10 +387,20 @@ const ProviderSetupPanel: React.FC = () => {
                           size="small"
                           onClick={() => handleSaveKey(provider.key)}
                           disabled={!hasInput || isSaving}
-                          startIcon={isSaving ? <CircularProgress size={16} /> : <SaveIcon />}
+                          startIcon={
+                            isSaving ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <SaveIcon />
+                            )
+                          }
                           sx={{ minWidth: "100px" }}
                         >
-                          {isSaving ? "Saving..." : isConfigured ? "Update" : "Save"}
+                          {isSaving
+                            ? "Saving..."
+                            : isConfigured
+                            ? "Update"
+                            : "Save"}
                         </Button>
                       </div>
                     </div>
@@ -388,20 +409,22 @@ const ProviderSetupPanel: React.FC = () => {
 
                 {configuredCount === 0 && (
                   <Alert severity="info" sx={{ mt: 2 }}>
-                    No providers configured yet. Add at least one API key to use remote AI models.
+                    No providers configured yet. Add at least one API key to use
+                    remote AI models.
                   </Alert>
                 )}
 
                 {configuredCount > 0 && configuredCount < PROVIDERS.length && (
                   <Alert severity="success" sx={{ mt: 2 }}>
-                    {configuredCount} provider{configuredCount > 1 ? "s" : ""} configured! 
-                    You can add more providers anytime.
+                    {configuredCount} provider{configuredCount > 1 ? "s" : ""}{" "}
+                    configured! You can add more providers anytime.
                   </Alert>
                 )}
 
                 {configuredCount === PROVIDERS.length && (
                   <Alert severity="success" sx={{ mt: 2 }}>
-                    All providers configured! You have access to all supported AI models.
+                    All providers configured! You have access to all supported
+                    AI models.
                   </Alert>
                 )}
               </>
