@@ -12,6 +12,12 @@ import { useTheme } from "@mui/material/styles";
 import { useEditorTokens } from "./EditorUiContext";
 import { editorClassNames, cn } from "./editorUtils";
 
+/** Helper type for slotProps with className */
+interface SlotPropsWithClassName {
+  className?: string;
+  [key: string]: unknown;
+}
+
 export interface NodeTextFieldProps
   extends Omit<TextFieldProps, "variant" | "size"> {
   /**
@@ -55,14 +61,14 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
             ...slotProps?.input,
             className: cn(
               editorClassNames.nodrag,
-              (slotProps?.input as { className?: string })?.className
+              (slotProps?.input as SlotPropsWithClassName | undefined)?.className
             )
           },
           htmlInput: {
             ...slotProps?.htmlInput,
             className: cn(
               editorClassNames.nodrag,
-              (slotProps?.htmlInput as { className?: string })?.className
+              (slotProps?.htmlInput as SlotPropsWithClassName | undefined)?.className
             )
           }
         }}

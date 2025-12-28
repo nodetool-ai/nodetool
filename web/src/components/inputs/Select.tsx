@@ -200,8 +200,11 @@ const Select: React.FC<SelectProps> = ({
     setHighlightedIndex(-1);
   }, [searchQuery]);
 
+  // Memoize styles to avoid recalculation on each render
+  const styles = useMemo(() => selectStyles(theme), [theme]);
+
   return (
-    <div className="select-container" css={selectStyles(theme)}>
+    <div className="select-container" css={styles}>
       <Tooltip placement="top" enterDelay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}
