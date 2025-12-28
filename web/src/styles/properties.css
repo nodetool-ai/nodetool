@@ -54,31 +54,31 @@
   align-items: flex-start;
   gap: 5px;
 }
-.MuiSwitch-track {
+.node-property .MuiSwitch-track {
   background-color: var(--palette-grey-600) !important;
 }
 /* values */
-.value-changed .value {
+.node-property .value-changed .value {
   color: var(--palette-primary-main);
 }
 
-.value-changed textarea,
-.value-changed .MuiInput-root {
+.node-property .value-changed textarea,
+.node-property .value-changed .MuiInput-root {
   border-right: 2px solid var(--palette-primary-main) !important;
 }
 
-.value-changed .MuiSwitch-track {
+.node-property .value-changed .MuiSwitch-track {
   padding-right: 1em;
   opacity: 1;
 }
 
-.value-changed .MuiSwitch-thumb,
-.value-changed .MuiSwitch-track {
+.node-property .value-changed .MuiSwitch-thumb,
+.node-property .value-changed .MuiSwitch-track {
   box-shadow: none !important;
   outline: none !important;
 }
 
-.value-changed .bool-property::after {
+.node-property .value-changed .bool-property::after {
   content: "";
   position: absolute;
   right: -2px;
@@ -87,42 +87,6 @@
   width: 2px;
   background: var(--palette-primary-main);
   border-radius: 1px;
-}
-
-/* Textarea */
-.node-property .MuiTextField-root textarea {
-  width: 100%;
-  min-height: 18px !important;
-  max-height: 200px;
-  overflow-y: auto !important;
-  margin-top: 0;
-  padding: 4px 8px;
-  font-family: var(--fontFamily1);
-  font-size: var(--fontSizeSmall);
-  font-weight: 400;
-  line-height: 1.2em;
-  color: var(--palette-grey-100);
-  background-color: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--palette-grey-700);
-  border-radius: 3px;
-  outline: none;
-  transition: border-color 0.2s, background-color 0.2s;
-  box-sizing: border-box;
-}
-
-/* Ensure second row aligns with form rhythm (18px baseline) */
-.node-property .MuiTextField-root textarea:not([rows="1"]) {
-  min-height: 36px !important;
-}
-
-.node-property .MuiTextField-root textarea:hover {
-  border-color: var(--palette-grey-600);
-  background-color: rgba(0, 0, 0, 0.3);
-}
-
-.node-property .MuiTextField-root textarea:focus {
-  border-color: var(--palette-grey-500);
-  background-color: rgba(0, 0, 0, 0.4);
 }
 
 /* STRING PROPERTY STYLES */
@@ -190,49 +154,6 @@
   font-style: italic;
 }
 
-.string-property .MuiOutlinedInput-root {
-  padding: 0;
-}
-
-.string-property .MuiOutlinedInput-root textarea {
-  resize: none;
-  min-height: 18px !important;
-  padding: 2px 4px 0 4px;
-  line-height: 18px;
-  border: 1px solid var(--palette-grey-600);
-  box-sizing: content-box;
-}
-
-.string-property .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
-  border-width: 0;
-}
-
-.string-property .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-width: 0;
-}
-
-.string-property
-  .MuiOutlinedInput-root.Mui-hover
-  .MuiOutlinedInput-notchedOutline {
-  border-width: 0;
-}
-
-.string-property
-  .MuiOutlinedInput-root.Mui-focused
-  .MuiOutlinedInput-notchedOutline {
-  border-width: 0;
-}
-
-/* .string-property .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-input {
-  background-color: var(--palette-grey-800);
-} */
-
-.string-property .MuiTextField-root {
-  margin-top: 0;
-  padding: 0;
-  width: 100%;
-}
-
 /* Constant node string properties - allow content to expand */
 .string-property.constant-node .string-value-display {
   white-space: normal;
@@ -240,11 +161,6 @@
   text-overflow: initial;
   word-wrap: break-word;
   max-height: none;
-}
-
-.string-property.constant-node .MuiOutlinedInput-root textarea {
-  max-height: 300px;
-  min-height: 2em;
 }
 
 .string-property.constant-node .value-container {
@@ -1026,15 +942,8 @@
 .json-property .editor-wrapper {
   min-height: 100px;
   max-height: 200px;
-  /* Avoid double scrollbars: the editor itself is the scroll container. */
   overflow: hidden;
   background-color: var(--palette-grey-600);
   border: 1px solid var(--palette-grey-500);
   border-radius: 4px;
-}
-
-.json-property .editor-wrapper.nowheel {
-}
-
-.json-property .editor-wrapper.nowheel textarea {
 }

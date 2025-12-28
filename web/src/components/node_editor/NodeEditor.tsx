@@ -43,6 +43,7 @@ import CommandMenu from "../menus/CommandMenu";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
+import type React from "react";
 
 declare global {
   interface Window {
@@ -136,57 +137,64 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         <Box
           ref={reactFlowWrapperRef}
           className="node-editor"
-          style={{ backgroundColor: theme.vars.palette.c_editor_bg_color }}
+          style={
+            {
+              backgroundColor: theme.vars.palette.c_editor_bg_color,
+              // Used by structural CSS / node components (e.g. `nodes.base.css`, `BaseNode.tsx`)
+              // Keep it defined even if ThemeNodetool changes.
+              ["--rounded-node" as any]: theme.rounded?.node ?? "8px"
+            } as React.CSSProperties
+          }
         >
-        {isUploading && (
-          <div className="loading-overlay">
-            <CircularProgress /> Uploading assets...
-          </div>
-        )}
-        <ReactFlowWrapper workflowId={workflowId} active={active} />
-        {active && (
-          <>
-            <RunAsAppFab workflowId={workflowId} />
-            <NodeMenu focusSearchInput={true} />
-            <CommandMenu
-              open={commandMenuOpen}
-              setOpen={setCommandMenuOpen}
-              undo={() => nodeHistory.undo()}
-              redo={() => nodeHistory.redo()}
-              reactFlowWrapper={reactFlowWrapperRef}
-            />
-            <Modal
-              open={showShortcuts}
-              onClose={(event, reason) => {
-                if (reason === "backdropClick") {
-                  setShowShortcuts(false);
-                }
-              }}
-              closeAfterTransition
-            >
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "250px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: "80vw",
-                  maxWidth: "1400px",
-                  padding: 4,
-                  backgroundColor: theme.vars.palette.grey[800],
-                  boxShadow: 24,
-                  borderRadius: 2,
-                  border: 0,
-                  outline: 0,
-                  overflow: "hidden"
+          {isUploading && (
+            <div className="loading-overlay">
+              <CircularProgress /> Uploading assets...
+            </div>
+          )}
+          <ReactFlowWrapper workflowId={workflowId} active={active} />
+          {active && (
+            <>
+              <RunAsAppFab workflowId={workflowId} />
+              <NodeMenu focusSearchInput={true} />
+              <CommandMenu
+                open={commandMenuOpen}
+                setOpen={setCommandMenuOpen}
+                undo={() => nodeHistory.undo()}
+                redo={() => nodeHistory.redo()}
+                reactFlowWrapper={reactFlowWrapperRef}
+              />
+              <Modal
+                open={showShortcuts}
+                onClose={(event, reason) => {
+                  if (reason === "backdropClick") {
+                    setShowShortcuts(false);
+                  }
                 }}
+                closeAfterTransition
               >
-                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
-              </Box>
-            </Modal>
-          </>
-        )}
-      </Box>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "250px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "80vw",
+                    maxWidth: "1400px",
+                    padding: 4,
+                    backgroundColor: theme.vars.palette.grey[800],
+                    boxShadow: 24,
+                    borderRadius: 2,
+                    border: 0,
+                    outline: 0,
+                    overflow: "hidden"
+                  }}
+                >
+                  <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+                </Box>
+              </Modal>
+            </>
+          )}
+        </Box>
       </EditorUiProvider>
 
       {/* Package Name Dialog */}

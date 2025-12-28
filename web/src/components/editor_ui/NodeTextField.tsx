@@ -61,14 +61,16 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
             ...slotProps?.input,
             className: cn(
               editorClassNames.nodrag,
-              (slotProps?.input as SlotPropsWithClassName | undefined)?.className
+              (slotProps?.input as SlotPropsWithClassName | undefined)
+                ?.className
             )
           },
           htmlInput: {
             ...slotProps?.htmlInput,
             className: cn(
               editorClassNames.nodrag,
-              (slotProps?.htmlInput as SlotPropsWithClassName | undefined)?.className
+              (slotProps?.htmlInput as SlotPropsWithClassName | undefined)
+                ?.className
             )
           }
         }}
@@ -126,8 +128,16 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
             overflowY: "auto !important",
             fontFamily: theme.fontFamily1,
             fontSize: tokens.text.controlSize,
+            fontWeight: 400,
             lineHeight: "1.2em",
-            resize: "none"
+            resize: "vertical",
+            boxSizing: "border-box"
+          },
+
+          // If the underlying textarea has rows != 1, keep a consistent baseline rhythm.
+          // Note: for autosizing textareas, `rows` may stay at the minRows value.
+          "& textarea:not([rows='1'])": {
+            minHeight: "36px !important"
           },
 
           // Allow custom sx to override

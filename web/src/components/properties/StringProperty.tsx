@@ -108,6 +108,16 @@ const StringProperty = ({
                 "string-value-input",
                 isFocused && editorClassNames.nowheel
               )}
+              sx={
+                isConstant
+                  ? {
+                      "& .MuiInputBase-inputMultiline": {
+                        // Constant nodes intentionally allow larger editing surface.
+                        maxHeight: "300px"
+                      }
+                    }
+                  : undefined
+              }
               value={value || ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 onChange(e.target.value)

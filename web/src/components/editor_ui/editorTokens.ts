@@ -143,11 +143,11 @@ export const getEditorTokens = (
 
     text: {
       controlSize: isInspector
-        ? (theme?.fontSizeSmall ?? "0.875em")
-        : (theme?.fontSizeSmaller ?? "0.75em"),
+        ? theme?.fontSizeSmall ?? "0.875em"
+        : theme?.fontSizeTiny ?? "0.75em",
       labelSize: isInspector
-        ? (theme?.fontSizeNormal ?? "16px")
-        : (theme?.fontSizeSmall ?? "0.875em"),
+        ? theme?.fontSizeNormal ?? "16px"
+        : theme?.fontSizeSmall ?? "0.875em",
       color: grey[100],
       colorSecondary: grey[300]
     },
