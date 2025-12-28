@@ -68,21 +68,11 @@ jobs:
           echo $! > /tmp/nodetool-server.pid
           
       - name: Wait for nodetool server to be ready
-        shell: bash -el {0}
-        run: |
-          echo "Waiting for nodetool server to start..."
-          for i in {1..60}; do
-            if curl -f -s http://localhost:7777/health > /dev/null 2>&1; then
-              echo "Nodetool server is ready!"
-              exit 0
-            fi
-            echo "Attempt $i: Server not ready yet, waiting..."
-            sleep 2
-          done
-          echo "Server failed to start within 120 seconds"
-          echo "Server logs:"
-          cat /tmp/nodetool-server.log || echo "No server logs available"
-          exit 1
+        uses: jtalk/url-health-check-action@v4
+        with:
+          url: http://localhost:7777/health
+          max-attempts: 60
+          retry-delay: 2s
 
       - name: Run E2E tests
         shell: bash -el {0}
