@@ -41,14 +41,11 @@ jobs:
       - name: Install nodetool-core and nodetool-base
         shell: bash -el {0}
         run: |
-          conda activate nodetool
-          pip install uv
           uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
       - name: Verify nodetool installation
         shell: bash -el {0}
         run: |
-          conda activate nodetool
           which nodetool
           nodetool --help
 
@@ -72,7 +69,6 @@ jobs:
       - name: Run E2E tests
         shell: bash -el {0}
         run: |
-          conda activate nodetool
           cd web
           npx playwright test
         env:
