@@ -973,3 +973,68 @@
   justify-content: center;
   padding: 16px;
 }
+
+/* JSON PROPERTY */
+.json-property .property-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.json-property .value-container {
+  width: 100%;
+  position: relative;
+}
+
+.json-property .json-action-buttons {
+  position: absolute;
+  right: 0;
+  top: -3px;
+  opacity: 0.8;
+  z-index: 10;
+}
+
+.json-property .json-action-buttons .MuiIconButton-root {
+  margin: 0 0 0 5px;
+  padding: 0;
+}
+
+.json-property .json-action-buttons .MuiIconButton-root svg {
+  font-size: 0.75rem;
+}
+
+.json-property .editor {
+  font-family: monospace;
+  font-size: var(--fontSizeSmaller);
+  line-height: 1.25em;
+  min-height: 100px;
+  max-height: 200px;
+  overflow: auto !important;
+}
+
+.json-property .editor textarea {
+  resize: none;
+  padding: 4px 8px 0 8px;
+  line-height: 18px;
+  box-sizing: content-box;
+}
+
+.json-property .editor:focus-within {
+  border-color: var(--palette-grey-400) !important;
+}
+
+.json-property .editor-wrapper {
+  min-height: 100px;
+  max-height: 200px;
+  /* Avoid double scrollbars: the editor itself is the scroll container. */
+  overflow: hidden;
+  background-color: var(--palette-grey-600);
+  border: 1px solid var(--palette-grey-500);
+  border-radius: 4px;
+}
+
+.json-property .editor-wrapper.nowheel {
+}
+
+.json-property .editor-wrapper.nowheel textarea {
+}

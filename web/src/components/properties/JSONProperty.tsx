@@ -1,7 +1,3 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import Editor from "react-simple-code-editor";
 import { PropertyProps } from "../node/PropertyInput";
@@ -9,42 +5,30 @@ import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "lodash/isEqual";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
-
-const styles = (theme: Theme) =>
-  css({
-    ".editor": {
-      backgroundColor: theme.vars.palette.grey[600],
-      border: `1px solid ${theme.vars.palette.grey[500]}`,
-      borderRadius: "4px",
-      fontSize: "12px",
-      minHeight: "100px",
-      width: "100%",
-      "&:focus-within": {
-        borderColor: theme.vars.palette.grey[400]
-      }
-    },
-    ".textarea": {
-      outline: "none"
-    },
-    ".error-line": {
-      backgroundColor: `rgba(${theme.vars.palette.error.mainChannel} / 0.4)`,
-      width: "100%",
-      display: "inline-block"
-    },
-    ".error-message": {
-      color: "red",
-      fontSize: "12px",
-      marginTop: "4px"
-    }
-  });
+import { IconButton, Tooltip } from "@mui/material";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import TextEditorModal from "./TextEditorModal";
 
 const JSONProperty = (props: PropertyProps) => {
-  const theme = useTheme();
   const id = `json-${props.property.name}-${props.propertyIndex}`;
   const [error, setError] = useState<{ message: string; line: number } | null>(
     null
   );
   const [value, setValue] = useState(props?.value?.data || "");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const toggleExpand = useCallback(() => {
+    setIsExpanded((prev) => {
+      const next = !prev;
+      if (next) {
+        window.dispatchEvent(new Event("close-text-editor-modal"));
+      }
+      return next;
+    });
+  }, []);
 
   const validateJSON = useCallback(
     (code: string) => {
@@ -77,7 +61,9 @@ const JSONProperty = (props: PropertyProps) => {
   const highlightWithErrors = useCallback(
     (code: string) => {
       const highlighted = Prism.highlight(code, Prism.languages.json, "json");
-      if (!error) {return highlighted;}
+      if (!error) {
+        return highlighted;
+      }
 
       const lines = highlighted.split("\n");
       return lines
@@ -92,26 +78,67 @@ const JSONProperty = (props: PropertyProps) => {
   );
 
   return (
-    <div css={styles(theme)}>
-      <PropertyLabel
-        name={props.property.name}
-        description={props.property.description}
-        id={id}
-      />
-      <Editor
-        value={value}
-        onValueChange={handleChange}
-        onBlur={() => validateJSON(value)}
-        highlight={highlightWithErrors}
-        padding={10}
-        textareaClassName="textarea nodrag"
-        className="editor"
-        style={{
-          fontFamily: "monospace",
-          minHeight: "100px"
-        }}
-      />
-      {error && <div className="error-message">{error.message}</div>}
+    <div className="json-property">
+      <div
+        className="property-row"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+        {isHovered && (
+          <div className="json-action-buttons">
+            <Tooltip title="Open Editor" placement="bottom">
+              <IconButton size="small" onClick={toggleExpand}>
+                <OpenInFullIcon />
+              </IconButton>
+            </Tooltip>
+            <CopyToClipboardButton copyValue={value} size="small" />
+          </div>
+        )}
+        <div
+          className="value-container"
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div
+            className={`editor-wrapper nodrag ${isFocused ? "nowheel" : ""}`}
+          >
+            <Editor
+              value={value}
+              onValueChange={handleChange}
+              onBlur={() => {
+                validateJSON(value);
+                setIsFocused(false);
+              }}
+              onFocus={() => setIsFocused(true)}
+              highlight={highlightWithErrors}
+              padding={10}
+              textareaClassName={`textarea nodrag ${
+                isFocused ? "nowheel" : ""
+              }`}
+              className="editor"
+            />
+          </div>
+        </div>
+        {error && <div className="error-message">{error.message}</div>}
+      </div>
+      {isExpanded && (
+        <TextEditorModal
+          value={value || ""}
+          language="json"
+          onChange={(newValue: string) => {
+            setValue(newValue);
+            validateJSON(newValue);
+          }}
+          onClose={toggleExpand}
+          propertyName={props.property.name}
+          propertyDescription={props.property.description || ""}
+        />
+      )}
     </div>
   );
 };
