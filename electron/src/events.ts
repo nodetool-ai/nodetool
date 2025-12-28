@@ -9,12 +9,12 @@ import { logMessage } from "./logger";
  */
 function emitBootMessage(message: string): void {
   serverState.bootMsg = message;
-  const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IpcChannels.BOOT_MESSAGE, message);
-  } else {
-    logMessage("No main window available to send boot message");
-  }
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach((w) => {
+    if (!w.isDestroyed()) {
+      w.webContents.send(IpcChannels.BOOT_MESSAGE, message);
+    }
+  });
 }
 
 /**
@@ -24,11 +24,15 @@ function emitServerStarted(): void {
   serverState.isStarted = true;
   serverState.status = "started";
   serverState.error = undefined;
-  const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IpcChannels.SERVER_STARTED);
-  }
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach((w) => {
+    if (!w.isDestroyed()) {
+      w.webContents.send(IpcChannels.SERVER_STARTED);
+    }
+  });
 }
+
+const MAX_LOGS = 5000;
 
 /**
  * Emit a server log message to the renderer process and write to log file
@@ -36,12 +40,18 @@ function emitServerStarted(): void {
  */
 function emitServerLog(message: string): void {
   serverState.logs.push(message);
-  // Note: Writing to log file is handled by the Watchdog onOutput callback
-  // We don't call logMessage here to avoid circular dependency
-  const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IpcChannels.SERVER_LOG, message);
+  if (serverState.logs.length > MAX_LOGS) {
+    serverState.logs = serverState.logs.slice(-MAX_LOGS);
   }
+  
+  logMessage(message);
+
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach((w) => {
+    if (!w.isDestroyed()) {
+      w.webContents.send(IpcChannels.SERVER_LOG, message);
+    }
+  });
 }
 
 function emitServerError(message: string): void {
@@ -49,12 +59,12 @@ function emitServerError(message: string): void {
   serverState.isStarted = false;
   serverState.error = message;
   serverState.bootMsg = message;
-  const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IpcChannels.SERVER_ERROR, { message });
-  } else {
-    logMessage("No main window available to send server error");
-  }
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach((w) => {
+    if (!w.isDestroyed()) {
+      w.webContents.send(IpcChannels.SERVER_ERROR, { message });
+    }
+  });
 }
 
 interface UpdateProgressPayload {
@@ -77,28 +87,30 @@ function emitUpdateProgress(
   action: string,
   eta?: string
 ): void {
-  const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IpcChannels.UPDATE_PROGRESS, {
-      componentName,
-      progress,
-      action,
-      eta,
-    } satisfies UpdateProgressData);
-  }
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach((w) => {
+    if (!w.isDestroyed()) {
+      w.webContents.send(IpcChannels.UPDATE_PROGRESS, {
+        componentName,
+        progress,
+        action,
+        eta,
+      } satisfies UpdateProgressData);
+    }
+  });
 }
 
 /**
  * Emit show package manager event to the renderer process
  */
 function emitShowPackageManager(): void {
-  const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    logMessage("Sending SHOW_PACKAGE_MANAGER to renderer");
-    mainWindow.webContents.send(IpcChannels.SHOW_PACKAGE_MANAGER);
-  } else {
-    logMessage("No main window available to send SHOW_PACKAGE_MANAGER");
-  }
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach((w) => {
+    if (!w.isDestroyed()) {
+      logMessage("Sending SHOW_PACKAGE_MANAGER to renderer");
+      w.webContents.send(IpcChannels.SHOW_PACKAGE_MANAGER);
+    }
+  });
 }
 
 export {
