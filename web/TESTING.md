@@ -136,7 +136,8 @@ E2E tests are located in:
 
 ```
 web/tests/e2e/
-├── download_websocket.spec.ts
+├── app-loads.spec.ts          # Basic app loading and navigation tests
+├── download_websocket.spec.ts # WebSocket download functionality tests
 └── ...
 ```
 
