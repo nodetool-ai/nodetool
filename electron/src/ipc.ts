@@ -20,7 +20,7 @@ import { readSettings, updateSetting } from "./settings";
 import { createPackageManagerWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
-import { updateTrayMenu } from "./tray";
+import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
 import {
   fetchAvailablePackages,
   listInstalledPackages,
@@ -356,7 +356,7 @@ export function initializeIpcHandlers(): void {
     async (event, workflow) => {
       logMessage(`Creating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
-      updateTrayMenu();
+      emitWorkflowsChanged();
     }
   );
 
@@ -365,7 +365,7 @@ export function initializeIpcHandlers(): void {
     async (event, workflow) => {
       logMessage(`Updating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
-      updateTrayMenu();
+      emitWorkflowsChanged();
     }
   );
 
@@ -376,7 +376,7 @@ export function initializeIpcHandlers(): void {
       if (workflow.settings?.shortcut) {
         globalShortcut.unregister(workflow.settings.shortcut);
       }
-      updateTrayMenu();
+      emitWorkflowsChanged();
     }
   );
 
@@ -543,7 +543,7 @@ export function initializeIpcHandlers(): void {
     async (_event, action) => {
       logMessage(`Setting window close behavior to: ${action}`);
       updateSetting("windowCloseAction", action);
-      updateTrayMenu();
+      emitServerStateChanged();
     }
   );
 

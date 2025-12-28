@@ -18,7 +18,7 @@ import { getServerUrl, getServerPort } from "./utils";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
-import { updateTrayMenu } from "./tray";
+import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
@@ -511,7 +511,7 @@ function handleServerOutput(data: Buffer): void {
     logMessage("Server startup complete");
     emitBootMessage("Loading application...");
     emitServerStarted();
-    updateTrayMenu();
+    emitServerStateChanged();
   }
   emitServerLog(output);
 }
@@ -521,7 +521,24 @@ function handleServerOutput(data: Buffer): void {
  * @returns Promise resolving to true if server is running, false otherwise
  */
 async function isServerRunning(): Promise<boolean> {
-  return backendWatchdog !== null;
+  // Quick check: if we have a watchdog, server is likely running
+  // But we should verify with a health check to be sure
+  const port = serverState.serverPort;
+  if (!port) {
+    return false;
+  }
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
+    const response = await fetch(`http://127.0.0.1:${port}/health`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -574,7 +591,7 @@ async function initializeBackendServer(): Promise<void> {
           if (response.ok) {
             logMessage("Server already running and healthy, connecting...");
             emitServerStarted();
-            await updateTrayMenu();
+            emitServerStateChanged();
             return;
           }
         } catch (fetchError: any) {
@@ -689,6 +706,7 @@ async function stopServer(): Promise<void> {
 
   serverState.isStarted = false;
   serverState.status = "idle";
+  emitServerStateChanged();
   logMessage("Graceful shutdown complete");
 }
 
