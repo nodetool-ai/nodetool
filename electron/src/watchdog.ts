@@ -16,6 +16,7 @@ export interface WatchdogOptions {
   healthCheckIntervalMs?: number;
   gracefulStopTimeoutMs?: number;
   onOutput?: (line: string) => void;
+  logOutput?: boolean;
 }
 
 export class Watchdog {
@@ -316,7 +317,9 @@ export class Watchdog {
   private handleOutput(buf: Buffer) {
     const out = buf.toString().trim();
     if (out) {
-      logMessage(out);
+      if (this.opts.logOutput !== false) {
+        logMessage(out);
+      }
       if (this.opts.onOutput) this.opts.onOutput(out);
     }
   }
