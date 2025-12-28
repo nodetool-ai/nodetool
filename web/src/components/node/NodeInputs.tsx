@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import { memo, useCallback, useMemo } from "react";
 import PropertyField from "./PropertyField";
 import { NodeMetadata, Property, TypeMetadata } from "../../stores/ApiTypes";
@@ -126,6 +127,24 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   hasAdvancedFields,
   onToggleAdvancedFields
 }) => {
+  const rootStyles = useMemo(
+    () =>
+      css({
+        marginTop: "0.5em"
+      }),
+    []
+  );
+
+  const expandButtonContainerStyles = useMemo(
+    () =>
+      css({
+        display: "flex",
+        justifyContent: "center",
+        margin: "4px 0"
+      }),
+    []
+  );
+
   const tabableProperties = properties.filter((property) => {
     const type = property.type;
     return !type.optional && type.type !== "readonly";
@@ -230,24 +249,48 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   );
 
   return (
-    <div className={`node-inputs node-drag-handle node-${id}`}>
+    <div className={`node-inputs node-drag-handle node-${id}`} css={rootStyles}>
       {basicInputs}
 
       {hasAdvancedFields && (
-        <div className="expand-button-container">
+        <div className="expand-button-container" css={expandButtonContainerStyles}>
           <Tooltip
             title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
             placement="bottom"
             enterDelay={TOOLTIP_ENTER_DELAY}
           >
             <Button
-              className={`advanced-fields-button${
-                showAdvancedFields ? " active" : ""
-              }`}
               tabIndex={-1}
               onClick={onToggleAdvancedFields}
               size="small"
               variant="text"
+              sx={(theme) => ({
+                margin: "0 2px",
+                padding: "0.1em 1em 0.1em 0.5em",
+                minWidth: 0,
+                fontSize: "0.7rem",
+                color: theme.vars.palette.grey[500],
+                backgroundColor: "transparent",
+                border: "none",
+                cursor: "pointer",
+                textAlign: "left",
+                "&:hover": {
+                  backgroundColor: "transparent",
+                  color: theme.vars.palette.grey[0]
+                },
+                "& .MuiSvgIcon-root": {
+                  transition: "transform 0.3s ease, color 0.2s ease",
+                  fontSize: "1rem",
+                  verticalAlign: "middle",
+                  marginRight: "2px",
+                  transform: showAdvancedFields
+                    ? "rotate(180deg) scale(0.7)"
+                    : "scale(0.7)",
+                  color: showAdvancedFields
+                    ? theme.vars.palette.primary.main
+                    : "inherit"
+                }
+              })}
             >
               <ExpandMoreIcon /> {showAdvancedFields ? "Less" : "More"}
             </Button>

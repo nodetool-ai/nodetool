@@ -268,21 +268,6 @@
 /* --------------------------------------------- */
 /* Node inputs and menus                          */
 /* --------------------------------------------- */
-.node-inputs {
-  margin-top: 0.5em;
-}
-
-/* Model button */
-.model-button {
-  width: 90%;
-  border: 0 !important;
-}
-
-.model-button:hover {
-  cursor: pointer;
-  background-color: var(--palette-grey-600);
-}
-
 /* Node menu */
 .node-menu-bottom {
   position: relative;
@@ -388,49 +373,6 @@
 
 .node-footer-tooltip-subtitle {
   display: block;
-}
-
-.node-inputs .expand-button-container {
-  display: flex;
-  justify-content: center;
-  margin: 4px 0;
-}
-
-.node-inputs .advanced-fields-button {
-  margin: 0 2px;
-  padding: 0.1em 1em 0.1em 0.5em;
-  min-width: 0;
-  font-size: 0.7rem; /* deduped: keep effective value */
-  color: var(--palette-grey-500);
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-  text-align: left;
-}
-
-.node-inputs .advanced-fields-button.active .MuiSvgIcon-root {
-  transform: rotate(180deg);
-}
-
-.node-inputs .advanced-fields-button .MuiSvgIcon-root {
-  transition: transform 0.3s ease;
-  font-size: 1rem;
-  vertical-align: middle;
-  margin-right: 2px;
-}
-
-.node-inputs .advanced-fields-button:hover {
-  color: var(--palette-grey-0);
-}
-
-.node-inputs .advanced-fields-button.active svg {
-  color: var(--palette-primary-main);
-  transform: rotate(180deg);
-}
-
-.node-inputs .advanced-fields-button svg {
-  scale: 0.7;
 }
 
 /* --------------------------------------------- */
