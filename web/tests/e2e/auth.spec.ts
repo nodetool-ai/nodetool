@@ -12,12 +12,8 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
 
-      // In localhost mode, should redirect to dashboard
-      // Wait for URL to match expected pattern
-      await page.waitForURL(/\/(login|dashboard)/);
-      
+      // After network is idle, check if redirected to dashboard or login
       const url = page.url();
-      // Should redirect to either login or dashboard
       expect(url).toMatch(/\/(login|dashboard)/);
     });
 
@@ -25,11 +21,8 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/dashboard");
       await page.waitForLoadState("networkidle");
 
-      // Wait for potential redirects
-      await page.waitForURL(/\/(login|dashboard)/);
-
+      // After network is idle, should be on dashboard or login
       const url = page.url();
-      // Should either be on dashboard or login page
       expect(url).toMatch(/\/(login|dashboard)/);
     });
 

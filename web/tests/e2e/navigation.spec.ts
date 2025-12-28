@@ -21,20 +21,12 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto(route.path);
         await page.waitForLoadState("networkidle");
 
-        // Wait for any redirects to complete by checking URL matches pattern
-        if (route.expectedRedirect) {
-          await page.waitForURL(route.expectedRedirect);
-        } else {
-          await page.waitForURL(route.expectedUrl);
-        }
-
-        // Check URL matches expected pattern
+        // Determine the expected URL pattern
+        const expectedPattern = route.expectedRedirect || route.expectedUrl!;
+        
+        // Check URL matches expected pattern (no need to wait if already there after networkidle)
         const url = page.url();
-        if (route.expectedRedirect) {
-          expect(url).toMatch(route.expectedRedirect);
-        } else {
-          expect(url).toMatch(route.expectedUrl);
-        }
+        expect(url).toMatch(expectedPattern);
 
         // Ensure no server errors
         const bodyText = await page.textContent("body");
@@ -79,9 +71,8 @@ if (process.env.JEST_WORKER_ID) {
       // Go back
       await page.goBack();
       await page.waitForLoadState("networkidle");
-      // Wait for URL to stabilize after back navigation
-      await page.waitForURL(/\/(dashboard|login)/);
       
+      // After network is idle, URL should be stable
       const urlAfterBack = page.url();
       expect(urlAfterBack).toMatch(/\/(dashboard|login)/);
 
