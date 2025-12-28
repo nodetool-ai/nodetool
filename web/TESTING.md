@@ -128,7 +128,7 @@ npm test           # Jest tests
 
 ## End-to-End Tests
 
-The application uses **Playwright** (v1.57.0) for end-to-end testing. E2E tests run the actual backend and frontend servers to test the complete application flow.
+The application uses **Playwright** for end-to-end testing. E2E tests run the actual backend and frontend servers to test the complete application flow.
 
 ### E2E Test Structure
 
