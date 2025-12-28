@@ -38,6 +38,14 @@ export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
     const theme = useTheme();
     const tokens = useEditorTokens();
 
+    // Defensive access to theme properties for tests
+    const palette = theme?.vars?.palette ?? theme?.palette;
+    const grey = palette?.grey ?? {
+      100: "#f5f5f5",
+      400: "#bdbdbd",
+      600: "#757575"
+    };
+
     return (
       <Switch
         ref={ref}
@@ -64,7 +72,7 @@ export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
           // Track (the background)
           "& .MuiSwitch-track": {
             borderRadius: "0.25em",
-            backgroundColor: theme.vars.palette.grey[600],
+            backgroundColor: grey[600],
             opacity: 1
           },
 
@@ -72,15 +80,15 @@ export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
           "& .MuiSwitch-switchBase": {
             margin: 0,
             padding: 0,
-            color: theme.vars.palette.grey[400],
+            color: grey[400],
             transition: `transform ${tokens.transition.fast}`,
 
             "&.Mui-checked": {
-              color: theme.vars.palette.grey[100],
+              color: grey[100],
               transform: "translateX(12px)",
 
               "& + .MuiSwitch-track": {
-                backgroundColor: theme.vars.palette.grey[100],
+                backgroundColor: grey[100],
                 opacity: 1
               }
             },

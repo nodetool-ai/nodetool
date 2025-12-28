@@ -97,17 +97,28 @@ export const getEditorTokens = (
   // Inspector uses slightly larger sizes
   const isInspector = scope === "inspector";
 
+  // Defensive access to theme properties - provide fallbacks for tests
+  const palette = theme?.vars?.palette ?? theme?.palette;
+  const grey = palette?.grey ?? {
+    100: "#f5f5f5",
+    300: "#e0e0e0",
+    500: "#9e9e9e",
+    700: "#616161",
+    800: "#424242"
+  };
+  const primary = palette?.primary ?? { main: "#77b4e6" };
+
   return {
     radii: {
       control: "6px",
       panel: "8px",
-      node: theme.rounded?.node ?? "8px"
+      node: theme?.rounded?.node ?? "8px"
     },
 
     space: {
-      xs: theme.spacing(1),
-      sm: theme.spacing(2),
-      md: theme.spacing(3)
+      xs: theme?.spacing ? theme.spacing(1) : "4px",
+      sm: theme?.spacing ? theme.spacing(2) : "8px",
+      md: theme?.spacing ? theme.spacing(3) : "12px"
     },
 
     control: {
@@ -118,27 +129,31 @@ export const getEditorTokens = (
 
     border: {
       width: "1px",
-      color: theme.vars.palette.grey[700],
-      colorHover: theme.vars.palette.grey[500],
-      colorFocus: theme.vars.palette.primary.main
+      color: grey[700],
+      colorHover: grey[500],
+      colorFocus: primary.main
     },
 
     surface: {
       controlBg: "rgba(0, 0, 0, 0.2)",
       controlBgHover: "rgba(0, 0, 0, 0.3)",
       controlBgFocus: "rgba(0, 0, 0, 0.4)",
-      menuBg: theme.vars.palette.grey[800]
+      menuBg: grey[800]
     },
 
     text: {
-      controlSize: isInspector ? theme.fontSizeSmall : theme.fontSizeSmaller,
-      labelSize: isInspector ? theme.fontSizeNormal : theme.fontSizeSmall,
-      color: theme.vars.palette.grey[100],
-      colorSecondary: theme.vars.palette.grey[300]
+      controlSize: isInspector
+        ? (theme?.fontSizeSmall ?? "0.875em")
+        : (theme?.fontSizeSmaller ?? "0.75em"),
+      labelSize: isInspector
+        ? (theme?.fontSizeNormal ?? "16px")
+        : (theme?.fontSizeSmall ?? "0.875em"),
+      color: grey[100],
+      colorSecondary: grey[300]
     },
 
     focus: {
-      ring: `0 0 0 2px ${theme.vars.palette.primary.main}33`
+      ring: `0 0 0 2px ${primary.main}33`
     },
 
     transition: {
