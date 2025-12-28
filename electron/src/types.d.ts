@@ -176,6 +176,11 @@ declare global {
         setCloseBehavior: (action: WindowCloseAction) => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
       };
+
+      // Debug operations
+      debug: {
+        exportBundle: (request: DebugBundleRequest) => Promise<DebugBundleResponse>;
+      };
     };
 
     // Alias exposed by preload for legacy pages.
@@ -429,6 +434,8 @@ export enum IpcChannels {
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
   // System info channel
   GET_SYSTEM_INFO = "get-system-info",
+  // Debug channels
+  DEBUG_EXPORT_BUNDLE = "debug-export-bundle",
 }
 
 
@@ -445,6 +452,19 @@ export interface InstallToLocationData {
 
 export interface FileExplorerPathRequest {
   path: string;
+}
+
+export interface DebugBundleRequest {
+  workflow_id?: string;
+  graph?: Record<string, unknown>;
+  errors?: string[];
+  preferred_save?: "desktop" | "downloads";
+}
+
+export interface DebugBundleResponse {
+  file_path: string;
+  filename: string;
+  message: string;
 }
 
 // Request/Response types for each IPC channel
@@ -519,6 +539,8 @@ export interface IpcRequest {
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
   // System info
   [IpcChannels.GET_SYSTEM_INFO]: void;
+  // Debug
+  [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleRequest;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -583,6 +605,8 @@ export interface IpcResponse {
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;
   // System info
   [IpcChannels.GET_SYSTEM_INFO]: SystemInfo;
+  // Debug
+  [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleResponse;
 }
 
 
