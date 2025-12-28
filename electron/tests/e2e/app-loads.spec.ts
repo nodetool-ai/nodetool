@@ -1,11 +1,99 @@
 import { test, expect, _electron as electron } from '@playwright/test';
 import * as path from 'path';
+import { spawn } from 'child_process';
+import * as fs from 'fs/promises';
+import * as os from 'os';
+
+// PID file path matching the one in server.ts
+const PID_DIRECTORY = path.join(os.tmpdir(), 'nodetool');
+const PID_FILE_PATH = path.join(PID_DIRECTORY, 'nodetool.pid');
+
+// Helper function to kill existing NodeTool server processes
+async function killExistingNodeToolProcesses(): Promise<void> {
+  try {
+    const pidContent = await fs.readFile(PID_FILE_PATH, 'utf8');
+    const pid = parseInt(pidContent.trim(), 10);
+    
+    if (pid && !isNaN(pid)) {
+      try {
+        process.kill(pid, 'SIGTERM');
+        await new Promise<void>((resolve) => {
+          const checkInterval = setInterval(() => {
+            try {
+              process.kill(pid, 0);
+            } catch (e) {
+              if ((e as NodeJS.ErrnoException).code === 'ESRCH') {
+                clearInterval(checkInterval);
+                resolve();
+              }
+            }
+          }, 100);
+          
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            resolve();
+          }, 3000);
+        });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+          console.log(`Error killing process ${pid}:`, error);
+        }
+      }
+      
+      try {
+        await fs.unlink(PID_FILE_PATH);
+      } catch (error) {
+        // Ignore
+      }
+    }
+  } catch (error) {
+    // PID file doesn't exist, that's OK
+  }
+}
+
+// Helper function to kill servers on default port
+async function killServersOnDefaultPort(): Promise<void> {
+  const defaultPort = 7777;
+  const platform = os.platform();
+  let command: string;
+  
+  if (platform === 'darwin' || platform === 'linux') {
+    command = `lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`;
+  } else if (platform === 'win32') {
+    command = `netstat -ano | findstr :${defaultPort} | for /f "tokens=5" %a in ('more') do taskkill /F /PID %a 2>nul || exit 0`;
+  } else {
+    return;
+  }
+  
+  return new Promise<void>((resolve) => {
+    spawn(command, {
+      shell: true,
+      stdio: 'ignore'
+    }).on('exit', () => {
+      resolve();
+    }).on('error', () => {
+      resolve();
+    });
+  });
+}
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
   test.describe("Electron App Loading", () => {
+    // Clean up any existing servers before tests
+    test.beforeAll(async () => {
+      await killExistingNodeToolProcesses();
+      await killServersOnDefaultPort();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    });
+
+    test.afterAll(async () => {
+      await killExistingNodeToolProcesses();
+      await killServersOnDefaultPort();
+    });
+
     test("should launch the Electron app successfully", async () => {
       // Launch the Electron app
       const electronApp = await electron.launch({
