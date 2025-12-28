@@ -103,7 +103,7 @@ const ErrorBoundary: React.FC = () => {
     <ThemeProvider theme={theme}>
       <Box css={errorBoundaryStyles(theme)}>
         <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
-        <Typography className="error-title">💩</Typography>
+        <Typography sx={{ fontSize: "3em", userSelect: "none" }}>💩</Typography>
         <Typography variant="h6" className="error-message">
           If this happens again, please let us know in the
           <a
