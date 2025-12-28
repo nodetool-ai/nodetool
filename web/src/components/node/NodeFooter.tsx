@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import {
   Button,
   Tooltip,
@@ -11,7 +12,6 @@ import {
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { memo, useCallback, useState } from "react";
-import { useTheme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -20,16 +20,28 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
-  const theme = useTheme();
   const parts = namespace.split(".");
+  let prefix = "";
   return (
     <div className="pretty-namespace">
-      {parts.map((part, index) => (
-        <Typography key={index} component="span">
-          {part.replace("huggingface", "HF").replace("nodetool", "NT")}
-          {index < parts.length - 1 && "."}
-        </Typography>
-      ))}
+      {parts.map((part) => {
+        prefix = prefix ? `${prefix}.${part}` : part;
+        const isLast = prefix === namespace;
+        return (
+          <Typography
+            key={prefix}
+            component="span"
+            className={isLast ? "namespace-part-last" : undefined}
+            sx={{
+              fontWeight: isLast ? 500 : 300,
+              color: isLast ? "var(--palette-grey-400)" : "inherit"
+            }}
+          >
+            {part.replace("huggingface", "HF").replace("nodetool", "NT")}
+            {!isLast && "."}
+          </Typography>
+        );
+      })}
     </div>
   );
 });
@@ -50,6 +62,18 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   metadata,
   data
 }) => {
+  const rootCss = css({
+    display: "flex",
+    alignItems: "center",
+    background: "transparent",
+    borderTop: "1px solid rgba(255, 255, 255, 0.05)",
+    borderRadius: "0 0 8px 8px",
+    overflow: "hidden",
+    justifyContent: "space-between",
+    padding: "4px 8px",
+    minHeight: "24px"
+  });
+
   const { openNodeMenu } = useNodeMenuStore((state) => ({
     openNodeMenu: state.openNodeMenu
   }));
@@ -148,15 +172,20 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   );
 
   return (
-    <div className="node-footer">
+    <div className="node-footer" css={rootCss}>
       <div className="footer-left">
         <Tooltip
           title={
             <span>
-              <span className="node-footer-tooltip-title">{nodeNamespace}</span>
-              <span className="node-footer-tooltip-subtitle">
+              <Typography
+                component="span"
+                sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
+              >
+                {nodeNamespace}
+              </Typography>
+              <Typography component="span" sx={{ display: "block" }}>
                 Click to show in NodeMenu
-              </span>
+              </Typography>
             </span>
           }
           placement="bottom-start"
@@ -166,6 +195,30 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
             tabIndex={1}
             className="namespace-button"
             onClick={handleOpenNodeMenu}
+            sx={{
+              display: "block",
+              margin: "0 -4px",
+              padding: "2px 8px",
+              borderRadius: "4px",
+              backgroundColor: "transparent",
+              color: "var(--palette-grey-400)",
+              fontSize: "9px",
+              textTransform: "uppercase",
+              textAlign: "left",
+              flexGrow: 1,
+              overflow: "hidden",
+              letterSpacing: "0.05em",
+              fontWeight: 500,
+              minWidth: 0,
+              "& .pretty-namespace": { display: "inline-block" },
+              "&:hover": {
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                color: "var(--palette-primary-main)"
+              },
+              "&:hover .pretty-namespace span": {
+                color: "var(--palette-primary-main) !important"
+              }
+            }}
           >
             <PrettyNamespace namespace={nodeNamespace} />
           </Button>
@@ -188,7 +241,22 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
             aria-label={`Sync mode: ${data?.sync_mode || "on_any"}`}
             onClick={openSyncMenu}
             size="small"
-            sx={{ minWidth: "auto", padding: "4px" }}
+            sx={{
+              minWidth: "auto",
+              padding: "4px",
+              "& svg": {
+                transform: "scale(0.6)",
+                opacity: 0.5,
+                transition:
+                  "opacity 0.2s ease, color 0.2s ease, transform 0.2s ease",
+                cursor: "pointer"
+              },
+              "&:hover svg": {
+                opacity: 1,
+                color: "var(--palette-grey-0)",
+                transform: "scale(0.7)"
+              }
+            }}
           >
             <SyncModeIcon mode={data?.sync_mode || "on_any"} />
           </Button>
@@ -201,7 +269,22 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
           <Button
             className="footer-icon-button"
             size="small"
-            sx={{ minWidth: "auto", padding: "4px" }}
+            sx={{
+              minWidth: "auto",
+              padding: "4px",
+              "& svg": {
+                transform: "scale(0.6)",
+                opacity: 0.5,
+                transition:
+                  "opacity 0.2s ease, color 0.2s ease, transform 0.2s ease",
+                cursor: "help"
+              },
+              "&:hover svg": {
+                opacity: 1,
+                color: "var(--palette-grey-0)",
+                transform: "scale(0.7)"
+              }
+            }}
           >
             <HelpOutlineIcon fontSize="small" />
           </Button>
