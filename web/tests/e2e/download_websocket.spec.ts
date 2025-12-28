@@ -1,17 +1,15 @@
+import { TransformStream } from "stream/web";
+import { test, expect } from "@playwright/test";
+
+// Polyfill TransformStream if needed
+if (typeof globalThis.TransformStream === "undefined") {
+  globalThis.TransformStream = TransformStream;
+}
+
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
-  describe.skip("download_websocket (playwright)", () => {
-    it("skipped in jest runner", () => {});
-  });
+  test.skip("skipped in jest runner", () => {});
 } else {
-  const { TransformStream } = await import("stream/web");
-  if (typeof globalThis.TransformStream === "undefined") {
-    globalThis.TransformStream = TransformStream;
-  }
-
-  // Require after polyfill so Playwright's internals see TransformStream
-  const { test, expect } = await import("@playwright/test");
-
   test("should establish websocket connection when download starts", async ({
     page
   }) => {

@@ -1,11 +1,9 @@
+import { test, expect } from "@playwright/test";
+
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
-  describe.skip("app-loads (playwright)", () => {
-    it("skipped in jest runner", () => {});
-  });
+  test.skip("skipped in jest runner", () => {});
 } else {
-  const { test, expect } = await import("@playwright/test");
-
   test.describe("App Loading", () => {
     test("should load the home page successfully", async ({ page }) => {
       // Navigate to the root
