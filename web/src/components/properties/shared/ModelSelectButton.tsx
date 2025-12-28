@@ -64,6 +64,9 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             border: active
               ? "1px solid var(--palette-divider)"
               : "1px solid var(--palette-warning-main)",
+            backgroundColor: active
+              ? "var(--palette-primary-main) !important"
+              : "var(--palette-warning-main) !important",
             borderRadius: "4px",
             color: "var(--palette-text-primary)",
             textTransform: "none",
@@ -75,7 +78,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             height: "auto",
             padding: "4px 8px !important",
             width: "100%",
-            backgroundColor: "var(--palette-background-default)",
+            // backgroundColor: "var(--palette-background-default)",
             "&:hover": {
               backgroundColor: "var(--palette-action-hover)",
               borderColor: "var(--palette-primary-main)"
@@ -133,11 +136,11 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
           </div>
           <ExpandMoreIcon
             sx={{
-              fontSize: 10,
-              color: "var(--palette-grey-500)",
+              fontSize: 12,
+              color: "var(--palette-grey-800)",
               flexShrink: 0,
               ml: 0,
-              mr: "-5px",
+              mr: "-6px",
               opacity: 0.7
             }}
           />

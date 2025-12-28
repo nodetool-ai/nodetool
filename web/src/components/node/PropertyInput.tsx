@@ -59,15 +59,14 @@ const propertyInputContainerStyles = (theme: Theme) =>
     },
     // select model button
     "&.value-changed .select-model-button": {
-      backgroundColor: `${theme.vars.palette.primary.main} !important`,
-      color: `${theme.vars.palette.primary.contrastText} !important`
+      backgroundColor: `${theme.vars.palette.primary.main} `
     },
     "&.value-changed .select-model-button .model-select-button-label-text": {
-      color: `${theme.vars.palette.primary.contrastText} !important`
+      color: `${theme.vars.palette.c_black} !important`
     },
     "&.value-changed .select-model-button .model-select-button-label-text-secondary":
       {
-        color: `${theme.vars.palette.primary.text} !important`
+        color: `${theme.vars.palette.grey[800]} !important`
       },
     // ACTION ICONS
     "&:hover .action-icons": {
