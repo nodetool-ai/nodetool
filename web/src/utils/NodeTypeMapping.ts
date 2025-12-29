@@ -137,6 +137,62 @@ export const outputForType = (type: TypeName) => {
 };
 
 /**
+ * Maps constant node types to their corresponding input node types
+ */
+export const constantToInputType = (constantType: string): string | null => {
+  switch (constantType) {
+    case "nodetool.constant.String":
+      return "nodetool.input.StringInput";
+    case "nodetool.constant.Integer":
+      return "nodetool.input.IntegerInput";
+    case "nodetool.constant.Float":
+      return "nodetool.input.FloatInput";
+    case "nodetool.constant.Bool":
+      return "nodetool.input.BooleanInput";
+    case "nodetool.constant.Image":
+      return "nodetool.input.ImageInput";
+    case "nodetool.constant.Video":
+      return "nodetool.input.VideoInput";
+    case "nodetool.constant.Audio":
+      return "nodetool.input.AudioInput";
+    case "nodetool.constant.Document":
+      return "nodetool.input.DocumentInput";
+    case "nodetool.constant.DataFrame":
+      return "nodetool.input.DataFrameInput";
+    default:
+      return null;
+  }
+};
+
+/**
+ * Maps input node types to their corresponding constant node types
+ */
+export const inputToConstantType = (inputType: string): string | null => {
+  switch (inputType) {
+    case "nodetool.input.StringInput":
+      return "nodetool.constant.String";
+    case "nodetool.input.IntegerInput":
+      return "nodetool.constant.Integer";
+    case "nodetool.input.FloatInput":
+      return "nodetool.constant.Float";
+    case "nodetool.input.BooleanInput":
+      return "nodetool.constant.Bool";
+    case "nodetool.input.ImageInput":
+      return "nodetool.constant.Image";
+    case "nodetool.input.VideoInput":
+      return "nodetool.constant.Video";
+    case "nodetool.input.AudioInput":
+      return "nodetool.constant.Audio";
+    case "nodetool.input.DocumentInput":
+      return "nodetool.constant.Document";
+    case "nodetool.input.DataFrameInput":
+      return "nodetool.constant.DataFrame";
+    default:
+      return null;
+  }
+};
+
+/**
  * Maps internal types to constant/input node types for drag and drop
  */
 export const constantForType = (type: TypeName) => {
