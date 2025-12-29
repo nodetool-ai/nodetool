@@ -62,7 +62,6 @@ header_pages:
   - huggingface.md
   - asset-management.md
   - nodes/index.md
-  - agents.md
 
 # Collections (optional, for organizing docs)
 # collections:
