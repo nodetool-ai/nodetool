@@ -10,7 +10,19 @@ interface AssetFileResult {
   type: string;
 }
 
+export type CreateAssetFileOptions = {
+  /**
+   * Cap large text outputs (especially streaming chunk joins) to avoid browser OOM
+   * or `RangeError: Invalid string length`.
+   *
+   * Default is intentionally high for UX.
+   */
+  maxTextChars?: number;
+};
+
 const TEXT_ENCODER = new TextEncoder();
+const DEFAULT_MAX_TEXT_CHARS = 5_000_000;
+const TRUNCATION_SUFFIX = "\n… (truncated)";
 
 const MIME_EXTENSION_MAP: Record<string, string> = {
   "image/png": "png",
@@ -184,7 +196,43 @@ const chunkToOutput = (chunk: Chunk) => {
   }
 };
 
-const normalizeOutput = (output: any): any => {
+const concatTextChunksSafely = (
+  chunks: Chunk[],
+  maxChars: number
+): { text: string; truncated: boolean } => {
+  const parts: string[] = [];
+  let currentLen = 0;
+
+  for (const chunk of chunks) {
+    const piece = typeof chunk.content === "string" ? chunk.content : "";
+    if (!piece) {
+      continue;
+    }
+
+    const remaining = maxChars - currentLen;
+    if (remaining <= 0) {
+      return { text: parts.join("") + TRUNCATION_SUFFIX, truncated: true };
+    }
+
+    if (piece.length <= remaining) {
+      parts.push(piece);
+      currentLen += piece.length;
+      continue;
+    }
+
+    parts.push(piece.slice(0, remaining));
+    currentLen += remaining;
+    return { text: parts.join("") + TRUNCATION_SUFFIX, truncated: true };
+  }
+
+  return { text: parts.join(""), truncated: false };
+};
+
+const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => {
+  const maxTextChars = Math.max(
+    1,
+    options?.maxTextChars ?? DEFAULT_MAX_TEXT_CHARS
+  );
   if (Array.isArray(output)) {
     if (output.length > 0 && output.every((item) => isChunk(item))) {
       const chunks = output as Chunk[];
@@ -192,14 +240,24 @@ const normalizeOutput = (output: any): any => {
         (chunk) => chunk.content_type === "text"
       );
       if (textChunks.length === chunks.length) {
+        const { text, truncated } = concatTextChunksSafely(
+          textChunks,
+          maxTextChars
+        );
+        if (truncated) {
+          log.warn("[createAssetFile] Truncated streaming text output", {
+            maxTextChars,
+            chunks: textChunks.length
+          });
+        }
         return {
           type: "text",
-          data: textChunks.map((chunk) => chunk.content ?? "").join("")
+          data: text
         };
       }
-      return chunks.map((chunk) => normalizeOutput(chunk));
+      return chunks.map((chunk) => normalizeOutput(chunk, options));
     }
-    return output.map((item) => normalizeOutput(item));
+    return output.map((item) => normalizeOutput(item, options));
   }
 
   if (isChunk(output)) {
@@ -443,9 +501,10 @@ const createSingleAssetFile = async (
 
 export const createAssetFile = async (
   output: any | any[],
-  id: string
+  id: string,
+  options?: CreateAssetFileOptions
 ): Promise<AssetFileResult[]> => {
-  const normalized = normalizeOutput(output);
+  const normalized = normalizeOutput(output, options);
 
   if (Array.isArray(normalized)) {
     log.info("[createAssetFile] creating multiple asset files", {
