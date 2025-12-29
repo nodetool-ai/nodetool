@@ -3,10 +3,10 @@ layout: home
 ---
 
 <section class="home-hero">
-  <p class="eyebrow">Visual AI Creative Studio</p>
-  <h1>Create with AI. Visually. Effortlessly.</h1>
+  <p class="eyebrow">Open-Source Visual AI Workflow Builder</p>
+  <h1>Build AI Workflows. Visually. Effortlessly.</h1>
   <p class="lead">
-   Connect creative building blocks to generate stunning visuals, transform videos, and bring your ideas to life. Use AI models on your machine or in the cloud. Your canvas, your rules, your creations.
+   Connect AI building blocks to generate content, analyze data, and automate tasks. Use models on your machine or in the cloud. Your workflows, your data—always under your control.
   </p>
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
@@ -19,109 +19,109 @@ layout: home
 
 ## Start Here
 
-NodeTool is your **visual canvas for creative AI workflows**—connect image, video, audio, and text nodes like building blocks, then watch your ideas come to life on your machine or in the cloud.
+NodeTool is your **visual canvas for building AI workflows**—connect nodes for images, video, text, data, and automation, then run them locally or deploy to RunPod, Cloud Run, or your own servers.
 
-### Who creates with NodeTool?
+### Who uses NodeTool?
 
 <div class="persona-grid">
   <article class="persona-tile">
-    <h4>Visual Artists & Designers</h4>
-    <p>Generate art, create variations, and build unique visual styles with AI.</p>
+    <h4>Creators & Designers</h4>
+    <p>Generate art, transform media, and build unique visual pipelines with AI.</p>
     <ul>
       <li>Mix Flux, SDXL, and custom models</li>
-      <li>Create infinite variations of your concepts</li>
-      <li>Build your signature creative pipeline</li>
+      <li>Create unlimited variations</li>
+      <li>Build signature creative workflows</li>
     </ul>
   </article>
   <article class="persona-tile">
-    <h4>Video Creators & Editors</h4>
-    <p>Transform footage with AI effects, automate edits, and create stunning motion graphics.</p>
+    <h4>Developers & Researchers</h4>
+    <p>Build AI agents, RAG systems, and automated pipelines with full transparency.</p>
     <ul>
-      <li>AI-powered video enhancement and effects</li>
-      <li>Automated editing workflows</li>
-      <li>Text-to-video and image-to-video generation</li>
+      <li>Design multi-step LLM agents</li>
+      <li>Index and query documents locally</li>
+      <li>Deploy workflows as APIs</li>
     </ul>
   </article>
   <article class="persona-tile">
-    <h4>Content Creators & Storytellers</h4>
-    <p>Generate ideas, create narratives, and produce multimedia content at the speed of imagination.</p>
+    <h4>Data & Business Users</h4>
+    <p>Analyze documents, automate tasks, and extract insights without coding.</p>
     <ul>
-      <li>Story generation and brainstorming</li>
-      <li>Multi-format content pipelines</li>
-      <li>Audio narration and music creation</li>
+      <li>Process data with AI pipelines</li>
+      <li>Automate document workflows</li>
+      <li>Build custom business tools</li>
     </ul>
   </article>
 </div>
 
-### Creative projects you can start today
+### What you can build right away
 
 <div class="pattern-grid">
   <article class="pattern-card">
-    <h5>AI Art & Image Generation</h5>
-    <p>Generate stunning visuals with Flux and SDXL. Create variations, mix styles, build your creative vision.</p>
-    <a href="workflows/movie-posters.md">Movie Posters example →</a>
-    <a href="workflows/image-enhance.md">Image Enhancement →</a>
+    <h5>AI Agents & Automation</h5>
+    <p>Build multi-step agents that plan, execute, and adapt. Automate complex workflows with AI reasoning.</p>
+    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation">Agent patterns →</a>
+    <a href="workflows/realtime-agent.md">Realtime Agent →</a>
   </article>
   <article class="pattern-card">
-    <h5>Video Creation & Effects</h5>
-    <p>Transform videos with AI. Add effects, enhance quality, generate new footage from your ideas.</p>
-    <a href="workflows/color-boost-video.md">Color Boost Video →</a>
+    <h5>Document Intelligence & RAG</h5>
+    <p>Index documents, search with AI, and answer questions grounded in your sources.</p>
+    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-4-rag-retrieval-augmented-generation">RAG pattern →</a>
+    <a href="workflows/chat-with-docs.md">Chat with Docs →</a>
+  </article>
+  <article class="pattern-card">
+    <h5>Image & Video Creation</h5>
+    <p>Generate visuals, transform media, and build creative pipelines with AI models.</p>
+    <a href="workflows/movie-posters.md">Movie Posters →</a>
     <a href="workflows/story-to-video-generator.md">Story to Video →</a>
   </article>
   <article class="pattern-card">
-    <h5>Audio & Voice Creation</h5>
-    <p>Transcribe, generate narration, create voice content. Transform text into speech and speech into text.</p>
-    <a href="workflows/transcribe-audio.md">Audio Transcription →</a>
-    <a href="workflows/image-to-audio-story.md">Image to Audio Story →</a>
-  </article>
-  <article class="pattern-card">
-    <h5>Creative Idea Generation</h5>
-    <p>Never run out of ideas. Generate concepts, stories, and creative prompts powered by AI.</p>
-    <a href="workflows/creative-story-ideas.md">Story Ideas →</a>
-    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation">Creative Agent patterns →</a>
+    <h5>Data Processing & Analysis</h5>
+    <p>Transform data, extract insights, and automate reports with AI-powered workflows.</p>
+    <a href="workflows/data-visualization-pipeline.md">Data Visualization →</a>
+    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-10-data-processing-pipeline">Data patterns →</a>
   </article>
 </div>
 
 ### Your first 10 minutes
 
 <ol class="step-sequence">
-  <li><a href="installation.md">Download NodeTool</a> — install the creative studio for macOS, Windows, or Linux.</li>
-  <li><a href="getting-started.md#step-1--install-nodetool">Launch and get AI models</a> — install Flux or SDXL for instant image generation, or use cloud services.</li>
-  <li><a href="getting-started.md#step-2--run-a-beginner-workflow-end-to-end">Open a creative template</a> — try Movie Posters or Story Ideas, press Run, watch magic happen.</li>
-  <li><a href="getting-started.md#step-3--save-and-re-run-it-from-global-chat">Remix and experiment</a> — change inputs, connect nodes differently, make it yours.</li>
-  <li><a href="getting-started.md#step-4--turn-it-into-a-mini-app">Share your creation</a> — turn your workflow into an app others can use.</li>
+  <li><a href="installation.md">Download NodeTool</a> — install for macOS, Windows, or Linux.</li>
+  <li><a href="getting-started.md#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux/SDXL, or use cloud services.</li>
+  <li><a href="getting-started.md#step-2--run-a-beginner-workflow-end-to-end">Try a template workflow</a> — explore examples, press Run, watch results stream.</li>
+  <li><a href="getting-started.md#step-3--save-and-re-run-it-from-global-chat">Experiment and customize</a> — change inputs, connect nodes differently, make it yours.</li>
+  <li><a href="getting-started.md#step-4--turn-it-into-a-mini-app">Share your workflow</a> — turn it into a simple app others can use.</li>
 </ol>
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started](getting-started.md), [Visual Editor Guide](workflow-editor.md), [Creative Tips](tips-and-tricks.md), [Gallery](/workflows/).
-- **I want inspiration:** [Example Workflows](/workflows/), [Creative Patterns](cookbook.md), [Community Showcase](https://discord.gg/WmQTWZRcYE).
+- **I'm new to NodeTool:** [Getting Started](getting-started.md), [Workflow Editor](workflow-editor.md), [Tips & Tricks](tips-and-tricks.md), [Example Gallery](/workflows/).
+- **I want to explore:** [Example Workflows](/workflows/), [Workflow Patterns](cookbook.md), [Community](https://discord.gg/WmQTWZRcYE).
 - **I need AI models:** [Models & Providers](models-and-providers.md), [HuggingFace Integration](huggingface.md), [Local vs Cloud](models.md).
-- **I'm ready to share:** [Deployment Guide](deployment.md), [Mini-Apps](getting-started.md#step-4--turn-it-into-a-mini-app), [API Access](workflow-api.md).
+- **I'm ready to deploy:** [Deployment Guide](deployment.md), [Self-Hosted Setup](self_hosted.md), [API Access](workflow-api.md).
 - **Reference & Help:** [Node Library](node-packs.md), [Glossary](glossary.md), [Troubleshooting](troubleshooting.md), [Asset Management](asset-management.md).
 
-### Create on your terms
+### Local-first or cloud-augmented
 
 <div class="mode-split">
   <article class="mode-card">
-    <h4>Local Creative Studio</h4>
-    <p>All AI runs on your machine. Keep your creative work private, create offline, unlimited generations.</p>
+    <h4>Local-only mode</h4>
+    <p>All workflows, assets, and models run on your machine for maximum privacy and control.</p>
     <ul>
-      <li>Use Flux, SDXL, Whisper, and more—all local</li>
-      <li>Your assets stored where you want them</li>
-      <li>No internet needed once models are downloaded</li>
+      <li>Use MLX, llama.cpp, Whisper, and Flux locally</li>
+      <li>Store assets on disk or your own storage</li>
+      <li>Work offline once models are downloaded</li>
     </ul>
     <a href="storage.md">Storage options →</a>
   </article>
   <article class="mode-card">
-    <h4>Cloud-Powered Creation</h4>
-    <p>Mix local AI with cloud services for maximum creative power. Best of both worlds.</p>
+    <h4>Cloud-augmented mode</h4>
+    <p>Mix local AI with cloud services for flexibility. Use the best tool for each task.</p>
     <ul>
-      <li>Add OpenAI, Anthropic, or Replicate API keys</li>
-      <li>Access cutting-edge models instantly</li>
-      <li>Scale your creative workflows to the cloud</li>
+      <li>Add API keys for OpenAI, Anthropic, Replicate</li>
+      <li>Access cutting-edge models on demand</li>
+      <li>Deploy workflows to cloud infrastructure</li>
     </ul>
-    <a href="models-and-providers.md">AI Models guide →</a>
+    <a href="models-and-providers.md">Models & Providers →</a>
   </article>
 </div>
 
@@ -198,19 +198,19 @@ NodeTool is your **visual canvas for creative AI workflows**—connect image, vi
 </section>
 
 <section class="home-section">
-  <h2>Why creators choose NodeTool</h2>
+  <h2>Why teams choose NodeTool</h2>
   <div class="feature-grid">
     <article class="feature-card">
-      <h3>🎨 Total Creative Freedom</h3>
-      <p>No subscriptions, no usage limits, no restrictions. Generate thousands of images, hours of video, unlimited content. Run AI on your machine or mix with cloud services. Create on your terms, at your pace.</p>
+      <h3>🎯 Visual & Accessible</h3>
+      <p>Build AI workflows without coding. Drag-and-drop interface makes complex AI pipelines approachable for everyone—from developers to business users to creators. See your entire workflow on one canvas.</p>
     </article>
     <article class="feature-card">
-      <h3>👁️ See Your Creative Process</h3>
-      <p>Watch your ideas flow through the canvas in real-time. Every step is visible—understand your pipeline, experiment fearlessly, perfect your technique. Like seeing your Photoshop layers come to life.</p>
+      <h3>👁️ Transparent & Debuggable</h3>
+      <p>See every step of your AI pipeline in real-time. Inspect intermediate outputs, understand what's happening, and debug with confidence. No black-box mystery—streaming execution shows progress as it happens.</p>
     </article>
     <article class="feature-card">
-      <h3>🔒 Your Work Stays Yours</h3>
-      <p>Keep creative projects private. Run AI locally without sending data to third parties. Perfect for client work, unreleased projects, or personal creations. Choose privacy by default or cloud services when you need them.</p>
+      <h3>🔒 Privacy-first by design</h3>
+      <p>Run LLMs, Whisper, and diffusion models entirely on your infrastructure. Keep sensitive data private with local execution. Opt into cloud APIs only when you choose—never by default.</p>
     </article>
   </div>
 </section>

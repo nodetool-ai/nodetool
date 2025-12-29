@@ -1,18 +1,18 @@
 ---
 layout: page
 title: "Getting Started"
-description: "Create your first AI artwork in 10 minutes and discover three ways to bring your ideas to life—no coding required."
+description: "Build your first AI workflow in 10 minutes and discover how to run it in multiple ways—no coding required."
 ---
 
-Welcome! This hands-on guide shows you how NodeTool turns creative ideas into reality—fast. **No AI experience or coding required** – just your imagination and curiosity.
+Welcome! This hands-on guide shows you how NodeTool works—fast. **No AI experience or coding required** – just curiosity and willingness to explore.
 
-> **What you'll create**: In about 10 minutes, you'll:
-> - ✅ Generate AI-powered creative content
-> - ✅ Watch your ideas materialize in real-time
-> - ✅ Learn three different ways to create with AI
-> - ✅ Build your first custom creative workflow
+> **What you'll accomplish**: In about 10 minutes, you'll:
+> - ✅ Run a complete AI workflow
+> - ✅ Watch results generate in real-time
+> - ✅ Learn multiple ways to use workflows
+> - ✅ Understand the visual workflow builder
 
-**Why NodeTool?** You're not just learning a tool—you're discovering how to create with AI while keeping full control of your process and privacy.
+**Why NodeTool?** You're learning how to build AI workflows with full transparency and control—whether you're creating content, analyzing data, or automating tasks.
 
 If you'd like a visual overview first, check out the [Start Here guide](index.md#start-here).
 
@@ -20,9 +20,9 @@ If you'd like a visual overview first, check out the [Start Here guide](index.md
 
 ## Before You Begin
 
-**What is a workflow?** Think of it like a creative recipe or a video editing timeline. Each step (called a "node") does one thing—like generating an image or transforming colors—and passes the result to the next step. Connect them visually, and watch your creation flow from idea to final output.
+**What is a workflow?** Think of it like a recipe or a pipeline. Each step (called a "node") does one thing—like generating an image, analyzing text, or transforming data—and passes the result to the next step. Connect them visually to build something powerful.
 
-**What are AI models?** Think of them as creative assistants that have already learned specific skills. Want to generate art? There's a model for that. Transform video? There's a model. You don't train them—just pick the right assistant for your creative task.
+**What are AI models?** Pre-trained programs that have learned specific skills. Want to generate images? There's a model. Analyze documents? There's a model. You don't train them—just pick the right tool for your task.
 
 ---
 
@@ -48,136 +48,136 @@ If you'd like a visual overview first, check out the [Start Here guide](index.md
 
 ### Install Your First AI Models
 
-For the creative tutorials to work, you'll need some AI models:
+To run the example workflows, you'll need some AI models:
 
 1. Open **Models → Model Manager** from the top navigation
-2. Install these recommended models for creators:
-   - **Flux** – stunning AI image generation
-   - **SDXL** – versatile image creation
-   - **GPT-OSS** (optional) – for text and ideas
+2. Install these recommended starter models:
+   - **Flux** or **SDXL** – for image generation
+   - **GPT-OSS** (optional) – for text generation
 3. Wait for downloads to complete (~20 GB total)
 
-> **Tip**: Don't have a powerful GPU? No problem! Skip local models and use cloud services (like OpenAI or Replicate) by adding your API key in `Settings → Providers`. You'll still create amazing things.
+> **Tip**: Don't have a powerful GPU? No problem! Skip local models and use cloud services (like OpenAI or Replicate) by adding your API key in `Settings → Providers`. You'll still accomplish the same tasks.
 
-✅ **Checkpoint**: You should now see the NodeTool Dashboard with Templates and creative examples ready to explore.
+✅ **Checkpoint**: You should now see the NodeTool Dashboard with Templates and example workflows ready to explore.
 
 ---
 
-## Step 2 — Create Your First AI Art
+## Step 2 — Run Your First Workflow
 
-Let's create something visual with a pre-built template. Pick **one** of these creative options:
+Let's run a pre-built template to see how workflows work. Pick **one** of these options:
 
-### Option A: Generate Movie Posters (AI Image Creation)
+### Option A: Generate Movie Posters (Image Generation)
 
-*Best for: Seeing AI transform ideas into stunning visuals*
+*Best for: Seeing AI transform text descriptions into visuals*
 
 1. **Find the template**: On the Dashboard, look for "Movie Posters" in the Templates panel and click it
-2. **Open in Editor**: Click **Open in Editor** to see your creative canvas
-3. **Understand the magic**:
+2. **Open in Editor**: Click **Open in Editor** to see the workflow canvas
+3. **Understand the pipeline**:
    - **Input nodes** (left) – where you describe your movie
    - **AI Strategy node** (middle) – plans the visual concept
-   - **Image Generator** (right) – creates the actual poster art
-   - **Preview** – where your creation appears
+   - **Image Generator** (right) – creates the actual poster
+   - **Preview** – where your result appears
 
 4. **Customize your poster**: Click the input nodes and describe your movie:
    - **Title**: "Ocean Depths"
    - **Genre**: "Sci-Fi Thriller"
    - **Audience**: "Adults who love mystery"
 
-5. **Generate**: Click the **Run** button (bottom-right) or press <kbd>Ctrl/⌘ + Enter</kbd>
-6. **Watch the process**: Your poster will generate before your eyes!
+5. **Run it**: Click the **Run** button (bottom-right) or press <kbd>Ctrl/⌘ + Enter</kbd>
+6. **Watch the process**: Your poster will generate step by step!
 
-**What just happened?** You gave AI a creative brief, it planned a visual strategy, then generated professional-looking poster concepts. The entire creative pipeline visible on your canvas.
+**What just happened?** You provided inputs, AI planned a strategy, then generated a visual result. The entire pipeline is visible on your canvas.
 
-### Option B: Creative Story Ideas (Idea Generation)
+### Option B: Creative Story Ideas (Text Generation)
 
-*Best for: Never running out of creative concepts*
+*Best for: Seeing AI generate ideas and content*
 
-1. **Find the template**: Look for "Creative Story Ideas" in Templates and open it in the Editor
+1. **Find the template**: Look for "Creative Story Ideas" in Templates and open it
 2. **Understand the flow**:
-   - **StringInput** nodes – your creative parameters
-   - **Agent** node – AI that generates ideas
+   - **Input nodes** – your creative parameters
+   - **AI Agent** – generates ideas based on inputs
    - **Preview** – where ideas appear as they're created
 
-3. **Set your creative direction**: Click the input nodes:
+3. **Set your parameters**: Click the input nodes:
    - **Genre**: "Cyberpunk"
    - **Character**: "Rogue AI detective"
    - **Setting**: "Neon-lit underwater city"
 
-4. **Generate ideas**: Click **Run** or press <kbd>Ctrl/⌘ + Enter</kbd>
-5. **Watch creativity flow**: Ideas stream in one at a time—instant inspiration!
+4. **Generate**: Click **Run** or press <kbd>Ctrl/⌘ + Enter</kbd>
+5. **Watch ideas flow**: Ideas stream in one at a time!
 
-**What just happened?** You set creative parameters and AI generated dozens of unique story concepts. Perfect for brainstorming, overcoming creative blocks, or starting new projects.
+**What just happened?** You set parameters and AI generated multiple unique ideas. Perfect for brainstorming or starting new projects.
 
-✅ **Checkpoint**: You've created your first AI-generated content! The results appeared right in your workflow canvas.
+✅ **Checkpoint**: You've run your first AI workflow! The results appeared right in the workflow canvas.
 
 ---
 
-## Step 3 — Experiment and Make It Yours
+## Step 3 — Customize and Iterate
 
-Now let's personalize your workflow and see how easy it is to iterate.
+Now let's personalize your workflow and see how easy it is to experiment.
 
-1. **Save your workflow**: Press <kbd>Ctrl/⌘ + S</kbd> or use `File → Save`. Give it a creative name like "My Poster Generator"
+1. **Save your workflow**: Press <kbd>Ctrl/⌘ + S</kbd> or use `File → Save`. Give it a descriptive name
 
-2. **Try different inputs**: Go back and change your creative parameters:
-   - Different movie titles, genres, or audiences for posters
-   - New story settings and characters for ideas
+2. **Try different inputs**: Go back and change your parameters:
+   - Different movie titles, genres, or audiences
+   - New story settings and characters
    
-3. **Run again**: Each time you click Run, you get fresh, unique results
+3. **Run again**: Each time you click Run, you get fresh results
 
-4. **Explore the canvas**: Try these creative experiments:
+4. **Explore the canvas**: Try these experiments:
    - Click any node to see its settings
    - Hover over connections to see what data flows through
-   - Click Preview nodes to see results at any stage
+   - Click Preview nodes to inspect results at any stage
 
-**Why is this powerful?** Unlike traditional tools where you make one thing at a time, NodeTool lets you create variations instantly. Generate dozens of concepts in seconds, pick the best ones, refine them. It's like having a creative studio that never gets tired.
+**Why is this powerful?** Unlike one-off AI tools, NodeTool lets you iterate instantly. Generate dozens of variations, pick the best ones, refine them. It's a workflow you can save, modify, and reuse.
 
-✅ **Checkpoint**: You've learned to customize and iterate—the core of creative AI workflows.
+✅ **Checkpoint**: You've learned to customize and iterate—the core of working with AI workflows.
 
 ---
 
-## Step 4 — Share Your Creative Tool
+## Step 4 — Share as a Mini-App
 
 Turn your workflow into a simple app that anyone can use—no NodeTool knowledge required.
 
 1. **Open your workflow** in the editor
 2. **Click Mini-App** in the top-right corner
-3. **See the simplified view**: You'll see a clean interface with just the creative inputs and outputs
-4. **Share it**: Perfect for clients, collaborators, or anyone who just wants to create—without seeing the technical pipeline
+3. **See the simplified view**: You'll see a clean interface with just the inputs and outputs
+4. **Share it**: Perfect for collaborators, clients, or anyone who just wants results—without seeing the workflow complexity
 
-**What just happened?** NodeTool generated a user-friendly interface from your workflow. The same AI pipeline runs underneath, but users see only what they need: inputs to customize and results to enjoy. Like sharing a Photoshop action as a one-click filter.
+**What just happened?** NodeTool generated a user-friendly interface from your workflow. The same AI pipeline runs underneath, but users see only what they need: inputs to customize and results to use. Like packaging a complex tool into a simple app.
 
-✅ **Checkpoint**: You now have **three ways** to create: Visual Editor (full control), Chat (conversational), and Mini-App (simplified for anyone).
+✅ **Checkpoint**: You now have **three ways** to work: Visual Editor (full control), Chat (conversational), and Mini-App (simplified for anyone).
 
 ---
 
-## Recap: Your Creative Journey
+## Recap: What You've Learned
 
 🎉 **Congratulations!** You've mastered the NodeTool basics:
 
 - ✅ Installed NodeTool and AI models
-- ✅ Generated AI art or creative ideas
-- ✅ Understood nodes, connections, and creative flow
-- ✅ Customized and iterated on your creations
-- ✅ Shared your workflow as a Mini-App
+- ✅ Run a complete AI workflow
+- ✅ Understood nodes, connections, and data flow
+- ✅ Customized and iterated on workflows
+- ✅ Shared a workflow as a Mini-App
 
 ---
 
-## What's Next: Level Up Your Creativity
+## What's Next
 
-### Explore Creative Techniques
-- **[User Interface Guide](user-interface.md)** – Master every tool in your creative arsenal
-- **[Workflow Editor](workflow-editor.md)** – Build custom creative pipelines from scratch
-- **[Creative Tips](tips-and-tricks.md)** – Pro techniques for faster creation
+### Learn More
+- **[Key Concepts](key-concepts.md)** – Deeper understanding of workflows and AI
+- **[User Interface Guide](user-interface.md)** – Master every tool and feature
+- **[Workflow Editor](workflow-editor.md)** – Build custom workflows from scratch
+- **[Tips & Tricks](tips-and-tricks.md)** – Power user techniques
 
-### Get Inspired
-- **[Workflow Gallery](workflows/)** – 19+ ready-to-use creative workflows
-- **[Creative Patterns](cookbook.md)** – Common patterns and best practices
-- **[Node Library](node-packs.md)** – Discover all available creative nodes
+### Explore Examples
+- **[Workflow Gallery](workflows/)** – 19+ ready-to-use workflows
+- **[Workflow Patterns](cookbook.md)** – Common patterns and best practices
+- **[Node Library](node-packs.md)** – Discover all available nodes
 
 ### Go Further
-- **[AI Models Guide](models-and-providers.md)** – Set up more models for your creative work
-- **[Asset Management](asset-management.md)** – Organize your creative files
+- **[Models & Providers](models-and-providers.md)** – Set up more AI models
+- **[Asset Management](asset-management.md)** – Organize your files
 - **[Deployment Guide](deployment.md)** – Share workflows with the world
 
 ---
@@ -185,5 +185,5 @@ Turn your workflow into a simple app that anyone can use—no NodeTool knowledge
 ## Need Help?
 
 - **[Glossary](glossary.md)** – Plain-English definitions of all terms
-- **[Discord Community](https://discord.gg/26m5xBwe)** – Get help from fellow creators
+- **[Discord Community](https://discord.gg/26m5xBwe)** – Get help from other users
 - **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** – Report bugs or request features
