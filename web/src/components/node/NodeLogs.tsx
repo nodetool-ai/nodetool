@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useRef, useEffect, useMemo, useCallback, useState } from "react";
+import { memo, useRef, useEffect, useCallback, useState } from "react";
 import {
   Typography,
   Tooltip,
@@ -19,7 +19,6 @@ import {
 import useLogsStore from "../../stores/LogStore";
 import isEqual from "lodash/isEqual";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CloseIcon from "@mui/icons-material/Close";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 
@@ -57,7 +56,11 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const count = logs?.length || 0;
 
   const onCopy = useCallback(() => {
-    const text = (logs || [])
+    // Avoid attempting to allocate extremely large clipboard strings.
+    const MAX_LINES = 2000;
+    const logsToCopy = (logs || []).slice(-MAX_LINES);
+
+    const text = logsToCopy
       .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
       .join("\n");
 
@@ -75,7 +78,9 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
     }
   }, [logs]);
 
-  if (count === 0) {return null;}
+  if (count === 0) {
+    return null;
+  }
 
   return (
     <div className="node-logs-container" css={styles(theme)}>
