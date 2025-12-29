@@ -75,6 +75,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
   // Determine what to show when overlay is not active
   const shouldShowResultButton =
     result && onShowResults && status === "completed";
+  // Show inline result when: no result exists OR status is not completed
+  // (i.e., don't show inline result when there's a completed result, since we show the button instead)
   const shouldShowInlineResult = !(result && status === "completed");
   
   return (
@@ -117,7 +119,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
           </Button>
         </Box>
       )}
-      {/* Show inline result only when node is not completed with a result */}
+      {/* Show inline result when there's no completed result to display in overlay */}
       {shouldShowInlineResult && renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
