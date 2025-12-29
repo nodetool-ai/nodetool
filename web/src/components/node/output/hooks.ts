@@ -37,7 +37,11 @@ export function useImageAssets(value: any) {
           url = (item as any).uri as string;
         } else if ((item as any).data) {
           try {
-            const blob = new Blob([(item as any).data as Uint8Array], {
+            // Ensure the typed array is backed by a non-shared ArrayBuffer (BlobPart typing)
+            const safeBytes: Uint8Array<ArrayBuffer> = new Uint8Array(
+              (item as any).data as Uint8Array<ArrayBufferLike>
+            );
+            const blob = new Blob([safeBytes], {
               type: contentType
             });
             url = URL.createObjectURL(blob);
@@ -70,7 +74,9 @@ export function useRevokeBlobUrls(urls: string[]) {
     return () => {
       urls.forEach((u) => {
         try {
-          if (u && u.startsWith("blob:")) {URL.revokeObjectURL(u);}
+          if (u && u.startsWith("blob:")) {
+            URL.revokeObjectURL(u);
+          }
         } catch {
           console.error("Error revoking blob URL", u);
         }
