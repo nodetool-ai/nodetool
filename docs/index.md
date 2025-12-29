@@ -60,24 +60,24 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
     <h5>AI Agents & Automation</h5>
     <p>Build multi-step agents that plan, execute, and adapt. Automate complex workflows with AI reasoning.</p>
     <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation">Agent patterns →</a>
-    <a href="workflows/realtime-agent.md">Realtime Agent →</a>
+    <a href="{{ '/workflows/realtime-agent' | relative_url }}">Realtime Agent →</a>
   </article>
   <article class="pattern-card">
     <h5>Document Intelligence & RAG</h5>
     <p>Index documents, search with AI, and answer questions grounded in your sources.</p>
     <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-4-rag-retrieval-augmented-generation">RAG pattern →</a>
-    <a href="workflows/chat-with-docs.md">Chat with Docs →</a>
+    <a href="{{ '/workflows/chat-with-docs' | relative_url }}">Chat with Docs →</a>
   </article>
   <article class="pattern-card">
     <h5>Image & Video Creation</h5>
     <p>Generate visuals, transform media, and build creative pipelines with AI models.</p>
-    <a href="workflows/movie-posters.md">Movie Posters →</a>
-    <a href="workflows/story-to-video-generator.md">Story to Video →</a>
+    <a href="{{ '/workflows/movie-posters' | relative_url }}">Movie Posters →</a>
+    <a href="{{ '/workflows/story-to-video-generator' | relative_url }}">Story to Video →</a>
   </article>
   <article class="pattern-card">
     <h5>Data Processing & Analysis</h5>
     <p>Transform data, extract insights, and automate reports with AI-powered workflows.</p>
-    <a href="workflows/data-visualization-pipeline.md">Data Visualization →</a>
+    <a href="{{ '/workflows/data-visualization-pipeline' | relative_url }}">Data Visualization →</a>
     <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-10-data-processing-pipeline">Data patterns →</a>
   </article>
 </div>
@@ -85,20 +85,21 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
 ### Your first 10 minutes
 
 <ol class="step-sequence">
-  <li><a href="installation.md">Download NodeTool</a> — install for macOS, Windows, or Linux.</li>
-  <li><a href="getting-started.md#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux/SDXL, or use cloud services.</li>
-  <li><a href="getting-started.md#step-2--run-a-beginner-workflow-end-to-end">Try a template workflow</a> — explore examples, press Run, watch results stream.</li>
-  <li><a href="getting-started.md#step-3--save-and-re-run-it-from-global-chat">Experiment and customize</a> — change inputs, connect nodes differently, make it yours.</li>
-  <li><a href="getting-started.md#step-4--turn-it-into-a-mini-app">Share your workflow</a> — turn it into a simple app others can use.</li>
+  <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> — install for macOS, Windows, or Linux.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux/SDXL, or use cloud services.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-a-beginner-workflow-end-to-end">Try a template workflow</a> — explore examples, press Run, watch results stream.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-3--save-and-re-run-it-from-global-chat">Experiment and customize</a> — change inputs, connect nodes differently, make it yours.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-4--turn-it-into-a-mini-app">Share your workflow</a> — turn it into a simple app others can use.</li>
 </ol>
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started](getting-started.md), [Workflow Editor](workflow-editor.md), [Tips & Tricks](tips-and-tricks.md), [Example Gallery](/workflows/).
-- **I want to explore:** [Example Workflows](/workflows/), [Workflow Patterns](cookbook.md), [Community](https://discord.gg/WmQTWZRcYE).
-- **I need AI models:** [Models & Providers](models-and-providers.md), [HuggingFace Integration](huggingface.md), [Local vs Cloud](models.md).
-- **I'm ready to deploy:** [Deployment Guide](deployment.md), [Self-Hosted Setup](self_hosted.md), [API Access](workflow-api.md).
-- **Reference & Help:** [Node Library](node-packs.md), [Glossary](glossary.md), [Troubleshooting](troubleshooting.md), [Asset Management](asset-management.md).
+- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Tips & Tricks]({{ '/tips-and-tricks' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
+- **I want to explore:** [Example Workflows]({{ '/workflows/' | relative_url }}), [Workflow Patterns]({{ '/cookbook' | relative_url }}), [Community](https://discord.gg/WmQTWZRcYE).
+- **I need AI models:** [Models & Providers]({{ '/models-and-providers' | relative_url }}), [HuggingFace Integration]({{ '/huggingface' | relative_url }}), [Local vs Cloud]({{ '/models' | relative_url }}).
+- **I'm ready to deploy:** [Deployment Guide]({{ '/deployment' | relative_url }}), [Self-Hosted Setup]({{ '/self_hosted' | relative_url }}), [API Access]({{ '/workflow-api' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).
+- **I'm a developer:** [Developer Guide]({{ '/developer/' | relative_url }}), [CLI Reference]({{ '/cli' | relative_url }}), [API Reference]({{ '/api-reference' | relative_url }}), [Architecture]({{ '/architecture' | relative_url }}).
+- **Reference & Help:** [Node Library]({{ '/node-packs' | relative_url }}), [Glossary]({{ '/glossary' | relative_url }}), [Troubleshooting]({{ '/troubleshooting' | relative_url }}), [Asset Management]({{ '/asset-management' | relative_url }}).
 
 ### Local-first or cloud-augmented
 
@@ -111,7 +112,7 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
       <li>Store assets on disk or your own storage</li>
       <li>Work offline once models are downloaded</li>
     </ul>
-    <a href="storage.md">Storage options →</a>
+    <a href="{{ '/storage' | relative_url }}">Storage options →</a>
   </article>
   <article class="mode-card">
     <h4>Cloud-augmented mode</h4>
@@ -121,7 +122,7 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
       <li>Access cutting-edge models on demand</li>
       <li>Deploy workflows to cloud infrastructure</li>
     </ul>
-    <a href="models-and-providers.md">Models & Providers →</a>
+    <a href="{{ '/models-and-providers' | relative_url }}">Models & Providers →</a>
   </article>
 </div>
 
@@ -191,9 +192,9 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
   </ul>
 
   <div class="cta-row">
-    <a href="getting-started.md" class="cta-button primary">Get Started →</a>
-    <a href="self_hosted.md" class="cta-button">Self-Hosted Setup →</a>
-    <a href="deployment.md" class="cta-button ghost">Deployment Guide →</a>
+    <a href="{{ '/getting-started' | relative_url }}" class="cta-button primary">Get Started →</a>
+    <a href="{{ '/self_hosted' | relative_url }}" class="cta-button">Self-Hosted Setup →</a>
+    <a href="{{ '/deployment' | relative_url }}" class="cta-button ghost">Deployment Guide →</a>
   </div>
 </section>
 
@@ -228,7 +229,11 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
     <li><a href="{{ '/models-and-providers' | relative_url }}">Models & providers →</a></li>
     <li><a href="{{ '/huggingface' | relative_url }}">HuggingFace integration →</a></li>
     <li><a href="{{ '/global-chat-agents' | relative_url }}">Global Chat & agents →</a></li>
+    <li><a href="{{ '/cli' | relative_url }}">CLI reference →</a></li>
+    <li><a href="{{ '/api-reference' | relative_url }}">API reference →</a></li>
+    <li><a href="{{ '/configuration' | relative_url }}">Configuration →</a></li>
     <li><a href="{{ '/deployment' | relative_url }}">Deploy to RunPod / Cloud Run →</a></li>
+    <li><a href="{{ '/architecture' | relative_url }}">Architecture →</a></li>
     <li><a href="{{ '/developer/' | relative_url }}">Developer guide →</a></li>
   </ul>
 </section>
