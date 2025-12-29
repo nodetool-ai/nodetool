@@ -10,6 +10,7 @@ export const outputStyles = (theme: Theme) =>
       width: "100%",
       padding: ".25em",
       overflow: "auto",
+      fontSize: "var(--fontSizeSmaller)",
       userSelect: "text",
       cursor: "text"
     },
