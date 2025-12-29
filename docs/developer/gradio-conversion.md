@@ -65,7 +65,7 @@ To convert a workflow, you often need to parse its JSON representation.
 Convert the linear sequence of nodes into a single Python function.
 
 **NodeTool Workflow:**
-`StringInput` → `Concat` → `StringOutput`
+`StringInput` → `Concat` → `Output`
 
 **Gradio Equivalent:**
 
@@ -139,7 +139,7 @@ def process_image(image: PIL.Image) -> PIL.Image:
 | `ImageInput` | `Image` | `PIL.Image` / `str` (path) |
 | `AudioInput` | `Audio` | `tuple` / `str` (path) |
 | `VideoInput` | `Video` | `str` (path) |
-| `DataframeOutput`| `Dataframe` | `pd.DataFrame` |
+| `Output` | (depends on connected type) | `any` |
 | `ColorInput` | `ColorPicker` | `str` (hex) |
 
 ## Best Practices

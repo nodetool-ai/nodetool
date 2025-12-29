@@ -21,13 +21,13 @@ To build any example:
 
 {% mermaid %}
 graph TD
-  image_output["ImageOutput"]
+  output["Output"]
   image_input["ImageInput"]
   sharpen["Sharpen"]
   auto_contrast["AutoContrast"]
   image_input --> sharpen
   sharpen --> auto_contrast
-  auto_contrast --> image_output
+  auto_contrast --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -132,7 +132,7 @@ ______________________________________________________________________
 {% mermaid %}
 graph TD
   chat_input["ChatInput"]
-  string_output["StringOutput (Answer)"]
+  output["Output (Answer)"]
   format_text["FormatText"]
   hybrid_search["HybridSearch"]
   agent["Agent"]
@@ -140,7 +140,7 @@ graph TD
   chat_input --> hybrid_search
   hybrid_search --> format_text
   format_text --> agent
-  agent --> string_output
+  agent --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -306,10 +306,10 @@ graph TD
   stable_diffusion["StableDiffusion"]
   whisper["Whisper"]
   audio_input["AudioInput"]
-  image_output["ImageOutput"]
+  output["Output"]
   whisper --> stable_diffusion
   audio_input --> whisper
-  stable_diffusion --> image_output
+  stable_diffusion --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -339,12 +339,12 @@ graph TD
   stable_diffusion_control_net_img2img["StableDiffusionControlNetImg2Img"]
   image_input_1["ImageInput"]
   image_input_2["ImageInput"]
-  image_output["ImageOutput"]
+  output["Output"]
   canny["Canny"]
   image_to_text["ImageToText"]
   fit_1["Fit"]
   fit_2["Fit"]
-  stable_diffusion_control_net_img2img --> image_output
+  stable_diffusion_control_net_img2img --> output
   canny --> stable_diffusion_control_net_img2img
   image_to_text --> stable_diffusion_control_net_img2img
   image_input_2 --> fit_1
@@ -418,10 +418,10 @@ ______________________________________________________________________
 {% mermaid %}
 graph TD
   string_input["StringInput (Prompt)"]
-  video_output["VideoOutput"]
+  output["Output"]
   kling_text_to_video["KlingTextToVideo"]
   string_input --> kling_text_to_video
-  kling_text_to_video --> video_output
+  kling_text_to_video --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -459,11 +459,11 @@ ______________________________________________________________________
 graph TD
   image_input["ImageInput"]
   string_input["StringInput (Motion Guide)"]
-  video_output["VideoOutput"]
+  output["Output"]
   kling_image_to_video["KlingImageToVideo"]
   image_input --> kling_image_to_video
   string_input --> kling_image_to_video
-  kling_image_to_video --> video_output
+  kling_image_to_video --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -488,9 +488,9 @@ graph TD
   image2["ImageInput (Frame 2)"]
   image3["ImageInput (Frame 3)"]
   motion_prompt["StringInput (Motion)"]
-  video_output["VideoOutput"]
+  output["Output"]
   kling_i2v["KlingImageToVideo"]
-  kling_i2v --> video_output
+  kling_i2v --> output
   image1 --> kling_i2v
   image2 --> kling_i2v
   image3 --> kling_i2v
@@ -511,11 +511,11 @@ ______________________________________________________________________
 graph TD
   image_input["ImageInput (Face Photo)"]
   audio_input["AudioInput (Speech)"]
-  video_output["VideoOutput"]
+  output["Output"]
   kling_avatar["KlingAIAvatarPro"]
   image_input --> kling_avatar
   audio_input --> kling_avatar
-  kling_avatar --> video_output
+  kling_avatar --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -551,10 +551,10 @@ ______________________________________________________________________
 {% mermaid %}
 graph TD
   video_input["VideoInput (Low Res)"]
-  video_output["VideoOutput (High Res)"]
+  output["Output (High Res)"]
   topaz_upscale["TopazVideoUpscale"]
   video_input --> topaz_upscale
-  topaz_upscale --> video_output
+  topaz_upscale --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -591,9 +591,9 @@ graph TD
   image1["ImageInput (Scene 1)"]
   image2["ImageInput (Scene 2)"]
   image3["ImageInput (Scene 3)"]
-  video_output["VideoOutput"]
+  output["Output"]
   sora_storyboard["Sora2ProStoryboard"]
-  sora_storyboard --> video_output
+  sora_storyboard --> output
   story_prompt --> sora_storyboard
   image1 --> sora_storyboard
   image2 --> sora_storyboard
