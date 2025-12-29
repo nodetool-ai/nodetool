@@ -328,9 +328,11 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
       <NodeFooter
+        id={props.id}
         nodeNamespace={resolvedNamespace}
         metadata={mockMetadata}
         nodeType={resolvedType || nodeType || ""}
+        data={nodeData}
       />
     </Container>
   );

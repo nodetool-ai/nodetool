@@ -6,6 +6,12 @@ import type { ASRModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import { useTheme } from "@mui/material/styles";
+import {
+  formatGenericProviderName,
+  getProviderBaseName,
+  isHuggingFaceProvider
+} from "../../utils/providerDisplay";
 
 interface ASRModelSelectProps {
   onChange: (value: any) => void;

@@ -4,10 +4,10 @@ This folder contains editor-specific UI components and utilities for building no
 
 ## Why This Exists
 
-The editor UI has specific styling needs that differ from the global MUI theme:
+The editor UI has specific styling needs:
 - Compact, dense controls that work well inside ReactFlow nodes
 - Consistent interaction patterns (nodrag, nowheel behavior)
-- Token-based styling that adapts to different contexts (node vs inspector)
+- Portal-safe menu styling (no reliance on global `.Mui*` CSS)
 
 ## Usage
 
@@ -75,27 +75,14 @@ import { editorClassNames, cn, stopPropagationHandlers } from "../editor_ui";
 </div>
 ```
 
-### Accessing Tokens Directly
+### Theme-driven styling
 
-For custom styling, access tokens via hook:
+Editor visuals are owned by the MUI theme and are applied via **marker classes**
+added by the editor primitives.
 
-```tsx
-import { useEditorTokens } from "../editor_ui";
-
-const MyComponent = () => {
-  const tokens = useEditorTokens();
-
-  return (
-    <Box sx={{
-      borderRadius: tokens.radii.control,
-      backgroundColor: tokens.surface.controlBg,
-      fontSize: tokens.text.controlSize
-    }}>
-      Custom content
-    </Box>
-  );
-};
-```
+For custom editor components:
+- Prefer layout-only `sx`/Emotion.
+- Avoid duplicating hover/focus/selected rules; put shared interaction rules in the theme slice.
 
 ## Guidelines
 
@@ -103,7 +90,6 @@ const MyComponent = () => {
 
 - Use editor primitives (`NodeTextField`, `NodeSwitch`, `NodeSelect`) for consistency
 - Use `editorClassNames.nodrag` on interactive elements inside nodes
-- Use `useEditorTokens()` for custom component styling
 - Test in both node and inspector contexts
 
 ### Don't
@@ -111,40 +97,17 @@ const MyComponent = () => {
 - Add global `.Mui*` selector overrides for editor components
 - Create new `styled()` components - use `sx` or Emotion `css` instead
 - Import from `node_styles/` - that layer is deprecated
-- Modify global theme for editor-specific needs
+- Add editor-specific inline `sx` state styling in many places (prefer theme slice + marker classes)
 
 ## File Structure
 
 ```
 editor_ui/
 ├── index.ts              # Re-exports all primitives and utilities
-├── editorTokens.ts       # Token definitions and getEditorTokens()
-├── EditorUiContext.tsx   # Provider and useEditorTokens() hook
+├── EditorUiContext.tsx   # Provider and useEditorScope() hook
 ├── editorUtils.ts        # Class names and utility functions
 ├── NodeTextField.tsx     # TextField primitive
 ├── NodeSwitch.tsx        # Switch primitive
 ├── NodeSelect.tsx        # Select and MenuItem primitives
 └── README.md             # This file
 ```
-
-## Token Reference
-
-### Radii
-- `radii.control` - Small radius for inputs (6px)
-- `radii.panel` - Panel/popup radius (8px)
-- `radii.node` - Node body radius (from theme)
-
-### Spacing
-- `space.xs|sm|md` - Editor spacing scale
-- `control.heightSm` - Compact control height (28/32px)
-- `control.padX|padY` - Control padding
-
-### Colors
-- `border.color|colorHover|colorFocus` - Border states
-- `surface.controlBg|menuBg` - Background colors
-- `text.controlSize|labelSize|color` - Typography
-
-### Effects
-- `focus.ring` - Focus ring shadow
-- `transition.fast|normal` - Animation durations
-- `shadow.menu|popover` - Elevation shadows

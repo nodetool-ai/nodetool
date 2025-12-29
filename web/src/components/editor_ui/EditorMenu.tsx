@@ -8,9 +8,8 @@
 
 import React from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { useTheme } from "@mui/material/styles";
 import { Menu, MenuItem, type MenuItemProps, type MenuProps } from "@mui/material";
-import { useEditorTokens } from "./EditorUiContext";
+import { editorUiClasses, cn } from "./editorUtils";
 
 type SlotPropsWithSx = { sx?: SxProps<Theme> } & Record<string, unknown>;
 
@@ -36,9 +35,6 @@ export const EditorMenu: React.FC<EditorMenuProps> = ({
   slotProps,
   ...props
 }) => {
-  const tokens = useEditorTokens();
-  const theme = useTheme();
-
   const paperSlot = (slotProps?.paper ?? {}) as SlotPropsWithSx;
   const listSlot = (slotProps?.list ?? {}) as SlotPropsWithSx;
 
@@ -49,20 +45,22 @@ export const EditorMenu: React.FC<EditorMenuProps> = ({
         ...slotProps,
         paper: {
           ...paperSlot,
+          className: cn(
+            editorUiClasses.menuPaper,
+            (paperSlot as { className?: string }).className
+          ),
           sx: {
-            backgroundColor: tokens.surface.menuBg,
-            border: `${tokens.border.width} solid ${theme.vars.palette.grey[500]}`,
-            borderRadius: tokens.radii.panel,
-            boxShadow: tokens.shadow.menu,
-            overflow: "hidden",
             ...paperSx,
             ...(paperSlot.sx as object | undefined)
           }
         },
         list: {
           ...listSlot,
+          className: cn(
+            editorUiClasses.menuList,
+            (listSlot as { className?: string }).className
+          ),
           sx: {
-            padding: 0,
             ...(listSx as object | undefined),
             ...(listSlot.sx as object | undefined)
           }
@@ -84,24 +82,11 @@ export const EditorMenuItem: React.FC<EditorMenuItemProps> = ({
   sx,
   ...props
 }) => {
-  const tokens = useEditorTokens();
-  const theme = useTheme();
-
   return (
     <MenuItem
       dense={dense}
+      className={cn(editorUiClasses.menuItem, props.className)}
       sx={{
-        fontSize: tokens.text.controlSize,
-        color: tokens.text.color,
-        "&:hover": {
-          backgroundColor: theme.vars.palette.grey[600]
-        },
-        "&.Mui-selected": {
-          backgroundColor: theme.vars.palette.primary.dark
-        },
-        "&.Mui-selected:hover": {
-          backgroundColor: theme.vars.palette.primary.dark
-        },
         // Tighten default MUI spacing in list items
         "& .MuiListItemText-root": {
           margin: 0

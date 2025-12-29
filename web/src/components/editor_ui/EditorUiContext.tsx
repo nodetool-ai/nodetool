@@ -7,21 +7,10 @@
  */
 
 import React, { createContext, useContext, useMemo } from "react";
-import { useTheme } from "@mui/material/styles";
-import {
-  EditorTokens,
-  EditorUiScope,
-  getEditorTokens
-} from "./editorTokens";
 
-interface EditorUiContextValue {
-  scope: EditorUiScope;
-  tokens: EditorTokens;
-}
+export type EditorUiScope = "node" | "inspector";
 
-const EditorUiContext = createContext<EditorUiContextValue | undefined>(
-  undefined
-);
+const EditorUiContext = createContext<EditorUiScope | undefined>(undefined);
 
 interface EditorUiProviderProps {
   scope?: EditorUiScope;
@@ -47,13 +36,7 @@ export const EditorUiProvider: React.FC<EditorUiProviderProps> = ({
   scope = "node",
   children
 }) => {
-  const theme = useTheme();
-  const tokens = useMemo(
-    () => getEditorTokens(theme, { scope }),
-    [theme, scope]
-  );
-
-  const value = useMemo(() => ({ scope, tokens }), [scope, tokens]);
+  const value = useMemo(() => scope, [scope]);
 
   return (
     <EditorUiContext.Provider value={value}>
@@ -63,29 +46,11 @@ export const EditorUiProvider: React.FC<EditorUiProviderProps> = ({
 };
 
 /**
- * Hook to access editor UI tokens.
- * Falls back to "node" scope tokens if used outside a provider.
- *
- * @returns Editor tokens for the current scope
- */
-export const useEditorTokens = (): EditorTokens => {
-  const context = useContext(EditorUiContext);
-  const theme = useTheme();
-
-  // Fall back to node scope if no provider
-  if (!context) {
-    return getEditorTokens(theme, { scope: "node" });
-  }
-
-  return context.tokens;
-};
-
-/**
  * Hook to access the current editor UI scope.
  *
  * @returns Current scope or "node" if outside provider
  */
 export const useEditorScope = (): EditorUiScope => {
   const context = useContext(EditorUiContext);
-  return context?.scope ?? "node";
+  return context ?? "node";
 };

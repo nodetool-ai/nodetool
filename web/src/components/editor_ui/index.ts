@@ -33,13 +33,10 @@
 // Context and hooks
 export {
   EditorUiProvider,
-  useEditorTokens,
   useEditorScope
 } from "./EditorUiContext";
 
-// Token types and utilities
-export { getEditorTokens } from "./editorTokens";
-export type { EditorTokens, EditorUiScope } from "./editorTokens";
+export type { EditorUiScope } from "./EditorUiContext";
 
 // Primitives
 export { NodeTextField } from "./NodeTextField";

@@ -8,9 +8,8 @@
 
 import React, { forwardRef } from "react";
 import { TextField, TextFieldProps } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { useEditorTokens } from "./EditorUiContext";
-import { editorClassNames, cn } from "./editorUtils";
+import { useEditorScope } from "./EditorUiContext";
+import { editorClassNames, cn, editorUiClasses } from "./editorUtils";
 
 /** Helper type for slotProps with className */
 interface SlotPropsWithClassName {
@@ -41,8 +40,11 @@ export interface NodeTextFieldProps
  */
 export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
   ({ className, slotProps, sx, ...props }, ref) => {
-    const theme = useTheme();
-    const tokens = useEditorTokens();
+    const scope = useEditorScope();
+    const scopeClass =
+      scope === "inspector"
+        ? editorUiClasses.scopeInspector
+        : editorUiClasses.scopeNode;
 
     return (
       <TextField
@@ -61,6 +63,8 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
             ...slotProps?.input,
             className: cn(
               editorClassNames.nodrag,
+              editorUiClasses.control,
+              scopeClass,
               (slotProps?.input as SlotPropsWithClassName | undefined)
                 ?.className
             )
@@ -74,75 +78,7 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
             )
           }
         }}
-        sx={{
-          // Base text field styles
-          "& .MuiOutlinedInput-root": {
-            minHeight: "unset",
-            padding: 0,
-            fontSize: tokens.text.controlSize,
-            lineHeight: "1.2em",
-            color: tokens.text.color,
-            backgroundColor: tokens.surface.controlBg,
-            borderRadius: tokens.radii.control,
-            transition: `border-color ${tokens.transition.normal}, background-color ${tokens.transition.normal}`,
-
-            "& fieldset": {
-              borderColor: tokens.border.color,
-              borderWidth: tokens.border.width,
-              transition: `border-color ${tokens.transition.normal}`
-            },
-
-            "&:hover": {
-              backgroundColor: tokens.surface.controlBgHover,
-              "& fieldset": {
-                borderColor: tokens.border.colorHover
-              }
-            },
-
-            "&.Mui-focused": {
-              backgroundColor: tokens.surface.controlBgFocus,
-              "& fieldset": {
-                borderColor: tokens.border.colorFocus,
-                borderWidth: tokens.border.width
-              }
-            },
-
-            // Notched outline legend (hide it)
-            "& .MuiOutlinedInput-notchedOutline legend": {
-              display: "none"
-            }
-          },
-
-          // Input element styles
-          "& .MuiOutlinedInput-input": {
-            padding: `${tokens.control.padY} ${tokens.control.padX}`,
-            minHeight: "18px",
-            lineHeight: "18px"
-          },
-
-          // Multiline textarea styles
-          "& .MuiInputBase-inputMultiline": {
-            padding: `${tokens.control.padY} ${tokens.control.padX}`,
-            minHeight: "18px !important",
-            maxHeight: "200px",
-            overflowY: "auto !important",
-            fontFamily: theme.fontFamily1,
-            fontSize: tokens.text.controlSize,
-            fontWeight: 400,
-            lineHeight: "1.2em",
-            resize: "vertical",
-            boxSizing: "border-box"
-          },
-
-          // If the underlying textarea has rows != 1, keep a consistent baseline rhythm.
-          // Note: for autosizing textareas, `rows` may stay at the minRows value.
-          "& textarea:not([rows='1'])": {
-            minHeight: "36px !important"
-          },
-
-          // Allow custom sx to override
-          ...sx
-        }}
+        sx={sx}
         {...props}
       />
     );

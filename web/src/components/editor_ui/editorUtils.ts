@@ -29,6 +29,12 @@ export const editorClassNames = {
 } as const;
 
 /**
+ * Editor marker classes used to opt-in to theme overrides.
+ * Prefer importing from `constants/editorUiClasses` in new code.
+ */
+export { editorUiClasses } from "../../constants/editorUiClasses";
+
+/**
  * Combines multiple class names, filtering out falsy values.
  *
  * @param classes - Class names to combine

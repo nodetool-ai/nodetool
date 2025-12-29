@@ -5,7 +5,8 @@ import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "lodash/isEqual";
 import Tooltip from "@mui/material/Tooltip";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useEditorTokens } from "../editor_ui";
+import { useTheme } from "@mui/material/styles";
+import { useEditorScope } from "../editor_ui";
 
 interface PropertyLabelProps {
   id: string;
@@ -27,13 +28,17 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   showTooltip = true,
   isDynamicProperty = false
 }) => {
-  const tokens = useEditorTokens();
+  const theme = useTheme();
+  const scope = useEditorScope();
   const formattedName = useMemo(() => {
     if (isDynamicProperty) {
       return name;
     }
     return titleizeString(name);
   }, [name, isDynamicProperty]);
+
+  const labelFontSize =
+    scope === "inspector" ? theme.fontSizeNormal : theme.fontSizeSmall;
 
   return (
     <div
@@ -48,8 +53,8 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         "& label": {
           display: "block",
           fontWeight: 500,
-          fontSize: tokens.text.labelSize,
-          color: tokens.text.colorSecondary,
+          fontSize: labelFontSize,
+          color: theme.vars.palette.text.secondary,
           padding: 0,
           margin: "0 0 4px 0",
           lineHeight: "1em",
