@@ -283,6 +283,12 @@ export const handleUpdate = (
         statusMessage: `${update.node_name} ${update.status}`
       });
       setStatus(workflow.id, update.node_id, update.status);
+      
+      // Store result if present
+      if (update.result) {
+        setResult(workflow.id, update.node_id, update.result);
+      }
+      
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,

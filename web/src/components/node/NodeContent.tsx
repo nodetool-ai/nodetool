@@ -1,5 +1,6 @@
 import React, { memo } from "react";
-import { Typography } from "@mui/material";
+import { Typography, Button, Box } from "@mui/material";
+import { Visibility } from "@mui/icons-material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { ProcessTimer } from "./ProcessTimer";
@@ -11,6 +12,7 @@ import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
 import useLogsStore from "../../stores/LogStore";
+import ResultOverlay from "./ResultOverlay";
 
 interface NodeContentProps {
   id: string;
@@ -26,6 +28,10 @@ interface NodeContentProps {
   status: string;
   workflowId: string;
   renderedResult: React.ReactNode;
+  showResultOverlay: boolean;
+  result: any;
+  onShowInputs: () => void;
+  onShowResults?: () => void;
 }
 
 const NodeContent: React.FC<NodeContentProps> = ({
@@ -41,7 +47,11 @@ const NodeContent: React.FC<NodeContentProps> = ({
   onToggleAdvancedFields,
   status,
   workflowId,
-  renderedResult
+  renderedResult,
+  showResultOverlay,
+  result,
+  onShowInputs,
+  onShowResults
 }) => {
   const { handleAddProperty } = useDynamicProperty(
     id,
@@ -49,6 +59,19 @@ const NodeContent: React.FC<NodeContentProps> = ({
   );
 
   const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+  
+  // If overlay is enabled and we have a result, show overlay
+  if (showResultOverlay && result) {
+    return (
+      <>
+        <ResultOverlay result={result} onShowInputs={onShowInputs} />
+        <ProcessTimer status={status} />
+        {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
+        <NodeLogs id={id} workflowId={workflowId} />
+      </>
+    );
+  }
+  
   return (
     <>
       <NodeInputs
@@ -75,6 +98,19 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
+      {result && !showResultOverlay && onShowResults && (
+        <Box sx={{ padding: 1, textAlign: "center" }}>
+          <Button
+            size="small"
+            startIcon={<Visibility />}
+            onClick={onShowResults}
+            variant="outlined"
+            sx={{ textTransform: "none" }}
+          >
+            Show Result
+          </Button>
+        </Box>
+      )}
       {renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
