@@ -17,7 +17,7 @@ ______________________________________________________________________
    Learn about the DAG structure, streaming execution, and node types.
 
 2. [**Workflow Patterns**]({{ '/cookbook/patterns' | relative_url }})
-   Explore 10+ common workflow patterns with diagrams and use cases.
+   Explore 15+ common workflow patterns with diagrams and use cases.
 
 ______________________________________________________________________
 
@@ -58,7 +58,15 @@ Query with `HybridSearch` + `Agent`
 **Transform images with AI:** → Use Pattern 9 (Advanced Image Processing) → Nodes: `StableDiffusionControlNet`, `Canny`,
 `ImageToText`
 
-**Process audio/video:** → Check Audio/Video examples → Nodes: `Whisper`, `AddSubtitles`, `RemoveSilence`
+**Generate videos from text:** → Use Pattern 11 (Text-to-Video) → Nodes: `KlingTextToVideo`, `HailuoTextToVideoPro`, `Sora2TextToVideo`
+
+**Animate images to video:** → Use Pattern 12 (Image-to-Video) → Nodes: `KlingImageToVideo`, `HailuoImageToVideoPro`, `Wan26ImageToVideo`
+
+**Create talking avatars:** → Use Pattern 13 (Talking Avatar) → Nodes: `KlingAIAvatarPro`, `KlingAIAvatarStandard`, `InfinitalkV1`
+
+**Enhance video quality:** → Use Pattern 14 (Video Enhancement) → Nodes: `TopazVideoUpscale`
+
+**Convert storyboards to video:** → Use Pattern 15 (Storyboard to Video) → Nodes: `Sora2ProStoryboard`
 
 **Fetch and visualize data:** → Use Pattern 10 (Data Processing Pipeline) → Nodes: `GetRequest`, `ImportCSV`,
 `ChartGenerator`
