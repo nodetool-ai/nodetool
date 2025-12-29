@@ -37,7 +37,6 @@ import TaskView from "./TaskView";
 import {
   typeFor,
   renderSVGDocument,
-  useCopyToClipboard,
   useImageAssets,
   useRevokeBlobUrls,
   useVideoSrc
@@ -53,6 +52,70 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
+
+// Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
+// `RangeError: Invalid string length` when streams run away.
+const MAX_RENDERED_TEXT_CHARS = 5_000_000;
+
+const concatTextChunksSafely = (
+  chunks: Chunk[]
+): {
+  text: string;
+  truncated: boolean;
+  totalChunks: number;
+  usedChunks: number;
+} => {
+  const parts: string[] = [];
+  let used = 0;
+  let currentLen = 0;
+
+  for (const c of chunks) {
+    if (!c) {
+      continue;
+    }
+    const piece =
+      typeof (c as any).content === "string" ? (c as any).content : "";
+    if (!piece) {
+      used++;
+      continue;
+    }
+
+    const remaining = MAX_RENDERED_TEXT_CHARS - currentLen;
+    if (remaining <= 0) {
+      return {
+        text: parts.join(""),
+        truncated: true,
+        totalChunks: chunks.length,
+        usedChunks: used
+      };
+    }
+
+    if (piece.length <= remaining) {
+      parts.push(piece);
+      currentLen += piece.length;
+      used++;
+      continue;
+    }
+
+    parts.push(piece.slice(0, remaining));
+    currentLen += remaining;
+    used++;
+
+    return {
+      text: parts.join(""),
+      truncated: true,
+      totalChunks: chunks.length,
+      usedChunks: used
+    };
+  }
+
+  return {
+    text: parts.join(""),
+    truncated: false,
+    totalChunks: chunks.length,
+    usedChunks: used
+  };
+};
 
 // Custom hook for draggable scrolling
 const useDraggableScroll = () => {
@@ -131,7 +194,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       Object.keys(value).length === 0)
   );
 
-  const copyToClipboard = useCopyToClipboard();
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const [openAsset, setLocalOpenAsset] = useState<Asset | null>(null);
   const { scrollRef, handleMouseDown } = useDraggableScroll();
@@ -233,13 +295,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           (v) => v !== null && typeof v === "object"
         );
         if (hasNestedObjects) {
-          return (
-            <JSONRenderer
-              value={value}
-              onCopy={copyToClipboard}
-              showActions={showTextActions}
-            />
-          );
+          return <JSONRenderer value={value} showActions={showTextActions} />;
         }
         // Simple key-value pairs - use DictTable
         if (vals.length > 0) {
@@ -314,16 +370,29 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               const chunks = value as Chunk[];
               const allText = chunks.every((c) => c.content_type === "text");
               if (allText) {
-                const text = chunks
-                  .filter((c) => !!c)
-                  .map((c) => c.content)
-                  .join("");
+                const { text, truncated, totalChunks } =
+                  concatTextChunksSafely(chunks);
                 return (
-                  <TextRenderer
-                    text={text}
-                    onCopy={copyToClipboard}
-                    showActions={showTextActions}
-                  />
+                  <div>
+                    {truncated && (
+                      <div
+                        style={{
+                          margin: "0.5em 0.75em",
+                          padding: "0.4em 0.6em",
+                          borderRadius: 8,
+                          background: "rgba(255, 193, 7, 0.12)",
+                          border: "1px solid rgba(255, 193, 7, 0.35)",
+                          color: "rgba(255, 255, 255, 0.85)",
+                          fontSize: "0.85em"
+                        }}
+                      >
+                        Output truncated (showing first{" "}
+                        {MAX_RENDERED_TEXT_CHARS.toLocaleString()} chars of{" "}
+                        {totalChunks.toLocaleString()} chunks).
+                      </div>
+                    )}
+                    <TextRenderer text={text} showActions={showTextActions} />
+                  </div>
                 );
               }
               const audioChunks = chunks.filter(
@@ -432,37 +501,23 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "svg_element":
         return renderSVGDocument(value);
       case "boolean": {
-        return (
-          <BooleanRenderer value={value as boolean} onCopy={copyToClipboard} />
-        );
+        return <BooleanRenderer value={value as boolean} />;
       }
       case "datetime": {
-        return (
-          <DatetimeRenderer
-            value={value as Datetime}
-            onCopy={copyToClipboard}
-          />
-        );
+        return <DatetimeRenderer value={value as Datetime} />;
       }
       case "email":
         return <EmailRenderer value={value} />;
       case "chunk": {
         const chunk = value as Chunk;
-        return <ChunkRenderer chunk={chunk} onCopy={copyToClipboard} />;
+        return <ChunkRenderer chunk={chunk} />;
       }
       case "json":
-        return (
-          <JSONRenderer
-            value={value}
-            onCopy={copyToClipboard}
-            showActions={showTextActions}
-          />
-        );
+        return <JSONRenderer value={value} showActions={showTextActions} />;
       default:
         return (
           <TextRenderer
             text={value?.toString?.() ?? ""}
-            onCopy={copyToClipboard}
             showActions={showTextActions}
           />
         );
@@ -471,7 +526,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     value,
     type,
     onDoubleClickAsset,
-    copyToClipboard,
     videoRef,
     handleMouseDown,
     scrollRef,

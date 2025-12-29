@@ -78,13 +78,11 @@ const jsonStyles = (theme: Theme) =>
 
 type JSONRendererProps = {
   value: { type: "json"; data: string } | object;
-  onCopy: (text: string) => void;
   showActions?: boolean;
 };
 
 export const JSONRenderer: React.FC<JSONRendererProps> = ({
   value,
-  onCopy,
   showActions = true
 }) => {
   const theme = useTheme();
@@ -212,7 +210,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
 
   return (
     <div className="output json-output nodrag" css={jsonStyles(theme)}>
-      {showActions && <Actions onCopy={() => onCopy(rawJson)} />}
+      {showActions && <Actions copyValue={rawJson} />}
       <div
         className="json-content"
         dangerouslySetInnerHTML={{ __html: formattedJson }}

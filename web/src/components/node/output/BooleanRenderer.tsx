@@ -6,13 +6,12 @@ import { outputStyles } from "./styles";
 
 export const BooleanRenderer: React.FC<{
   value: boolean;
-  onCopy: (text: string) => void;
-}> = ({ value, onCopy }) => {
+}> = ({ value }) => {
   const theme = useTheme();
   const boolStr = String(value).toUpperCase();
   return (
     <div className="output value" css={outputStyles(theme)}>
-      <Actions onCopy={() => onCopy(boolStr)} />
+      <Actions copyValue={boolStr} />
       <p style={{ padding: "1em", color: "inherit" }}>{boolStr}</p>
     </div>
   );

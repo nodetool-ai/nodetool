@@ -26,13 +26,12 @@ const formatDatetime = (dt: Datetime): string => {
 
 export const DatetimeRenderer: React.FC<{
   value: Datetime;
-  onCopy: (text: string) => void;
-}> = ({ value, onCopy }) => {
+}> = ({ value }) => {
   const theme = useTheme();
   const formattedDate = formatDatetime(value);
   return (
     <div className="output value" css={outputStyles(theme)}>
-      <Actions onCopy={() => onCopy(formattedDate)} />
+      <Actions copyValue={formattedDate} />
       <p style={{ padding: "1em", color: "inherit" }}>{formattedDate}</p>
     </div>
   );
