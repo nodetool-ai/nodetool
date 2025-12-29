@@ -1,53 +1,53 @@
 # NODETOOL MANIFESTO
 
-### The Local‑First Agent Workbench
+### Your Visual AI Creative Studio
 
 ## Vision
 
-AI should be yours.
-Agents run locally, beside your data.
-They are transparent, portable, and under your control.
+Creative AI should be yours.
+Run it beside your work, on your machine.
+Transparent, flexible, and under your control.
 
 ## Mission
 
-Ship an open-source system to design and run agents as graphs on your machines. Cloud is opt-in.
+Build an open-source visual studio for creators to design and run AI workflows. Privacy by default. Cloud when you choose.
 
 ## Principles
 
-- **Local‑first. Always.**
-- **No data leaves without consent.**
-- **Open and portable.**&#x20;
-- **One graph. One runtime.** Visual and headless share semantics.
-- **Typed tools.** Small, composable, explicit I/O.
-- **Reproducible runs.** Seeds and inputs captured.
-- **No black boxes.** See every step while it runs.
-- **Fast on your hardware.** Cloud only when you choose.
+- **Create freely.** No limits, no subscriptions, no gatekeepers.
+- **Your work stays yours.** Data never leaves without your permission.
+- **See the magic happen.** Watch every creative step in real-time.
+- **Mix your tools.** Combine local AI with cloud services however you want.
+- **Share your process.** Save, export, and share your creative workflows.
+- **Experiment fearlessly.** Undo, iterate, perfect—all visible and controllable.
+- **Own your creations.** Run on your hardware. Keep your IP private.
 
 ## What NodeTool Is (today)
 
-- Visual graph editor + runnable runtime (desktop + headless)
-- Execute via CLI, API, WebSocket; graphs in JSON
-- Local models (Ollama/HF) + optional cloud (OpenAI/Anthropic/Replicate)
-- Deploy to laptop/server, Runpod, Google Cloud, AWS
+- Visual canvas + creative AI runtime (desktop + web)
+- Generate, transform, and combine media with AI nodes
+- Local models (Flux/SDXL/Whisper) + cloud APIs (OpenAI/Anthropic/Replicate)
+- Create on laptop, deploy to cloud if you want
+- Share as Mini-Apps for collaborators and clients
 
 ## What NodeTool Is Not (today)
 
-- Managed SaaS, SLAs, multi‑tenant
-- Compliance‑grade policy/audit
-- Autoscaling orchestrator
-- One‑click content toy
+- Yet another subscription SaaS
+- A locked-down creative platform
+- A one-click content farm
+- Limited to cloud-only services
 
 ## Who It’s For
 
-Indie hackers, Game devs, AI enthusiasts, creative professionals, agencies, and studios who want to build and run their own pipelines. They care about control, reproducibility, and keeping data and IP local.
+Indie hackers, Game devs, AI enthusiasts, creative professionals, agencies, and studios who want to create with AI while keeping control of their process and work. They value creative freedom, privacy, and the ability to experiment without limits.
 
 ## Roadmap
 
-- **Creative pipelines:**\*\* templates for thumbnails, sprites, ad variants, research briefs.
-- **Timeline & Snapshots:** run history, diffs, and easy rollback.
-- **Render Queue & A/B:** batch runs and seeded comparisons.
-- **Packaging:** one‑click bundles for sharing with collaborators/clients; community packs registry.
+- **Creative templates:** Ready-to-use workflows for art, video, music, and content.
+- **Version history:** See your creative evolution, compare versions, rollback.
+- **Batch creation:** Generate variations and A/B test ideas at scale.
+- **Community gallery:** Share workflows, discover techniques, learn from creators.
 
 ## Promise
 
-Open core. Local‑first. Own the runtime, the workflows, and the outputs.
+Open source. Privacy first. Own your creative process, your workflows, and everything you make.

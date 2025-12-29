@@ -1,4 +1,4 @@
-# NodeTool: Local-First AI Workflow Builder
+# NodeTool: Your Visual AI Creative Studio
 
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
 [![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
@@ -12,48 +12,48 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
-**Build AI Workflows Visually. Run Them Anywhere.**
+**Create, Connect, Generate. Your AI Creative Playground.**
 
-NodeTool is an open-source visual workflow builder. Design AI pipelines on your laptop, then deploy the same workflow to RunPod, Cloud Run, or your own servers—no code changes needed. Run powerful models locally or in the cloud. Your data stays with you.
+NodeTool is your visual canvas for building AI-powered creative workflows. Connect ideas like building blocks—generate images, transform videos, create music, and bring your imagination to life. No coding required. Your creations, your data, your way.
 
 ![Screenshot](screenshot.png)
 
-## Core Principles
+## Why Creators Love NodeTool
 
-- **Local First**: Run models on your machine. No mandatory cloud calls. Your data never leaves unless you want it to.
-- **Portable**: Build on your laptop, deploy anywhere. Same workflow runs on RunPod, Cloud Run, or self-hosted—no rewrites.
-- **Open & Inspectable**: See every step in real-time. Debug with confidence. AGPL-3.0 licensed—inspect and modify everything.
-- **Flexible**: Start with local models (free, private), switch to cloud APIs when you need them. You choose.
+- **Your Creative Playground**: Build visual workflows like connecting LEGO blocks. Experiment freely—drag, drop, and see results instantly. No coding, no limits.
+- **Privacy That Empowers**: Keep your creative work private. Run AI models on your own machine, or choose cloud services when you need them. You're always in control.
+- **See Your Ideas Flow**: Watch your creations come to life in real-time. Every step is visible—understand what's happening, tweak as you go, perfect your craft.
+- **Create Anywhere**: Design on your laptop, run on the cloud, share with your team. Same creative workflow, any environment. Freedom to work your way.
 
-## Features
+## Creative Superpowers
 
-- **Visual Workflow Engine**: Drag-and-drop AI pipelines. Real-time execution, type safety, multimodal support (text, image, audio, video). Watch results stream as they generate.
-- **Universal Inference**: Run SOTA models (LLMs, Flux, SDXL) on Apple Silicon (MLX), NVIDIA GPUs, or CPU (llama.cpp). No API fees. Works offline.
-- **HuggingFace Integration**: Access 500,000+ models from the Hub. Download and run them directly in your workflows.
-- **Flexible Providers**: Mix local models with cloud APIs (OpenAI, Anthropic, Gemini, Replicate). Use the best tool for each job.
-- **One-Click Deployment**: `nodetool deploy` pushes your workflow to RunPod, Cloud Run, or self-hosted. Same code, any environment.
-- **Asset Management**: Built-in manager for media files. Organize, persist, and access from any node.
+- **Visual Canvas**: Drag-and-drop creative workflows. Connect AI building blocks like arranging layers in Photoshop. Watch your ideas generate in real-time.
+- **Unlimited AI Models**: Access cutting-edge models (Flux, SDXL, Stable Diffusion) running on your Mac, PC, or GPU. No subscription fees. Create offline.
+- **500,000+ Creative Tools**: Browse and use any model from HuggingFace Hub. From image generation to music creation—your palette is endless.
+- **Mix & Match Freely**: Combine local AI with cloud services (OpenAI, Anthropic, Gemini, Replicate). Use the perfect tool for each creative task.
+- **Share Your Magic**: Deploy your creative workflows with one click. Turn them into apps your team or clients can use. Same workflow, anywhere.
+- **Your Media Library**: Built-in asset manager keeps your images, audio, and videos organized. Access from any creative node.
 
-## Use Cases
+## What You Can Create
 
-- **Smart Assistants**: Chat with local documents. Build RAG systems that keep your data private.
-- **Agentic Workflows**: Create AI agents that plan and execute. Search, classify, automate—all visual.
-- **Content Creation**: Generate images, video, music. Chain multiple AI models into creative pipelines.
-- **Data Analysis**: Transform data with AI. Extract insights, create visualizations, automate reports.
+- **AI Art & Design**: Generate stunning visuals, create variations, remix styles. Chain image models into creative pipelines that would take hours in traditional tools.
+- **Video Magic**: Edit, enhance, and transform videos with AI. Add effects, generate animations, create content that stands out.
+- **Audio & Music**: Transcribe, generate, and transform audio. Create soundscapes, narrations, and music with AI assistance.
+- **Smart Content Tools**: Build intelligent assistants that understand your creative brief. Generate ideas, variations, and content at the speed of thought.
 
-## Quick Start
+## Get Started in Minutes
 
-| Platform | Download | Requirements |
+| Platform | Download | Best For |
 | :--- | :--- | :--- |
-| **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU recommended, 20GB free space |
-| **macOS** | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon |
-| **Linux** | [Download AppImage](https://nodetool.ai) | Nvidia GPU recommended |
+| **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU for AI art & video (20GB free space) |
+| **macOS** | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon for creative workflows |
+| **Linux** | [Download AppImage](https://nodetool.ai) | Nvidia GPU for maximum creative power |
 
-**Hardware for Local Inference:**
+**What You'll Need for Local AI:**
 
-- **Apple Silicon**: 16GB+ RAM (LLM/TTS), 24GB+ (Image Gen)
-- **Windows/Linux**: 4GB+ VRAM (LLM/TTS), 8GB+ (Image), 12GB+ (Video)
-- **Cloud Only**: No GPU required.
+- **Apple Silicon Mac**: 16GB+ RAM for images & text, 24GB+ for advanced image generation
+- **Windows/Linux PC**: 4GB+ VRAM for basics, 8GB+ for images, 12GB+ for video generation
+- **Cloud Creator**: No GPU needed—use cloud AI services instead
 
 ______________________________________________________________________
 
