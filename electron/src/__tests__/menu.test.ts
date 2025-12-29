@@ -19,6 +19,10 @@ describe('buildMenu', () => {
     const setApplicationMenuMock = jest.fn();
 
     jest.doMock('electron', () => ({
+      app: {
+        isPackaged: false,
+        getPath: jest.fn().mockReturnValue('/mock/userData'),
+      },
       Menu: {
         buildFromTemplate: buildFromTemplateMock,
         setApplicationMenu: setApplicationMenuMock,
@@ -56,6 +60,10 @@ describe('buildMenu', () => {
     const openExternalMock = jest.fn().mockResolvedValue(undefined);
 
     jest.doMock('electron', () => ({
+      app: {
+        isPackaged: false,
+        getPath: jest.fn().mockReturnValue('/mock/userData'),
+      },
       Menu: {
         buildFromTemplate: buildFromTemplateMock,
         setApplicationMenu: setApplicationMenuMock,

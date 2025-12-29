@@ -26,6 +26,7 @@ import PanelRight from "./components/panels/PanelRight";
 import PanelBottom from "./components/panels/PanelBottom";
 import { CircularProgress } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
+import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 import { CssBaseline } from "@mui/material";
 
@@ -70,8 +71,14 @@ const Dashboard = React.lazy(
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
+const StandaloneChat = React.lazy(
+  () => import("./components/chat/containers/StandaloneChat")
+);
 const MiniAppPage = React.lazy(
   () => import("./components/miniapps/MiniAppPage")
+);
+const StandaloneMiniApp = React.lazy(
+  () => import("./components/miniapps/StandaloneMiniApp")
 );
 const ModelListIndex = React.lazy(
   () => import("./components/hugging_face/model_list/ModelListIndex")
@@ -198,6 +205,32 @@ function getRoutes() {
       )
     },
     {
+      path: "/miniapp/:workflowId",
+      element: (
+        <ProtectedRoute>
+          <StandaloneMiniApp />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/standalone-chat/:thread_id?",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <PanelLeft />
+            <StandaloneChat />
+            <PanelBottom />
+          </div>
+        </ProtectedRoute>
+      )
+    },
+    {
       path: "/editor",
       element: <NavigateToStart />
     },
@@ -281,6 +314,20 @@ function getRoutes() {
 
 useAssetStore.getState().setQueryClient(queryClient);
 useModelDownloadStore.getState().setQueryClient(queryClient);
+
+// Handle hash route for packaged Electron apps
+// When loading index.html#/path, convert hash to regular route
+const handleHashRoute = () => {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith("#/")) {
+    // Convert hash route to regular route
+    // e.g., #/miniapp/workflowId -> /miniapp/workflowId
+    const route = hash.slice(1); // Remove the leading #
+    window.history.replaceState(null, "", route);
+  }
+};
+handleHashRoute();
+
 const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -313,6 +360,7 @@ const AppWrapper = () => {
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <JobReconnectionManager />
+        <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />
           <MobileClassProvider>

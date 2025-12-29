@@ -2,10 +2,10 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useState, useMemo, useCallback, useEffect } from "react";
+import { memo, useState, useMemo, useCallback } from "react";
 import { Node, NodeProps } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Container, Tooltip, Button, CircularProgress } from "@mui/material";
+import { Container, Tooltip, Button } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
 import { NodeFooter } from "../node/NodeFooter";
@@ -14,14 +14,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
-import { client } from "../../stores/ApiClient";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { loadMetadata } from "../../serverState/useMetadata";
-import SearchIcon from "@mui/icons-material/Search";
-import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
-import { useIsDarkMode } from "../../hooks/useIsDarkMode";
-import { hexToRgba } from "../../utils/ColorUtils";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -328,6 +321,8 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
       <NodeFooter
+        id={props.id}
+        data={nodeData}
         nodeNamespace={resolvedNamespace}
         metadata={mockMetadata}
         nodeType={resolvedType || nodeType || ""}

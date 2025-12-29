@@ -1,11 +1,17 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
+import { useTheme } from "@mui/material/styles";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { VideoModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import {
+  isHuggingFaceProvider,
+  getProviderBaseName,
+  formatGenericProviderName
+} from "../../utils/providerDisplay";
 
 interface VideoModelSelectProps {
   onChange: (value: any) => void;
