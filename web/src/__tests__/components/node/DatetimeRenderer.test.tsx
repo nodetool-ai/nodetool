@@ -30,8 +30,7 @@ describe("DatetimeRenderer", () => {
   };
 
   it("renders datetime correctly", () => {
-    const onCopy = jest.fn();
-    renderWithTheme(<DatetimeRenderer value={mockDatetime} onCopy={onCopy} />);
+    renderWithTheme(<DatetimeRenderer value={mockDatetime} />);
     
     // The exact format depends on locale, but we should see parts of the date
     expect(screen.getByText(/10\/15\/2023/)).toBeInTheDocument();
@@ -51,8 +50,7 @@ describe("DatetimeRenderer", () => {
       utc_offset: 0
     };
     
-    const onCopy = jest.fn();
-    renderWithTheme(<DatetimeRenderer value={newYear} onCopy={onCopy} />);
+    renderWithTheme(<DatetimeRenderer value={newYear} />);
     
     expect(screen.getByText(/1\/1\/2024/)).toBeInTheDocument();
   });
