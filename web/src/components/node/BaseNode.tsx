@@ -301,10 +301,15 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return result && <OutputRenderer value={result} />;
   }, [result]);
 
-  // Automatically show overlay when result becomes available (only for non-output nodes)
+  // Automatically show overlay when result becomes available and node completes
+  // Only for non-output nodes, and only when completed (not error or cancelled)
   useEffect(() => {
     if (result && !nodeType.isOutputNode && status === "completed") {
       setShowResultOverlay(true);
+    }
+    // Reset overlay when node starts running again
+    if (status === "running" || status === "starting") {
+      setShowResultOverlay(false);
     }
   }, [result, nodeType.isOutputNode, status]);
 

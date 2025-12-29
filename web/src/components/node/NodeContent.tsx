@@ -98,7 +98,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {result && !showResultOverlay && onShowResults && (
+      {result && !showResultOverlay && onShowResults && status === "completed" && (
         <Box sx={{ padding: 1, textAlign: "center" }}>
           <Button
             size="small"
@@ -111,7 +111,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
           </Button>
         </Box>
       )}
-      {renderedResult}
+      {/* Only show renderedResult if there's no overlay mode or if status is not completed */}
+      {!showResultOverlay && !(result && status === "completed") && renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
       <NodeLogs id={id} workflowId={workflowId} />
