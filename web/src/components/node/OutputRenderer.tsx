@@ -57,6 +57,103 @@ import { RealtimeAudioOutput } from "./output";
 // `RangeError: Invalid string length` when streams run away.
 const MAX_RENDERED_TEXT_CHARS = 5_000_000;
 
+const hashStringBounded = (input: string, sampleSize = 2048): string => {
+  const len = input.length;
+  const head = input.slice(0, sampleSize);
+  const tail =
+    len > sampleSize ? input.slice(Math.max(0, len - sampleSize)) : "";
+  // djb2-ish, bounded to avoid O(n) over huge strings
+  const hashPart = (s: string): number => {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) {
+      h = (h * 33) ^ s.charCodeAt(i);
+    }
+    return h >>> 0;
+  };
+  const h1 = hashPart(head).toString(36);
+  const h2 = tail ? hashPart(tail).toString(36) : "";
+  return h2 ? `${h1}-${h2}-${len}` : `${h1}-${len}`;
+};
+
+const hashBytesBounded = (
+  input: ArrayLike<number>,
+  sampleSize = 2048
+): string => {
+  const len = input.length ?? 0;
+  const headLen = Math.min(len, sampleSize);
+  const tailStart = len > sampleSize ? Math.max(0, len - sampleSize) : 0;
+
+  const hashPart = (start: number, end: number): number => {
+    let h = 5381;
+    for (let i = start; i < end; i++) {
+      h = (h * 33) ^ (input[i] ?? 0);
+    }
+    return h >>> 0;
+  };
+
+  const h1 = hashPart(0, headLen).toString(36);
+  const h2 = len > sampleSize ? hashPart(tailStart, len).toString(36) : "";
+  return h2 ? `${h1}-${h2}-${len}` : `${h1}-${len}`;
+};
+
+const withOccurrenceSuffix = (
+  base: string,
+  seen: Map<string, number>
+): string => {
+  const n = seen.get(base) ?? 0;
+  seen.set(base, n + 1);
+  return n === 0 ? base : `${base}-${n}`;
+};
+
+const stableKeyForOutputValue = (v: any): string => {
+  if (v === null) {
+    return "null";
+  }
+  if (v === undefined) {
+    return "undefined";
+  }
+  const t = typeof v;
+  if (t === "string") {
+    return `str:${hashStringBounded(v)}`;
+  }
+  if (t === "number" || t === "boolean" || t === "bigint") {
+    return `${t}:${String(v)}`;
+  }
+  if (v instanceof Uint8Array) {
+    return `u8:${hashBytesBounded(v)}`;
+  }
+  if (Array.isArray(v)) {
+    // Often byte arrays or lists of primitives
+    return `arr:${hashBytesBounded(v)}`;
+  }
+  if (t === "object") {
+    const id = (v as any).id;
+    if (typeof id === "string" || typeof id === "number") {
+      return `id:${String(id)}`;
+    }
+    const uri = (v as any).uri;
+    if (typeof uri === "string" && uri) {
+      return `uri:${uri}`;
+    }
+    const type = (v as any).type;
+    const name = (v as any).name;
+    if (typeof type === "string" && typeof name === "string") {
+      return `type-name:${type}:${name}`;
+    }
+    if (typeof type === "string") {
+      return `type:${type}:${hashStringBounded(
+        JSON.stringify(Object.keys(v).slice(0, 50))
+      )}`;
+    }
+    try {
+      return `json:${hashStringBounded(JSON.stringify(v))}`;
+    } catch {
+      return "object";
+    }
+  }
+  return `other:${String(v)}`;
+};
+
 const concatTextChunksSafely = (
   chunks: Chunk[]
 ): {
@@ -239,8 +336,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         return <ImageComparisonRenderer value={value} />;
       case "image":
         if (Array.isArray(value.data)) {
-          return value.data.map((v: any, i: number) => (
-            <ImageView key={i} source={v} />
+          const seen = new Map<string, number>();
+          return value.data.map((v: any) => (
+            <ImageView
+              key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
+              source={v}
+            />
           ));
         } else {
           return <ImageView source={value?.uri ? value?.uri : value?.data} />;
@@ -324,6 +425,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             return null;
           }
           if (typeof value[0] === "string") {
+            const seen = new Map<string, number>();
             return (
               <div
                 ref={scrollRef}
@@ -337,9 +439,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 }}
               >
                 <List sx={{ p: 1 }}>
-                  {value.map((v: any, i: number) => (
+                  {value.map((v: any) => (
                     <ListItem
-                      key={i}
+                      key={withOccurrenceSuffix(
+                        stableKeyForOutputValue(v),
+                        seen
+                      )}
                       sx={{
                         borderRadius: 2,
                         bgcolor: "background.paper",
@@ -408,11 +513,21 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 );
               }
               // Mixed or non-text chunks: render each chunk individually
+              const seen = new Map<string, number>();
               return (
                 <Container>
-                  {chunks.map((c, i) => (
+                  {chunks.map((c) => (
                     <OutputRenderer
-                      key={i}
+                      key={withOccurrenceSuffix(
+                        `chunk:${(c as any)?.content_type ?? ""}:${
+                          (c as any)?.done ? 1 : 0
+                        }:${hashStringBounded(
+                          typeof (c as any)?.content === "string"
+                            ? (c as any).content
+                            : ""
+                        )}`,
+                        seen
+                      )}
                       value={c}
                       showTextActions={showTextActions}
                     />
@@ -432,11 +547,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               );
             }
             if (["audio", "video"].includes(value[0].type)) {
+              const seen = new Map<string, number>();
               return (
                 <Container>
-                  {value.map((v: any, i: number) => (
+                  {value.map((v: any) => (
                     <OutputRenderer
-                      key={i}
+                      key={withOccurrenceSuffix(
+                        stableKeyForOutputValue(v),
+                        seen
+                      )}
                       value={v}
                       showTextActions={showTextActions}
                     />
@@ -471,13 +590,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <Container>
-            {value.map((v: any, i: number) => (
-              <OutputRenderer
-                key={i}
-                value={v}
-                showTextActions={showTextActions}
-              />
-            ))}
+            {(() => {
+              const seen = new Map<string, number>();
+              return value.map((v: any) => (
+                <OutputRenderer
+                  key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
+                  value={v}
+                  showTextActions={showTextActions}
+                />
+              ));
+            })()}
           </Container>
         );
       case "segmentation_result":

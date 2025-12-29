@@ -1,5 +1,6 @@
 import React, { memo } from "react";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import { Box } from "@mui/material";
 
 type ActionsProps = {
   copyValue?: unknown;
@@ -10,9 +11,9 @@ const Actions: React.FC<ActionsProps> = ({ copyValue }) => {
     return null;
   }
   return (
-    <div className="actions">
+    <Box className="actions" sx={{ zIndex: 200, bottom: "2em" }}>
       <CopyToClipboardButton copyValue={copyValue} size="small" />
-    </div>
+    </Box>
   );
 };
 
