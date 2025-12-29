@@ -105,35 +105,10 @@ export const inputForType = (type: TypeName) => {
 };
 
 /**
- * Maps internal types to output node types
+ * Maps internal types to output node type (generic Output node handles all types)
  */
 export const outputForType = (type: TypeName) => {
-  switch (type) {
-    case "str":
-      return "nodetool.output.StringOutput";
-    case "text":
-      return "nodetool.output.TextOutput";
-    case "int":
-      return "nodetool.output.IntegerOutput";
-    case "float":
-      return "nodetool.output.FloatOutput";
-    case "bool":
-      return "nodetool.output.BooleanOutput";
-    case "image":
-      return "nodetool.output.ImageOutput";
-    case "video":
-      return "nodetool.output.VideoOutput";
-    case "audio":
-      return "nodetool.output.AudioOutput";
-    case "dataframe":
-      return "nodetool.output.DataFrameOutput";
-    case "tensor":
-      return "nodetool.output.TensorOutput";
-    case "document":
-      return "nodetool.output.DocumentOutput";
-    default:
-      return null;
-  }
+  return "nodetool.output.Output";
 };
 
 /**

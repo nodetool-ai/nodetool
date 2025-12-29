@@ -34,7 +34,7 @@ const mockedCreateWorkflowWindow = createWorkflowWindow as jest.MockedFunction<t
 const mockedClipboard = clipboard as jest.Mocked<typeof clipboard>;
 const mockedNativeImage = nativeImage as jest.Mocked<typeof nativeImage>;
 
-function createBaseWorkflow(runMode: 'headless' | 'normal', outputType: string): Workflow {
+function createBaseWorkflow(runMode: 'headless' | 'normal', outputType: string, outputData: any = {}): Workflow {
   return {
     id: 'wf1',
     name: 'Test Workflow',
@@ -48,7 +48,7 @@ function createBaseWorkflow(runMode: 'headless' | 'normal', outputType: string):
       nodes: [
         { id: '1', type: 'nodetool.input.ImageInput', data: { name: 'inputImage' } },
         { id: '2', type: 'nodetool.input.StringInput', data: { name: 'inputText' } },
-        { id: '3', type: outputType, data: {} },
+        { id: '3', type: outputType, data: outputData },
       ],
       edges: [],
     },
@@ -64,7 +64,7 @@ describe('runWorkflow', () => {
   });
 
   it('executes workflow in headless mode using clipboard params and writes image result', async () => {
-    const workflow = createBaseWorkflow('headless', 'nodetool.output.ImageOutput');
+    const workflow = createBaseWorkflow('headless', 'nodetool.output.Output', { type: 'image' });
 
     const imageBuffer = Buffer.from('imgdata');
     mockedClipboard.readImage.mockReturnValue({
@@ -79,7 +79,7 @@ describe('runWorkflow', () => {
     let onComplete: ((results: any[]) => void) | undefined;
     const mockConnect = jest.fn().mockResolvedValue(undefined);
     const mockRun = jest.fn(async () => {
-      if (onComplete) onComplete([{ uri: 'resultdata' }]);
+      if (onComplete) onComplete([{ uri: 'resultdata' }];
     });
     const state: any = { connect: mockConnect, run: mockRun, onComplete: undefined };
     const runner = {
@@ -107,7 +107,7 @@ describe('runWorkflow', () => {
   });
 
   it('opens workflow window in normal mode', async () => {
-    const workflow = createBaseWorkflow('normal', 'nodetool.output.StringOutput');
+    const workflow = createBaseWorkflow('normal', 'nodetool.output.Output', { type: 'str' });
 
     await runWorkflow(workflow);
 
