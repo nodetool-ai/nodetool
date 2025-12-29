@@ -78,10 +78,14 @@ function createMiniAppWindow(workflowId: string, workflowName?: string): Browser
   });
 
   // Load the mini app route
+  // For packaged apps, load the main HTML with a hash route
+  // For development, use direct SPA route
   const port = app.isPackaged ? getServerPort() : 3000;
-  const baseUrl = `http://127.0.0.1:${port}`;
-  
-  miniAppWindow.loadURL(`${baseUrl}/miniapp/${workflowId}`);
+  if (app.isPackaged) {
+    miniAppWindow.loadURL(`http://127.0.0.1:${port}/index.html#/miniapp/${workflowId}`);
+  } else {
+    miniAppWindow.loadURL(`http://127.0.0.1:${port}/miniapp/${workflowId}`);
+  }
 
   return miniAppWindow;
 }
@@ -119,10 +123,14 @@ function createChatWindow(): BrowserWindow {
   });
 
   // Load the standalone chat route
+  // For packaged apps, load the main HTML with a hash route
+  // For development, use direct SPA route
   const port = app.isPackaged ? getServerPort() : 3000;
-  const baseUrl = `http://127.0.0.1:${port}`;
-  
-  chatWindow.loadURL(`${baseUrl}/standalone-chat`);
+  if (app.isPackaged) {
+    chatWindow.loadURL(`http://127.0.0.1:${port}/index.html#/standalone-chat`);
+  } else {
+    chatWindow.loadURL(`http://127.0.0.1:${port}/standalone-chat`);
+  }
 
   return chatWindow;
 }

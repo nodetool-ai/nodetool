@@ -314,6 +314,20 @@ function getRoutes() {
 
 useAssetStore.getState().setQueryClient(queryClient);
 useModelDownloadStore.getState().setQueryClient(queryClient);
+
+// Handle hash route for packaged Electron apps
+// When loading index.html#/path, convert hash to regular route
+const handleHashRoute = () => {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith("#/")) {
+    // Convert hash route to regular route
+    // e.g., #/miniapp/workflowId -> /miniapp/workflowId
+    const route = hash.slice(1); // Remove the leading #
+    window.history.replaceState(null, "", route);
+  }
+};
+handleHashRoute();
+
 const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
