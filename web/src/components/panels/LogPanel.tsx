@@ -153,10 +153,10 @@ const LogPanel: React.FC = () => {
   }, [openWorkflows]);
 
   const rows = useMemo<Row[]>(() => {
-    return Object.entries(logs).map(([key, log]) => {
-      const [workflowId] = key.split(":");
+    return (logs || []).map((log, index) => {
+      const workflowId = log.workflowId;
       return {
-        key,
+        key: `${workflowId}:${log.nodeId}:${log.timestamp}:${index}`,
         workflowId,
         workflowName: log.workflowName || wfName[workflowId] || workflowId,
         severity: log.severity,

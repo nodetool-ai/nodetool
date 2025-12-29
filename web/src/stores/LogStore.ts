@@ -18,6 +18,16 @@ type LogsStore = {
   clearLogs: () => void;
 };
 
+const MAX_LOGS_TOTAL = 5000;
+const MAX_LOG_CONTENT_CHARS = 20_000;
+
+const truncateLogContent = (content: string): string => {
+  if (content.length <= MAX_LOG_CONTENT_CHARS) {
+    return content;
+  }
+  return `${content.slice(0, MAX_LOG_CONTENT_CHARS)}\n… (truncated)`;
+};
+
 const useLogsStore = create<LogsStore>((set, get) => ({
   logs: [],
   /**
@@ -38,7 +48,21 @@ const useLogsStore = create<LogsStore>((set, get) => ({
    * @param log The log to append.
    */
   appendLog: (log: Log) => {
-    set({ logs: [...get().logs, log] });
+    const safeLog: Log = {
+      ...log,
+      content:
+        typeof log.content === "string"
+          ? truncateLogContent(log.content)
+          : truncateLogContent(String(log.content))
+    };
+
+    set((state) => {
+      const next = [...state.logs, safeLog];
+      if (next.length <= MAX_LOGS_TOTAL) {
+        return { logs: next };
+      }
+      return { logs: next.slice(next.length - MAX_LOGS_TOTAL) };
+    });
   },
 
   /**
