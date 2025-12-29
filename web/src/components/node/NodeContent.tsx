@@ -72,6 +72,11 @@ const NodeContent: React.FC<NodeContentProps> = ({
     );
   }
   
+  // Determine what to show when overlay is not active
+  const shouldShowResultButton =
+    result && onShowResults && status === "completed";
+  const shouldShowInlineResult = !(result && status === "completed");
+  
   return (
     <>
       <NodeInputs
@@ -98,37 +103,22 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {/* Show "Show Result" button when result is available, overlay is hidden, and node is completed */}
-      {(() => {
-        const shouldShowResultButton =
-          result &&
-          !showResultOverlay &&
-          onShowResults &&
-          status === "completed";
-
-        if (shouldShowResultButton) {
-          return (
-            <Box sx={{ padding: 1, textAlign: "center" }}>
-              <Button
-                size="small"
-                startIcon={<Visibility />}
-                onClick={onShowResults}
-                variant="outlined"
-                sx={{ textTransform: "none" }}
-              >
-                Show Result
-              </Button>
-            </Box>
-          );
-        }
-        return null;
-      })()}
-      {/* Show inline result only when overlay is hidden and node is not completed with a result */}
-      {(() => {
-        const shouldShowInlineResult =
-          !showResultOverlay && !(result && status === "completed");
-        return shouldShowInlineResult ? renderedResult : null;
-      })()}
+      {/* Show "Show Result" button when result is available and node is completed */}
+      {shouldShowResultButton && (
+        <Box sx={{ padding: 1, textAlign: "center" }}>
+          <Button
+            size="small"
+            startIcon={<Visibility />}
+            onClick={onShowResults}
+            variant="outlined"
+            sx={{ textTransform: "none" }}
+          >
+            Show Result
+          </Button>
+        </Box>
+      )}
+      {/* Show inline result only when node is not completed with a result */}
+      {shouldShowInlineResult && renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
       <NodeLogs id={id} workflowId={workflowId} />
