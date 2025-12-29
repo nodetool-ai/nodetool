@@ -112,6 +112,18 @@ jobs:
           if [ -f $RUNNER_TEMP/nodetool-server.pid ]; then
             kill $(cat $RUNNER_TEMP/nodetool-server.pid) || true
           fi
+      
+      - name: Print nodetool server logs
+        if: always()
+        shell: bash -el {0}
+        run: |
+          echo "=== Nodetool Server Logs ==="
+          if [ -f $RUNNER_TEMP/nodetool-server.log ]; then
+            cat $RUNNER_TEMP/nodetool-server.log
+          else
+            echo "No server log file found"
+          fi
+          echo "=== End of Server Logs ==="
           
       - name: Upload nodetool server logs
         if: failure()
