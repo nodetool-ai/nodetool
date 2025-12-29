@@ -7,6 +7,88 @@ title: "Deployment Guide"
 
 NodeTool supports multiple deployment targets driven by a single `deployment.yaml` configuration. The `nodetool deploy` command family builds container images, applies configuration, and manages the lifecycle of remote services across self-hosted hosts, RunPod serverless, and Google Cloud Run.
 
+---
+
+## Quick Reference: What Do You Want to Do?
+
+| I want to... | What you need |
+|--------------|---------------|
+| **Run NodeTool on my own server** | → [Self-Hosted Deployment](#self-hosted-deployments) with proxy |
+| **Deploy to RunPod for GPU access** | → [RunPod Deployment](#runpod-deployments) with Docker + RunPod API key |
+| **Deploy to Google Cloud Run** | → [GCP Deployment](#google-cloud-run-deployments) with gcloud CLI |
+| **Use Supabase for auth/storage** | → [Supabase Integration](#using-supabase) |
+| **Set up TLS/HTTPS** | → See [Self-Hosted](#self-hosted-deployments) or [Proxy Reference](proxy.md) |
+| **Configure environment variables** | → [Deployment Configuration](#deployment-configuration) |
+
+---
+
+## Common Deployment Goals
+
+### I want to deploy NodeTool to my own server
+
+1. **Set up your configuration** — create a `deployment.yaml`:
+   ```bash
+   nodetool deploy init
+   nodetool deploy add my-server --type self-hosted
+   ```
+2. **Configure host details** — edit `~/.config/nodetool/deployment.yaml` with your host, SSH user, and image settings
+3. **Build and deploy**:
+   ```bash
+   nodetool deploy apply my-server
+   ```
+4. **Verify**: `nodetool deploy status my-server`
+
+See [Self-Hosted Deployments](#self-hosted-deployments) for full details.
+
+### I want to run workflows on GPU via RunPod
+
+1. **Get your RunPod API key** from [runpod.io](https://runpod.io)
+2. **Set up deployment**:
+   ```bash
+   export RUNPOD_API_KEY="your-key"
+   nodetool deploy add my-runpod --type runpod
+   ```
+3. **Configure GPU settings** in `deployment.yaml` (`gpu_types`, `gpu_count`)
+4. **Deploy**:
+   ```bash
+   nodetool deploy apply my-runpod
+   ```
+
+See [RunPod Deployments](#runpod-deployments) for full details.
+
+### I want to deploy to Google Cloud
+
+1. **Authenticate with gcloud**: `gcloud auth login`
+2. **Set up deployment**:
+   ```bash
+   nodetool deploy add my-gcp --type gcp
+   ```
+3. **Configure region, CPU/memory** in `deployment.yaml`
+4. **Deploy**:
+   ```bash
+   nodetool deploy apply my-gcp
+   ```
+
+See [GCP Deployments](#google-cloud-run-deployments) for full details.
+
+### I want to use Supabase for authentication and storage
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+2. **Create storage buckets** (`assets`, `assets-temp`)
+3. **Add to your deployment config**:
+   ```yaml
+   env:
+     SUPABASE_URL: https://your-project.supabase.co
+     SUPABASE_KEY: your-service-role-key
+     AUTH_PROVIDER: supabase
+     ASSET_BUCKET: assets
+   ```
+4. **Deploy**: `nodetool deploy apply <name>`
+
+See [Using Supabase](#using-supabase) for full details.
+
+---
+
 ## Deployment Workflow
 
 1. **Initialize configuration**  
