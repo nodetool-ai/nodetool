@@ -98,21 +98,37 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {result && !showResultOverlay && onShowResults && status === "completed" && (
-        <Box sx={{ padding: 1, textAlign: "center" }}>
-          <Button
-            size="small"
-            startIcon={<Visibility />}
-            onClick={onShowResults}
-            variant="outlined"
-            sx={{ textTransform: "none" }}
-          >
-            Show Result
-          </Button>
-        </Box>
-      )}
-      {/* Only show renderedResult if there's no overlay mode or if status is not completed */}
-      {!showResultOverlay && !(result && status === "completed") && renderedResult}
+      {/* Show "Show Result" button when result is available, overlay is hidden, and node is completed */}
+      {(() => {
+        const shouldShowResultButton =
+          result &&
+          !showResultOverlay &&
+          onShowResults &&
+          status === "completed";
+
+        if (shouldShowResultButton) {
+          return (
+            <Box sx={{ padding: 1, textAlign: "center" }}>
+              <Button
+                size="small"
+                startIcon={<Visibility />}
+                onClick={onShowResults}
+                variant="outlined"
+                sx={{ textTransform: "none" }}
+              >
+                Show Result
+              </Button>
+            </Box>
+          );
+        }
+        return null;
+      })()}
+      {/* Show inline result only when overlay is hidden and node is not completed with a result */}
+      {(() => {
+        const shouldShowInlineResult =
+          !showResultOverlay && !(result && status === "completed");
+        return shouldShowInlineResult ? renderedResult : null;
+      })()}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
       <NodeLogs id={id} workflowId={workflowId} />
