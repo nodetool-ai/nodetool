@@ -31,6 +31,8 @@ describe('Config', () => {
     jest.clearAllMocks();
     // Reset process.env
     process.env = { ...originalEnv };
+    // Explicitly unset CONDA_PREFIX to allow settings-based path resolution
+    delete process.env.CONDA_PREFIX;
   });
 
   afterEach(() => {
