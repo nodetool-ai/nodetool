@@ -1,25 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
-import { useClipboard } from "../../../hooks/browser/useClipboard";
-import { useNotificationStore } from "../../../stores/NotificationStore";
-
-export function useCopyToClipboard() {
-  const { writeClipboard } = useClipboard();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  return useCallback(
-    (value: string) => {
-      writeClipboard(value?.toString(), true);
-      addNotification({
-        type: "info",
-        alert: true,
-        content: "Value copied to Clipboard!"
-      });
-    },
-    [writeClipboard, addNotification]
-  );
-}
 
 export function useVideoSrc(value: any) {
   const videoRef = useRef<HTMLVideoElement>(null);
