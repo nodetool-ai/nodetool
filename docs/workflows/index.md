@@ -3,24 +3,24 @@ layout: page
 title: "Creative Workflow Gallery"
 ---
 
-Explore ready-to-use creative workflows to jumpstart your projects and learn new techniques. Each example includes detailed explanations and visual diagrams. New to workflows? Start with the beginner section below!
+Explore ready-to-use workflows to jumpstart your projects and learn new techniques. Each example includes detailed explanations and visual diagrams.
 
 **Looking for patterns?** Pair these workflows with [Creative Patterns]({{ '/cookbook/patterns' | relative_url }}) to understand the techniques behind them.
 
-## 🎨 Start Here: Beginner-Friendly Creative Workflows
+## 🎨 Start Here: Beginner-Friendly Workflows
 
-Perfect for learning NodeTool while creating something awesome:
+Good starting points for learning NodeTool:
 
-- [Creative Story Ideas](creative-story-ideas.md) - Generate unlimited story concepts and creative prompts
+- [Creative Story Ideas](creative-story-ideas.md) - Generate story concepts and creative prompts
 - [Image Enhance](image-enhance.md) - Polish photos with sharpening and auto-contrast
 - [Transcribe Audio](transcribe-audio.md) - Convert speech to text with AI
 
 ## 🖼️ Visual Creation & Image Workflows
 
-Transform and generate stunning visuals:
+Create and transform images:
 
 - [Movie Posters](movie-posters.md) - AI-generated poster designs from creative briefs
-- [Image Enhance](image-enhance.md) - Professional image enhancement pipeline
+- [Image Enhance](image-enhance.md) - Image enhancement pipeline
 - [Image To Audio Story](image-to-audio-story.md) - Turn images into narrated stories
 
 ## 🎬 Video & Motion Workflows
@@ -41,7 +41,7 @@ Work with sound, music, and voice:
 
 Generate and transform written content:
 
-- [Creative Story Ideas](creative-story-ideas.md) - Endless brainstorming for writers and creators
+- [Creative Story Ideas](creative-story-ideas.md) - Brainstorming for writers and creators
 - [Flashcard Generator](flashcard-generator.md) - Turn content into study materials
 - [Story to Video Generator](story-to-video-generator.md) - Bring written stories to life
 
@@ -101,4 +101,4 @@ Generate and visualize data:
 
 ## Share Your Creations
 
-Created an amazing workflow? Share it with the community! Contribute to the [NodeTool repository](https://github.com/nodetool-ai/nodetool) and inspire other creators.
+Created a useful workflow? Share it with the community! Contribute to the [NodeTool repository](https://github.com/nodetool-ai/nodetool) and help other users.

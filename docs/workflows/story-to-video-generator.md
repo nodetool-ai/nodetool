@@ -5,51 +5,46 @@ title: "Story to Video Generator"
 
 ## Overview
 
-Transform story ideas into cinematic AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.
-
-Transform story ideas into professional cinematic videos using AI.
+Transform story ideas into AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.
 
 ## How It Works
 
-Enter Story Theme - Describe your scene or story ideaFormatText - Injects your theme into the prompt templateAI Agent - Crafts a cinematic video prompt with:
-
-Camera movements & anglesLighting & color detailsAtmosphere & moodComposition & framing
-
-TextToVideo - Gemini Veo generates your videoPreview - View the crafted prompt and final video
+1. **Story Theme** - Describe your scene or story idea
+2. **FormatText** - Injects theme into the prompt template
+3. **AI Agent** - Crafts a video prompt with camera movements, lighting, and composition details
+4. **TextToVideo** - Gemini Veo generates your video
+5. **Preview** - View the crafted prompt and final video
 
 ## Example Story Themes
 
-Nature & Landscapes:
+**Nature & Landscapes:**
+- "Time-lapse of cherry blossoms blooming at sunrise"
+- "Underwater coral reef with rays of sunlight"
 
-"Time-lapse of cherry blossoms blooming at sunrise""Underwater coral reef with rays of sunlight piercing through"
+**Sci-Fi & Fantasy:**
+- "A lone astronaut discovering ancient alien ruins on Mars"
+- "Mystical forest with bioluminescent plants at midnight"
 
-Sci-Fi & Fantasy:
-
-"A lone astronaut discovering ancient alien ruins on Mars""Mystical forest with bioluminescent plants at midnight"
-
-Urban & Cinematic:
-
-"New York City street at night in the rain, neon reflections""Drone shot rising over Tokyo at golden hour"
+**Urban & Cinematic:**
+- "New York City street at night in the rain, neon reflections"
+- "Drone shot rising over Tokyo at golden hour"
 
 ## Tips for Best Results
 
-✅ Be specific - Include details about setting, lighting, time of day
+✅ Be specific - Include setting, lighting, time of day  
+✅ Add motion - Describe camera movements or actions  
+✅ Set the mood - Mention atmosphere (peaceful, dramatic, mysterious)  
+✅ Keep it visual - Focus on what can be seen  
 
-✅ Add motion - Describe camera movements or subject actions
-
-✅ Set the mood - Mention atmosphere (peaceful, dramatic, mysterious)
-
-✅ Keep it visual - Focus on what can be seen, not abstract concepts
-
-❌ Avoid vague descriptions like "something beautiful"
-
-❌ Don't include dialogue or sound effects
-
-❌ Keep themes focused on a single moment/scene
+❌ Avoid vague descriptions  
+❌ Don't include dialogue or sound effects  
+❌ Keep themes focused on a single scene
 
 ## Configuration Options
 
-Aspect Ratio: 16:9 (widescreen), 9:16 (vertical), 1:1 (square)Resolution: 720p (faster), 1080p (higher quality)Seed: Set to same number for consistent results, -1 for random
+- **Aspect Ratio**: 16:9 (widescreen), 9:16 (vertical), 1:1 (square)
+- **Resolution**: 720p (faster), 1080p (higher quality)
+- **Seed**: Set to same number for consistent results, -1 for random
 
 ## Tags
 

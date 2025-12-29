@@ -5,84 +5,54 @@ title: "Movie Posters"
 
 ## What You'll Create
 
-**Generate professional movie posters with AI**—perfect for filmmakers, designers, and anyone who needs stunning visual concepts fast. This workflow shows how to chain AI models to go from idea to finished design.
-
-**Learning outcomes:**
-- ✅ See how AI can plan creative strategies
-- ✅ Chain multiple AI models for complex results
-- ✅ Generate multiple design variations instantly
-- ✅ Understand multi-stage creative workflows
+Generate movie poster concepts with AI. This workflow chains multiple AI models to go from idea to visual design, demonstrating how to build multi-stage creative pipelines.
 
 **Time to complete:** 5 minutes  
-**Difficulty:** Intermediate (great second workflow)
-
----
-
-## Why This Workflow Matters
-
-**For designers:** Generate dozens of poster concepts in minutes instead of hours.  
-**For indie filmmakers:** Create marketing materials without expensive design agencies.  
-**For students:** Learn professional creative workflow patterns.  
-**For agencies:** Present multiple creative directions to clients instantly.
+**Difficulty:** Intermediate
 
 ---
 
 ## Overview
 
-An AI-powered poster generator that works like having a creative director and designer in one workflow.
+An AI-powered poster generator that plans a visual strategy, then creates image variations.
 
 **How it works:**
-1. **You provide** the movie title, genre, and target audience
-2. **AI Strategy Agent** creates a marketing approach and visual concept
-3. **AI Prompt Generator** turns that strategy into detailed image prompts
-4. **Image Generator** (Stable Diffusion/Flux) creates poster variations
-5. **Preview panels** show both the strategy and your gallery of posters
-
-This demonstrates **multi-stage creative thinking**: planning first, then execution—just like a real design process.
+1. **Input** - Movie title, genre, and target audience
+2. **Strategy Agent** - Creates a marketing approach and visual concept
+3. **Prompt Generator** - Converts strategy into detailed image prompts
+4. **Image Generator** - Creates poster variations using Stable Diffusion/Flux
+5. **Preview** - Shows both the strategy and resulting posters
 
 ---
 
 ## The Creative Pipeline
 
-### 📥 INPUTS (Your Creative Brief)
+### Inputs
+Three input nodes define your movie:
+- **Title**: Your movie name
+- **Genre**: Action, Horror, Romance, etc.
+- **Audience**: Who will watch it
 
-• Three input nodes let you define your movie
-• **Title**: What's your movie called?
-• **Genre**: Action? Horror? Romance?
-• **Audience**: Who will watch it?
+### Strategy Planning
+First AI agent analyzes inputs and creates a marketing strategy and visual direction.
 
-### 🎯 STRATEGY PLANNING
+### Prompt Generation
+Second AI converts strategy into specific image prompts, generating multiple variations for different approaches.
 
-• First AI agent analyzes your inputs
-• Creates a marketing strategy and visual direction
-• Like a creative director planning the campaign
+### Image Creation
+Stable Diffusion or Flux renders 512×768px posters. Multiple images generated simultaneously.
 
-### 📝 PROMPT GENERATION
-
-• Second AI converts strategy into specific image prompts
-• Generates multiple variations for different approaches
-• Each prompt describes a unique poster concept
-
-### 🎨 IMAGE CREATION
-
-• Stable Diffusion or Flux renders 512×768px posters
-• Multiple images generated simultaneously
-• Each one a unique interpretation of your brief
-
-### 👁️ PREVIEW & RESULTS
-
-• Top preview shows the creative strategy
-• Bottom gallery displays all generated posters
-• Pick your favorites or generate more variations
+### Preview & Results
+Top preview shows the creative strategy. Bottom gallery displays all generated posters.
 
 ---
 
-## 🎯 KEY CREATIVE CONCEPTS:
+## Key Concepts
 
-- **Multi-stage workflows**: AI planning → AI execution (like real creative process)
-- **Variation generation**: Create dozens of concepts, pick the best
+- **Multi-stage workflows**: Chain AI models for complex results
+- **Variation generation**: Create multiple concepts to choose from
 - **Streaming results**: Watch posters appear as they generate
-- **Reusable template**: Save and use for any movie project
+- **Reusable template**: Save and use for any project
 
 ---
 
@@ -115,42 +85,28 @@ graph TD
 
 ## How to Use
 
-1. **Open NodeTool** and find "Movie Posters" in the Templates panel
-2. **Open in editor** to see the creative pipeline
-3. **Fill in your movie details:**
+1. Open NodeTool and find "Movie Posters" in Templates
+2. Fill in your movie details:
    - **Movie Title**: "Quantum Horizon" (or your movie name)
    - **Genre**: "Sci-Fi Thriller" (choose any genre)
    - **Primary Audience**: "Adults 25-40 who love space mysteries"
-4. **Run workflow** – Press <kbd>Ctrl/⌘ + Enter</kbd> or click Run
-5. **Watch the magic:**
-   - First, see the AI strategy in the top preview
-   - Then watch posters generate one by one
-6. **Iterate:** Change inputs and run again for completely different styles
+3. Press <kbd>Ctrl/⌘ + Enter</kbd> or click Run
+4. View the AI strategy in the top preview
+5. Watch posters generate in the bottom preview
+6. Run again with different inputs for new styles
 
-**Pro tips:**
-- Try different genres for the same movie title—see how dramatically the posters change
-- Be specific about your audience to get more targeted designs
-- Save your favorites by right-clicking the preview
+**Tips:**
+- Try different genres for the same title to see how styles change
+- Be specific about audience to get more targeted designs
 - Run multiple times to build a portfolio of concepts
 
 ---
 
-## Real-World Applications
+## Next Steps
 
-**Indie filmmakers:** Create marketing materials for festivals and distribution  
-**Design agencies:** Generate client presentations with multiple creative directions  
-**Students:** Learn professional creative workflow patterns  
-**Game developers:** Create game cover art and promotional materials  
-**Marketing teams:** Brainstorm visual campaign concepts rapidly
+Try these related workflows:
+- [Image Enhance](image-enhance.md) - Enhance your poster designs
+- [Creative Story Ideas](creative-story-ideas.md) - Generate movie concepts
+- [Story to Video](story-to-video-generator.md) - Create video trailers
 
----
-
-## Next Creative Workflows
-
-After mastering this workflow, try these to level up:
-
-1. **[Image Enhance](image-enhance.md)** – Take your posters further with AI enhancement
-2. **[Creative Story Ideas](creative-story-ideas.md)** – Generate movie concepts to match your posters
-3. **[Story to Video](story-to-video-generator.md)** – Create video trailers from your concepts
-
-Or explore all [creative workflows](/workflows/) to discover more possibilities.
+Browse all [workflows](/workflows/) for more examples.
