@@ -116,7 +116,7 @@ const NodeContextMenu: React.FC = () => {
 
   const handleConvertToInput = useCallback(() => {
     if (!node || !nodeId) return;
-    const targetType = constantToInputType(node.type);
+    const targetType = constantToInputType(node?.type ?? "");
     if (targetType) {
       const match = targetType.match(/nodetool\.input\.(\w+)Input$/);
       const name = match ? match[1].toLowerCase() : "input";
@@ -137,7 +137,7 @@ const NodeContextMenu: React.FC = () => {
 
   const handleConvertToConstant = useCallback(() => {
     if (!node || !nodeId) return;
-    const targetType = inputToConstantType(node.type);
+    const targetType = inputToConstantType(node?.type ?? "");
     if (targetType) {
       updateNodeData(nodeId, { properties: { ...nodeData?.properties } });
       updateNode(nodeId, { type: targetType });
