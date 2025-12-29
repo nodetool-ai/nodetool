@@ -70,32 +70,34 @@ if (process.env.JEST_WORKER_ID) {
     // Helper function to find and kill Python server processes on default port
     async function killServersOnDefaultPort(): Promise<void> {
       const defaultPort = 7777;
-      
-      // Use lsof on macOS/Linux, PowerShell on Windows
       const platform = os.platform();
-      let command: string;
-      let shell: string | boolean = true;
-      
-      if (platform === 'darwin' || platform === 'linux') {
-        command = `lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`;
-      } else if (platform === 'win32') {
-        // Use PowerShell on Windows for more reliable execution
-        command = `Get-NetTCPConnection -LocalPort ${defaultPort} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`;
-        shell = 'powershell.exe';
-      } else {
-        return;
-      }
       
       return new Promise<void>((resolve) => {
         console.log(`Killing any processes on port ${defaultPort}`);
-        spawn(command, {
-          shell: shell,
-          stdio: 'ignore'
-        }).on('exit', () => {
+        
+        if (platform === 'darwin' || platform === 'linux') {
+          const command = `lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`;
+          spawn(command, {
+            shell: true,
+            stdio: 'ignore'
+          }).on('exit', () => {
+            resolve();
+          }).on('error', () => {
+            resolve();
+          });
+        } else if (platform === 'win32') {
+          // Use PowerShell on Windows for more reliable execution
+          const command = `Get-NetTCPConnection -LocalPort ${defaultPort} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`;
+          spawn('powershell.exe', ['-Command', command], {
+            stdio: 'ignore'
+          }).on('exit', () => {
+            resolve();
+          }).on('error', () => {
+            resolve();
+          });
+        } else {
           resolve();
-        }).on('error', () => {
-          resolve();
-        });
+        }
       });
     }
 
