@@ -404,3 +404,218 @@ graph TD
 - `ImportCSV`: Parse CSV data
 - `Filter`: Transform data
 - `ChartGenerator`: AI-generated charts with Plotly
+
+______________________________________________________________________
+
+<a id="pattern-11-text-to-video"></a>
+
+### Pattern 11: Text-to-Video Generation
+
+**Use Case**: Generate videos from text descriptions
+
+**Example**: Cinematic Video from Prompt
+
+{% mermaid %}
+graph TD
+  string_input["StringInput (Prompt)"]
+  video_output["VideoOutput"]
+  kling_text_to_video["KlingTextToVideo"]
+  string_input --> kling_text_to_video
+  kling_text_to_video --> video_output
+{% endmermaid %}
+
+**When to Use**:
+
+- Create videos from text descriptions
+- Generate concept videos and storyboards
+- Produce cinematic content from prompts
+- Rapid video prototyping
+
+**Key Nodes**:
+
+- `KlingTextToVideo`: High-quality text-to-video (Kling 2.6)
+- `HailuoTextToVideoPro`: Professional quality (Hailuo 2.3)
+- `Sora2TextToVideo`: OpenAI Sora 2 model
+- `GrokImagineTextToVideo`: xAI Grok Imagine
+- `Wan26TextToVideo`: Alibaba Wan 2.6
+
+**Configuration Tips**:
+
+- Duration: 5-10 seconds for most models
+- Resolution: 768P for faster generation, 1080P for quality
+- Aspect ratios: 16:9 (landscape), 9:16 (portrait), 1:1 (square)
+
+______________________________________________________________________
+
+<a id="pattern-12-image-to-video"></a>
+
+### Pattern 12: Image-to-Video Generation
+
+**Use Case**: Animate images into videos
+
+**Example**: Bring Images to Life
+
+{% mermaid %}
+graph TD
+  image_input["ImageInput"]
+  string_input["StringInput (Motion Guide)"]
+  video_output["VideoOutput"]
+  kling_image_to_video["KlingImageToVideo"]
+  image_input --> kling_image_to_video
+  string_input --> kling_image_to_video
+  kling_image_to_video --> video_output
+{% endmermaid %}
+
+**When to Use**:
+
+- Animate static images
+- Create motion from photographs
+- Multi-image video generation
+- Product showcases from images
+
+**Key Nodes**:
+
+- `KlingImageToVideo`: Supports 1-3 source images
+- `HailuoImageToVideoPro`: High-quality animation
+- `SeedanceV1ProImageToVideo`: Bytedance 1.0 Pro
+- `Wan26ImageToVideo`: Alibaba Wan 2.6
+
+**Advanced Pattern**: Multi-Image Animation
+
+{% mermaid %}
+graph TD
+  image1["ImageInput (Frame 1)"]
+  image2["ImageInput (Frame 2)"]
+  image3["ImageInput (Frame 3)"]
+  motion_prompt["StringInput (Motion)"]
+  video_output["VideoOutput"]
+  kling_i2v["KlingImageToVideo"]
+  kling_i2v --> video_output
+  image1 --> kling_i2v
+  image2 --> kling_i2v
+  image3 --> kling_i2v
+  motion_prompt --> kling_i2v
+{% endmermaid %}
+
+______________________________________________________________________
+
+<a id="pattern-13-talking-avatar"></a>
+
+### Pattern 13: Talking Avatar Generation
+
+**Use Case**: Create lip-synced avatar videos
+
+**Example**: Virtual Presenter
+
+{% mermaid %}
+graph TD
+  image_input["ImageInput (Face Photo)"]
+  audio_input["AudioInput (Speech)"]
+  video_output["VideoOutput"]
+  kling_avatar["KlingAIAvatarPro"]
+  image_input --> kling_avatar
+  audio_input --> kling_avatar
+  kling_avatar --> video_output
+{% endmermaid %}
+
+**When to Use**:
+
+- Create virtual presenters
+- Generate lip-synced avatar videos
+- Educational content with AI speakers
+- Virtual influencers and spokespersons
+
+**Key Nodes**:
+
+- `KlingAIAvatarPro`: Pro-quality avatar generation
+- `KlingAIAvatarStandard`: Standard mode for faster generation
+- `InfinitalkV1`: Audio-driven video generation
+
+**Workflow**: Audio + Image → Talking Avatar
+
+1. **Photo Input**: Front-facing portrait image
+2. **Audio Track**: Speech recording or TTS output
+3. **Optional Prompt**: Guide emotions and expressions
+4. **Mode Selection**: Standard (faster) or Pro (higher quality)
+
+______________________________________________________________________
+
+<a id="pattern-14-video-enhancement"></a>
+
+### Pattern 14: Video Enhancement & Upscaling
+
+**Use Case**: Improve video quality and resolution
+
+**Example**: HD Video Upscaling
+
+{% mermaid %}
+graph TD
+  video_input["VideoInput (Low Res)"]
+  video_output["VideoOutput (High Res)"]
+  topaz_upscale["TopazVideoUpscale"]
+  video_input --> topaz_upscale
+  topaz_upscale --> video_output
+{% endmermaid %}
+
+**When to Use**:
+
+- Upscale low-resolution videos
+- Remove noise and artifacts
+- Enhance video quality
+- Prepare videos for high-resolution displays
+
+**Key Nodes**:
+
+- `TopazVideoUpscale`: AI-powered upscaling to 1080p or 4K
+- Denoise option: Reduces artifacts during upscaling
+
+**Configuration**:
+
+- Target resolutions: 1080p or 4K
+- Denoise: Enable for noisy input videos
+- Best for: Enhancing old footage, smartphone videos, web videos
+
+______________________________________________________________________
+
+<a id="pattern-15-storyboard-to-video"></a>
+
+### Pattern 15: Storyboard to Video
+
+**Use Case**: Convert image sequences to coherent videos
+
+**Example**: Visual Story Generation
+
+{% mermaid %}
+graph TD
+  story_prompt["StringInput (Story)"]
+  image1["ImageInput (Scene 1)"]
+  image2["ImageInput (Scene 2)"]
+  image3["ImageInput (Scene 3)"]
+  video_output["VideoOutput"]
+  sora_storyboard["Sora2ProStoryboard"]
+  sora_storyboard --> video_output
+  story_prompt --> sora_storyboard
+  image1 --> sora_storyboard
+  image2 --> sora_storyboard
+  image3 --> sora_storyboard
+{% endmermaid %}
+
+**When to Use**:
+
+- Create narrative videos from storyboards
+- Combine multiple scenes into one video
+- Professional video pre-visualization
+- Animated story creation
+
+**Key Nodes**:
+
+- `Sora2ProStoryboard`: OpenAI Sora 2 storyboard mode
+- Supports: 1-3 keyframe images
+- Output: Smooth transitions between scenes
+
+**Workflow**:
+
+1. **Story Prompt**: Describe the narrative arc
+2. **Keyframes**: Provide 1-3 scene images
+3. **Generation**: Sora creates smooth transitions
+4. **Duration**: 1-60 frames configurable
