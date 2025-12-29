@@ -1,6 +1,6 @@
 {
   "name": "nodetool",
-  "version": "0.6.2-rc.15",
+  "version": "0.6.2-rc.17",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -116,6 +116,9 @@
     "test:summary": "jest --reporters=\"summary\"",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
     "release": "ts-node release.ts",
     "openapi": "openapi-typescript http://127.0.0.1:7777/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit",

@@ -1,4 +1,5 @@
 export const PANEL_CONFIG = {
+  "getting-started": { title: "Getting Started" },
   templates: { title: "Templates" },
   activity: { title: "Activity" },
   workflows: { title: "Recent Workflows" },

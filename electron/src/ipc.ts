@@ -20,7 +20,7 @@ import { readSettings, updateSetting } from "./settings";
 import { createPackageManagerWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
-import { updateTrayMenu } from "./tray";
+import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
 import {
   fetchAvailablePackages,
   listInstalledPackages,
@@ -31,6 +31,7 @@ import {
   searchNodes,
 } from "./packageManager";
 import { openModelDirectory, openPathInExplorer, openSystemDirectory } from "./fileExplorer";
+import { exportDebugBundle } from "./debug";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -355,7 +356,7 @@ export function initializeIpcHandlers(): void {
     async (event, workflow) => {
       logMessage(`Creating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
-      updateTrayMenu();
+      emitWorkflowsChanged();
     }
   );
 
@@ -364,7 +365,7 @@ export function initializeIpcHandlers(): void {
     async (event, workflow) => {
       logMessage(`Updating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
-      updateTrayMenu();
+      emitWorkflowsChanged();
     }
   );
 
@@ -375,7 +376,7 @@ export function initializeIpcHandlers(): void {
       if (workflow.settings?.shortcut) {
         globalShortcut.unregister(workflow.settings.shortcut);
       }
-      updateTrayMenu();
+      emitWorkflowsChanged();
     }
   );
 
@@ -542,13 +543,20 @@ export function initializeIpcHandlers(): void {
     async (_event, action) => {
       logMessage(`Setting window close behavior to: ${action}`);
       updateSetting("windowCloseAction", action);
-      updateTrayMenu();
+      emitServerStateChanged();
     }
   );
 
-  // System info handler
   createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {
     const { getSystemInfo } = await import("./systemInfo");
     return await getSystemInfo();
   });
+
+  createIpcMainHandler(
+    IpcChannels.DEBUG_EXPORT_BUNDLE,
+    async (_event, request) => {
+      logMessage("Exporting debug bundle");
+      return await exportDebugBundle(request);
+    }
+  );
 }

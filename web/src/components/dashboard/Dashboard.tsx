@@ -152,6 +152,14 @@ const Dashboard: React.FC = () => {
 
   const panelParams = useMemo(() => {
     return {
+      "getting-started": {
+        sortedWorkflows,
+        isLoadingWorkflows,
+        startTemplates,
+        isLoadingTemplates,
+        handleExampleClick,
+        handleCreateNewWorkflow
+      },
       activity: {
         // Workflows
         sortedWorkflows,
@@ -375,7 +383,29 @@ const Dashboard: React.FC = () => {
 
   const handleAddPanel = useCallback(
     (panelId: string) => {
-      if (!dockviewApi) {return;}
+      if (!dockviewApi) {
+        return;
+      }
+      
+      // Position getting-started panel to the left of the first panel if it exists
+      if (panelId === "getting-started") {
+        const panels = dockviewApi.panels;
+        const firstPanel = panels.length > 0 ? panels[0] : null;
+        
+        if (firstPanel && firstPanel.id !== "getting-started") {
+          dockviewApi.addPanel({
+            id: panelId,
+            component: panelId,
+            title: PANEL_CONFIG[panelId as keyof typeof PANEL_CONFIG].title,
+            params: panelParams[panelId as keyof typeof panelParams] || {},
+            position: {
+              referencePanel: firstPanel.id,
+              direction: "left"
+            }
+          });
+          return;
+        }
+      }
       
       // Position welcome panel to the left of the first panel if it exists
       if (panelId === "welcome") {

@@ -18,7 +18,11 @@ describe('IntegerProperty', () => {
   const mockOnChange = jest.fn();
   
   const mockDefinition = {
+    nodeId: 'test-node',
+    nodeType: 'nodetool.input.IntegerInput',
+    kind: 'integer' as const,
     data: {
+      name: 'testInteger',
       label: 'Test Integer',
       description: 'This is a test integer property',
     },
@@ -54,7 +58,11 @@ describe('IntegerProperty', () => {
 
   it('renders without description when not provided', () => {
     const definitionWithoutDesc = {
+      nodeId: 'test-node',
+      nodeType: 'nodetool.input.IntegerInput',
+      kind: 'integer' as const,
       data: {
+        name: 'testInteger',
         label: 'Test Integer',
       },
     };
@@ -163,7 +171,7 @@ describe('IntegerProperty', () => {
       />
     );
 
-    const input = UNSAFE_getByType('TextInput');
+    const input = UNSAFE_getByType('TextInput' as any);
     expect(input.props.keyboardType).toBe('numeric');
   });
 

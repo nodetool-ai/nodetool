@@ -8,12 +8,13 @@ This comprehensive guide provides detailed information for AI coding assistants 
 2. [Testing Framework](#testing-framework)
 3. [Test Structure](#test-structure)
 4. [Running Tests](#running-tests)
-5. [Writing Tests](#writing-tests)
-6. [Mocking Strategies](#mocking-strategies)
-7. [Test Patterns](#test-patterns)
-8. [Best Practices](#best-practices)
-9. [CI/CD Integration](#cicd-integration)
-10. [Troubleshooting](#troubleshooting)
+5. [End-to-End Tests](#end-to-end-tests)
+6. [Writing Tests](#writing-tests)
+7. [Mocking Strategies](#mocking-strategies)
+8. [Test Patterns](#test-patterns)
+9. [Best Practices](#best-practices)
+10. [CI/CD Integration](#cicd-integration)
+11. [Troubleshooting](#troubleshooting)
 
 ## Quick Start
 
@@ -21,7 +22,7 @@ This comprehensive guide provides detailed information for AI coding assistants 
 # Install dependencies
 npm install
 
-# Run all tests
+# Run unit tests (Jest)
 npm test
 
 # Run tests in watch mode (for active development)
@@ -32,6 +33,15 @@ npm run test:coverage
 
 # Run tests with summary output only
 npm run test:summary
+
+# Run end-to-end tests (Playwright)
+npm run test:e2e
+
+# Run E2E tests with UI mode
+npm run test:e2e:ui
+
+# Run E2E tests in headed mode (see browser)
+npm run test:e2e:headed
 ```
 
 ## Testing Framework
@@ -115,6 +125,162 @@ npm run typecheck  # TypeScript compilation check
 npm run lint       # ESLint
 npm test           # Jest tests
 ```
+
+## End-to-End Tests
+
+The application uses **Playwright** for end-to-end testing. E2E tests run the actual backend and frontend servers to test the complete application flow.
+
+### E2E Test Structure
+
+E2E tests are located in:
+
+```
+web/tests/e2e/
+├── app-loads.spec.ts          # Basic app loading and navigation tests
+└── ...
+```
+
+### Configuration
+
+- `playwright.config.ts`: Playwright configuration
+  - Test directory: `./tests/e2e`
+  - Base URL: `http://localhost:3000`
+  - Web servers: Backend (port 7777) and Frontend (port 3000)
+  - Browsers: Chromium
+  - Retries: 2 in CI, 0 locally
+
+### Running E2E Tests
+
+#### Prerequisites
+
+E2E tests require:
+
+1. **Python environment with nodetool**: The backend server needs to be available
+2. **Node.js dependencies**: For the frontend
+
+```bash
+# Setup conda environment (one time)
+conda env update -f environment.yml --prune
+conda activate nodetool
+
+# Install nodetool core and base (one time)
+uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+
+# Install Playwright browsers (one time)
+npx playwright install --with-deps chromium
+```
+
+#### Running Tests
+
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run with UI mode (recommended for development)
+npm run test:e2e:ui
+
+# Run in headed mode (see the browser)
+npm run test:e2e:headed
+
+# Run specific test file
+npx playwright test app-loads.spec.ts
+
+# Debug a test
+npx playwright test --debug
+
+# Run with HTML report
+npx playwright show-report
+```
+
+### Writing E2E Tests
+
+E2E tests use Playwright's test runner:
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test('should load the home page', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveTitle(/NodeTool/);
+});
+
+test('should interact with workflow', async ({ page }) => {
+  await page.goto('/workflows');
+  
+  // Wait for element to be visible
+  await page.waitForSelector('.workflow-list');
+  
+  // Click an element
+  await page.click('button[aria-label="Create Workflow"]');
+  
+  // Check navigation
+  await expect(page).toHaveURL(/\/workflow\//);
+});
+```
+
+### E2E Test Best Practices
+
+1. **Skip in Jest**: E2E tests should be skipped when run through Jest:
+   ```typescript
+   if (process.env.JEST_WORKER_ID) {
+     describe.skip("test name (playwright)", () => {
+       it("skipped in jest runner", () => {});
+     });
+   }
+   ```
+
+2. **Use Page Object Pattern**: Encapsulate page interactions
+   ```typescript
+   class WorkflowPage {
+     constructor(private page: Page) {}
+     
+     async createWorkflow(name: string) {
+       await this.page.click('[data-testid="create-workflow"]');
+       await this.page.fill('[name="workflow-name"]', name);
+       await this.page.click('button[type="submit"]');
+     }
+   }
+   ```
+
+3. **Wait for Async Operations**: Use Playwright's auto-waiting or explicit waits
+   ```typescript
+   // Auto-wait (preferred)
+   await page.click('button');
+   
+   // Explicit wait
+   await page.waitForSelector('.result', { state: 'visible' });
+   ```
+
+4. **Test Real Scenarios**: E2E tests should test user flows, not implementation details
+
+### GitHub Actions E2E Workflow
+
+The E2E workflow (`.github/workflows/e2e.yml`) runs automatically on:
+- Push to `main` branch (when web files change)
+- Pull requests to `main` branch (when web files change)
+
+The workflow:
+1. Sets up Python 3.11 with conda
+2. Installs nodetool-core and nodetool-base
+3. Sets up Node.js 20
+4. Installs web dependencies
+5. Installs Playwright browsers
+6. Starts nodetool server in the background (`nodetool serve --port 7777`)
+7. Waits for the server to be ready
+8. Runs Playwright tests (which start the frontend server)
+9. Stops the nodetool server
+10. Uploads test reports, results, and server logs as artifacts on failure
+
+### Debugging E2E Test Failures in CI
+
+If E2E tests fail in CI:
+
+1. **Check workflow logs**: View the GitHub Actions run logs
+2. **Download artifacts**: Test reports and screenshots are uploaded on failure
+3. **Reproduce locally**: 
+   ```bash
+   CI=true npm run test:e2e
+   ```
 
 ## Writing Tests
 

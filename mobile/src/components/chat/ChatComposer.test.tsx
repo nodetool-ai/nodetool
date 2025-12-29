@@ -114,7 +114,7 @@ describe('ChatComposer', () => {
       const input = screen.getByPlaceholderText('Type a message...');
       fireEvent.changeText(input, 'Hello world');
       
-      const sendButton = screen.UNSAFE_root.findAllByType(require('react-native').TouchableOpacity)[0];
+      const sendButton = screen.getByTestId('send-button');
       fireEvent.press(sendButton);
       
       expect(mockOnSendMessage).toHaveBeenCalledTimes(1);
@@ -135,7 +135,7 @@ describe('ChatComposer', () => {
       const input = screen.getByPlaceholderText('Type a message...');
       fireEvent.changeText(input, 'Hello');
       
-      const sendButton = screen.UNSAFE_root.findAllByType(require('react-native').TouchableOpacity)[0];
+      const sendButton = screen.getByTestId('send-button');
       fireEvent.press(sendButton);
       
       expect(input.props.value).toBe('');
@@ -153,7 +153,7 @@ describe('ChatComposer', () => {
       const input = screen.getByPlaceholderText('Type a message...');
       fireEvent.changeText(input, 'Test message');
       
-      const sendButton = screen.UNSAFE_root.findAllByType(require('react-native').TouchableOpacity)[0];
+      const sendButton = screen.getByTestId('send-button');
       fireEvent.press(sendButton);
       
       // Verify message was sent (keyboard dismiss is called after)
@@ -171,7 +171,7 @@ describe('ChatComposer', () => {
       const input = screen.getByPlaceholderText('Type a message...');
       fireEvent.changeText(input, '  Hello world  ');
       
-      const sendButton = screen.UNSAFE_root.findAllByType(require('react-native').TouchableOpacity)[0];
+      const sendButton = screen.getByTestId('send-button');
       fireEvent.press(sendButton);
       
       expect(mockOnSendMessage).toHaveBeenCalledWith(
@@ -191,7 +191,7 @@ describe('ChatComposer', () => {
       const input = screen.getByPlaceholderText('Type a message...');
       fireEvent.changeText(input, '   ');
       
-      const sendButton = screen.UNSAFE_root.findAllByType(require('react-native').TouchableOpacity)[0];
+      const sendButton = screen.getByTestId('send-button');
       fireEvent.press(sendButton);
       
       expect(mockOnSendMessage).not.toHaveBeenCalled();
@@ -230,7 +230,7 @@ describe('ChatComposer', () => {
         />
       );
       
-      const stopButton = screen.UNSAFE_root.findAllByType(require('react-native').TouchableOpacity)[0];
+      const stopButton = screen.getByTestId('stop-button');
       fireEvent.press(stopButton);
       
       expect(mockOnStop).toHaveBeenCalledTimes(1);

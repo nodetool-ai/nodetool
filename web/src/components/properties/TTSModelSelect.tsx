@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
+import { useTheme } from "@mui/material/styles";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { TTSModel } from "../../stores/ApiTypes";
@@ -7,6 +8,11 @@ import { client } from "../../stores/ApiClient";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import {
+  isHuggingFaceProvider,
+  getProviderBaseName,
+  formatGenericProviderName
+} from "../../utils/providerDisplay";
 
 interface TTSModelSelectProps {
   onChange: (value: any) => void;

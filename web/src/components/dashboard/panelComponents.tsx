@@ -2,12 +2,11 @@ import React from "react";
 import { Box } from "@mui/material";
 import { IDockviewPanelProps } from "dockview";
 import ChatView from "../chat/containers/ChatView";
-import ExamplesList from "./ExamplesList";
 import WorkflowsList from "./WorkflowsList";
 import RecentChats from "./RecentChats";
 import WelcomePanel from "./WelcomePanel";
-import SetupPanel from "./SetupPanel";
 import ProviderSetupPanel from "./ProviderSetupPanel";
+import GettingStartedPanel from "./GettingStartedPanel";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { PanelProps } from "./panelConfig";
 import ActivityPanel from "./ActivityPanel";
@@ -15,6 +14,18 @@ import TemplatesPanel from "./TemplatesPanel";
 import MiniAppPanel from "./miniApps/MiniAppPanel";
 
 export const createPanelComponents = () => ({
+  "getting-started": (props: IDockviewPanelProps<PanelProps>) => (
+    <GettingStartedPanel
+      sortedWorkflows={props.params?.sortedWorkflows || []}
+      isLoadingWorkflows={props.params?.isLoadingWorkflows ?? true}
+      startTemplates={props.params?.startTemplates || []}
+      isLoadingTemplates={props.params?.isLoadingTemplates ?? true}
+      handleExampleClick={props.params?.handleExampleClick || (() => {})}
+      handleCreateNewWorkflow={
+        props.params?.handleCreateNewWorkflow || (() => {})
+      }
+    />
+  ),
   activity: (props: IDockviewPanelProps<PanelProps>) => (
     <ActivityPanel
       // Workflow props
@@ -100,11 +111,6 @@ export const createPanelComponents = () => ({
   welcome: (props: IDockviewPanelProps<PanelProps>) => (
     <Box sx={{ overflow: "auto", height: "100%" }}>
       <WelcomePanel />
-    </Box>
-  ),
-  setup: (props: IDockviewPanelProps<PanelProps>) => (
-    <Box sx={{ overflow: "auto", height: "100%" }}>
-      <SetupPanel />
     </Box>
   ),
   providers: (props: IDockviewPanelProps<PanelProps>) => (

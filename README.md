@@ -2,6 +2,7 @@
 
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
 [![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
+[![E2E Tests](https://github.com/nodetool-ai/nodetool/actions/workflows/e2e.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/e2e.yml)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
@@ -204,8 +205,12 @@ See the [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/s
 ## Testing
 
 ```bash
+# Unit tests
 cd electron && npm test && npm run lint
 cd web && npm test && npm run lint
+
+# End-to-end tests (requires nodetool backend)
+cd web && npm run test:e2e
 ```
 
 ## Contributing

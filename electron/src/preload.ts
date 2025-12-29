@@ -537,6 +537,20 @@ const api = {
     /** Get system information for about dialog */
     getSystemInfo: () => ipcRenderer.invoke(IpcChannels.GET_SYSTEM_INFO),
   },
+
+  // ============================================================================
+  // debug: Debug operations
+  // ============================================================================
+  debug: {
+    /** Export a debug bundle containing logs, environment info, and workflow data */
+    exportBundle: (request: {
+      workflow_id?: string;
+      graph?: Record<string, unknown>;
+      errors?: string[];
+      preferred_save?: "desktop" | "downloads";
+    }) =>
+      ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
+  },
 };
 
 contextBridge.exposeInMainWorld("api", api);
