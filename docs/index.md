@@ -3,10 +3,10 @@ layout: home
 ---
 
 <section class="home-hero">
-  <p class="eyebrow">Open-Source Local-First AI Workflow Builder</p>
-  <h1>Build AI Workflows. Visually. Locally.</h1>
+  <p class="eyebrow">Open-Source Visual AI Workflow Builder</p>
+  <h1>Build AI Workflows. Visually. Effortlessly.</h1>
   <p class="lead">
-   Drag, drop, and connect powerful AI models. Run them locally on your machine or use your own API keys with any provider. Your workflows, your data—always under your control.
+   Connect AI building blocks to generate content, analyze data, and automate tasks. Use models on your machine or in the cloud. Your workflows, your data—always under your control.
   </p>
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
@@ -19,36 +19,36 @@ layout: home
 
 ## Start Here
 
-NodeTool is the **local-first canvas for building AI workflows**—connect text, audio, video, and automation nodes visually, then run them locally or deploy the exact same graph to RunPod, Cloud Run, or your own servers.
+NodeTool is your **visual canvas for building AI workflows**—connect nodes for images, video, text, data, and automation, then run them locally or deploy to RunPod, Cloud Run, or your own servers.
 
 ### Who uses NodeTool?
 
 <div class="persona-grid">
   <article class="persona-tile">
-    <h4>Agent Builders</h4>
-    <p>Design multi-step LLM agents that reason, call tools, and stream progress.</p>
+    <h4>Creators & Designers</h4>
+    <p>Generate art, transform media, and build unique visual pipelines with AI.</p>
     <ul>
-      <li>Planning + execution in one workflow</li>
-      <li>Preview nodes to debug intermediate steps</li>
-      <li>Trigger runs from Global Chat or CLI</li>
+      <li>Mix Flux, SDXL, and custom models</li>
+      <li>Create unlimited variations</li>
+      <li>Build signature creative workflows</li>
     </ul>
   </article>
   <article class="persona-tile">
-    <h4>Knowledge & RAG Teams</h4>
-    <p>Index private corpora, run hybrid search, and ground every answer in sources.</p>
+    <h4>Developers & Researchers</h4>
+    <p>Build AI agents, RAG systems, and automated pipelines with full transparency.</p>
     <ul>
-      <li>Document ingestion + retrieval on one canvas</li>
-      <li>Built-in ChromaDB collections</li>
-      <li>Automations via Mini-Apps or APIs</li>
+      <li>Design multi-step LLM agents</li>
+      <li>Index and query documents locally</li>
+      <li>Deploy workflows as APIs</li>
     </ul>
   </article>
   <article class="persona-tile">
-    <h4>Multimodal Makers</h4>
-    <p>Prototype creative pipelines mixing audio, vision, video, and structured tools.</p>
+    <h4>Data & Business Users</h4>
+    <p>Analyze documents, automate tasks, and extract insights without coding.</p>
     <ul>
-      <li>Mix local diffusion with hosted APIs</li>
-      <li>Scriptable data prep & charting nodes</li>
-      <li>Deployable without rewriting code</li>
+      <li>Process data with AI pipelines</li>
+      <li>Automate document workflows</li>
+      <li>Build custom business tools</li>
     </ul>
   </article>
 </div>
@@ -57,71 +57,71 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
 
 <div class="pattern-grid">
   <article class="pattern-card">
-    <h5>LLM Agents with Tool Access</h5>
-    <p>Plan, call tools, and summarize results with streaming progress updates.</p>
-    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation">Agent pattern →</a>
-    <a href="workflows/realtime-agent.md">Realtime Agent example →</a>
+    <h5>AI Agents & Automation</h5>
+    <p>Build multi-step agents that plan, execute, and adapt. Automate complex workflows with AI reasoning.</p>
+    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation">Agent patterns →</a>
+    <a href="workflows/realtime-agent.md">Realtime Agent →</a>
   </article>
   <article class="pattern-card">
-    <h5>Retrieval-Augmented Generation</h5>
-    <p>Ingest PDFs, chunk text, and answer questions grounded in citations.</p>
+    <h5>Document Intelligence & RAG</h5>
+    <p>Index documents, search with AI, and answer questions grounded in your sources.</p>
     <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-4-rag-retrieval-augmented-generation">RAG pattern →</a>
-    <a href="workflows/chat-with-docs.md">Chat with Docs example →</a>
+    <a href="workflows/chat-with-docs.md">Chat with Docs →</a>
   </article>
   <article class="pattern-card">
-    <h5>Audio + Video Pipelines</h5>
-    <p>Transcribe meetings, remove silence, add subtitles, or narrate generated imagery.</p>
-    <a href="workflows/transcribe-audio.md">Transcribe Audio example →</a>
-    <a href="workflows/story-to-video-generator.md">Story to Video example →</a>
+    <h5>Image & Video Creation</h5>
+    <p>Generate visuals, transform media, and build creative pipelines with AI models.</p>
+    <a href="workflows/movie-posters.md">Movie Posters →</a>
+    <a href="workflows/story-to-video-generator.md">Story to Video →</a>
   </article>
   <article class="pattern-card">
-    <h5>Data Automation & Visualization</h5>
-    <p>Fetch data, transform it with AI nodes, and publish dashboards or reports.</p>
-    <a href="workflows/data-visualization-pipeline.md">Data Viz pipeline →</a>
-    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-10-data-processing-pipeline">Data processing pattern →</a>
+    <h5>Data Processing & Analysis</h5>
+    <p>Transform data, extract insights, and automate reports with AI-powered workflows.</p>
+    <a href="workflows/data-visualization-pipeline.md">Data Visualization →</a>
+    <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-10-data-processing-pipeline">Data patterns →</a>
   </article>
 </div>
 
 ### Your first 10 minutes
 
 <ol class="step-sequence">
-  <li><a href="installation.md">Download NodeTool</a> — install the desktop app for macOS, Windows, or Linux.</li>
-  <li><a href="getting-started.md#step-1--install-nodetool">Launch and pick models</a> — install GPT-OSS + Flux in Model Manager for fast local runs.</li>
-  <li><a href="getting-started.md#step-2--run-a-beginner-workflow-end-to-end">Open the Creative Story Ideas template</a> — inspect nodes, press Run, and watch Preview stream results.</li>
-  <li><a href="getting-started.md#step-3--save-and-re-run-it-from-global-chat">Save & run from Global Chat</a> — trigger the workflow directly from a chat thread.</li>
-  <li><a href="getting-started.md#step-4--turn-it-into-a-mini-app">Publish as a Mini-App</a> — hand teammates a form UI powered by the same workflow.</li>
+  <li><a href="installation.md">Download NodeTool</a> — install for macOS, Windows, or Linux.</li>
+  <li><a href="getting-started.md#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux/SDXL, or use cloud services.</li>
+  <li><a href="getting-started.md#step-2--run-a-beginner-workflow-end-to-end">Try a template workflow</a> — explore examples, press Run, watch results stream.</li>
+  <li><a href="getting-started.md#step-3--save-and-re-run-it-from-global-chat">Experiment and customize</a> — change inputs, connect nodes differently, make it yours.</li>
+  <li><a href="getting-started.md#step-4--turn-it-into-a-mini-app">Share your workflow</a> — turn it into a simple app others can use.</li>
 </ol>
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started](getting-started.md), [Workflow Editor](workflow-editor.md), [Tips & Tricks](tips-and-tricks.md), [Example gallery](/workflows/).
-- **I'm evaluating NodeTool:** [Value Proposition Review](value-proposition-review.md), [How NodeTool Compares](comparisons.md), [Cost Analysis](cost-analysis.md).
-- **I deploy NodeTool:** [Deployment Guide](deployment.md), [Self-Hosted Deployment](self_hosted.md), [Proxy Reference](proxy.md), [Security Hardening](security-hardening.md), [Terminal WebSocket](terminal-websocket.md), [Storage](storage.md).
-- **I build or integrate:** [Developer Guide](developer/index.md), [Workflow API](workflow-api.md), [Chat Module](chat.md) + [Chat API](chat-api.md), [CLI Reference](cli.md), [Architecture](architecture.md).
-- **Reference shortcuts:** [Cookbook Patterns]({{ '/cookbook/patterns' | relative_url }}), [Glossary](glossary.md), [Indexing](indexing.md), [Asset Management](asset-management.md), [Node Packs](node-packs.md), [Troubleshooting](troubleshooting.md).
+- **I'm new to NodeTool:** [Getting Started](getting-started.md), [Workflow Editor](workflow-editor.md), [Tips & Tricks](tips-and-tricks.md), [Example Gallery](/workflows/).
+- **I want to explore:** [Example Workflows](/workflows/), [Workflow Patterns](cookbook.md), [Community](https://discord.gg/WmQTWZRcYE).
+- **I need AI models:** [Models & Providers](models-and-providers.md), [HuggingFace Integration](huggingface.md), [Local vs Cloud](models.md).
+- **I'm ready to deploy:** [Deployment Guide](deployment.md), [Self-Hosted Setup](self_hosted.md), [API Access](workflow-api.md).
+- **Reference & Help:** [Node Library](node-packs.md), [Glossary](glossary.md), [Troubleshooting](troubleshooting.md), [Asset Management](asset-management.md).
 
 ### Local-first or cloud-augmented
 
 <div class="mode-split">
   <article class="mode-card">
     <h4>Local-only mode</h4>
-    <p>All workflows, assets, and models execute on your machine for maximum privacy.</p>
+    <p>All workflows, assets, and models run on your machine for maximum privacy and control.</p>
     <ul>
       <li>Use MLX, llama.cpp, Whisper, and Flux locally</li>
-      <li>Store assets on disk or Supabase buckets you control</li>
-      <li>Disable outbound traffic entirely if needed</li>
+      <li>Store assets on disk or your own storage</li>
+      <li>Work offline once models are downloaded</li>
     </ul>
-    <a href="storage.md">Storage guide →</a>
+    <a href="storage.md">Storage options →</a>
   </article>
   <article class="mode-card">
     <h4>Cloud-augmented mode</h4>
-    <p>Mix local nodes with OpenAI, Anthropic, or RunPod workers when you need extra capacity.</p>
+    <p>Mix local AI with cloud services for flexibility. Use the best tool for each task.</p>
     <ul>
-      <li>Configure API keys in <em>Settings → Providers</em></li>
-      <li>Deploy the same workflow to RunPod or Cloud Run</li>
-      <li>Automate runs through the Workflow API or chat APIs</li>
+      <li>Add API keys for OpenAI, Anthropic, Replicate</li>
+      <li>Access cutting-edge models on demand</li>
+      <li>Deploy workflows to cloud infrastructure</li>
     </ul>
-    <a href="models-and-providers.md">Models & Providers overview →</a>
+    <a href="models-and-providers.md">Models & Providers →</a>
   </article>
 </div>
 
@@ -145,7 +145,7 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
         direction TB
         LLMs["🧠 Local LLMs<br/>Llama, Mistral, Qwen, Phi"]
         Data["📁 Your Data<br/>Documents, Photos, Notes"]
-        Creative["🎨 Creative AI<br/>Flux, Whisper, Music, Video"]
+        Media["🎨 Media AI<br/>Flux, Whisper, Music, Video"]
         Integrations["🔌 Integrations<br/>APIs, Tools, Home Automation"]
       end
 
@@ -184,7 +184,7 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
   <h3>What This Enables</h3>
   <ul>
     <li><strong>Your Personal AI Assistant</strong> — Chat with an AI that has access to your documents, notes, and knowledge base. Unlike cloud assistants, this one runs on your hardware and keeps your data private.</li>
-    <li><strong>Mobile Creative Studio</strong> — Generate images, music, and video from your phone using Flux, Whisper, and other models running on your home GPU. No subscriptions, no rate limits.</li>
+    <li><strong>Mobile AI Workspace</strong> — Generate images, music, and video from your phone using Flux, Whisper, and other models running on your home GPU. No subscriptions, no rate limits.</li>
     <li><strong>Private Knowledge Base</strong> — Index your PDFs, notes, and research papers. Query them with RAG from anywhere. Your intellectual property never touches third-party servers.</li>
     <li><strong>Home Automation AI</strong> — Connect NodeTool to your smart home. Voice-controlled workflows that understand context and execute across your devices.</li>
     <li><strong>Secure Team Collaboration</strong> — Share workflows with your team while keeping data in your private cloud. Everyone gets AI superpowers without compromising security.</li>
@@ -201,16 +201,16 @@ NodeTool is the **local-first canvas for building AI workflows**—connect text,
   <h2>Why teams choose NodeTool</h2>
   <div class="feature-grid">
     <article class="feature-card">
+      <h3>🎯 Visual & Accessible</h3>
+      <p>Build AI workflows without coding. Drag-and-drop interface makes complex AI pipelines approachable for everyone—from developers to business users to creators. See your entire workflow on one canvas.</p>
+    </article>
+    <article class="feature-card">
+      <h3>👁️ Transparent & Debuggable</h3>
+      <p>See every step of your AI pipeline in real-time. Inspect intermediate outputs, understand what's happening, and debug with confidence. No black-box mystery—streaming execution shows progress as it happens.</p>
+    </article>
+    <article class="feature-card">
       <h3>🔒 Privacy-first by design</h3>
-      <p>Run LLMs, Whisper, and diffusion models entirely on your infrastructure without sending data to third parties. Meet GDPR, HIPAA, or SOC 2 requirements with local execution. Opt into cloud APIs only when you choose—never by default.</p>
-    </article>
-    <article class="feature-card">
-      <h3>🎯 Build once, run everywhere</h3>
-      <p>Design workflows in the visual editor, then run them from Global Chat, Mini-Apps, CLI, or REST API—all backed by the same JSON graph. Deploy from your laptop to RunPod or Cloud Run with a single command. No code changes. No vendor lock-in.</p>
-    </article>
-    <article class="feature-card">
-      <h3>👁️ Transparent & debuggable</h3>
-      <p>See every step of your AI pipeline in real-time. Inspect intermediate outputs with Preview nodes. Understand exactly what each node does—no black-box mystery. Streaming execution shows progress as it happens, not after it's done.</p>
+      <p>Run LLMs, Whisper, and diffusion models entirely on your infrastructure. Keep sensitive data private with local execution. Opt into cloud APIs only when you choose—never by default.</p>
     </article>
   </div>
 </section>
