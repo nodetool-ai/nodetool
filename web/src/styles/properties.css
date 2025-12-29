@@ -1026,15 +1026,8 @@
 .json-property .editor-wrapper {
   min-height: 100px;
   max-height: 200px;
-  /* Avoid double scrollbars: the editor itself is the scroll container. */
   overflow: hidden;
   background-color: var(--palette-grey-600);
   border: 1px solid var(--palette-grey-500);
   border-radius: 4px;
-}
-
-.json-property .editor-wrapper.nowheel {
-}
-
-.json-property .editor-wrapper.nowheel textarea {
 }
