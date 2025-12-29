@@ -39,6 +39,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
 
   const labelFontSize =
     scope === "inspector" ? theme.fontSizeNormal : theme.fontSizeSmall;
+  const labelMarginBottom = theme.spacing(1.5);
 
   return (
     <div
@@ -56,7 +57,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           fontSize: labelFontSize,
           color: theme.vars.palette.text.secondary,
           padding: 0,
-          margin: "0 0 4px 0",
+          margin: `0 0 ${labelMarginBottom} 0`,
           lineHeight: "1em",
           maxHeight: "2em",
           minHeight: "13px",

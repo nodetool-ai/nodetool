@@ -10,8 +10,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -43,10 +41,8 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isInspector,
   isDynamicProperty
 }: PropertyProps) => {
-  const theme = useTheme();
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);

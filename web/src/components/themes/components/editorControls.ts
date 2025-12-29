@@ -21,9 +21,12 @@ export const editorControlsComponents: Components<Theme> = {
             color: theme.vars.palette.text.primary,
             backgroundColor: theme.vars.palette.Paper.overlay,
             borderRadius: editor.controlRadius,
-            transition: theme.transitions.create(["border-color", "background-color"], {
-              duration: theme.transitions.duration.shortest
-            }),
+            transition: theme.transitions.create(
+              ["border-color", "background-color"],
+              {
+                duration: theme.transitions.duration.shortest
+              }
+            ),
 
             "& fieldset": {
               borderColor: theme.vars.palette.divider,
@@ -31,6 +34,12 @@ export const editorControlsComponents: Components<Theme> = {
               transition: theme.transitions.create(["border-color"], {
                 duration: theme.transitions.duration.shortest
               })
+            },
+
+            // We're not using MUI's floating InputLabel inside the control in the editor.
+            // Make the outline sit flush so we don't get a "notch gap" at the top.
+            "& .MuiOutlinedInput-notchedOutline": {
+              top: 0
             },
 
             "&:hover": {
@@ -55,14 +64,14 @@ export const editorControlsComponents: Components<Theme> = {
             // Padding + density per scope
             [`&.${editorUiClasses.scopeInspector} .MuiOutlinedInput-input`]: {
               padding: `${editor.padYInspector} ${editor.padXInspector}`,
-              minHeight: "18px",
-              lineHeight: "18px",
+              minHeight: "1.7em",
+              lineHeight: "1.2em",
               fontSize: theme.fontSizeSmall
             },
             [`&.${editorUiClasses.scopeNode} .MuiOutlinedInput-input`]: {
               padding: `${editor.padYNode} ${editor.padXNode}`,
-              minHeight: "18px",
-              lineHeight: "18px",
+              minHeight: "1.7em",
+              lineHeight: "1.2em",
               fontSize: theme.fontSizeTiny
             },
 
@@ -99,9 +108,12 @@ export const editorControlsComponents: Components<Theme> = {
             minHeight: editor.heightNode,
             display: "flex",
             alignItems: "center",
-            transition: theme.transitions.create(["border-color", "background-color"], {
-              duration: theme.transitions.duration.shortest
-            }),
+            transition: theme.transitions.create(
+              ["border-color", "background-color"],
+              {
+                duration: theme.transitions.duration.shortest
+              }
+            ),
             "&:hover": {
               backgroundColor: theme.vars.palette.action.selected,
               borderColor: theme.vars.palette.text.secondary
@@ -201,7 +213,8 @@ export const editorControlsComponents: Components<Theme> = {
             borderRadius: 4,
             margin: 0,
             padding: 0,
-            boxShadow: "none"
+            boxShadow: "none",
+            backgroundColor: "currentColor"
           },
 
           "& .MuiSwitch-track": {
@@ -213,20 +226,29 @@ export const editorControlsComponents: Components<Theme> = {
           "& .MuiSwitch-switchBase": {
             margin: 0,
             padding: 0,
+            // Thumb color when OFF
             color: theme.vars.palette.grey[400],
             transition: theme.transitions.create(["transform"], {
               duration: theme.transitions.duration.shortest
             }),
             "&.Mui-checked": {
-              color: theme.vars.palette.grey[100],
+              // Thumb color when ON
+              color: theme.vars.palette.grey[50],
               transform: "translateX(12px)",
               "& + .MuiSwitch-track": {
-                backgroundColor: theme.vars.palette.grey[100],
-                opacity: 1
+                // Track color when ON
+                backgroundColor: theme.vars.palette.grey[500],
+                opacity: 0.9
               }
             },
             "&:hover": {
               backgroundColor: "transparent"
+            },
+            "&.Mui-disabled": {
+              opacity: 0.6,
+              "& + .MuiSwitch-track": {
+                opacity: 0.4
+              }
             }
           }
         }
@@ -234,5 +256,3 @@ export const editorControlsComponents: Components<Theme> = {
     }
   }
 };
-
-

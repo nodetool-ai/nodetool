@@ -50,12 +50,14 @@ const propertyInputContainerStyles = (theme: Theme) =>
       position: "relative"
     },
 
-    // VALUE CHANGED
+    // PROPERTY VALUE CHANGED
+    // value
     "&.value-changed .value": {
       color: theme.vars.palette.primary.main + " !important"
     },
+    // string, enum
     "&.value-changed fieldset, &.value-changed .select-header": {
-      borderRight: `1px solid ${theme.vars.palette.primary.main} !important`
+      borderRight: `2px solid ${theme.vars.palette.primary.main} !important`
     },
     // select model button
     "&.value-changed .select-model-button": {
@@ -68,6 +70,12 @@ const propertyInputContainerStyles = (theme: Theme) =>
       {
         color: `${theme.vars.palette.grey[800]} !important`
       },
+    // bool
+    "&.value-changed .bool-property label": {
+      borderRight: `2px solid ${theme.vars.palette.primary.main} !important`,
+      borderRadius: ".2em"
+    },
+
     // ACTION ICONS
     "&:hover .action-icons": {
       opacity: 1
