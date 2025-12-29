@@ -93,12 +93,12 @@ Let's run a pre-built template to see how workflows work. Pick **one** of these 
 2. **Understand what you see**:
    - **AudioInput** – where you upload an audio file
    - **Automatic Speech Recognition** – the AI that converts speech to text
-   - **StringOutput** – where the transcription appears
+   - **Output** – where the transcription appears
 
 3. **Add an audio file**: Click the `AudioInput` node, choose **Upload**, and select a `.wav` or `.mp3` file (a voice memo from your phone works great!)
 
 4. **Run it**: Click **Run** or press <kbd>Ctrl/⌘ + Enter</kbd>
-5. **Read the results**: Your transcribed text appears in the StringOutput panel
+5. **Read the results**: Your transcribed text appears in the Output panel
 
 **What just happened?** You fed audio to an AI speech recognition model (like Whisper), which converted the spoken words into written text.
 

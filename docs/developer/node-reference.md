@@ -204,21 +204,7 @@ DocumentFileInput    - Load document from file
 ## Output Nodes Quick List
 
 ```text
-StringOutput         - Text output
-IntegerOutput        - Number output
-FloatOutput          - Decimal output
-BooleanOutput        - True/False output
-ListOutput           - List output
-DictionaryOutput     - Dict output
-
-ImageOutput          - Image reference
-AudioOutput          - Audio reference
-VideoOutput          - Video reference
-DocumentOutput       - Document reference
-DataframeOutput      - Table data
-ArrayOutput          - NumPy array
-FilePathOutput       - File path
-FolderPathOutput     - Folder path
+Output               - Generic output for any data type
 ```
 
 ## Special Node Features
