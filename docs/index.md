@@ -145,7 +145,7 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
         direction TB
         LLMs["🧠 Local LLMs<br/>Llama, Mistral, Qwen, Phi"]
         Data["📁 Your Data<br/>Documents, Photos, Notes"]
-        Creative["🎨 Creative AI<br/>Flux, Whisper, Music, Video"]
+        Media["🎨 Media AI<br/>Flux, Whisper, Music, Video"]
         Integrations["🔌 Integrations<br/>APIs, Tools, Home Automation"]
       end
 
@@ -184,7 +184,7 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
   <h3>What This Enables</h3>
   <ul>
     <li><strong>Your Personal AI Assistant</strong> — Chat with an AI that has access to your documents, notes, and knowledge base. Unlike cloud assistants, this one runs on your hardware and keeps your data private.</li>
-    <li><strong>Mobile Creative Studio</strong> — Generate images, music, and video from your phone using Flux, Whisper, and other models running on your home GPU. No subscriptions, no rate limits.</li>
+    <li><strong>Mobile AI Workspace</strong> — Generate images, music, and video from your phone using Flux, Whisper, and other models running on your home GPU. No subscriptions, no rate limits.</li>
     <li><strong>Private Knowledge Base</strong> — Index your PDFs, notes, and research papers. Query them with RAG from anywhere. Your intellectual property never touches third-party servers.</li>
     <li><strong>Home Automation AI</strong> — Connect NodeTool to your smart home. Voice-controlled workflows that understand context and execute across your devices.</li>
     <li><strong>Secure Team Collaboration</strong> — Share workflows with your team while keeping data in your private cloud. Everyone gets AI superpowers without compromising security.</li>

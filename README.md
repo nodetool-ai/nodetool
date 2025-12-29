@@ -36,7 +36,7 @@ NodeTool is an open-source visual workflow builder for everyone. Connect AI buil
 
 ## What You Can Build
 
-- **Creative Content**: Generate images, videos, and music. Transform media with AI. Build multi-stage creative pipelines.
+- **Media Generation**: Generate images, videos, and music. Transform media with AI. Build multi-stage content pipelines.
 - **Document Intelligence**: Chat with documents, build RAG systems, extract insights. Keep your data private with local processing.
 - **Data Analysis**: Transform data with AI, create visualizations, automate reports. Build data processing pipelines.
 - **Smart Automation**: Create AI agents that plan and execute tasks. Automate workflows, integrate with tools, save time.
