@@ -56,20 +56,18 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
 
   const count = logs?.length || 0;
 
-  const copyText = useMemo(
-    () =>
-      (logs || [])
-        .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
-        .join("\n"),
-    [logs]
-  );
-
   const onCopy = useCallback(() => {
-    if (!copyText) {return;}
-    navigator.clipboard?.writeText(copyText).catch((err) => {
+    const text = (logs || [])
+      .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
+      .join("\n");
+
+    if (!text) {
+      return;
+    }
+    navigator.clipboard?.writeText(text).catch((err) => {
       console.warn("Failed to copy logs to clipboard:", err);
     });
-  }, [copyText]);
+  }, [logs]);
 
   useEffect(() => {
     if (logsRef.current) {
