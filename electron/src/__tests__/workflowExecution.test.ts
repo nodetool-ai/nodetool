@@ -79,7 +79,7 @@ describe('runWorkflow', () => {
     let onComplete: ((results: any[]) => void) | undefined;
     const mockConnect = jest.fn().mockResolvedValue(undefined);
     const mockRun = jest.fn(async () => {
-      if (onComplete) onComplete([{ uri: 'resultdata' }];
+      if (onComplete) onComplete([{ uri: 'resultdata' }]);
     });
     const state: any = { connect: mockConnect, run: mockRun, onComplete: undefined };
     const runner = {

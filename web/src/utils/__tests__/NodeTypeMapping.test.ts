@@ -37,15 +37,15 @@ describe('NodeTypeMapping utilities', () => {
   });
 
   describe('outputForType', () => {
-    test('maps type names to output node types', () => {
-      expect(outputForType('str')).toBe('nodetool.output.StringOutput');
-      expect(outputForType('text')).toBe('nodetool.output.TextOutput');
-      expect(outputForType('image')).toBe('nodetool.output.ImageOutput');
-      expect(outputForType('dataframe')).toBe('nodetool.output.DataFrameOutput');
+    test('maps type names to generic output node type', () => {
+      expect(outputForType('str')).toBe('nodetool.output.Output');
+      expect(outputForType('text')).toBe('nodetool.output.Output');
+      expect(outputForType('image')).toBe('nodetool.output.Output');
+      expect(outputForType('dataframe')).toBe('nodetool.output.Output');
     });
 
-    test('returns null for unknown type', () => {
-      expect(outputForType('unknown')).toBeNull();
+    test('returns generic output node for unknown type', () => {
+      expect(outputForType('unknown')).toBe('nodetool.output.Output');
     });
   });
 
