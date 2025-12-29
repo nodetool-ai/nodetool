@@ -1,103 +1,107 @@
 ---
 layout: page
 title: "NodeTool User Interface"
-description: "Navigate the NodeTool interface with confidence – a visual guide for new users."
+description: "Navigate your creative studio with confidence – a visual guide for creators."
 ---
 
-This guide introduces you to the NodeTool interface. Whether you're using the desktop app or web version, you'll learn where everything is and how to use it effectively.
+This guide introduces you to the NodeTool interface. Whether you're using the desktop app or web version, you'll learn where everything is and how to create efficiently.
 
-> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md) for a hands-on tutorial.
+> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md) for a hands-on creative tutorial.
 
 ---
 
 ## At a Glance
 
-NodeTool has five main areas you'll work with:
+NodeTool has five creative workspaces:
 
-| Area | What It's For | When You'll Use It |
-|------|---------------|-------------------|
-| **Dashboard** | Your home base | Starting point, finding workflows |
-| **Workflow Editor** | Building AI workflows | Creating and editing workflows |
-| **Global Chat** | Conversational AI | Running workflows through chat, getting help |
-| **Mini-Apps** | Simplified workflow UIs | Sharing workflows with others |
-| **Assets** | Managing files | Organizing images, audio, documents |
+| Workspace | What It's For | When You'll Use It |
+|-----------|---------------|-------------------|
+| **Dashboard** | Your creative hub | Starting projects, finding inspiration |
+| **Workflow Canvas** | Building AI workflows | Creating and designing your workflows |
+| **Global Chat** | Conversational creation | Quick iterations, chatting with AI |
+| **Mini-Apps** | Simplified creative tools | Sharing workflows with collaborators |
+| **Assets** | Media library | Managing your creative files |
 
 ---
 
 ## The App Header
 
-The header bar at the top is always visible:
+The header bar is your creative command center (always visible at the top):
 
 - **Logo/Title** – Click to return to Dashboard
-- **Models** – Quick access to Model Manager
-- **Assets** – Open your file library
-- **Templates** – Browse pre-made workflows
-- **Chat** – Open Global Chat
-- **Settings** – Preferences, API keys, account
-- **Download indicator** – Shows when files are downloading
+- **Models** – Manage your AI models (Flux, SDXL, etc.)
+- **Assets** – Access your media library
+- **Templates** – Browse creative workflow templates
+- **Chat** – Open conversational AI mode
+- **Settings** – Configure API keys, preferences, account
+- **Download indicator** – Shows model/asset download progress
 
 ---
 
-## Dashboard
+## Dashboard – Your Creative Hub
 
-The Dashboard is your starting point when you open NodeTool.
+The Dashboard is your creative home base.
 
 ### What You'll Find
 
-- **Your Workflows** – Saved projects you've created
-- **Templates** – Pre-built workflows ready to use
-- **Recent Chats** – Past conversations with Global Chat
-- **Setup Guide** – Getting started tips (for new users)
+- **Your Workflows** – Your saved creative projects
+- **Templates** – Ready-to-use creative workflows
+- **Recent Chats** – Past conversations and generations
+- **Quick Start** – Getting started tips (for new users)
 
 ### Common Actions
 
 | Task | How to Do It |
 |------|--------------|
-| Start a new workflow | Click "New Workflow" button |
-| Open a saved workflow | Click the workflow card |
-| Try a template | Browse Templates panel, click to open |
-| Resume a chat | Click a recent chat thread |
+| Start a new creation | Click "New Workflow" button |
+| Open a saved workflow | Click any workflow card |
+| Try a template | Browse Templates, click to open |
+| Continue a chat | Click a recent chat thread |
 
 ---
 
-## Workflow Editor
+## Workflow Canvas – Your Creative Studio
 
-This is where you build AI workflows by connecting nodes (building blocks).
+This is where you build creative AI workflows visually—think of it as your canvas for connecting creative ideas.
 
 ### The Canvas
 
-The large center area is your **canvas** – an infinite workspace where you place and connect nodes.
+The large center area is your **infinite canvas** – like an endless artboard where you arrange your creative process.
 
 **Moving Around:**
-- **Pan** (scroll the view): Hold `Space` and drag, or right-click and drag
-- **Zoom**: `Ctrl/⌘` + scroll wheel
-- **Fit everything in view**: Press `F`
+- **Pan** (scroll the view): Hold `Space` and drag, or right-click and drag (like navigating in Photoshop)
+- **Zoom**: `Ctrl/⌘` + scroll wheel (like pinch-to-zoom)
+- **Fit everything**: Press `F` (frame all, like in design tools)
 
-### Adding Nodes
+### Adding Creative Nodes
 
-Nodes are the building blocks of your workflow. To add one:
+Nodes are your creative building blocks—like tools in a toolbox. To add one:
 
-1. Press `Space` anywhere on the canvas, **OR**
+1. Press `Space` anywhere on canvas, **OR**
 2. Double-click an empty area
 
-This opens the **Node Menu** where you can:
-- **Search** by typing what you want (e.g., "image generation")
-- **Browse** categories on the left side
+This opens the **Node Library** where you can:
+- **Search** by typing what you want (e.g., "generate image", "transform video")
+- **Browse** categories on the left (Image, Video, Audio, Text)
 - **Click** a node to add it to your canvas
 
-### Connecting Nodes
+**Think of it like:** Adding a new layer in Photoshop or a new track in a DAW (Digital Audio Workstation).
 
-Data flows between nodes through connections:
+### Connecting Your Creative Flow
 
-1. Find the small **circles** on nodes (outputs on the right, inputs on the left)
+Connections show how your creative work flows between nodes:
+
+1. Find the small **circles** on nodes (outputs on right, inputs on left)
 2. **Click and drag** from an output circle
 3. **Release** on an input circle of another node
 
-> **Pro tip**: Drop a connection on empty space to see a list of compatible nodes!
+> **Pro tip**: Drop a connection on empty space to see compatible nodes—NodeTool suggests what can connect!
+
+**Think of it like:** Connecting effect pedals in a music setup, or routing layers in After Effects.
 
 ### The Properties Panel
 
-When you select a node, the right panel shows its **Properties** (settings):
+When you select a node, the right panel shows its **creative controls** (like adjustment sliders in Lightroom):
 
 - **Inputs** – What the node needs (text, images, etc.)
 - **Settings** – Configuration options
