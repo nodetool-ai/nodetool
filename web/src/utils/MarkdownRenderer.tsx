@@ -98,6 +98,13 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   }, [selectedNodeType, documentationPosition, handleClose]);
 
   const baseFontSize = isReadme ? undefined : "inherit";
+  // Only allow raw HTML when rendering trusted content (e.g. HuggingFace README).
+  // For normal outputs, treat "<...>" as text to avoid React "unknown tag" warnings
+  // and reduce XSS surface area.
+  const rehypePlugins = useMemo(
+    () => (isReadme ? [rehypeRaw] : []),
+    [isReadme]
+  );
 
   return (
     <>
@@ -152,7 +159,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         <Box>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw]}
+            rehypePlugins={rehypePlugins}
             components={{
               a: ({ href, children }) => {
                 if (isExternalLink(href || "")) {
@@ -224,7 +231,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           </div>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw]}
+            rehypePlugins={rehypePlugins}
             components={{
               a: ({ href, children }) => {
                 if (isExternalLink(href || "")) {

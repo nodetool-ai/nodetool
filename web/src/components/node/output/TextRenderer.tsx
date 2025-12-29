@@ -12,7 +12,12 @@ type Props = {
   showActions?: boolean;
 };
 
-type Section = { type: "text" | "think"; content: string };
+type Section = {
+  type: "text" | "think";
+  content: string;
+  start: number;
+  end: number;
+};
 
 const parseThinkSections = (input: string): Section[] => {
   if (!input) {
@@ -29,17 +34,27 @@ const parseThinkSections = (input: string): Section[] => {
     const end = regex.lastIndex;
     const before = input.slice(lastIndex, start);
     if (before) {
-      sections.push({ type: "text", content: before });
+      sections.push({
+        type: "text",
+        content: before,
+        start: lastIndex,
+        end: start
+      });
     }
-    sections.push({ type: "think", content: match[1] || "" });
+    sections.push({ type: "think", content: match[1] || "", start, end });
     lastIndex = end;
   }
   const tail = input.slice(lastIndex);
   if (tail) {
-    sections.push({ type: "text", content: tail });
+    sections.push({
+      type: "text",
+      content: tail,
+      start: lastIndex,
+      end: input.length
+    });
   }
   if (sections.length === 0) {
-    return [{ type: "text", content: input }];
+    return [{ type: "text", content: input, start: 0, end: input.length }];
   }
   return sections;
 };
@@ -87,11 +102,17 @@ export const TextRenderer: React.FC<Props> = ({ text, showActions = true }) => {
   return (
     <div className="output value noscroll" css={outputStyles(theme)}>
       {showActions && <Actions copyValue={text} />}
-      {sections.map((s, i) =>
+      {sections.map((s) =>
         s.type === "think" ? (
-          <ThinkBlock key={i} content={s.content} />
+          <ThinkBlock
+            key={`${s.type}-${s.start}-${s.end}`}
+            content={s.content}
+          />
         ) : (
-          <MaybeMarkdown key={i} text={s.content} />
+          <MaybeMarkdown
+            key={`${s.type}-${s.start}-${s.end}`}
+            text={s.content}
+          />
         )
       )}
     </div>
