@@ -9,7 +9,8 @@
 import React, { forwardRef } from "react";
 import { Select, SelectProps, MenuItem, MenuItemProps } from "@mui/material";
 import { useEditorScope } from "./EditorUiContext";
-import { editorClassNames, cn, editorUiClasses } from "./editorUtils";
+import { editorUiClasses } from "../../constants/editorUiClasses";
+import { editorClassNames, cn } from "./editorUtils";
 
 export interface NodeSelectProps extends Omit<SelectProps, "size"> {
   /**

@@ -9,7 +9,8 @@
 import React, { forwardRef } from "react";
 import { Switch, SwitchProps } from "@mui/material";
 import { useEditorScope } from "./EditorUiContext";
-import { editorClassNames, cn, editorUiClasses } from "./editorUtils";
+import { editorUiClasses } from "../../constants/editorUiClasses";
+import { editorClassNames, cn } from "./editorUtils";
 
 export interface NodeSwitchProps extends Omit<SwitchProps, "size"> {
   /**

@@ -9,7 +9,8 @@
 import React from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { Menu, MenuItem, type MenuItemProps, type MenuProps } from "@mui/material";
-import { editorUiClasses, cn } from "./editorUtils";
+import { editorUiClasses } from "../../constants/editorUiClasses";
+import { cn } from "./editorUtils";
 
 type SlotPropsWithSx = { sx?: SxProps<Theme> } & Record<string, unknown>;
 

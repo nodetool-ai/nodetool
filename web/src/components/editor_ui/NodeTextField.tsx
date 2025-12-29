@@ -9,7 +9,8 @@
 import React, { forwardRef } from "react";
 import { TextField, TextFieldProps } from "@mui/material";
 import { useEditorScope } from "./EditorUiContext";
-import { editorClassNames, cn, editorUiClasses } from "./editorUtils";
+import { editorUiClasses } from "../../constants/editorUiClasses";
+import { editorClassNames, cn } from "./editorUtils";
 
 /** Helper type for slotProps with className */
 interface SlotPropsWithClassName {
