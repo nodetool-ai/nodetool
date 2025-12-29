@@ -71,14 +71,17 @@ if (process.env.JEST_WORKER_ID) {
     async function killServersOnDefaultPort(): Promise<void> {
       const defaultPort = 7777;
       
-      // Use lsof on macOS/Linux, netstat on Windows
+      // Use lsof on macOS/Linux, PowerShell on Windows
       const platform = os.platform();
       let command: string;
+      let shell: string | boolean = true;
       
       if (platform === 'darwin' || platform === 'linux') {
         command = `lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`;
       } else if (platform === 'win32') {
-        command = `netstat -ano | findstr :${defaultPort} | for /f "tokens=5" %a in ('more') do taskkill /F /PID %a 2>nul || exit 0`;
+        // Use PowerShell on Windows for more reliable execution
+        command = `Get-NetTCPConnection -LocalPort ${defaultPort} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`;
+        shell = 'powershell.exe';
       } else {
         return;
       }
@@ -86,7 +89,7 @@ if (process.env.JEST_WORKER_ID) {
       return new Promise<void>((resolve) => {
         console.log(`Killing any processes on port ${defaultPort}`);
         spawn(command, {
-          shell: true,
+          shell: shell,
           stdio: 'ignore'
         }).on('exit', () => {
           resolve();
