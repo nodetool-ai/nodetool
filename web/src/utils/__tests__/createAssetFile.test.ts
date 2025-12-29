@@ -33,6 +33,17 @@ describe("createAssetFile", () => {
     const [result] = await createAssetFile(chunks, "stream");
     expect(result.filename).toBe("preview_stream.txt");
     expect(result.type).toBe("text/plain");
+    await expect(result.file.text()).resolves.toBe("hello world");
+  });
+
+  it("truncates large streaming text chunks when maxTextChars is set", async () => {
+    const chunks = [
+      { type: "chunk", content_type: "text", content: "hello " },
+      { type: "chunk", content_type: "text", content: "world" }
+    ];
+
+    const [result] = await createAssetFile(chunks, "stream", { maxTextChars: 5 });
+    await expect(result.file.text()).resolves.toBe("hello\n… (truncated)");
   });
 
   it("converts dataframes to CSV files", async () => {
