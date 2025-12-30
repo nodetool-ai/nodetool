@@ -69,12 +69,32 @@ const NodeContent: React.FC<NodeContentProps> = ({
     showResultOverlay
   });
 
-  if (showResultOverlay && result && !isEmptyObject(result)) {
+  // For output nodes, always show overlay when result is available
+  const shouldShowOverlay = isOutputNode 
+    ? (result && !isEmptyObject(result))
+    : (showResultOverlay && result && !isEmptyObject(result));
+
+  if (shouldShowOverlay) {
     return (
       <>
-        <ResultOverlay result={result} onShowInputs={onShowInputs} />
-        {/* Only show output handles when overlay is visible - inputs hidden completely */}
-        {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
+        {/* Keep inputs and outputs in DOM for handles but hide visually */}
+        <Box sx={{ visibility: "hidden", position: "absolute", pointerEvents: "none" }}>
+          <NodeInputs
+            id={id}
+            nodeMetadata={nodeMetadata}
+            layout={nodeMetadata.layout}
+            properties={nodeMetadata.properties}
+            nodeType={nodeType}
+            data={data}
+            showHandle={!isConstantNode}
+            hasAdvancedFields={hasAdvancedFields}
+            showAdvancedFields={showAdvancedFields}
+            basicFields={basicFields}
+            onToggleAdvancedFields={onToggleAdvancedFields}
+          />
+          {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
+        </Box>
+        <ResultOverlay result={result} onShowInputs={isOutputNode ? undefined : onShowInputs} />
       </>
     );
   }
