@@ -13,12 +13,12 @@ import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import LexicalPlugins from "../textEditor/LexicalEditor";
-import { convertSlateToLexical } from "../textEditor/editorUtils";
+// import { convertSlateToLexical } from "../textEditor/editorUtils";
 import {
-  EditorState,
-  $getRoot,
-  $createParagraphNode,
-  $createTextNode
+  EditorState
+  // $getRoot,
+  // $createParagraphNode,
+  // $createTextNode
 } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
@@ -31,7 +31,9 @@ import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
-  if (!hexColor) {return "#000000";} // Default to black if no color
+  if (!hexColor) {
+    return "#000000";
+  } // Default to black if no color
   let hex = hexColor.replace("#", "");
 
   if (hex.length === 3) {
@@ -93,10 +95,10 @@ const styles = (theme: Theme) =>
         height: "unset",
         paddingTop: ".5em",
         lineHeight: "1.1em",
-        caretColor: "var(--palette-primary-contrastText)"
+        caretColor: theme.vars.palette.primary.contrastText
       },
       "& .editor-input .font-size-large": {
-        fontSize: "var(--fontSizeBig)"
+        fontSize: theme.vars.typography.fontSizeBig
       }
     },
     ".format-toolbar-container": {
@@ -269,7 +271,9 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       const editorDiv = editorRef.current.querySelector(
         ".editor-input"
       ) as HTMLDivElement;
-      if (!editorDiv) {return;}
+      if (!editorDiv) {
+        return;
+      }
 
       const containerDiv = containerRef.current;
 
