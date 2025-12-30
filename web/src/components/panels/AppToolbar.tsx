@@ -26,7 +26,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import { isMac } from "../../utils/platform";
+// import { isMac } from "../../utils/platform";
 
 // Icons
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -623,7 +623,19 @@ const RunAsAppButton = memo(function RunAsAppButton() {
 
   return (
     <Tooltip title="Run as App" enterDelay={TOOLTIP_ENTER_DELAY}>
-      <Button className="action-button" onClick={handleRunAsApp} tabIndex={-1}>
+      <Button
+        className="action-button run-as-app-button"
+        sx={{
+          borderRadius: 0,
+          position: "fixed",
+          top: "40px",
+          right: "0px",
+          width: "48px",
+          height: "37px"
+        }}
+        onClick={handleRunAsApp}
+        tabIndex={-1}
+      >
         <RocketLaunchIcon />
       </Button>
     </Tooltip>
