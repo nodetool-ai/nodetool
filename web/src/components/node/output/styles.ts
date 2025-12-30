@@ -5,6 +5,7 @@ import type { Theme } from "@mui/material/styles";
 export const outputStyles = (theme: Theme) =>
   css({
     "&": {
+      position: "relative",
       backgroundColor: "transparent",
       height: "calc(100% - 43px)",
       width: "100%",
@@ -13,6 +14,9 @@ export const outputStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       userSelect: "text",
       cursor: "text"
+    },
+    "&:hover .actions": {
+      opacity: 1
     },
     ".content": {
       flex: 1,
@@ -46,16 +50,16 @@ export const outputStyles = (theme: Theme) =>
     },
     ".actions": {
       position: "absolute",
-      maxWidth: "50%",
-      left: "5.5em",
-      bottom: ".1em",
-      top: "unset",
+      right: "0.5em",
+      top: "0.25em",
       padding: "0",
       margin: "0",
       display: "flex",
       flexDirection: "row",
       gap: "0.5em",
-      zIndex: 10
+      zIndex: 10,
+      opacity: 0,
+      transition: "opacity 0.15s ease-in-out"
     },
     ".actions button": {
       minWidth: "unset",

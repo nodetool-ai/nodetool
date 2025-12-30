@@ -11,7 +11,7 @@ const Actions: React.FC<ActionsProps> = ({ copyValue }) => {
     return null;
   }
   return (
-    <Box className="actions" sx={{ zIndex: 200, bottom: "2em" }}>
+    <Box className="actions">
       <CopyToClipboardButton copyValue={copyValue} size="small" />
     </Box>
   );

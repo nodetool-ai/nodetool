@@ -7,7 +7,7 @@ import OutputRenderer from "./OutputRenderer";
 
 interface ResultOverlayProps {
   result: any;
-  onShowInputs: () => void;
+  onShowInputs?: () => void;
 }
 
 /**
@@ -36,37 +36,39 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         }
       }}
     >
-      {/* Toggle button to show inputs */}
-      <Box
-        className="result-overlay-toggle"
-        sx={{
-          position: "absolute",
-          top: 4,
-          right: 4,
-          zIndex: 20,
-          opacity: 0,
-          transition: "opacity 0.15s ease-in-out"
-        }}
-      >
-        <Tooltip title="Show inputs" placement="left">
-          <IconButton
-            size="small"
-            onClick={onShowInputs}
-            sx={{
-              width: 24,
-              height: 24,
-              backgroundColor: "rgba(0, 0, 0, 0.6)",
-              color: "white",
-              "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.8)"
-              },
-              boxShadow: theme.shadows[2]
-            }}
-          >
-            <InputOutlined sx={{ fontSize: 14 }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      {/* Toggle button to show inputs - only shown if onShowInputs provided */}
+      {onShowInputs && (
+        <Box
+          className="result-overlay-toggle"
+          sx={{
+            position: "absolute",
+            top: 4,
+            right: 4,
+            zIndex: 20,
+            opacity: 0,
+            transition: "opacity 0.15s ease-in-out"
+          }}
+        >
+          <Tooltip title="Show inputs" placement="left">
+            <IconButton
+              size="small"
+              onClick={onShowInputs}
+              sx={{
+                width: 24,
+                height: 24,
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                color: "white",
+                "&:hover": {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)"
+                },
+                boxShadow: theme.shadows[2]
+              }}
+            >
+              <InputOutlined sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
 
       {/* Render the result - fills available space */}
       <Box
