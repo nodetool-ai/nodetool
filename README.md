@@ -125,50 +125,11 @@ ______________________________________________________________________
 
 NodeTool supports mobile access to self-hosted AI infrastructure. Run models on your own hardware and access them from anywhere via secure connection.
 
-### Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        YOUR PERSONAL AI STACK                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   📱 Mobile App                                                         │
-│       │                                                                 │
-│       │ (Secure Connection)                                             │
-│       ▼                                                                 │
-│   🔒 VPN / Tailscale / WireGuard                                        │
-│       │                                                                 │
-│       │ (Encrypted Tunnel)                                              │
-│       ▼                                                                 │
-│   🖥️  NodeTool Server (Your Hardware)                                   │
-│       │                                                                 │
-│       ├──────────────────┬──────────────────┐                          │
-│       ▼                  ▼                  ▼                          │
-│   🧠 Local LLMs      📁 Personal Data    🎨 Creative Tools             │
-│   (Llama, Flux)      (Documents, Photos)  (Audio, Video)               │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### Comparison
-
-| Cloud AI | Self-Hosted |
-| :--- | :--- |
-| Data on external servers | Data stays on your hardware |
-| Subscription/usage fees | Hardware cost only |
-| Rate limited | No limits |
-| Internet required | LAN/offline capable |
-
 ### Deployment Patterns
 
 #### 🏠 **Local Stack**
 ```
 [Mobile] → [VPN] → [Home Server] → [Local LLMs] + [Data]
-```
-
-#### ☁️ **NodeTool Cloud**
-```
-[Mobile] → [NodeTool Cloud] → [Managed LLMs] + [Storage]
 ```
 
 #### 🏢 **Private Cloud**
