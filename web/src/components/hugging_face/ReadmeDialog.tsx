@@ -11,7 +11,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useQuery } from "@tanstack/react-query";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 interface ReadmeDialogProps {
   open: boolean;

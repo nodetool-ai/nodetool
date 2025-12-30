@@ -12,7 +12,6 @@ import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import isEqual from "lodash/isEqual";
 import DashboardHeader from "./DashboardHeader";
 import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
@@ -25,7 +24,6 @@ import { useLayoutStore } from "../../stores/LayoutStore";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useChatService } from "../../hooks/useChatService";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { PANEL_CONFIG } from "./panelConfig";
 import { uuidv4 } from "../../stores/uuidv4";
@@ -86,7 +84,7 @@ const Dashboard: React.FC = () => {
   const tryParseModel = (model: string) => {
     try {
       return JSON.parse(model);
-    } catch (error) {
+    } catch {
       return DEFAULT_MODEL;
     }
   };
@@ -271,22 +269,6 @@ const Dashboard: React.FC = () => {
 
     []
   );
-
-  // Remove automatic debounced saving - layouts should be saved explicitly
-  // Keep this function for explicit saves when needed
-  const saveLayout = useCallback(() => {
-    if (!isMountedRef.current || !dockviewApi) {return;}
-
-    try {
-      const { activeLayoutId, updateActiveLayout } = useLayoutStore.getState();
-      if (activeLayoutId) {
-        const layout = dockviewApi.toJSON();
-        updateActiveLayout(layout);
-      }
-    } catch (error) {
-      console.error("Failed to save layout:", error);
-    }
-  }, [dockviewApi]);
 
   // Track mount status for memory leak prevention
   useEffect(() => {

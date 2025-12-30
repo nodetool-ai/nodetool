@@ -31,7 +31,7 @@ interface KeyboardShortcutsViewProps {
 const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   shortcuts = NODE_EDITOR_SHORTCUTS
 }) => {
-  const theme = useTheme();
+  const _theme = useTheme();
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
   const [layoutName, setLayoutName] = useState<"english" | "german">(() => {
     if (typeof navigator !== "undefined") {

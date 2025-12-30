@@ -20,7 +20,7 @@ import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     ".model-content": {
       display: "flex",
