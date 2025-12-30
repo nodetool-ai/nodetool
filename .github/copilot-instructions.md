@@ -827,7 +827,6 @@ if (process.env.JEST_WORKER_ID) {
         ],
         env: {
           ...process.env,
-          NODE_ENV: 'test',
           ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
         }
       });
