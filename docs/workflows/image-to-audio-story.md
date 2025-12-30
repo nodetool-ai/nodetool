@@ -3,47 +3,76 @@ layout: page
 title: "Image To Audio Story"
 ---
 
+## What You'll Create
+
+Transform images into narrated stories using AI vision and text-to-speech. Good for content creators, educators, and storytellers who want to add audio descriptions to images.
+
+**Time to complete:** 5 minutes  
+**Difficulty:** Intermediate
+
+---
+
 ## Overview
 
-Generate and narrate creative stories from images using AI
+Turn visual content into narrated stories by combining vision AI with language generation and speech synthesis.
 
-Transforms visual art into narrative storytelling and spoken word using multimodal AI.
+**How it works:**
+1. **Image Input** - Your photo, artwork, or any visual
+2. **AI Vision + Story Generation** - AI analyzes the image and writes a story
+3. **Text Output** - Generated description or narrative
+4. **Text-to-Speech** - Converts text to spoken audio
+5. **Audio Output** - Narration you can save or share
 
-## 📋 Pipeline Flow:
+---
 
-1. Image Input: Any image (artwork, photo, scene, object)
+## The Process
 
-2. Story Generation: Vision-capable LLM analyzes the image and creates a creative short story based on visual elements, emotions, and artistic themes
+### Vision Analysis
+AI analyzes your image to understand:
+- Visual elements and composition
+- Emotions and mood
+- Themes and symbolism
+- Story potential
 
-3. Text Output: Literary description capturing the essence and narrative of the image
+### Story Generation
+AI writes a narrative inspired by the image. Can create:
+- Descriptive captions
+- Emotional narratives
+- Poetic descriptions
+- Character backstories
 
-4. Audio Narration: Text-to-speech converts the story into spoken word audio
+### Audio Narration
+Text-to-speech converts the story to audio with:
+- Natural intonation
+- Multiple voice options
+- Adjustable speed
 
-## 💡 Key Features:
+---
 
-Multimodal AI: Combines vision (image analysis) and language (story generation)Creative interpretation: Goes beyond description to generate original narrativesDual outputs: Both text story and audio narrationModel flexibility: Works with any vision-capable LLM and TTS service
+## Customization Ideas
 
-## ⚙️ Customization:
+**Prompt examples:**
+- "Describe this image as if you're a museum curator"
+- "Write a short poem inspired by this artwork"
+- "Create a brief backstory for this scene"
+- "Explain what you see in simple, accessible language"
 
-Agent prompts to try:
+**Vision models:**
+- OpenAI: GPT-4o (vision + text generation)
+- Anthropic: Claude 3 (Opus, Sonnet, Haiku)
+- Local: LLaVA, Qwen-VL via Ollama
+- Google: Gemini Pro Vision
 
-"Describe this image as if you're a museum curator""Write a poem inspired by this image""Create a backstory for what's happening in this scene""Explain the emotions and symbolism in this artwork""Tell a children's story based on this picture"
+**TTS options:**
+- OpenAI TTS (multiple voices)
+- ElevenLabs (customizable)
+- Local TTS (Coqui, Bark)
 
-Vision model options:
-
-OpenAI: GPT-4oAnthropic: Claude 3 (Opus, Sonnet, Haiku)Local: LLaVA, Qwen-VL via OllamaGoogle: Gemini Pro Vision
-
-TTS provider options:
-
-OpenAI TTS (multiple voices and speeds)ElevenLabs (high-quality, customizable voices)Local TTS models via Coqui or Bark
-
-## 🎯 Use Cases:
-
-Art interpretation and educationAccessibility (converting visual content to audio)Creative writing inspirationStorytelling for children's booksSocial media content generationVisual art documentationMuseum audio guides
+---
 
 ## Tags
 
-start, multimodal
+start, multimodal, creative, audio, storytelling
 
 ## Workflow Diagram
 
@@ -58,11 +87,27 @@ graph TD
 
 ## How to Use
 
-1. Open NodeTool and create a new workflow
-2. Import this workflow from the examples gallery or build it manually following the diagram above
-3. Configure the input nodes with your data
-4. Run the workflow to see results
+1. Open NodeTool and find "Image to Audio Story" template
+2. Load your image (artwork, photos, or any visual content)
+3. Customize the AI prompt in the Agent node:
+   - Default: "Create a story inspired by this image"
+   - Or try: "Write like a museum curator", "Create a children's story"
+4. Choose your voice in the TextToSpeech node
+5. Press <kbd>Ctrl/⌘ + Enter</kbd> to run
+6. View the written story and hear the narration
+7. Export audio or copy text as needed
+
+**Tips:**
+- Try the same image with different prompts for varied results
+- Use multiple images to create series or episodes
+- Combine with video workflows for multimedia content
+
+---
 
 ## Related Workflows
 
-Browse other [workflow examples](/cookbook.md) to discover more capabilities.
+- [Story to Video Generator](story-to-video-generator.md) - Turn stories into videos
+- [Movie Posters](movie-posters.md) - Create visual content
+- [Creative Story Ideas](creative-story-ideas.md) - Generate story concepts
+
+Browse all [workflows](/workflows/) for more examples.

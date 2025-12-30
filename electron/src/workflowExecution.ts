@@ -102,7 +102,7 @@ function writeResultToClipboard(workflow: Workflow, results: any[]) {
     const outputNode = getOutputNodes(workflow)[0];
     if (outputNode) {
       const outputValue = results[results.length - 1];
-      if (outputNode.type === "nodetool.output.ImageOutput") {
+      if (outputNode.data?.type === "image" || outputValue?.type === "image") {
         const image = nativeImage.createFromBuffer(
           Buffer.from(outputValue.uri, "base64")
         );

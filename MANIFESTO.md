@@ -1,53 +1,53 @@
 # NODETOOL MANIFESTO
 
-### The Local‑First Agent Workbench
+### The Visual AI Workflow Platform
 
 ## Vision
 
 AI should be yours.
-Agents run locally, beside your data.
-They are transparent, portable, and under your control.
+Run it on your machine, beside your data.
+Transparent, flexible, and under your control.
 
 ## Mission
 
-Ship an open-source system to design and run agents as graphs on your machines. Cloud is opt-in.
+Build an open-source visual platform for everyone to design and run AI workflows. Privacy by default. Cloud when you choose.
 
 ## Principles
 
-- **Local‑first. Always.**
-- **No data leaves without consent.**
-- **Open and portable.**&#x20;
-- **One graph. One runtime.** Visual and headless share semantics.
-- **Typed tools.** Small, composable, explicit I/O.
-- **Reproducible runs.** Seeds and inputs captured.
-- **No black boxes.** See every step while it runs.
-- **Fast on your hardware.** Cloud only when you choose.
+- **Build visually.** Connect blocks, not code. Accessible to everyone.
+- **Your data stays yours.** Never leaves without your permission.
+- **See every step.** Watch workflows execute in real-time.
+- **Mix your tools.** Combine local AI with cloud services as you need.
+- **Share your work.** Export, deploy, and collaborate.
+- **Experiment freely.** Iterate, undo, perfect—all visible and controllable.
+- **Own your infrastructure.** Run on your hardware. Keep control.
 
 ## What NodeTool Is (today)
 
-- Visual graph editor + runnable runtime (desktop + headless)
-- Execute via CLI, API, WebSocket; graphs in JSON
-- Local models (Ollama/HF) + optional cloud (OpenAI/Anthropic/Replicate)
-- Deploy to laptop/server, Runpod, Google Cloud, AWS
+- Visual workflow builder + AI runtime (desktop + web)
+- Generate content, process data, and automate with AI
+- Local models (Flux/SDXL/Whisper/LLMs) + cloud APIs (OpenAI/Anthropic/Replicate)
+- Run on laptop, deploy to cloud when needed
+- Share as Mini-Apps or deploy as APIs
 
 ## What NodeTool Is Not (today)
 
-- Managed SaaS, SLAs, multi‑tenant
-- Compliance‑grade policy/audit
-- Autoscaling orchestrator
-- One‑click content toy
+- Yet another SaaS subscription
+- A closed platform with vendor lock-in
+- Limited to cloud-only services
+- A one-size-fits-all solution
 
 ## Who It’s For
 
-Indie hackers, Game devs, AI enthusiasts, creative professionals, agencies, and studios who want to build and run their own pipelines. They care about control, reproducibility, and keeping data and IP local.
+Indie hackers, Game devs, AI enthusiasts, creative professionals, agencies, and studios who want to build and run AI workflows while keeping control. They value flexibility, privacy, and the ability to work without restrictions.
 
 ## Roadmap
 
-- **Creative pipelines:**\*\* templates for thumbnails, sprites, ad variants, research briefs.
-- **Timeline & Snapshots:** run history, diffs, and easy rollback.
-- **Render Queue & A/B:** batch runs and seeded comparisons.
-- **Packaging:** one‑click bundles for sharing with collaborators/clients; community packs registry.
+- **Workflow templates:** Ready-to-use examples for common AI tasks.
+- **Version control:** Track workflow evolution, compare versions, rollback changes.
+- **Batch processing:** Run workflows at scale with variations.
+- **Community hub:** Share workflows, discover patterns, learn from others.
 
 ## Promise
 
-Open core. Local‑first. Own the runtime, the workflows, and the outputs.
+Open source. Privacy first. Own your workflows, your data, and everything you build.

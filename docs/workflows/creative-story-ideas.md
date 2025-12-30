@@ -3,83 +3,36 @@ layout: page
 title: "Creative Story Ideas"
 ---
 
-## What You'll Achieve
+## What You'll Create
 
-**Generate dozens of story ideas in seconds**—perfect for writers, game designers, and content creators who need creative inspiration fast. This beginner-friendly workflow demonstrates NodeTool's core concepts while producing real, usable story prompts.
-
-**Learning outcomes:**
-- ✅ Understand how data flows through visual workflows
-- ✅ See AI streaming results in real-time
-- ✅ Learn to customize prompts with input nodes
-- ✅ Master the template pattern for reusable workflows
+Generate story ideas quickly using AI. This simple workflow demonstrates core NodeTool concepts: inputs, templates, and AI generation. Good for writers, game designers, and content creators who need creative inspiration.
 
 **Time to complete:** 5 minutes  
-**Difficulty:** Beginner (perfect first workflow)
-
----
-
-## Why This Workflow Matters
-
-**For writers:** Never stare at a blank page again. Generate story hooks instantly.  
-**For game designers:** Create NPC backstories and quest ideas at scale.  
-**For students:** Learn AI workflow design with immediate visual feedback.  
-**For teams:** Share this workflow as a Mini-App—teammates can generate ideas without seeing the technical details.
+**Difficulty:** Beginner
 
 ---
 
 ## Overview
 
-A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.
+A beginner-friendly template showing how to combine inputs with an AI agent to generate creative story ideas.
 
-This workflow demonstrates the core concepts of NodeTool:
+**How it works:**
+1. **Set inputs** - Define genre, character type, and setting
+2. **Format template** - Combine inputs into a prompt
+3. **Generate ideas** - AI produces multiple story concepts
+4. **View results** - Preview and use the generated ideas
 
-## 📥 INPUTS (Green nodes on left)
+**Key concepts:**
+- Connect nodes to create workflows
+- Use templates with {{VARIABLES}} for dynamic prompts
+- AI agents process inputs and generate results
+- Preview nodes show outputs at each stage
 
-• Three StringInput nodes let you customize the story
-
-• Try changing Genre, Character, or Setting values
-
-## 📝 TEMPLATE FORMATTING
-
-• The constant template defines the prompt structure
-
-• FormatText node combines inputs with {{PLACEHOLDERS}}
-
-• Dynamic properties map inputs to template variables
-
-## 🤖 AI GENERATION
-
-• ListGenerator streams multiple story ideas
-
-• Each idea appears one at a time (iteration/streaming)
-
-• Downstream nodes process each item automatically
-
-## 👁️ OUTPUT & PREVIEW
-
-• Preview nodes display intermediate and final results
-
-• Top preview shows the formatted prompt
-
-• Bottom preview shows all generated story ideas
-
-## 🎯 KEY LEARNING POINTS:
-
-Data flows left-to-right through connected nodesEdges connect outputs (right) to inputs (left)Templates use {{VARIABLES}} for dynamic contentStreaming nodes emit multiple values over timePreview nodes help debug and visualize data
-
-## 💡 TRY THIS:
-
-• Click the input nodes and change their values
-
-• Run the workflow and watch results appear
-
-• Modify the template to add more instructions
-
-• Try connecting nodes in different ways
+---
 
 ## Tags
 
-start, beginner, tutorial, template
+start, beginner, tutorial, template, creative, writing
 
 ## Workflow Diagram
 
@@ -100,34 +53,27 @@ graph TD
 
 ## How to Use
 
-1. Open NodeTool and find "Creative Story Ideas" in the Templates panel
-2. Click to open in the editor (or build manually following the diagram above)
-3. **Customize inputs** – Click the Genre, Character Type, and Setting nodes to enter your preferences
-4. **Run workflow** – Press <kbd>Ctrl/⌘ + Enter</kbd> or click the Run button
-5. **Watch streaming** – Ideas appear one at a time in the Preview node (not all at once!)
-6. **Export results** – Right-click Preview node → Copy to use ideas in your writing
+1. Open NodeTool and find "Creative Story Ideas" in Templates
+2. Click each input node to set your preferences:
+   - **Genre**: "Sci-fi", "Fantasy", "Mystery", etc.
+   - **Character Type**: "Hero", "Villain", "Detective", etc.
+   - **Setting**: "Space station", "Medieval castle", "Future city", etc.
+3. Press <kbd>Ctrl/⌘ + Enter</kbd> or click Run
+4. View the generated ideas in the Preview node
+5. Copy ideas you like to use in your writing
 
-**Pro tip:** Save as a Mini-App (top-right button) to share with teammates. They'll see a simple form interface without the workflow complexity.
-
----
-
-## Real-World Applications
-
-**Content creators:** Generate video ideas, blog post hooks, and social media content  
-**Novelists:** Overcome writer's block with fresh plot concepts  
-**Game developers:** Create quest descriptions, character backstories, and world-building elements  
-**Educators:** Teach creative writing with AI-assisted brainstorming  
-**Marketing teams:** Brainstorm campaign concepts and ad copy angles
+**Tips:**
+- Run multiple times to get different ideas
+- Try unusual combinations for unique results
+- Adjust inputs to refine the style of ideas you get
 
 ---
 
-## Next Steps After This Workflow
+## Next Steps
 
-Now that you understand the basics, try these progressively advanced workflows:
+Try these related workflows:
+- [Movie Posters](movie-posters.md) - Generate images from ideas
+- [Image Enhance](image-enhance.md) - Chain image transformations
+- [Story to Video](story-to-video-generator.md) - Create video from stories
 
-1. **[Transcribe Audio](transcribe-audio.md)** – Work with media files (audio → text)
-2. **[Image Enhance](image-enhance.md)** – Chain multiple transformations
-3. **[Chat with Docs](chat-with-docs.md)** – Build a RAG system with vector search
-4. **[Movie Posters](movie-posters.md)** – Multi-stage agent planning workflow
-
-Or explore all [workflow examples](/workflows/) to see what's possible.
+Browse all [workflows](/workflows/) for more examples.

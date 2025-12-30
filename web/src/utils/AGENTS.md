@@ -16,14 +16,11 @@ The utils directory contains pure functions and helper utilities organized by fu
 Maps MIME types and internal type names to node types:
 
 ```typescript
-// Get output node type for a MIME type
-const nodeType = getOutputNodeType('image/png'); // 'nodetool.output.ImageOutput'
+// Get output node type for any data type
+const nodeType = outputForType('image'); // 'nodetool.output.Output'
 
 // Get input node type for data type
-const inputType = getInputNodeType('image'); // 'nodetool.input.ImageInput'
-
-// Check if type is supported
-const isSupported = isSupportedType('video/mp4'); // true
+const inputType = inputForType('image'); // 'nodetool.input.ImageInput'
 ```
 
 **Use Cases**:

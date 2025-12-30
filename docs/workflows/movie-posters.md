@@ -3,27 +3,62 @@ layout: page
 title: "Movie Posters"
 ---
 
+## What You'll Create
+
+Generate movie poster concepts with AI. This workflow chains multiple AI models to go from idea to visual design, demonstrating how to build multi-stage creative pipelines.
+
+**Time to complete:** 5 minutes  
+**Difficulty:** Intermediate
+
+---
+
 ## Overview
 
-Create cinematic movie posters using AI image generation
+An AI-powered poster generator that plans a visual strategy, then creates image variations.
 
-**AI-Assisted Movie-Poster Generator**
+**How it works:**
+1. **Input** - Movie title, genre, and target audience
+2. **Strategy Agent** - Creates a marketing approach and visual concept
+3. **Prompt Generator** - Converts strategy into detailed image prompts
+4. **Image Generator** - Creates poster variations using Stable Diffusion/Flux
+5. **Preview** - Shows both the strategy and resulting posters
 
-****
+---
 
-•	Takes title, genre, and primary audience as inputs.
+## The Creative Pipeline
 
-•	LLM #1 produces a brief poster-marketing strategy.
+### Inputs
+Three input nodes define your movie:
+- **Title**: Your movie name
+- **Genre**: Action, Horror, Romance, etc.
+- **Audience**: Who will watch it
 
-•	LLM #2 converts that strategy into multiple Stable-Diffusion prompts.
+### Strategy Planning
+First AI agent analyzes inputs and creates a marketing strategy and visual direction.
 
-•	Stable Diffusion node renders 512 × 768 px poster concepts.
+### Prompt Generation
+Second AI converts strategy into specific image prompts, generating multiple variations for different approaches.
 
-•	Preview panels display the strategy and a gallery of generated images.
+### Image Creation
+Stable Diffusion or Flux renders 512×768px posters. Multiple images generated simultaneously.
+
+### Preview & Results
+Top preview shows the creative strategy. Bottom gallery displays all generated posters.
+
+---
+
+## Key Concepts
+
+- **Multi-stage workflows**: Chain AI models for complex results
+- **Variation generation**: Create multiple concepts to choose from
+- **Streaming results**: Watch posters appear as they generate
+- **Reusable template**: Save and use for any project
+
+---
 
 ## Tags
 
-start, image
+start, image, creative, design, posters
 
 ## Workflow Diagram
 
@@ -50,11 +85,28 @@ graph TD
 
 ## How to Use
 
-1. Open NodeTool and create a new workflow
-2. Import this workflow from the examples gallery or build it manually following the diagram above
-3. Configure the input nodes with your data
-4. Run the workflow to see results
+1. Open NodeTool and find "Movie Posters" in Templates
+2. Fill in your movie details:
+   - **Movie Title**: "Quantum Horizon" (or your movie name)
+   - **Genre**: "Sci-Fi Thriller" (choose any genre)
+   - **Primary Audience**: "Adults 25-40 who love space mysteries"
+3. Press <kbd>Ctrl/⌘ + Enter</kbd> or click Run
+4. View the AI strategy in the top preview
+5. Watch posters generate in the bottom preview
+6. Run again with different inputs for new styles
 
-## Related Workflows
+**Tips:**
+- Try different genres for the same title to see how styles change
+- Be specific about audience to get more targeted designs
+- Run multiple times to build a portfolio of concepts
 
-Browse other [workflow examples](/cookbook.md) to discover more capabilities.
+---
+
+## Next Steps
+
+Try these related workflows:
+- [Image Enhance](image-enhance.md) - Enhance your poster designs
+- [Creative Story Ideas](creative-story-ideas.md) - Generate movie concepts
+- [Story to Video](story-to-video-generator.md) - Create video trailers
+
+Browse all [workflows](/workflows/) for more examples.
