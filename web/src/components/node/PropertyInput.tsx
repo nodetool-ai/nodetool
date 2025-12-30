@@ -53,6 +53,8 @@ export type PropertyProps = {
   onChange: (value: any) => void;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  /** Value differs from default — shows visual indicator */
+  changed?: boolean;
 };
 
 function InputProperty(props: PropertyProps) {
@@ -301,7 +303,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     onChange: onChange,
     tabIndex: tabIndex,
     isDynamicProperty: isDynamicProperty,
-    isInspector: isInspector
+    isInspector: isInspector,
+    changed: value !== property.default
   };
 
   // Property Context Menu

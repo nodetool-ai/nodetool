@@ -31,6 +31,10 @@ const mockTheme = createTheme({
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif"
 });
 
+// Add getColorSchemeSelector for MUI v7 CSS-in-JS
+(mockTheme as any).getColorSchemeSelector = (scheme: string) => `&.${scheme}`;
+
+
 // Add vars property directly to the theme object
 (mockTheme as any).vars = {
   palette: {
@@ -91,7 +95,17 @@ const mockTheme = createTheme({
     textChannel: "255 255 255",
     dividerChannel: "47 47 47",
     backgroundDefaultChannel: "32 32 32",
-    backgroundPaperChannel: "35 35 35"
+    backgroundPaperChannel: "35 35 35",
+    // Add Switch palette values for MUI v7 Switch component
+    Switch: {
+      defaultColor: "#e0e0e0",
+      defaultDisabledColor: "#bdbdbd"
+    }
+  },
+  // Add opacity values required by MUI v7 Switch component
+  opacity: {
+    switchTrack: 0.3,
+    switchTrackDisabled: 0.2
   },
   // Provide spacing variables expected by MUI components (e.g., Button)
   // MUI expects spacing to be a function that multiplies by 8px
@@ -151,6 +165,26 @@ const mockTheme = createTheme({
   defaultColor: "#616161"
 };
 
+// Add Switch component properties for MUI v7
+(mockTheme as any).vars.Switch = {
+  switchTrack: "#616161",
+  switchBase: "#bdbdbd",
+  defaultColor: "#bdbdbd"
+};
+(mockTheme as any).Switch = {
+  switchTrack: "#616161",
+  switchBase: "#bdbdbd",
+  defaultColor: "#bdbdbd"
+};
+
+// Add OutlinedInput properties for MUI v7
+(mockTheme as any).vars.OutlinedInput = {
+  notchedOutline: "#616161"
+};
+(mockTheme as any).OutlinedInput = {
+  notchedOutline: "#616161"
+};
+
 // Ensure components overrides exist for MUI that reference theme.components
 (mockTheme as any).components = {
   ...((mockTheme as any).components || {}),
@@ -164,6 +198,26 @@ const mockTheme = createTheme({
       root: {},
       filled: {},
       outlined: {}
+    }
+  },
+  MuiSwitch: {
+    styleOverrides: {
+      root: {},
+      switchBase: {},
+      thumb: {},
+      track: {}
+    }
+  },
+  MuiOutlinedInput: {
+    styleOverrides: {
+      root: {},
+      input: {},
+      notchedOutline: {}
+    }
+  },
+  MuiTextField: {
+    styleOverrides: {
+      root: {}
     }
   }
 };

@@ -17,6 +17,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { typesAreEqual } from "../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
+import { EditorUiProvider } from "./editor_ui";
 
 const styles = (theme: Theme) =>
   css({
@@ -263,95 +264,101 @@ const Inspector: React.FC = () => {
 
   if (selectedNodes.length === 0) {
     return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <Box className="top-content" css={allNodeStyles(theme)}>
-            <NodeExplorer />
+      <EditorUiProvider scope="inspector">
+        <Box className="inspector" css={inspectorStyles}>
+          <Box className="top">
+            <Box className="top-content" css={allNodeStyles(theme)}>
+              <NodeExplorer />
+            </Box>
           </Box>
+          <Box className="bottom"></Box>
         </Box>
-        <Box className="bottom"></Box>
-      </Box>
+      </EditorUiProvider>
     );
   }
 
   if (isMultiSelect) {
     if (!metadataCoverageMatches) {
       return (
-        <Box className="inspector" css={inspectorStyles}>
-          <Box className="top">
-            <Box className="top-content">
-              <Typography>
-                Metadata is not available for all selected nodes.
-              </Typography>
+        <EditorUiProvider scope="inspector">
+          <Box className="inspector" css={inspectorStyles}>
+            <Box className="top">
+              <Box className="top-content">
+                <Typography>
+                  Metadata is not available for all selected nodes.
+                </Typography>
+              </Box>
             </Box>
           </Box>
-        </Box>
+        </EditorUiProvider>
       );
     }
 
     return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <Box className="top-content" css={allNodeStyles(theme)}>
-            <div className="inspector-header">
-              <Typography variant="h5">Inspector</Typography>
-              <IconButton
-                className="close-button"
-                aria-label="Close inspector"
-                size="small"
-                onClick={handleInspectorClose}
-              >
-                <CloseRoundedIcon fontSize="small" />
-              </IconButton>
-              <div className="title">
-                {`Editing ${selectedNodes.length} nodes`}
-              </div>
-            </div>
-            {multiPropertyEntries.length > 0 ? (
-              multiPropertyEntries.map(({ property, value, isMixed }) => (
-                <div
-                  className="multi-property-row"
-                  key={`multi-${property.name}-${nodesWithMetadata[0].node.id}`}
+      <EditorUiProvider scope="inspector">
+        <Box className="inspector" css={inspectorStyles}>
+          <Box className="top">
+            <Box className="top-content" css={allNodeStyles(theme)}>
+              <div className="inspector-header">
+                <Typography variant="h5">Inspector</Typography>
+                <IconButton
+                  className="close-button"
+                  aria-label="Close inspector"
+                  size="small"
+                  onClick={handleInspectorClose}
                 >
-                  {isMixed && (
-                    <Tooltip
-                      title="Mixed values across the selected nodes"
-                      placement="top-start"
-                    >
-                      <span className="mixed-indicator">
-                        <WarningAmberOutlinedIcon fontSize="small" />
-                      </span>
-                    </Tooltip>
-                  )}
-                  <PropertyField
-                    id={nodesWithMetadata[0].node.id}
-                    value={value}
-                    property={property}
-                    propertyIndex={property.name}
-                    showHandle={false}
-                    isInspector={true}
-                    nodeType="inspector"
-                    data={nodesWithMetadata[0].node.data}
-                    layout=""
-                    onValueChange={(newValue) =>
-                      handleMultiPropertyChange(property.name, newValue)
-                    }
-                  />
+                  <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+                <div className="title">
+                  {`Editing ${selectedNodes.length} nodes`}
                 </div>
-              ))
-            ) : (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ padding: "0.25em 0" }}
-              >
-                No shared editable properties across the selected nodes.
-              </Typography>
-            )}
+              </div>
+              {multiPropertyEntries.length > 0 ? (
+                multiPropertyEntries.map(({ property, value, isMixed }) => (
+                  <div
+                    className="multi-property-row"
+                    key={`multi-${property.name}-${nodesWithMetadata[0].node.id}`}
+                  >
+                    {isMixed && (
+                      <Tooltip
+                        title="Mixed values across the selected nodes"
+                        placement="top-start"
+                      >
+                        <span className="mixed-indicator">
+                          <WarningAmberOutlinedIcon fontSize="small" />
+                        </span>
+                      </Tooltip>
+                    )}
+                    <PropertyField
+                      id={nodesWithMetadata[0].node.id}
+                      value={value}
+                      property={property}
+                      propertyIndex={property.name}
+                      showHandle={false}
+                      isInspector={true}
+                      nodeType="inspector"
+                      data={nodesWithMetadata[0].node.data}
+                      layout=""
+                      onValueChange={(newValue) =>
+                        handleMultiPropertyChange(property.name, newValue)
+                      }
+                    />
+                  </div>
+                ))
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ padding: "0.25em 0" }}
+                >
+                  No shared editable properties across the selected nodes.
+                </Typography>
+              )}
+            </Box>
           </Box>
+          <div className="bottom"></div>
         </Box>
-        <div className="bottom"></div>
-      </Box>
+      </EditorUiProvider>
     );
   }
 
@@ -362,24 +369,30 @@ const Inspector: React.FC = () => {
 
   if (!selectedNode) {
     return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <Box className="top-content">
-            <Box className="inspector-header">
-              <Typography variant="h4">Inspector</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Select nodes to edit
-              </Typography>
+      <EditorUiProvider scope="inspector">
+        <Box className="inspector" css={inspectorStyles}>
+          <Box className="top">
+            <Box className="top-content">
+              <Box className="inspector-header">
+                <Typography variant="h4">Inspector</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Select nodes to edit
+                </Typography>
+              </Box>
             </Box>
           </Box>
+          <Box className="bottom"></Box>
         </Box>
-        <Box className="bottom"></Box>
-      </Box>
+      </EditorUiProvider>
     );
   }
 
   if (!metadata) {
-    return <Typography>No metadata available for this node</Typography>;
+    return (
+      <EditorUiProvider scope="inspector">
+        <Typography>No metadata available for this node</Typography>
+      </EditorUiProvider>
+    );
   }
 
   const handleOpenNodeMenu = () => {
@@ -399,108 +412,110 @@ const Inspector: React.FC = () => {
   };
 
   return (
-    <Box className="inspector" css={inspectorStyles}>
-      <Box className="top">
-        <Box className="top-content" css={allNodeStyles(theme)}>
-          <div className="inspector-header">
-            <Typography variant="h5">Inspector</Typography>
-            <IconButton
-              className="close-button"
-              aria-label="Close inspector"
-              size="small"
-              onClick={handleInspectorClose}
-            >
-              <CloseRoundedIcon fontSize="small" />
-            </IconButton>
-            <div className="header-row">
-              <div className="title">{metadata.title}</div>
+    <EditorUiProvider scope="inspector">
+      <Box className="inspector" css={inspectorStyles}>
+        <Box className="top">
+          <Box className="top-content" css={allNodeStyles(theme)}>
+            <div className="inspector-header">
+              <Typography variant="h5">Inspector</Typography>
+              <IconButton
+                className="close-button"
+                aria-label="Close inspector"
+                size="small"
+                onClick={handleInspectorClose}
+              >
+                <CloseRoundedIcon fontSize="small" />
+              </IconButton>
+              <div className="header-row">
+                <div className="title">{metadata.title}</div>
+              </div>
             </div>
-          </div>
-          {/* Base properties */}
-          {metadata.properties.map((property, index) => (
-            <PropertyField
-              key={`inspector-${property.name}-${selectedNode.id}`}
-              id={selectedNode.id}
-              value={selectedNode.data.properties[property.name]}
-              property={property}
-              propertyIndex={index.toString()}
-              showHandle={false}
-              isInspector={true}
-              nodeType="inspector"
-              data={selectedNode.data}
-              layout=""
-            />
-          ))}
+            {/* Base properties */}
+            {metadata.properties.map((property, index) => (
+              <PropertyField
+                key={`inspector-${property.name}-${selectedNode.id}`}
+                id={selectedNode.id}
+                value={selectedNode.data.properties[property.name]}
+                property={property}
+                propertyIndex={index.toString()}
+                showHandle={false}
+                isInspector={true}
+                nodeType="inspector"
+                data={selectedNode.data}
+                layout=""
+              />
+            ))}
 
-          {/* Dynamic properties, if any */}
-          {Object.entries(selectedNode.data.dynamic_properties || {}).map(
-            ([name, value], index) => {
-              // Infer type from incoming edge
-              const incoming = edges.find(
-                (edge) =>
-                  edge.target === selectedNode.id && edge.targetHandle === name
-              );
-              let resolvedType: TypeMetadata = {
-                type: "any",
-                type_args: [],
-                optional: false
-              } as any;
-              if (incoming) {
-                const sourceNode = findNode(incoming.source);
-                if (sourceNode) {
-                  const sourceMeta = getMetadata(sourceNode.type || "");
-                  const handle = sourceMeta
-                    ? findOutputHandle(
-                        sourceNode,
-                        incoming.sourceHandle || "",
-                        sourceMeta
-                      )
-                    : undefined;
-                  if (handle?.type) {
-                    resolvedType = handle.type;
+            {/* Dynamic properties, if any */}
+            {Object.entries(selectedNode.data.dynamic_properties || {}).map(
+              ([name, value], index) => {
+                // Infer type from incoming edge
+                const incoming = edges.find(
+                  (edge) =>
+                    edge.target === selectedNode.id && edge.targetHandle === name
+                );
+                let resolvedType: TypeMetadata = {
+                  type: "any",
+                  type_args: [],
+                  optional: false
+                } as any;
+                if (incoming) {
+                  const sourceNode = findNode(incoming.source);
+                  if (sourceNode) {
+                    const sourceMeta = getMetadata(sourceNode.type || "");
+                    const handle = sourceMeta
+                      ? findOutputHandle(
+                          sourceNode,
+                          incoming.sourceHandle || "",
+                          sourceMeta
+                        )
+                      : undefined;
+                    if (handle?.type) {
+                      resolvedType = handle.type;
+                    }
                   }
                 }
+                return (
+                  <PropertyField
+                    key={`inspector-dynamic-${name}-${selectedNode.id}`}
+                    id={selectedNode.id}
+                    value={value}
+                    property={{ name, type: resolvedType } as any}
+                    propertyIndex={`dynamic-${index}`}
+                    showHandle={false}
+                    isInspector={true}
+                    nodeType="inspector"
+                    data={selectedNode.data}
+                    layout=""
+                    isDynamicProperty={true}
+                  />
+                );
               }
-              return (
-                <PropertyField
-                  key={`inspector-dynamic-${name}-${selectedNode.id}`}
-                  id={selectedNode.id}
-                  value={value}
-                  property={{ name, type: resolvedType } as any}
-                  propertyIndex={`dynamic-${index}`}
-                  showHandle={false}
-                  isInspector={true}
-                  nodeType="inspector"
-                  data={selectedNode.data}
-                  layout=""
-                  isDynamicProperty={true}
-                />
-              );
-            }
-          )}
+            )}
+          </Box>
         </Box>
+        <div className="bottom">
+          <NodeDescription
+            className="description"
+            description={metadata.description}
+            onTagClick={handleTagClick}
+          />
+          <Tooltip title="Show in NodeMenu" placement="top-start">
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{
+                padding: ".5em"
+              }}
+              className="namespace"
+              onClick={handleOpenNodeMenu}
+            >
+              {metadata.namespace}
+            </Button>
+          </Tooltip>
+        </div>
       </Box>
-      <div className="bottom">
-        <NodeDescription
-          className="description"
-          description={metadata.description}
-          onTagClick={handleTagClick}
-        />
-        <Tooltip title="Show in NodeMenu" placement="top-start">
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{
-              padding: ".5em"
-            }}
-            className="namespace"
-            onClick={handleOpenNodeMenu}
-          >
-            {metadata.namespace}
-          </Button>
-        </Tooltip>
-      </div>
-    </Box>
+    </EditorUiProvider>
   );
 };
 

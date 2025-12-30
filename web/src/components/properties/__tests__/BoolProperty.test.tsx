@@ -1,5 +1,8 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
+
 jest.mock("../../themes/ThemeNodetool", () => ({
   __esModule: true,
   default: {
@@ -26,16 +29,20 @@ const defaultProps = {
   nodeType: "test.node"
 };
 
+const renderWithTheme = (ui: React.ReactElement) => {
+  return render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
+};
+
 describe("BoolProperty", () => {
   it("renders a switch and label", () => {
-    render(<BoolProperty {...defaultProps} />);
+    renderWithTheme(<BoolProperty {...defaultProps} />);
     expect(screen.getByRole("checkbox")).toBeInTheDocument();
     expect(screen.getByText("Enabled")).toBeInTheDocument();
   });
 
   it("calls onChange when toggled", () => {
     const onChange = jest.fn();
-    render(<BoolProperty {...defaultProps} onChange={onChange} />);
+    renderWithTheme(<BoolProperty {...defaultProps} onChange={onChange} />);
     fireEvent.click(screen.getByRole("checkbox"));
     expect(onChange).toHaveBeenCalledWith(true);
   });
