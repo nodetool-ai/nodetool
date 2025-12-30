@@ -129,7 +129,7 @@ type NodeSelection = {
   edges: Edge[];
 };
 
-export const DEFAULT_NODE_WIDTH = 200;
+export const DEFAULT_NODE_WIDTH = 280;
 
 const undo_limit = 1000;
 

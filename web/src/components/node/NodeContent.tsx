@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { Typography, Button, Box } from "@mui/material";
+import { Button, Box } from "@mui/material";
 import { Visibility } from "@mui/icons-material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
@@ -11,7 +11,6 @@ import isEqual from "lodash/isEqual";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
-import useLogsStore from "../../stores/LogStore";
 import ResultOverlay from "./ResultOverlay";
 
 interface NodeContentProps {
@@ -27,7 +26,6 @@ interface NodeContentProps {
   onToggleAdvancedFields: () => void;
   status: string;
   workflowId: string;
-  renderedResult: React.ReactNode;
   showResultOverlay: boolean;
   result: any;
   onShowInputs: () => void;
@@ -47,7 +45,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
   onToggleAdvancedFields,
   status,
   workflowId,
-  renderedResult,
   showResultOverlay,
   result,
   onShowInputs,
@@ -58,27 +55,38 @@ const NodeContent: React.FC<NodeContentProps> = ({
     data.dynamic_properties as Record<string, any>
   );
 
-  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
-  
-  // If overlay is enabled and we have a result, show overlay
-  if (showResultOverlay && result) {
+  const isEmptyObject = (obj: any) => {
+   return obj && typeof obj === "object" && Object.keys(obj).length === 0;
+};
+
+  console.log("NodeContent render:", {
+    id,
+    nodeType,
+    isOutputNode,
+    result,
+    resultType: typeof result,
+    status,
+    showResultOverlay
+  });
+
+  if (showResultOverlay && result && !isEmptyObject(result)) {
     return (
       <>
         <ResultOverlay result={result} onShowInputs={onShowInputs} />
-        <ProcessTimer status={status} />
-        {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
-        <NodeLogs id={id} workflowId={workflowId} />
+        {/* Only show output handles when overlay is visible - inputs hidden completely */}
+        {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       </>
     );
   }
-  
+
   // Determine what to show when overlay is not active
   const shouldShowResultButton =
-    result && onShowResults && status === "completed";
-  // Show inline result when: no result exists OR status is not completed
-  // (i.e., don't show inline result when there's a completed result, since we show the button instead)
-  const shouldShowInlineResult = !(result && status === "completed");
-  
+    result &&
+    !isEmptyObject(result) &&
+    onShowResults &&
+    status === "completed" &&
+    !isConstantNode;
+
   return (
     <>
       <NodeInputs
@@ -119,8 +127,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
           </Button>
         </Box>
       )}
-      {/* Show inline result when there's no completed result to display in overlay */}
-      {shouldShowInlineResult && renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
       <NodeLogs id={id} workflowId={workflowId} />

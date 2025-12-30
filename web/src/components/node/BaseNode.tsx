@@ -74,7 +74,9 @@ const Toolbar = memo(function Toolbar({
   selected: boolean;
 }) {
   const { activeSelect } = useSelect();
-  if (activeSelect || !selected) {return null;}
+  if (activeSelect || !selected) {
+    return null;
+  }
   return (
     <NodeToolbar position={Position.Top} offset={0}>
       <NodeToolButtons nodeId={id} />
@@ -218,7 +220,9 @@ const getHeaderColors = (
   const firstOutputType = metadata?.outputs?.[0]?.type?.type as
     | string
     | undefined;
-  if (!firstOutputType) {return { headerColor: "", baseColor: "" };}
+  if (!firstOutputType) {
+    return { headerColor: "", baseColor: "" };
+  }
 
   const baseColor = colorForType(firstOutputType);
 
@@ -261,7 +265,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   const parentColor = useNodes((_state) => {
-    if (!parentId) {return "";}
+    if (!parentId) {
+      return "";
+    }
     return isDarkMode
       ? hexToRgba("#222", GROUP_COLOR_OPACITY)
       : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
@@ -295,11 +301,20 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Results and rendering
-  const result = useResultsStore((state) => state.getResult(workflow_id, id));
-
-  const renderedResult = useMemo(() => {
-    return result && <OutputRenderer value={result} />;
-  }, [result]);
+  const result = useResultsStore((state) => {
+    const r = nodeType.isOutputNode
+      ? state.getOutputResult(workflow_id, id)
+      : state.getResult(workflow_id, id);
+    console.log("BaseNode result:", {
+      nodeId: id,
+      workflowId: workflow_id,
+      nodeType,
+      isOutputNode: nodeType.isOutputNode,
+      result: r,
+      resultType: typeof r
+    });
+    return r;
+  });
 
   // Manage overlay visibility based on node status and result
   useEffect(() => {
@@ -373,10 +388,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           hasParent && !isLoading
             ? parentColor
             : selected
-            ? "transparent !important"
-            : // theme.vars.palette.c_node_bg
-              // : "#121212", // Darker background
-              theme.vars.palette.c_node_bg, // Darker background
+              ? "transparent !important"
+              : // theme.vars.palette.c_node_bg
+                // : "#121212", // Darker background
+                theme.vars.palette.c_node_bg, // Darker background
         backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         borderRadius: "var(--rounded-node)",
@@ -415,7 +430,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         basicFields={meta.nodeBasicFields}
         status={status}
         workflowId={workflow_id}
-        renderedResult={renderedResult}
         showResultOverlay={showResultOverlay}
         result={result}
         onShowInputs={handleShowInputs}
