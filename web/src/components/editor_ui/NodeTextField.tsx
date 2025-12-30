@@ -57,7 +57,12 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
-        className={cn(editorClassNames.nodrag, className)}
+        className={cn(
+          editorClassNames.nodrag,
+          editorUiClasses.control,
+          scopeClass,
+          className
+        )}
         slotProps={{
           ...slotProps,
           input: {
