@@ -328,7 +328,12 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Add MessageInput node to workflow
   const handleAddMessageInput = useCallback(() => {
-    const currentNodeStore = getNodeStore(currentWorkflowId);
+    const workflowId = currentWorkflowId;
+    if (!workflowId) {
+      console.error("No current workflow ID");
+      return;
+    }
+    const currentNodeStore = getNodeStore(workflowId);
     if (!currentNodeStore) {
       console.error("No node store found for current workflow");
       return;

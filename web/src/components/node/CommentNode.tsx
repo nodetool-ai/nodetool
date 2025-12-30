@@ -98,7 +98,7 @@ const styles = (theme: Theme) =>
         caretColor: theme.vars.palette.primary.contrastText
       },
       "& .editor-input .font-size-large": {
-        fontSize: theme.vars.typography.fontSizeBig
+        fontSize: "var(--fontSizeBig)"
       }
     },
     ".format-toolbar-container": {
