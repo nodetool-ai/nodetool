@@ -17,18 +17,9 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import {
   Message,
-  JobUpdate,
-  NodeUpdate,
-  NodeProgress,
-  OutputUpdate,
-  ToolCallUpdate,
-  Chunk,
   TaskUpdate,
   PlanningUpdate,
   LogUpdate,
-  Prediction,
-  StepResult,
-  MessageList,
   Thread,
   ThreadUpdateRequest,
   ThreadSummarizeRequest,
@@ -40,7 +31,6 @@ import { client } from "./ApiClient";
 import log from "loglevel";
 import { supabase } from "../lib/supabaseClient";
 import { DEFAULT_MODEL } from "../config/constants";
-import { NodeStore } from "./NodeStore";
 import {
   WebSocketManager,
   ConnectionState
@@ -451,6 +441,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }));
 
         // Prepare messages for cache and wire (workflow_id only on wire)
+        // Preserve workflow_id if already set by caller (e.g., WorkflowAssistantChat)
         const messageForCache: Message = {
           ...(message as any),
           thread_id: threadId,
@@ -459,7 +450,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         const messageToSend = {
           ...(message as any),
-          workflow_id: workflowId ?? null,
+          workflow_id: (message as any).workflow_id ?? workflowId ?? null,
           thread_id: threadId,
           agent_mode: agentMode
         } as any;

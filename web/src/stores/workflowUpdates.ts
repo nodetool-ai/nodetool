@@ -73,7 +73,7 @@ export const handleUpdate = (
   const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
 
-  // console.log("handleUpdate", data);
+  console.log("handleUpdate", data);
 
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;

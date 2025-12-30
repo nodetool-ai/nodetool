@@ -284,6 +284,149 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/costs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Provider Calls
+         * @description List provider API calls for the current user with optional filtering.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *         provider: Optional filter by provider name
+         *         model: Optional filter by model name
+         *         limit: Maximum number of records to return (1-1000)
+         *         start_key: Pagination start key
+         *
+         *     Returns:
+         *         List of prediction/cost records
+         */
+        get: operations["list_provider_calls_api_costs__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/costs/aggregate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Aggregate Costs
+         * @description Get aggregated cost statistics for the current user.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *         provider: Optional filter by provider name
+         *         model: Optional filter by model name
+         *
+         *     Returns:
+         *         Aggregated cost and usage statistics
+         */
+        get: operations["aggregate_costs_api_costs_aggregate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/costs/aggregate/by-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Aggregate Costs By Provider
+         * @description Get cost statistics aggregated by provider for the current user.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         List of aggregations, one per provider
+         */
+        get: operations["aggregate_costs_by_provider_api_costs_aggregate_by_provider_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/costs/aggregate/by-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Aggregate Costs By Model
+         * @description Get cost statistics aggregated by model for the current user.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *         provider: Optional filter by provider name
+         *
+         *     Returns:
+         *         List of aggregations, one per model
+         */
+        get: operations["aggregate_costs_by_model_api_costs_aggregate_by_model_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/costs/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cost Summary
+         * @description Get a comprehensive cost summary for the current user.
+         *
+         *     Includes:
+         *     - Overall totals
+         *     - Breakdown by provider
+         *     - Breakdown by model
+         *     - Recent activity
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         Comprehensive cost summary
+         */
+        get: operations["get_cost_summary_api_costs_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/messages/": {
         parameters: {
             query?: never;
@@ -731,6 +874,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/tts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get All Tts Models Endpoint
+         * @description Get all available text-to-speech models from all providers.
+         */
+        get: operations["get_all_tts_models_endpoint_api_models_tts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/tts/{provider}": {
         parameters: {
             query?: never;
@@ -1114,6 +1277,122 @@ export interface paths {
          *         OAuthWhoamiResponse with account information.
          */
         get: operations["get_huggingface_whoami_endpoint_api_oauth_hf_whoami_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/github/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start Github Oauth
+         * @description Start GitHub OAuth flow with PKCE.
+         *
+         *     Generates PKCE challenge, state, and returns the authorization URL.
+         *
+         *     Args:
+         *         request: FastAPI request object to get the server host.
+         *         user_id: Current user ID from auth middleware.
+         *
+         *     Returns:
+         *         OAuthStartResponse with auth_url.
+         */
+        get: operations["start_github_oauth_api_oauth_github_start_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/github/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Github Oauth Callback
+         * @description Handle GitHub OAuth callback.
+         *
+         *     Validates state, exchanges code for tokens, and stores the credential.
+         *
+         *     Args:
+         *         code: Authorization code from GitHub.
+         *         state: State parameter to validate.
+         *         error: Optional error from OAuth provider.
+         *         error_description: Optional error description.
+         *
+         *     Returns:
+         *         HTML page with success/error message.
+         */
+        get: operations["github_oauth_callback_api_oauth_github_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/github/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Github Tokens
+         * @description List all stored GitHub OAuth tokens for the current user.
+         *
+         *     Args:
+         *         user_id: Current user ID from auth middleware.
+         *
+         *     Returns:
+         *         OAuthTokensResponse with list of token metadata.
+         */
+        get: operations["list_github_tokens_api_oauth_github_tokens_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/github/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Github User
+         * @description Get GitHub account information using the stored OAuth token.
+         *
+         *     This endpoint demonstrates how to use the stored OAuth credentials
+         *     to make authenticated requests to the GitHub API.
+         *
+         *     Args:
+         *         account_id: The account ID to get information for.
+         *         user_id: Current user ID from auth middleware.
+         *
+         *     Returns:
+         *         GitHubUserResponse with account information.
+         */
+        get: operations["get_github_user_api_oauth_github_user_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2072,7 +2351,64 @@ export interface components {
             /** Assets */
             assets: components["schemas"]["Asset"][];
         };
-        /** AssetRef */
+        /**
+         * AssetRef
+         * @description Base class for asset references in the workflow system.
+         *
+         *     Asset references can point to data in multiple ways:
+         *     - uri: A URI pointing to the asset location (memory://, data:, file://, http(s)://, asset://)
+         *     - asset_id: Database ID for persistent assets
+         *     - data: Direct byte content (with canonical encoding per asset type)
+         *     - metadata: Optional metadata dict
+         *
+         *     Data Field Canonical Encodings:
+         *     --------------------------------
+         *     The data field, when populated, must use standardized encodings to ensure
+         *     consistent processing by the frontend and other consumers:
+         *
+         *     - **ImageRef**: PNG bytes (image/png)
+         *       * Decoded from: PIL.Image objects, numpy arrays, raw image bytes
+         *       * Frontend expects: Can be converted to data:image/png;base64,{data}
+         *
+         *     - **AudioRef**: MP3 bytes (audio/mp3 or audio/mpeg)
+         *       * Decoded from: AudioSegment objects, numpy audio arrays, raw audio bytes
+         *       * Frontend expects: Can be converted to data:audio/mp3;base64,{data}
+         *
+         *     - **VideoRef**: MP4 bytes (video/mp4)
+         *       * Decoded from: Video file bytes
+         *       * Frontend expects: Can be converted to data:video/mp4;base64,{data}
+         *
+         *     - **TextRef**: UTF-8 encoded bytes (text/plain)
+         *       * Decoded from: Python str objects
+         *       * Frontend expects: Can be decoded as text or converted to data URI
+         *
+         *     - **Generic AssetRef**: Raw bytes (application/octet-stream)
+         *       * No transformation applied
+         *       * Frontend must handle based on context
+         *
+         *     Memory URIs (memory://):
+         *     -----------------------
+         *     - Used for temporary storage of Python objects during workflow execution
+         *     - Objects are stored in ResourceScope's MemoryUriCache with 5-minute TTL
+         *     - When serializing for client (e.g., in result_for_client), memory URIs are
+         *       resolved to populate the data field with canonical byte encoding
+         *     - Supports: PIL.Image, AudioSegment, str, pd.DataFrame, bytes, and more
+         *
+         *     Data URIs (data:):
+         *     -----------------
+         *     - Embed data directly in the URI using base64 encoding
+         *     - Format: data:{mime};base64,{base64_data}
+         *     - Common for small assets or when network requests are undesirable
+         *
+         *     File URIs (file://):
+         *     -------------------
+         *     - Point to local filesystem paths
+         *
+         *     Asset IDs (asset://):
+         *     --------------------
+         *     - Reference persistent assets stored in the database
+         *     - Require database lookup to retrieve content
+         */
         AssetRef: {
             /**
              * Type
@@ -2088,6 +2424,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** AssetSearchResult */
         AssetSearchResult: {
@@ -2183,6 +2523,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** BackgroundJobResponse */
         BackgroundJobResponse: {
@@ -2193,7 +2537,7 @@ export interface components {
             /** Workflow Id */
             workflow_id: string;
             /** Created At */
-            created_at: string;
+            created_at?: string | null;
             /** Is Running */
             is_running: boolean;
             /** Is Completed */
@@ -2406,6 +2750,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown[][] | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
             /** Columns */
             columns?: components["schemas"]["ColumnDef"][] | null;
         };
@@ -2509,6 +2857,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** Edge */
         Edge: {
@@ -2676,6 +3028,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** FontRef */
         FontRef: {
@@ -2695,6 +3051,44 @@ export interface components {
         FontResponse: {
             /** Fonts */
             fonts: string[];
+        };
+        /**
+         * GitHubUserResponse
+         * @description Response for GitHub user endpoint.
+         */
+        GitHubUserResponse: {
+            /** Login */
+            login: string;
+            /** Id */
+            id: number;
+            /** Node Id */
+            node_id: string;
+            /** Avatar Url */
+            avatar_url?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Bio */
+            bio?: string | null;
+            /** Company */
+            company?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Blog */
+            blog?: string | null;
+            /** Public Repos */
+            public_repos?: number | null;
+            /** Public Gists */
+            public_gists?: number | null;
+            /** Followers */
+            followers?: number | null;
+            /** Following */
+            following?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
         };
         /** Graph */
         "Graph-Input": {
@@ -3877,6 +4271,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** IndexResponse */
         IndexResponse: {
@@ -4118,7 +4516,7 @@ export interface components {
             /** Workflow Id */
             workflow_id: string;
             /** Started At */
-            started_at: string;
+            started_at?: string | null;
             /** Finished At */
             finished_at?: string | null;
             /** Error */
@@ -4302,18 +4700,12 @@ export interface components {
             content?: string | {
                 [key: string]: unknown;
             } | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
-            /** Instructions */
-            instructions?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
-            /** Error Type */
-            error_type?: string | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Collections */
             collections?: string[] | null;
             /** Input Files */
             input_files?: components["schemas"]["MessageFile"][] | null;
-            /** Output Files */
-            output_files?: components["schemas"]["MessageFile"][] | null;
             /** Created At */
             created_at?: string | null;
             provider?: components["schemas"]["Provider"] | null;
@@ -4321,14 +4713,14 @@ export interface components {
             model?: string | null;
             /** Agent Mode */
             agent_mode?: boolean | null;
-            /** Workflow Assistant */
-            workflow_assistant?: boolean | null;
             /** Help Mode */
             help_mode?: boolean | null;
             /** Agent Execution Id */
             agent_execution_id?: string | null;
             /** Execution Event Type */
             execution_event_type?: string | null;
+            /** Workflow Target */
+            workflow_target?: string | null;
         };
         /** MessageAudioContent */
         MessageAudioContent: {
@@ -4448,6 +4840,26 @@ export interface components {
             video: components["schemas"]["VideoRef"];
         };
         /**
+         * ModelAggregateResponse
+         * @description Response model for model-level aggregation.
+         */
+        ModelAggregateResponse: {
+            /** Total Cost */
+            total_cost: number;
+            /** Total Input Tokens */
+            total_input_tokens: number;
+            /** Total Output Tokens */
+            total_output_tokens: number;
+            /** Total Tokens */
+            total_tokens: number;
+            /** Call Count */
+            call_count: number;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+        };
+        /**
          * ModelPack
          * @description A curated bundle of models that work together.
          *
@@ -4496,6 +4908,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** NPArray */
         NPArray: {
@@ -4987,6 +5403,52 @@ export interface components {
             completed_at?: string | null;
         };
         /**
+         * PredictionListResponse
+         * @description Response model for a list of predictions.
+         */
+        PredictionListResponse: {
+            /** Calls */
+            calls: components["schemas"]["PredictionResponse"][];
+            /** Next Start Key */
+            next_start_key?: string | null;
+        };
+        /**
+         * PredictionResponse
+         * @description Response model for a single prediction/cost record.
+         */
+        PredictionResponse: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /** Node Id */
+            node_id: string;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Workflow Id */
+            workflow_id?: string | null;
+            /** Cost */
+            cost?: number | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Total Tokens */
+            total_tokens?: number | null;
+            /** Cached Tokens */
+            cached_tokens?: number | null;
+            /** Reasoning Tokens */
+            reasoning_tokens?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
          * PreviewUpdate
          * @description A message representing a preview update from a node.
          */
@@ -5048,6 +5510,24 @@ export interface components {
          * @enum {string}
          */
         Provider: "aime" | "openai" | "openrouter" | "anthropic" | "minimax" | "replicate" | "ollama" | "lmstudio" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        /**
+         * ProviderAggregateResponse
+         * @description Response model for provider-level aggregation.
+         */
+        ProviderAggregateResponse: {
+            /** Total Cost */
+            total_cost: number;
+            /** Total Input Tokens */
+            total_input_tokens: number;
+            /** Total Output Tokens */
+            total_output_tokens: number;
+            /** Total Tokens */
+            total_tokens: number;
+            /** Call Count */
+            call_count: number;
+            /** Provider */
+            provider: string;
+        };
         /**
          * ProviderInfo
          * @description Information about a provider including its key and capabilities.
@@ -5557,6 +6037,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * Thread
@@ -5797,6 +6281,28 @@ export interface components {
             /** Trending Score */
             trending_score?: number | null;
         };
+        /**
+         * UserAggregateResponse
+         * @description Response model for user-level aggregation.
+         */
+        UserAggregateResponse: {
+            /** Total Cost */
+            total_cost: number;
+            /** Total Input Tokens */
+            total_input_tokens: number;
+            /** Total Output Tokens */
+            total_output_tokens: number;
+            /** Total Tokens */
+            total_tokens: number;
+            /** Call Count */
+            call_count: number;
+            /** User Id */
+            user_id: string;
+            /** Provider */
+            provider?: string | null;
+            /** Model */
+            model?: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -5851,6 +6357,10 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
             /** Duration */
             duration?: number | null;
             /** Format */
@@ -6445,6 +6955,152 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_provider_calls_api_costs__get: {
+        parameters: {
+            query?: {
+                /** @description Filter by provider */
+                provider?: string | null;
+                /** @description Filter by model */
+                model?: string | null;
+                /** @description Maximum number of records to return */
+                limit?: number;
+                /** @description Pagination start key */
+                start_key?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PredictionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    aggregate_costs_api_costs_aggregate_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by provider */
+                provider?: string | null;
+                /** @description Filter by model */
+                model?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAggregateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    aggregate_costs_by_provider_api_costs_aggregate_by_provider_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderAggregateResponse"][];
+                };
+            };
+        };
+    };
+    aggregate_costs_by_model_api_costs_aggregate_by_model_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by provider */
+                provider?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelAggregateResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cost_summary_api_costs_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -7232,6 +7888,26 @@ export interface operations {
             };
         };
     };
+    get_all_tts_models_endpoint_api_models_tts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSModel"][];
+                };
+            };
+        };
+    };
     get_tts_models_endpoint_api_models_tts__provider__get: {
         parameters: {
             query?: never;
@@ -7671,7 +8347,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string;
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -7756,6 +8432,116 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OAuthWhoamiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_github_oauth_api_oauth_github_start_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthStartResponse"];
+                };
+            };
+        };
+    };
+    github_oauth_callback_api_oauth_github_callback_get: {
+        parameters: {
+            query?: {
+                /** @description Authorization code from GitHub */
+                code?: string | null;
+                /** @description State parameter to prevent CSRF */
+                state?: string | null;
+                /** @description Error from OAuth provider */
+                error?: string | null;
+                /** @description Error description */
+                error_description?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_github_tokens_api_oauth_github_tokens_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthTokensResponse"];
+                };
+            };
+        };
+    };
+    get_github_user_api_oauth_github_user_get: {
+        parameters: {
+            query: {
+                /** @description Account ID to get information for */
+                account_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitHubUserResponse"];
                 };
             };
             /** @description Validation Error */
