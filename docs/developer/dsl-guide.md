@@ -75,7 +75,7 @@ All DSL workflows follow a standard 4-step pattern:
 ```python
 from nodetool.dsl.graph import graph_result
 from nodetool.dsl.nodetool.input import StringInput
-from nodetool.dsl.nodetool.output import StringOutput
+from nodetool.dsl.nodetool.output import Output
 from nodetool.dsl.nodetool.agents import Agent
 
 async def simple_workflow():
@@ -86,7 +86,7 @@ async def simple_workflow():
     agent = Agent(prompt=question.output, model=...)
 
     # 3. Output
-    output = StringOutput(value=agent.out.text)
+    output = Output(value=agent.out.text)
 
     # 4. Execute
     return await graph_result(output)
@@ -109,10 +109,7 @@ Input nodes are the starting points of your graph. They provide data to the work
 
 Output nodes capture the final results. You must connect the end of your processing chain to an output node to receive data back.
 
-- **`StringOutput`**: Returns text.
-- **`ImageOutput`**: Returns image data or paths.
-- **`AudioOutput`**: Returns audio data or paths.
-- **`DataframeOutput`**: Returns tabular data.
+- **`Output`**: Generic output node that handles all data types (text, images, audio, etc.)
 
 ---
 
@@ -217,7 +214,7 @@ You will receive various message objects during execution:
 ```python
 # Good naming example
 input_node = StringInput(name="user_query", value="...")
-output_node = StringOutput(name="search_results", value=...)
+output_node = Output(name="search_results", value=...)
 result = await graph_result(output_node)
 # result["search_results"] will contain the data
 ```

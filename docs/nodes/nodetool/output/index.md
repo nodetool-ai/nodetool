@@ -4,49 +4,26 @@ title: "nodetool.output Nodes"
 ---
 
 
-This namespace contains 14 node(s).
+This namespace contains the Output node for returning results from workflows.
 
 ## Available Nodes
 
-- **[Array Output](arrayoutput.md)** - Output node for generic array data, typically numerical ('NPArray').
-    array, numerical, list, ...
-- **[Audio Output](audiooutput.md)** - Output node for audio content references ('AudioRef').
-    audio, sound, media, voice, speech, as...
-- **[Boolean Output](booleanoutput.md)** - Output node for a single boolean value.
-    boolean, true, false, flag, condition, flow-control, ...
-- **[Dataframe Output](dataframeoutput.md)** - Output node for structured data references, typically tabular ('DataframeRef').
-    dataframe, ta...
-- **[Dictionary Output](dictionaryoutput.md)** - Output node for key-value pair data (dictionary).
-    dictionary, key-value, mapping, object, jso...
-- **[Document Output](documentoutput.md)** - Output node for document content references ('DocumentRef').
-    document, file, pdf, text_file, ...
-- **[File Path Output](filepathoutput.md)** - Output node for a file path.
-    file, path, file_path
-- **[Float Output](floatoutput.md)** - Output node for a single float value.
-    float, decimal, number
+- **[Output](output.md)** - Generic output node that handles all data types (text, images, audio, video, etc.).
+    output, result, return, workflow, any, generic
 
-    Use cases:
-    - Returning ...
-- **[Folder Path Output](folderpathoutput.md)** - Output node for a folder path.
-    folder, path, folder_path
-- **[Image Output](imageoutput.md)** - Output node for a single image reference ('ImageRef').
-    image, picture, visual, asset, referen...
-- **[Integer Output](integeroutput.md)** - Output node for a single integer value.
-    integer, number, count
+## Usage
 
-    Use cases:
-    - Returnin...
-- **[List Output](listoutput.md)** - Output node for a list of arbitrary values.
-    list, output, any
+The `Output` node is a unified output node that automatically adapts to the type of data connected to it. Simply connect any node's output to the Output node's input, and it will handle the data appropriately.
 
-    Use cases:
-    - Returning...
-- **[String Output](stringoutput.md)** - Output node for a string value.
-    string, text, output, label, name
+### Example
 
-    Use cases:
-    - Retur...
-- **[Video Output](videooutput.md)** - Output node for video content references ('VideoRef').
-    video, media, clip, asset, reference
+```
+ImageInput → ImageProcessing → Output
+```
 
-...
+The Output node replaces the previous type-specific output nodes (StringOutput, ImageOutput, etc.) with a single, flexible node that works with all data types.
+
+## Related Namespaces
+
+- [nodetool.input](../input/) - Input nodes for accepting workflow parameters
+- [nodetool.constant](../constant/) - Constant value nodes

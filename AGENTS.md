@@ -1126,7 +1126,7 @@ Behavior:
 
 - Node types:
   - Backend metadata defines node types (logically in Python). On the frontend, `loadMetadata` registers all `node_type → BaseNode` mappings
-  - `NodeTypeMapping.ts` maps MIME types and internal type names (e.g., `text`, `image`, `audio`) to input/output node classes (e.g., `nodetool.input.ImageInput`, `nodetool.output.TextOutput`) and constants
+  - `NodeTypeMapping.ts` maps MIME types and internal type names (e.g., `text`, `image`, `audio`) to input/output node classes (e.g., `nodetool.input.ImageInput`, `nodetool.output.Output`) and constants
 
 ### Global Chat & Agent Tools
 
