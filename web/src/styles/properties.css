@@ -1031,3 +1031,16 @@
   border: 1px solid var(--palette-grey-500);
   border-radius: 4px;
 }
+
+/* NEW: Semantic .changed class styles for migrated components */
+/* These styles apply directly to components with the .changed class */
+
+/* Number input with changed class */
+.number-input.changed .value {
+  color: var(--palette-primary-main);
+}
+
+/* Select with changed class */
+.select-container .select-header.changed {
+  border-right: 2px solid var(--palette-primary-main);
+}

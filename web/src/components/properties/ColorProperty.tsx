@@ -12,7 +12,8 @@ const ColorProperty: React.FC<PropertyProps> = ({
   property,
   value,
   propertyIndex,
-  onChange
+  onChange,
+  changed
 }) => {
   const theme = useTheme();
   const handleColorChange = useCallback(
@@ -25,7 +26,7 @@ const ColorProperty: React.FC<PropertyProps> = ({
   const color = value?.value;
 
   return (
-    <div className="property-wrapper">
+    <div className={`property-wrapper ${changed ? "changed" : ""}`}>
       <PropertyLabel
         name={property.name}
         description={property.description}

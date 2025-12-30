@@ -86,6 +86,7 @@ export const NodeSelect = forwardRef<HTMLDivElement, NodeSelectProps>(
 
 NodeSelect.displayName = "NodeSelect";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface NodeMenuItemProps extends MenuItemProps {}
 
 /**

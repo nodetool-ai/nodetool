@@ -28,6 +28,8 @@ interface SelectProps {
   label?: string;
   tabIndex?: number;
   fuseOptions?: IFuseOptions<Option>;
+  /** Value differs from default — shows visual indicator */
+  changed?: boolean;
 }
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -56,7 +58,8 @@ const Select: React.FC<SelectProps> = ({
   placeholder,
   label,
   tabIndex,
-  fuseOptions
+  fuseOptions,
+  changed
 }) => {
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
@@ -204,13 +207,13 @@ const Select: React.FC<SelectProps> = ({
           ref={selectRef}
           className={`custom-select select-wrapper ${
             activeSelect === id ? "open" : ""
-          }`}
+          } ${changed ? "changed" : ""}`}
           tabIndex={-1}
           onKeyDown={handleKeyDown}
         >
           {activeSelect !== id && (
             <div
-              className="select-header"
+              className={`select-header ${changed ? "changed" : ""}`}
               onClick={toggleDropdown}
               tabIndex={tabIndex}
               role="button"

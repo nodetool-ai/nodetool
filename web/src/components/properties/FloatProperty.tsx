@@ -32,6 +32,7 @@ const FloatProperty = (props: PropertyProps) => {
         tabIndex={props.tabIndex}
         zoomAffectsDragging={true}
         onChange={(_, value) => props.onChange(Number(value))}
+        changed={props.changed}
       />
     </>
   );

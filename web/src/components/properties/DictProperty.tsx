@@ -69,6 +69,7 @@ const DictProperty = (props: PropertyProps) => {
           options={options}
           label="Data Type"
           placeholder="Select type..."
+          changed={props.changed}
         />
       </div>
       <DictTable

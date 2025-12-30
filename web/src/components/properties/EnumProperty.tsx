@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useCallback } from "react";
+import React, { memo, useMemo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
@@ -9,7 +9,8 @@ const EnumProperty: React.FC<PropertyProps> = ({
   propertyIndex,
   value,
   onChange,
-  tabIndex
+  tabIndex,
+  changed
 }) => {
   const id = useMemo(
     () => `enum-${property.name}-${propertyIndex}`,
@@ -41,6 +42,7 @@ const EnumProperty: React.FC<PropertyProps> = ({
         label={property.name}
         placeholder={property.name}
         tabIndex={tabIndex}
+        changed={changed}
       />
     </div>
   );

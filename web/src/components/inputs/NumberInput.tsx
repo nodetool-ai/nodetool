@@ -36,6 +36,8 @@ export interface InputProps {
   tabIndex?: number;
   zoomAffectsDragging?: boolean;
   showSlider?: boolean;
+  /** Value differs from default — shows visual indicator */
+  changed?: boolean;
 }
 
 export interface NumberInputState {
@@ -290,7 +292,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       ref={containerRef}
       className={`number-input ${props.inputType} ${
         inputIsFocused ? "focused" : ""
-      }`}
+      } ${props.changed ? "changed" : ""}`}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
       onBlur={handleContainerBlur}

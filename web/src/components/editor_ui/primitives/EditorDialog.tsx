@@ -2,6 +2,7 @@ import React from "react";
 import { Dialog, DialogProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface EditorDialogProps extends DialogProps {}
 
 /**

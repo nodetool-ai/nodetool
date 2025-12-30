@@ -3,10 +3,11 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import isEqual from "lodash/isEqual";
-import { TextField, IconButton, Tooltip } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { NodeTextField } from "../editor_ui";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -38,7 +39,8 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isDynamicProperty
+  isDynamicProperty,
+  changed
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -101,18 +103,8 @@ const StringProperty = ({
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <TextField
-              className={`string-value-input nodrag ${
-                isFocused ? "nowheel" : ""
-              }`}
-              slotProps={{
-                input: {
-                  className: "nodrag"
-                },
-                htmlInput: {
-                  className: "nodrag"
-                }
-              }}
+            <NodeTextField
+              className={`string-value-input ${isFocused ? "nowheel" : ""}`}
               value={value || ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 onChange(e.target.value)
@@ -131,17 +123,14 @@ const StringProperty = ({
                 e.stopPropagation();
               }}
               tabIndex={tabIndex}
-              autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
-              spellCheck="false"
+              spellCheck={false}
               multiline
               minRows={1}
               maxRows={isConstant ? 20 : 2}
-              fullWidth
-              size="small"
-              variant="outlined"
               autoFocus={false}
+              changed={changed}
             />
           </div>
         </div>
