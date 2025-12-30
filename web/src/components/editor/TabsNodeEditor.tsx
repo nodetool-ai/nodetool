@@ -17,9 +17,9 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import FloatingToolBar from "../panels/FloatingToolBar";
-import { getIsElectronDetails } from "../../utils/browser";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+// import { getIsElectronDetails } from "../../utils/browser";
 
 const styles = (theme: Theme) =>
   css({
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       position: "relative",
       padding: "4px 0px 0px 10px",
-      width: "100%",
+      width: "calc(100% - 50px)", // -50px to account for the run as app button
       WebkitAppRegion: "drag",
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
@@ -272,11 +272,11 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       : undefined
   );
 
-  const electronDetectionDetails = getIsElectronDetails();
-  const isElectron = electronDetectionDetails.isElectron;
-  const platform = window.navigator.platform;
-  const normalizedPlatform = platform.toLowerCase();
-  const isMac = normalizedPlatform.includes("mac");
+  // const electronDetectionDetails = getIsElectronDetails();
+  // const isElectron = electronDetectionDetails.isElectron;
+  // const isMac = normalizedPlatform.includes("mac");
+  // const platform = window.navigator.platform;
+  // const normalizedPlatform = platform.toLowerCase();
 
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
@@ -297,11 +297,15 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const hasHydratedRef = useRef(false);
   useEffect(() => {
     const isHydrating = openWorkflows.length === 0 && !currentWorkflowId;
-    if (!hasHydratedRef.current && isHydrating) {return;}
+    if (!hasHydratedRef.current && isHydrating) {
+      return;
+    }
 
     const ids = new Set<string>();
     openWorkflows.forEach((w) => ids.add(w.id));
-    if (currentWorkflowId) {ids.add(currentWorkflowId);}
+    if (currentWorkflowId) {
+      ids.add(currentWorkflowId);
+    }
     setStorageOpenIds(Array.from(ids));
 
     if (!hasHydratedRef.current && !isHydrating) {
@@ -313,7 +317,9 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     const ids = new Set<string>();
     storageOpenIds.forEach((id) => ids.add(id));
     openWorkflows.forEach((w) => ids.add(w.id));
-    if (currentWorkflowId) {ids.add(currentWorkflowId);}
+    if (currentWorkflowId) {
+      ids.add(currentWorkflowId);
+    }
     return Array.from(ids);
   }, [storageOpenIds, openWorkflows, currentWorkflowId]);
 
@@ -348,7 +354,9 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const tabsToRender = useMemo(() => {
     return idsForTabs.map((id, index) => {
       const loaded = openMap.get(id);
-      if (loaded) {return loaded;}
+      if (loaded) {
+        return loaded;
+      }
       const res = queryResults[index];
       if (res && res.data) {
         const { graph, ...attrs } = res.data as any;
@@ -384,10 +392,10 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
           height: hideContent ? "100%" : "calc(100% - 40px)"
         }}
       >
-          <TabsBar
-            workflows={tabsToRender}
-            currentWorkflowId={currentWorkflowId!}
-          />
+        <TabsBar
+          workflows={tabsToRender}
+          currentWorkflowId={currentWorkflowId!}
+        />
         {!hideContent && (
           <div
             className="editor-container"

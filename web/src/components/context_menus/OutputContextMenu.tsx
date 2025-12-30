@@ -95,7 +95,9 @@ const OutputContextMenu: React.FC = () => {
       log.info(`Fetching metadata for node type: ${nodeType}`);
       const datatypeLabel = labelForType(nodeType || "").replaceAll(" ", "");
       const adjustedLabel = datatypeLabel === "String" ? "Text" : datatypeLabel;
-      const outputNodePath = `nodetool.output.${datatypeLabel}Output`;
+      
+      // Use the generic Output node that handles all types
+      const outputNodePath = "nodetool.output.Output";
       const outputMetadata = getMetadata(outputNodePath);
       setOutputNodeMetadata(outputMetadata);
 

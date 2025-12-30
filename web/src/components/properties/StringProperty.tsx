@@ -157,7 +157,8 @@ const StringProperty = ({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 onChange(e.target.value)
               }
-              onFocus={() => {
+              onFocus={(e) => {
+                e.preventDefault();
                 setIsFocused(true);
               }}
               onBlur={() => {

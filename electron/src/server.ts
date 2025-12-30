@@ -18,7 +18,7 @@ import { getServerUrl, getServerPort } from "./utils";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
-import { updateTrayMenu } from "./tray";
+import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
@@ -56,6 +56,72 @@ async function isPortAvailable(port: number): Promise<boolean> {
       })
       .once("error", () => resolve(false));
   });
+}
+
+/**
+ * Checks if a process with the given PID is running
+ * @param pid - Process ID to check
+ * @returns True if the process is running, false otherwise
+ */
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ESRCH") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Checks if there's an existing NodeTool server process from a PID file
+ * @returns Promise resolving to the PID if a running server is found, null otherwise
+ */
+async function findExistingServerPid(): Promise<number | null> {
+  try {
+    const pidContent = await fs.readFile(PID_FILE_PATH, "utf8");
+    const pid = parseInt(pidContent.trim(), 10);
+    
+    if (!pid || isNaN(pid)) {
+      return null;
+    }
+    
+    if (isProcessRunning(pid)) {
+      logMessage(`Found existing NodeTool server process with PID ${pid}`);
+      return pid;
+    }
+    
+    logMessage(`PID file exists but process ${pid} is not running, will clean up`);
+    return null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      logMessage("No PID file found, no existing server process");
+      return null;
+    }
+    logMessage(`Error reading PID file: ${(error as Error).message}`, "warn");
+    return null;
+  }
+}
+
+/**
+ * Prompts the user about an existing server and gets their choice
+ * @param pid - Process ID of the existing server
+ * @returns Promise resolving to true if user wants to kill the server, false otherwise
+ */
+async function promptUserAboutExistingServer(pid: number): Promise<boolean> {
+  const result = await dialog.showMessageBox({
+    type: "question",
+    title: "NodeTool Server Already Running",
+    message: "A NodeTool server is already running.",
+    detail: `An existing NodeTool server process (PID ${pid}) was detected. Would you like to stop it and start a new server, or connect to the existing server?`,
+    buttons: ["Stop and Start New", "Use Existing Server"],
+    defaultId: 0,
+    cancelId: 1,
+  });
+
+  return result.response === 0;
 }
 
 /**
@@ -181,6 +247,7 @@ async function startOllamaServer(): Promise<void> {
     pidFilePath: OLLAMA_PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/api/tags`, // Ollama health endpoint
     onOutput: (line) => emitServerLog(line),
+    logOutput: false,
   });
 
   try {
@@ -264,6 +331,7 @@ async function startLlamaServer(): Promise<void> {
     pidFilePath: LLAMA_PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/health`,
     onOutput: (line) => emitServerLog(line),
+    logOutput: false,
   });
 
   try {
@@ -466,6 +534,7 @@ async function startServer(): Promise<void> {
     pidFilePath: PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/health`,
     onOutput: (line) => handleServerOutput(Buffer.from(line)),
+    logOutput: false,
   });
 
   try {
@@ -492,9 +561,9 @@ async function startServer(): Promise<void> {
  */
 function handleServerOutput(data: Buffer): void {
   const output = data.toString().trim();
-  if (output) {
-    logMessage(output);
-  }
+  // if (output) {
+  //   logMessage(output);
+  // }
 
   if (output.includes("Address already in use")) {
     const message =
@@ -511,7 +580,7 @@ function handleServerOutput(data: Buffer): void {
     logMessage("Server startup complete");
     emitBootMessage("Loading application...");
     emitServerStarted();
-    updateTrayMenu();
+    emitServerStateChanged();
   }
   emitServerLog(output);
 }
@@ -521,7 +590,24 @@ function handleServerOutput(data: Buffer): void {
  * @returns Promise resolving to true if server is running, false otherwise
  */
 async function isServerRunning(): Promise<boolean> {
-  return backendWatchdog !== null;
+  // Quick check: if we have a watchdog, server is likely running
+  // But we should verify with a health check to be sure
+  const port = serverState.serverPort;
+  if (!port) {
+    return false;
+  }
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
+    const response = await fetch(`http://127.0.0.1:${port}/health`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -549,49 +635,129 @@ async function initializeBackendServer(): Promise<void> {
   try {
     serverState.status = "starting";
     serverState.error = undefined;
-    // Quick check: if PID file exists, server might be running - do a fast health check
-    let pidFileExists = false;
-    try {
-      await fs.access(PID_FILE_PATH);
-      pidFileExists = true;
-    } catch {
-      // PID file doesn't exist, server definitely not running - skip HTTP check
-    }
-
-    if (pidFileExists) {
-      // PID file exists, do a quick health check (500ms timeout for fast failure)
+    
+    // Check if there's an existing NodeTool server process from PID file
+    const existingPid = await findExistingServerPid();
+    
+    if (existingPid) {
+      // Server process is running, check if it's responsive
+      logMessage(`Checking if server PID ${existingPid} is responsive...`);
+      
+      // Try to connect to the default port to verify it's actually running
+      const defaultPort = 7777;
       try {
-        logMessage(`PID file found, checking if server is healthy on port ${getServerPort()}...`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms timeout for fast startup
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const response = await fetch(`http://127.0.0.1:${defaultPort}/health`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
         
-        try {
-          const response = await fetch(
-            getServerUrl("/health"),
-            { signal: controller.signal }
-          );
-          clearTimeout(timeoutId);
-          if (response.ok) {
-            logMessage("Server already running and healthy, connecting...");
+        if (response.ok) {
+          logMessage(`Existing server is responsive on port ${defaultPort}`);
+          
+          // Prompt the user
+          const shouldKillExisting = await promptUserAboutExistingServer(existingPid);
+          
+          if (shouldKillExisting) {
+            // User wants to kill the existing server
+            logMessage("User chose to stop existing server");
+            
+            try {
+              logMessage(`Killing process ${existingPid}`);
+              process.kill(existingPid);
+              
+              // Wait for the process to die
+              await new Promise<void>((resolve) => {
+                const checkInterval = setInterval(() => {
+                  try {
+                    process.kill(existingPid, 0);
+                  } catch (e) {
+                    if ((e as NodeJS.ErrnoException).code === "ESRCH") {
+                      clearInterval(checkInterval);
+                      resolve();
+                    }
+                  }
+                }, 100);
+                
+                setTimeout(() => {
+                  clearInterval(checkInterval);
+                  resolve();
+                }, 3000);
+              });
+              
+              logMessage(`Successfully killed process ${existingPid}`);
+              
+              // Clean up the PID file
+              try {
+                await fs.unlink(PID_FILE_PATH);
+                logMessage("Removed stale PID file");
+              } catch (error) {
+                logMessage(`Failed to remove PID file: ${(error as Error).message}`, "warn");
+              }
+              
+              // Small delay to ensure port is released
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            } catch (error) {
+              logMessage(
+                `Failed to kill process ${existingPid}: ${(error as Error).message}`,
+                "error"
+              );
+            }
+          } else {
+            // User wants to use the existing server
+            logMessage("User chose to use existing server");
+            serverState.serverPort = defaultPort;
+            serverState.initialURL = `http://127.0.0.1:${defaultPort}`;
             emitServerStarted();
-            await updateTrayMenu();
+            emitServerStateChanged();
             return;
           }
-        } catch (fetchError: any) {
-          clearTimeout(timeoutId);
-          if (fetchError.name === 'AbortError') {
-            logMessage("Health check timed out (server may have crashed), proceeding with server startup");
-          } else {
-            logMessage(`Health check failed: ${fetchError.message}, proceeding with server startup`);
-          }
         }
-      } catch (error) {
-        logMessage("Health check failed, proceeding with server startup");
+      } catch (fetchError) {
+        logMessage(`Existing server process exists but is not responsive, will start new server`);
+        // Server process exists but is not responsive, we can kill it and start fresh
+        try {
+          logMessage(`Killing unresponsive process ${existingPid}`);
+          process.kill(existingPid);
+          
+          // Wait for the process to die
+          await new Promise<void>((resolve) => {
+            const checkInterval = setInterval(() => {
+              try {
+                process.kill(existingPid, 0);
+              } catch (e) {
+                if ((e as NodeJS.ErrnoException).code === "ESRCH") {
+                  clearInterval(checkInterval);
+                  resolve();
+                }
+              }
+            }, 100);
+            
+            setTimeout(() => {
+              clearInterval(checkInterval);
+              resolve();
+            }, 3000);
+          });
+          
+          // Clean up the PID file
+          try {
+            await fs.unlink(PID_FILE_PATH);
+            logMessage("Removed stale PID file");
+          } catch (error) {
+            logMessage(`Failed to remove PID file: ${(error as Error).message}`, "warn");
+          }
+          
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          logMessage(
+            `Failed to kill unresponsive process ${existingPid}: ${(error as Error).message}`,
+            "warn"
+          );
+        }
       }
-    } else {
-      logMessage("No PID file found, server not running - skipping health check");
     }
-
+    
     // Check if watchdog thinks server is running
     if (await isServerRunning()) {
       logMessage("Watchdog indicates server is running, waiting for health check...");
@@ -689,6 +855,7 @@ async function stopServer(): Promise<void> {
 
   serverState.isStarted = false;
   serverState.status = "idle";
+  emitServerStateChanged();
   logMessage("Graceful shutdown complete");
 }
 

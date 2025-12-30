@@ -138,6 +138,20 @@ declare global {
         setCloseBehavior: (action: "ask" | "quit" | "background") => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
       };
+
+      // Debug module - Debug bundle export
+      debug?: {
+        exportBundle: (request: {
+          workflow_id?: string;
+          graph?: Record<string, unknown>;
+          errors?: string[];
+          preferred_save?: "desktop" | "downloads";
+        }) => Promise<{
+          file_path: string;
+          filename: string;
+          message: string;
+        }>;
+      };
     };
     process: {
       type: string;

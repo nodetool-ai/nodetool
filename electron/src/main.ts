@@ -41,7 +41,7 @@ import { initializeBackendServer, stopServer, serverState } from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
 import { installCondaEnvironment } from "./installer";
 import { emitBootMessage, emitShowPackageManager } from "./events";
-import { createTray } from "./tray";
+import { createTray, cleanupTrayEvents } from "./tray";
 import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
@@ -411,6 +411,7 @@ process.on(
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
+  cleanupTrayEvents();
   closeLogStream();
 });
 

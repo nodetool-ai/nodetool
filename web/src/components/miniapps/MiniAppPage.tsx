@@ -4,7 +4,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  Button,
   CircularProgress,
   LinearProgress,
   Typography,
@@ -26,13 +25,15 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
+import ThemeToggle from "../ui/ThemeToggle";
+import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
 
 const MiniAppPage: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const { workflowId } = useParams<{ workflowId?: string }>();
   const navigate = useNavigate();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
     fetchWorkflow: state.fetchWorkflow
@@ -157,8 +158,8 @@ const MiniAppPage: React.FC = () => {
     }
   }, [navigate, workflow?.id]);
 
-  const notificationsCount = notifications?.length ?? 0;
-  const showAlerts = submitError || notificationsCount > 0;
+  // const notificationsCount = notifications?.length ?? 0;
+  // const showAlerts = submitError || notificationsCount > 0;
 
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
@@ -188,16 +189,21 @@ const MiniAppPage: React.FC = () => {
                 size="medium"
                 onClick={handleOpenInEditor}
                 sx={{
-                  position: "absolute",
-                  top: 88,
-                  right: 50,
+                  position: "fixed",
+                  top: 40,
+                  right: 0,
                   zIndex: 100,
+                  borderRadius: "0 0 0 .4em",
+                  width: "48px",
+                  height: "37px",
                   backgroundColor: "info.main",
                   color: "info.contrastText",
-                  boxShadow: "0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)",
+                  // boxShadow:
+                  //   "0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)",
                   "&:hover": {
                     backgroundColor: "info.dark",
-                    boxShadow: "0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)",
+                    boxShadow:
+                      "0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)",
                     transform: "scale(1.05)"
                   },
                   transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
@@ -206,10 +212,22 @@ const MiniAppPage: React.FC = () => {
                 <EditIcon />
               </Fab>
             </Tooltip>
-            <Box mb={2}>
+            <Box
+              mb={2}
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
               <Typography variant="h5" fontWeight="500">
                 {workflow?.name}
               </Typography>
+              <Box display="flex" alignItems="center" gap={2}>
+                <MiniWorkflowGraph
+                  workflow={workflow}
+                  isRunning={runnerState === "running"}
+                />
+                <ThemeToggle />
+              </Box>
             </Box>
             <div className="content-grid">
               <MiniAppInputsForm
@@ -221,7 +239,13 @@ const MiniAppPage: React.FC = () => {
                 onSubmit={handleSubmit}
                 onError={setSubmitError}
               />
-              <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
+              <Box
+                display="flex"
+                flexDirection="column"
+                gap={1}
+                flex={1}
+                minHeight={0}
+              >
                 {statusMessage && (
                   <Typography
                     variant="body2"
@@ -277,9 +301,7 @@ const MiniAppPage: React.FC = () => {
                   <MiniAppResults
                     results={results}
                     onClear={
-                      workflow?.id
-                        ? () => clearResults(workflow.id)
-                        : undefined
+                      workflow?.id ? () => clearResults(workflow.id) : undefined
                     }
                   />
                 </Box>

@@ -19,7 +19,11 @@ describe('BoolProperty', () => {
   const mockOnChange = jest.fn();
   
   const mockDefinition = {
+    nodeId: 'test-node',
+    nodeType: 'nodetool.input.BooleanInput',
+    kind: 'boolean' as const,
     data: {
+      name: 'testBoolean',
       label: 'Test Boolean',
       description: 'This is a test boolean property',
     },
@@ -55,7 +59,11 @@ describe('BoolProperty', () => {
 
   it('renders without description when not provided', () => {
     const definitionWithoutDesc = {
+      nodeId: 'test-node',
+      nodeType: 'nodetool.input.BooleanInput',
+      kind: 'boolean' as const,
       data: {
+        name: 'testBoolean',
         label: 'Test Boolean',
       },
     };
@@ -80,7 +88,7 @@ describe('BoolProperty', () => {
       />
     );
 
-    const switchComponent = UNSAFE_getByType('RCTSwitch');
+    const switchComponent = UNSAFE_getByType('RCTSwitch' as any);
     expect(switchComponent.props.value).toBe(false);
   });
 
@@ -93,7 +101,7 @@ describe('BoolProperty', () => {
       />
     );
 
-    const switchComponent = UNSAFE_getByType('RCTSwitch');
+    const switchComponent = UNSAFE_getByType('RCTSwitch' as any);
     expect(switchComponent.props.value).toBe(true);
   });
 
@@ -106,7 +114,7 @@ describe('BoolProperty', () => {
       />
     );
 
-    const switchComponent = UNSAFE_getByType('RCTSwitch');
+    const switchComponent = UNSAFE_getByType('RCTSwitch' as any);
     expect(switchComponent.props.value).toBe(false);
   });
 
@@ -119,7 +127,7 @@ describe('BoolProperty', () => {
       />
     );
 
-    const switchComponent = UNSAFE_getByType('RCTSwitch');
+    const switchComponent = UNSAFE_getByType('RCTSwitch' as any);
     fireEvent(switchComponent, 'onValueChange', true);
 
     expect(mockOnChange).toHaveBeenCalledWith(true);
@@ -134,7 +142,7 @@ describe('BoolProperty', () => {
       />
     );
 
-    const switchComponent = UNSAFE_getByType('RCTSwitch');
+    const switchComponent = UNSAFE_getByType('RCTSwitch' as any);
     fireEvent(switchComponent, 'onValueChange', false);
 
     expect(mockOnChange).toHaveBeenCalledWith(false);

@@ -13,9 +13,7 @@ import {
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
-import { memo, useCallback, useContext } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
-import type { XYPosition, Node as ReactFlowNode } from "@xyflow/react";
+import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
@@ -28,31 +26,41 @@ import ThreadList from "../chat/thread/ThreadList";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
-import { NodeContext } from "../../contexts/NodeContext";
-import useMetadataStore from "../../stores/MetadataStore";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
 import FolderIcon from "@mui/icons-material/Folder";
-// import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import QuickActions, { QuickActionDefinition } from "./QuickActions";
-import useNodePlacementStore from "../../stores/NodePlacementStore";
-import { useNotificationStore } from "../../stores/NotificationStore";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
-import { List, ListItem, ListItemText, ListItemIcon, CircularProgress } from "@mui/material";
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import {
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  CircularProgress
+} from "@mui/material";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
+const HEADER_HEIGHT = 77;
+const HEADER_HEIGHT_MOBILE = 56;
 
-const styles = (theme: Theme) =>
-  css({
+const styles = (
+  theme: Theme,
+  hasHeader: boolean = true,
+  isMobile: boolean = false
+) => {
+  const headerHeight = hasHeader
+    ? isMobile
+      ? HEADER_HEIGHT_MOBILE
+      : HEADER_HEIGHT
+    : 0;
+  return css({
     position: "absolute",
     left: "0",
     ".panel-container": {
@@ -67,12 +75,11 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "80px",
-      height: "calc(100vh - 80px)",
+      top: `${headerHeight}px`,
+      height: `calc(100vh - ${headerHeight}px)`,
       backgroundColor: theme.vars.palette.background.paper,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      borderTop: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: `0 8px 24px ${theme.vars.palette.action.selected}, 0 2px 8px ${theme.vars.palette.action.hover}`
+      borderTop: `1px solid ${theme.vars.palette.divider}`
     },
     ".panel-button": {
       position: "absolute",
@@ -80,11 +87,11 @@ const styles = (theme: Theme) =>
       left: "unset",
       right: "unset",
       width: "36px",
-      height: "calc(100vh - 83px)",
+      height: `calc(100vh - ${headerHeight}px)`,
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: "80px",
+      top: `${headerHeight}px`,
       cursor: "e-resize",
       transition: "background-color 0.3s ease",
       "&::before": {
@@ -202,14 +209,16 @@ const styles = (theme: Theme) =>
       borderRadius: "20px",
       backgroundColor: "rgba(255, 255, 255, 0.4)",
       border: "1px solid rgba(0, 0, 0, 0.05)",
-      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.5)",
+      boxShadow:
+        "0 4px 16px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.5)",
       backdropFilter: "blur(16px)",
       WebkitBackdropFilter: "blur(16px)",
 
       "[data-mui-color-scheme='dark'] &": {
         backgroundColor: "rgba(10, 12, 18, 0.3)",
         border: "1px solid rgba(255, 255, 255, 0.06)",
-        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.03)"
+        boxShadow:
+          "0 8px 32px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.03)"
       }
     },
     ".quick-actions-group .quick-add-button": {
@@ -337,25 +346,32 @@ const styles = (theme: Theme) =>
       border: "0"
     }
   });
+};
 
 const RunningJobsList = () => {
   const { data: jobs, isLoading, error } = useRunningJobs();
 
-  if (isLoading) {return <div style={{ padding: "1em" }}>Loading...</div>;}
-  if (error) {return <div style={{ padding: "1em" }}>Error loading jobs</div>;}
-  if (!jobs?.length) {return <div style={{ padding: "1em" }}>No running jobs</div>;}
+  if (isLoading) {
+    return <div style={{ padding: "1em" }}>Loading...</div>;
+  }
+  if (error) {
+    return <div style={{ padding: "1em" }}>Error loading jobs</div>;
+  }
+  if (!jobs?.length) {
+    return <div style={{ padding: "1em" }}>No running jobs</div>;
+  }
 
   return (
     <List>
       {jobs.map((job) => (
         <ListItem key={job.id}>
           <ListItemIcon>
-            {job.status === 'running' ? (
-               <CircularProgress size={24} />
-            ) : job.status === 'queued' ? (
-               <HourglassEmptyIcon />
+            {job.status === "running" ? (
+              <CircularProgress size={24} />
+            ) : job.status === "queued" ? (
+              <HourglassEmptyIcon />
             ) : (
-               <PlayArrowIcon />
+              <PlayArrowIcon />
             )}
           </ListItemIcon>
           <ListItemText
@@ -377,17 +393,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
 }) {
-  const theme = useTheme();
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
-  const nodeStoreFromContext = useContext(NodeContext);
-  const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const { currentWorkflowId, getNodeStore } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId,
-    getNodeStore: state.getNodeStore
-  }));
-  const nodeStore =
-    nodeStoreFromContext ??
-    (currentWorkflowId ? getNodeStore(currentWorkflowId) ?? null : null);
 
   return (
     <div className="vertical-toolbar">
@@ -532,7 +538,9 @@ const PanelContent = memo(function PanelContent({
   };
 
   const getThreadPreview = (threadId: string) => {
-    if (!threads) {return "Loading...";}
+    if (!threads) {
+      return "Loading...";
+    }
     const thread = threads[threadId];
     if (!thread) {
       return "Empty conversation";
@@ -672,6 +680,14 @@ const PanelContent = memo(function PanelContent({
 const PanelLeft: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const location = useLocation();
+
+  // Detect routes that don't have AppHeader (standalone modes)
+  const isStandaloneMode =
+    location.pathname.startsWith("/standalone-chat") ||
+    location.pathname.startsWith("/miniapp");
+  const hasHeader = !isStandaloneMode;
+
   const {
     ref: panelRef,
     size: panelSize,
@@ -698,9 +714,16 @@ const PanelLeft: React.FC = () => {
     [handlePanelToggle]
   );
 
+  // Calculate header height for inline styles
+  const headerHeight = hasHeader
+    ? isMobile
+      ? HEADER_HEIGHT_MOBILE
+      : HEADER_HEIGHT
+    : 0;
+
   return (
     <div
-      css={styles(theme)}
+      css={styles(theme, hasHeader, isMobile)}
       className={`panel-container ${isVisible ? "panel-visible" : ""}`}
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
@@ -717,9 +740,11 @@ const PanelLeft: React.FC = () => {
           style: {
             backdropFilter: isVisible ? "blur(12px)" : "none",
             backgroundColor: isVisible ? undefined : "transparent",
-            borderRight: isVisible ? undefined : "none",
-            borderTop: isVisible ? undefined : "none",
-            boxShadow: isVisible ? undefined : "none",
+            border: "none",
+            borderRight: isVisible
+              ? `1px solid ${theme.vars.palette.divider}`
+              : "none",
+            boxShadow: isVisible ? "0 2px 16px rgba(0, 0, 0, 0.1)" : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
             width: isVisible
@@ -732,7 +757,9 @@ const PanelLeft: React.FC = () => {
             minWidth: isVisible ? "300px" : PANEL_WIDTH_COLLAPSED,
             maxWidth: isMobile ? "75vw" : "none",
             // Match the panel height to avoid any gap beneath the drawer
-            height: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 80px)",
+            height: isMobile
+              ? `calc(100dvh - ${headerHeight}px)`
+              : `calc(100vh - ${headerHeight}px)`,
             contain: isMobile ? "layout style" : "none",
             boxSizing: "border-box",
             overflow: "hidden" // Prevent panel content from overflowing

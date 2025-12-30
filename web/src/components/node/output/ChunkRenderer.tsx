@@ -10,10 +10,9 @@ import StreamPcm16Player from "./StreamPcm16Player";
 
 type Props = {
   chunk: Chunk;
-  onCopy: (text: string) => void;
 };
 
-export const ChunkRenderer: React.FC<Props> = ({ chunk, onCopy }) => {
+export const ChunkRenderer: React.FC<Props> = ({ chunk }) => {
   const theme = useTheme();
 
   switch (chunk.content_type) {
@@ -50,7 +49,7 @@ export const ChunkRenderer: React.FC<Props> = ({ chunk, onCopy }) => {
         <div className="output value" css={outputStyles(theme)}>
           {text !== "" && (
             <>
-              <Actions onCopy={() => onCopy(text)} />
+              <Actions copyValue={text} />
               <MaybeMarkdown text={text} />
             </>
           )}

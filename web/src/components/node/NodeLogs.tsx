@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useRef, useEffect, useMemo, useCallback, useState } from "react";
+import { memo, useRef, useEffect, useCallback, useState } from "react";
 import {
   Typography,
   Tooltip,
@@ -19,7 +19,6 @@ import {
 import useLogsStore from "../../stores/LogStore";
 import isEqual from "lodash/isEqual";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CloseIcon from "@mui/icons-material/Close";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 
@@ -56,20 +55,22 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
 
   const count = logs?.length || 0;
 
-  const copyText = useMemo(
-    () =>
-      (logs || [])
-        .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
-        .join("\n"),
-    [logs]
-  );
-
   const onCopy = useCallback(() => {
-    if (!copyText) {return;}
-    navigator.clipboard?.writeText(copyText).catch((err) => {
+    // Avoid attempting to allocate extremely large clipboard strings.
+    const MAX_LINES = 2000;
+    const logsToCopy = (logs || []).slice(-MAX_LINES);
+
+    const text = logsToCopy
+      .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
+      .join("\n");
+
+    if (!text) {
+      return;
+    }
+    navigator.clipboard?.writeText(text).catch((err) => {
       console.warn("Failed to copy logs to clipboard:", err);
     });
-  }, [copyText]);
+  }, [logs]);
 
   useEffect(() => {
     if (logsRef.current) {
@@ -77,7 +78,9 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
     }
   }, [logs]);
 
-  if (count === 0) {return null;}
+  if (count === 0) {
+    return null;
+  }
 
   return (
     <div className="node-logs-container" css={styles(theme)}>

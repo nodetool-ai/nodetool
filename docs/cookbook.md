@@ -64,7 +64,7 @@ Input → Process → Transform → Output
 | **Input Nodes**      | Accept parameters | `StringInput`, `ImageInput`, `AudioInput` |
 | **Processing Nodes** | Transform data    | `Resize`, `Filter`, `ExtractText`         |
 | **Agent Nodes**      | LLM-powered logic | `Agent`, `Summarizer`, `ListGenerator`    |
-| **Output Nodes**     | Return results    | `ImageOutput`, `StringOutput`, `Preview`  |
+| **Output Nodes**     | Return results    | `Output`, `Preview`                       |
 | **Control Nodes**    | Flow control      | `Collect`, `FormatText`                   |
 | **Storage Nodes**    | Persistence       | `CreateTable`, `Insert`, `Query`          |
 
@@ -148,13 +148,13 @@ To build any example:
 
 {% mermaid %}
 graph TD
-  image_output["ImageOutput"]
+  output["Output"]
   image_input["ImageInput"]
   sharpen["Sharpen"]
   auto_contrast["AutoContrast"]
   image_input --> sharpen
   sharpen --> auto_contrast
-  auto_contrast --> image_output
+  auto_contrast --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -254,7 +254,7 @@ ______________________________________________________________________
 {% mermaid %}
 graph TD
   chat_input["ChatInput"]
-  string_output["StringOutput (Answer)"]
+  output["Output (Answer)"]
   format_text["FormatText"]
   hybrid_search["HybridSearch"]
   agent["Agent"]
@@ -262,7 +262,7 @@ graph TD
   chat_input --> hybrid_search
   hybrid_search --> format_text
   format_text --> agent
-  agent --> string_output
+  agent --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -420,10 +420,10 @@ graph TD
   stable_diffusion["StableDiffusion"]
   whisper["Whisper"]
   audio_input["AudioInput"]
-  image_output["ImageOutput"]
+  output["Output"]
   whisper --> stable_diffusion
   audio_input --> whisper
-  stable_diffusion --> image_output
+  stable_diffusion --> output
 {% endmermaid %}
 
 **When to Use**:
@@ -451,12 +451,12 @@ graph TD
   stable_diffusion_control_net_img2img["StableDiffusionControlNetImg2Img"]
   image_input_1["ImageInput"]
   image_input_2["ImageInput"]
-  image_output["ImageOutput"]
+  output["Output"]
   canny["Canny"]
   image_to_text["ImageToText"]
   fit_1["Fit"]
   fit_2["Fit"]
-  stable_diffusion_control_net_img2img --> image_output
+  stable_diffusion_control_net_img2img --> output
   canny --> stable_diffusion_control_net_img2img
   image_to_text --> stable_diffusion_control_net_img2img
   image_input_2 --> fit_1

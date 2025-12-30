@@ -111,6 +111,45 @@ NodeTool follows a client-server architecture with multiple components:
    npm start
    ```
 
+4. **E2E Testing Setup:**
+
+   E2E tests require both Python backend and Node.js frontend:
+
+   ```bash
+   # 1. Create Python environment (first time only)
+   conda env create -f environment.yml -n nodetool
+
+   # 2. Activate and install packages
+   conda activate nodetool
+   uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+
+   # 3. Verify nodetool installation
+   nodetool --help
+
+   # 4. Install web dependencies and Playwright browsers
+   cd web
+   npm install
+   npx playwright install chromium
+
+   # 5. Run e2e tests (automatically starts servers)
+   npm run test:e2e
+   ```
+
+   **Manual Testing** (for debugging):
+   ```bash
+   # Terminal 1: Start backend
+   conda activate nodetool
+   nodetool serve --port 7777
+
+   # Terminal 2: Start frontend
+   cd web
+   npm start
+
+   # Terminal 3: Run tests
+   cd web
+   npx playwright test
+   ```
+
 ### Build Commands
 
 1. **Web UI Build:**
@@ -149,7 +188,7 @@ NodeTool follows a client-server architecture with multiple components:
 
 ### Testing
 
-1. **Web UI Tests:**
+1. **Web UI Tests (Unit/Integration):**
 
    ```bash
    cd web
@@ -159,24 +198,36 @@ NodeTool follows a client-server architecture with multiple components:
    npm run test:summary        # Summary output only
    ```
 
-2. **Test Documentation:**
+2. **E2E Tests (End-to-End):**
+
+   ```bash
+   cd web
+   npm run test:e2e           # Run all e2e tests
+   npm run test:e2e:ui        # Interactive UI mode
+   npm run test:e2e:headed    # Run in headed mode (see browser)
+   ```
+
+3. **Test Documentation:**
    - See `/web/TESTING.md` for comprehensive testing guide
    - See `/web/TEST_HELPERS.md` for test utilities and patterns
    - See `.github/copilot-instructions.md` for AI-specific guidelines
+   - See `.github/claude-instructions.md` for Claude AI guidelines
 
-3. **Test Structure:**
+4. **Test Structure:**
    - Component tests: `src/components/__tests__/`
    - Store tests: `src/stores/__tests__/`
    - Hook tests: `src/hooks/__tests__/`
    - Utility tests: `src/utils/__tests__/`
+   - E2E tests: `tests/e2e/`
 
-4. **Testing Framework:**
-   - Jest 29.7 with ts-jest for TypeScript support
-   - React Testing Library 16.1 for component testing
-   - @testing-library/user-event for user interactions
-   - @testing-library/jest-dom for DOM matchers
+5. **Testing Frameworks:**
+   - **Unit/Integration**: Jest 29.7 with ts-jest for TypeScript support
+   - **Component Testing**: React Testing Library 16.1
+   - **User Interactions**: @testing-library/user-event
+   - **DOM Matchers**: @testing-library/jest-dom
+   - **E2E Testing**: Playwright 1.57
 
-5. **Key Testing Principles:**
+6. **Key Testing Principles:**
    - Test behavior, not implementation details
    - Use accessible queries (getByRole, getByLabelText)
    - Use userEvent for realistic user interactions
@@ -1075,7 +1126,7 @@ Behavior:
 
 - Node types:
   - Backend metadata defines node types (logically in Python). On the frontend, `loadMetadata` registers all `node_type → BaseNode` mappings
-  - `NodeTypeMapping.ts` maps MIME types and internal type names (e.g., `text`, `image`, `audio`) to input/output node classes (e.g., `nodetool.input.ImageInput`, `nodetool.output.TextOutput`) and constants
+  - `NodeTypeMapping.ts` maps MIME types and internal type names (e.g., `text`, `image`, `audio`) to input/output node classes (e.g., `nodetool.input.ImageInput`, `nodetool.output.Output`) and constants
 
 ### Global Chat & Agent Tools
 

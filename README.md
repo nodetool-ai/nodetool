@@ -1,7 +1,8 @@
-# NodeTool: Local-First AI Workflow Builder
+# NodeTool: Visual AI Workflow Builder
 
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
 [![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
+[![E2E Tests](https://github.com/nodetool-ai/nodetool/actions/workflows/e2e.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/e2e.yml)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
@@ -13,46 +14,46 @@
 
 **Build AI Workflows Visually. Run Them Anywhere.**
 
-NodeTool is an open-source visual workflow builder. Design AI pipelines on your laptop, then deploy the same workflow to RunPod, Cloud Run, or your own servers—no code changes needed. Run powerful models locally or in the cloud. Your data stays with you.
+NodeTool is an open-source visual workflow builder for everyone. Connect AI building blocks to generate images, analyze documents, automate tasks, and process data—all without coding. Run powerful models locally or in the cloud. Your workflows, your data, your control.
 
 ![Screenshot](screenshot.png)
 
-## Core Principles
+## Why Choose NodeTool
 
-- **Local First**: Run models on your machine. No mandatory cloud calls. Your data never leaves unless you want it to.
-- **Portable**: Build on your laptop, deploy anywhere. Same workflow runs on RunPod, Cloud Run, or self-hosted—no rewrites.
-- **Open & Inspectable**: See every step in real-time. Debug with confidence. AGPL-3.0 licensed—inspect and modify everything.
-- **Flexible**: Start with local models (free, private), switch to cloud APIs when you need them. You choose.
+- **Build Visually**: Create workflows like connecting building blocks. Drag, drop, and see results instantly. No coding required, but full flexibility when you need it.
+- **Your Data, Your Rules**: Run AI models on your machine for complete privacy, or use cloud services when you want. You're always in control of where your data goes.
+- **See Every Step**: Watch your workflows execute in real-time. Every action is visible—understand what's happening, tweak as you go, perfect your results.
+- **Run Anywhere**: Design on your laptop, deploy to the cloud. Same workflow works on RunPod, Cloud Run, or your own servers. True portability.
 
-## Features
+## Powerful Features
 
-- **Visual Workflow Engine**: Drag-and-drop AI pipelines. Real-time execution, type safety, multimodal support (text, image, audio, video). Watch results stream as they generate.
-- **Universal Inference**: Run SOTA models (LLMs, Flux, SDXL) on Apple Silicon (MLX), NVIDIA GPUs, or CPU (llama.cpp). No API fees. Works offline.
-- **HuggingFace Integration**: Access 500,000+ models from the Hub. Download and run them directly in your workflows.
-- **Flexible Providers**: Mix local models with cloud APIs (OpenAI, Anthropic, Gemini, Replicate). Use the best tool for each job.
-- **One-Click Deployment**: `nodetool deploy` pushes your workflow to RunPod, Cloud Run, or self-hosted. Same code, any environment.
-- **Asset Management**: Built-in manager for media files. Organize, persist, and access from any node.
+- **Visual Workflow Canvas**: Drag-and-drop interface for building AI pipelines. Real-time execution, multimodal support (text, image, audio, video). Watch results stream as they generate.
+- **Run Models Locally**: Access cutting-edge models (Flux, SDXL, LLMs) on Apple Silicon, NVIDIA GPUs, or CPU. No subscription fees. Works offline.
+- **500,000+ Models**: Browse and use any model from HuggingFace Hub. From image generation to data analysis—your toolkit is vast.
+- **Flexible Deployment**: Mix local models with cloud APIs (OpenAI, Anthropic, Gemini, Replicate). Use the right tool for each task.
+- **One-Click Deployment**: Deploy workflows to RunPod, Cloud Run, or self-hosted infrastructure. Same workflow, any environment.
+- **Built-in Asset Management**: Organize images, audio, videos, and documents. Access from any workflow node.
 
-## Use Cases
+## What You Can Build
 
-- **Smart Assistants**: Chat with local documents. Build RAG systems that keep your data private.
-- **Agentic Workflows**: Create AI agents that plan and execute. Search, classify, automate—all visual.
-- **Content Creation**: Generate images, video, music. Chain multiple AI models into creative pipelines.
-- **Data Analysis**: Transform data with AI. Extract insights, create visualizations, automate reports.
+- **Media Generation**: Generate images, videos, and music. Transform media with AI. Build multi-stage content pipelines.
+- **Document Intelligence**: Chat with documents, build RAG systems, extract insights. Keep your data private with local processing.
+- **Data Analysis**: Transform data with AI, create visualizations, automate reports. Build data processing pipelines.
+- **Smart Automation**: Create AI agents that plan and execute tasks. Automate workflows, integrate with tools, save time.
 
-## Quick Start
+## Get Started
 
-| Platform | Download | Requirements |
+| Platform | Download | What You Need |
 | :--- | :--- | :--- |
 | **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU recommended, 20GB free space |
 | **macOS** | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon |
 | **Linux** | [Download AppImage](https://nodetool.ai) | Nvidia GPU recommended |
 
-**Hardware for Local Inference:**
+**Hardware for Local AI:**
 
-- **Apple Silicon**: 16GB+ RAM (LLM/TTS), 24GB+ (Image Gen)
-- **Windows/Linux**: 4GB+ VRAM (LLM/TTS), 8GB+ (Image), 12GB+ (Video)
-- **Cloud Only**: No GPU required.
+- **Apple Silicon**: 16GB+ RAM (text/audio), 24GB+ (image generation)
+- **Windows/Linux**: 4GB+ VRAM (text/audio), 8GB+ (images), 12GB+ (video)
+- **Cloud-Only**: No GPU required—use cloud AI services
 
 ______________________________________________________________________
 
@@ -204,8 +205,12 @@ See the [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/s
 ## Testing
 
 ```bash
+# Unit tests
 cd electron && npm test && npm run lint
 cd web && npm test && npm run lint
+
+# End-to-end tests (requires nodetool backend)
+cd web && npm run test:e2e
 ```
 
 ## Contributing

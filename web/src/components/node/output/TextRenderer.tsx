@@ -9,14 +9,20 @@ import { ReasoningToggle } from "../../common/ReasoningToggle";
 
 type Props = {
   text: string;
-  onCopy: (text: string) => void;
   showActions?: boolean;
 };
 
-type Section = { type: "text" | "think"; content: string };
+type Section = {
+  type: "text" | "think";
+  content: string;
+  start: number;
+  end: number;
+};
 
 const parseThinkSections = (input: string): Section[] => {
-  if (!input) {return [];}
+  if (!input) {
+    return [];
+  }
   const sections: Section[] = [];
   const regex = /<think>([\s\S]*?)<\/think>/g;
   let lastIndex = 0;
@@ -27,13 +33,29 @@ const parseThinkSections = (input: string): Section[] => {
     const start = match.index;
     const end = regex.lastIndex;
     const before = input.slice(lastIndex, start);
-    if (before) {sections.push({ type: "text", content: before });}
-    sections.push({ type: "think", content: match[1] || "" });
+    if (before) {
+      sections.push({
+        type: "text",
+        content: before,
+        start: lastIndex,
+        end: start
+      });
+    }
+    sections.push({ type: "think", content: match[1] || "", start, end });
     lastIndex = end;
   }
   const tail = input.slice(lastIndex);
-  if (tail) {sections.push({ type: "text", content: tail });}
-  if (sections.length === 0) {return [{ type: "text", content: input }];}
+  if (tail) {
+    sections.push({
+      type: "text",
+      content: tail,
+      start: lastIndex,
+      end: input.length
+    });
+  }
+  if (sections.length === 0) {
+    return [{ type: "text", content: input, start: 0, end: input.length }];
+  }
   return sections;
 };
 
@@ -71,22 +93,26 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
-export const TextRenderer: React.FC<Props> = ({
-  text,
-  onCopy,
-  showActions = true
-}) => {
+export const TextRenderer: React.FC<Props> = ({ text, showActions = true }) => {
   const theme = useTheme();
   const sections = useMemo(() => parseThinkSections(text), [text]);
-  if (!text) {return null;}
+  if (!text) {
+    return null;
+  }
   return (
     <div className="output value noscroll" css={outputStyles(theme)}>
-      {showActions && <Actions onCopy={() => onCopy(text)} />}
-      {sections.map((s, i) =>
+      {showActions && <Actions copyValue={text} />}
+      {sections.map((s) =>
         s.type === "think" ? (
-          <ThinkBlock key={i} content={s.content} />
+          <ThinkBlock
+            key={`${s.type}-${s.start}-${s.end}`}
+            content={s.content}
+          />
         ) : (
-          <MaybeMarkdown key={i} text={s.content} />
+          <MaybeMarkdown
+            key={`${s.type}-${s.start}-${s.end}`}
+            text={s.content}
+          />
         )
       )}
     </div>

@@ -1,4 +1,6 @@
 import React, { memo } from "react";
+import { Button, Box } from "@mui/material";
+import { Visibility } from "@mui/icons-material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { ProcessTimer } from "./ProcessTimer";
@@ -9,6 +11,7 @@ import isEqual from "lodash/isEqual";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
+import ResultOverlay from "./ResultOverlay";
 
 interface NodeContentProps {
   id: string;
@@ -24,6 +27,10 @@ interface NodeContentProps {
   status: string;
   workflowId: string;
   renderedResult: React.ReactNode;
+  showResultOverlay: boolean;
+  result: any;
+  onShowInputs: () => void;
+  onShowResults?: () => void;
 }
 
 const NodeContent: React.FC<NodeContentProps> = ({
@@ -39,12 +46,37 @@ const NodeContent: React.FC<NodeContentProps> = ({
   onToggleAdvancedFields,
   status,
   workflowId,
-  renderedResult
+  renderedResult,
+  showResultOverlay,
+  result,
+  onShowInputs,
+  onShowResults
 }) => {
   const { handleAddProperty } = useDynamicProperty(
     id,
     data.dynamic_properties as Record<string, any>
   );
+
+  // If overlay is enabled and we have a result, show overlay
+  if (showResultOverlay && result) {
+    return (
+      <>
+        <ResultOverlay result={result} onShowInputs={onShowInputs} />
+        <ProcessTimer status={status} />
+        {status === "running" && (
+          <NodeProgress id={id} workflowId={workflowId} />
+        )}
+        <NodeLogs id={id} workflowId={workflowId} />
+      </>
+    );
+  }
+
+  // Determine what to show when overlay is not active
+  const shouldShowResultButton =
+    result && onShowResults && status === "completed";
+  // Show inline result when: no result exists OR status is not completed
+  // (i.e., don't show inline result when there's a completed result, since we show the button instead)
+  const shouldShowInlineResult = !(result && status === "completed");
 
   return (
     <>
@@ -72,7 +104,22 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {renderedResult}
+      {/* Show "Show Result" button when result is available and node is completed */}
+      {shouldShowResultButton && (
+        <Box sx={{ padding: 1, textAlign: "center" }}>
+          <Button
+            size="small"
+            startIcon={<Visibility />}
+            onClick={onShowResults}
+            variant="outlined"
+            sx={{ textTransform: "none" }}
+          >
+            Show Result
+          </Button>
+        </Box>
+      )}
+      {/* Show inline result when there's no completed result to display in overlay */}
+      {shouldShowInlineResult && renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
       <NodeLogs id={id} workflowId={workflowId} />

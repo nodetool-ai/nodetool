@@ -5,7 +5,7 @@ import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -39,6 +39,7 @@ import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import { useNodes } from "../../contexts/NodeContext";
 import { getIsElectronDetails } from "../../utils/browser";
+import ResultOverlay from "./ResultOverlay";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -238,6 +239,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { workflow_id, title } = data;
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
+  const [showResultOverlay, setShowResultOverlay] = useState(false);
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -304,6 +306,27 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const renderedResult = useMemo(() => {
     return result && <OutputRenderer value={result} />;
   }, [result]);
+
+  // Manage overlay visibility based on node status and result
+  useEffect(() => {
+    // Reset overlay when node starts running again
+    if (status === "running" || status === "starting") {
+      setShowResultOverlay(false);
+    }
+    // Automatically show overlay when result becomes available and node completes
+    // Only for non-output nodes, and only when completed (not error or cancelled)
+    else if (result && !nodeType.isOutputNode && status === "completed") {
+      setShowResultOverlay(true);
+    }
+  }, [result, nodeType.isOutputNode, status]);
+
+  const handleShowInputs = useCallback(() => {
+    setShowResultOverlay(false);
+  }, []);
+
+  const handleShowResults = useCallback(() => {
+    setShowResultOverlay(true);
+  }, []);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>
@@ -413,6 +436,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         status={status}
         workflowId={workflow_id}
         renderedResult={renderedResult}
+        showResultOverlay={showResultOverlay}
+        result={result}
+        onShowInputs={handleShowInputs}
+        onShowResults={handleShowResults}
       />
 
       {selected && resizer}

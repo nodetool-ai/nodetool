@@ -1,21 +1,19 @@
 import React, { memo } from "react";
-import { Button, ButtonGroup, Tooltip } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import { Box } from "@mui/material";
 
 type ActionsProps = {
-  onCopy?: () => void;
+  copyValue?: unknown;
 };
 
-const Actions: React.FC<ActionsProps> = ({ onCopy }) => {
-  if (!onCopy) {return null;}
+const Actions: React.FC<ActionsProps> = ({ copyValue }) => {
+  if (copyValue === undefined || copyValue === null) {
+    return null;
+  }
   return (
-    <ButtonGroup className="actions">
-      <Tooltip title="Copy to Clipboard" enterDelay={TOOLTIP_ENTER_DELAY}>
-        <Button size="small" onClick={onCopy}>
-          Copy
-        </Button>
-      </Tooltip>
-    </ButtonGroup>
+    <Box className="actions" sx={{ zIndex: 200, bottom: "2em" }}>
+      <CopyToClipboardButton copyValue={copyValue} size="small" />
+    </Box>
   );
 };
 

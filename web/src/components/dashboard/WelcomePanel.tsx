@@ -186,57 +186,9 @@ const panelStyles = (theme: any) =>
   });
 
 const WelcomePanel: React.FC = () => {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   
-  const shouldShowLocalModels = getIsElectronDetails().isElectron || !isProduction;
-  
   const sections: Section[] = [
-    {
-      id: "how-to-use-models",
-      title: "How to Use Models",
-      content: (
-        <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mt: 1, mb: 0.5, color: "primary.main" }}>
-            Remote Models
-          </Typography>
-          <ol style={{ paddingLeft: "1.2em", marginTop: "0.5em" }}>
-            <li>
-              Open <SettingsIcon sx={{ verticalAlign: "middle", fontSize: "inherit" }} /> <b>Settings</b> in the top-right
-            </li>
-            <li>Add API keys</li>
-          </ol>
-
-          {shouldShowLocalModels && (
-            <>
-              <Typography variant="subtitle2" sx={{ fontWeight: "bold", mt: 2, mb: 0.5, color: "primary.main" }}>
-                Local Models
-              </Typography>
-              <ol style={{ paddingLeft: "1.2em", marginTop: "0.5em" }}>
-                <li>
-                  Download models using the <b>MODELS</b> button in the header
-                </li>
-                <li>
-                  Or use <b>RECOMMENDED MODELS</b> button on nodes
-                </li>
-              </ol>
-              
-              <Typography variant="subtitle2" sx={{ fontWeight: "bold", mt: 2, mb: 0.5, color: "primary.main" }}>
-                Quick Download
-              </Typography>
-              <Box sx={{ mt: 1 }}>
-                 <InlineModelDownload 
-                    model={{ id: DEFAULT_MODEL, repo_id: DEFAULT_MODEL, type: "llama_model" } as UnifiedModel} 
-                    label="GPT-OSS (20B)"
-                    isDefault={true}
-                    tooltip="Download default model"
-                 />
-              </Box>
-            </>
-          )}
-        </Box>
-      )
-    },
     ...overviewContents
   ].map((section) => ({
     ...section,

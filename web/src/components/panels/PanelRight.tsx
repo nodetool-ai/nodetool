@@ -23,7 +23,7 @@ import LogPanel from "./LogPanel";
 import PanelResizeButton from "./PanelResizeButton";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
-
+const HEADER_HEIGHT = 77;
 const styles = (theme: Theme) =>
   css({
     position: "absolute",
@@ -41,8 +41,8 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "80px",
-      height: "calc(100vh - 80px)"
+      top: `${HEADER_HEIGHT}px`,
+      height: `calc(100vh - ${HEADER_HEIGHT}px)`
     },
 
     ".panel-button": {
@@ -242,17 +242,12 @@ const PanelRight: React.FC = () => {
           style: {
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
             height: isVisible ? "calc(100vh - 80px)" : "150px",
-            borderWidth: isVisible ? "1px" : "0px",
+            backgroundColor: isVisible ? undefined : "transparent",
+            border: "none",
             borderLeft: isVisible
-              ? `1px solid ${theme.vars.palette.grey[800]}`
+              ? `1px solid ${theme.vars.palette.divider}`
               : "none",
-            borderTop: isVisible
-              ? `1px solid ${theme.vars.palette.grey[800]}`
-              : "none",
-            backgroundColor: isVisible
-              ? "var(--palette-background-default)"
-              : "transparent",
-            boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.3)" : "none"
+            boxShadow: isVisible ? "0 2px 16px rgba(0, 0, 0, 0.1)" : "none"
           }
         }}
         variant="persistent"
