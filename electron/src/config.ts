@@ -15,6 +15,8 @@ const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
   : path.join(__dirname, "..", "..", "web", "dist");
 
+// PID file configuration for server process management
+// Note: E2E tests in tests/e2e/ must use the same paths for proper cleanup
 const PID_DIRECTORY: string = path.join(app.getPath("temp"), "nodetool-electron");
 const PID_FILE_PATH: string = path.join(PID_DIRECTORY, "server.pid");
 

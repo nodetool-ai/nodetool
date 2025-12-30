@@ -36,6 +36,12 @@ jest.mock('../types.d', () => ({
   },
 }));
 
+jest.mock('electron', () => ({
+  BrowserWindow: {
+    getAllWindows: jest.fn().mockReturnValue([mockWindow]),
+  },
+}));
+
 import { getMainWindow } from '../state';
 import {
   emitBootMessage,

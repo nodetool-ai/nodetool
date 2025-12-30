@@ -29,7 +29,7 @@ describe('Config', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset process.env
+    // Reset process.env and remove CONDA_PREFIX to allow settings mocking
     process.env = { ...originalEnv };
     // Explicitly unset CONDA_PREFIX to allow settings-based path resolution
     delete process.env.CONDA_PREFIX;
