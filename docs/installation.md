@@ -1,10 +1,10 @@
 ---
 layout: page
 title: "Installing NodeTool"
-description: "Step-by-step installation guide for Windows, macOS, and Linux – with requirements and troubleshooting tips."
+description: "Step-by-step installation guide for Windows, macOS, and Linux."
 ---
 
-NodeTool includes a guided setup process that handles everything automatically. **No programming knowledge required** – the installer sets up all the technical components for you.
+NodeTool includes a guided setup that handles dependencies automatically.
 
 ---
 
@@ -31,7 +31,7 @@ NodeTool includes a guided setup process that handles everything automatically. 
 
 ### For Local AI Models (Recommended)
 
-Running AI models locally provides privacy and works offline, but requires more resources:
+Running AI models locally provides privacy and offline operation, but requires more resources:
 
 | Hardware | Capability |
 |----------|------------|
@@ -39,11 +39,11 @@ Running AI models locally provides privacy and works offline, but requires more 
 | **Apple Silicon** (M1/M2/M3) | Excellent local performance via MLX optimization |
 | **CPU only** | Works, but slower for AI tasks |
 
-> **Don't have a powerful computer?** No problem! You can use cloud AI providers (OpenAI, Anthropic, etc.) instead of local models. Add your API key in Settings after installation.
+> **No GPU?** Use cloud AI providers (OpenAI, Anthropic, etc.) instead of local models. Add your API key in Settings after installation.
 
 ### Hardware Requirements by Task
 
-The table below shows specific hardware requirements for common AI tasks. Use this to determine if your system can run the workflows you need.
+Requirements for common AI tasks:
 
 #### Image Generation
 
@@ -95,12 +95,10 @@ Apple Silicon Macs use unified memory shared between CPU and GPU. NodeTool uses 
 
 ### Quick Compatibility Check
 
-**"Can I run this workflow?"** — Use these quick guidelines:
-
 - **8 GB VRAM / 16 GB RAM**: Basic image generation, 7B LLMs, audio transcription
-- **12 GB VRAM / 24 GB RAM**: SDXL, Flux, 13B LLMs, most creative workflows  
+- **12 GB VRAM / 24 GB RAM**: SDXL, Flux, 13B LLMs, most workflows  
 - **16 GB+ VRAM / 32 GB+ RAM**: All local models, video generation, large LLMs
-- **Cloud APIs only**: Any hardware — offload heavy processing to OpenAI, Anthropic, Replicate
+- **Cloud APIs only**: Any hardware — offload processing to OpenAI, Anthropic, Replicate
 
 ---
 
@@ -175,19 +173,19 @@ You'll be asked where to install NodeTool's environment:
 
 > **Tip**: Use an SSD for faster AI model loading and workflow execution.
 
-### 4. Select Optional Packages
+### Select Optional Packages
 
-Choose which extra features to install:
+Choose additional features:
 
-- **Cloud AI Services** – Integrations with OpenAI, Anthropic, Google
-- **Document Processing** – PDF extraction, OCR capabilities
+- **Cloud AI Services** – OpenAI, Anthropic, Google integrations
+- **Document Processing** – PDF extraction, OCR
 - **Audio/Video Tools** – Media processing nodes
 
-You can add more packages later from Settings → Packages.
+Additional packages can be installed later from Settings → Packages.
 
 ### 5. Wait for Download
 
-NodeTool will download and set up all components. This typically takes 5-10 minutes depending on your internet connection. Progress is shown on screen.
+NodeTool downloads and sets up all components. Typically 5-10 minutes depending on internet connection.
 
 ### 6. Launch NodeTool
 
@@ -223,26 +221,24 @@ To run workflows locally, install some AI models:
 
 ### Common Installation Issues
 
-**"Installation is taking forever"**
-- Large models take time to download – check your internet connection
-- Progress might appear stuck but is usually still working
-- Try pausing/resuming if available, or restart the installer
+**Installation takes too long**
+- Large models take time to download
+- Check internet connection
+- Try pausing/resuming or restart the installer
 
-**"Not enough disk space"**
+**Not enough disk space**
 - Free up space or choose a different installation location
-- Consider using cloud AI providers instead of local models
-- See [Hardware Requirements](#hardware-requirements-by-task) to estimate space needs
+- Use cloud providers instead of local models
 
-**"GPU not detected"**
-- Update your GPU drivers to the latest version
-- On Windows, ensure CUDA is properly installed for NVIDIA GPUs
-- See [CUDA Troubleshooting](#cuda-and-nvidia-driver-issues) below
+**GPU not detected**
+- Update GPU drivers
+- On Windows, ensure CUDA is installed for NVIDIA GPUs
+- See [CUDA Troubleshooting](#cuda-and-nvidia-driver-issues)
 
-**"Can't connect to server"**
-- Approve any firewall prompts
-- Try restarting NodeTool
+**Can't connect to server**
+- Approve firewall prompts
+- Restart NodeTool
 - Check if antivirus is blocking the connection
-- See [Antivirus and Firewall](#antivirus-and-firewall-issues) below
 
 ---
 
@@ -491,4 +487,4 @@ Remove the AppImage or use `sudo dpkg -r nodetool` for Debian packages
 
 ## Next Steps
 
-Ready to build your first workflow? Head to the [Getting Started guide](getting-started.md) to run your first AI workflow in 10 minutes!
+Ready to build your first workflow? See the [Getting Started guide](getting-started.md).

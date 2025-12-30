@@ -4,13 +4,13 @@ title: "Developer Guide"
 description: "Build custom nodes, extend NodeTool with Python, and integrate workflows programmatically."
 ---
 
-Welcome to the NodeTool Developer Guide. Here you will find resources for building custom nodes, extending NodeTool's capabilities, and integrating workflows programmatically.
+Resources for building custom nodes, extending NodeTool, and integrating workflows programmatically.
 
 ---
 
-## Quick Start: Building Custom Nodes
+## Quick Start: Custom Nodes
 
-**Want to extend NodeTool with your own functionality?** Creating custom nodes is straightforward:
+Creating custom nodes:
 
 ```python
 from pydantic import Field
@@ -35,7 +35,7 @@ class MyCustomNode(BaseNode):
         return self.input_text.upper()
 ```
 
-Save this in a Python file, and NodeTool will automatically discover your node!
+Save this in a Python file. NodeTool automatically discovers the node.
 
 **→ [Full Custom Node Tutorial](node-reference.md)** – Templates, patterns, and detailed examples
 
@@ -72,11 +72,11 @@ Save this in a Python file, and NodeTool will automatically discover your node!
 
 ## Contributing
 
-If you're interested in contributing to the core NodeTool platform or sharing your custom nodes, please check out our [GitHub repository](https://github.com/nodetool-ai/nodetool).
+Contribute to [NodeTool on GitHub](https://github.com/nodetool-ai/nodetool).
 
-### Share Your Custom Nodes
+### Share Custom Nodes
 
-Built something useful? Consider:
-1. Publishing as a separate package that users can install
-2. Contributing to the core NodeTool node library
-3. Sharing workflow examples in the community Discord
+Options:
+1. Publish as a separate package
+2. Contribute to the core node library
+3. Share workflow examples on Discord
