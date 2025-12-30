@@ -98,7 +98,7 @@ export const useAssetActions = (asset: Asset) => {
   );
 
   const handleDragEnter = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+    (_event: React.DragEvent<HTMLDivElement>) => {
       if (asset.content_type === "folder") {
         setIsDragHovered(true);
       }
@@ -128,7 +128,7 @@ export const useAssetActions = (asset: Asset) => {
           );
           setMoveToFolderDialogOpen(false);
         }
-      } catch (error) {
+      } catch (_error) {
         log.error("Invalid JSON string:", assetData);
       }
     },

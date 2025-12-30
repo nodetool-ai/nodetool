@@ -20,7 +20,7 @@ import { IconForType } from "../../config/data_types";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     "&": { paddingBottom: "3em" }
   });

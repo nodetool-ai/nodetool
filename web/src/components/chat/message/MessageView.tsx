@@ -54,7 +54,6 @@ export const MessageView: React.FC<
   onToggleThought,
   onInsertCode,
   toolResultsByCallId,
-  componentStyles,
   executionMessagesById
 }) => {
   const insertIntoEditor = useEditorInsertion();
@@ -69,11 +68,11 @@ export const MessageView: React.FC<
         if (typeof executionContent === "string") {
           try {
             executionContent = JSON.parse(executionContent);
-          } catch (error) {
+          } catch {
             // Keep intermediate string if nested JSON parsing fails.
           }
         }
-      } catch (error) {
+      } catch {
         // Keep original string if JSON parsing fails.
       }
     }
@@ -319,7 +318,7 @@ export const MessageView: React.FC<
   const ToolCallCard: React.FC<{
     tc: ToolCall;
     result?: { name?: string | null; content: any };
-  }> = ({ tc, result }) => {
+  }> = ({ tc, result: _result }) => {
     const [open, setOpen] = useState(false);
     const runningToolCallId = useGlobalChatStore(
       (s) => s.currentRunningToolCallId

@@ -7,7 +7,7 @@ import React, { memo, useCallback } from "react";
 import Button from "@mui/material/Button";
 import ClearIcon from "@mui/icons-material/Clear";
 
-interface CloseButtonProps<T> {
+interface CloseButtonProps {
   className?: string;
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
@@ -26,10 +26,10 @@ const styles = (theme: Theme) =>
     }
   });
 
-function CloseButton<T>({
+function CloseButton({
   className = "",
   onClick
-}: CloseButtonProps<T>): JSX.Element {
+}: CloseButtonProps): JSX.Element {
   const theme = useTheme();
   
   const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {

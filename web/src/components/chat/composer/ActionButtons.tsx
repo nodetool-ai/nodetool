@@ -1,12 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme, alpha } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Tooltip, Typography } from "@mui/material";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
-import { NewChatComposerButton } from "./NewChatComposerButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface ActionButtonsProps {
@@ -27,7 +26,7 @@ interface ActionButtonsProps {
   hasContent: boolean;
 }
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     position: "relative",
     marginRight: "0.25em",
@@ -45,7 +44,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   status,
   onSend,
   onStop,
-  onNewChat,
   isDisabled,
   hasContent
 }) => {

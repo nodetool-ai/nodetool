@@ -86,7 +86,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
     }
   }, [collections, fetchCollections]);
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+  const handleClick = () => {
     setIsOpen(true);
   };
 

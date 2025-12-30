@@ -136,12 +136,11 @@ const CollectionItem = ({
   });
 
   const onWorkflowChange = useCallback(
-    (collection: CollectionResponse) =>
-      (value: { type: "workflow"; id: string }) => {
-        updateMutation.mutate(value.id);
-        setIsEditingWorkflow(false);
-        queryClient.invalidateQueries({ queryKey: ["collections"] });
-      },
+    (value: { type: "workflow"; id: string }) => {
+      updateMutation.mutate(value.id);
+      setIsEditingWorkflow(false);
+      queryClient.invalidateQueries({ queryKey: ["collections"] });
+    },
     [updateMutation, queryClient]
   );
   
@@ -266,7 +265,7 @@ const CollectionItem = ({
         <div style={{ flexGrow: 1 }} />
         {isEditingWorkflow ? (
           <WorkflowSelect
-            onChange={onWorkflowChange(collection)}
+            onChange={onWorkflowChange}
             label="Workflow"
             value={
               collection.metadata?.workflow

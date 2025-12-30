@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React from "react";
 import AssetGrid from "./AssetGrid";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAssets from "../../serverState/useAssets";
@@ -99,10 +99,12 @@ const styles = (theme: Theme) =>
 const AssetExplorer: React.FC = () => {
   const theme = useTheme();
   const { folderFiles } = useAssets();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { currentWorkflowId } = useWorkflowManager((state) => ({
     currentWorkflowId: state.currentWorkflowId
   }));
+  void _navigate;
+  void currentWorkflowId;
   return (
     <Box css={styles(theme)}>
       <Box

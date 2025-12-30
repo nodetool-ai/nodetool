@@ -5,7 +5,7 @@ import { ThreadItemProps } from "../types/thread.types";
 import DeleteButton from "../../buttons/DeleteButton";
 
 export const ThreadItem: React.FC<ThreadItemProps> = ({
-  threadId,
+  threadId: _threadId,
   thread,
   isSelected,
   onSelect,

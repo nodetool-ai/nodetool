@@ -2,7 +2,6 @@ import React, { useState, useCallback } from "react";
 import { Box, TextField, IconButton, Paper } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import { client } from "../../stores/ApiClient";
-import { Edge } from "@xyflow/react";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { useNodes } from "../../contexts/NodeContext";

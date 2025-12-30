@@ -3,11 +3,9 @@ import React, {
   useRef,
   useState,
   useCallback,
-  useEffect,
-  Fragment
+  useEffect
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
 import { useKeyPressed } from "../../../stores/KeyPressedStore";
 import { FilePreview } from "./FilePreview";

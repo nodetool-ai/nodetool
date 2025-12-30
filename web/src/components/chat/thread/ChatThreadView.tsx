@@ -36,6 +36,7 @@ interface ChatThreadViewProps {
   progressMessage: string | null;
   runningToolCallId?: string | null;
   runningToolMessage?: string | null;
+  _runningToolMessage?: string | null;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
@@ -51,11 +52,11 @@ interface MemoizedMessageListContentProps
   extends Omit<ChatThreadViewProps, "scrollContainer"> {
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
-  bottomRef: React.RefObject<HTMLDivElement>; // Pass the ref here
-  // Add componentStyles if needed directly, or rely on ChatThreadView's styles
+  bottomRef: React.RefObject<HTMLDivElement>;
   componentStyles: ReturnType<typeof createStyles>;
   toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
   theme: Theme;
+  runningToolMessage?: string | null;
 }
 
 const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
@@ -66,7 +67,6 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     total,
     progressMessage,
     runningToolCallId,
-    runningToolMessage,
     currentPlanningUpdate,
     currentTaskUpdate,
     currentLogUpdate,

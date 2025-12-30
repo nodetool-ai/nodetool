@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useColorScheme } from "@mui/material/styles";
 import { Tabs, Tab, Box, Switch } from "@mui/material";
 import { muiComponentsByCategory } from "./layout_test/componentsList";

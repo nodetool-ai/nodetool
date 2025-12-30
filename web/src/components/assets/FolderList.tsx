@@ -4,8 +4,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Box,
-  Tooltip
+  Box
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState } from "react";
@@ -16,7 +15,6 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // Layout constants for folder tree
 const ROW_HEIGHT_REM = 1.5; // compact row height in em

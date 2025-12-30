@@ -1,6 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import AssetSearchInput from "../../../components/assets/AssetSearchInput";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -47,7 +46,6 @@ describe("AssetSearchInput - Basic Functionality", () => {
   });
 
   it("should not crash when switching modes", async () => {
-    const user = userEvent.setup();
 
     renderWithTheme(
       <AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />
@@ -64,7 +62,6 @@ describe("AssetSearchInput - Basic Functionality", () => {
   });
 
   it("should not crash with empty search input", async () => {
-    const user = userEvent.setup();
 
     renderWithTheme(
       <AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />
@@ -79,7 +76,6 @@ describe("AssetSearchInput - Basic Functionality", () => {
   });
 
   it("should not break keyboard navigation", async () => {
-    const user = userEvent.setup();
 
     renderWithTheme(
       <AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />
@@ -96,7 +92,6 @@ describe("AssetSearchInput - Basic Functionality", () => {
   });
 
   it("should handle rapid mode switching gracefully", async () => {
-    const user = userEvent.setup();
 
     renderWithTheme(
       <AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />

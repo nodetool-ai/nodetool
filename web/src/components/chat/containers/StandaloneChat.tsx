@@ -4,8 +4,7 @@ import React, {
   useEffect,
   useRef,
   useMemo,
-  useState,
-  useCallback
+  useState
 } from "react";
 import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -237,7 +236,7 @@ const StandaloneChat: React.FC = () => {
     }
   };
 
-  const mainAreaStyles = (theme: Theme) =>
+  const mainAreaStyles = (_theme: Theme) =>
     css({
       position: "relative",
       flex: 1,

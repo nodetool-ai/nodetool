@@ -1,16 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
-import { Box } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { Box, useTheme } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./ThreadList.styles";
 import {
   ThreadItem,
   NewChatButton,
   EmptyThreadList,
-  ThreadListProps,
-  sortThreadsByDate
+  ThreadListProps
 } from "./";
+import { ThreadInfo } from "../types/thread.types";
+import { sortThreadsByDate } from "../utils/threadUtils";
 import { groupByDate } from "../../../utils/groupByDate";
 
 export type { ThreadInfo } from "./";
@@ -23,12 +23,12 @@ const ThreadList: React.FC<ThreadListProps> = ({
   onDeleteThread,
   getThreadPreview
 }) => {
-  const theme = useTheme();
+  const theme = useTheme<Theme>();
   const componentStyles = createStyles(theme);
   const listElements: React.ReactNode[] = [];
 
   if (threads && Object.keys(threads).length > 0) {
-    const threadEntries = sortThreadsByDate(threads);
+    const threadEntries = sortThreadsByDate(threads as Record<string, ThreadInfo>);
 
     // If there is only one thread, just render it with date
     if (threadEntries.length === 1) {

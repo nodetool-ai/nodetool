@@ -3,10 +3,6 @@ import { Box, Typography, Popover, List, ListItem } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
 import { useState } from "react";
 
-interface CollectionHeaderProps {
-  isElectron: boolean;
-}
-
 const CollectionHeader = () => {
   const [formatInfoAnchor, setFormatInfoAnchor] = useState<HTMLElement | null>(
     null

@@ -11,7 +11,7 @@ interface VideoViewerProps {
   url?: string;
 }
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     "&": {
       display: "flex",
@@ -32,7 +32,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const VideoViewer: React.FC<VideoViewerProps> = ({ asset, url }) => {
+const VideoViewer: React.FC<VideoViewerProps> = ({ asset }) => {
   const theme = useTheme();
   return (
     <Box className="video-viewer" css={styles(theme)}>

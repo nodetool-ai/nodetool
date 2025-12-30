@@ -1,23 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import { css, keyframes } from "@emotion/react";
+import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
-import ToolsSelector from "../composer/ToolsSelector";
-import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import { AgentModeToggle } from "../composer/AgentModeToggle";
-import { HelpModeToggle } from "../composer/HelpModeToggle";
+import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
 import { LanguageModel } from "../../../stores/ApiTypes";
-import { Box, Divider } from "@mui/material";
-
-// Subtle shimmer animation for the background
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
+import { Box } from "@mui/material";
 
 const styles = (theme: Theme) =>
   css({

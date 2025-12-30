@@ -203,7 +203,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
   // Group assets by content type - optimized with stable asset signature
-  const assetSignature = useMemo(
+  useMemo(
     () =>
       assets
         .map((asset) => `${asset.id}-${asset.name}-${asset.content_type}`)

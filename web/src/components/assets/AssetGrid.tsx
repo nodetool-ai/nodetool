@@ -1,9 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import React, { useCallback, useEffect, useRef, useMemo, memo } from "react";
+import React, { useCallback, useEffect, useMemo, memo } from "react";
 import { Box, Divider, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
@@ -73,7 +71,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
   sortedAssets,
-  initialFoldersPanelWidth,
   isFullscreenAssets
 }) => {
   const { error, folderFilesFiltered } = useAssets();
@@ -94,25 +91,30 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
-  // Global search state
-  const isGlobalSearchActive = useAssetGridStore(
+  const _isGlobalSearchActive = useAssetGridStore(
     (state) => state.isGlobalSearchActive
   );
-  const isGlobalSearchMode = useAssetGridStore(
+  const _isGlobalSearchMode = useAssetGridStore(
     (state) => state.isGlobalSearchMode
   );
-  const globalSearchResults = useAssetGridStore(
+  const _globalSearchResults = useAssetGridStore(
     (state) => state.globalSearchResults
   );
-  const setIsGlobalSearchActive = useAssetGridStore(
+  const _setIsGlobalSearchActive = useAssetGridStore(
     (state) => state.setIsGlobalSearchActive
   );
-  const setIsGlobalSearchMode = useAssetGridStore(
+  const _setIsGlobalSearchMode = useAssetGridStore(
     (state) => state.setIsGlobalSearchMode
   );
-  const setCurrentFolderId = useAssetGridStore(
+  const _setCurrentFolderId = useAssetGridStore(
     (state) => state.setCurrentFolderId
   );
+  void _isGlobalSearchActive;
+  void _isGlobalSearchMode;
+  void _globalSearchResults;
+  void _setIsGlobalSearchActive;
+  void _setIsGlobalSearchMode;
+  void _setCurrentFolderId;
   const theme = useTheme();
 
   // Dockview panel components are defined below; handlers for files live inside the Files panel

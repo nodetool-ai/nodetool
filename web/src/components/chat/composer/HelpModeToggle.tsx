@@ -13,7 +13,7 @@ interface HelpModeToggleProps {
   disabled?: boolean;
 }
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     ".help-toggle": {
       transition: "all 0.2s ease-in-out",

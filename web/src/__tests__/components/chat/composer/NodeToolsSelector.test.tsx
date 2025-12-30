@@ -1,6 +1,6 @@
 import React from "react";
 import "@testing-library/jest-dom";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NodeToolsSelector from "../../../../components/chat/composer/NodeToolsSelector";
 
@@ -144,8 +144,10 @@ jest.mock("../../../../components/node_menu/RenderNodesSelectable", () => ({
   __esModule: true,
   default: ({
     nodes,
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
     selectedNodeTypes,
     onToggleSelection,
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
     onSetSelection
   }: any) => (
     <div data-testid="render-nodes-selectable">
@@ -208,7 +210,6 @@ jest.mock("lodash", () => ({
 
 import useMetadataStore from "../../../../stores/MetadataStore";
 import { __setNodeToolsMenuStore } from "../../../../stores/NodeMenuStore";
-import { useStoreWithEqualityFn } from "zustand/traditional";
 
 // Mock the useStoreWithEqualityFn hook to return from our mock store
 jest.mock("zustand/traditional", () => ({
@@ -231,7 +232,8 @@ describe("NodeToolsSelector", () => {
     onChange: mockOnChange
   };
 
-  const mockMetadataStore = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+const mockMetadataStore = {
     metadata: mockNodeMetadata
   };
 

@@ -77,7 +77,7 @@ describe("GlobalChatStore tool_call handling", () => {
       }
     });
 
-    const store = useGlobalChatStore.getState();
+    const _store = useGlobalChatStore.getState();
     const wsManager = new FakeWSManager() as unknown as any;
     useGlobalChatStore.setState({
       wsManager,
