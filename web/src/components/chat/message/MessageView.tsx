@@ -199,7 +199,7 @@ export const MessageView: React.FC<
 
   const messageClass = [
     baseClass,
-    message.error_type ? "error-message" : null,
+    (message as Message & { error_type?: string }).error_type ? "error-message" : null,
     hasToolCalls ? "has-tool-calls" : null,
     hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null
   ]
@@ -417,7 +417,7 @@ export const MessageView: React.FC<
           </>
         )}
       </div>
-      {message.error_type && <ErrorIcon className="error-icon" />}
+      {(message as Message & { error_type?: string }).error_type && <ErrorIcon className="error-icon" />}
     </li>
   );
 };
