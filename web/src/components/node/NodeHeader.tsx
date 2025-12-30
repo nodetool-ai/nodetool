@@ -65,8 +65,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           borderRadius: "6px",
           display: "grid",
           placeItems: "center",
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          boxShadow: "0 0 3px rgba(0, 0, 0, 0.1)",
           marginRight: "4px",
           flexShrink: 0,
           "& svg": {
@@ -133,7 +132,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     const tint = backgroundColor || "var(--c_node_header_bg)";
     return {
       background: selected
-        ? (backgroundColor ? backgroundColor : hexToRgba(tint, 0.5))
+        ? backgroundColor
+          ? backgroundColor
+          : hexToRgba(tint, 0.5)
         : `linear-gradient(90deg, ${hexToRgba(tint, 0.25)}, ${hexToRgba(
             tint,
             0.1
