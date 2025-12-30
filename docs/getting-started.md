@@ -1,28 +1,26 @@
 ---
 layout: page
 title: "Getting Started"
-description: "Build your first AI workflow in 10 minutes and discover how to run it in multiple ways—no coding required."
+description: "Build your first AI workflow in 10 minutes."
 ---
 
-Welcome! This hands-on guide shows you how NodeTool works—fast. **No AI experience or coding required** – just curiosity and willingness to explore.
+This guide walks you through running your first NodeTool workflow. No AI experience or coding required.
 
-> **What you'll accomplish**: In about 10 minutes, you'll:
+> **What you'll do**:
 > - ✅ Run a complete AI workflow
-> - ✅ Watch results generate in real-time
-> - ✅ Learn multiple ways to use workflows
+> - ✅ See results generate in real-time
+> - ✅ Learn multiple ways to run workflows
 > - ✅ Understand the visual workflow builder
 
-**Why NodeTool?** You're learning how to build AI workflows with full transparency and control—whether you're creating content, analyzing data, or automating tasks.
-
-If you'd like a visual overview first, check out the [Start Here guide](index.md#start-here).
+For a visual overview first, see the [Start Here guide](index.md#start-here).
 
 ---
 
 ## Before You Begin
 
-**What is a workflow?** Think of it like a recipe or a pipeline. Each step (called a "node") does one thing—like generating an image, analyzing text, or transforming data—and passes the result to the next step. Connect them visually to build something powerful.
+**Workflow**: A series of connected steps (nodes). Each node performs one operation and passes results to the next.
 
-**What are AI models?** Pre-trained programs that have learned specific skills. Want to generate images? There's a model. Analyze documents? There's a model. You don't train them—just pick the right tool for your task.
+**AI Model**: A pre-trained program for a specific task (image generation, text analysis, etc.). You don't train them—select the appropriate model for your task.
 
 ---
 
@@ -30,16 +28,16 @@ If you'd like a visual overview first, check out the [Start Here guide](index.md
 
 ### Download and Install
 
-1. **Download** the desktop app from [nodetool.ai](https://nodetool.ai) for your system:
+1. **Download** from [nodetool.ai](https://nodetool.ai):
    - **macOS** – Intel or Apple Silicon (M1/M2/M3)
-   - **Windows** – Requires Windows 10 or later
+   - **Windows** – Windows 10 or later
    - **Linux** – AppImage or Debian package
 
-2. **Run the installer** – it will set up everything automatically, including Python and AI engines
+2. **Run the installer** – sets up Python and AI engines automatically
 
-3. **Launch NodeTool** – on first run, choose where to install (the default location works for most people)
+3. **Launch NodeTool** – choose install location on first run (default works for most users)
 
-> **Need help?** See the detailed [Installation Guide](installation.md) for GPU requirements, troubleshooting, and platform-specific tips. Check the [Hardware Requirements](installation.md#hardware-requirements-by-task) to see what your system can run.
+> See the [Installation Guide](installation.md) for GPU requirements and troubleshooting.
 
 ### Sign In (Optional)
 
@@ -48,27 +46,25 @@ If you'd like a visual overview first, check out the [Start Here guide](index.md
 
 ### Install Your First AI Models
 
-To run the example workflows, you'll need some AI models:
+To run the example workflows:
 
-1. Open **Models → Model Manager** from the top navigation
-2. Install these recommended starter models:
+1. Open **Models → Model Manager**
+2. Install recommended starter models:
    - **Flux** or **SDXL** – for image generation (requires 8-12 GB VRAM)
    - **GPT-OSS** (optional) – for text generation
-3. Wait for downloads to complete (~20 GB total)
+3. Wait for downloads (~20 GB total)
 
-> **Tip**: Don't have a powerful GPU? No problem! Skip local models and use cloud services (like OpenAI or Replicate) by adding your API key in `Settings → Providers`. You'll still accomplish the same tasks. See [Hardware Requirements](installation.md#hardware-requirements-by-task) for detailed specs by task.
+> **No GPU?** Skip local models and use cloud services (OpenAI, Replicate) by adding API keys in `Settings → Providers`. See [Hardware Requirements](installation.md#hardware-requirements-by-task).
 
-✅ **Checkpoint**: You should now see the NodeTool Dashboard with Templates and example workflows ready to explore.
+✅ **Checkpoint**: NodeTool Dashboard with Templates and examples ready.
 
 ---
 
 ## Step 2 — Run Your First Workflow
 
-Let's run a pre-built template to see how workflows work. Pick **one** of these options:
+Run a pre-built template. Choose one:
 
 ### Option A: Generate Movie Posters (Image Generation)
-
-*Best for: Seeing AI transform text descriptions into visuals*
 
 1. **Find the template**: On the Dashboard, look for "Movie Posters" in the Templates panel and click it
 2. **Open in Editor**: Click **Open in Editor** to see the workflow canvas
@@ -83,14 +79,12 @@ Let's run a pre-built template to see how workflows work. Pick **one** of these 
    - **Genre**: "Sci-Fi Thriller"
    - **Audience**: "Adults who love mystery"
 
-5. **Run it**: Click the **Run** button (bottom-right) or press <kbd>Ctrl/⌘ + Enter</kbd>
-6. **Watch the process**: Your poster will generate step by step!
+5. **Run it**: Click **Run** (bottom-right) or press <kbd>Ctrl/⌘ + Enter</kbd>
+6. **View results**: Poster generates step by step
 
-**What just happened?** You provided inputs, AI planned a strategy, then generated a visual result. The entire pipeline is visible on your canvas.
+**Result**: Input → AI strategy → image generation → output.
 
 ### Option B: Creative Story Ideas (Text Generation)
-
-*Best for: Seeing AI generate ideas and content*
 
 1. **Find the template**: Look for "Creative Story Ideas" in Templates and open it
 2. **Understand the flow**:
@@ -104,58 +98,50 @@ Let's run a pre-built template to see how workflows work. Pick **one** of these 
    - **Setting**: "Neon-lit underwater city"
 
 4. **Generate**: Click **Run** or press <kbd>Ctrl/⌘ + Enter</kbd>
-5. **Watch ideas flow**: Ideas stream in one at a time!
+5. **View results**: Ideas stream in one at a time
 
-**What just happened?** You set parameters and AI generated multiple unique ideas. Perfect for brainstorming or starting new projects.
+**Result**: Parameters → AI agent → generated ideas.
 
-✅ **Checkpoint**: You've run your first AI workflow! The results appeared right in the workflow canvas.
+✅ **Checkpoint**: First workflow complete. Results appear in the canvas.
 
 ---
 
 ## Step 3 — Customize and Iterate
 
-Now let's personalize your workflow and see how easy it is to experiment.
+1. **Save your workflow**: Press <kbd>Ctrl/⌘ + S</kbd>. Give it a descriptive name.
 
-1. **Save your workflow**: Press <kbd>Ctrl/⌘ + S</kbd> or use `File → Save`. Give it a descriptive name
-
-2. **Try different inputs**: Go back and change your parameters:
-   - Different movie titles, genres, or audiences
-   - New story settings and characters
+2. **Modify inputs**: Change parameters and run again.
    
-3. **Run again**: Each time you click Run, you get fresh results
+3. **Explore the canvas**:
+   - Click nodes to see settings
+   - Hover over connections to see data flow
+   - Click Preview nodes to inspect intermediate results
 
-4. **Explore the canvas**: Try these experiments:
-   - Click any node to see its settings
-   - Hover over connections to see what data flows through
-   - Click Preview nodes to inspect results at any stage
+Workflows are reusable. Generate variations, refine parameters, save modifications.
 
-**Why is this powerful?** Unlike one-off AI tools, NodeTool lets you iterate instantly. Generate dozens of variations, pick the best ones, refine them. It's a workflow you can save, modify, and reuse.
-
-✅ **Checkpoint**: You've learned to customize and iterate—the core of working with AI workflows.
+✅ **Checkpoint**: You can customize and iterate on workflows.
 
 ---
 
 ## Step 4 — Share as a Mini-App
 
-Turn your workflow into a simple app that anyone can use—no NodeTool knowledge required.
+Convert a workflow into a simplified interface:
 
 1. **Open your workflow** in the editor
-2. **Click Mini-App** in the top-right corner
-3. **See the simplified view**: You'll see a clean interface with just the inputs and outputs
-4. **Share it**: Perfect for collaborators, clients, or anyone who just wants results—without seeing the workflow complexity
+2. **Click Mini-App** (top-right)
+3. **View simplified interface**: Shows only inputs and outputs
 
-**What just happened?** NodeTool generated a user-friendly interface from your workflow. The same AI pipeline runs underneath, but users see only what they need: inputs to customize and results to use. Like packaging a complex tool into a simple app.
+Mini-Apps let others run workflows without seeing the underlying complexity.
 
-✅ **Checkpoint**: You now have **three ways** to work: Visual Editor (full control), Chat (conversational), and Mini-App (simplified for anyone).
+✅ **Checkpoint**: Three ways to work: Visual Editor (full control), Chat (conversational), Mini-App (simplified interface).
 
 ---
 
-## Recap: What You've Learned
+## Recap
 
-🎉 **Congratulations!** You've mastered the NodeTool basics:
-
+Completed:
 - ✅ Installed NodeTool and AI models
-- ✅ Run a complete AI workflow
+- ✅ Ran a complete AI workflow
 - ✅ Understood nodes, connections, and data flow
 - ✅ Customized and iterated on workflows
 - ✅ Shared a workflow as a Mini-App
