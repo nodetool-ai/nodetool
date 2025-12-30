@@ -45,6 +45,7 @@ header_pages:
   - key-concepts.md
   - user-interface.md
   - workflow-editor.md
+  - workflow-debugging.md
   - cookbook.md
   - workflows/index.md
   - models-and-providers.md
@@ -55,6 +56,8 @@ header_pages:
   - developer/index.md
   - architecture.md
   - installation.md
+  - troubleshooting.md
+  - comparisons.md
   - tips-and-tricks.md
   - global-chat.md
   - models.md

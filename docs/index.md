@@ -94,12 +94,13 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Tips & Tricks]({{ '/tips-and-tricks' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
+- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
 - **I want to explore:** [Example Workflows]({{ '/workflows/' | relative_url }}), [Workflow Patterns]({{ '/cookbook' | relative_url }}), [Community](https://discord.gg/WmQTWZRcYE).
 - **I need AI models:** [Models & Providers]({{ '/models-and-providers' | relative_url }}), [HuggingFace Integration]({{ '/huggingface' | relative_url }}), [Local vs Cloud]({{ '/models' | relative_url }}).
-- **I'm ready to deploy:** [Deployment Guide]({{ '/deployment' | relative_url }}), [Self-Hosted Setup]({{ '/self_hosted' | relative_url }}), [API Access]({{ '/workflow-api' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).
-- **I'm a developer:** [Developer Guide]({{ '/developer/' | relative_url }}), [CLI Reference]({{ '/cli' | relative_url }}), [API Reference]({{ '/api-reference' | relative_url }}), [Architecture]({{ '/architecture' | relative_url }}).
-- **Reference & Help:** [Node Library]({{ '/node-packs' | relative_url }}), [Glossary]({{ '/glossary' | relative_url }}), [Troubleshooting]({{ '/troubleshooting' | relative_url }}), [Asset Management]({{ '/asset-management' | relative_url }}).
+- **I'm coming from another tool:** [How NodeTool Compares]({{ '/comparisons' | relative_url }}), [ComfyUI Migration]({{ '/comparisons#from-comfyui-to-nodetool' | relative_url }}), [LangChain Migration]({{ '/comparisons#from-langchain-to-nodetool' | relative_url }}).
+- **I'm ready to deploy:** [Deployment Guide]({{ '/deployment' | relative_url }}), [Self-Hosted Setup]({{ '/self_hosted' | relative_url }}), [API Access]({{ '/api-reference#headless-mode-running-workflows-via-cliapi' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).
+- **I'm a developer:** [Developer Guide]({{ '/developer/' | relative_url }}), [Custom Nodes]({{ '/developer/node-reference' | relative_url }}), [CLI Reference]({{ '/cli' | relative_url }}), [API Reference]({{ '/api-reference' | relative_url }}).
+- **Reference & Help:** [Workflow Debugging]({{ '/workflow-debugging' | relative_url }}), [Troubleshooting]({{ '/troubleshooting' | relative_url }}), [Glossary]({{ '/glossary' | relative_url }}), [Node Library]({{ '/node-packs' | relative_url }}).
 
 ### Local-first or cloud-augmented
 

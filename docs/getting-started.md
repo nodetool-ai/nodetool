@@ -39,7 +39,7 @@ If you'd like a visual overview first, check out the [Start Here guide](index.md
 
 3. **Launch NodeTool** – on first run, choose where to install (the default location works for most people)
 
-> **Need help?** See the detailed [Installation Guide](installation.md) for GPU requirements, troubleshooting, and platform-specific tips.
+> **Need help?** See the detailed [Installation Guide](installation.md) for GPU requirements, troubleshooting, and platform-specific tips. Check the [Hardware Requirements](installation.md#hardware-requirements-by-task) to see what your system can run.
 
 ### Sign In (Optional)
 
@@ -52,11 +52,11 @@ To run the example workflows, you'll need some AI models:
 
 1. Open **Models → Model Manager** from the top navigation
 2. Install these recommended starter models:
-   - **Flux** or **SDXL** – for image generation
+   - **Flux** or **SDXL** – for image generation (requires 8-12 GB VRAM)
    - **GPT-OSS** (optional) – for text generation
 3. Wait for downloads to complete (~20 GB total)
 
-> **Tip**: Don't have a powerful GPU? No problem! Skip local models and use cloud services (like OpenAI or Replicate) by adding your API key in `Settings → Providers`. You'll still accomplish the same tasks.
+> **Tip**: Don't have a powerful GPU? No problem! Skip local models and use cloud services (like OpenAI or Replicate) by adding your API key in `Settings → Providers`. You'll still accomplish the same tasks. See [Hardware Requirements](installation.md#hardware-requirements-by-task) for detailed specs by task.
 
 ✅ **Checkpoint**: You should now see the NodeTool Dashboard with Templates and example workflows ready to explore.
 
@@ -179,6 +179,11 @@ Turn your workflow into a simple app that anyone can use—no NodeTool knowledge
 - **[Models & Providers](models-and-providers.md)** – Set up more AI models
 - **[Asset Management](asset-management.md)** – Organize your files
 - **[Deployment Guide](deployment.md)** – Share workflows with the world
+
+### Debug & Troubleshoot
+- **[Workflow Debugging Guide](workflow-debugging.md)** – Debug workflows with Preview nodes and logs
+- **[Troubleshooting](troubleshooting.md)** – Solve common problems
+- **[Comparisons](comparisons.md)** – How NodeTool compares to other tools (includes migration guides)
 
 ---
 
