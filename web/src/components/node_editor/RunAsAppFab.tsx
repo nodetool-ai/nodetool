@@ -15,9 +15,12 @@ const RunAsAppFab = ({ workflowId }: RunAsAppFabProps) => {
         size="medium"
         onClick={() => navigate(`/apps/${workflowId}`)}
         sx={{
-          position: "absolute",
-          top: 10,
-          right: 50,
+          borderRadius: 0,
+          position: "fixed",
+          top: "40px",
+          right: "0px",
+          width: "48px !important",
+          height: "32px !important",
           zIndex: 100,
           background: "linear-gradient(90deg, #3F51B5 0%, #2196F3 100%)",
           color: "white",
