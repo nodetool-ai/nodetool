@@ -637,6 +637,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "json":
         return <JSONRenderer value={value} showActions={showTextActions} />;
       default:
+        if (value !== null && typeof value === "object") {
+          return <JSONRenderer value={value} showActions={showTextActions} />;
+        }
         return (
           <TextRenderer
             text={value?.toString?.() ?? ""}

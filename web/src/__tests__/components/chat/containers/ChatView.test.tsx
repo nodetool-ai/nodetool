@@ -311,7 +311,6 @@ describe("ChatView", () => {
           collections: undefined,
           agent_mode: false,
           help_mode: false,
-          workflow_assistant: false,
           graph: undefined
         });
       });

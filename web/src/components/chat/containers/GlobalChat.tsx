@@ -23,7 +23,7 @@ import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
-  const {
+   const {
     status,
     sendMessage,
     progress,
@@ -43,7 +43,8 @@ const GlobalChat: React.FC = () => {
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread,
     currentLogUpdate,
-    threadsLoaded
+    threadsLoaded,
+    workflowId
   } = useGlobalChatStore();
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
@@ -414,6 +415,7 @@ const GlobalChat: React.FC = () => {
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={taskUpdateForDisplay}
             currentLogUpdate={currentLogUpdate}
+            workflowId={workflowId}
           />
         </Box>
       </Box>
