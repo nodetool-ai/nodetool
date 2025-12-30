@@ -190,5 +190,5 @@ Turn your workflow into a simple app that anyone can use—no NodeTool knowledge
 ## Need Help?
 
 - **[Glossary](glossary.md)** – Plain-English definitions of all terms
-- **[Discord Community](https://discord.gg/26m5xBwe)** – Get help from other users
+- **[Discord Community](https://discord.gg/WmQTWZRcYE)** – Get help from other users
 - **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** – Report bugs or request features

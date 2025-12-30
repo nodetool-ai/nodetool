@@ -470,7 +470,7 @@ If all else fails, try a clean reinstall:
 
 If you're still stuck:
 
-- **[Discord Community](https://discord.gg/26m5xBwe)** – Ask questions and get help from users
+- **[Discord Community](https://discord.gg/WmQTWZRcYE)** – Ask questions and get help from users
 - **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** – Report bugs with system details
 - **[Troubleshooting Guide](troubleshooting.md)** – For workflow and runtime issues (not installation)
 
