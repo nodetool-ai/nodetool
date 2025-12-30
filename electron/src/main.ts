@@ -173,6 +173,16 @@ async function initialize(): Promise<void> {
   try {
     logMessage("=== Starting Application Initialization ===");
 
+    // Skip heavy initialization in test mode
+    if (process.env.NODE_ENV === 'test') {
+      logMessage("Running in test mode, skipping Python/server initialization");
+      assert(mainWindow, "MainWindow is not initialized");
+      // Load a simple page for testing
+      mainWindow.loadURL('data:text/html,<html><body>Test Mode</body></html>');
+      logMessage("=== Application Initialization Complete (Test Mode) ===");
+      return;
+    }
+
     // Verify paths and permissions
     logMessage("Verifying application paths...");
     const validationResult = await verifyApplicationPaths();
@@ -300,7 +310,11 @@ let isInitialized = false;
 
 app.on("ready", async () => {
   await initializeIpcHandlers();
-  await checkMediaPermissions();
+  
+  // Skip media permissions check in test mode
+  if (process.env.NODE_ENV !== 'test') {
+    await checkMediaPermissions();
+  }
 
   mainWindow = createWindow();
   mainWindow.on("ready-to-show", async () => {
@@ -308,8 +322,13 @@ app.on("ready", async () => {
     mainWindow?.focus();
     if (!isInitialized) {
       isInitialized = true;
-      await buildMenu();
-      await createTray();
+      
+      // Skip menu/tray creation in test mode
+      if (process.env.NODE_ENV !== 'test') {
+        await buildMenu();
+        await createTray();
+      }
+      
       await initialize();
     }
   });

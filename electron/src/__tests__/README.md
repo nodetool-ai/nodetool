@@ -1,6 +1,6 @@
 # Testing Electron Code
 
-This directory contains tests for the NodeTool Electron application.
+This directory contains unit tests for the NodeTool Electron application. For end-to-end tests, see `tests/e2e/` in the electron root directory.
 
 ## Testing Structure
 
@@ -9,10 +9,10 @@ Tests are organized by module, with each test file corresponding to a source fil
 - `src/utils.ts` → `src/__tests__/utils.test.ts`
 - `src/window.ts` → `src/__tests__/window.test.ts`
 
-## Running Tests
+## Running Unit Tests
 
 ```bash
-# Run all tests
+# Run all unit tests
 npm test
 
 # Run tests in watch mode (development)
@@ -21,6 +21,22 @@ npm run test:watch
 # Generate test coverage report
 npm run test:coverage
 ```
+
+## Running E2E Tests
+
+End-to-end tests are located in `tests/e2e/` and use Playwright:
+
+```bash
+# Build the app first
+npm run vite:build && npx tsc
+
+# Run e2e tests
+npm run test:e2e          # Run all e2e tests
+npm run test:e2e:ui       # Run with Playwright UI (interactive)
+npm run test:e2e:headed   # Run in headed mode (see the window)
+```
+
+See the main [README.md](../../README.md) for more details on e2e testing.
 
 ## Mocking Strategy
 

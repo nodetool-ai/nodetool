@@ -22,12 +22,16 @@
     "postinstall": "electron-builder install-app-deps",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@playwright/test": "^1.57.0",
     "@types/gunzip-maybe": "^1.4.2",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
@@ -49,9 +53,9 @@
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
+    "unbzip2-stream": "^1.4.3",
     "vite": "^6.4.1",
-    "vite-plugin-electron": "^0.29.0",
-    "unbzip2-stream": "^1.4.3"
+    "vite-plugin-electron": "^0.29.0"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
