@@ -608,10 +608,10 @@ const WorkflowAssistantChat: React.FC = () => {
         allowedProviders={["OpenAI", "MiniMax", "Anthropic"]}
         runningToolCallId={currentRunningToolCallId}
         runningToolMessage={currentToolMessage}
-        graph={{
+        graph={isHelpMode ? {
           nodes: nodes.map(reactFlowNodeToGraphNode),
           edges: edges.map(reactFlowEdgeToGraphEdge)
-        }}
+        } : undefined}
       />
     </div>
   );
