@@ -26,7 +26,6 @@ import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { Container, List, ListItem, ListItemText } from "@mui/material";
 import ListTable from "./DataTable/ListTable";
-import DictTable from "./DataTable/DictTable";
 import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
 import TaskPlanView from "./TaskPlanView";
@@ -50,6 +49,7 @@ import { AssetGrid } from "./output/AssetGrid";
 import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
+import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
 
@@ -390,28 +390,49 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           </div>
         );
       case "object": {
+        const keys = Object.keys(value);
         const vals = Object.values(value);
-        // Check if any values are nested objects/arrays - use JSON renderer for complex structures
-        const hasNestedObjects = vals.some(
-          (v) => v !== null && typeof v === "object"
+
+        // For empty objects, return null
+        if (keys.length === 0) {
+          return null;
+        }
+
+        // Single-key object: render the value directly (unwrap the object)
+        if (keys.length === 1) {
+          const singleValue = vals[0];
+          // If it's a primitive, render it directly
+          if (typeof singleValue === "string") {
+            return (
+              <TextRenderer text={singleValue} showActions={showTextActions} />
+            );
+          }
+          if (typeof singleValue === "number") {
+            return (
+              <TextRenderer
+                text={String(singleValue)}
+                showActions={showTextActions}
+              />
+            );
+          }
+          if (typeof singleValue === "boolean") {
+            return <BooleanRenderer value={singleValue} />;
+          }
+          // For objects/arrays, recurse
+          return (
+            <OutputRenderer value={singleValue} showTextActions={showTextActions} />
+          );
+        }
+
+        // Multi-key object: use ObjectRenderer for clean sectioned display
+        return (
+          <ObjectRenderer
+            value={value}
+            renderValue={(v) => (
+              <OutputRenderer value={v} showTextActions={showTextActions} />
+            )}
+          />
         );
-        if (hasNestedObjects) {
-          return <JSONRenderer value={value} showActions={showTextActions} />;
-        }
-        // Simple key-value pairs - use DictTable
-        if (vals.length > 0) {
-          if (typeof vals[0] === "string") {
-            return (
-              <DictTable data={value} data_type="string" editable={false} />
-            );
-          }
-          if (typeof vals[0] === "number") {
-            return (
-              <DictTable data={value} data_type="float" editable={false} />
-            );
-          }
-        }
-        return <DictTable data={value} editable={false} data_type="string" />;
       }
       case "task":
         return <TaskView task={value as Task} />;
