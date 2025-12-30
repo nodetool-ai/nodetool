@@ -5,12 +5,8 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
-// Skip in CI as these tests require Electron to manage its own Python server,
-// but CI environments run with an externally managed server for integration testing.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
-} else if (process.env.CI) {
-  test.skip("skipped in CI environment - these tests require Electron-managed server", () => {});
 } else {
   test.describe("Python Server Initialization", () => {
     let electronApp: any;
