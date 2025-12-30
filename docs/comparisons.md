@@ -169,6 +169,121 @@ Custom Python scripts give you **unlimited flexibility** but require **manual wo
 
 **Benefit:** Faster iteration, better collaboration, easier deployment
 
+### From ComfyUI to NodeTool
+
+ComfyUI users will find NodeTool familiar yet more powerful. Here's how the concepts map:
+
+#### Terminology Translation
+
+| ComfyUI | NodeTool | Notes |
+|---------|----------|-------|
+| **Node** | **Node** | Same concept! Drag-and-drop building blocks |
+| **Widget** | **Input Field** | Configuration options on nodes |
+| **Workflow** | **Workflow** | The complete graph of connected nodes |
+| **Queue** | **Run** | Execute the workflow (Ctrl/⌘ + Enter) |
+| **KSampler** | **StableDiffusion** / **Flux** | Image generation nodes with similar parameters |
+| **CLIP Text Encode** | Built into generation nodes | Text encoding is automatic in NodeTool |
+| **VAE Decode** | Automatic | NodeTool handles VAE internally |
+| **Load Checkpoint** | **Model selection dropdown** | Models are selected in node UI, not loaded separately |
+| **Preview Image** | **Preview** node | Add Preview nodes anywhere to inspect outputs |
+| **Save Image** | **Output** node / **SaveImage** | Results appear in Output nodes or save to disk |
+
+#### Execution Model Differences
+
+**ComfyUI**: Executes the entire graph when you queue, processing nodes in dependency order. You wait for completion, then see all outputs.
+
+**NodeTool**: Also executes in dependency order, but with **streaming output**:
+- See intermediate results as they're generated
+- LLM responses stream token-by-token
+- Images appear as they finish generating
+- Preview nodes show real-time progress
+
+**What this means for you:**
+- No more waiting for the entire workflow to complete
+- Easier debugging – see where things go wrong immediately
+- Better UX for complex multi-step workflows
+
+#### Key Differences
+
+| Aspect | ComfyUI | NodeTool |
+|--------|---------|----------|
+| **Model Loading** | Explicit `Load Checkpoint` node | Automatic – select model in generation node |
+| **CLIP/VAE** | Separate nodes | Built into generation pipeline |
+| **Conditioning** | Manual CLIP encoding | Automatic prompt handling |
+| **ControlNet** | Separate loader + apply nodes | Single `ControlNet` node handles everything |
+| **Latent Space** | Explicit latent operations | Automatic – work with images directly |
+| **Custom Nodes** | Python files in `custom_nodes/` | Python classes inheriting `BaseNode` |
+| **Workflows** | JSON files | JSON files (compatible structure) |
+| **Execution** | Queue-based, blocking | Async, streaming |
+| **Deployment** | Self-host only | RunPod, Cloud Run, self-hosted, or local |
+
+#### Migration Steps
+
+1. **Identify your workflow pattern**
+   - Text-to-Image: Use `StableDiffusion`, `StableDiffusionXL`, or `Flux` nodes
+   - Image-to-Image: Use `*Img2Img` variants
+   - ControlNet: Use `*ControlNet` nodes
+   - Inpainting: Use `*Inpaint` nodes
+
+2. **Map your nodes**
+   - Remove explicit model loaders – select model in generation node
+   - Remove CLIP/VAE nodes – handled automatically
+   - Replace KSampler with appropriate generation node
+   - Add Preview nodes where you want to see intermediate results
+
+3. **Adapt your workflow**
+   ```
+   ComfyUI:
+   LoadCheckpoint → CLIPTextEncode → KSampler → VAEDecode → SaveImage
+   
+   NodeTool:
+   StringInput (prompt) → StableDiffusionXL → Output
+   ```
+
+4. **Test and iterate**
+   - Run workflow, watch streaming output
+   - Add Preview nodes to debug
+   - Adjust parameters as needed
+
+#### Example: Basic txt2img
+
+**ComfyUI nodes:**
+- Load Checkpoint (model)
+- CLIP Text Encode (positive prompt)
+- CLIP Text Encode (negative prompt)  
+- Empty Latent Image (dimensions)
+- KSampler
+- VAE Decode
+- Save Image
+
+**NodeTool equivalent:**
+- `StringInput` (prompt)
+- `StringInput` (negative prompt, optional)
+- `StableDiffusionXL` (select model, set dimensions, steps, etc.)
+- `Output`
+
+That's it – 4 nodes instead of 7+. The complexity is hidden, not removed.
+
+#### What NodeTool Adds
+
+Coming from ComfyUI, you gain:
+
+- **LLM Integration**: Add AI reasoning, text generation, and agents to image workflows
+- **RAG Support**: Index documents and query them alongside image generation
+- **Deployment**: One-click deploy to RunPod or Cloud Run
+- **Multi-Modal**: Audio, video, and data processing alongside images
+- **Mini-Apps**: Turn workflows into simple UIs for non-technical users
+- **Chat Interface**: Run workflows through natural language in Global Chat
+
+#### What's Different
+
+- **Less granular control**: NodeTool abstracts some low-level operations
+- **Different node ecosystem**: ComfyUI custom nodes won't work directly
+- **Learning curve**: New UI and different workflow patterns
+- **No A1111 extensions**: NodeTool has its own extension system
+
+**Recommendation:** Keep ComfyUI for highly specialized image workflows. Use NodeTool when you need deployment, LLM integration, or collaboration features.
+
 ---
 
 ## Frequently Asked Questions
