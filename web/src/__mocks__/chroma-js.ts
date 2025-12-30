@@ -55,18 +55,18 @@ const chromaMock = jest.fn((color: string) => {
     alpha: jest.fn((a: number) => ({
       rgba: jest.fn(() => [...rgbaValues, a]),
     })),
-    darken: jest.fn((amount: number) => ({
+    darken: jest.fn((_amount: number) => ({
       hex: jest.fn(() => {
         if (color === "#ff0000") {return "#e00000";}
         if (color === "#000000") {return "#000000";}
         if (color === "#ffffff") {
-          if (amount === 1.0) {return "#cccccc";}
-          if (amount === 0.1) {return "#e6e6e6";}
+          if (_amount === 1.0) {return "#cccccc";}
+          if (_amount === 0.1) {return "#e6e6e6";}
         }
         return "#990000";
       }),
     })),
-    brighten: jest.fn((amount: number) => ({
+    brighten: jest.fn((_amount: number) => ({
       hex: jest.fn(() => {
         if (color === "#000000") {return "#2c2c2c";}
         if (color === "#808080") {return "#bfbfbf";}
@@ -90,10 +90,10 @@ const chromaMock = jest.fn((color: string) => {
         return "#ff0000";
       }),
     })),
-    saturate: jest.fn((amount: number) => ({
+    saturate: jest.fn((_amount: number) => ({
       hex: jest.fn(() => "#ff0000"),
     })),
-    desaturate: jest.fn((amount: number) => ({
+    desaturate: jest.fn((_amount: number) => ({
       hex: jest.fn(() => "#cc3333"),
     })),
     hex: jest.fn(() => {
@@ -111,7 +111,7 @@ const chromaMock = jest.fn((color: string) => {
   };
 }) as any;
 
-chromaMock.mix = jest.fn((color1: any, color2: any, amount: number, mode?: string) => ({
+chromaMock.mix = jest.fn((color1: any, color2: any, amount: number, _mode?: string) => ({
   hex: jest.fn(() => {
     // Simulate color blending for simulateOpacity tests
     if (amount === 0.5) {
@@ -136,8 +136,8 @@ chromaMock.mix = jest.fn((color1: any, color2: any, amount: number, mode?: strin
   }),
 }));
 
-chromaMock.scale = jest.fn((colors: string[]) => ({
-  mode: jest.fn((m: string) => ({
+chromaMock.scale = jest.fn((_colors: string[]) => ({
+  mode: jest.fn((_m: string) => ({
     colors: jest.fn((n: number) => {
       const result = [];
       for (let i = 0; i < n; i++) {

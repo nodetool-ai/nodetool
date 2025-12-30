@@ -1,6 +1,6 @@
 import React from "react";
 import "@testing-library/jest-dom";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CollectionsSelector from "../../../../components/chat/composer/CollectionsSelector";
 
@@ -21,7 +21,7 @@ jest.mock("@mui/material", () => ({
       {endIcon && <span data-testid="end-icon">{endIcon}</span>}
     </button>
   ),
-  Chip: ({ label, size, sx }: any) => (
+  Chip: ({ label }: any) => (
     <span data-testid="chip" className="MuiChip-root">
       {label}
     </span>
@@ -84,7 +84,7 @@ jest.mock("@mui/material", () => ({
       {children}
     </button>
   ),
-  Tooltip: ({ children, title, open }: any) => (
+  Tooltip: ({ children, title }: any) => (
     <div title={title}>
       {children}
       <div data-testid="tooltip-content">{title}</div>

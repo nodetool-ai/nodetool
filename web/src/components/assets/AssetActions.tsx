@@ -3,10 +3,8 @@ import { css } from "@emotion/react";
 
 import { useEffect, useRef, useState } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
-import NorthIcon from "@mui/icons-material/North";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
-import { Refresh } from "@mui/icons-material";
 import {
   Button,
   ButtonGroup,
@@ -236,10 +234,10 @@ const AssetActions = ({
 }: AssetActionsProps) => {
   const theme = useTheme();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
-  const parentFolder = useAssetGridStore((state) => state.parentFolder);
-  const { refetchAssetsAndFolders, navigateToFolderId, isLoading } =
+  const _parentFolder = useAssetGridStore((state) => state.parentFolder);
+  const { refetchAssetsAndFolders, isLoading } =
     useAssets();
-  const currentUser = useAuth((state) => state.user);
+  const _currentUser = useAuth((state) => state.user);
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);
   const [createFolderName, setCreateFolderName] =

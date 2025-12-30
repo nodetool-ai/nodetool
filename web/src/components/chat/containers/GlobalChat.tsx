@@ -4,8 +4,7 @@ import React, {
   useEffect,
   useRef,
   useMemo,
-  useState,
-  useCallback
+  useState
 } from "react";
 import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -64,7 +63,7 @@ const GlobalChat: React.FC = () => {
     (s) => s.setSelectedCollections
   );
   const theme = useTheme();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [_drawerOpen, setDrawerOpen] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
   // Reset dismissed state when status or error changes
@@ -247,7 +246,7 @@ const GlobalChat: React.FC = () => {
     }
   };
 
-  const mainAreaStyles = (theme: Theme) =>
+  const mainAreaStyles = (_theme: Theme) =>
     css({
       position: "relative",
       flex: 1,

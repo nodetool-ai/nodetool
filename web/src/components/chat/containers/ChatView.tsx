@@ -16,7 +16,7 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     "&": {
       position: "relative",

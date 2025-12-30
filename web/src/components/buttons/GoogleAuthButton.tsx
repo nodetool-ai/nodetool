@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useAuth from "../../stores/useAuth";
 
-const styles = (theme: Theme) => ({
+const styles = (_theme: Theme) => ({
   svg: {
     display: "block"
   }

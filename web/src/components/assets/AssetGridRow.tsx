@@ -11,7 +11,6 @@ import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { IconButton, Typography, Tooltip } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY

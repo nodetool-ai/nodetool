@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
-import FileUploadButton from "../buttons/FileUploadButton";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";

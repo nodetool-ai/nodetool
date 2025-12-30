@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./EmptyThreadList.styles";
 
 export const EmptyThreadList: React.FC = () => {
