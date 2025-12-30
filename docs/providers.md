@@ -149,7 +149,111 @@ For detailed information on all HuggingFace nodes, model recommendations, and us
 
 ### Video Generation Providers
 
-Providers like Gemini support video generation capabilities through the unified interface:
+Multiple providers now support advanced video generation capabilities through the unified interface. NodeTool provides access to state-of-the-art models for text-to-video and image-to-video generation:
+
+#### OpenAI Sora 2 Pro
+
+**Capabilities:** Text-to-video, Image-to-video
+
+**Features:**
+- ✅ Realistic motion with refined physics simulation
+- ✅ Synchronized native audio generation
+- ✅ Up to 15 seconds of video generation
+- ✅ 1080p output resolution
+- ✅ Advanced scene understanding
+
+**Configuration:** Set `OPENAI_API_KEY` environment variable or configure in Settings → Providers
+
+#### Google Veo 3.1 (via Gemini)
+
+**Capabilities:** Text-to-video, Image-to-video, Multi-image reference
+
+**Features:**
+- ✅ Upgraded realistic motion synthesis
+- ✅ Extended clip length support
+- ✅ Multi-image reference inputs for consistent generation
+- ✅ Native 1080p with synchronized audio
+- ✅ Advanced camera control
+
+**Configuration:** Set `GEMINI_API_KEY` environment variable or configure in Settings → Providers
+
+#### xAI Grok Imagine
+
+**Capabilities:** Multimodal text/image-to-video, Text-to-image
+
+**Features:**
+- ✅ Coherent motion synthesis from text or image inputs
+- ✅ Synchronized audio generation
+- ✅ Short video generation with strong coherence
+- ✅ Also supports high-quality text-to-image
+
+**Configuration:** Set `XAI_API_KEY` environment variable or configure in Settings → Providers
+
+#### Alibaba Wan 2.6
+
+**Capabilities:** Multi-shot video generation, Reference-guided generation
+
+**Features:**
+- ✅ Affordable 1080p video generation
+- ✅ Stable character consistency across shots
+- ✅ Native audio synthesis
+- ✅ T2V/I2V with reference-guided modes
+- ✅ Cost-effective for high-volume workflows
+
+**Configuration:** Set `ALIBABA_API_KEY` environment variable or configure in Settings → Providers
+
+#### MiniMax Hailuo 2.3
+
+**Capabilities:** High-fidelity text-to-video and image-to-video
+
+**Features:**
+- ✅ Expressive character animation
+- ✅ Complex motion and lighting effects
+- ✅ High visual fidelity
+- ✅ Natural movement patterns
+
+**Configuration:** Set `MINIMAX_API_KEY` environment variable or configure in Settings → Providers
+
+#### Kling 2.6
+
+**Capabilities:** Video generation with comprehensive audio
+
+**Features:**
+- ✅ Text/image to synchronized video
+- ✅ Integrated speech synthesis
+- ✅ Ambient sound generation
+- ✅ Sound effects generation
+- ✅ Strong audio-visual coherence
+
+**Configuration:** Set `KLING_API_KEY` environment variable or configure in Settings → Providers
+
+### Image Generation Providers
+
+#### Black Forest Labs FLUX.2
+
+**Capabilities:** Advanced text-to-image generation
+
+**Features:**
+- ✅ Photorealistic image generation
+- ✅ Multi-reference consistency
+- ✅ Accurate text rendering in images
+- ✅ Flexible control parameters
+- ✅ High-quality output across diverse styles
+
+**Configuration:** Available through HuggingFace provider or direct API access
+
+#### Google Nano Banana Pro
+
+**Capabilities:** High-resolution text-to-image
+
+**Features:**
+- ✅ Sharper 2K native output
+- ✅ Intelligent 4K upscaling
+- ✅ Improved text rendering accuracy
+- ✅ Enhanced character consistency
+- ✅ Advanced detail preservation
+
+**Configuration:** Set `GOOGLE_API_KEY` environment variable or configure in Settings → Providers
 
 ## Generic Nodes: Provider-Agnostic Workflows
 
@@ -187,6 +291,8 @@ The following generic nodes are available in the NodeTool interface (visible in 
 
 **Quick Switch:**
 
+- Black Forest Labs FLUX.2
+- Google Nano Banana Pro
 - HuggingFace (via FAL, Replicate, etc.)
 - OpenAI DALL-E
 - Local models (ComfyUI, MLX)
@@ -207,7 +313,12 @@ The following generic nodes are available in the NodeTool interface (visible in 
 
 **Quick Switch:**
 
-- Google Gemini (Veo)
+- OpenAI Sora 2 Pro
+- Google Veo 3.1 (Gemini)
+- xAI Grok Imagine
+- Alibaba Wan 2.6
+- MiniMax Hailuo 2.3
+- Kling 2.6
 - HuggingFace models
 - Future video providers
 
@@ -217,7 +328,12 @@ The following generic nodes are available in the NodeTool interface (visible in 
 
 **Quick Switch:**
 
-- Google Gemini (Veo)
+- OpenAI Sora 2 Pro
+- Google Veo 3.1 (Gemini)
+- xAI Grok Imagine
+- Alibaba Wan 2.6
+- MiniMax Hailuo 2.3
+- Kling 2.6
 - Stability AI
 - Other video generation services
 
