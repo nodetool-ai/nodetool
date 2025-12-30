@@ -1,25 +1,23 @@
 ---
 layout: page
 title: "Tips and Tricks"
-description: "Power user shortcuts and workflow efficiency tips for NodeTool."
+description: "Shortcuts and efficiency tips for NodeTool."
 ---
 
-Level up your NodeTool skills with these tips, tricks, and shortcuts. From quick actions to hidden features, these will help you work faster and smarter.
+Shortcuts, hidden features, and workflow efficiency tips.
 
 ---
 
 ## Essential Shortcuts
 
-**Learn these first – they'll save you hours!**
-
-| Shortcut | What It Does |
-|----------|--------------|
-| `Space` | Open node menu to add nodes |
-| `Ctrl/⌘ + Enter` | Run your workflow |
+| Shortcut | Action |
+|----------|--------|
+| `Space` | Open node menu |
+| `Ctrl/⌘ + Enter` | Run workflow |
 | `Ctrl/⌘ + S` | Save |
-| `F` | Fit view (zoom to show all nodes) |
+| `F` | Fit view |
 | `Ctrl/⌘ + Z` | Undo |
-| `Alt/⌘ + K` | Open command menu |
+| `Alt/⌘ + K` | Command menu |
 
 ---
 
@@ -149,14 +147,14 @@ Press `Alt/⌘ + K` to open the command menu – the fastest way to:
 ### Choosing Models
 
 - **Local for privacy**: Use local models for sensitive data
-- **Cloud for speed**: API models are faster, especially for images
+- **Cloud for speed**: API models are faster
 - **Mix both**: Local preprocessing → cloud generation → local post-processing
 
-### Optimizing Performance
+### Performance
 
 - **Smaller models first**: Test with fast models, upgrade for quality
-- **Quantized models**: Smaller files, nearly same quality (look for Q4, Q8)
-- **Streaming nodes**: See progress instead of waiting
+- **Quantized models**: Smaller files, similar quality (Q4, Q8)
+- **Streaming nodes**: See progress during execution
 
 ---
 

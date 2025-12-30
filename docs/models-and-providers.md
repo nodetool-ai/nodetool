@@ -1,66 +1,62 @@
 ---
 layout: page
 title: "Models & Providers"
-description: "Understand AI models and choose between local and cloud options – explained for beginners."
+description: "AI models and local vs cloud options."
 ---
 
-This guide explains how AI models work in NodeTool and helps you choose the right setup for your needs. **No prior AI knowledge required** – we'll explain everything in plain terms.
+This guide explains AI models in NodeTool and how to choose between local and cloud execution.
 
 ---
 
 ## What Are AI Models?
 
-Think of an AI **model** as a specialized expert that has learned to do one thing really well:
+An AI **model** is a trained program for a specific task:
 
-| Model Type | What It Does | Example |
-|------------|--------------|---------|
-| **Language Model (LLM)** | Reads and writes text | Write stories, answer questions, summarize documents |
-| **Image Model** | Creates or edits images | Generate artwork, edit photos, create variations |
-| **Speech Model** | Converts between speech and text | Transcribe meetings, read documents aloud |
-| **Vision Model** | Understands images | Describe photos, extract text from documents |
+| Model Type | Function | Example |
+|------------|----------|---------|
+| **Language Model (LLM)** | Text generation | Stories, Q&A, summarization |
+| **Image Model** | Image generation/editing | Artwork, photos, variations |
+| **Speech Model** | Speech↔text conversion | Transcription, text-to-speech |
+| **Vision Model** | Image understanding | Photo descriptions, OCR |
 
-**You don't train models** – they come pre-trained and ready to use. Just pick one for your task!
+Models come pre-trained. Select one for your task.
 
 ---
 
-## Local vs. Cloud: Which Should You Choose?
+## Local vs. Cloud
 
-NodeTool lets you run AI models either on your computer (local) or through internet services (cloud). Here's how to decide:
+NodeTool runs AI models locally or through cloud APIs.
 
-### Local Models (On Your Computer)
+### Local Models
 
 **Pros:**
-- 🔒 **Private** – Your data never leaves your machine
-- 💰 **Free** – No usage costs after download
+- 🔒 **Private** – Data stays local
+- 💰 **Free** – No usage costs
 - 📶 **Offline** – Works without internet
 
 **Cons:**
-- 💾 **Requires space** – Models can be 4-15 GB each
-- ⚡ **Needs power** – Faster with GPU, slower on CPU-only
-- ⏳ **Initial download** – One-time setup required
+- 💾 **Requires space** – 4-15 GB per model
+- ⚡ **Needs hardware** – Faster with GPU
+- ⏳ **Initial download** – One-time setup
 
-**Best for:** Privacy-sensitive work, offline use, unlimited experimentation
-
-### Cloud Models (Via Internet APIs)
+### Cloud Models
 
 **Pros:**
-- 🚀 **Fast** – No downloads, start immediately
-- 💻 **Any computer** – Works on older machines
-- 🆕 **Latest models** – Access newest AI capabilities
+- 🚀 **Fast** – No downloads
+- 💻 **Any hardware** – Works on older machines
+- 🆕 **Latest models** – Access newest capabilities
 
 **Cons:**
-- 💵 **Costs money** – Pay per use (usually pennies per task)
-- 🌐 **Needs internet** – Requires connection
-- 📤 **Data sent** – Your prompts go to external servers
+- 💵 **Usage costs** – Pay per task
+- 🌐 **Requires internet**
+- 📤 **Data sent externally**
 
-**Best for:** Quick start, limited hardware, accessing cutting-edge models
+### Mixed Approach (Recommended)
 
-### Mix Both! (Recommended)
-
-Most users benefit from combining local and cloud:
-- Run **speech recognition locally** for privacy
-- Use **cloud image generation** for quality
-- Keep **document processing local** for confidential files
+Combine local and cloud:
+- **Speech recognition** – local for privacy
+- **Image generation** – cloud for quality
+- **Document processing** – local for confidential files
 
 ---
 
@@ -104,28 +100,26 @@ Model names can look confusing, but they follow patterns:
 - Instruction-tuned (follows directions well)
 - Q4 quantization (compressed to save space)
 
-**Don't worry about memorizing this** – NodeTool's Model Manager shows you which models work for each task.
+**Don't memorize this** – NodeTool's Model Manager shows compatible models for each task.
 
 ---
 
 ## Detailed Guides
 
-Ready to dive deeper? Check these specialized guides:
-
-### For Everyone
+### General
 - **[Models Manager](models-manager.md)** – Download and manage AI models
-- **[Getting Started](getting-started.md)** – Your first workflow
+- **[Getting Started](getting-started.md)** – First workflow
 
-### For Local AI
-- **[Supported Models](models.md)** – Complete list of local models (llama.cpp, MLX, Whisper, Flux, and more)
+### Local AI
+- **[Supported Models](models.md)** – List of local models (llama.cpp, MLX, Whisper, Flux)
 
-### For Cloud AI
-- **[Providers Guide](providers.md)** – Set up OpenAI, Anthropic, Google, and other cloud services
-- **[HuggingFace Integration](huggingface.md)** – Access 500,000+ models through HuggingFace
+### Cloud AI
+- **[Providers Guide](providers.md)** – Set up OpenAI, Anthropic, Google
+- **[HuggingFace Integration](huggingface.md)** – Access 500,000+ models
 
-### For Advanced Users
-- **[Proxy & Self-Hosted](proxy.md)** – Secure deployments with remote GPUs
-- **[Deployment Guide](deployment.md)** – Run workflows on cloud infrastructure
+### Advanced
+- **[Proxy & Self-Hosted](proxy.md)** – Secure deployments
+- **[Deployment Guide](deployment.md)** – Cloud infrastructure
 
 ---
 
@@ -155,10 +149,10 @@ Ready to dive deeper? Check these specialized guides:
 A: For local models, a GPU helps but isn't required. Cloud providers work on any computer.
 
 **Q: How much do cloud models cost?**  
-A: Typically $0.001-0.03 per task. Most providers offer free credits to start.
+A: Typically $0.001-0.03 per task. Most providers offer free credits.
 
 **Q: Can I switch models later?**  
-A: Yes! Use the **Model** button on any AI node to change models without rebuilding your workflow.
+A: Yes. Use the **Model** button on any AI node to change models without rebuilding the workflow.
 
-**Q: Which is better, local or cloud?**  
-A: Neither is "better" – it depends on your needs. Try both and see what works for you!
+**Q: Local or cloud?**  
+A: Depends on your needs. Try both.
