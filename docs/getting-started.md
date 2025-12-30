@@ -41,20 +41,15 @@ If you'd like a visual overview first, check out the [Start Here guide](index.md
 
 > **Need help?** See the detailed [Installation Guide](installation.md) for GPU requirements, troubleshooting, and platform-specific tips. Check the [Hardware Requirements](installation.md#hardware-requirements-by-task) to see what your system can run.
 
-### Sign In (Optional)
-
-- **Sign in with Supabase** to sync your workflows and assets across devices
-- **Use Localhost Mode** for fully offline, private operation (`Settings → Authentication`)
-
 ### Install Your First AI Models
 
 To run the example workflows, you'll need some AI models:
 
-1. Open **Models → Model Manager** from the top navigation
+1. Open **Models** from the top navigation
 2. Install these recommended starter models:
    - **Flux** or **SDXL** – for image generation (requires 8-12 GB VRAM)
-   - **GPT-OSS** (optional) – for text generation
-3. Wait for downloads to complete (~20 GB total)
+   - **Gemma 4B** (optional) – for text generation
+3. Wait for downloads to complete (~12-16 GB total)
 
 > **Tip**: Don't have a powerful GPU? No problem! Skip local models and use cloud services (like OpenAI or Replicate) by adding your API key in `Settings → Providers`. You'll still accomplish the same tasks. See [Hardware Requirements](installation.md#hardware-requirements-by-task) for detailed specs by task.
 
