@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { NodeResizeControl, NodeResizer } from "@xyflow/react";
+import { NodeResizeControl } from "@xyflow/react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -42,7 +42,7 @@ const styles = (theme: Theme) =>
         height: "20px",
         left: "50%",
         top: "50%",
-        color: "white",
+        color: theme.vars.palette.grey[100],
         transform: "translate(-50%, -50%) rotate(-45deg)",
         transition: "color 0.2s"
       }
