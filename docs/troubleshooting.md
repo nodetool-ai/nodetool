@@ -436,6 +436,8 @@ Include these details when asking for help:
 
 ## Related Documentation
 
+- [Workflow Debugging Guide](workflow-debugging.md) – Step-by-step debugging with Preview nodes and logs
+- [Installation Troubleshooting](installation.md#troubleshooting-installation) – Hardware, CUDA, and installation issues
 - [Getting Started](getting-started.md) – Basics of running workflows
 - [Workflow Editor](workflow-editor.md) – Using the visual editor
 - [Key Concepts](key-concepts.md) – Understanding nodes and connections
