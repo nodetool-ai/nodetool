@@ -5,7 +5,7 @@ title: "Python DSL Guide"
 
 ## Creating NodeTool Workflows
 
-This guide covers the Python Domain-Specific Language (DSL) for building NodeTool workflows programmatically. The DSL allows you to define complex AI workflows in pure Python while maintaining the flexibility of the visual node-based editor.
+The Python DSL for building NodeTool workflows programmatically. Define AI workflows in Python while maintaining visual editor compatibility.
 
 ## Table of Contents
 
@@ -22,14 +22,14 @@ This guide covers the Python Domain-Specific Language (DSL) for building NodeToo
 
 ## Introduction
 
-The NodeTool DSL enables you to:
+The NodeTool DSL:
 
-- **Define workflows in Python** without using the visual editor
-- **Reuse and version control** your workflows in code
-- **Generate workflows programmatically** from data or templates
-- **Integrate with Python scripts** and testing frameworks
+- **Defines workflows in Python** without the visual editor
+- **Version controls** workflows as code
+- **Generates workflows** programmatically from data or templates
+- **Integrates with Python scripts** and testing frameworks
 
-Instead of dragging and dropping nodes, you instantiate Python classes and connect them by passing outputs to inputs.
+Instantiate Python classes and connect them by passing outputs to inputs.
 
 ---
 

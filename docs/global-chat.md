@@ -3,22 +3,19 @@ layout: page
 title: "Global Chat"
 ---
 
-Global Chat is NodeTool's powerful AI assistant interface that lets you interact with AI models from anywhere in the
-application. It provides a full-featured chat experience with advanced capabilities including autonomous agents,
-specialized tools, and workflow integration.
+Global Chat is NodeTool's AI assistant interface for interacting with AI models from anywhere in the application. It supports multiple providers, autonomous agents, specialized tools, and workflow integration.
 
 ## Overview
 
-Global Chat transforms NodeTool into a comprehensive AI workspace where you can:
+Global Chat provides:
 
-- Chat with various AI models (OpenAI, Anthropic, Google, local models)
-- Use specialized tools for web search, image generation, and more
-- Enable autonomous agents that can plan and execute complex tasks
-- Integrate with your workflows and assets seamlessly
-- Manage multiple conversation threads
+- Chat with AI models (OpenAI, Anthropic, Google, local models)
+- Specialized tools for web search, image generation, etc.
+- Autonomous agents for complex task execution
+- Workflow and asset integration
+- Multiple conversation threads
 
-Chat maintains a persistent WebSocket connection. If the app reloads, it automatically reconnects and restores message
-streaming state.
+The chat maintains a persistent WebSocket connection and automatically reconnects after app reloads.
 
 ## Getting Started
 
@@ -63,30 +60,30 @@ Threads are stored locally and synced via the backend. After restarts, the last 
 
 ### What is Agent Mode?
 
-Agent Mode transforms the AI into an autonomous agent that can:
+Agent Mode enables autonomous task execution:
 
-- **Plan Complex Tasks**: Break down requests into manageable steps
-- **Use Tools Autonomously**: Decide when and how to use available tools
-- **Execute Multi-Step Workflows**: Complete complex tasks requiring multiple actions
-- **Reason About Results**: Analyze outcomes and adjust strategies
+- **Plan tasks**: Break down requests into steps
+- **Use tools**: Select and apply available tools
+- **Execute workflows**: Complete multi-step tasks
+- **Analyze results**: Adjust strategy based on outcomes
 
 ### Agent Capabilities
 
-When Agent Mode is enabled, the AI can:
+With Agent Mode enabled:
 
-- **Web Research**: Conduct comprehensive research using multiple search tools
-- **Content Creation**: Generate and refine content using various tools
-- **Problem Solving**: Work through complex problems step by step
-- **Task Management**: Organize and execute multi-faceted projects
+- **Web Research**: Conduct research using search tools
+- **Content Creation**: Generate and refine content
+- **Problem Solving**: Work through problems step by step
+- **Task Management**: Execute multi-part projects
 
 ### Agent Planning
 
-The agent uses sophisticated planning to:
+The agent:
 
-- **Break Down Tasks**: Divide complex requests into subtasks
-- **Sequence Operations**: Determine the optimal order of actions
-- **Handle Dependencies**: Manage task relationships and prerequisites
-- **Adapt to Results**: Modify plans based on intermediate outcomes
+- **Divides tasks** into subtasks
+- **Sequences operations** optimally
+- **Manages dependencies** between tasks
+- **Adapts** based on intermediate results
 
 ### Planning Updates
 

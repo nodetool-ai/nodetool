@@ -1,10 +1,10 @@
 ---
 layout: page
 title: "Troubleshooting Guide"
-description: "Systematic approaches to debugging and fixing common NodeTool workflow issues."
+description: "Debugging and fixing common NodeTool workflow issues."
 ---
 
-This guide provides step-by-step troubleshooting for common NodeTool issues. Use the table of contents to jump to your specific problem.
+Step-by-step troubleshooting for common NodeTool issues.
 
 ---
 

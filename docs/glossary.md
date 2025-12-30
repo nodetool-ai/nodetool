@@ -1,10 +1,10 @@
 ---
 layout: page
 title: "Glossary"
-description: "Plain-English definitions of NodeTool terms – organized by topic with beginner explanations first."
+description: "NodeTool terminology with plain-English definitions."
 ---
 
-This glossary explains NodeTool terminology in plain language. Each term includes a simple explanation followed by technical details where relevant.
+NodeTool terminology in plain language. Simple explanations followed by technical details where relevant.
 
 ---
 

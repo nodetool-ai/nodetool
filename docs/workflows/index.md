@@ -1,11 +1,11 @@
 ---
 layout: page
-title: "Creative Workflow Gallery"
+title: "Workflow Gallery"
 ---
 
-Explore ready-to-use workflows to jumpstart your projects and learn new techniques. Each example includes detailed explanations and visual diagrams.
+Ready-to-use workflow examples. Each includes explanations and visual diagrams.
 
-**Looking for patterns?** Pair these workflows with [Creative Patterns]({{ '/cookbook/patterns' | relative_url }}) to understand the techniques behind them.
+See [Workflow Patterns]({{ '/cookbook/patterns' | relative_url }}) for reusable techniques.
 
 ## 🎨 Start Here: Beginner-Friendly Workflows
 
@@ -101,4 +101,4 @@ Generate and visualize data:
 
 ## Share Your Creations
 
-Created a useful workflow? Share it with the community! Contribute to the [NodeTool repository](https://github.com/nodetool-ai/nodetool) and help other users.
+Created a workflow? Share it on the [NodeTool repository](https://github.com/nodetool-ai/nodetool).

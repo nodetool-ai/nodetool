@@ -1,12 +1,12 @@
 ---
 layout: page
 title: "Workflow Editor"
-description: "Build AI workflows visually – a complete guide to the NodeTool canvas."
+description: "Build AI workflows visually – guide to the NodeTool canvas."
 ---
 
-The Workflow Editor is where you build AI workflows by connecting visual building blocks. This guide covers everything you need to know to create powerful automations.
+The Workflow Editor is where you build AI workflows by connecting visual nodes.
 
-> **First time here?** Start with the [Getting Started guide](getting-started.md) to run your first workflow in 10 minutes.
+> **First time?** Start with the [Getting Started guide](getting-started.md).
 
 ---
 
@@ -270,27 +270,27 @@ Right-click for options anywhere:
 
 ---
 
-## Tips for Better Workflows
+## Tips
 
 ### Design Principles
 
-1. **Left to right**: Data generally flows left to right
-2. **Preview often**: Add Preview nodes to see intermediate results
+1. **Left to right**: Data flows left to right
+2. **Preview often**: Add Preview nodes for intermediate results
 3. **Name clearly**: Rename nodes to describe their purpose
 4. **Group logically**: Keep related nodes together
 
 ### Debugging
 
-- **Add Preview nodes** between steps to see what's happening
-- **Check connections** – wrong data type is a common issue
-- **Look at errors** – nodes show error messages when something goes wrong
-- **Test incrementally** – run partial workflows before adding complexity
+- **Add Preview nodes** between steps
+- **Check connections** – verify data types match
+- **Look at errors** – nodes show error messages
+- **Test incrementally** – run partial workflows first
 
 ### Performance
 
-- **Local models** may be slower but work offline
-- **Cloud models** are faster but require internet
-- **Streaming nodes** show progress; non-streaming wait until complete
+- **Local models** – slower but work offline
+- **Cloud models** – faster, require internet
+- **Streaming nodes** – show progress during execution
 
 ---
 

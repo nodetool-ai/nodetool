@@ -1,100 +1,77 @@
 ---
 layout: page
 title: "Key Concepts"
-description: "Understand the creative building blocks of NodeTool - no AI or technical experience required."
+description: "Core concepts for building workflows in NodeTool."
 ---
 
-This page explains the core concepts you need to create with NodeTool. **No AI experience required** – we'll use creative analogies you already know.
+This page explains the core concepts for creating workflows in NodeTool.
 
 ---
 
 ## What is NodeTool?
 
-NodeTool is a **visual canvas for creating with AI**. Think of it like:
-- **Photoshop layers** – but for AI workflows instead of image edits
-- **A video editing timeline** – where you arrange creative processes instead of clips
-- **Building with LEGO** – connect colorful blocks to create something amazing
+NodeTool is a visual workflow builder for AI pipelines. It functions like:
+- Photoshop layers – but for AI workflows
+- A video editing timeline – arranging processing steps
+- Building blocks – connect components to create pipelines
 
-**Why creators love it:**
-- **Privacy:** Your creative work never leaves your machine unless you choose cloud services
-- **Freedom:** Create unlimited content with no subscription fees or usage limits
-- **Transparency:** See every step of your creative process—understand how the magic happens
-- **Control:** Use free local AI or pay-per-use cloud services—you decide
-
-**Creative analogy**: Imagine if your entire creative process—from idea to final output—was visible on a canvas. You could rearrange steps, add new techniques, and share the whole recipe with others. That's NodeTool.
+**Key benefits:**
+- **Privacy:** Data stays local unless you use cloud services
+- **No usage limits:** Local models have no subscription fees
+- **Transparency:** See every step of execution
+- **Flexibility:** Choose local or cloud providers
 
 ---
 
-## The Creative Building Blocks
+## Building Blocks
 
-### Nodes – Your Creative Tools
+### Nodes
 
-A **node** is like a single tool in your creative toolkit. Each one does a specific job:
+A **node** performs a single operation:
 
-- An **Image Generator** node creates art from your description
-- A **Color Adjustment** node transforms the mood of an image
-- An **Audio Transcription** node converts speech to text
+- **Image Generator** node – creates images from text prompts
+- **Color Adjustment** node – modifies image colors
+- **Audio Transcription** node – converts speech to text
 
 Each node has:
-- **Inputs** – What you feed in (like a photo or description)
-- **Outputs** – What you get out (like generated art)
-- **Settings** – Creative controls (like "how artistic?" or "how realistic?")
+- **Inputs** – data entering the node
+- **Outputs** – results from the node
+- **Settings** – configuration options
 
-**Think of nodes like:**
-- **Photoshop tools** – each does one specific thing (blur, adjust contrast, add text)
-- **Guitar pedals** – chain them together for unique creative effects
-- **Video filters** – apply one after another to build your look
+### Workflows
 
-### Workflows – Your Creative Recipe
+A **workflow** is a connected graph of nodes. When executed:
+1. Data enters through input nodes
+2. Each node processes and passes data forward
+3. Results appear in preview or output nodes
 
-A **workflow** is your complete creative process visualized. When you run it:
-1. Your creative inputs flow in (text, images, ideas)
-2. Each node transforms the work and passes it forward
-3. Final creations appear in preview or output nodes
+**Example**: Write a story → Generate characters → Create portraits → Combine into video
 
-**Example workflow**: Write a story → AI generates characters → Create character portraits → Combine into a video
+### Connections
 
-**Think of workflows like:**
-- **A Photoshop action** – but you can see and modify every step
-- **A video editing sequence** – arrange processes instead of clips
-- **A cooking recipe** – but you can remix the steps however you want
-
-### Connections – The Creative Flow
-
-**Connections** are the lines showing how your creative work flows from one node to the next. Drag from an output circle to an input circle to connect them.
-
-**Think of connections like:**
-- **Wires in a music studio** – routing audio between effects
-- **Pipes** – carrying your creative work through transformations
-- **Video editing timeline** – showing what connects to what
+**Connections** are lines showing data flow between nodes. Drag from an output to an input to create a connection.
 
 ---
 
-## Understanding AI for Creatives
+## AI Models
 
-### What are "Models"?
+### What are Models?
 
-An AI **model** is like a creative specialist you can hire for your project. Each one has learned a specific skill:
+An AI **model** is a trained program for a specific task:
 
-| Model Type | What It Creates | Creative Uses |
-|------------|-----------------|---------------|
-| Image Model | Art, photos, designs | Generate posters, concept art, product mockups |
-| Video Model | Motion, effects, clips | Create animations, add effects, transform footage |
-| Audio Model | Music, voices, sounds | Voice narration, music generation, sound effects |
-| Text Model | Writing, ideas, scripts | Story ideas, scripts, marketing copy, brainstorming |
-
-**You don't need to understand how models work** – just like you don't need to understand oil paint chemistry to paint. Pick the right tool for your creative vision.
-
-**Creative analogy**: Models are like hiring specialists: a portrait artist, a video editor, a voice actor, or a copywriter. Each one is pre-trained and ready to help with your project.
+| Model Type | Output | Use Cases |
+|------------|--------|-----------|
+| Image Model | Images | Posters, concept art, product mockups |
+| Video Model | Video clips | Animations, effects, transformations |
+| Audio Model | Audio | Narration, music, sound effects |
+| Text Model | Text | Story ideas, scripts, analysis |
 
 ### Local vs. Cloud Models
 
-- **Local models** run on your computer – like having your own private studio. Free, private, unlimited use, but needs disk space and processing power.
-- **Cloud models** run on remote servers – like renting a professional studio. Fast, powerful, latest tools, but requires internet and may cost per use.
+- **Local models** – Run on your computer. Free, private, unlimited use. Requires disk space and processing power.
+- **Cloud models** – Run on remote servers. Fast, requires internet, may cost per use.
 
-NodeTool lets you mix both. Start local for privacy and unlimited experimentation, add cloud models when you need cutting-edge capabilities.
-
-**Creative analogy**: Local = your home studio with your own equipment. Cloud = booking time in a professional facility with the latest gear.
+NodeTool supports both. Use local for privacy, add cloud models for additional capabilities.
 
 ---
 
