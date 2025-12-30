@@ -4,9 +4,10 @@ import { spawn } from 'child_process';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 
-// PID file path matching the one in server.ts
-const PID_DIRECTORY = path.join(os.tmpdir(), 'nodetool');
-const PID_FILE_PATH = path.join(PID_DIRECTORY, 'nodetool.pid');
+// PID file path matching the one in config.ts
+// The Electron app uses app.getPath("temp") which returns os.tmpdir()
+const PID_DIRECTORY = path.join(os.tmpdir(), 'nodetool-electron');
+const PID_FILE_PATH = path.join(PID_DIRECTORY, 'server.pid');
 
 // Helper function to kill existing NodeTool server processes
 async function killExistingNodeToolProcesses(): Promise<void> {
