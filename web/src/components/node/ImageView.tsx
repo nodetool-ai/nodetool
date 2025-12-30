@@ -56,12 +56,13 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
       style={{
         position: "relative",
         display: "flex",
-        justifyContent: "flex-start",
+        justifyContent: "center",
         alignItems: "flex-start",
         width: "100%",
         maxWidth: "100%",
-        height: "100%",
-        minHeight: "100px"
+        height: "auto",
+        minHeight: "80px",
+        aspectRatio: "auto"
       }}
     >
       <AssetViewer
@@ -91,17 +92,16 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
           </IconButton>
         </Tooltip>
       )}
-      <div
+      <img
+        src={imageUrl}
+        alt=""
         style={{
-          position: "absolute",
-          backgroundImage: `url(${imageUrl})`,
-          backgroundSize: "contain",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center",
           width: "100%",
-          maxWidth: "100%",
-          height: "100%",
-          minHeight: "20px"
+          height: "auto",
+          maxHeight: "400px",
+          objectFit: "contain",
+          borderRadius: "4px",
+          cursor: "pointer"
         }}
         onDoubleClick={() => setOpenViewer(true)}
       />

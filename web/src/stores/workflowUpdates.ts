@@ -58,7 +58,8 @@ export const handleUpdate = (
 ) => {
   const runner = runnerStore.getState();
   const setResult = useResultsStore.getState().setResult;
-  const clearResults = useResultsStore.getState().clearResults;
+  const setOutputResult = useResultsStore.getState().setOutputResult;
+  const clearOutputResults = useResultsStore.getState().clearOutputResults;
   const setStatus = useStatusStore.getState().setStatus;
   const clearStatuses = useStatusStore.getState().clearStatuses;
   const appendLog = useLogsStore.getState().appendLog;
@@ -138,7 +139,13 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
-    setResult(workflow.id, update.node_id, update.value, true);
+    console.log("workflowUpdates output_update:", {
+      workflowId: workflow.id,
+      nodeId: update.node_id,
+      value: update.value,
+      valueType: typeof update.value
+    });
+    setOutputResult(workflow.id, update.node_id, update.value, true);
     appendLog({
       workflowId: workflow.id,
       workflowName: workflow.name,
@@ -170,9 +177,11 @@ export const handleUpdate = (
           alert: true,
           content: "Job completed"
         });
-        clearStatuses(workflow.id);
+        // Avoiding this as the result overlay for output node breaks otherwise
+        // clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
+        // Don't clear outputResults - output nodes should keep their results visible
         break;
       case "cancelled":
         runnerStore.setState({ state: "cancelled" });
@@ -184,6 +193,7 @@ export const handleUpdate = (
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
+        clearOutputResults(workflow.id);
         break;
       case "failed":
       case "timed_out":
@@ -197,6 +207,7 @@ export const handleUpdate = (
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
+        clearOutputResults(workflow.id);
         break;
       case "queued":
         runnerStore.setState({
@@ -283,12 +294,12 @@ export const handleUpdate = (
         statusMessage: `${update.node_name} ${update.status}`
       });
       setStatus(workflow.id, update.node_id, update.status);
-      
+
       // Store result if present
       if (update.result) {
         setResult(workflow.id, update.node_id, update.result);
       }
-      
+
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,

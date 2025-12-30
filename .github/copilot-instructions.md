@@ -760,6 +760,115 @@ npx playwright show-trace test-results/path-to-trace/trace.zip
 
 For more details, see `web/TESTING.md`.
 
+## Setting Up for Electron E2E Tests
+
+Electron e2e tests verify the desktop application integration, IPC handlers, and native features.
+
+### 1. Install Electron Dependencies
+
+```bash
+cd electron
+npm install
+```
+
+### 2. Install Playwright Browsers
+
+```bash
+cd electron
+npx playwright install chromium
+```
+
+### 3. Build the Electron App
+
+The e2e tests require a built version of the Electron app:
+
+```bash
+cd electron
+npm run vite:build
+npx tsc
+```
+
+### 4. Run E2E Tests
+
+```bash
+cd electron
+npm run test:e2e          # Run e2e tests
+npm run test:e2e:ui       # Run with Playwright UI
+npm run test:e2e:headed   # Run in headed mode (see window)
+```
+
+### 5. Electron E2E Test Structure
+
+E2E tests are located in `electron/tests/e2e/` and use Playwright with Electron support:
+
+- **app-loads.spec.ts**: Basic app loading, window creation, and IPC communication tests
+
+### 6. Writing Electron E2E Tests
+
+Follow these patterns when creating new Electron e2e tests:
+
+```typescript
+import { test, expect, _electron as electron } from '@playwright/test';
+import * as path from 'path';
+
+// Skip when run by Jest
+if (process.env.JEST_WORKER_ID) {
+  test.skip("skipped in jest runner", () => {});
+} else {
+  test.describe("Feature Name", () => {
+    test("should do something", async () => {
+      // Launch Electron app
+      const electronApp = await electron.launch({
+        args: [
+          path.join(__dirname, '../../dist-electron/main.js'),
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage'
+        ],
+        env: {
+          ...process.env,
+          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+        }
+      });
+
+      const window = await electronApp.firstWindow();
+      
+      // Your test logic here
+      expect(window).toBeTruthy();
+      
+      // Always close the app
+      await electronApp.close();
+    });
+  });
+}
+```
+
+### 7. Debugging Electron E2E Tests
+
+```bash
+# Run with UI mode for interactive debugging
+cd electron
+npm run test:e2e:ui
+
+# Run in headed mode to see the Electron window
+cd electron
+npm run test:e2e:headed
+
+# View trace files after failure
+npx playwright show-trace test-results/path-to-trace/trace.zip
+```
+
+### 8. Electron E2E CI/CD
+
+The `.github/workflows/electron-e2e.yml` workflow:
+- Runs on Ubuntu, macOS, and Windows
+- Installs dependencies and Playwright browsers
+- Builds the Electron app
+- Runs e2e tests
+- Uploads artifacts on failure
+
+For more details, see `electron/README.md`.
+
 ## Version Information
 
 - React: 18.2.0
