@@ -325,8 +325,11 @@ const GlobalChat: React.FC = () => {
   );
 
   // Create ThreadInfo-compatible data for ThreadList
-  const threadsWithMessages: Record<string, ThreadInfo> = useMemo(() => 
-    Object.fromEntries(
+  const threadsWithMessages: Record<string, ThreadInfo> = useMemo(() => {
+    if (!threads) {
+      return {};
+    }
+    return Object.fromEntries(
       Object.entries(threads).map(([id, thread]) => [
         id,
         {
@@ -336,9 +339,8 @@ const GlobalChat: React.FC = () => {
           messages: messageCache[id] || []
         }
       ])
-    ),
-    [threads, messageCache]
-  );
+    );
+  }, [threads, messageCache]);
 
   const mainAreaStyles = (_theme: Theme) =>
     css({
