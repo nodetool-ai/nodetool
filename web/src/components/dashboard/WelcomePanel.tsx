@@ -20,15 +20,10 @@ import { overviewContents, Section } from "../content/Welcome/OverviewContent";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { useNavigate } from "react-router-dom";
-import SettingsIcon from "@mui/icons-material/Settings";
-import { DEFAULT_MODEL } from "../../config/constants";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import DownloadIcon from "@mui/icons-material/Download";
-import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../stores/ApiClient";
 
 const InlineModelDownload: React.FC<{
   model: UnifiedModel;
@@ -40,8 +35,6 @@ const InlineModelDownload: React.FC<{
     startDownload: state.startDownload,
     downloads: state.downloads
   }));
-  const downloadKey = model.repo_id || model.id;
-  const inProgress = !!downloads[downloadKey];
   if (inProgress) {
     return (
       <Box

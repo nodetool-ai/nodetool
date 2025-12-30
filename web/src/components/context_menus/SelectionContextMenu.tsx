@@ -26,8 +26,7 @@ interface SelectionContextMenuProps {
 
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
-  const { findNode, deleteNode } = useNodes((state) => ({
-    findNode: state.findNode,
+  const { deleteNode } = useNodes((state) => ({
     deleteNode: state.deleteNode
   }));
   const duplicateNodes = useDuplicateNodes();

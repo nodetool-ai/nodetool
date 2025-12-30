@@ -6,7 +6,6 @@ import {
   Tabs,
   Tab,
   Box,
-  TextField,
   Dialog,
   DialogContent
 } from "@mui/material";
@@ -19,7 +18,6 @@ import { useState } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
-import { getShortcutTooltip } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
 
 interface HelpItem {
@@ -29,7 +27,7 @@ interface HelpItem {
   details?: string;
 }
 
-interface HelpItemGroup {
+interface _HelpItemGroup {
   category?: string;
   subCategory?: string;
   explanation?: string;
@@ -186,7 +184,7 @@ const Help = ({
     type.value.startsWith("comfy.")
   );
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value.toLowerCase());
   };
 
