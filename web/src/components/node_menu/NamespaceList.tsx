@@ -14,6 +14,7 @@ import {
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
 import NodeInfo from "./NodeInfo";
+import QuickActionTiles from "./QuickActionTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
@@ -454,6 +455,15 @@ const namespaceStyles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.action.hover,
         borderColor: theme.vars.palette.text.secondary
       }
+    },
+    ".quick-action-tiles-container": {
+      flex: "1 1 auto",
+      minWidth: "300px",
+      maxWidth: "380px",
+      backgroundColor: "transparent",
+      borderLeft: `1px solid ${theme.vars.palette.divider}`,
+      marginLeft: "0.5em",
+      overflowY: "auto"
     }
   });
 
@@ -771,11 +781,16 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             </div>
           </>
         ) : (
-          <NoSelectionContent
-            searchTerm={searchTerm}
-            selectedPathString={selectedPathString}
-            minSearchTermLength={minSearchTermLength}
-          />
+          <>
+            <NoSelectionContent
+              searchTerm={searchTerm}
+              selectedPathString={selectedPathString}
+              minSearchTermLength={minSearchTermLength}
+            />
+            <div className="quick-action-tiles-container">
+              <QuickActionTiles />
+            </div>
+          </>
         )}
       </Box>
       <InfoBox

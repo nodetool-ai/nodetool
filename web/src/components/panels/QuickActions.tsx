@@ -36,7 +36,7 @@ export type QuickActionDefinition = {
   iconColor: string;
 };
 
-const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
+export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
   {
     key: "agent",
     label: "Add Agent",
