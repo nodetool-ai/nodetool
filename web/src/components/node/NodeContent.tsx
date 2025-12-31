@@ -58,16 +58,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
    return obj && typeof obj === "object" && Object.keys(obj).length === 0;
 };
 
-  console.log("NodeContent render:", {
-    id,
-    nodeType,
-    isOutputNode,
-    result,
-    resultType: typeof result,
-    status,
-    showResultOverlay
-  });
-
   // For output nodes, always show overlay when result is available
   const shouldShowOverlay = isOutputNode 
     ? (result && !isEmptyObject(result))

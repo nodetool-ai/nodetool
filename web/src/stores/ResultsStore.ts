@@ -178,10 +178,14 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     status: string,
     counter?: number
   ) => {
+    const key = hashKey(workflowId, edgeId);
+    const existing = get().edges[key];
+    const newCounter = counter !== undefined ? counter : existing?.counter;
+
     set({
       edges: {
         ...get().edges,
-        [hashKey(workflowId, edgeId)]: { status, counter }
+        [key]: { status, counter: newCounter }
       }
     });
   },
@@ -390,7 +394,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const outputResults = get().outputResults;
     const key = hashKey(workflowId, nodeId);
     const result = outputResults[key];
-    console.log("getOutputResult:", { workflowId, nodeId, key, result, allOutputResults: Object.keys(outputResults) });
     return result;
   },
 
@@ -410,16 +413,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     append?: boolean
   ) => {
     const key = hashKey(workflowId, nodeId);
-    console.log("setOutputResult:", {
-      workflowId,
-      nodeId,
-      key,
-      result,
-      resultType: typeof result,
-      append,
-      current: get().outputResults[key],
-      currentType: typeof get().outputResults[key]
-    });
     if (get().outputResults[key] === undefined || !append) {
       set({
         outputResults: { ...get().outputResults, [key]: result }

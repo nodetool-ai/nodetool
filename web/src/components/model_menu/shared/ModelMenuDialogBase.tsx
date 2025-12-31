@@ -82,17 +82,6 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const [selectedModel, setSelectedModel] = useState<TModel | null>(null);
 
-  // Debug logging in development - log what we receive
-  if (process.env.NODE_ENV === "development" && open) {
-    console.log("ModelMenuDialogBase received:", {
-      modelsProp: models,
-      modelsLength: models?.length ?? 0,
-      modelsType: Array.isArray(models) ? "array" : typeof models,
-      isLoading,
-      isError
-    });
-  }
-
   const {
     providers,
     filteredModels,
@@ -127,27 +116,8 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     return result;
   }, [filteredModels, selectedTypes, sizeBucket, families]);
 
-  // Debug logging in development
-  if (process.env.NODE_ENV === "development" && open) {
-    console.log("ModelMenuDialogBase:", {
-      modelsCount: models?.length ?? 0,
-      filteredModelsCount: filteredModels.length,
-      filteredModelsAdvancedCount: filteredModelsAdvanced.length,
-      providersCount: providers.length,
-      totalCount,
-      filteredCount,
-      totalActiveCount,
-      selectedProvider,
-      search,
-      selectedTypes,
-      sizeBucket,
-      families
-    });
-  }
-
   const handleSelectModel = useCallback(
     (model: TModel) => {
-      console.log("handleSelectModel:", model);
       setSelectedModel(model);
       onModelChange?.(model);
     },

@@ -510,7 +510,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to remove
        */
       removeWorkflow: (workflowId: string) => {
-        console.log(`[WorkflowManager] Removing workflow: ${workflowId}`);
         const { nodeStores, openWorkflows, currentWorkflowId } = get();
 
         const newOpenWorkflows = openWorkflows.filter(

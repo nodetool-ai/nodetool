@@ -76,6 +76,12 @@ export const handleUpdate = (
 
   console.log("handleUpdate", data);
 
+  if (window.__UPDATES__ === undefined) {
+    window.__UPDATES__ = [];
+  }
+
+  window.__UPDATES__.push(data);
+
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;
     appendLog({

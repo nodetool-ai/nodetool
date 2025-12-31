@@ -57,20 +57,6 @@ function ModelList<TModel extends ModelSelectorModel>({
   const theme = useTheme();
   const searchTerm = useLanguageModelMenuStore((s) => s.search);
 
-  // Debug logging in development
-  if (process.env.NODE_ENV === "development") {
-    console.log("ModelList:", {
-      modelsCount: models.length,
-      firstModel: models[0]
-        ? {
-            id: models[0].id,
-            name: models[0].name,
-            provider: models[0].provider
-          }
-        : null
-    });
-  }
-
   const renderRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {
       const m = models[index];

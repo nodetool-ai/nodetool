@@ -17,10 +17,6 @@ export const useFitNodeEvent = () => {
       event: CustomEvent<{ nodeId: string; node: Node }>
     ) => {
       const { nodeId, node: eventNode } = event.detail;
-      console.log("[useFitNodeEvent] received nodetool:fit-node event", {
-        nodeId,
-        hasNode: !!eventNode
-      });
 
       const node = (eventNode || findNode(nodeId)) as
         | Node<NodeData>

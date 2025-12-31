@@ -650,8 +650,6 @@ export async function handleChatWebSocketMessage(
 ) {
   const currentState = get();
 
-  console.log("handleChatWebSocketMessage", data);
-
   if (currentState.status === "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
       return;

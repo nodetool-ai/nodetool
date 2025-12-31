@@ -6,7 +6,6 @@ export function useVideoSrc(value: any) {
   useEffect(() => {
     if (value?.type === "video" && videoRef.current) {
       if (value?.data) {
-        console.log("value?.data", value?.data);
         const blob = new Blob([value?.data]);
         const url = URL.createObjectURL(blob);
         videoRef.current.src = url;

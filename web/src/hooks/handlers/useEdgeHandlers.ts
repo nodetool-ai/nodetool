@@ -99,10 +99,6 @@ export default function useEdgeHandlers() {
 
   const onEdgeClick = useCallback(
     (event: ReactMouseEvent, edge: Edge) => {
-      console.log("[useEdgeHandlers] onEdgeClick", {
-        button: event.button,
-        edgeId: edge.id
-      });
       if (event.button !== 1) {
         return;
       }
