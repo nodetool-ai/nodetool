@@ -4,6 +4,11 @@ import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
+import {
+  SUBPATCH_NODE_METADATA,
+  WORKFLOW_INPUT_NODE_METADATA,
+  WORKFLOW_OUTPUT_NODE_METADATA
+} from "../utils/nodeUtils";
 
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {
@@ -31,7 +36,11 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false
-  }
+  },
+  // Subpatch-related nodes
+  [SUBPATCH_NODE_METADATA.node_type]: SUBPATCH_NODE_METADATA,
+  [WORKFLOW_INPUT_NODE_METADATA.node_type]: WORKFLOW_INPUT_NODE_METADATA,
+  [WORKFLOW_OUTPUT_NODE_METADATA.node_type]: WORKFLOW_OUTPUT_NODE_METADATA
 };
 
 export const loadMetadata = async () => {

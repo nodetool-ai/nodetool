@@ -35,6 +35,14 @@ import PreviewNode from "../node/PreviewNode/PreviewNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
+import SubpatchNode from "../node/SubpatchNode";
+import WorkflowInputNode from "../node/WorkflowInputNode";
+import WorkflowOutputNode from "../node/WorkflowOutputNode";
+import {
+  SUBPATCH_NODE_TYPE,
+  WORKFLOW_INPUT_NODE_TYPE,
+  WORKFLOW_OUTPUT_NODE_TYPE
+} from "../../utils/nodeUtils";
 //utils
 
 //hooks
@@ -248,6 +256,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
   nodeTypes["nodetool.compare.CompareImages"] = CompareImagesNode;
   nodeTypes["nodetool.control.Reroute"] = RerouteNode;
+  nodeTypes[SUBPATCH_NODE_TYPE] = SubpatchNode;
+  nodeTypes[WORKFLOW_INPUT_NODE_TYPE] = WorkflowInputNode;
+  nodeTypes[WORKFLOW_OUTPUT_NODE_TYPE] = WorkflowOutputNode;
   nodeTypes["default"] = PlaceholderNode;
 
   /* SETTINGS */
