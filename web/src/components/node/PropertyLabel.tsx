@@ -19,6 +19,11 @@ interface PropertyLabelProps {
    * the label.
    */
   showTooltip?: boolean;
+  /**
+   * Controls the density/spacing of the label. When "compact", removes the bottom margin.
+   * Defaults to "normal".
+   */
+  density?: "compact" | "normal";
 }
 
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
@@ -26,7 +31,8 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   name,
   description,
   showTooltip = true,
-  isDynamicProperty = false
+  isDynamicProperty = false,
+  density = "normal"
 }) => {
   const theme = useTheme();
   const scope = useEditorScope();
@@ -39,7 +45,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
 
   const labelFontSize =
     scope === "inspector" ? theme.fontSizeNormal : theme.fontSizeSmall;
-  const labelMarginBottom = theme.spacing(1.5);
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1.5);
 
   return (
     <div
