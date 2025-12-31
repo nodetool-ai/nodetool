@@ -489,7 +489,7 @@ const RunningJobsList = () => {
   }
   if (!jobs?.length) {
     return (
-      <Box sx={{ p: 2, color: "text.secondary" }}>
+      <Box sx={{ p: 5, color: "text.secondary" }}>
         <Typography variant="body2">No running jobs</Typography>
       </Box>
     );
