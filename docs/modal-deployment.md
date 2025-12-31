@@ -94,10 +94,10 @@ deployments:
       - anthropic-secret
       - huggingface-secret
     
-    # Volumes for persistent storage
+    # Volumes for persistent storage (volume_name: mount_path)
     volumes:
-      models: /models
-      workspace: /workspace
+      nodetool-models: /models
+      nodetool-workspace: /workspace
 ```
 
 ### Configuration Fields
@@ -107,7 +107,7 @@ deployments:
 | `app_name` | str | `nodetool` | Modal application name |
 | `gpu` | str | `any` | GPU type (`t4`, `a10g`, `a100`, `h100`, `any`) |
 | `gpu_count` | int | 1 | Number of GPUs per container |
-| `memory` | int | 16384 | Memory in MB |
+| `memory` | int | 32768 | Memory in MB |
 | `cpu` | float | 2.0 | Number of CPU cores |
 | `timeout` | int | 600 | Maximum function execution time in seconds |
 | `min_containers` | int | 0 | Minimum warm containers (0 = scale to zero) |
@@ -115,7 +115,7 @@ deployments:
 | `container_idle_timeout` | int | 300 | Seconds before idle container is terminated |
 | `env` | dict | `{}` | Environment variables |
 | `secrets` | list | `[]` | Modal secret names to mount |
-| `volumes` | dict | `{}` | Modal volume mounts (`name: mount_path`) |
+| `volumes` | dict | `{}` | Modal volume mounts (`volume_name: mount_path`) |
 
 ## Setting Up Secrets
 
