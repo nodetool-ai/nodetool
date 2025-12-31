@@ -4,6 +4,10 @@ import { test, expect } from "@playwright/test";
 const BACKEND_URL = "http://localhost:7777";
 const BACKEND_WS_URL = "ws://localhost:7777";
 
+// Test timeouts
+const TEST_TIMEOUT_MS = 180000;  // 3 minutes for the overall test
+const DOWNLOAD_TIMEOUT_MS = 120000;  // 2 minutes for the download operation
+
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
@@ -15,22 +19,22 @@ if (process.env.JEST_WORKER_ID) {
     
     test("should download a small HuggingFace model successfully", async ({ page }) => {
       // Increase timeout for download operation
-      test.setTimeout(180000); // 3 minutes max for the download
+      test.setTimeout(TEST_TIMEOUT_MS);
 
       // Navigate to models page
       await page.goto("/models");
       await page.waitForLoadState("networkidle");
 
       // Start the download and wait for completion using WebSocket inside the page context
-      const downloadResult = await page.evaluate(async ({ repoId, wsUrl }: { repoId: string; wsUrl: string }) => {
+      const downloadResult = await page.evaluate(async ({ repoId, wsUrl, timeoutMs }: { repoId: string; wsUrl: string; timeoutMs: number }) => {
         return new Promise<{ success: boolean; error?: string; data?: unknown }>((resolve) => {
           const ws = new WebSocket(`${wsUrl}/ws/download`);
           
-          // Timeout after 120 seconds
+          // Timeout for the download
           const timeout = setTimeout(() => {
             ws.close();
             resolve({ success: false, error: "Download timeout - model download took too long" });
-          }, 120000);
+          }, timeoutMs);
           
           ws.onopen = () => {
             console.log("WebSocket connected, starting download...");
@@ -66,9 +70,9 @@ if (process.env.JEST_WORKER_ID) {
             }
           };
           
-          ws.onerror = (error) => {
+          ws.onerror = () => {
             clearTimeout(timeout);
-            resolve({ success: false, error: `WebSocket error: ${error}` });
+            resolve({ success: false, error: "WebSocket connection error" });
           };
           
           ws.onclose = (event) => {
@@ -79,7 +83,7 @@ if (process.env.JEST_WORKER_ID) {
             }
           };
         });
-      }, { repoId: TEST_MODEL_REPO_ID, wsUrl: BACKEND_WS_URL });
+      }, { repoId: TEST_MODEL_REPO_ID, wsUrl: BACKEND_WS_URL, timeoutMs: DOWNLOAD_TIMEOUT_MS });
 
       // Assert download was successful
       expect(downloadResult.success).toBe(true);
