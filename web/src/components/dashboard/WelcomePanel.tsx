@@ -35,6 +35,8 @@ const InlineModelDownload: React.FC<{
     startDownload: state.startDownload,
     downloads: state.downloads
   }));
+  const downloadKey = model.repo_id || model.id;
+  const inProgress = downloads[downloadKey]?.status === "running" || downloads[downloadKey]?.status === "progress" || downloads[downloadKey]?.status === "start" || downloads[downloadKey]?.status === "pending";
   if (inProgress) {
     return (
       <Box
