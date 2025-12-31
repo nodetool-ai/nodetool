@@ -18,7 +18,7 @@ import {
 
 // Generate unique ID
 const generateId = (): string => {
-  return `el_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `el_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 };
 
 interface LayoutCanvasStoreState {
