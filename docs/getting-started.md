@@ -39,6 +39,8 @@ For a visual overview first, see the [Start Here guide](index.md#start-here).
 
 > See the [Installation Guide](installation.md) for GPU requirements and troubleshooting.
 
+![Dashboard Overview](assets/screenshots/dashboard-overview.png)
+
 ### Install Your First AI Models
 
 To run the example workflows:
@@ -80,6 +82,8 @@ Run a pre-built template. Choose one:
 **Result**: Input → AI strategy → image generation → output.
 
 ### Option B: Creative Story Ideas (Text Generation)
+
+![Creative Story Ideas Workflow](assets/screenshots/creative-story-workflow.png)
 
 1. **Find the template**: Look for "Creative Story Ideas" in Templates and open it
 2. **Understand the flow**:
