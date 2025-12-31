@@ -96,6 +96,12 @@ const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
+const TimelineEditor = React.lazy(
+  () => import("./components/timeline/TimelineEditor")
+);
+const TimelineDemo = React.lazy(
+  () => import("./components/timeline/TimelineDemo")
+);
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
@@ -297,11 +303,26 @@ function getRoutes() {
     }
   ];
 
-  // Add the LayoutTest page only in local development
+  // Add the LayoutTest and Timeline pages only in local development
   if (isLocalhost) {
     routes.push({
       path: "/layouttest",
       element: <LayoutTest />
+    });
+    routes.push({
+      path: "/timeline",
+      element: (
+        <ProtectedRoute>
+          <div style={{ width: "100%", height: "100vh", display: "flex", flexDirection: "column" }}>
+            <TimelineEditor showPreview={true} />
+          </div>
+        </ProtectedRoute>
+      )
+    });
+    // Demo page without authentication for testing
+    routes.push({
+      path: "/timeline-demo",
+      element: <TimelineDemo />
     });
   }
 
