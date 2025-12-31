@@ -28,11 +28,18 @@ const getWebSocketUrl = (path: string): string => {
   return `ws://localhost:3000${path}`;
 };
 
-/** WebSocket URL for the prediction worker endpoint. */
-export const WORKER_URL = getWebSocketUrl("/ws/predict");
+/** WebSocket URL for the unified endpoint (workflows and chat). */
+export const UNIFIED_WS_URL = getWebSocketUrl("/ws");
 
-/** WebSocket URL for the chat endpoint. */
-export const CHAT_URL = getWebSocketUrl("/ws/chat");
+/** WebSocket URL for the prediction worker endpoint.
+ * @deprecated Use UNIFIED_WS_URL instead. This endpoint is deprecated.
+ */
+export const WORKER_URL = getWebSocketUrl("/ws");
+
+/** WebSocket URL for the chat endpoint.
+ * @deprecated Use UNIFIED_WS_URL instead. This endpoint is deprecated.
+ */
+export const CHAT_URL = getWebSocketUrl("/ws");
 
 /** WebSocket URL for the HuggingFace model download endpoint. */
 export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");

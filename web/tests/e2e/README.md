@@ -69,6 +69,25 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Browser back/forward functionality
 - Invalid route handling
 
+### 11. websocket.spec.ts (New)
+**Tests: 10**
+- WebSocket connection establishment on chat page
+- Unified /ws endpoint usage (not legacy /ws/chat or /ws/predict)
+- Connection status display
+- Chat interface loading after connection
+- Thread creation via WebSocket
+- GlobalChatStore WebSocket manager initialization
+- Connection persistence during navigation
+- Command-wrapped message format
+- Connection interruption handling
+- Disconnection status display
+
+## Total Test Coverage
+
+- **Total Files:** 11
+- **Total Tests:** 49
+- **Original Tests:** 3
+- **New Tests:** 46
 ### 11. model-download.spec.ts (New)
 **Tests: 3**
 - Download a small HuggingFace model successfully
@@ -98,6 +117,7 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - ✅ Navigation and routing
 - ✅ Browser history navigation
 - ✅ Backend API connectivity
+- ✅ WebSocket integration (unified /ws endpoint)
 
 ### Test Patterns Used
 

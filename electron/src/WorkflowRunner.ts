@@ -5,7 +5,7 @@ import { Notification } from "electron";
 import { getServerWebSocketUrl } from "./utils";
 import { Workflow } from "./types";
 
-const getWorkerUrl = () => getServerWebSocketUrl("/predict");
+const getWorkerUrl = () => getServerWebSocketUrl("/ws");
 
 interface WorkflowRunnerState {
   workflow: Workflow | null;

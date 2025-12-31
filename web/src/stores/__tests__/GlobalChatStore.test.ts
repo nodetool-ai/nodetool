@@ -5,7 +5,8 @@ import { TextEncoder, TextDecoder } from "util";
 
 jest.mock("../BASE_URL", () => ({
   BASE_URL: "http://localhost:8000",
-  CHAT_URL: "ws://test/chat"
+  CHAT_URL: "ws://test/ws", // Unified WebSocket endpoint
+  UNIFIED_WS_URL: "ws://test/ws"
 }));
 
 import { encode, decode } from "@msgpack/msgpack";
@@ -129,7 +130,7 @@ describe("GlobalChatStore", () => {
   });
 
   it("sendMessage adds message to thread and sends via socket", async () => {
-    mockServer = new Server("ws://test/chat"); // Initialize server for this test
+    mockServer = new Server("ws://test/ws"); // Initialize server for this test
     try {
       // Track sent messages
       let sentData: any;
@@ -171,11 +172,20 @@ describe("GlobalChatStore", () => {
       // Wait a bit for the message to be sent
       await new Promise((resolve) => setTimeout(resolve, 50));
 
+      // Expect chat_message command wrapper per unified WebSocket API
+      // Note: msgpack encodes undefined as null
       expect(sentData).toEqual({
-        ...msg,
-        workflow_id: null,
-        thread_id: threadId,
-        agent_mode: false
+        command: "chat_message",
+        data: {
+          ...msg,
+          workflow_id: null,
+          thread_id: threadId,
+          agent_mode: false,
+          model: "gpt-oss:20b",
+          provider: "empty",
+          tools: null,
+          collections: null
+        }
       });
     } finally {
       if (mockServer) {mockServer.stop();} // Clean up server for this test
@@ -198,7 +208,7 @@ describe("GlobalChatStore", () => {
 
   describe("WebSocket Connection", () => {
     beforeEach(() => {
-      mockServer = new Server("ws://test/chat");
+      mockServer = new Server("ws://test/ws");
     });
 
     afterEach(() => {
@@ -280,7 +290,7 @@ describe("GlobalChatStore", () => {
   describe("Message Handling", () => {
     beforeEach(async () => {
       // Create a fresh server for message handling tests
-      mockServer = new Server("ws://test/chat");
+      mockServer = new Server("ws://test/ws");
 
       await store.getState().connect();
       // Add a small delay to allow WebSocket to stabilize with mock-socket
@@ -661,7 +671,7 @@ describe("GlobalChatStore", () => {
     let sentData: any;
 
     beforeEach(async () => {
-      mockServer = new Server("ws://test/chat"); // Initialize server
+      mockServer = new Server("ws://test/ws"); // Initialize server
       // Track sent messages
       sentData = undefined;
       mockServer.on("connection", (socket) => {
@@ -769,11 +779,20 @@ describe("GlobalChatStore", () => {
       // Wait a bit for the message to be sent
       await new Promise((resolve) => setTimeout(resolve, 50));
 
+      // Expect chat_message command wrapper per unified WebSocket API
+      // Note: msgpack encodes undefined as null
       expect(sentData).toEqual({
-        ...message,
-        workflow_id: "test-workflow",
-        thread_id: threadId,
-        agent_mode: false
+        command: "chat_message",
+        data: {
+          ...message,
+          workflow_id: "test-workflow",
+          thread_id: threadId,
+          agent_mode: false,
+          model: "gpt-oss:20b",
+          provider: "empty",
+          tools: null,
+          collections: null
+        }
       });
     });
   });
@@ -782,7 +801,7 @@ describe("GlobalChatStore", () => {
     let sentData: any;
 
     beforeEach(async () => {
-      mockServer = new Server("ws://test/chat"); // Initialize server
+      mockServer = new Server("ws://test/ws"); // Initialize server
       // Track sent messages
       sentData = undefined;
       mockServer.on("connection", (socket) => {
@@ -815,9 +834,12 @@ describe("GlobalChatStore", () => {
       // Wait a bit for the message to be sent
       await new Promise((resolve) => setTimeout(resolve, 50));
 
+      // Expect stop command wrapper per unified WebSocket API
       expect(sentData).toEqual({
-        type: "stop",
-        thread_id: store.getState().currentThreadId
+        command: "stop",
+        data: {
+          thread_id: store.getState().currentThreadId
+        }
       });
       expect(store.getState().status).toBe("connected");
       expect(store.getState().progress).toEqual({ current: 0, total: 0 });
@@ -855,7 +877,7 @@ describe("GlobalChatStore", () => {
 
   describe("Authentication and Non-localhost", () => {
     beforeEach(() => {
-      mockServer = new Server("ws://test/chat"); // Initialize server
+      mockServer = new Server("ws://test/ws"); // Initialize server
     });
 
     afterEach(() => {
@@ -920,7 +942,7 @@ describe("GlobalChatStore", () => {
       // if (mockServer) { // This check and stop is removed as this block now owns its server
       //   mockServer.stop();
       // }
-      mockServer = new Server("ws://test/chat");
+      mockServer = new Server("ws://test/ws");
 
       await store.getState().connect();
       // Wait for connection to be established
