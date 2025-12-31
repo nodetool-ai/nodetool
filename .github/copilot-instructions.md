@@ -760,13 +760,46 @@ cd web
 npx playwright test
 ```
 
-### 4. E2E Test Structure
+### 4. Starting the NodeTool Server
+
+The NodeTool server is automatically started by Playwright when running tests, but you can also start it manually for debugging:
+
+```bash
+# Start the server on port 7777 (default)
+conda activate nodetool
+nodetool serve --port 7777
+
+# The server provides:
+# - REST API endpoints at http://localhost:7777/api/
+# - Health check at http://localhost:7777/health
+# - WebSocket connections for workflow execution
+# - Models API for managing AI models
+```
+
+**Server Installation Details:**
+
+The nodetool server comes from two packages:
+- `nodetool-core`: Core functionality and API server
+- `nodetool-base`: Base nodes and model integrations
+
+These are installed via `uv pip install` in the conda environment.
+
+### 5. E2E Test Structure
 
 E2E tests are located in `web/tests/e2e/` and use Playwright:
 
 - **app-loads.spec.ts**: Basic app loading, navigation, and API connectivity tests
+- **models.spec.ts**: Models manager API integration tests
+- **dashboard.spec.ts**: Dashboard page loading and navigation tests
+- **assets.spec.ts**: Asset management interface tests
+- **templates.spec.ts**: Template workflows tests
+- **auth.spec.ts**: Authentication flow tests
+- **navigation.spec.ts**: Navigation and routing tests
+- **chat.spec.ts**: Chat interface tests
+- **collections.spec.ts**: Collections management tests
+- **miniapps.spec.ts**: Mini-apps functionality tests
 
-### 5. Writing E2E Tests
+### 6. Writing E2E Tests
 
 Follow these patterns when creating new e2e tests:
 
@@ -789,7 +822,7 @@ if (process.env.JEST_WORKER_ID) {
 }
 ```
 
-### 6. Debugging E2E Tests
+### 7. Debugging E2E Tests
 
 ```bash
 # Run with UI mode for interactive debugging
