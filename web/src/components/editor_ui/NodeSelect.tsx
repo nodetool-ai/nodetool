@@ -91,9 +91,13 @@ export const NodeSelect = forwardRef<HTMLDivElement, NodeSelectProps>(
           ...(changed && {
             borderRight: `2px solid ${theme.vars.palette.primary.main}`
           }),
-          // Semantic: invalid state - shows error border
+          // Semantic: invalid state - shows error border (preserves changed right border)
           ...(invalid && {
-            borderColor: theme.vars.palette.error.main
+            borderColor: theme.vars.palette.error.main,
+            // Preserve changed indicator when both changed and invalid
+            ...(changed && {
+              borderRight: `2px solid ${theme.vars.palette.primary.main}`
+            })
           }),
           ...sx
         }}

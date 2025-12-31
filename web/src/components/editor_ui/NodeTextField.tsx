@@ -134,7 +134,7 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
               }
             }
           }),
-          // Semantic: invalid state - shows error border
+          // Semantic: invalid state - shows error border (preserves changed right border)
           ...(invalid && {
             "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
               borderColor: theme.vars.palette.error.main
