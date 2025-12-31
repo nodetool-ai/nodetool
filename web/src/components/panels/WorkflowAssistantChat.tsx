@@ -2,13 +2,12 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { LanguageModel, Message, Workflow, NodeMetadata } from "../../stores/ApiTypes";
 import { NewChatButton } from "../chat/thread/NewChatButton";
-import { Dialog, DialogContent, IconButton, Tooltip, Switch, FormControlLabel, Box, Button } from "@mui/material";
+import { IconButton, Tooltip, Switch, FormControlLabel, Box, Button, Popover } from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AddIcon from "@mui/icons-material/Add";
@@ -60,7 +59,6 @@ const containerStyles = css({
  */
 const WorkflowAssistantChat: React.FC = () => {
   const theme = useTheme();
-  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     status,
     sendMessage,
@@ -182,8 +180,9 @@ const WorkflowAssistantChat: React.FC = () => {
     return saved ? tryParseModel(saved) : DEFAULT_MODEL;
   });
 
-  // Modal state for thread list
-  const [isThreadListOpen, setIsThreadListOpen] = useState(false);
+  // Popover state for thread list
+  const [threadListAnchorEl, setThreadListAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const isThreadListOpen = Boolean(threadListAnchorEl);
 
   // Chat mode toggle state (help mode vs workflow chat mode)
   const [isHelpMode, setIsHelpMode] = useState(true);
@@ -234,7 +233,7 @@ const WorkflowAssistantChat: React.FC = () => {
     createNewThread()
       .then((newThreadId) => {
         switchThread(newThreadId);
-        setIsThreadListOpen(false);
+        setThreadListAnchorEl(null);
       })
       .catch((error) => {
         console.error("Failed to create new thread:", error);
@@ -244,10 +243,18 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleSelectThread = useCallback(
     (id: string) => {
       switchThread(id);
-      setIsThreadListOpen(false);
+      setThreadListAnchorEl(null);
     },
     [switchThread]
   );
+
+  const handleOpenThreadList = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setThreadListAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleCloseThreadList = useCallback(() => {
+    setThreadListAnchorEl(null);
+  }, []);
 
   const handleDeleteThread = useCallback(
     (id: string) => {
@@ -528,44 +535,34 @@ const WorkflowAssistantChat: React.FC = () => {
         </Box>
         <NewChatButton onNewThread={handleNewChat} />
         <Tooltip title="Chat History">
-          <IconButton onClick={() => setIsThreadListOpen(true)} size="small">
+          <IconButton onClick={handleOpenThreadList} size="small">
             <ListIcon />
           </IconButton>
         </Tooltip>
-      </div>
-      {/* Thread List Modal */}
-      <Dialog
-        open={isThreadListOpen}
-        onClose={() => setIsThreadListOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        transitionDuration={isSmall ? 0 : undefined}
-        slotProps={{
-          backdrop: {
-            style: {
-              backdropFilter: isSmall ? "none" : theme.vars.palette.glass.blur,
-              backgroundColor: isSmall
-                ? theme.vars.palette.background.default
-                : theme.vars.palette.glass.backgroundDialog
+        {/* Thread List Popover */}
+        <Popover
+          open={isThreadListOpen}
+          anchorEl={threadListAnchorEl}
+          onClose={handleCloseThreadList}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "right"
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "right"
+          }}
+          slotProps={{
+            paper: {
+              sx: {
+                width: 320,
+                maxHeight: "70vh",
+                borderRadius: 2,
+                overflow: "hidden"
+              }
             }
-          },
-          paper: {
-            style: {
-              borderRadius: theme.vars.rounded.dialog,
-              background: theme.vars.palette.glass.backgroundDialogContent
-            }
-          }
-        }}
-        sx={{
-          "& .MuiDialog-paper": {
-            margin: "auto",
-            borderRadius: 1.5,
-            background: "transparent",
-            border: `1px solid ${theme.vars.palette.grey[700]}`
-          }
-        }}
-      >
-        <DialogContent style={{ padding: 0, height: "70vh" }}>
+          }}
+        >
           <ThreadList
             threads={threadsWithMessages}
             currentThreadId={currentThreadId}
@@ -574,8 +571,8 @@ const WorkflowAssistantChat: React.FC = () => {
             onDeleteThread={handleDeleteThread}
             getThreadPreview={getThreadPreview}
           />
-        </DialogContent>
-      </Dialog>
+        </Popover>
+      </div>
       {error && (
         <div
           className="error-message"

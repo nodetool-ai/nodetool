@@ -22,13 +22,10 @@ import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import ThreadList from "../chat/thread/ThreadList";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
-import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
 import FolderIcon from "@mui/icons-material/Folder";
 import PanelResizeButton from "./PanelResizeButton";
@@ -398,24 +395,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
   return (
     <div className="vertical-toolbar">
       <Tooltip
-        title={getShortcutTooltip("toggleChat")}
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          onClick={() => onViewChange("chat")}
-          className={activeView === "chat" && panelVisible ? "active" : ""}
-        >
-          <ChatIcon />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Workflows</div>
             <div className="tooltip-key">
-              <kbd>2</kbd>
+              <kbd>1</kbd>
             </div>
           </div>
         }
@@ -450,7 +434,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <div className="tooltip-span">
             <div className="tooltip-title">Workspace</div>
             <div className="tooltip-key">
-              <kbd>4</kbd>
+              <kbd>3</kbd>
             </div>
           </div>
         }
@@ -504,113 +488,8 @@ const PanelContent = memo(function PanelContent({
   const navigate = useNavigate();
   const path = useLocation().pathname;
 
-  const {
-    threads,
-    currentThreadId,
-    createNewThread,
-    switchThread,
-    deleteThread,
-    messageCache
-  } = useGlobalChatStore();
-
-  const handleNewChat = () => {
-    createNewThread()
-      .then((newThreadId) => {
-        switchThread(newThreadId);
-        navigate(`/chat/${newThreadId}`);
-        usePanelStore.getState().setVisibility(false);
-      })
-      .catch((error) => {
-        console.error("Failed to create new thread:", error);
-      });
-  };
-
-  const handleSelectThread = (id: string) => {
-    switchThread(id);
-    navigate(`/chat/${id}`);
-    usePanelStore.getState().setVisibility(false);
-  };
-
-  const handleDeleteThread = (id: string) => {
-    deleteThread(id).catch((error) => {
-      console.error("Failed to delete thread:", error);
-    });
-  };
-
-  const getThreadPreview = (threadId: string) => {
-    if (!threads) {
-      return "Loading...";
-    }
-    const thread = threads[threadId];
-    if (!thread) {
-      return "Empty conversation";
-    }
-
-    // Use thread title if available
-    if (thread.title) {
-      return thread.title;
-    }
-
-    // Check if we have cached messages for this thread
-    const threadMessages = messageCache[threadId];
-    if (!threadMessages || threadMessages.length === 0) {
-      return "New conversation";
-    }
-
-    const firstUserMessage = threadMessages.find(
-      (msg: any) => msg.role === "user"
-    );
-    if (firstUserMessage) {
-      const content =
-        typeof firstUserMessage.content === "string"
-          ? firstUserMessage.content
-          : Array.isArray(firstUserMessage.content) &&
-            firstUserMessage.content[0]?.type === "text"
-          ? (firstUserMessage.content[0] as any).text
-          : "[Media message]";
-      return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
-    }
-
-    return "New conversation";
-  };
-
-  // Create ThreadInfo compatible data for ThreadList
-  const threadsWithMessages: Record<
-    string,
-    import("../chat/types/thread.types").ThreadInfo
-  > = Object.fromEntries(
-    Object.entries(threads).map(([id, thread]) => {
-      const item: import("../chat/types/thread.types").ThreadInfo = {
-        id: thread.id,
-        title: (thread.title ?? undefined) as string | undefined,
-        updatedAt: thread.updated_at,
-        messages: messageCache[id] || []
-      };
-      return [id, item];
-    })
-  );
-
   return (
     <>
-      {activeView === "chat" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden",
-            margin: "0"
-          }}
-        >
-          <ThreadList
-            threads={threadsWithMessages}
-            currentThreadId={currentThreadId}
-            onNewThread={handleNewChat}
-            onSelectThread={handleSelectThread}
-            onDeleteThread={handleDeleteThread}
-            getThreadPreview={getThreadPreview}
-          />
-        </Box>
-      )}
       {activeView === "assets" && (
         <Box
           className="assets-container"
@@ -697,12 +576,11 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  useCombo(["1"], () => handlePanelToggle("chat"), false);
-  useCombo(["2"], () => handlePanelToggle("workflowGrid"), false);
-  useCombo(["3"], () => handlePanelToggle("assets"), false);
-  useCombo(["4"], () => handlePanelToggle("workspace"), false);
+  useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
+  useCombo(["2"], () => handlePanelToggle("assets"), false);
+  useCombo(["3"], () => handlePanelToggle("workspace"), false);
 
-  useCombo(["5"], () => handlePanelToggle("packs"), false);
+  useCombo(["4"], () => handlePanelToggle("packs"), false);
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";
