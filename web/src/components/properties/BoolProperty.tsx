@@ -26,6 +26,7 @@ const BoolProperty = (props: PropertyProps) => {
         checked={props.value}
         onChange={(e) => props.onChange(e.target.checked)}
         name={props.property.name}
+        changed={props.changed}
       />
       <PropertyLabel
         name={props.property.name}

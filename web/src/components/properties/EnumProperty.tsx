@@ -9,7 +9,8 @@ const EnumProperty: React.FC<PropertyProps> = ({
   propertyIndex,
   value,
   onChange,
-  tabIndex
+  tabIndex,
+  changed
 }) => {
   const id = useMemo(
     () => `enum-${property.name}-${propertyIndex}`,
@@ -41,6 +42,7 @@ const EnumProperty: React.FC<PropertyProps> = ({
         label={property.name}
         placeholder={property.name}
         tabIndex={tabIndex}
+        changed={changed}
       />
     </div>
   );

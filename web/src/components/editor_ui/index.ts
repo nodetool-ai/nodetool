@@ -48,6 +48,9 @@ export type { NodeSwitchProps } from "./NodeSwitch";
 export { NodeSelect, NodeMenuItem } from "./NodeSelect";
 export type { NodeSelectProps, NodeMenuItemProps } from "./NodeSelect";
 
+export { EditorButton } from "./EditorButton";
+export type { EditorButtonProps } from "./EditorButton";
+
 export { EditorMenu, EditorMenuItem } from "./EditorMenu";
 export type { EditorMenuProps, EditorMenuItemProps } from "./EditorMenu";
 

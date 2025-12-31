@@ -41,7 +41,8 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isDynamicProperty
+  isDynamicProperty,
+  changed
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -175,6 +176,7 @@ const StringProperty = ({
               minRows={1}
               maxRows={isConstant ? 20 : 2}
               autoFocus={false}
+              changed={changed}
             />
           </div>
         </div>

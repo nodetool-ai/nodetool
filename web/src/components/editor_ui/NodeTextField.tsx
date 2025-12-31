@@ -4,10 +4,16 @@
  *
  * A TextField primitive for editor/node UI that applies consistent styling
  * via sx/slotProps and maintains nodrag behavior.
+ *
+ * Accepts semantic props for state-based styling:
+ * - `changed`: Shows visual indicator when value differs from default
+ * - `invalid`: Shows error state styling
+ * - `density`: Controls compact vs normal sizing
  */
 
 import React, { forwardRef } from "react";
 import { TextField, TextFieldProps } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";
 import { editorClassNames, cn } from "./editorUtils";
@@ -24,6 +30,18 @@ export interface NodeTextFieldProps
    * Additional class name for the root element.
    */
   className?: string;
+  /**
+   * Value differs from default — shows visual indicator (right border)
+   */
+  changed?: boolean;
+  /**
+   * Validation failed — shows error state
+   */
+  invalid?: boolean;
+  /**
+   * Density variant
+   */
+  density?: "compact" | "normal";
 }
 
 /**
@@ -34,13 +52,16 @@ export interface NodeTextFieldProps
  * <NodeTextField
  *   value={value}
  *   onChange={(e) => onChange(e.target.value)}
+ *   changed={hasChanged}
+ *   invalid={hasError}
  *   multiline
  *   minRows={1}
  *   maxRows={2}
  * />
  */
 export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
-  ({ className, slotProps, sx, ...props }, ref) => {
+  ({ className, slotProps, sx, changed, invalid, density = "compact", ...props }, ref) => {
+    const theme = useTheme();
     const scope = useEditorScope();
     const scopeClass =
       scope === "inspector"
@@ -84,7 +105,22 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
             )
           }
         }}
-        sx={sx}
+        sx={{
+          // Semantic: changed state - shows right border indicator
+          ...(changed && {
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderRightWidth: 2,
+              borderRightColor: theme.vars.palette.primary.main
+            }
+          }),
+          // Semantic: invalid state - shows error border
+          ...(invalid && {
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.vars.palette.error.main
+            }
+          }),
+          ...sx
+        }}
         {...props}
       />
     );
