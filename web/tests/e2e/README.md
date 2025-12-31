@@ -66,12 +66,18 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Browser back/forward functionality
 - Invalid route handling
 
+### 11. model-download.spec.ts (New)
+**Tests: 3**
+- Download a small HuggingFace model successfully
+- Connect to download WebSocket endpoint
+- Network access to HuggingFace (validates no CI restrictions)
+
 ## Total Test Coverage
 
-- **Total Files:** 10
-- **Total Tests:** 39
+- **Total Files:** 11
+- **Total Tests:** 42
 - **Original Tests:** 3
-- **New Tests:** 36
+- **New Tests:** 39
 
 ## Test Coverage Areas
 
@@ -85,6 +91,7 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - ✅ Chat interface
 - ✅ MiniApps
 - ✅ Model management
+- ✅ Model downloads
 - ✅ Navigation and routing
 - ✅ Browser history navigation
 - ✅ Backend API connectivity
@@ -181,7 +188,6 @@ Potential areas for additional tests:
 - Asset upload and management
 - Form submissions
 - Real chat interactions
-- Model downloads
 - User settings
 - Keyboard shortcuts
 - Mobile responsive behavior
