@@ -1,5 +1,40 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import * as path from "path";
+
+// Constants
+const UPLOAD_BUTTON_SELECTOR = ".file-upload-button button, .upload-file";
+
+// Helper function to check page for server errors
+async function checkPageForErrors(page: Page): Promise<void> {
+  await expect(page).toHaveURL(/\/assets/);
+  const bodyText = await page.textContent("body");
+  expect(bodyText).not.toContain("500");
+  expect(bodyText).not.toContain("Internal Server Error");
+}
+
+// Helper function to upload a file and wait for completion
+async function uploadFile(page: Page, filePath: string): Promise<void> {
+  // Set up a file chooser handler before clicking upload button
+  const fileChooserPromise = page.waitForEvent("filechooser");
+
+  // Click the upload button (FileUploadButton with compact mode renders an IconButton)
+  const uploadButton = page.locator(UPLOAD_BUTTON_SELECTOR);
+  await uploadButton.first().click();
+
+  // Select the file
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(filePath);
+
+  // Wait for the upload API call to complete
+  await page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/assets") && response.status() === 200,
+    { timeout: 10000 }
+  );
+
+  // Wait for network to settle after upload
+  await page.waitForLoadState("networkidle");
+}
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -11,12 +46,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Verify we're on the assets page
-      await expect(page).toHaveURL(/\/assets/);
-
-      // Check that the page loaded without errors
-      const bodyText = await page.textContent("body");
-      expect(bodyText).not.toContain("500");
-      expect(bodyText).not.toContain("Internal Server Error");
+      await checkPageForErrors(page);
     });
 
     test("should display asset explorer interface", async ({ page }) => {
@@ -48,53 +78,24 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/assets");
       await page.waitForLoadState("networkidle");
 
-      // Set up a file chooser handler before clicking upload button
-      const fileChooserPromise = page.waitForEvent("filechooser");
-
-      // Click the upload button (FileUploadButton with compact mode renders an IconButton)
-      const uploadButton = page.locator(".file-upload-button button, .upload-file");
-      await uploadButton.first().click();
-
-      // Select the test text file
-      const fileChooser = await fileChooserPromise;
+      // Upload the test text file
       const testFilePath = path.join(__dirname, "fixtures", "test-document.txt");
-      await fileChooser.setFiles(testFilePath);
-
-      // Wait for the upload to complete and the asset to appear
-      // The asset should show up in the asset grid/list
-      await page.waitForTimeout(2000); // Give time for upload to complete
+      await uploadFile(page, testFilePath);
 
       // Verify the page still loads correctly after upload
-      await expect(page).toHaveURL(/\/assets/);
-      const bodyText = await page.textContent("body");
-      expect(bodyText).not.toContain("500");
-      expect(bodyText).not.toContain("Internal Server Error");
+      await checkPageForErrors(page);
     });
 
     test("should upload an image file and display it in the asset list", async ({ page }) => {
       await page.goto("/assets");
       await page.waitForLoadState("networkidle");
 
-      // Set up a file chooser handler before clicking upload button
-      const fileChooserPromise = page.waitForEvent("filechooser");
-
-      // Click the upload button
-      const uploadButton = page.locator(".file-upload-button button, .upload-file");
-      await uploadButton.first().click();
-
-      // Select the test image file
-      const fileChooser = await fileChooserPromise;
+      // Upload the test image file
       const testFilePath = path.join(__dirname, "fixtures", "test-image.png");
-      await fileChooser.setFiles(testFilePath);
-
-      // Wait for the upload to complete
-      await page.waitForTimeout(2000); // Give time for upload to complete
+      await uploadFile(page, testFilePath);
 
       // Verify the page still loads correctly after upload
-      await expect(page).toHaveURL(/\/assets/);
-      const bodyText = await page.textContent("body");
-      expect(bodyText).not.toContain("500");
-      expect(bodyText).not.toContain("Internal Server Error");
+      await checkPageForErrors(page);
     });
   });
 }
