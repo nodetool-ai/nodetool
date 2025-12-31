@@ -1099,7 +1099,9 @@ export const createNodeStore = (
           },
           toggleBypassSelected: (): void => {
             const selectedNodes = get().getSelectedNodes();
-            if (selectedNodes.length === 0) {return;}
+            if (selectedNodes.length === 0) {
+              return;
+            }
             
             // Determine if we should bypass or enable based on majority
             const bypassedCount = selectedNodes.filter(n => n.data.bypassed).length;

@@ -90,8 +90,8 @@
   letter-spacing: 0.5px;
   padding: 2px 6px;
   border-radius: 4px;
-  background-color: rgba(255, 152, 0, 0.2);
-  color: rgb(255, 152, 0);
+  background-color: var(--c_warn, rgba(255, 152, 0, 0.2));
+  color: var(--palette-warning-main, rgb(255, 152, 0));
   margin-left: 8px;
 }
 

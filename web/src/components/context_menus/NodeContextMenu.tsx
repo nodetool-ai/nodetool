@@ -61,7 +61,7 @@ const NodeContextMenu: React.FC = () => {
     }));
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
-  
+
   const handleToggleComment = useCallback(() => {
     if (!nodeId) {
       return;
