@@ -41,15 +41,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     selectedNodes: state.getSelectedNodes()
   }));
 
-  // debug render logging
-  React.useEffect(() => {
-    // keep this lightweight
-    console.log("[SelectionContextMenu] render", {
-      menuPosition,
-      selectedCount: selectedNodes.length
-    });
-  }, [menuPosition, selectedNodes.length]);
-
   // any has parent
   const anyHasParent = useMemo(() => {
     return selectedNodes.some((node) => node.parentId);

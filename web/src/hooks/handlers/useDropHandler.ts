@@ -111,7 +111,6 @@ export const useDropHandler = () => {
         for (const file of files) {
           const fileType = detectFileType(file);
           let result: FileHandlerResult;
-          console.log("fileType", fileType);
 
           switch (fileType) {
             case "png":

@@ -209,7 +209,6 @@ export const useNodeEditorShortcuts = (
   const handleMenuEvent = useCallback(
     (data: any) => {
       if (!active) {return;}
-      console.log("menu-event", data);
       switch (data.type) {
         case "copy":
           handleCopy();

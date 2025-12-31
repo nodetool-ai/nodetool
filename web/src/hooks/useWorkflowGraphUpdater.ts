@@ -73,9 +73,6 @@ export const useWorkflowGraphUpdater = () => {
         // Mark the workflow as clean since this is an update from the server
         nodeStore.getState().setWorkflowDirty(false);
         
-        console.log(
-          `Updated workflow ${currentWorkflow.id} with ${reactFlowNodes.length} nodes and ${reactFlowEdges.length} edges from ${update.type}`
-        );
       } catch (error) {
         console.error("Error updating workflow graph:", error);
       }

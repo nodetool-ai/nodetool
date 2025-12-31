@@ -321,13 +321,11 @@ const WorkflowAssistantChat: React.FC = () => {
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
-      console.log("[WorkflowAssistantChat] Original message:", JSON.stringify(message, null, 2));
       const enrichedMessage = {
         ...message,
         workflow_id: currentWorkflowId ?? undefined,
         workflow_target: "workflow"
       };
-      console.log("[WorkflowAssistantChat] Enriched message:", JSON.stringify(enrichedMessage, null, 2));
       await sendMessage(enrichedMessage);
     },
     [sendMessage, currentWorkflowId]

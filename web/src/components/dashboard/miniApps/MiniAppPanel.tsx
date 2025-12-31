@@ -60,7 +60,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
           params: { query: { limit: 100 } }
         });
         if (error) {throw error;}
-        console.log("Fetched workflows for MiniApp:", data);
         return data;
       }
       return null;

@@ -41,22 +41,16 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
   }, [edgeId, deleteEdge, closeContextMenu]);
 
   const handleInsertReroute = useCallback(() => {
-    console.log("Insert Reroute clicked", { edgeId, menuPosition });
-
     if (!edgeId || !menuPosition) {
-      console.log("Missing edgeId or menuPosition", { edgeId, menuPosition });
       closeContextMenu();
       return;
     }
 
     const edge = findEdge(edgeId);
     if (!edge) {
-      console.log("Edge not found", edgeId);
       closeContextMenu();
       return;
     }
-
-    console.log("Found edge", edge);
 
     // Convert screen coordinates to flow coordinates
     const flowPosition = reactFlowInstance.screenToFlowPosition({

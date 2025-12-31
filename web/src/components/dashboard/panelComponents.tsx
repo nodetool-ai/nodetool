@@ -122,8 +122,6 @@ export const createPanelComponents = () => ({
     <MiniAppPanel
       workflowId={props.params?.workflowId}
       onWorkflowSelect={(workflowId) => {
-        console.log("props.api", props.api);
-        console.log("props.containerApi", props.containerApi);
         // Try to find the panel via containerApi
         const panel = (props.containerApi as any).getPanel?.(props.api.id);
         if (panel) {
