@@ -12,7 +12,8 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     height: undefined,
     title: node.data.title,
     color: node.data.color,
-    selectable: true
+    selectable: true,
+    bypassed: node.data.bypassed
   };
 
   if (node.type === "nodetool.group.Loop") {

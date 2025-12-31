@@ -122,6 +122,7 @@ export type NodeUIProperties = {
   zIndex?: number;
   title?: string;
   color?: string;
+  bypassed?: boolean;
 };
 
 type NodeSelection = {
@@ -208,6 +209,9 @@ export interface NodeStoreState {
   setShouldFitToScreen: (value: boolean, nodeIds?: string[] | null) => void;
   selectAllNodes: () => void;
   cleanup: () => void;
+  toggleBypass: (nodeId: string) => void;
+  setBypass: (nodeId: string, bypassed: boolean) => void;
+  toggleBypassSelected: () => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -1069,6 +1073,30 @@ export const createNodeStore = (
           },
           setViewport: (viewport: Viewport): void => {
             set({ viewport: viewport });
+          },
+          toggleBypass: (nodeId: string): void => {
+            const node = get().findNode(nodeId);
+            if (node) {
+              get().updateNodeData(nodeId, { bypassed: !node.data.bypassed });
+              get().setWorkflowDirty(true);
+            }
+          },
+          setBypass: (nodeId: string, bypassed: boolean): void => {
+            get().updateNodeData(nodeId, { bypassed });
+            get().setWorkflowDirty(true);
+          },
+          toggleBypassSelected: (): void => {
+            const selectedNodes = get().getSelectedNodes();
+            if (selectedNodes.length === 0) {return;}
+            
+            // Check if any selected node is not bypassed - if so, bypass all; otherwise, un-bypass all
+            const anyNotBypassed = selectedNodes.some(node => !node.data.bypassed);
+            const newBypassedState = anyNotBypassed;
+            
+            selectedNodes.forEach(node => {
+              get().updateNodeData(node.id, { bypassed: newBypassedState });
+            });
+            get().setWorkflowDirty(true);
           },
           ...state
         };

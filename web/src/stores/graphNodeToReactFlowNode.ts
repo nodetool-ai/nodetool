@@ -63,6 +63,7 @@ export function graphNodeToReactFlowNode(
       workflow_id: workflow.id,
       title: ui_properties?.title,
       color: ui_properties?.color,
+      bypassed: ui_properties?.bypassed,
       originalType: node.type
     },
     position: ui_properties?.position || { x: 0, y: 0 },

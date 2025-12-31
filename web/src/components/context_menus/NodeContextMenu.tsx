@@ -11,6 +11,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import BlockIcon from "@mui/icons-material/Block";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
@@ -48,15 +49,26 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
-  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes } =
+  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes, toggleBypass } =
     useNodes((state) => ({
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
       selectNodesByType: state.selectNodesByType,
       deleteNode: state.deleteNode,
-      selectedNodes: state.getSelectedNodes()
+      selectedNodes: state.getSelectedNodes(),
+      toggleBypass: state.toggleBypass
     }));
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const isBypassed = Boolean(nodeData?.bypassed);
+  
+  const handleToggleBypassed = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    toggleBypass(nodeId);
+    closeContextMenu();
+  }, [closeContextMenu, nodeId, toggleBypass]);
+
   const handleToggleComment = useCallback(() => {
     if (!nodeId) {
       return;
@@ -169,6 +181,19 @@ const NodeContextMenu: React.FC = () => {
         label="Remove from Group"
         IconComponent={<GroupRemoveIcon />}
         tooltip="Remove this node from the group"
+      />
+    ),
+    nodeId && (
+      <ContextMenuItem
+        key="toggle-bypass"
+        onClick={handleToggleBypassed}
+        label={isBypassed ? "Enable Node" : "Bypass Node"}
+        IconComponent={<BlockIcon />}
+        tooltip={
+          isBypassed
+            ? "Enable this node (B)"
+            : "Bypass this node - inputs pass through to outputs (B)"
+        }
       />
     ),
     nodeId && (

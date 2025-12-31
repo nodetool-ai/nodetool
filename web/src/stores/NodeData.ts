@@ -10,6 +10,7 @@ export type NodeData = {
   title?: string;
   color?: string;
   collapsed?: boolean;
+  bypassed?: boolean; // When true, node is bypassed and inputs pass through to outputs
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
   originalType?: string;
   size?: {

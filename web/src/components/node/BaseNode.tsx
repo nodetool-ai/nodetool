@@ -151,7 +151,8 @@ const getStyleProps = (
   parentId: string | undefined,
   nodeType: { isInputNode: boolean; isOutputNode: boolean },
   isLoading: boolean,
-  metadata: any
+  metadata: any,
+  isBypassed: boolean
 ) => {
   const hasParent = Boolean(parentId);
   return {
@@ -159,7 +160,8 @@ const getStyleProps = (
       ${hasParent ? "has-parent" : ""}
       ${nodeType.isInputNode ? " input-node" : ""}
       ${nodeType.isOutputNode ? " output-node" : ""}
-      ${isLoading ? " loading is-loading" : " loading "}`
+      ${isLoading ? " loading is-loading" : " loading "}
+      ${isBypassed ? " bypassed" : ""}`
       .replace(/\s+/g, " ")
       .trim(),
     minHeight: metadata
@@ -235,8 +237,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
   const { id, type, data, selected, parentId } = props;
-  const { workflow_id, title } = data;
+  const { workflow_id, title, bypassed } = data;
   const hasParent = Boolean(parentId);
+  const isBypassed = Boolean(bypassed);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
   const nodeType = useMemo(
@@ -295,8 +298,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Style
   const styleProps = useMemo(
-    () => getStyleProps(parentId, nodeType, isLoading, metadata),
-    [parentId, nodeType, isLoading, metadata]
+    () => getStyleProps(parentId, nodeType, isLoading, metadata, isBypassed),
+    [parentId, nodeType, isLoading, metadata, isBypassed]
   );
 
   // Results and rendering
