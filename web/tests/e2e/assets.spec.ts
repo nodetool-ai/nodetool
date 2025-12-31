@@ -6,9 +6,6 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Constants
-const UPLOAD_BUTTON_SELECTOR = ".file-upload-button button, .upload-file";
-
 // Helper function to check page for server errors
 async function checkPageForErrors(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/assets/);
@@ -19,16 +16,15 @@ async function checkPageForErrors(page: Page): Promise<void> {
 
 // Helper function to upload a file and wait for completion
 async function uploadFile(page: Page, filePath: string): Promise<void> {
-  // Set up a file chooser handler before clicking upload button
-  const fileChooserPromise = page.waitForEvent("filechooser");
+  // Wait for the upload button container to be visible
+  const uploadContainer = page.locator(".file-upload-button").first();
+  await expect(uploadContainer).toBeVisible({ timeout: 10000 });
 
-  // Click the upload button (FileUploadButton with compact mode renders an IconButton)
-  const uploadButton = page.locator(UPLOAD_BUTTON_SELECTOR);
-  await uploadButton.first().click();
+  // Get the hidden file input inside the upload button container
+  const fileInput = uploadContainer.locator('input[type="file"]');
 
-  // Select the file
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles(filePath);
+  // Set the file directly on the input (bypassing the click/filechooser flow)
+  await fileInput.setInputFiles(filePath);
 
   // Wait for the upload API call to complete
   await page.waitForResponse(
