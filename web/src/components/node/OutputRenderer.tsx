@@ -350,7 +350,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         // Handle different audio data formats
         let audioSource: string | Uint8Array;
 
-        if (value?.uri && value.uri !== "") {
+        if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
           // Use URI if available
           audioSource = value.uri;
         } else if (Array.isArray(value?.data)) {
@@ -367,9 +367,17 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           audioSource = "";
         }
 
+        const metadata = (value as any).metadata || {};
+        const mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
+
         return (
           <div className="audio" style={{ padding: "1em" }}>
-            <AudioPlayer source={audioSource} />
+            <AudioPlayer
+              source={audioSource}
+              mimeType={mimeType}
+              height={150}
+              waveformHeight={150}
+            />
           </div>
         );
       }
@@ -525,11 +533,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 (c) => c.content_type === "audio"
               );
               if (audioChunks.length >= 2) {
+                const firstMeta = (audioChunks[0] as any).content_metadata;
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
-                    sampleRate={22000}
-                    channels={1}
+                    sampleRate={firstMeta?.sample_rate || 22000}
+                    channels={firstMeta?.channels || 1}
                   />
                 );
               }
