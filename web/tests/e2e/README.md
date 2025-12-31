@@ -17,10 +17,12 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Navigation from dashboard
 
 ### 3. assets.spec.ts (New)
-**Tests: 3**
+**Tests: 5**
 - Asset explorer page loading
 - Asset interface display
 - Empty state handling
+- Text file upload
+- Image file upload
 
 ### 4. auth.spec.ts (New)
 **Tests: 4**
@@ -69,9 +71,9 @@ This directory contains end-to-end tests for the NodeTool web application using 
 ## Total Test Coverage
 
 - **Total Files:** 10
-- **Total Tests:** 39
+- **Total Tests:** 41
 - **Original Tests:** 3
-- **New Tests:** 36
+- **New Tests:** 38
 
 ## Test Coverage Areas
 
