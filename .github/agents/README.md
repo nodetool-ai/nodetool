@@ -79,13 +79,6 @@ See [copilot-instructions.md](../copilot-instructions.md) for:
 - Testing patterns
 - Code quality standards
 
-### Claude AI
-See [claude-instructions.md](../claude-instructions.md) for:
-- Quick setup guide
-- Code patterns
-- Testing guidelines
-- Debugging tips
-
 ### Other Agents
 Refer to the main [AGENTS.md](../../AGENTS.md) for:
 - Project architecture
