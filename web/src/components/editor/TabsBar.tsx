@@ -30,8 +30,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     updateWorkflow,
     removeWorkflow,
     saveWorkflow,
-    createNewWorkflow,
-    getNodeStore
+    createNewWorkflow
   } = useWorkflowManager((state) => ({
     openWorkflows: state.openWorkflows,
     getWorkflow: state.getWorkflow,
