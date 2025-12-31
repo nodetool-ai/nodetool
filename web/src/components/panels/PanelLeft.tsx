@@ -355,8 +355,12 @@ const styles = (
 const formatElapsedTime = (startedAt: string | null | undefined): string => {
   if (!startedAt) return "Not started";
   const start = new Date(startedAt).getTime();
+  // Validate the date - getTime() returns NaN for invalid dates
+  if (isNaN(start)) return "Invalid date";
   const now = Date.now();
   const elapsed = Math.floor((now - start) / 1000);
+  // Handle negative elapsed time (future dates)
+  if (elapsed < 0) return "0s";
 
   if (elapsed < 60) return `${elapsed}s`;
   if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;
@@ -394,7 +398,9 @@ const JobItem = ({ job }: { job: Job }) => {
       runnerState === "error" ||
       runnerState === "cancelled"
     ) {
-      // Invalidate the jobs query to refresh the list
+      // Invalidate all jobs queries to refresh the list
+      // queryKey: ["jobs"] matches any query whose key starts with "jobs"
+      // This includes ["jobs", "running", userId] used in useRunningJobs
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     }
   }, [runnerState]);
