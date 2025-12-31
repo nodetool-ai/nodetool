@@ -16,7 +16,6 @@ import isEqual from "lodash/isEqual";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
-import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -27,7 +26,6 @@ import ThemeToggle from "../ui/ThemeToggle";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
-import FolderIcon from "@mui/icons-material/Folder";
 import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
@@ -432,27 +430,10 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip
         title={
           <div className="tooltip-span">
-            <div className="tooltip-title">Workspace</div>
+            <div className="tooltip-title">Jobs</div>
             <div className="tooltip-key">
               <kbd>3</kbd>
             </div>
-          </div>
-        }
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          onClick={() => onViewChange("workspace")}
-          className={activeView === "workspace" && panelVisible ? "active" : ""}
-        >
-          <FolderIcon />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Jobs</div>
           </div>
         }
         placement="right-start"
@@ -528,17 +509,6 @@ const PanelContent = memo(function PanelContent({
           <WorkflowList />
         </Box>
       )}
-      {activeView === "workspace" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden"
-          }}
-        >
-          <WorkspaceTree />
-        </Box>
-      )}
       {activeView === "jobs" && (
         <Box
           sx={{
@@ -578,9 +548,7 @@ const PanelLeft: React.FC = () => {
 
   useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["2"], () => handlePanelToggle("assets"), false);
-  useCombo(["3"], () => handlePanelToggle("workspace"), false);
-
-  useCombo(["4"], () => handlePanelToggle("packs"), false);
+  useCombo(["3"], () => handlePanelToggle("jobs"), false);
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";

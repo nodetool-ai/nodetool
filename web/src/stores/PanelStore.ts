@@ -6,7 +6,6 @@ export type LeftPanelView =
   | "workflowGrid"
   | "collections"
   | "packs"
-  | "workspace"
   | "jobs";
 export type PanelView = LeftPanelView;
 
