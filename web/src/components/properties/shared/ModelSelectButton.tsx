@@ -101,10 +101,9 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
               component="div"
               variant="body2"
               sx={{
-                color: active
-                  ? "var(--palette-text-primary)"
-                  : "var(--palette-text-secondary)",
-                lineHeight: 1.2,
+                color: "var(--palette-common-black)",
+                fontSize: "var(--fontSizeTinyer)",
+                lineHeight: "1.1em",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
@@ -121,10 +120,11 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
                 component="div"
                 variant="body2"
                 sx={{
-                  color: "var(--palette-grey-400)",
-                  lineHeight: 1.2,
+                  color: "var(--palette-common-white)",
+                  lineHeight: "1.1em",
                   display: "block",
-                  fontSize: "0.75em",
+                  fontSize: "var(--fontSizeTinyer)",
+                  fontWeight: "light",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis"
