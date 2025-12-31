@@ -20,6 +20,15 @@
 
 import * as https from "https";
 import * as http from "http";
+import * as crypto from "crypto";
+
+/**
+ * Generate a random boundary string for multipart form data.
+ * @returns {string}
+ */
+function generateBoundary() {
+  return "----NodeToolBoundary" + crypto.randomBytes(16).toString("hex");
+}
 
 /**
  * Parse command line arguments.
@@ -35,22 +44,62 @@ function parseArgs() {
     folderName: "Stock Images"
   };
 
+  /**
+   * Helper to get the next argument value after a flag.
+   * @param {number} currentIndex
+   * @param {string} flagName
+   * @returns {string}
+   */
+  function getNextArg(currentIndex, flagName) {
+    const nextIndex = currentIndex + 1;
+    if (nextIndex >= args.length || args[nextIndex].startsWith("--")) {
+      console.error(`Error: ${flagName} requires a value`);
+      process.exit(1);
+    }
+    return args[nextIndex];
+  }
+
+  /**
+   * Helper to parse and validate a positive integer.
+   * @param {string} value
+   * @param {string} flagName
+   * @returns {number}
+   */
+  function parsePositiveInt(value, flagName) {
+    const parsed = parseInt(value, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      console.error(
+        `Error: ${flagName} must be a positive integer, got "${value}"`
+      );
+      process.exit(1);
+    }
+    return parsed;
+  }
+
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
       case "--url":
-        options.url = args[++i];
+        options.url = getNextArg(i, "--url");
+        i++;
         break;
       case "--count":
-        options.count = parseInt(args[++i], 10);
+        options.count = parsePositiveInt(getNextArg(i, "--count"), "--count");
+        i++;
         break;
       case "--width":
-        options.width = parseInt(args[++i], 10);
+        options.width = parsePositiveInt(getNextArg(i, "--width"), "--width");
+        i++;
         break;
       case "--height":
-        options.height = parseInt(args[++i], 10);
+        options.height = parsePositiveInt(
+          getNextArg(i, "--height"),
+          "--height"
+        );
+        i++;
         break;
       case "--folder":
-        options.folderName = args[++i];
+        options.folderName = getNextArg(i, "--folder");
+        i++;
         break;
       case "--help":
         console.log(`
@@ -153,7 +202,7 @@ async function createFolder(baseUrl, folderName) {
   const url = new URL("/api/assets/", baseUrl);
 
   // Create form data
-  const boundary = "----NodeToolBoundary" + Math.random().toString(36).slice(2);
+  const boundary = generateBoundary();
   const payload = JSON.stringify({
     content_type: "folder",
     name: folderName,
@@ -193,8 +242,8 @@ async function createFolder(baseUrl, folderName) {
         if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
           try {
             resolve(JSON.parse(data));
-          } catch {
-            reject(new Error(`Failed to parse response: ${data}`));
+          } catch (parseError) {
+            reject(new Error(`Failed to parse response: ${data} (${parseError})`));
           }
         } else {
           // Folder might already exist, which is fine
@@ -235,7 +284,7 @@ async function uploadAsset(
   const url = new URL("/api/assets/", baseUrl);
 
   // Create multipart form data
-  const boundary = "----NodeToolBoundary" + Math.random().toString(36).slice(2);
+  const boundary = generateBoundary();
 
   const payloadJson = JSON.stringify({
     content_type: contentType,
@@ -302,8 +351,8 @@ async function uploadAsset(
         if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
           try {
             resolve(JSON.parse(data));
-          } catch {
-            reject(new Error(`Failed to parse response: ${data}`));
+          } catch (parseError) {
+            reject(new Error(`Failed to parse response: ${data} (${parseError})`));
           }
         } else {
           reject(
