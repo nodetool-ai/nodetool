@@ -113,10 +113,15 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
               borderRightColor: theme.vars.palette.primary.main
             }
           }),
-          // Semantic: invalid state - shows error border
+          // Semantic: invalid state - shows error border (preserves changed right border)
           ...(invalid && {
             "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.vars.palette.error.main
+              borderColor: theme.vars.palette.error.main,
+              // Preserve changed indicator when both changed and invalid
+              ...(changed && {
+                borderRightWidth: 2,
+                borderRightColor: theme.vars.palette.primary.main
+              })
             }
           }),
           ...sx
