@@ -59,6 +59,8 @@ NodeTool provides access to the latest high-quality generative AI models for cre
 
 Use these models through NodeTool's generic nodes (`TextToVideo`, `ImageToVideo`, `TextToImage`) by selecting the appropriate provider and model in the node properties.
 
+> **Tip**: All these models are also available through [kie.ai](https://kie.ai/), which aggregates multiple AI providers and often offers competitive pricing compared to upstream providers.
+
 ## Get Started
 
 | Platform | Download | What You Need |

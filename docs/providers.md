@@ -255,6 +255,33 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Set `GOOGLE_API_KEY` environment variable or configure in Settings → Providers
 
+### Multi-Provider Aggregators
+
+#### kie.ai
+
+**Capabilities:** Unified access to multiple AI providers and models
+
+**Features:**
+- ✅ Access to all the SOTA models listed above through a single API
+- ✅ Often offers competitive or lower pricing than upstream providers
+- ✅ Simplified API management with one key for multiple models
+- ✅ Cost optimization through provider selection
+- ✅ Aggregated billing across multiple AI services
+
+**Configuration:** Set `KIE_API_KEY` environment variable or configure in Settings → Providers
+
+**Available Models via kie.ai:**
+- OpenAI Sora 2 Pro
+- Google Veo 3.1
+- xAI Grok Imagine
+- Alibaba Wan 2.6
+- MiniMax Hailuo 2.3
+- Kling 2.6
+- Black Forest Labs FLUX.2
+- Google Nano Banana Pro
+
+kie.ai provides a cost-effective alternative for accessing multiple state-of-the-art models through a unified interface. This is particularly useful for workflows that utilize models from different providers, as it reduces API key management complexity and can offer better pricing.
+
 ## Generic Nodes: Provider-Agnostic Workflows
 
 One of the most powerful features of the NodeTool provider system is **generic nodes**. These are special nodes that let

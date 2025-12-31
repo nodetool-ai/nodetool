@@ -179,4 +179,15 @@ In addition to local models, NodeTool provides access to cutting-edge cloud-base
 - **Data Privacy**: Content is processed on provider servers
 - **Rate Limits**: Subject to provider API quotas
 
+### Cost-Effective Alternative: kie.ai
+
+All the cloud models listed above are also available through [kie.ai](https://kie.ai/), an AI provider aggregator that:
+
+- Offers unified access to multiple providers through a single API
+- Often provides competitive or lower pricing than upstream providers
+- Simplifies API key management (one key for all models)
+- Enables easy cost comparison and optimization across providers
+
+This can be particularly beneficial for workflows using multiple SOTA models from different providers.
+
 For detailed provider configuration and usage, see the [Providers Guide](providers.md).

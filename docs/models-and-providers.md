@@ -95,6 +95,8 @@ Each provider requires its own API key. Visit the provider's website to sign up 
 
 > **Cost Considerations**: Cloud models typically charge per generation. Check each provider's pricing before extensive use. Local models are free after download but require capable hardware.
 
+> **Alternative Access**: All these models are also available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers. This can be a cost-effective option for accessing multiple SOTA models through a single API.
+
 ---
 
 ## Getting Started
