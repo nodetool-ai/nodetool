@@ -58,7 +58,6 @@ This guide helps AI agents understand the state management stores in NodeTool's 
 - `LogStore.ts`: Application logging system
 - `ErrorStore.ts`: Error handling and reporting
 - `UpdatesStore.ts`: Manages application updates
-- `WebSocketUpdatesStore.ts`: Real-time updates via WebSockets
 
 ## Utility Functions
 
