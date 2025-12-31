@@ -431,6 +431,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Jobs</div>
+            <div className="tooltip-key">
+              <kbd>3</kbd>
+            </div>
           </div>
         }
         placement="right-start"
@@ -545,8 +548,7 @@ const PanelLeft: React.FC = () => {
 
   useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["2"], () => handlePanelToggle("assets"), false);
-
-  useCombo(["4"], () => handlePanelToggle("packs"), false);
+  useCombo(["3"], () => handlePanelToggle("jobs"), false);
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";

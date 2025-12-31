@@ -13,7 +13,6 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useCombo } from "../../stores/KeyPressedStore";
 
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -207,14 +206,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
       {/* Workspace Button */}
       <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Workspace</div>
-            <div className="tooltip-key">
-              <kbd>3</kbd>
-            </div>
-          </div>
-        }
+        title="Workspace"
         placement="left-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
@@ -252,9 +244,6 @@ const PanelRight: React.FC = () => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
-
-  // Keyboard shortcut for workspace
-  useCombo(["3"], () => handlePanelToggle("workspace"), false);
 
   return (
     <div
