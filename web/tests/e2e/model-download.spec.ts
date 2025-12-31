@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 
+// Backend API URL - matches the nodetool server URL used in e2e tests
+const BACKEND_URL = "http://localhost:7777";
+const BACKEND_WS_URL = "ws://localhost:7777";
+
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
@@ -18,11 +22,9 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Start the download and wait for completion using WebSocket inside the page context
-      const downloadResult = await page.evaluate(async (repoId: string) => {
+      const downloadResult = await page.evaluate(async ({ repoId, wsUrl }: { repoId: string; wsUrl: string }) => {
         return new Promise<{ success: boolean; error?: string; data?: unknown }>((resolve) => {
-          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-          const wsUrl = `${protocol}//localhost:7777/ws/download`;
-          const ws = new WebSocket(wsUrl);
+          const ws = new WebSocket(`${wsUrl}/ws/download`);
           
           // Timeout after 120 seconds
           const timeout = setTimeout(() => {
@@ -77,7 +79,7 @@ if (process.env.JEST_WORKER_ID) {
             }
           };
         });
-      }, TEST_MODEL_REPO_ID);
+      }, { repoId: TEST_MODEL_REPO_ID, wsUrl: BACKEND_WS_URL });
 
       // Assert download was successful
       expect(downloadResult.success).toBe(true);
@@ -87,7 +89,7 @@ if (process.env.JEST_WORKER_ID) {
 
       // Verify the model appears in the downloaded models list
       // Make API request to check the model is now available
-      const response = await page.request.get("http://localhost:7777/api/models/huggingface");
+      const response = await page.request.get(`${BACKEND_URL}/api/models/huggingface`);
       expect(response.ok()).toBeTruthy();
       
       const models = await response.json();
@@ -104,11 +106,9 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Test that we can connect to the WebSocket endpoint
-      const canConnect = await page.evaluate(async () => {
+      const canConnect = await page.evaluate(async (wsUrl: string) => {
         return new Promise<boolean>((resolve) => {
-          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-          const wsUrl = `${protocol}//localhost:7777/ws/download`;
-          const ws = new WebSocket(wsUrl);
+          const ws = new WebSocket(`${wsUrl}/ws/download`);
           
           const timeout = setTimeout(() => {
             ws.close();
@@ -126,7 +126,7 @@ if (process.env.JEST_WORKER_ID) {
             resolve(false);
           };
         });
-      });
+      }, BACKEND_WS_URL);
 
       expect(canConnect).toBe(true);
     });
