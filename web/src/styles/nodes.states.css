@@ -1,4 +1,4 @@
-/* NODE STATE STYLES (selection, hover, loading) */
+/* NODE STATE STYLES (selection, hover, loading, bypassed) */
 
 /* --------------------------------------------- */
 /* Selection and highlighting                     */
@@ -54,6 +54,39 @@
     var(--c_node_header_bg_group) 82%,
     var(--palette-primary-main) 18%
   ) !important;
+}
+
+/* --------------------------------------------- */
+/* Bypassed state                                  */
+/* --------------------------------------------- */
+.react-flow__node:has(.bypassed) {
+  opacity: 0.5;
+  border-style: dashed !important;
+  border-color: var(--palette-grey-600) !important;
+  outline-style: dashed !important;
+}
+
+.react-flow__node:has(.bypassed):hover {
+  opacity: 0.7;
+}
+
+.react-flow__node .bypassed {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(128, 128, 128, 0.08) 8px,
+    rgba(128, 128, 128, 0.08) 16px
+  );
+}
+
+.react-flow__node .bypassed .node-header .node-title {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.react-flow__node .bypassed .node-content {
+  opacity: 0.5;
 }
 
 /* --------------------------------------------- */
