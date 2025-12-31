@@ -6,6 +6,25 @@ import type { Theme } from "@mui/material/styles";
 import { IconButton, Tooltip, CircularProgress } from "@mui/material";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 
+// EyeDropper API types (not yet in TypeScript standard library)
+interface EyeDropperResult {
+  sRGBHex: string;
+}
+
+interface EyeDropperInstance {
+  open(): Promise<EyeDropperResult>;
+}
+
+interface EyeDropperConstructor {
+  new(): EyeDropperInstance;
+}
+
+declare global {
+  interface Window {
+    EyeDropper?: EyeDropperConstructor;
+  }
+}
+
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -49,9 +68,8 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
     setIsPicking(true);
 
     try {
-      // TypeScript doesn't know about EyeDropper yet, so we need to cast
-      const EyeDropper = (window as any).EyeDropper;
-      const eyeDropper = new EyeDropper();
+      if (!window.EyeDropper) { return; }
+      const eyeDropper = new window.EyeDropper();
       const result = await eyeDropper.open();
 
       if (result?.sRGBHex) {

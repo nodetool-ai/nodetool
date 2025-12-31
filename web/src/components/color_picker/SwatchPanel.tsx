@@ -41,7 +41,7 @@ const styles = (theme: Theme) =>
     ".section-title": {
       fontSize: "12px",
       fontWeight: 600,
-      color: theme.vars.palette.grey[300],
+      color: theme.vars.palette.text.primary,
       textTransform: "uppercase"
     },
     ".color-grid": {

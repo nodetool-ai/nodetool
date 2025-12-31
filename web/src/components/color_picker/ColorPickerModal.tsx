@@ -289,7 +289,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
       switch (format) {
         case "hex":
-          textToCopy = alpha < 1 ? rgbToHex(rgb, true) : color;
+          textToCopy = alpha < 1 ? rgbToHex({ ...rgb, a: alpha }, true) : color;
           break;
         case "rgb":
           textToCopy =

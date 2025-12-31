@@ -232,7 +232,6 @@ function parseGradientStops(stopsStr: string): GradientStop[] {
   const stops: GradientStop[] = [];
   const regex = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))\s*(\d+)?%?/g;
   let match;
-  const index = 0;
   const matches: Array<{ color: string; position?: string }> = [];
 
   while ((match = regex.exec(stopsStr)) !== null) {
