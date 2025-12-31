@@ -109,6 +109,8 @@ When you select a node, the right panel shows its **configuration**:
 
 AI assistant built into NodeTool.
 
+![Global Chat Interface](assets/screenshots/global-chat-interface.png)
+
 ### Features
 
 - **Chat** with AI models
