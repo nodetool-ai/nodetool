@@ -56,7 +56,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         padding: 0,
         overflow: "visible",
         flexGrow: 1,
-
+        "&:hover": {
+          "& label": {
+            opacity: 0.94
+          }
+        },
         "& label": {
           display: "block",
           fontWeight: 500,
@@ -75,8 +79,27 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     >
       <Tooltip
         title={showTooltip ? description || "" : ""}
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterDelay={TOOLTIP_ENTER_DELAY * 2}
+        enterNextDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
+        slotProps={{
+          tooltip: {
+            sx: {
+              fontSize: theme.fontSizeSmall + " !important",
+              color: theme.vars.palette.common.white
+            }
+          },
+          popper: {
+            modifiers: [
+              {
+                name: "offset",
+                options: {
+                  offset: density === "compact" ? [0, 64] : [0, 16] // [skidding, distance] - distance pushes tooltip further left
+                }
+              }
+            ]
+          }
+        }}
         disableInteractive
       >
         <label draggable={false} htmlFor={id}>
