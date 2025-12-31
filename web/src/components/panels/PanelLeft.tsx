@@ -8,12 +8,13 @@ import {
   Tooltip,
   Box,
   Button,
-  useMediaQuery
+  useMediaQuery,
+  Typography
 } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, useEffect } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import { IconForType } from "../../config/data_types";
@@ -28,6 +29,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
@@ -40,6 +42,10 @@ import {
 } from "@mui/material";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import { useWorkflowRunnerState } from "../../hooks/useWorkflowRunnerState";
+import { Job } from "../../stores/ApiTypes";
+import { useWorkflow } from "../../serverState/useWorkflow";
+import { queryClient } from "../../queryClient";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -343,37 +349,156 @@ const styles = (
   });
 };
 
+/**
+ * Format elapsed time since job started
+ */
+const formatElapsedTime = (startedAt: string | null | undefined): string => {
+  if (!startedAt) return "Not started";
+  const start = new Date(startedAt).getTime();
+  // Validate the date - getTime() returns NaN for invalid dates
+  if (isNaN(start)) return "Invalid date";
+  const now = Date.now();
+  const elapsed = Math.floor((now - start) / 1000);
+  // Handle negative elapsed time (future dates)
+  if (elapsed < 0) return "0s";
+
+  if (elapsed < 60) return `${elapsed}s`;
+  if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;
+  const hours = Math.floor(elapsed / 3600);
+  const minutes = Math.floor((elapsed % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+};
+
+/**
+ * Component to display a single job item with workflow name and runner state detection
+ */
+const JobItem = ({ job }: { job: Job }) => {
+  const navigate = useNavigate();
+  const runnerState = useWorkflowRunnerState(job.workflow_id);
+  const { data: workflow } = useWorkflow(job.workflow_id);
+  const [elapsedTime, setElapsedTime] = useState(
+    formatElapsedTime(job.started_at)
+  );
+
+  // Update elapsed time every second while job is running
+  useEffect(() => {
+    if (job.status !== "running" && job.status !== "queued") return;
+
+    const interval = setInterval(() => {
+      setElapsedTime(formatElapsedTime(job.started_at));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [job.started_at, job.status]);
+
+  // Refresh jobs list when runner state changes from running to idle/error/cancelled
+  useEffect(() => {
+    if (
+      runnerState === "idle" ||
+      runnerState === "error" ||
+      runnerState === "cancelled"
+    ) {
+      // Invalidate all jobs queries to refresh the list
+      // queryKey: ["jobs"] matches any query whose key starts with "jobs"
+      // This includes ["jobs", "running", userId] used in useRunningJobs
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    }
+  }, [runnerState]);
+
+  const handleClick = () => {
+    navigate(`/editor/${job.workflow_id}`);
+  };
+
+  const getStatusIcon = () => {
+    if (job.error) {
+      return <ErrorOutlineIcon color="error" />;
+    }
+    switch (job.status) {
+      case "running":
+        return <CircularProgress size={24} />;
+      case "queued":
+      case "starting":
+        return <HourglassEmptyIcon color="action" />;
+      default:
+        return <PlayArrowIcon color="action" />;
+    }
+  };
+
+  const workflowName = workflow?.name || "Loading...";
+  const statusText =
+    job.status === "running"
+      ? `Running • ${elapsedTime}`
+      : job.status === "queued"
+        ? "Queued"
+        : job.status === "starting"
+          ? "Starting..."
+          : job.status;
+
+  return (
+    <ListItem
+      onClick={handleClick}
+      sx={{
+        cursor: "pointer",
+        borderRadius: 1,
+        mb: 0.5,
+        "&:hover": {
+          backgroundColor: "action.hover"
+        }
+      }}
+    >
+      <ListItemIcon sx={{ minWidth: 40 }}>{getStatusIcon()}</ListItemIcon>
+      <ListItemText
+        primary={
+          <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
+            {workflowName}
+          </Typography>
+        }
+        secondary={
+          <Box component="span" sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+            <Typography variant="caption" color="text.secondary">
+              {statusText}
+            </Typography>
+            {job.error && (
+              <Typography variant="caption" color="error" noWrap>
+                {job.error}
+              </Typography>
+            )}
+          </Box>
+        }
+      />
+    </ListItem>
+  );
+};
+
 const RunningJobsList = () => {
   const { data: jobs, isLoading, error } = useRunningJobs();
 
   if (isLoading) {
-    return <div style={{ padding: "1em" }}>Loading...</div>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+        <CircularProgress size={24} />
+      </Box>
+    );
   }
   if (error) {
-    return <div style={{ padding: "1em" }}>Error loading jobs</div>;
+    return (
+      <Box sx={{ p: 2, color: "error.main" }}>
+        <Typography variant="body2">Error loading jobs</Typography>
+      </Box>
+    );
   }
   if (!jobs?.length) {
-    return <div style={{ padding: "1em" }}>No running jobs</div>;
+    return (
+      <Box sx={{ p: 5, color: "text.secondary" }}>
+        <Typography variant="body2">No running jobs</Typography>
+      </Box>
+    );
   }
 
   return (
-    <List>
+    <List sx={{ px: 1 }}>
       {jobs.map((job) => (
-        <ListItem key={job.id}>
-          <ListItemIcon>
-            {job.status === "running" ? (
-              <CircularProgress size={24} />
-            ) : job.status === "queued" ? (
-              <HourglassEmptyIcon />
-            ) : (
-              <PlayArrowIcon />
-            )}
-          </ListItemIcon>
-          <ListItemText
-            primary={job.job_type}
-            secondary={`Status: ${job.status}`}
-          />
-        </ListItem>
+        <JobItem key={job.id} job={job} />
       ))}
     </List>
   );
