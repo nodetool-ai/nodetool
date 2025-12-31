@@ -178,6 +178,29 @@ nodetool test-runpod --endpoint-id YOUR_ENDPOINT_ID
 nodetool test-runpod --endpoint-id YOUR_ENDPOINT_ID --params examples/test_params_basic.json --timeout 30
 ```
 
+### `nodetool test-modal`
+
+Runs an automated health and inference check against a Modal deployment.
+
+**Options:**
+
+- `--app-url` (required) — Modal application URL (e.g., `https://your-app.modal.run`).
+- `--auth-token` — authentication token (defaults to `WORKER_AUTH_TOKEN` environment variable).
+- `--params` — JSON file with request parameters.
+- `--params-json` — inline JSON parameters.
+- `--workflow-id` — specific workflow to test.
+- `--timeout` — request timeout in seconds (default 60).
+- `--output` — write JSON results to a file.
+- `--verbose` / `-v` — enable DEBUG logs.
+
+**Examples:**
+
+```bash
+nodetool test-modal --app-url https://your-app.modal.run
+nodetool test-modal --app-url https://your-app.modal.run --params examples/test_params_basic.json --timeout 120
+nodetool test-modal --app-url https://your-app.modal.run --params-json '{"prompt": "Hello"}'
+```
+
 ### `nodetool codegen`
 
 Regenerates DSL (Domain-Specific Language) modules from node definitions. Scans node packages and generates Python code for type-safe workflow creation.
@@ -448,7 +471,7 @@ nodetool admin cache-size --server-url http://remote.server:8000
 
 ### `nodetool deploy`
 
-Controls deployments described in `deployment.yaml`. Manage cloud and self-hosted deployments (RunPod, Google Cloud Run, self-hosted Docker, etc.).
+Controls deployments described in `deployment.yaml`. Manage cloud and self-hosted deployments (RunPod, Modal, Google Cloud Run, self-hosted Docker, etc.).
 
 **Subcommands:**
 
@@ -496,12 +519,13 @@ Interactively add a new deployment configuration.
 **Arguments:**
 
 - `NAME` — name for the deployment.
-- `TYPE` — deployment type (e.g., `runpod`, `google-cloud-run`, `self-hosted`).
+- `TYPE` — deployment type (e.g., `runpod`, `modal`, `google-cloud-run`, `self-hosted`).
 
 **Example:**
 
 ```bash
 nodetool deploy add my-deployment runpod
+nodetool deploy add my-modal-gpu modal
 nodetool deploy add prod-gcp google-cloud-run
 ```
 

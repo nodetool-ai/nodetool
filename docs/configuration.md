@@ -140,6 +140,7 @@ Security notes:
 | `NODETOOL_ENABLE_TERMINAL_WS` | Opt-in terminal WebSocket | no | Leave unset in production |
 | `LOG_LEVEL` | Logging level | no | Defaults to `INFO` |
 | `RUNPOD_API_KEY` | RunPod deployments | yes | Used by CLI and providers |
+| `MODAL_TOKEN_ID` / `MODAL_TOKEN_SECRET` | Modal deployments | yes | Used by Modal CLI and SDK |
 | `PROXY_BEARER_TOKEN` | Protects proxy admin endpoints | yes | Rotate regularly |
 
 Use `nodetool settings show` to view resolved values and verify the merge order.
