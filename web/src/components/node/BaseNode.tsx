@@ -457,6 +457,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           metadata={metadata}
           nodeType={type}
           data={data}
+          workflowId={workflow_id}
         />
       )}
 

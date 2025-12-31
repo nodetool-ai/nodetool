@@ -4,7 +4,6 @@ import { Visibility } from "@mui/icons-material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { ProcessTimer } from "./ProcessTimer";
-import { NodeLogs } from "./NodeLogs";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import isEqual from "lodash/isEqual";
@@ -149,7 +148,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
       )}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
-      <NodeLogs id={id} workflowId={workflowId} />
     </>
   );
 };
