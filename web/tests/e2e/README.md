@@ -36,10 +36,11 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Thread ID navigation
 
 ### 6. collections.spec.ts (New)
-**Tests: 3**
+**Tests: 4**
 - Collections page loading
 - Collections interface display
 - Empty state handling
+- Collection creation and file upload via drag and drop
 
 ### 7. templates.spec.ts (New)
 **Tests: 3**
@@ -69,9 +70,9 @@ This directory contains end-to-end tests for the NodeTool web application using 
 ## Total Test Coverage
 
 - **Total Files:** 10
-- **Total Tests:** 39
+- **Total Tests:** 40
 - **Original Tests:** 3
-- **New Tests:** 36
+- **New Tests:** 37
 
 ## Test Coverage Areas
 
