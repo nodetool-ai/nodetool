@@ -121,7 +121,8 @@
     "release": "ts-node release.ts",
     "openapi": "openapi-typescript http://127.0.0.1:7777/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "upload-stock-images": "node scripts/upload-stock-images.js"
   },
   "browserslist": {
     "production": [
