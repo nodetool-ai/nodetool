@@ -5,7 +5,6 @@ import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./ThreadList.styles";
 import {
   ThreadItem,
-  NewChatButton,
   EmptyThreadList,
   ThreadListProps
 } from "./";
@@ -84,9 +83,8 @@ const ThreadList: React.FC<ThreadListProps> = ({
 
   return (
     <Box className="thread-list-container" css={componentStyles}>
-      <NewChatButton onNewThread={onNewThread} />
       <ul className="thread-list">
-        {!threads || Object.keys(threads).length === 0 ? (
+        {!threads || Object.keys(threads).length === 0 || listElements.length === 0 ? (
           <EmptyThreadList />
         ) : (
           listElements
