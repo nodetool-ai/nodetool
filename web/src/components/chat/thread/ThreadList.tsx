@@ -17,7 +17,6 @@ export type { ThreadInfo } from "./";
 const ThreadList: React.FC<ThreadListProps> = ({
   threads,
   currentThreadId,
-  onNewThread,
   onSelectThread,
   onDeleteThread,
   getThreadPreview

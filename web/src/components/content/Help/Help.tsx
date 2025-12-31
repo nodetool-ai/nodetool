@@ -171,7 +171,6 @@ const Help = ({
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setHelpIndex(newValue);
   };
-  const [searchTerm, setSearchTerm] = useState("");
   const [expandedNodetool, setExpandedNodetool] = useState(true);
   const [expandedComfy, setExpandedComfy] = useState(false);
 
@@ -183,10 +182,6 @@ const Help = ({
   const comfyTypes = DATA_TYPES.filter((type) =>
     type.value.startsWith("comfy.")
   );
-
-  const _handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value.toLowerCase());
-  };
 
   const handleAccordionChange =
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
