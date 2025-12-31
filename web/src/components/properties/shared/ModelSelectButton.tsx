@@ -1,7 +1,9 @@
 import React, { forwardRef } from "react";
 import { Button, Typography, Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useEditorScope } from "../../editor_ui";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -26,6 +28,9 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
     },
     ref
   ) => {
+    const theme = useTheme();
+    const scope = useEditorScope();
+
     return (
       <Tooltip
         title={
@@ -52,7 +57,15 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             </div>
           )
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterDelay={TOOLTIP_ENTER_DELAY * 2}
+        enterNextDelay={TOOLTIP_ENTER_DELAY * 2}
+        slotProps={{
+          tooltip: {
+            sx: {
+              maxWidth: "350px !important"
+            }
+          }
+        }}
       >
         <Button
           ref={ref}
@@ -60,7 +73,6 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             active ? "active" : ""
           }`}
           sx={{
-            fontSize: "var(--fontSizeTinyer)",
             border: active
               ? "1px solid var(--palette-divider)"
               : "1px solid var(--palette-warning-main)",
@@ -102,7 +114,10 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
               variant="body2"
               sx={{
                 color: "var(--palette-common-black)",
-                fontSize: "var(--fontSizeTinyer)",
+                fontSize:
+                  scope === "inspector"
+                    ? theme.fontSizeSmall
+                    : theme.fontSizeTinyer,
                 lineHeight: "1.1em",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
@@ -123,7 +138,10 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
                   color: "var(--palette-common-white)",
                   lineHeight: "1.1em",
                   display: "block",
-                  fontSize: "var(--fontSizeTinyer)",
+                  fontSize:
+                    scope === "inspector"
+                      ? theme.fontSizeSmall
+                      : theme.fontSizeTinyer,
                   fontWeight: "light",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
