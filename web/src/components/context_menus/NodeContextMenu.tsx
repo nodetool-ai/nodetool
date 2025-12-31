@@ -113,7 +113,7 @@ const NodeContextMenu: React.FC = () => {
             ? result[sourceHandle] ?? result
             : result;
         propertyOverrides[targetHandle] = value;
-        log.info(`Run from here: Setting property ${targetHandle} from upstream node ${sourceNodeId}`, value);
+        log.info(`Run from here: Setting property ${targetHandle} from upstream node ${sourceNodeId}`);
       }
     }
 
