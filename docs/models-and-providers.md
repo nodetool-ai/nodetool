@@ -60,6 +60,52 @@ Combine local and cloud:
 
 ---
 
+## State-of-the-Art Cloud Models for Creative Workflows
+
+NodeTool provides access to the latest high-quality generative AI models through cloud providers. These models represent the cutting edge in video, image, and audio generation:
+
+### Top Video Generation Models
+
+| Model | Provider | Capabilities | Key Features |
+|-------|----------|-------------|--------------|
+| **OpenAI Sora 2 Pro** | OpenAI | T2V/I2V up to 15s | Realistic motion, refined physics, synchronized native audio, 1080p output |
+| **Google Veo 3.1** | Google | T2V/I2V with references | Upgraded realistic motion, extended clip length, multi-image references, native 1080p with synced audio |
+| **xAI Grok Imagine** | xAI | T2V/I2V/T2I | Multimodal text/image to short video with coherent motion and synchronized audio; also text-to-image |
+| **Alibaba Wan 2.6** | Alibaba | Multi-shot T2V/I2V | Affordable 1080p with stable characters and native audio; reference-guided generation |
+| **MiniMax Hailuo 2.3** | MiniMax | High-fidelity T2V/I2V | Expressive characters, complex motion and lighting effects |
+| **Kling 2.6** | Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
+
+### Top Image Generation Models
+
+| Model | Provider | Capabilities | Key Features |
+|-------|----------|-------------|--------------|
+| **Black Forest Labs FLUX.2** | BFL | T2I with control | Photoreal images, multi-reference consistency, accurate text rendering, flexible control |
+| **Google Nano Banana Pro** | Google | High-res T2I | Sharper 2K output, intelligent 4K scaling, improved text rendering, enhanced character consistency |
+
+### Using These Models
+
+Access these models through NodeTool's **generic nodes**:
+
+1. **For Video**: Use `nodetool.video.TextToVideo` or `nodetool.video.ImageToVideo`
+2. **For Images**: Use `nodetool.image.TextToImage`
+3. **Select Provider**: Click the model dropdown in the node properties
+4. **Configure API**: Add provider API keys in `Settings → Providers`
+
+**Direct NodeTool API Key Support:**
+- OpenAI Sora 2 Pro: `OPENAI_API_KEY`
+- Google Veo 3.1: `GEMINI_API_KEY`
+- MiniMax Hailuo 2.3: `MINIMAX_API_KEY`
+
+**Access via kie.ai (recommended for other models):**
+- xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6, Black Forest Labs FLUX.2, Google Nano Banana Pro
+- Configure using `KIE_API_KEY` in `Settings → Providers`
+
+> **Cost Considerations**: Cloud models typically charge per generation. Check each provider's pricing before extensive use. Local models are free after download but require capable hardware.
+
+> **Alternative Access**: Many of these models are available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers. For models without direct NodeTool API key support (xAI, Alibaba, Kling), kie.ai is the recommended access method.
+
+---
+
 ## Getting Started
 
 ### Option 1: Start with Local Models (Recommended)

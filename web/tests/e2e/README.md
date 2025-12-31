@@ -17,10 +17,12 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Navigation from dashboard
 
 ### 3. assets.spec.ts (New)
-**Tests: 3**
+**Tests: 5**
 - Asset explorer page loading
 - Asset interface display
 - Empty state handling
+- Text file upload
+- Image file upload
 
 ### 4. auth.spec.ts (New)
 **Tests: 4**
@@ -36,10 +38,11 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Thread ID navigation
 
 ### 6. collections.spec.ts (New)
-**Tests: 3**
+**Tests: 4**
 - Collections page loading
 - Collections interface display
 - Empty state handling
+- Collection creation and file upload via drag and drop
 
 ### 7. templates.spec.ts (New)
 **Tests: 3**
@@ -85,6 +88,18 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - **Total Tests:** 49
 - **Original Tests:** 3
 - **New Tests:** 46
+### 11. model-download.spec.ts (New)
+**Tests: 3**
+- Download a small HuggingFace model successfully
+- Connect to download WebSocket endpoint
+- Network access to HuggingFace (validates no CI restrictions)
+
+## Total Test Coverage
+
+- **Total Files:** 10
+- **Total Tests:** 41
+- **Original Tests:** 3
+- **New Tests:** 38
 
 ## Test Coverage Areas
 
@@ -98,6 +113,7 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - ✅ Chat interface
 - ✅ MiniApps
 - ✅ Model management
+- ✅ Model downloads
 - ✅ Navigation and routing
 - ✅ Browser history navigation
 - ✅ Backend API connectivity
@@ -195,7 +211,6 @@ Potential areas for additional tests:
 - Asset upload and management
 - Form submissions
 - Real chat interactions
-- Model downloads
 - User settings
 - Keyboard shortcuts
 - Mobile responsive behavior

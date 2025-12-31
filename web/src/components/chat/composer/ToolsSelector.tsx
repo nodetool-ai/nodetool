@@ -8,7 +8,6 @@ import {
   Typography,
   Box,
   Tooltip,
-  Divider,
   ListItemIcon,
   ListItemText,
   IconButton,
@@ -238,7 +237,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
     return (value || []).filter((toolId) => toolIds.has(toolId));
   }, [value]);
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+  const handleClick = useCallback(() => {
     setIsOpen(true);
   }, []);
 

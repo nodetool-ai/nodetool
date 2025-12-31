@@ -192,7 +192,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
 }) => {
   const theme = useTheme();
   // Optimize selection hook to prevent new arrays on every render
-  const resultsSignature = useMemo(
+  useMemo(
     () => results.map((r) => r.id).join(","),
     [results]
   );

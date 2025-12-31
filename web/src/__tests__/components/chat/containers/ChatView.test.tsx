@@ -6,9 +6,7 @@ import ChatView from "../../../../components/chat/containers/ChatView";
 import mockTheme from "../../../../__mocks__/themeMock";
 import {
   Message,
-  LanguageModel,
-  PlanningUpdate,
-  TaskUpdate
+  LanguageModel
 } from "../../../../stores/ApiTypes";
 
 // Mock react-router-dom hooks
@@ -283,7 +281,7 @@ describe("ChatView", () => {
       ];
 
       statuses.forEach((status) => {
-        const { rerender } = renderWithProviders(
+        renderWithProviders(
           <ChatView {...baseProps} status={status as any} />
         );
 

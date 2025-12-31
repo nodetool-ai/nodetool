@@ -170,7 +170,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
 }): ReactElement => {
   const theme = useTheme();
   const handleSliderChange = useCallback(
-    (event: Event, newValue: number | number[], activeThumb: number): void => {
+    (event: Event, newValue: number | number[], _activeThumb: number): void => {
       event.preventDefault();
       const value = Array.isArray(newValue) ? newValue[0] : newValue;
       onZoomChange(value);

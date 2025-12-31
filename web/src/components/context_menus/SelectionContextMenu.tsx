@@ -26,8 +26,7 @@ interface SelectionContextMenuProps {
 
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
-  const { findNode, deleteNode } = useNodes((state) => ({
-    findNode: state.findNode,
+  const { deleteNode } = useNodes((state) => ({
     deleteNode: state.deleteNode
   }));
   const duplicateNodes = useDuplicateNodes();
@@ -41,15 +40,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { selectedNodes } = useNodes((state) => ({
     selectedNodes: state.getSelectedNodes()
   }));
-
-  // debug render logging
-  React.useEffect(() => {
-    // keep this lightweight
-    console.log("[SelectionContextMenu] render", {
-      menuPosition,
-      selectedCount: selectedNodes.length
-    });
-  }, [menuPosition, selectedNodes.length]);
 
   // any has parent
   const anyHasParent = useMemo(() => {

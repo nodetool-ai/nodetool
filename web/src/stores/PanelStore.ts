@@ -2,12 +2,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type LeftPanelView =
-  | "chat"
   | "assets"
   | "workflowGrid"
   | "collections"
   | "packs"
-  | "workspace"
   | "jobs";
 export type PanelView = LeftPanelView;
 

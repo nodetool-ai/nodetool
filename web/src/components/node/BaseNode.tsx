@@ -304,14 +304,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     const r = nodeType.isOutputNode
       ? state.getOutputResult(workflow_id, id)
       : state.getResult(workflow_id, id);
-    console.log("BaseNode result:", {
-      nodeId: id,
-      workflowId: workflow_id,
-      nodeType,
-      isOutputNode: nodeType.isOutputNode,
-      result: r,
-      resultType: typeof r
-    });
     return r;
   });
 
@@ -457,6 +449,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           metadata={metadata}
           nodeType={type}
           data={data}
+          workflowId={workflow_id}
         />
       )}
 

@@ -166,7 +166,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   const theme = useTheme();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
-  const [error, setError] = useState<Error | null>(null);
+  const [, setError] = useState<Error | null>(null);
   const [scale, setScale] = useState(1);
 
   const pdfUrl = asset?.get_url || url;

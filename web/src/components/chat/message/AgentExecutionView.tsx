@@ -3,8 +3,7 @@ import React, { useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography, Collapse, IconButton } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Typography, Collapse } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {
   Message,
@@ -335,7 +334,7 @@ const formatToolArgs = (args: any): string => {
     const obj = typeof args === "string" ? JSON.parse(args) : args;
     // If it's a simple object with few keys, simpler display? For now just indent
     return JSON.stringify(obj, null, 2);
-  } catch (err) {
+  } catch {
     return String(args);
   }
 };
@@ -421,11 +420,11 @@ const normalizeExecutionMessage = (msg: Message) => {
       if (typeof content === "string") {
         try { 
           content = JSON.parse(content); 
-        } catch (error) {
+        } catch {
           // Double-encoded JSON parse failed, keep as string
         }
       }
-    } catch (error) {
+    } catch {
       // JSON parse failed, keep content as string
     }
   }
@@ -603,11 +602,11 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
                       {task.steps.map((step, idx) => {
                         const stepKey = step.id || step.instructions;
                         const stepResult = execution.stepResults.get(stepKey);
-                        const isCurrent = currentStep && (currentStep.id ? currentStep.id === step.id : currentStep.instructions === step.instructions);
-                        const isRunning = (step.start_time > 0 && !step.completed) || (isCurrent && !step.completed);
-                        const stepToolCalls = stepKey ? toolCallsByStep?.[stepKey] || [] : [];
-                        
-                        return (
+                         const isCurrent = currentStep && (currentStep.id ? currentStep.id === step.id : currentStep.instructions === step.instructions);
+                         const _isRunning = (step.start_time > 0 && !step.completed) || (isCurrent && !step.completed);
+                         const stepToolCalls = stepKey ? toolCallsByStep?.[stepKey] || [] : [];
+                         
+                         return (
                           <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                             <StepView
                               step={{

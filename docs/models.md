@@ -136,3 +136,60 @@ NodeTool supports a wide range of model types across different domains. Below is
 | **CLIP** | Text/Image Encoders | ✅ Full Precision |
 | **T5 Encoder** | Text Encoders for diffusion | ✅ Full Precision |
 | **RealESRGAN** | Image Upscaling | ✅ Full Precision |
+
+______________________________________________________________________
+
+## Cloud-Based State-of-the-Art Models
+
+In addition to local models, NodeTool provides access to cutting-edge cloud-based models through provider integrations. These models offer the latest capabilities in video, image, and audio generation.
+
+### Video Generation (Cloud)
+
+| Model | Provider | Key Features | Resolution | Max Duration |
+| :--- | :--- | :--- | :--- | :--- |
+| **Sora 2 Pro** | OpenAI | Realistic motion, refined physics, native audio | 1080p | 15s |
+| **Veo 3.1** | Google | Realistic motion, multi-image refs, synced audio | 1080p | Extended |
+| **Grok Imagine** | xAI | Multimodal T2V/I2V with coherent motion | 1080p | Short clips |
+| **Wan 2.6** | Alibaba | Multi-shot, stable characters, affordable | 1080p | Variable |
+| **Hailuo 2.3** | MiniMax | Expressive characters, complex lighting | 1080p+ | Variable |
+| **Kling 2.6** | Kling | Synced speech & effects, audio-visual coherence | 1080p | Variable |
+
+**Access via**: `nodetool.video.TextToVideo`, `nodetool.video.ImageToVideo` nodes
+
+### Image Generation (Cloud)
+
+| Model | Provider | Key Features | Output Quality |
+| :--- | :--- | :--- | :--- |
+| **FLUX.2** | Black Forest Labs | Photoreal, multi-reference consistency, accurate text | High |
+| **Nano Banana Pro** | Google | 2K native, 4K scaling, enhanced text & characters | Very High |
+
+**Access via**: `nodetool.image.TextToImage` node
+
+### Advantages of Cloud Models
+
+- **Latest Technology**: Access to newest architectures and training data
+- **No Local Resources**: Run on any hardware without GPU requirements
+- **Instant Availability**: No download or installation needed
+- **Continuous Updates**: Models improve without local updates
+
+### Considerations
+
+- **API Costs**: Per-generation pricing varies by provider
+- **Internet Required**: Cannot run offline
+- **Data Privacy**: Content is processed on provider servers
+- **Rate Limits**: Subject to provider API quotas
+
+### Cost-Effective Alternative: kie.ai
+
+All the cloud models listed above are available through [kie.ai](https://kie.ai/), an AI provider aggregator that:
+
+- Offers unified access to multiple providers through a single API
+- Often provides competitive or lower pricing than upstream providers
+- Simplifies API key management (one key for all models)
+- Enables easy cost comparison and optimization across providers
+
+**Important**: Some models (xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6) currently require kie.ai or similar aggregators for access, as their API keys are not directly registered in NodeTool. Models with direct support include OpenAI Sora 2 Pro, Google Veo 3.1, and MiniMax Hailuo 2.3.
+
+This can be particularly beneficial for workflows using multiple SOTA models from different providers.
+
+For detailed provider configuration and usage, see the [Providers Guide](providers.md).

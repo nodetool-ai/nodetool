@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Chip, IconButton, Paper, Tooltip, Typography, Popover, Box } from "@mui/material";
+import { IconButton, Paper, Tooltip, Typography, Popover, Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList, ListChildComponentProps } from "react-window";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import { CopyToClipboardButton } from "./CopyToClipboardButton";
 

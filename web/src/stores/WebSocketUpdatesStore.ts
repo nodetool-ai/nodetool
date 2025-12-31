@@ -42,18 +42,11 @@ export const createWebSocketUpdatesStore = () =>
       const socket = new WebSocket(getWebSocketUrl("/ws/updates"));
 
       socket.onopen = () => {
-        console.log("WebSocket Updates: Connected");
         set({ isConnected: true });
       };
 
       socket.onclose = (event) => {
-        console.log(
-          `WebSocket Updates: Connection closed (code: ${event.code}, reason: ${event.reason})`
-        );
         set({ isConnected: false });
-        console.log(
-          "WebSocket Updates: Attempting to reconnect in 5 seconds..."
-        );
         setTimeout(() => get().connect(), 5000);
       };
 

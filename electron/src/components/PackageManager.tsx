@@ -31,16 +31,13 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
       // Load available packages
       const availableResponse: PackageListResponse =
         await window.api.packages.listAvailable();
-      console.log("availableResponse", availableResponse);
       setAvailablePackages(availableResponse.packages || []);
 
       // Load installed packages
       const installedResponse: InstalledPackageListResponse =
         await window.api.packages.listInstalled();
       setInstalledPackages(installedResponse.packages || []);
-      console.log("installedPackages", installedResponse.packages);
     } catch (err) {
-      console.error("Failed to load packages:", err);
       setError("Failed to load packages. Please try again.");
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useEffect, type ReactNode } from "react";
 import { initKeyListeners } from "../stores/KeyPressedStore";
 
 export const KeyboardContext = createContext<boolean>(false);

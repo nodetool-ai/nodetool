@@ -8,7 +8,7 @@ import MobileChatToolbar from "../controls/MobileChatToolbar";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     width: "100%",
     display: "flex",

@@ -17,7 +17,7 @@ interface ChatMarkdownProps {
   onInsertCode?: (text: string, language?: string) => void;
 }
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     backgroundColor: "transparent !important",
     width: "100%",
@@ -52,9 +52,9 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
   content,
   onInsertCode
 }) => {
-  const theme = useTheme();
+  const _theme = useTheme();
   return (
-    <div css={styles(theme)} className="markdown markdown-body">
+    <div css={styles(_theme)} className="markdown markdown-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}

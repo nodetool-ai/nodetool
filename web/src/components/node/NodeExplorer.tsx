@@ -195,26 +195,8 @@ const NodeExplorer: React.FC = () => {
 
   const handleNodeFocus = useCallback(
     (nodeId: string) => {
-      console.log("[NodeExplorer] handleNodeFocus START", {
-        nodeId,
-        totalNodes: nodes.length
-      });
 
       const node = nodes.find((candidate) => candidate.id === nodeId);
-      console.log("[NodeExplorer] node lookup", {
-        nodeId,
-        found: !!node,
-        node: node
-          ? {
-              id: node.id,
-              type: node.type,
-              position: node.position,
-              measured: node.measured
-            }
-          : null,
-        allNodeIds: nodes.map((n) => n.id)
-      });
-
       if (!node) {
         console.warn("[NodeExplorer] node not found", { nodeId });
         return;
@@ -222,20 +204,6 @@ const NodeExplorer: React.FC = () => {
 
       // setSelectedNodes([node]);
       requestAnimationFrame(() => {
-        console.log("[NodeExplorer] requestAnimationFrame callback", {
-          nodeId,
-          node: {
-            id: node.id,
-            type: node.type,
-            position: node.position,
-            measured: node.measured
-          }
-        });
-
-        console.log(
-          "[NodeExplorer] dispatching custom event nodetool:fit-node",
-          { nodeId, node }
-        );
         window.dispatchEvent(
           new CustomEvent("nodetool:fit-node", {
             detail: { nodeId, node }

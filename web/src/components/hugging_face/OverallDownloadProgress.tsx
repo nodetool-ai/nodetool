@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Button, Tooltip } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
 import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
@@ -28,7 +28,6 @@ const moveRight = keyframes`
 `;
 
 const OverallDownloadProgress: React.FC = () => {
-  const PROGRESS_BAR_WIDTH = "160px";
   const { downloads, openDialog } = useModelDownloadStore(
     (state) => ({
       downloads: state.downloads,
@@ -53,68 +52,68 @@ const OverallDownloadProgress: React.FC = () => {
     <Tooltip title="Download Progress" enterDelay={TOOLTIP_ENTER_DELAY}>
       <Box
         className="overall-download-progress"
+        role="button"
+        tabIndex={0}
+        aria-label="Download Progress"
         sx={{
-          position: "relative",
+          display: "flex",
+          alignItems: "center",
           cursor: "pointer",
-          overflow: "visible"
+          gap: "6px",
+          padding: "0 4px",
+          height: "32px",
+          borderRadius: "6px",
+          transition: "all 0.2s ease-out",
+          "&:hover": {
+            backgroundColor: "rgba(255, 255, 255, 0.05)"
+          },
+          "&:focus-visible": {
+            outline: "2px solid var(--palette-primary-main)",
+            outlineOffset: "2px"
+          }
         }}
         onClick={() => {
           openDialog();
         }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openDialog();
+          }
+        }}
       >
-        <Button
-          className="command-icon"
-          tabIndex={-1}
+        <Box
+          className="icon-container"
           sx={{
-            margin: "-2px 0 0 -2px",
             display: "flex",
             alignItems: "center",
-            gap: "2px",
+            justifyContent: "center",
             "& svg": {
-              width: "22px",
-              height: "22px"
+              width: "18px",
+              height: "18px"
             }
           }}
         >
-          <div
-            className="icon-container"
-            style={{
-              width: "30px",
-              height: "30px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            <DownloadingIcon />
-          </div>
-        </Button>
+          <DownloadingIcon />
+        </Box>
         {progress > 0 && (
           <Box
             className="progress-container"
             sx={{
-              position: "absolute",
               display: "flex",
               alignItems: "center",
-              gap: "10px",
-              left: "10px",
-              bottom: "-15px",
-              width: PROGRESS_BAR_WIDTH
+              gap: "6px",
+              minWidth: "80px"
             }}
           >
-            <Box className="progress-text" sx={{ fontSize: "0.6em" }}>
-              {progress.toFixed(0)}%
-            </Box>
             <Box
               className="progress-bar-container"
               sx={{
-                width: "100%",
+                width: "60px",
                 height: "4px",
                 borderRadius: "2px",
                 overflow: "hidden",
-                position: "relative",
-                background: "var(--palette-grey-600)",
-                flex: 1
+                background: "var(--palette-grey-600)"
               }}
             >
               <Box
@@ -129,6 +128,17 @@ const OverallDownloadProgress: React.FC = () => {
                   transformOrigin: "right center"
                 }}
               />
+            </Box>
+            <Box
+              className="progress-text"
+              sx={{
+                fontSize: "0.7em",
+                minWidth: "28px",
+                textAlign: "right",
+                color: "var(--palette-text-secondary)"
+              }}
+            >
+              {progress.toFixed(0)}%
             </Box>
           </Box>
         )}

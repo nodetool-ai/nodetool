@@ -4,7 +4,6 @@ import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
   Button,
   Typography,
-  Box,
   Tooltip,
   CircularProgress,
   Chip,
@@ -17,7 +16,6 @@ import isEqual from "lodash/isEqual";
 import { Extension, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useNodeToolsMenuStore } from "../../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
@@ -193,7 +191,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     return Array.from(nodeTypeToNode.values());
   }, [selectedNodeMetadatas, searchResults]);
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+  const handleClick = useCallback(() => {
     setIsMenuOpen(true);
   }, []);
 

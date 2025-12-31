@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, memo } from "react";
-import { IconButton, Collapse, Box, Fab } from "@mui/material";
+import { IconButton, Collapse, Box } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import CloseIcon from "@mui/icons-material/Close";
 import ChatToolBar from "./ChatToolBar";

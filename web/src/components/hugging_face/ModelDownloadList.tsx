@@ -10,7 +10,7 @@ import { DownloadProgress } from "./DownloadProgress";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     ".models-grid": {
       overflow: "auto",

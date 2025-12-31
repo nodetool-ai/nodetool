@@ -226,7 +226,6 @@ export const useFileHandlers = () => {
             };
           }
         } else if (isNodetoolWorkflowJson(jsonData)) {
-          console.log("isNodetoolWorkflowJson", jsonData);
           try {
             const createdWorkflow = await createWorkflow({
               name: jsonData.name,

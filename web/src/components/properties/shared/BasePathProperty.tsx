@@ -127,7 +127,6 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
 
   const handleConfirm = useCallback(
     (path: string) => {
-      console.log("selectedPath", path);
       props.onChange(path);
       setIsFileBrowserOpen(false);
     },

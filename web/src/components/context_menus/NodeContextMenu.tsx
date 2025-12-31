@@ -115,7 +115,9 @@ const NodeContextMenu: React.FC = () => {
   }, [closeContextMenu, deleteNode, nodeId, selectedNodes]);
 
   const handleConvertToInput = useCallback(() => {
-    if (!node || !nodeId) return;
+    if (!node || !nodeId) {
+      return;
+    }
     const targetType = constantToInputType(node?.type ?? "");
     if (targetType) {
       const match = targetType.match(/nodetool\.input\.(\w+)Input$/);
@@ -136,7 +138,9 @@ const NodeContextMenu: React.FC = () => {
   }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
 
   const handleConvertToConstant = useCallback(() => {
-    if (!node || !nodeId) return;
+    if (!node || !nodeId) {
+      return;
+    }
     const targetType = inputToConstantType(node?.type ?? "");
     if (targetType) {
       updateNodeData(nodeId, { properties: { ...nodeData?.properties } });

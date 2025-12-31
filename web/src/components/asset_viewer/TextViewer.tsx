@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
 /**
  * TextViewer component, used to display a text for a given asset.
  */
-const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
+const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
   const theme = useTheme();
   const [document, setDocument] = useState<string | null>(null);
 

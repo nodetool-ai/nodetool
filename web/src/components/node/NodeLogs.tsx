@@ -27,6 +27,13 @@ type NodeLogsProps = {
   workflowId: string;
 };
 
+type NodeLogsDialogProps = {
+  id: string;
+  workflowId: string;
+  open: boolean;
+  onClose: () => void;
+};
+
 const styles = (theme: Theme) =>
   css({
     width: "100%",
@@ -46,60 +53,47 @@ const styles = (theme: Theme) =>
     }
   });
 
-export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
-  const theme = useTheme();
-  const logsRef = useRef<HTMLDivElement>(null);
-  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
-  const [open, setOpen] = useState(false);
-  const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>([]);
+/**
+ * Standalone dialog component for displaying node logs.
+ * Can be controlled externally via open/onClose props.
+ */
+export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
+  ({ id, workflowId, open, onClose }) => {
+    const theme = useTheme();
+    const logsRef = useRef<HTMLDivElement>(null);
+    const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+    const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>(
+      []
+    );
 
-  const count = logs?.length || 0;
+    const count = logs?.length || 0;
 
-  const onCopy = useCallback(() => {
-    // Avoid attempting to allocate extremely large clipboard strings.
-    const MAX_LINES = 2000;
-    const logsToCopy = (logs || []).slice(-MAX_LINES);
+    const onCopy = useCallback(() => {
+      const MAX_LINES = 2000;
+      const logsToCopy = (logs || []).slice(-MAX_LINES);
 
-    const text = logsToCopy
-      .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
-      .join("\n");
+      const text = logsToCopy
+        .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
+        .join("\n");
 
-    if (!text) {
-      return;
-    }
-    navigator.clipboard?.writeText(text).catch((err) => {
-      console.warn("Failed to copy logs to clipboard:", err);
-    });
-  }, [logs]);
+      if (!text) {
+        return;
+      }
+      navigator.clipboard?.writeText(text).catch((err) => {
+        console.warn("Failed to copy logs to clipboard:", err);
+      });
+    }, [logs]);
 
-  useEffect(() => {
-    if (logsRef.current) {
-      logsRef.current.scrollTop = logsRef.current.scrollHeight;
-    }
-  }, [logs]);
+    useEffect(() => {
+      if (logsRef.current) {
+        logsRef.current.scrollTop = logsRef.current.scrollHeight;
+      }
+    }, [logs]);
 
-  if (count === 0) {
-    return null;
-  }
-
-  return (
-    <div className="node-logs-container" css={styles(theme)}>
-      <div className="node-logs">
-        <Button
-          className="logs-button"
-          size="small"
-          variant="contained"
-          onClick={() => setOpen(true)}
-          startIcon={<ListAltIcon />}
-        >
-          <span>Logs</span>
-          <Chip size="small" label={count} sx={{ ml: 1 }} />
-        </Button>
-      </div>
-
+    return (
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={onClose}
         fullWidth
         maxWidth="md"
         slotProps={{
@@ -195,9 +189,48 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
           </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Close</Button>
+          <Button onClick={onClose}>Close</Button>
         </DialogActions>
       </Dialog>
+    );
+  },
+  isEqual
+);
+
+NodeLogsDialog.displayName = "NodeLogsDialog";
+
+export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
+  const theme = useTheme();
+  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+  const [open, setOpen] = useState(false);
+
+  const count = logs?.length || 0;
+
+  if (count === 0) {
+    return null;
+  }
+
+  return (
+    <div className="node-logs-container" css={styles(theme)}>
+      <div className="node-logs">
+        <Button
+          className="logs-button"
+          size="small"
+          variant="contained"
+          onClick={() => setOpen(true)}
+          startIcon={<ListAltIcon />}
+        >
+          <span>Logs</span>
+          <Chip size="small" label={count} sx={{ ml: 1 }} />
+        </Button>
+      </div>
+
+      <NodeLogsDialog
+        id={id}
+        workflowId={workflowId}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
     </div>
   );
 };
