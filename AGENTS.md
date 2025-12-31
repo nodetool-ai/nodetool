@@ -135,6 +135,14 @@ NodeTool follows a client-server architecture with multiple components:
    npm run test:e2e
    ```
 
+   **NodeTool Server Details:**
+   
+   The server provides:
+   - REST API endpoints at `http://localhost:7777/api/`
+   - Health check at `http://localhost:7777/health`
+   - WebSocket connections for workflow execution
+   - Models API for managing AI models
+
    **Manual Testing** (for debugging):
    ```bash
    # Terminal 1: Start backend
