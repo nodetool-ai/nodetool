@@ -37,6 +37,7 @@ import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
+import LayoutCanvasProperty from "../properties/LayoutCanvasProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
@@ -139,6 +140,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return RecordTypeProperty;
     case "font":
       return FontProperty;
+    case "layout_canvas":
+      return LayoutCanvasProperty;
     case "inference_provider_automatic_speech_recognition_model":
     case "inference_provider_audio_classification_model":
     case "inference_provider_image_classification_model":
