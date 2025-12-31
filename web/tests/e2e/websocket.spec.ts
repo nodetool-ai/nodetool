@@ -1,4 +1,35 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page, Locator } from "@playwright/test";
+
+// Helper to check if a URL is the unified /ws endpoint (not legacy /ws/chat or /ws/predict)
+const isUnifiedWsEndpoint = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    // Check if pathname is exactly /ws
+    return parsed.pathname === "/ws";
+  } catch {
+    return false;
+  }
+};
+
+// Helper to wait for chat interface to initialize
+// Returns true if found, false if timed out
+const waitForChatInterface = async (page: Page): Promise<boolean> => {
+  try {
+    await page.waitForSelector('.global-chat-container, .chat-container', { timeout: 10000 });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Helper to safely check if an element is visible
+const isElementVisible = async (locator: Locator): Promise<boolean> => {
+  return locator.isVisible().catch(() => false);
+};
+
+// Maximum additional WebSocket connections allowed during navigation.
+// One reconnect for leaving the page and one for returning is considered normal behavior.
+const MAX_ADDITIONAL_WS_CONNECTIONS = 2;
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -18,13 +49,11 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
 
-        // Wait for WebSocket connection to be established
-        await page.waitForTimeout(3000);
+        // Wait for WebSocket connection by checking for chat interface to be ready
+        await waitForChatInterface(page);
 
         // Check that a WebSocket connection to /ws was established
-        const unifiedWsConnection = wsConnections.find(url => 
-          url.includes("/ws") && !url.includes("/ws/")
-        );
+        const unifiedWsConnection = wsConnections.find(url => isUnifiedWsEndpoint(url));
         expect(unifiedWsConnection).toBeTruthy();
       });
 
@@ -40,8 +69,8 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
 
-        // Wait for WebSocket connections
-        await page.waitForTimeout(3000);
+        // Wait for chat interface to be ready
+        await waitForChatInterface(page);
 
         // Verify no legacy endpoints are used
         const legacyChatWs = wsConnections.find(url => url.includes("/ws/chat"));
@@ -56,8 +85,8 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
 
-        // Wait for chat to load and connection to establish
-        await page.waitForTimeout(2000);
+        // Wait for chat interface to initialize
+        await waitForChatInterface(page);
 
         // The page should load without showing connection error states
         // Check for absence of error messages about connection
@@ -86,31 +115,32 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
 
-        // Wait for WebSocket to connect
-        await page.waitForTimeout(3000);
+        // Wait for chat interface to initialize
+        await waitForChatInterface(page);
 
         // Check for chat input elements - look for textarea or input field
-        const hasInput = await page.locator('textarea, input[type="text"]').first().isVisible().catch(() => false);
+        const hasTextarea = await isElementVisible(page.locator('textarea, input[type="text"]').first());
+        const hasTextbox = await isElementVisible(page.locator('[role="textbox"]'));
         
         // The chat interface should have some form of input
         // This verifies the UI is properly rendered after connection
-        expect(hasInput || await page.locator('[role="textbox"]').isVisible()).toBeTruthy();
+        expect(hasTextarea || hasTextbox).toBeTruthy();
       });
 
       test("should handle new thread creation", async ({ page }) => {
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
 
-        // Wait for connection
-        await page.waitForTimeout(2000);
+        // Wait for chat interface to initialize
+        await waitForChatInterface(page);
 
         // Look for new chat button
         const newChatButton = page.locator('button').filter({ hasText: /new/i }).first();
         
-        if (await newChatButton.isVisible()) {
+        if (await isElementVisible(newChatButton)) {
           // Click to create new thread
           await newChatButton.click();
-          await page.waitForTimeout(1000);
+          await page.waitForLoadState("networkidle");
           
           // URL should potentially include thread ID after creation
           // Or we should stay on chat page without errors
@@ -124,8 +154,8 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
 
-        // Wait for store initialization
-        await page.waitForTimeout(3000);
+        // Wait for chat interface to initialize
+        await waitForChatInterface(page);
 
         // Check store state via window object (if exposed) or via UI state
         const storeState = await page.evaluate(() => {
@@ -138,12 +168,12 @@ if (process.env.JEST_WORKER_ID) {
         });
 
         // The chat should be in a connected or working state
-        // Verify by checking that no fatal errors are shown
-        const fatalError = page.locator('text=/failed|error|unavailable/i').first();
-        const hasFatalError = await fatalError.isVisible().catch(() => false);
+        // Verify by checking for connection error alerts (not general text that might contain these words)
+        const connectionErrorAlert = page.locator('.global-chat-status-alert[severity="error"], [role="alert"][class*="error"]').first();
+        const hasConnectionError = await isElementVisible(connectionErrorAlert);
         
         // Should not have fatal connection errors after loading
-        expect(hasFatalError).toBeFalsy();
+        expect(hasConnectionError).toBeFalsy();
       });
 
       test("should maintain WebSocket connection during navigation", async ({ page }) => {
@@ -163,22 +193,21 @@ if (process.env.JEST_WORKER_ID) {
         // Navigate to chat
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(2000);
+        await waitForChatInterface(page);
 
         const initialWsOpened = wsOpenedCount;
 
         // Navigate to another page and back
         await page.goto("/");
         await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(1000);
 
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(2000);
+        await waitForChatInterface(page);
 
         // The number of WebSocket opens should be reasonable (not excessive reconnects)
         // This tests that the connection is managed properly
-        expect(wsOpenedCount).toBeLessThanOrEqual(initialWsOpened + 2);
+        expect(wsOpenedCount).toBeLessThanOrEqual(initialWsOpened + MAX_ADDITIONAL_WS_CONNECTIONS);
       });
     });
 
@@ -213,7 +242,7 @@ if (process.env.JEST_WORKER_ID) {
 
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(3000);
+        await waitForChatInterface(page);
 
         // The test passes if WebSocket connection is established
         // Command format validation is done in unit tests
@@ -226,7 +255,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should handle connection interruption gracefully", async ({ page }) => {
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(2000);
+        await waitForChatInterface(page);
 
         // The page should be stable and not crash
         const body = await page.locator("body");
@@ -240,7 +269,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should display appropriate status when disconnected", async ({ page }) => {
         await page.goto("/chat");
         await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(2000);
+        await waitForChatInterface(page);
 
         // If connection is working, no disconnect messages should show
         // If disconnected, should show reconnecting message
