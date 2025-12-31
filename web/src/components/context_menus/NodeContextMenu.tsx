@@ -11,6 +11,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import BlockIcon from "@mui/icons-material/Block";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
@@ -48,15 +50,18 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
-  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes } =
+  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes, toggleBypass } =
     useNodes((state) => ({
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
       selectNodesByType: state.selectNodesByType,
       deleteNode: state.deleteNode,
-      selectedNodes: state.getSelectedNodes()
+      selectedNodes: state.getSelectedNodes(),
+      toggleBypass: state.toggleBypass
     }));
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const isBypassed = Boolean(nodeData?.bypassed);
+  
   const handleToggleComment = useCallback(() => {
     if (!nodeId) {
       return;
@@ -64,6 +69,14 @@ const NodeContextMenu: React.FC = () => {
     updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
     closeContextMenu();
   }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
+
+  const handleToggleBypass = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    toggleBypass(nodeId);
+    closeContextMenu();
+  }, [closeContextMenu, nodeId, toggleBypass]);
 
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
@@ -169,6 +182,19 @@ const NodeContextMenu: React.FC = () => {
         label="Remove from Group"
         IconComponent={<GroupRemoveIcon />}
         tooltip="Remove this node from the group"
+      />
+    ),
+    nodeId && (
+      <ContextMenuItem
+        key="toggle-bypass"
+        onClick={handleToggleBypass}
+        label={isBypassed ? "Enable Node" : "Bypass Node"}
+        IconComponent={isBypassed ? <PlayArrowIcon /> : <BlockIcon />}
+        tooltip={
+          isBypassed
+            ? "Enable this node to process normally"
+            : "Bypass this node to pass inputs through to outputs"
+        }
       />
     ),
     nodeId && (

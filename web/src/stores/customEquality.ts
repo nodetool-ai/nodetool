@@ -18,6 +18,7 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>) {
     a.id === b.id &&
     a.type === b.type &&
     a.data.collapsed === b.data.collapsed &&
+    a.data.bypassed === b.data.bypassed &&
     shallow(a.data.properties, b.data.properties) &&
     a.position.x === b.position.x &&
     a.position.y === b.position.y
