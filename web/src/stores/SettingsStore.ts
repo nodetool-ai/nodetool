@@ -21,6 +21,8 @@ export interface Settings {
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
   soundNotifications: boolean;
+  layoutDirection: "horizontal" | "vertical";
+  verticalModeHideProperties: boolean;
 }
 
 interface SettingsStore {
