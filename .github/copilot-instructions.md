@@ -632,30 +632,76 @@ export async function calculateLayout(
 - Component Guide: `/web/src/components/AGENTS.md` - Component architecture
 - Store Guide: `/web/src/stores/AGENTS.md` - State management patterns
 
-## Quick Reference Commands
+## Mandatory Post-Change Verification
+
+After making any code changes, you MUST run the following commands to ensure code quality:
 
 ```bash
-# Development
-cd web && npm start              # Start dev server
+make typecheck  # Type check all packages
+make lint       # Lint all packages
+make test       # Run all tests
+```
 
-# Testing
-cd web && npm test               # Run all tests
+**Keep it green** - All three commands must pass with exit code 0 before considering the task complete.
+
+If any of these commands fail:
+1. Fix the errors reported
+2. Re-run the failing command(s)
+3. Continue until all three pass
+
+This ensures:
+- Type safety across the codebase
+- Consistent code style and patterns
+- No regressions in existing functionality
+
+---
+
+## Quick Reference Commands (Make)
+
+```bash
+# Quality Checks (run after every change)
+make typecheck        # Type check all packages
+make lint             # Lint all packages
+make test             # Run all tests
+make check            # Run all checks (typecheck, lint, test)
+
+# Fix issues
+make lint-fix         # Auto-fix linting issues
+make format           # Alias for lint-fix
+
+# Development
+make electron         # Build web and start electron app
+make build            # Build all packages
+```
+
+## Quick Reference Commands (Individual Packages)
+
+### Web Package
+
+```bash
+cd web && npm start              # Start dev server
+cd web && npm test               # Run tests
 cd web && npm run test:watch     # Watch mode
 cd web && npm run test:coverage  # With coverage
-
-# E2E Testing
-cd web && npm run test:e2e          # Run e2e tests
-cd web && npm run test:e2e:ui       # Run with Playwright UI
-cd web && npm run test:e2e:headed   # Run in headed mode (see browser)
-
-# Quality
 cd web && npm run typecheck      # TypeScript check
 cd web && npm run lint           # ESLint
 cd web && npm run lint:fix       # Auto-fix lint issues
-
-# Building
 cd web && npm run build          # Production build
+cd web && npm run test:e2e       # Run e2e tests
 ```
+
+### Electron Package
+
+```bash
+cd electron && npm start         # Start electron dev server
+cd electron && npm test          # Run tests
+cd electron && npm run typecheck # TypeScript check
+cd electron && npm run lint      # ESLint
+cd electron && npm run lint:fix  # Auto-fix lint issues
+cd electron && npm run build     # Production build
+```
+
+---
 
 ## Setting Up for E2E Tests
 
