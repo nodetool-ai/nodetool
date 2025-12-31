@@ -504,7 +504,7 @@ const WorkflowAssistantChat: React.FC = () => {
                     <div style={{ marginTop: "8px", fontWeight: "bold" }}>
                       To use Workflow Chat:
                     </div>
-                    <div>1. Set workflow <strong>run_mode</strong> to "chat" in settings</div>
+                    <div>1. Set workflow <strong>run_mode</strong> to &quot;chat&quot; in settings</div>
                     <div>2. Add a <strong>MessageInput</strong> or <strong>MessageListInput</strong> node</div>
                     <div>3. The node will receive:</div>
                     <div style={{ marginLeft: "16px" }}>

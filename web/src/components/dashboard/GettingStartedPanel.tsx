@@ -353,7 +353,6 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   sortedWorkflows,
   isLoadingWorkflows,
   startTemplates,
-  isLoadingTemplates,
   handleExampleClick,
   handleCreateNewWorkflow
 }) => {
