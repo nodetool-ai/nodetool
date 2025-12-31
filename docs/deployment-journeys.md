@@ -15,6 +15,7 @@ This page provides step-by-step walkthroughs for common deployment goals. For re
 |------|---------|
 | Host NodeTool on my own server with a proxy | [I want to self-host NodeTool](#i-want-to-self-host-nodetool-with-a-proxy) |
 | Run workflows on RunPod GPUs | [I want to run on RunPod](#i-want-to-run-workflows-on-runpod-gpus) |
+| Run workflows on Modal serverless GPUs | [I want to run on Modal](#i-want-to-run-workflows-on-modal-serverless-gpus) |
 | Deploy to Google Cloud Run | [I want to deploy to Cloud Run](#i-want-to-deploy-to-google-cloud-run) |
 | Secure my deployment with TLS | See self-hosted section, step 4 |
 | Run a workflow via API | See any section, final step |
@@ -134,6 +135,91 @@ curl -H "Authorization: Bearer $RUNPOD_API_KEY" \
 
 ---
 
+## I want to run workflows on Modal serverless GPUs
+
+**Goal:** Deploy NodeTool to Modal for serverless GPU-accelerated workflow execution with fast cold starts and automatic scaling.
+
+**Requirements:**
+- A Modal account at [modal.com](https://modal.com)
+- Modal CLI installed (`pip install modal`)
+- Python 3.10+ environment
+
+**Steps:**
+
+### 1. Install and authenticate Modal CLI
+
+```bash
+pip install modal
+modal token new
+```
+
+This opens a browser window to authenticate with your Modal account.
+
+### 2. Create deployment configuration
+
+```bash
+nodetool deploy init
+nodetool deploy add my-modal --type modal
+```
+
+### 3. Configure GPU and scaling
+
+Edit `~/.config/nodetool/deployment.yaml`:
+
+```yaml
+my-modal:
+  type: modal
+  app_name: nodetool-workflows
+  gpu: a10g
+  gpu_count: 1
+  cpu: 4.0
+  memory: 16384
+  min_containers: 0
+  max_containers: 5
+  timeout: 600
+  env:
+    AUTH_PROVIDER: static
+```
+
+### 4. Set up secrets
+
+Store sensitive values using Modal's secrets:
+
+```bash
+modal secret create nodetool-secrets \
+  WORKER_AUTH_TOKEN=$(openssl rand -base64 32) \
+  OPENAI_API_KEY=your-key \
+  ANTHROPIC_API_KEY=your-key
+```
+
+### 5. Deploy
+
+```bash
+nodetool deploy apply my-modal
+```
+
+### 6. Verify health
+
+```bash
+# Get the deployment URL
+nodetool deploy status my-modal
+
+# Check health endpoint
+curl https://<your-modal-app>.modal.run/health
+```
+
+### 7. Run a workflow
+
+```bash
+curl -H "Authorization: Bearer $WORKER_AUTH_TOKEN" \
+  -X POST "https://<your-modal-app>.modal.run/api/workflows/<workflow_id>/run?stream=true" \
+  -d '{"params":{}}'
+```
+
+**Next steps:** See [Modal Testing Guide](modal_testing_guide.md) for testing workflows and the [Deployment Guide](deployment.md#modal-deployments) for configuration options.
+
+---
+
 ## I want to deploy to Google Cloud Run
 
 **Goal:** Deploy NodeTool to Google Cloud Run for serverless execution with autoscaling.
@@ -192,4 +278,5 @@ curl -H "Authorization: Bearer $WORKER_AUTH_TOKEN" \
 - [Security Hardening](security-hardening.md) — production security checklist
 - [Proxy Reference](proxy.md) — proxy configuration fields and TLS setup
 - [RunPod Testing Guide](runpod_testing_guide.md) — testing RunPod deployments
+- [Modal Testing Guide](modal_testing_guide.md) — testing Modal deployments
 - [CLI Reference](cli.md) — all CLI commands
