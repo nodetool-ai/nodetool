@@ -187,7 +187,7 @@ Multiple providers now support advanced video generation capabilities through th
 - ✅ Short video generation with strong coherence
 - ✅ Also supports high-quality text-to-image
 
-**Configuration:** Set `XAI_API_KEY` environment variable or configure in Settings → Providers
+**Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
 
 #### Alibaba Wan 2.6
 
@@ -200,7 +200,7 @@ Multiple providers now support advanced video generation capabilities through th
 - ✅ T2V/I2V with reference-guided modes
 - ✅ Cost-effective for high-volume workflows
 
-**Configuration:** Set `ALIBABA_API_KEY` environment variable or configure in Settings → Providers
+**Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
 
 #### MiniMax Hailuo 2.3
 
@@ -225,7 +225,7 @@ Multiple providers now support advanced video generation capabilities through th
 - ✅ Sound effects generation
 - ✅ Strong audio-visual coherence
 
-**Configuration:** Set `KLING_API_KEY` environment variable or configure in Settings → Providers
+**Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
 
 ### Image Generation Providers
 
@@ -253,7 +253,7 @@ Multiple providers now support advanced video generation capabilities through th
 - ✅ Enhanced character consistency
 - ✅ Advanced detail preservation
 
-**Configuration:** Set `GOOGLE_API_KEY` environment variable or configure in Settings → Providers
+**Configuration:** Access via Google's Gemini API using `GEMINI_API_KEY`, or through kie.ai
 
 ### Multi-Provider Aggregators
 
@@ -270,17 +270,19 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Set `KIE_API_KEY` environment variable or configure in Settings → Providers
 
-**Available Models via kie.ai:**
-- OpenAI Sora 2 Pro
-- Google Veo 3.1
+**Direct NodeTool Support:**
+- OpenAI Sora 2 Pro (via `OPENAI_API_KEY`)
+- Google Veo 3.1 (via `GEMINI_API_KEY`)
+- MiniMax Hailuo 2.3 (via `MINIMAX_API_KEY`)
+
+**Available via kie.ai (no direct NodeTool API key):**
 - xAI Grok Imagine
 - Alibaba Wan 2.6
-- MiniMax Hailuo 2.3
 - Kling 2.6
 - Black Forest Labs FLUX.2
 - Google Nano Banana Pro
 
-kie.ai provides a cost-effective alternative for accessing multiple state-of-the-art models through a unified interface. This is particularly useful for workflows that utilize models from different providers, as it reduces API key management complexity and can offer better pricing.
+kie.ai provides a cost-effective alternative for accessing multiple state-of-the-art models through a unified interface. This is particularly useful for workflows that utilize models from different providers, as it reduces API key management complexity and can offer better pricing. **For models without direct NodeTool API key support, kie.ai is the recommended access method.**
 
 ## Generic Nodes: Provider-Agnostic Workflows
 

@@ -59,7 +59,7 @@ NodeTool provides access to the latest high-quality generative AI models for cre
 
 Use these models through NodeTool's generic nodes (`TextToVideo`, `ImageToVideo`, `TextToImage`) by selecting the appropriate provider and model in the node properties.
 
-> **Tip**: All these models are also available through [kie.ai](https://kie.ai/), which aggregates multiple AI providers and often offers competitive pricing compared to upstream providers.
+> **Direct API Key Support**: OpenAI Sora 2 Pro, Google Veo 3.1, and MiniMax Hailuo 2.3 have direct NodeTool API key support. Other models can be accessed through [kie.ai](https://kie.ai/), which aggregates multiple AI providers and often offers competitive pricing.
 
 ## Get Started
 

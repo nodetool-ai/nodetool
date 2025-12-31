@@ -181,12 +181,14 @@ In addition to local models, NodeTool provides access to cutting-edge cloud-base
 
 ### Cost-Effective Alternative: kie.ai
 
-All the cloud models listed above are also available through [kie.ai](https://kie.ai/), an AI provider aggregator that:
+All the cloud models listed above are available through [kie.ai](https://kie.ai/), an AI provider aggregator that:
 
 - Offers unified access to multiple providers through a single API
 - Often provides competitive or lower pricing than upstream providers
 - Simplifies API key management (one key for all models)
 - Enables easy cost comparison and optimization across providers
+
+**Important**: Some models (xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6) currently require kie.ai or similar aggregators for access, as their API keys are not directly registered in NodeTool. Models with direct support include OpenAI Sora 2 Pro, Google Veo 3.1, and MiniMax Hailuo 2.3.
 
 This can be particularly beneficial for workflows using multiple SOTA models from different providers.
 

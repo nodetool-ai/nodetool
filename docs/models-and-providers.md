@@ -91,11 +91,18 @@ Access these models through NodeTool's **generic nodes**:
 3. **Select Provider**: Click the model dropdown in the node properties
 4. **Configure API**: Add provider API keys in `Settings → Providers`
 
-Each provider requires its own API key. Visit the provider's website to sign up and obtain API credentials.
+**Direct NodeTool API Key Support:**
+- OpenAI Sora 2 Pro: `OPENAI_API_KEY`
+- Google Veo 3.1: `GEMINI_API_KEY`
+- MiniMax Hailuo 2.3: `MINIMAX_API_KEY`
+
+**Access via kie.ai (recommended for other models):**
+- xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6, Black Forest Labs FLUX.2, Google Nano Banana Pro
+- Configure using `KIE_API_KEY` in `Settings → Providers`
 
 > **Cost Considerations**: Cloud models typically charge per generation. Check each provider's pricing before extensive use. Local models are free after download but require capable hardware.
 
-> **Alternative Access**: All these models are also available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers. This can be a cost-effective option for accessing multiple SOTA models through a single API.
+> **Alternative Access**: Many of these models are available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers. For models without direct NodeTool API key support (xAI, Alibaba, Kling), kie.ai is the recommended access method.
 
 ---
 
