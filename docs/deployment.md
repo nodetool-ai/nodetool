@@ -5,7 +5,7 @@ title: "Deployment Guide"
 
 
 
-NodeTool supports multiple deployment targets driven by a single `deployment.yaml` configuration. The `nodetool deploy` command family builds container images, applies configuration, and manages the lifecycle of remote services across self-hosted hosts, RunPod serverless, and Google Cloud Run.
+NodeTool supports multiple deployment targets driven by a single `deployment.yaml` configuration. The `nodetool deploy` command family builds container images, applies configuration, and manages the lifecycle of remote services across self-hosted hosts, RunPod serverless, Modal serverless, and Google Cloud Run.
 
 ---
 
@@ -15,6 +15,7 @@ NodeTool supports multiple deployment targets driven by a single `deployment.yam
 |--------------|---------------|
 | **Run NodeTool on my own server** | → [Self-Hosted Deployment](#self-hosted-deployments) with proxy |
 | **Deploy to RunPod for GPU access** | → [RunPod Deployment](#runpod-deployments) with Docker + RunPod API key |
+| **Deploy to Modal for serverless GPU** | → [Modal Deployment](#modal-deployments) with Modal CLI |
 | **Deploy to Google Cloud Run** | → [GCP Deployment](#google-cloud-run-deployments) with gcloud CLI |
 | **Use Supabase for auth/storage** | → [Supabase Integration](#using-supabase) |
 | **Set up TLS/HTTPS** | → See [Self-Hosted](#self-hosted-deployments) or [Proxy Reference](proxy.md) |
@@ -55,6 +56,21 @@ See [Self-Hosted Deployments](#self-hosted-deployments) for full details.
    ```
 
 See [RunPod Deployments](#runpod-deployments) for full details.
+
+### I want to deploy to Modal for serverless GPU
+
+1. **Install Modal CLI**: `pip install modal && modal token new`
+2. **Set up deployment**:
+   ```bash
+   nodetool deploy add my-modal --type modal
+   ```
+3. **Configure GPU and scaling** in `deployment.yaml` (`gpu`, `min_containers`, `max_containers`)
+4. **Deploy**:
+   ```bash
+   nodetool deploy apply my-modal
+   ```
+
+See [Modal Deployments](#modal-deployments) for full details.
 
 ### I want to deploy to Google Cloud
 
@@ -123,14 +139,14 @@ See [Using Supabase](#using-supabase) for full details.
 
 ### Deployment Configuration
 
-`deployment.yaml` accepts the following top-level keys (see `SelfHostedDeployment`, `RunPodDeployment`, and `GCPDeployment` in `src/nodetool/config/deployment.py`):
+`deployment.yaml` accepts the following top-level keys (see `SelfHostedDeployment`, `RunPodDeployment`, `ModalDeployment`, and `GCPDeployment` in `src/nodetool/config/deployment.py`):
 
-- `type` – target platform (`self-hosted`, `runpod`, `gcp`)
+- `type` – target platform (`self-hosted`, `runpod`, `modal`, `gcp`)
 - `image` – container image name/tag/registry
 - `paths` – persistent storage paths (self-hosted)
 - `container` – port, workflows, GPU configuration (self-hosted)
 - `proxy` – proxy services (`self-hosted`; see the [Proxy Reference](proxy.md))
-- `runpod` / `gcp` – provider specific compute, region, scaling and credential options
+- `runpod` / `modal` / `gcp` – provider specific compute, region, scaling and credential options
 - `env` – environment variables injected into the deployed containers
 
 Store secrets (API keys, tokens) in `secrets.yaml` or environment variables; the deployer merges them at runtime without writing them to disk.
@@ -157,6 +173,37 @@ The RunPod deployer (`src/nodetool/deploy/deploy_to_runpod.py`) builds an AMD64 
 - `nodetool deploy apply <name>` – orchestrates build → push → template/endpoint updates  
 - `nodetool deploy logs <name>` – streams RunPod logs (requires endpoint ID in deployment state)  
 - `nodetool deploy destroy <name>` – tears down templates/endpoints (leaves images untouched)
+
+## Modal Deployments
+
+[Modal](https://modal.com/) provides serverless GPU infrastructure with instant cold starts and pay-per-second pricing. The Modal deployer uses the Modal Python SDK to deploy NodeTool as a web endpoint.
+
+**Requirements**
+
+- Modal CLI installed and authenticated (`pip install modal && modal token new`)
+- No Docker required – Modal builds containers automatically
+
+**Key configuration fields**
+
+- `app_name` – Modal application name
+- `gpu` – GPU type (`t4`, `a10g`, `a100`, `h100`, `any`)
+- `gpu_count` – number of GPUs per container
+- `memory`, `cpu` – resource allocation
+- `timeout` – maximum execution time in seconds
+- `min_containers`, `max_containers` – autoscaling bounds (0 = scale to zero)
+- `container_idle_timeout` – seconds before idle containers terminate
+- `secrets` – Modal secret names to mount
+- `volumes` – Modal volume mounts for persistent storage
+- `env` – environment variables
+
+**CLI shortcuts**
+
+- `nodetool deploy apply <name>` – deploys the Modal application
+- `nodetool deploy status <name>` – shows deployment URL and status
+- `nodetool deploy logs <name>` – streams Modal logs
+- `nodetool deploy destroy <name>` – removes the Modal application
+
+For detailed configuration and examples, see the [Modal Deployment Guide](modal-deployment.md).
 
 ## Google Cloud Run Deployments
 
