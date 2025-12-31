@@ -41,6 +41,26 @@ NodeTool is an open-source visual workflow builder. Connect nodes to generate im
 - **Data Analysis**: Transform data, create visualizations, generate reports.
 - **Automation**: Build AI agents that plan and execute multi-step tasks.
 
+## State-of-the-Art Cloud Models
+
+NodeTool provides access to the latest high-quality generative AI models for creative workflows:
+
+### Video Generation
+- **OpenAI Sora 2 Pro** – Realistic motion with refined physics and synchronized native audio; T2V/I2V up to 15s in 1080p
+- **Google Veo 3.1** – Upgraded realistic motion, extended clips, multi-image references, native 1080p with synced audio
+- **xAI Grok Imagine** – Multimodal text/image to short video with coherent motion and synchronized audio
+- **Alibaba Wan 2.6** – Affordable multi-shot 1080p with stable characters and native audio; T2V/I2V/reference-guided
+- **MiniMax Hailuo 2.3** – High-fidelity video with expressive characters, complex motion and lighting
+- **Kling 2.6** – Text/image to synchronized video with speech, ambient sound, and effects
+
+### Image & Audio Generation
+- **Black Forest Labs FLUX.2** – Photoreal images with multi-reference consistency and accurate text rendering
+- **Google Nano Banana Pro** – Sharper 2K output, intelligent 4K scaling, improved text rendering and character consistency
+
+Use these models through NodeTool's generic nodes (`TextToVideo`, `ImageToVideo`, `TextToImage`) by selecting the appropriate provider and model in the node properties.
+
+> **Direct API Key Support**: OpenAI Sora 2 Pro, Google Veo 3.1, and MiniMax Hailuo 2.3 have direct NodeTool API key support. Other models can be accessed through [kie.ai](https://kie.ai/), which aggregates multiple AI providers and often offers competitive pricing.
+
 ## Get Started
 
 | Platform | Download | What You Need |
