@@ -30,7 +30,8 @@ export interface WebSocketConfig {
 }
 
 export interface WebSocketMessage {
-  type: string;
+  type?: string;
+  command?: string;
   [key: string]: any;
 }
 
