@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, Tooltip, IconButton } from "@mui/material";
+import { Drawer, Tooltip, IconButton, Box } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
@@ -13,14 +13,17 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
+import { useCombo } from "../../stores/KeyPressedStore";
 
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import ArticleIcon from "@mui/icons-material/Article";
+import FolderIcon from "@mui/icons-material/Folder";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
 import PanelResizeButton from "./PanelResizeButton";
+import WorkspaceTree from "../workspaces/WorkspaceTree";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -110,13 +113,15 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleInspectorToggle,
   handleAssistantToggle,
   handleLogsToggle,
+  handleWorkspaceToggle,
   activeView,
   panelVisible
 }: {
   handleInspectorToggle: () => void;
   handleAssistantToggle: () => void;
   handleLogsToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs";
+  handleWorkspaceToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace";
   panelVisible: boolean;
 }) {
   return (
@@ -199,6 +204,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <ArticleIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Workspace Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Workspace</div>
+            <div className="tooltip-key">
+              <kbd>3</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleWorkspaceToggle}
+          className={
+            activeView === "workspace" && panelVisible
+              ? "workspace active"
+              : "workspace"
+          }
+        >
+          <FolderIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -221,6 +252,9 @@ const PanelRight: React.FC = () => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
+
+  // Keyboard shortcut for workspace
+  useCombo(["3"], () => handlePanelToggle("workspace"), false);
 
   return (
     <div
@@ -259,6 +293,7 @@ const PanelRight: React.FC = () => {
             handleInspectorToggle={() => handlePanelToggle("inspector")}
             handleAssistantToggle={() => handlePanelToggle("assistant")}
             handleLogsToggle={() => handlePanelToggle("logs")}
+            handleWorkspaceToggle={() => handlePanelToggle("workspace")}
             activeView={activeView}
             panelVisible={isVisible}
           />
@@ -267,6 +302,16 @@ const PanelRight: React.FC = () => {
               <ReactFlowProvider>
                 {activeView === "logs" ? (
                   <LogPanel />
+                ) : activeView === "workspace" ? (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      overflow: "hidden"
+                    }}
+                  >
+                    <WorkspaceTree />
+                  </Box>
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
