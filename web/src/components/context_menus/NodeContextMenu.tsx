@@ -140,7 +140,7 @@ const NodeContextMenu: React.FC = () => {
         startNodeId: nodeId,
         nodeCount: subgraphNodesWithUpdates.length,
         edgeCount: downstream.edges.length,
-        propertyOverrides
+        propertyCount: Object.keys(propertyOverrides).length
       });
 
       run({}, workflow, subgraphNodesWithUpdates, downstream.edges);
