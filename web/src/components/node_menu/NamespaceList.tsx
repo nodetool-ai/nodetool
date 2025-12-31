@@ -459,7 +459,6 @@ const namespaceStyles = (theme: Theme) =>
     ".quick-action-tiles-container": {
       flex: "1 1 auto",
       minWidth: "300px",
-      maxWidth: "380px",
       backgroundColor: "transparent",
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
       marginLeft: "0.5em",
@@ -546,41 +545,6 @@ const NoSelectionContent = memo(function NoSelectionContent({
         </Button>
       </div>
 
-      <Typography variant="h6">Let us know what&apos;s missing</Typography>
-      <ul className="no-results">
-        <li>
-          Join our{" "}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              window.open(
-                "https://discord.gg/WmQTWZRcYE",
-                "_blank",
-                "noopener,noreferrer"
-              );
-            }}
-          >
-            Discord
-          </a>
-        </li>
-        <li>
-          Join the{" "}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              window.open(
-                "https://forum.nodetool.ai",
-                "_blank",
-                "noopener,noreferrer"
-              );
-            }}
-          >
-            Nodetool Forum
-          </a>
-        </li>
-      </ul>
     </div>
   );
 });
