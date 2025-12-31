@@ -52,6 +52,9 @@ const OverallDownloadProgress: React.FC = () => {
     <Tooltip title="Download Progress" enterDelay={TOOLTIP_ENTER_DELAY}>
       <Box
         className="overall-download-progress"
+        role="button"
+        tabIndex={0}
+        aria-label="Download Progress"
         sx={{
           display: "flex",
           alignItems: "center",
@@ -63,10 +66,20 @@ const OverallDownloadProgress: React.FC = () => {
           transition: "all 0.2s ease-out",
           "&:hover": {
             backgroundColor: "rgba(255, 255, 255, 0.05)"
+          },
+          "&:focus-visible": {
+            outline: "2px solid var(--palette-primary-main)",
+            outlineOffset: "2px"
           }
         }}
         onClick={() => {
           openDialog();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openDialog();
+          }
         }}
       >
         <Box
