@@ -38,6 +38,10 @@ export interface InputProps {
   tabIndex?: number;
   zoomAffectsDragging?: boolean;
   showSlider?: boolean;
+  /**
+   * Whether the value differs from the default. Shows a visual indicator when true.
+   */
+  changed?: boolean;
 }
 
 export interface NumberInputState {
@@ -255,7 +259,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
   }, [props.value, inputIsFocused, state.isDragging]);
 
   useEffect(() => {
-    if (!state.isDragging) {return;}
+    if (!state.isDragging) {
+      return;
+    }
 
     // Capture the current handler references once. Using local constants keeps the
     // effect dependency array minimal and prevents re-running this effect on every
@@ -293,7 +299,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       css={numberInputStyles(theme)}
       className={`number-input ${props.inputType} ${
         inputIsFocused ? "focused" : ""
-      }`}
+      } ${props.changed ? "changed" : ""}`}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
       onBlur={handleContainerBlur}
@@ -354,6 +360,7 @@ export default memo(NumberInput, (prevProps, nextProps) => {
     prevProps.max === nextProps.max &&
     prevProps.inputType === nextProps.inputType &&
     prevProps.hideLabel === nextProps.hideLabel &&
-    prevProps.showSlider === nextProps.showSlider
+    prevProps.showSlider === nextProps.showSlider &&
+    prevProps.changed === nextProps.changed
   );
 });

@@ -79,6 +79,11 @@ export const numberInputStyles = (theme: Theme) =>
       minWidth: "30px"
     },
 
+    // Changed state: value differs from default
+    "&.changed .slider-value .value": {
+      color: theme.vars.palette.primary.main
+    },
+
     ".edit-value": {
       position: "absolute",
       outline: "none",
