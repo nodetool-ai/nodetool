@@ -4,21 +4,13 @@ import type { Theme } from "@mui/material/styles";
 export const createStyles = (theme: Theme) =>
   css({
     width: "100%",
-    height: "100%",
+    maxHeight: "70vh",
     display: "flex",
     flexDirection: "column",
     backgroundColor: "transparent",
 
-    ".new-chat-section": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      padding: theme.spacing(1.5)
-    },
-
-    ".new-chat-button": {},
-
     ".thread-list": {
+      minHeight: "100px",
       flex: 1,
       overflow: "auto",
       padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
