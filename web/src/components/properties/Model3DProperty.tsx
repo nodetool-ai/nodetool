@@ -155,7 +155,7 @@ const Model3DProperty = (props: PropertyProps) => {
             <Typography className="drop-text">
               Drop 3D model file
               <br />
-              (GLB, GLTF)
+              (GLB, GLTF, OBJ, FBX)
             </Typography>
           </Box>
         )}
