@@ -43,19 +43,14 @@ if (process.env.JEST_WORKER_ID) {
       expect(url).toContain("/templates");
     });
 
-    test("should display search bar", async ({ page }) => {
+    test("should load templates interface elements", async ({ page }) => {
       await page.goto("/templates");
       await page.waitForLoadState("networkidle");
 
-      // Look for search input field
-      const searchInput = page.locator('input[type="text"]');
-      // Wait for at least one input to exist (could be search or other form fields)
-      const inputCount = await searchInput.count();
-      expect(inputCount).toBeGreaterThanOrEqual(0);
-
-      // Page should remain stable
+      // Page should load without errors and have content
       const bodyText = await page.textContent("body");
       expect(bodyText).not.toContain("500");
+      expect(bodyText).toBeTruthy();
     });
 
     test("should handle URL with node parameter", async ({ page }) => {
@@ -203,14 +198,16 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/templates");
       await page.waitForLoadState("networkidle");
 
-      // Give it time for API calls
-      await page.waitForTimeout(2000);
+      // Wait for API response containing templates endpoint
+      await page.waitForResponse(
+        (response) => response.url().includes("/api/workflows/examples"),
+        { timeout: 10000 }
+      ).catch(() => {
+        // Response may have already been captured before waitForResponse was called
+      });
 
       // Verify that templates API call was made
       expect(apiCalls.length).toBeGreaterThan(0);
-
-      // Log the API calls for debugging
-      console.log("Templates API calls made:", apiCalls);
     });
 
     test("should handle search with empty query", async ({ page, request }) => {
@@ -252,17 +249,17 @@ if (process.env.JEST_WORKER_ID) {
 
       // Test at different viewport sizes
       await page.setViewportSize({ width: 1200, height: 800 });
-      await page.waitForTimeout(500);
+      await page.waitForLoadState("domcontentloaded");
       let bodyText = await page.textContent("body");
       expect(bodyText).not.toContain("500");
 
       await page.setViewportSize({ width: 768, height: 1024 });
-      await page.waitForTimeout(500);
+      await page.waitForLoadState("domcontentloaded");
       bodyText = await page.textContent("body");
       expect(bodyText).not.toContain("500");
 
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.waitForTimeout(500);
+      await page.waitForLoadState("domcontentloaded");
       bodyText = await page.textContent("body");
       expect(bodyText).not.toContain("500");
     });
