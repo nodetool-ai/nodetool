@@ -9,10 +9,11 @@ import {
   useState,
   useEffect
 } from "react";
-import { Menu, MenuItem } from "@mui/material";
+import { Menu, MenuItem, CircularProgress } from "@mui/material";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import { useIsWorkflowRunning } from "../../hooks/useWorkflowRunnerState";
 
 const useWorkflowDirty = (workflowId: string): boolean => {
   const nodeStore = useWorkflowManager((state) => state.nodeStores[workflowId]);
@@ -85,6 +86,8 @@ const TabHeader = ({
 }: TabHeaderProps) => {
   // Use the simple hook to get reactive dirty state
   const isWorkflowDirty = useWorkflowDirty(workflow.id);
+  // Check if workflow is running
+  const isRunning = useIsWorkflowRunning(workflow.id);
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     mouseX: number;
     mouseY: number;
@@ -179,7 +182,17 @@ const TabHeader = ({
             }}
           />
         ) : (
-          <span className="tab-name" style={{ marginRight: "4px" }}>
+          <span className="tab-name" style={{ marginRight: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+            {isRunning && (
+              <CircularProgress
+                size={12}
+                thickness={4}
+                sx={{
+                  color: "var(--palette-primary-main)",
+                  flexShrink: 0
+                }}
+              />
+            )}
             {workflow.name}
             {isWorkflowDirty && (
               <span
