@@ -22,6 +22,10 @@ jest.mock("../../../components/asset_viewer/PDFViewer", () => ({
   __esModule: true,
   default: () => <div data-testid="pdf-viewer">pdf</div>
 }));
+jest.mock("../../../components/asset_viewer/Model3DViewer", () => ({
+  __esModule: true,
+  default: () => <div data-testid="model3d-viewer">3d</div>
+}));
 
 function HookComponent(props: any) {
   const { component } = useAssetDisplay(props);
@@ -43,5 +47,31 @@ describe("useAssetDisplay", () => {
       />
     );
     expect(getByTestId("pdf-viewer")).toBeInTheDocument();
+  });
+
+  test("renders Model3DViewer for GLB files", () => {
+    const { getByTestId } = render(
+      <HookComponent
+        url="https://example.com/model.glb"
+        contentType="model/gltf-binary"
+      />
+    );
+    expect(getByTestId("model3d-viewer")).toBeInTheDocument();
+  });
+
+  test("renders Model3DViewer for GLTF content type", () => {
+    const asset: any = { content_type: "model/gltf+json", get_url: "https://example.com/model.gltf" };
+    const { getByTestId } = render(<HookComponent asset={asset} />);
+    expect(getByTestId("model3d-viewer")).toBeInTheDocument();
+  });
+
+  test("renders Model3DViewer for URL with .glb extension", () => {
+    const { getByTestId } = render(
+      <HookComponent
+        url="https://example.com/model.glb"
+        contentType=""
+      />
+    );
+    expect(getByTestId("model3d-viewer")).toBeInTheDocument();
   });
 });

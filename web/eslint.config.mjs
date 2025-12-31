@@ -56,7 +56,17 @@ export default [
       "react/no-unknown-property": [
         "error",
         {
-          ignore: ["css"]
+          ignore: [
+            "css",
+            // Three.js / React Three Fiber properties
+            "object",
+            "intensity",
+            "position",
+            "castShadow",
+            "args",
+            "rotation",
+            "scale"
+          ]
         }
       ],
       "react/jsx-uses-react": "off",

@@ -27,6 +27,19 @@ export type DataframeRef = components["schemas"]["DataframeRef"];
 export type ColumnDef = components["schemas"]["ColumnDef"];
 export type AudioRef = components["schemas"]["AudioRef"];
 export type VideoRef = components["schemas"]["VideoRef"];
+
+// Model3DRef - A reference to a 3D model asset (frontend-defined until backend support is added)
+export interface Model3DRef {
+  type: "model_3d";
+  uri: string;
+  asset_id?: string | null;
+  data?: unknown;
+  metadata?: {
+    [key: string]: unknown;
+  } | null;
+  format?: "glb" | "gltf" | "obj" | "fbx" | string;
+}
+
 export type NPArray = components["schemas"]["NPArray"];
 export type TextRef = components["schemas"]["TextRef"];
 export type WorkflowRef = components["schemas"]["WorkflowRef"];

@@ -51,6 +51,7 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
+import Model3DViewer from "../threed/Model3DViewer";
 // import left for future reuse of audio stream component when needed
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
@@ -387,6 +388,17 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             ref={videoRef}
             controls
             style={{ width: "100%", height: "100%" }}
+          />
+        );
+      case "model_3d":
+        return (
+          <Model3DViewer
+            source={value?.uri || value?.data || ""}
+            format={value?.format || "glb"}
+            width="100%"
+            height={300}
+            controls={true}
+            showGrid={true}
           />
         );
       case "dataframe":
