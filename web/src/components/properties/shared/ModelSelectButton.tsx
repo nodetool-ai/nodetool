@@ -118,7 +118,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
                   scope === "inspector"
                     ? theme.fontSizeSmall
                     : theme.fontSizeTinyer,
-                lineHeight: "1.1em",
+                lineHeight: "1.2em",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
