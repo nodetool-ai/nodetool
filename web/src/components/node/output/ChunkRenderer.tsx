@@ -18,14 +18,16 @@ export const ChunkRenderer: React.FC<Props> = ({ chunk }) => {
   switch (chunk.content_type) {
     case "image":
       return <ImageView source={chunk.content} />;
-    case "audio":
+    case "audio": {
+      const meta = (chunk as any).content_metadata;
       return (
         <StreamPcm16Player
           base64={chunk.content as string}
-          sampleRate={22000}
-          channels={1}
+          sampleRate={meta?.sample_rate || 22000}
+          channels={meta?.channels || 1}
         />
       );
+    }
     case "video":
       return (
         <video
