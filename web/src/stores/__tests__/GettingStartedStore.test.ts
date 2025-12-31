@@ -153,7 +153,7 @@ describe("GettingStartedStore", () => {
         useGettingStartedStore.getState().setHasCreatedWorkflow(true);
       });
 
-      let progress = useGettingStartedStore.getState().progress;
+      const progress = useGettingStartedStore.getState().progress;
       expect(progress.hasCreatedWorkflow).toBe(true);
       expect(progress.hasTriedTemplate).toBe(false);
     });

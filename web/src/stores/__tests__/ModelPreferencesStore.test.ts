@@ -1,5 +1,5 @@
 import { act } from "@testing-library/react";
-import { useModelPreferencesStore, RecentEntry } from "../ModelPreferencesStore";
+import { useModelPreferencesStore } from "../ModelPreferencesStore";
 
 describe("ModelPreferencesStore", () => {
   beforeEach(() => {

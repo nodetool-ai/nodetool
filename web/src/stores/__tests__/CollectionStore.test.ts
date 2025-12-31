@@ -11,7 +11,8 @@ jest.mock("../ApiClient", () => ({
   }
 }));
 
-const mockClient = client as jest.Mocked<typeof client>;
+// Use 'any' to bypass strict typing for mocked API responses
+const mockClient = client as any;
 
 describe("CollectionStore", () => {
   beforeEach(() => {
@@ -79,7 +80,10 @@ describe("CollectionStore", () => {
 
   describe("setCollections", () => {
     it("sets collections", () => {
-      const collections = { collections: [{ name: "test", count: 5 }] };
+      const collections = { 
+        collections: [{ name: "test", count: 5, metadata: {} }],
+        count: 1
+      };
 
       act(() => {
         useCollectionStore.getState().setCollections(collections);

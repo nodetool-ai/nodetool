@@ -19,7 +19,8 @@ jest.mock("../../utils/errorHandling", () => ({
   })
 }));
 
-const mockClient = client as jest.Mocked<typeof client>;
+// Use 'any' to bypass strict typing for mocked API responses
+const mockClient = client as any;
 
 describe("FileStore", () => {
   beforeEach(() => {
