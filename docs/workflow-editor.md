@@ -85,6 +85,30 @@ Every node has:
 - **Arrow keys** for precise nudging
 - **Auto Layout** button to organize automatically
 
+### Bypassing Nodes
+
+Skip nodes temporarily without deleting them:
+
+1. **Right-click** a node to open the context menu
+2. Select **Bypass Node**
+3. The node will be dimmed and its inputs pass directly to outputs
+
+Bypassed nodes are useful for:
+- **Testing**: Compare results with and without a processing step
+- **Debugging**: Isolate problems by skipping potential culprits
+- **A/B Testing**: Toggle effects on and off
+
+To re-enable: right-click and select **Enable Node**.
+
+### Result Overlays
+
+Nodes display output previews directly on the canvas:
+
+- **Images**: Thumbnail preview overlaid on the node
+- **Text**: Snippet of generated text
+- **Audio**: Waveform indicator
+- **Progress**: Real-time execution status
+
 ---
 
 ## Making Connections
@@ -230,9 +254,37 @@ Right-click for options anywhere:
 | Location | Options |
 |----------|---------|
 | **Canvas** | Add node, paste, select all |
-| **Node header** | Copy, duplicate, delete, group |
+| **Node header** | Copy, duplicate, delete, group, bypass |
 | **Input/Output** | Disconnect, add compatible node |
 | **Connection** | Delete, add node in middle |
+
+---
+
+## Built-in Editors
+
+NodeTool includes professional editing tools for creative work.
+
+### Image Editor
+
+Click the edit icon on image outputs or properties to open the full-featured editor:
+
+- **Crop & Resize**: Adjust image dimensions and composition
+- **Rotate & Flip**: Transform orientation
+- **Draw Tools**: Brush, shapes, and text overlays
+- **Adjustments**: Brightness, contrast, saturation controls
+- **History**: Undo/redo all changes
+
+### Color Picker
+
+The professional color picker appears when selecting colors in properties:
+
+- **Visual Selection**: Saturation/brightness picker with hue slider
+- **Multiple Formats**: Enter values as HEX, RGB, or HSL
+- **Harmony Modes**: Complementary, triadic, analogous color suggestions
+- **Gradient Builder**: Create and edit color gradients
+- **Swatches**: Save and reuse favorite colors
+- **Contrast Checker**: Verify accessibility compliance
+- **Eyedropper**: Pick colors from anywhere on screen
 
 ---
 
