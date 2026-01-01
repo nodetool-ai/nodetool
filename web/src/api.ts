@@ -1627,6 +1627,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/{id}/generate-name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Workflow Name
+         * @description Generate a name for a workflow using an LLM based on its content.
+         *
+         *     This endpoint analyzes the workflow's nodes and structure to generate
+         *     a descriptive name (maximum 60 characters). Similar to chat thread
+         *     auto-titling functionality.
+         *
+         *     Args:
+         *         id: The workflow ID
+         *         req: Request containing provider and model to use for generation
+         *
+         *     Returns:
+         *         The updated workflow with the generated name
+         */
+        post: operations["generate_workflow_name_api_workflows__id__generate_name_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Versions
+         * @description List all versions of a workflow.
+         *
+         *     Args:
+         *         id: Workflow ID
+         *         cursor: Version number to start pagination after (for next page, use the
+         *                 version number from the 'next' field in the response)
+         *         limit: Maximum number of versions to return
+         */
+        get: operations["list_versions_api_workflows__id__versions_get"];
+        put?: never;
+        /**
+         * Create Version
+         * @description Create a new version of a workflow.
+         *
+         *     This saves the current state of the workflow as a version snapshot.
+         */
+        post: operations["create_version_api_workflows__id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Version
+         * @description Get a specific version of a workflow.
+         */
+        get: operations["get_version_api_workflows__id__versions__version__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{id}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Version
+         * @description Restore a workflow to a specific version.
+         *
+         *     This replaces the current workflow graph with the graph from the specified version.
+         *     The current state is NOT automatically saved as a new version before restoring.
+         */
+        post: operations["restore_version_api_workflows__id__versions__version__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/storage/{key}": {
         parameters: {
             query?: never;
@@ -2733,6 +2839,22 @@ export interface components {
              */
             description: string;
         };
+        /**
+         * CreateWorkflowVersionRequest
+         * @description Request to create a new workflow version.
+         */
+        CreateWorkflowVersionRequest: {
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+        };
         /** DataframeRef */
         DataframeRef: {
             /**
@@ -2890,6 +3012,8 @@ export interface components {
              * @constant
              */
             type: "edge_update";
+            /** Workflow Id */
+            workflow_id: string;
             /** Edge Id */
             edge_id: string;
             /** Status */
@@ -6412,6 +6536,16 @@ export interface components {
             /** Required Models */
             required_models?: string[] | null;
         };
+        /**
+         * WorkflowGenerateNameRequest
+         * @description Request model for generating a workflow name using an LLM.
+         */
+        WorkflowGenerateNameRequest: {
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+        };
         /** WorkflowList */
         WorkflowList: {
             /** Next */
@@ -6480,6 +6614,38 @@ export interface components {
             next: string | null;
             /** Workflows */
             workflows: components["schemas"]["WorkflowTool"][];
+        };
+        /**
+         * WorkflowVersion
+         * @description Represents a version/snapshot of a workflow.
+         */
+        WorkflowVersion: {
+            /** Id */
+            id: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Version */
+            version: number;
+            /** Created At */
+            created_at: string;
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            graph: components["schemas"]["Graph-Output"];
+        };
+        /**
+         * WorkflowVersionList
+         * @description List of workflow versions with pagination support.
+         */
+        WorkflowVersionList: {
+            /** Next */
+            next: string | null;
+            /** Versions */
+            versions: components["schemas"]["WorkflowVersion"][];
         };
         /** WorkspaceInfo */
         WorkspaceInfo: {
@@ -8962,6 +9128,174 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_workflow_name_api_workflows__id__generate_name_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowGenerateNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_versions_api_workflows__id__versions_get: {
+        parameters: {
+            query?: {
+                cursor?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowVersionList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_version_api_workflows__id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkflowVersionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowVersion"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_api_workflows__id__versions__version__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowVersion"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_version_api_workflows__id__versions__version__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
                 };
             };
             /** @description Validation Error */
