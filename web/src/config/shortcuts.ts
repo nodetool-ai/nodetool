@@ -349,6 +349,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Nudge selected nodes down",
     registerCombo: true
   },
+  {
+    title: "Bypass Node",
+    slug: "bypassNode",
+    keyCombo: ["B"],
+    category: "editor",
+    description: "Toggle bypass on selected nodes",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {
