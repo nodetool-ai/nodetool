@@ -6,7 +6,6 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { useTheme } from "@mui/material/styles";
 
 export interface NodeHeaderProps {
   id: string;
@@ -29,9 +28,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   selected,
   iconType,
   iconBaseColor,
-  showIcon = true
+  showIcon = true,
+  data
 }: NodeHeaderProps) => {
-  const theme = useTheme();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
 
@@ -120,6 +119,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         >
           {metadataTitle}
         </span>
+        {data.bypassed && (
+          <span className="bypass-badge">Bypassed</span>
+        )}
       </div>
     </div>
   );

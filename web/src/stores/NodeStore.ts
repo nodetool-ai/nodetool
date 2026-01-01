@@ -122,6 +122,7 @@ export type NodeUIProperties = {
   zIndex?: number;
   title?: string;
   color?: string;
+  bypassed?: boolean;
 };
 
 type NodeSelection = {
@@ -208,6 +209,9 @@ export interface NodeStoreState {
   setShouldFitToScreen: (value: boolean, nodeIds?: string[] | null) => void;
   selectAllNodes: () => void;
   cleanup: () => void;
+  toggleBypass: (nodeId: string) => void;
+  setBypass: (nodeId: string, bypassed: boolean) => void;
+  toggleBypassSelected: () => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -1060,6 +1064,61 @@ export const createNodeStore = (
                 selected: true
               }))
             });
+          },
+          toggleBypass: (nodeId: string): void => {
+            const node = get().findNode(nodeId);
+            if (node) {
+              const newBypassed = !node.data.bypassed;
+              set((state) => ({
+                nodes: state.nodes.map((n) =>
+                  n.id === nodeId
+                    ? { 
+                        ...n, 
+                        className: newBypassed ? "bypassed" : undefined,
+                        data: { ...n.data, bypassed: newBypassed } 
+                      }
+                    : n
+                )
+              }));
+              get().setWorkflowDirty(true);
+            }
+          },
+          setBypass: (nodeId: string, bypassed: boolean): void => {
+            set((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.id === nodeId
+                  ? { 
+                      ...n, 
+                      className: bypassed ? "bypassed" : undefined,
+                      data: { ...n.data, bypassed } 
+                    }
+                  : n
+              )
+            }));
+            get().setWorkflowDirty(true);
+          },
+          toggleBypassSelected: (): void => {
+            const selectedNodes = get().getSelectedNodes();
+            if (selectedNodes.length === 0) {
+              return;
+            }
+            
+            // Determine if we should bypass or enable based on majority
+            const bypassedCount = selectedNodes.filter(n => n.data.bypassed).length;
+            const shouldBypass = bypassedCount < selectedNodes.length / 2;
+            
+            set((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.selected
+                  ? { 
+                      ...n, 
+                      className: shouldBypass ? "bypassed" : undefined,
+                      data: { ...n.data, bypassed: shouldBypass } 
+                    }
+                  : n
+              )
+            }));
+            get().setWorkflowDirty(true);
           },
           cleanup: () => {
             if (unsubscribeMetadata) {

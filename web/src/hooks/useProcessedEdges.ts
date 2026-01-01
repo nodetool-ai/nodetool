@@ -199,6 +199,13 @@ export function useProcessedEdges({
         classes.push(targetTypeSlug);
       }
 
+      // Add class if source or target node is bypassed
+      const isSourceBypassed = sourceNode?.data?.bypassed;
+      const isTargetBypassed = targetNode?.data?.bypassed;
+      if (isSourceBypassed || isTargetBypassed) {
+        classes.push("from-bypassed");
+      }
+
       const statusKey =
         workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
       const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
