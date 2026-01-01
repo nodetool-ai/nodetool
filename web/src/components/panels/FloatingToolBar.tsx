@@ -15,6 +15,8 @@ import {
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
@@ -198,6 +200,26 @@ const styles = (theme: Theme) =>
           backgroundColor: theme.vars.palette.warning.dark,
           boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px ${theme.vars.palette.warning.main}50`
         }
+      },
+      "&.paused": {
+        backgroundColor: theme.vars.palette.info.main,
+        color: theme.vars.palette.info.contrastText,
+        borderColor: theme.vars.palette.info.main,
+        boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px ${theme.vars.palette.info.main}40`,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.info.dark,
+          boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px ${theme.vars.palette.info.main}50`
+        }
+      },
+      "&.suspended": {
+        backgroundColor: theme.vars.palette.secondary.main,
+        color: theme.vars.palette.secondary.contrastText,
+        borderColor: theme.vars.palette.secondary.main,
+        boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px ${theme.vars.palette.secondary.main}40`,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.secondary.dark,
+          boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px ${theme.vars.palette.secondary.main}50`
+        }
       }
     },
 
@@ -278,12 +300,15 @@ const FloatingToolBar: React.FC<{
   );
   const getCurrentWorkflow = useNodes((state) => state.getWorkflow);
 
-  const { run, state, isWorkflowRunning, cancel } = useWebsocketRunner(
+  const { run, isWorkflowRunning, isPaused, isSuspended, cancel, pause, resume } = useWebsocketRunner(
     (state) => ({
       run: state.run,
-      state: state.state,
       isWorkflowRunning: state.state === "running",
-      cancel: state.cancel
+      isPaused: state.state === "paused",
+      isSuspended: state.state === "suspended",
+      cancel: state.cancel,
+      pause: state.pause,
+      resume: state.resume
     })
   );
 
@@ -318,6 +343,14 @@ const FloatingToolBar: React.FC<{
   const handleStop = useCallback(() => {
     cancel();
   }, [cancel]);
+
+  const handlePause = useCallback(() => {
+    pause();
+  }, [pause]);
+
+  const handleResume = useCallback(() => {
+    resume();
+  }, [resume]);
 
   // Keyboard shortcuts for run (Ctrl+Enter / Cmd+Enter) and stop (ESC)
   useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
@@ -543,6 +576,39 @@ const FloatingToolBar: React.FC<{
           </span>
         </Tooltip>
 
+        {/* Pause/Resume button - visible when running, paused, or suspended */}
+        {(isWorkflowRunning || isPaused || isSuspended) && (
+          <Tooltip
+            title={
+              isSuspended
+                ? "Resume suspended workflow"
+                : isPaused
+                ? "Resume workflow"
+                : "Pause workflow"
+            }
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            placement="top"
+          >
+            <span>
+              <Fab
+                className={`floating-action-button subtle ${
+                  isSuspended ? "suspended" : isPaused ? "paused" : ""
+                }`}
+                onClick={isPaused || isSuspended ? handleResume : handlePause}
+                aria-label={
+                  isSuspended
+                    ? "Resume suspended workflow"
+                    : isPaused
+                    ? "Resume workflow"
+                    : "Pause workflow"
+                }
+              >
+                {isPaused || isSuspended ? <PlayCircleIcon /> : <PauseIcon />}
+              </Fab>
+            </span>
+          </Tooltip>
+        )}
+
         <Tooltip
           title={getShortcutTooltip("stopWorkflow")}
           enterDelay={TOOLTIP_ENTER_DELAY}
@@ -551,10 +617,12 @@ const FloatingToolBar: React.FC<{
           <span>
             <Fab
               className={`floating-action-button subtle ${
-                !isWorkflowRunning ? "disabled" : "stop-running"
+                !(isWorkflowRunning || isPaused || isSuspended)
+                  ? "disabled"
+                  : "stop-running"
               }`}
               onClick={handleStop}
-              disabled={!isWorkflowRunning}
+              disabled={!(isWorkflowRunning || isPaused || isSuspended)}
               aria-label="Stop workflow"
             >
               <StopIcon />

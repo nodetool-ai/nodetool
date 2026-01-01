@@ -48,6 +48,14 @@ interface WorkflowRunnerState {
   run: (workflow: Workflow, params: Record<string, any>) => Promise<any>;
 
   /**
+   * Resumes a suspended or failed job
+   * @param jobId The ID of the job to resume
+   * @param workflowId Optional workflow ID
+   * @returns Promise that resolves when the resume command is sent
+   */
+  resume: (jobId: string, workflowId?: string) => Promise<any>;
+
+  /**
    * Closes the WebSocket connection and resets state
    */
   disconnect: () => void;
@@ -250,6 +258,43 @@ export const createWorkflowRunner = () =>
       get().addNotification({
         type: "info",
         content: `Running ${workflow.name}`,
+      });
+    },
+
+    resume: async (jobId: string, workflowId?: string) => {
+      if (!get().socket || get().state !== "connected") {
+        await get().connect();
+      }
+
+      set({
+        chunks: [],
+        results: [],
+        progress: null,
+        statusMessage: null,
+        notifications: [],
+        jobId: jobId,
+      });
+
+      set({ state: "running" });
+
+      const socket = get().socket;
+      if (!socket) {
+        throw new Error("WebSocket not connected");
+      }
+
+      socket.send(
+        encode({
+          command: "resume_job",
+          data: {
+            job_id: jobId,
+            workflow_id: workflowId,
+          },
+        })
+      );
+
+      get().addNotification({
+        type: "info",
+        content: `Resuming job ${jobId}`,
       });
     },
 

@@ -168,29 +168,44 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
-    runnerStore.setState({
-      state:
-        job.status === "running" || job.status === "queued" ? "running" : "idle"
-    });
+    // Consolidate state mapping
+    let newState: "idle" | "running" | "paused" | "suspended" | "error" | "cancelled" | undefined;
+    
+    if (job.status === "running" || job.status === "queued") {
+      newState = "running";
+    } else if (job.status === "suspended") {
+      newState = "suspended";
+    } else if (job.status === "paused") {
+      newState = "paused";
+    } else if (job.status === "completed") {
+      newState = "idle";
+    } else if (job.status === "cancelled") {
+      newState = "cancelled";
+    } else if (job.status === "failed" || job.status === "timed_out") {
+      newState = "error";
+    }
+
+    console.log(`Job update: ${job.status} -> setting state to ${newState || "no change"}`);
+
+    if (newState) {
+        runnerStore.setState({ state: newState });
+    }
+
     if (job.job_id) {
       runnerStore.setState({ job_id: job.job_id });
     }
+    
     switch (job.status) {
       case "completed":
-        runnerStore.setState({ state: "idle" });
         runner.addNotification({
           type: "info",
           alert: true,
           content: "Job completed"
         });
-        // Avoiding this as the result overlay for output node breaks otherwise
-        // clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
-        // Don't clear outputResults - output nodes should keep their results visible
         break;
       case "cancelled":
-        runnerStore.setState({ state: "cancelled" });
         runner.addNotification({
           type: "info",
           alert: true,
@@ -203,7 +218,6 @@ export const handleUpdate = (
         break;
       case "failed":
       case "timed_out":
-        runnerStore.setState({ state: "error" });
         runner.addNotification({
           type: "error",
           alert: true,
@@ -228,6 +242,14 @@ export const handleUpdate = (
             content: job.message
           });
         }
+        break;
+      case "suspended":
+        runner.addNotification({
+          type: "info",
+          alert: true,
+          content: job.message || "Workflow suspended - waiting for external input",
+          timeout: 10000
+        });
         break;
     }
   }
