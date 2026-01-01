@@ -148,7 +148,7 @@ class WebSocketService {
       const delay = 1000 * this.reconnectAttempts;
       console.log(`WebSocketService: Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
       
-      if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+      if (this.reconnectTimer) {clearTimeout(this.reconnectTimer);}
       
       this.reconnectTimer = setTimeout(() => {
         if (this.currentPath) {
@@ -226,7 +226,7 @@ class WebSocketService {
    * Disconnect the WebSocket
    */
   disconnect(): void {
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.reconnectTimer) {clearTimeout(this.reconnectTimer);}
     
     if (this.ws) {
       console.log('WebSocketService: Disconnecting');

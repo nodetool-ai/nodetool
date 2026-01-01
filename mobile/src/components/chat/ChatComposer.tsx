@@ -61,7 +61,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const canSend = !disabled && !isDisconnected && (text.trim().length > 0 || hasFiles);
 
   const handleSend = useCallback(() => {
-    if (!canSend) return;
+    if (!canSend) {return;}
 
     const trimmedText = text.trim();
     const content: MessageContent[] = [];

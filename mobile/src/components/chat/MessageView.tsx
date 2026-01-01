@@ -19,7 +19,7 @@ interface MessageViewProps {
  * Extract text content from message for simple text display
  */
 function getTextContent(content: Message['content']): string {
-  if (!content) return '';
+  if (!content) {return '';}
   
   if (typeof content === 'string') {
     return content;
@@ -46,7 +46,7 @@ function getTextContent(content: Message['content']): string {
  * Get content items as an array of MessageContent
  */
 function getContentItems(content: Message['content']): MessageContent[] {
-  if (!content) return [];
+  if (!content) {return [];}
   
   if (typeof content === 'string') {
     return [{ type: 'text', text: content }];
@@ -90,7 +90,7 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
    * Render text content (used as callback for MessageContentRenderer)
    */
   const renderTextContent = useCallback((text: string, index: number) => {
-    if (!text) return null;
+    if (!text) {return null;}
     
     if (isUser) {
       return <Text key={index} style={[styles.userText, { color: '#2A2A2A' }]}>{text}</Text>;
