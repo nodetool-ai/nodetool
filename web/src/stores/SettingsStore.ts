@@ -176,7 +176,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            layoutDirection: value || defaultSettings.layoutDirection
+            layoutDirection: value
           }
         })),
       setVerticalModeHideProperties: (value: boolean) =>

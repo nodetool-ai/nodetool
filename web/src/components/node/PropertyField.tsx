@@ -82,9 +82,10 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   );
 
   const handlePosition = isVertical ? "top" : "left";
+  const baseHandleStyle = { position: "absolute" as const };
   const handleStyle = isVertical 
-    ? { position: "absolute" as const, top: "0" }
-    : { position: "absolute" as const, left: "0" };
+    ? { ...baseHandleStyle, top: "0" }
+    : { ...baseHandleStyle, left: "0" };
 
   return (
     <div className={`node-property ${Slugify(property.type.type)}`}>
