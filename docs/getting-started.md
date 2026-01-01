@@ -41,6 +41,17 @@ For a visual overview first, see the [Start Here guide](index.md#start-here).
 
 ![Dashboard Overview](assets/screenshots/dashboard-overview.png)
 
+### Using the Getting Started Panel
+
+When you first open NodeTool, the **Getting Started Panel** on the Dashboard guides you through:
+
+1. **Overview**: Quick introduction to what NodeTool can do
+2. **First Workflow**: Step-by-step instructions to run your first template
+3. **AI Models**: How to install the models you need
+4. **Tips**: Helpful shortcuts and features to know
+
+You can dismiss the panel when ready, or access it again from the Dashboard.
+
 ### Install Your First AI Models
 
 To run the example workflows:
