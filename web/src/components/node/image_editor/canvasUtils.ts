@@ -10,11 +10,43 @@ import type { Point, CropRegion, AdjustmentSettings } from "./types";
 export const loadImage = (url: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    const isBlobUrl = url.startsWith("blob:");
+    const isDataUrl = url.startsWith("data:");
+    const isLocalApi = url.includes("localhost:7777/api/");
+
+    if (isBlobUrl || isDataUrl) {
+      img.src = url;
+    } else if (isLocalApi) {
+      const proxyUrl = url.replace("http://localhost:7777", "");
+      img.src = proxyUrl;
+    } else {
+      img.crossOrigin = "anonymous";
+      img.src = url;
+    }
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = url;
   });
+};
+
+/**
+ * Checks if a URL is a blob URI
+ */
+export const isBlobUrl = (url: string): boolean => {
+  return url.startsWith("blob:");
+};
+
+/**
+ * Fetches a blob from a URL (useful for blob URIs)
+ */
+export const fetchBlob = async (url: string): Promise<Blob> => {
+  if (!isBlobUrl(url)) {
+    throw new Error("URL is not a blob URL");
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch blob: ${response.statusText}`);
+  }
+  return response.blob();
 };
 
 /**

@@ -74,6 +74,7 @@ export interface ImageEditorCanvasRef {
   getImageCanvas: () => HTMLCanvasElement | null;
   getDrawingCanvas: () => HTMLCanvasElement | null;
   resetToOriginal: () => void;
+  refresh: () => void;
 }
 
 interface ImageEditorCanvasProps {
@@ -150,6 +151,15 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
             onImageChange();
           }
         }
+      },
+      refresh: () => {
+        if (imageCanvasRef.current) {
+          setImageSize({
+            width: imageCanvasRef.current.width,
+            height: imageCanvasRef.current.height
+          });
+        }
+        render();
       }
     }));
 
@@ -252,11 +262,59 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
     // Initialize canvases and load image
     useEffect(() => {
       const initCanvas = async () => {
-        if (!containerRef.current || !mainCanvasRef.current || !imageUrl) {
+        if (!imageUrl) {
           return;
         }
 
+        // Wait for container to be attached to DOM
+        const waitForContainer = () => {
+          return new Promise<HTMLDivElement>((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 100;
+            const check = () => {
+              attempts++;
+              const container = containerRef.current;
+              if (container) {
+                const rect = container.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                  resolve(container);
+                  return;
+                }
+              }
+              if (attempts >= maxAttempts) {
+                // Fallback: use a default size
+                if (containerRef.current && mainCanvasRef.current && overlayCanvasRef.current) {
+                  const container = containerRef.current;
+                  container.style.width = "800px";
+                  container.style.height = "600px";
+                  mainCanvasRef.current.width = 800;
+                  mainCanvasRef.current.height = 600;
+                  overlayCanvasRef.current.width = 800;
+                  overlayCanvasRef.current.height = 600;
+                  resolve(container);
+                }
+                return;
+              }
+              requestAnimationFrame(check);
+            };
+            check();
+          });
+        };
+
         try {
+          const container = await waitForContainer();
+          const rect = container.getBoundingClientRect();
+          console.log("Container size:", rect.width, "x", rect.height);
+
+          // Set main canvas sizes first
+          if (mainCanvasRef.current && overlayCanvasRef.current) {
+            mainCanvasRef.current.width = rect.width;
+            mainCanvasRef.current.height = rect.height;
+            overlayCanvasRef.current.width = rect.width;
+            overlayCanvasRef.current.height = rect.height;
+          }
+
+          // Now load the image
           const img = await loadImage(imageUrl);
           originalImageRef.current = img;
 
@@ -278,21 +336,15 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
 
           setImageSize({ width: img.width, height: img.height });
 
-          // Set canvas sizes to container
-          if (containerRef.current && mainCanvasRef.current && overlayCanvasRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            mainCanvasRef.current.width = rect.width;
-            mainCanvasRef.current.height = rect.height;
-            overlayCanvasRef.current.width = rect.width;
-            overlayCanvasRef.current.height = rect.height;
-          }
+          // Render the image
+          render();
         } catch (error) {
           console.error("Failed to load image:", error);
         }
       };
 
       initCanvas();
-    }, [imageUrl]);
+    }, [imageUrl, render]);
 
     useEffect(() => {
       const handleResize = () => updateCanvasSize();

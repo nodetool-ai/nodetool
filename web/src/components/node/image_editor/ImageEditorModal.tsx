@@ -44,7 +44,7 @@ import {
 const styles = (theme: Theme) =>
   css({
     ".modal-overlay": {
-      position: "fixed",
+      position: "absolute",
       top: 0,
       left: 0,
       right: 0,
@@ -53,7 +53,20 @@ const styles = (theme: Theme) =>
       backdropFilter: "blur(8px)",
       zIndex: 10000,
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      height: "100%",
+      width: "100%"
+    },
+    ".modal-body": {
+      display: "flex",
+      flex: 1,
+      overflow: "hidden"
+    },
+    ".editor-area": {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
     },
     ".modal-header": {
       display: "flex",
@@ -106,43 +119,32 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.primary
       }
     },
-    ".button-primary": {
-      backgroundColor: theme.vars.palette.primary.main,
-      color: theme.vars.palette.primary.contrastText,
-      border: "none",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.primary.dark
-      },
-      "&:disabled": {
-        backgroundColor: theme.vars.palette.grey[700],
-        color: theme.vars.palette.grey[500],
-        cursor: "not-allowed"
-      }
-    },
-    ".modal-body": {
-      display: "flex",
-      flex: 1,
-      overflow: "hidden"
-    },
-    ".editor-area": {
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden"
-    },
-    ".loading-overlay": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      zIndex: 100
-    }
-  });
+     ".button-primary": {
+       backgroundColor: theme.vars.palette.primary.main,
+       color: theme.vars.palette.primary.contrastText,
+       border: "none",
+       "&:hover": {
+         backgroundColor: theme.vars.palette.primary.dark
+       },
+       "&:disabled": {
+         backgroundColor: theme.vars.palette.grey[700],
+         color: theme.vars.palette.grey[500],
+         cursor: "not-allowed"
+       }
+     },
+     ".loading-overlay": {
+       position: "absolute",
+       top: 0,
+       left: 0,
+       right: 0,
+       bottom: 0,
+       display: "flex",
+       alignItems: "center",
+       justifyContent: "center",
+       backgroundColor: "rgba(0, 0, 0, 0.7)",
+       zIndex: 100
+     }
+   });
 
 interface ImageEditorModalProps {
   imageUrl: string;
@@ -159,6 +161,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 }) => {
   const theme = useTheme();
   const canvasRef = useRef<ImageEditorCanvasRef>(null);
+
+  console.log("imageUrl", imageUrl);
 
   // Editor state
   const [tool, setTool] = useState<EditTool>("select");
@@ -341,6 +345,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             setIsCropping(false);
             setCropRegion(null);
             setTool("select");
+            canvasRef.current?.refresh();
           }
           break;
         }
