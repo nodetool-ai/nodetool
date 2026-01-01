@@ -254,7 +254,7 @@ Right-click for options anywhere:
 | Location | Options |
 |----------|---------|
 | **Canvas** | Add node, paste, select all |
-| **Node header** | Copy, duplicate, delete, group, **bypass** |
+| **Node header** | Copy, duplicate, delete, group, bypass |
 | **Input/Output** | Disconnect, add compatible node |
 | **Connection** | Delete, add node in middle |
 
