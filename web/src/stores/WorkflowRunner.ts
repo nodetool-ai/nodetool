@@ -371,6 +371,21 @@ export const createWorkflowRunnerStore = (
         notifications: []
       });
 
+      // Filter out bypassed nodes and their edges for execution
+      const activeNodes: Node<NodeData>[] = [];
+      const bypassedNodeIds = new Set<string>();
+      for (const node of nodes) {
+        if (node.data.bypassed) {
+          bypassedNodeIds.add(node.id);
+        } else {
+          activeNodes.push(node);
+        }
+      }
+      const activeEdges = edges.filter(
+        (edge) =>
+          !bypassedNodeIds.has(edge.source) && !bypassedNodeIds.has(edge.target)
+      );
+
       const req: RunJobRequest = {
         type: "run_job_request",
         api_url: BASE_URL,
@@ -382,8 +397,8 @@ export const createWorkflowRunnerStore = (
         params: params || {},
         explicit_types: false,
         graph: {
-          nodes: nodes.map(reactFlowNodeToGraphNode),
-          edges: edges.map(reactFlowEdgeToGraphEdge)
+          nodes: activeNodes.map(reactFlowNodeToGraphNode),
+          edges: activeEdges.map(reactFlowEdgeToGraphEdge)
         },
         resource_limits: resource_limits
       };
