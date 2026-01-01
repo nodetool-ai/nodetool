@@ -102,6 +102,15 @@ Shortcuts, hidden features, and workflow efficiency tips.
 2. **Check node errors** – red borders or icons indicate issues
 3. **Verify connections** – ensure types match
 4. **Test incrementally** – run partial workflows first
+5. **Bypass nodes** – right-click → Bypass to skip suspicious nodes
+
+### Using Bypass for Debugging
+
+Bypass is a powerful debugging tool:
+
+- **Isolate issues**: Bypass nodes one at a time to find the problem
+- **Compare outputs**: Toggle bypass to see before/after results
+- **Skip slow steps**: Temporarily bypass heavy processing during testing
 
 ### Common Fixes
 
@@ -111,6 +120,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 | Wrong output | Check input data and node settings |
 | Workflow won't run | Look for disconnected required inputs |
 | Slow execution | Try cloud providers for heavy tasks |
+| Node causing errors | Bypass it to test downstream nodes |
 
 ---
 
