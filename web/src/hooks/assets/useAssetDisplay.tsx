@@ -20,10 +20,20 @@ const is3DModel = (type: string, url?: string): boolean => {
   }
   // Check file extensions
   if (url) {
-    const ext = url.toLowerCase().split(".").pop();
-    return ["glb", "gltf", "obj", "fbx", "stl", "ply", "usdz"].includes(
-      ext || ""
-    );
+    try {
+      // Extract pathname to handle URLs with query parameters or fragments
+      const pathname = new URL(url, "http://localhost").pathname;
+      const ext = pathname.toLowerCase().split(".").pop();
+      return ["glb", "gltf", "obj", "fbx", "stl", "ply", "usdz"].includes(
+        ext || ""
+      );
+    } catch {
+      // If URL parsing fails, fall back to simple extension check
+      const ext = url.toLowerCase().split(".").pop()?.split("?")[0];
+      return ["glb", "gltf", "obj", "fbx", "stl", "ply", "usdz"].includes(
+        ext || ""
+      );
+    }
   }
   return false;
 };
