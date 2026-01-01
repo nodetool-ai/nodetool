@@ -1,0 +1,83 @@
+name: Autofix
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "web/**"
+      - "electron/**"
+      - "mobile/**"
+
+jobs:
+  autofix:
+    name: Auto-fix linting issues
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm ci
+
+      - name: Install mobile dependencies
+        run: |
+          cd mobile
+          npm install
+
+      - name: Run web lint with auto-fix
+        run: |
+          cd web
+          npm run lint:fix
+
+      - name: Run electron lint with auto-fix
+        run: |
+          cd electron
+          npm run lint:fix
+
+      - name: Run mobile lint with auto-fix
+        run: |
+          cd mobile
+          npm run lint:fix
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No linting fixes needed"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Linting fixes were applied"
+            git diff --stat
+          fi
+
+      - name: Commit and push fixes
+        if: steps.check-changes.outputs.changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: auto-fix linting issues" || echo "No changes to commit"
+          git push

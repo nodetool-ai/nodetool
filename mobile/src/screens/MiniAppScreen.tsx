@@ -221,7 +221,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
             
             <MiniAppResults 
               results={(() => {
-                if (!runResults) return [];
+                if (!runResults) {return [];}
                 if (Array.isArray(runResults)) {
                    return runResults.map((r, i) => ({
                       id: `res-${i}`,

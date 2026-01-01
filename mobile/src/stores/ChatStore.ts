@@ -86,7 +86,7 @@ function handleWebSocketMessage(
     case 'message': {
       const msg = data as Message;
       const msgThreadId = msg.thread_id ?? threadId;
-      if (!msgThreadId) break;
+      if (!msgThreadId) {break;}
 
       // Don't add duplicate messages
       const existingMessages = state.messageCache[msgThreadId] || [];
@@ -119,7 +119,7 @@ function handleWebSocketMessage(
 
     case 'chunk': {
       const chunk = data as Chunk;
-      if (!threadId) break;
+      if (!threadId) {break;}
 
       const messages = state.messageCache[threadId] || [];
       const lastMessage = messages[messages.length - 1];
@@ -442,14 +442,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   switchThread: (threadId: string) => {
     const exists = !!get().threads[threadId];
-    if (!exists) return;
+    if (!exists) {return;}
 
     set({ currentThreadId: threadId });
   },
 
   getCurrentMessages: () => {
     const { currentThreadId, messageCache } = get();
-    if (!currentThreadId) return [];
+    if (!currentThreadId) {return [];}
     return messageCache[currentThreadId] || [];
   },
 
