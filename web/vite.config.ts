@@ -18,6 +18,12 @@ export default defineConfig(async ({ mode }) => {
       target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
+    },
+    "/storage": {
+      target: "http://localhost:7777",
+      changeOrigin: true,
+      secure: false,
+      rewrite: (path) => path.replace(/^\/storage/, "/api/storage")
     }
   };
 
