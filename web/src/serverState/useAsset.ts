@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Asset, Video, Audio, Image, Document } from "../stores/ApiTypes";
+import { Asset, Video, Audio, Image, Document, Model3DRef } from "../stores/ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
 import { useQuery } from "@tanstack/react-query";
 
@@ -8,6 +8,7 @@ type UseAssetProps = {
   image?: Image;
   video?: Video;
   document?: Document;
+  model3d?: Model3DRef;
 };
 
 const assetResourceFromType = (props: UseAssetProps) => {
@@ -19,6 +20,8 @@ const assetResourceFromType = (props: UseAssetProps) => {
     return props.video;
   } else if (props.document) {
     return props.document;
+  } else if (props.model3d) {
+    return props.model3d;
   } else {
     return null;
   }
