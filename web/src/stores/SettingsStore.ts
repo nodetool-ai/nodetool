@@ -21,6 +21,8 @@ export interface Settings {
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
   soundNotifications: boolean;
+  layoutDirection: "horizontal" | "vertical";
+  verticalModeHideProperties: boolean;
 }
 
 interface SettingsStore {
@@ -42,6 +44,8 @@ interface SettingsStore {
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
+  setLayoutDirection: (value: "horizontal" | "vertical") => void;
+  setVerticalModeHideProperties: (value: boolean) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -56,7 +60,9 @@ export const defaultSettings: Settings = {
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
   showWelcomeOnStartup: true,
-  soundNotifications: true
+  soundNotifications: true,
+  layoutDirection: "horizontal",
+  verticalModeHideProperties: true
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -164,6 +170,20 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             soundNotifications: value
+          }
+        })),
+      setLayoutDirection: (value: "horizontal" | "vertical") =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            layoutDirection: value
+          }
+        })),
+      setVerticalModeHideProperties: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            verticalModeHideProperties: value
           }
         }))
     }),

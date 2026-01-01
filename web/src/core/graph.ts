@@ -141,13 +141,15 @@ export function subgraph(
 
 export const autoLayout = async (
   edges: Edge[],
-  nodes: Node<NodeData>[]
+  nodes: Node<NodeData>[],
+  direction: "horizontal" | "vertical" = "horizontal"
 ): Promise<Node<NodeData>[]> => {
+  const elkDirection = direction === "vertical" ? "DOWN" : "RIGHT";
   const elk = new ELK({
     defaultLayoutOptions: {
       "elk.layered.spacing.nodeNodeBetweenLayers": "30",
       "elk.algorithm": "layered",
-      "elk.direction": "RIGHT",
+      "elk.direction": elkDirection,
       "elk.spacing.nodeNode": "50",
       "elk.layered.spacing.edgeNodeBetweenLayers": "30",
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",

@@ -10,6 +10,7 @@ import HandleTooltip from "../HandleTooltip";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findInputHandle } from "../../utils/handleUtils";
+import { useLayoutDirection } from "../../hooks/useLayoutDirection";
 
 export type NodeOutputProps = {
   id: string;
@@ -18,6 +19,7 @@ export type NodeOutputProps = {
 };
 
 const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
+  const { outputPosition, isVertical } = useLayoutDirection();
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection
@@ -108,18 +110,20 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
     output.name
   ]);
 
+  const handlePosition = isVertical ? "bottom" : "right";
+
   return (
     <div className="output-handle-container">
       <HandleTooltip
         typeMetadata={output.type}
         paramName={output.name}
         className={classConnectable}
-        handlePosition="right"
+        handlePosition={handlePosition}
       >
         <Handle
           type="source"
           id={output.name}
-          position={Position.Right}
+          position={outputPosition}
           isConnectable={isConnectable}
           onContextMenu={(e) => outputContextMenu(e, id, output)}
           className={`${classConnectable} ${Slugify(output.type.type)}`}

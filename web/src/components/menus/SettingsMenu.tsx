@@ -84,6 +84,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
     setSoundNotifications,
+    setLayoutDirection,
+    setVerticalModeHideProperties,
     settings
   } = useSettingsStore((state) => ({
     isMenuOpen: state.isMenuOpen,
@@ -97,7 +99,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setTimeFormat: state.setTimeFormat,
     setSelectNodesOnDrag: state.setSelectNodesOnDrag,
     setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
-    setSoundNotifications: state.setSoundNotifications
+    setSoundNotifications: state.setSoundNotifications,
+    setLayoutDirection: state.setLayoutDirection,
+    setVerticalModeHideProperties: state.setVerticalModeHideProperties
   }));
 
   const [activeSection, setActiveSection] = useState("editor");
@@ -274,7 +278,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         { id: "editor", label: "Editor" },
         { id: "navigation", label: "Navigation" },
         { id: "grid", label: "Grid & Connections" },
-        { id: "appearance", label: "Appearance" }
+        { id: "appearance", label: "Appearance" },
+        { id: "layout", label: "Layout" }
       ]
     }
   ];
@@ -720,6 +725,70 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         </FormControl>
                         <Typography className="description">
                           Display time in 12h or 24h format.
+                        </Typography>
+                      </div>
+                    </div>
+
+                    <Typography variant="h3" id="layout">
+                      Layout
+                    </Typography>
+                    <div className="settings-section">
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="layout-direction-select">
+                            Node Layout Direction
+                          </InputLabel>
+                          <Select
+                            id="layout-direction-select"
+                            labelId="layout-direction-select"
+                            value={settings.layoutDirection || "horizontal"}
+                            variant="standard"
+                            onChange={(e) =>
+                              setLayoutDirection(
+                                e.target.value as "horizontal" | "vertical"
+                              )
+                            }
+                          >
+                            <MenuItem value={"horizontal"}>
+                              Horizontal (Left → Right)
+                            </MenuItem>
+                            <MenuItem value={"vertical"}>
+                              Vertical (Top → Bottom)
+                            </MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Typography className="description">
+                          Controls the direction of data flow in the workflow
+                          editor.
+                          <br />
+                          <b>Horizontal:</b> Data flows from left to right
+                          (default).
+                          <br />
+                          <b>Vertical:</b> Data flows from top to bottom
+                          (compact layout).
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="vertical-hide-properties">
+                            Hide Properties in Vertical Mode
+                          </InputLabel>
+                          <Switch
+                            checked={
+                              settings.verticalModeHideProperties ?? true
+                            }
+                            onChange={(e) =>
+                              setVerticalModeHideProperties(e.target.checked)
+                            }
+                            inputProps={{
+                              "aria-label": "Hide properties in vertical mode"
+                            }}
+                          />
+                        </FormControl>
+                        <Typography className="description">
+                          When enabled, property widgets are hidden by default
+                          in vertical mode for a more compact appearance.
                         </Typography>
                       </div>
                     </div>
