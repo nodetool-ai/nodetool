@@ -64,6 +64,7 @@ import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
+import { useSettingsStore } from "./SettingsStore";
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -840,7 +841,8 @@ export const createNodeStore = (
             };
 
             const originalBounds = getBounds(selectedNodes);
-            const layoutedNodes = await autoLayout(edges, selectedNodes);
+            const layoutDirection = useSettingsStore.getState().settings.layoutDirection;
+            const layoutedNodes = await autoLayout(edges, selectedNodes, layoutDirection);
             const layoutBounds = getBounds(layoutedNodes);
 
             const dx = originalBounds.minX - layoutBounds.minX;

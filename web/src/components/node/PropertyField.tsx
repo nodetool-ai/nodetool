@@ -11,6 +11,7 @@ import isEqual from "lodash/isEqual";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
+import { useLayoutDirection } from "../../hooks/useLayoutDirection";
 
 export type PropertyFieldProps = {
   id: string;
@@ -45,6 +46,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   data,
   onValueChange
 }) => {
+  const { inputPosition, isVertical } = useLayoutDirection();
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
   );
@@ -79,23 +81,28 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     [id, openContextMenu, property.description, property.name, property.type]
   );
 
+  const handlePosition = isVertical ? "top" : "left";
+  const handleStyle = isVertical 
+    ? { position: "absolute" as const, top: "0" }
+    : { position: "absolute" as const, left: "0" };
+
   return (
     <div className={`node-property ${Slugify(property.type.type)}`}>
       {showHandle && (
         <div
           className="handle-popup"
-          style={{ position: "absolute", left: "0" }}
+          style={handleStyle}
         >
           <HandleTooltip
             typeMetadata={property.type}
             paramName={property.name}
             className={classConnectable}
-            handlePosition="left"
+            handlePosition={handlePosition}
           >
             <Handle
               type="target"
               id={property.name}
-              position={Position.Left}
+              position={inputPosition}
               isConnectable={true}
               className={`${Slugify(property.type.type)} ${classConnectable}`}
               onContextMenu={handleContextMenu}

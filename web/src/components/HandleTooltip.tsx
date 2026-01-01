@@ -7,7 +7,10 @@ import { TypeMetadata } from "../stores/ApiTypes";
 
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
+const TOP_OFFSET_Y = -32;
+const BOTTOM_OFFSET_Y = 32;
 const Y_OFFSET = -20;
+const X_OFFSET = -20;
 const ENTER_DELAY = 600;
 
 /**
@@ -38,7 +41,7 @@ type HandleTooltipProps = {
   paramName: string;
   className?: string;
   children: React.ReactNode;
-  handlePosition: "left" | "right";
+  handlePosition: "left" | "right" | "top" | "bottom";
 };
 
 const HandleTooltip = memo(function HandleTooltip({
@@ -91,16 +94,28 @@ const HandleTooltip = memo(function HandleTooltip({
     setShowTooltip(false);
   }, []);
 
+  const getTooltipTransform = () => {
+    switch (handlePosition) {
+      case "left":
+        return `translate(${LEFT_OFFSET_X}px, ${Y_OFFSET}px) translateX(-100%)`;
+      case "right":
+        return `translate(${RIGHT_OFFSET_X}px, ${Y_OFFSET}px)`;
+      case "top":
+        return `translate(${X_OFFSET}px, ${TOP_OFFSET_Y}px) translateY(-100%)`;
+      case "bottom":
+        return `translate(${X_OFFSET}px, ${BOTTOM_OFFSET_Y}px)`;
+      default:
+        return `translate(${RIGHT_OFFSET_X}px, ${Y_OFFSET}px)`;
+    }
+  };
+
   const tooltipContent = (
     <div
       className={`handle-tooltip ${showTooltip ? "show" : ""}`}
       style={{
         left: `${tooltipPosition.x}px`,
         top: `${tooltipPosition.y}px`,
-        transform:
-          handlePosition === "left"
-            ? `translate(${LEFT_OFFSET_X}px, ${Y_OFFSET}px) translateX(-100%)`
-            : `translate(${RIGHT_OFFSET_X}px, ${Y_OFFSET}px)`
+        transform: getTooltipTransform()
       }}
     >
       <div
