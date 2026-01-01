@@ -70,6 +70,8 @@ export type WorkflowRunner = {
     | "connecting"
     | "connected"
     | "running"
+    | "paused"
+    | "suspended"
     | "error"
     | "cancelled";
   statusMessage: string | null;
@@ -81,6 +83,8 @@ export type WorkflowRunner = {
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
   cancel: () => Promise<void>;
+  pause: () => Promise<void>;
+  resume: () => Promise<void>;
   run: (
     params: any,
     workflow: WorkflowAttributes,
@@ -466,6 +470,68 @@ export const createWorkflowRunnerStore = (
           workflow_id: workflowId
         }
       });
+    },
+
+    /**
+     * Pause the current workflow run.
+     */
+    pause: async () => {
+      const { job_id, state } = get();
+      log.info(`WorkflowRunner[${workflowId}]: Pausing job`, { job_id });
+
+      if (state !== "running") {
+        log.warn(`WorkflowRunner[${workflowId}]: Cannot pause - not running`);
+        return;
+      }
+
+      if (!job_id) {
+        log.warn(`WorkflowRunner[${workflowId}]: Cannot pause - no job_id`);
+        return;
+      }
+
+      // Send pause command to backend
+      await globalWebSocketManager.send({
+        type: "pause_job",
+        command: "pause_job",
+        data: {
+          job_id,
+          workflow_id: workflowId
+        }
+      });
+
+      set({ state: "paused", statusMessage: "Workflow paused" });
+    },
+
+    /**
+     * Resume a paused workflow run.
+     */
+    resume: async () => {
+      const { job_id, state } = get();
+      log.info(`WorkflowRunner[${workflowId}]: Resuming job`, { job_id });
+
+      if (state !== "paused" && state !== "suspended") {
+        log.warn(
+          `WorkflowRunner[${workflowId}]: Cannot resume - not paused or suspended (state: ${state})`
+        );
+        return;
+      }
+
+      if (!job_id) {
+        log.warn(`WorkflowRunner[${workflowId}]: Cannot resume - no job_id`);
+        return;
+      }
+
+      // Send resume command to backend
+      await globalWebSocketManager.send({
+        type: "resume_job",
+        command: "resume_job",
+        data: {
+          job_id,
+          workflow_id: workflowId
+        }
+      });
+
+      set({ state: "running", statusMessage: "Workflow resumed" });
     }
   }));
 

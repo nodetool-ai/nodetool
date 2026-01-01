@@ -157,12 +157,43 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 - **Streaming nodes** show output as it's generated
 - **Preview nodes** display intermediate results
 - **Node borders** indicate status (running, complete, error)
+- **Edge animations** show data flowing between nodes
+
+### Pausing and Resuming
+
+You can temporarily pause a running workflow:
+
+| Action | Button | Description |
+|--------|--------|-------------|
+| **Pause** | ⏸ (blue) | Temporarily stops execution - workflow state is preserved |
+| **Resume** | ▶ (blue) | Continues from where it paused |
+
+The pause button appears in the floating toolbar while a workflow is running.
+
+### Suspended Workflows
+
+Some nodes (like the **WaitNode**) can suspend a workflow to wait for external input:
+
+| State | Button | Description |
+|-------|--------|-------------|
+| **Suspended** | ▶ (purple) | Workflow is waiting for input - click to resume |
+
+When a workflow is suspended:
+- A notification shows why the workflow is waiting
+- The purple Resume button appears in the toolbar
+- Click Resume to continue the workflow with any required data
+- The workflow can be stopped (cancelled) if no longer needed
+
+Suspended workflows are useful for:
+- **Human-in-the-loop** approvals
+- **Waiting for external data** or API responses
+- **Checkpoint-based processing** where you review intermediate results
 
 ### Stopping a Run
 
 | Method | How |
 |--------|-----|
-| Button | Click **Stop** |
+| Button | Click **Stop** (enabled when running, paused, or suspended) |
 | Keyboard | `Esc` |
 
 ### Missing Models
