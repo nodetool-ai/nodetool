@@ -472,7 +472,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const handleOnMoveStart = useCallback(
     (event: any) => {
       // Only close menu on pan events, not zoom events
-      if (event.type === "pan") {
+      if (event?.type === "pan") {
         closeNodeMenu();
       }
     },
