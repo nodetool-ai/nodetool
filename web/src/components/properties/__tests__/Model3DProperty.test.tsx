@@ -63,11 +63,26 @@ jest.mock("@mui/material/styles", () => ({
         },
         action: {
           hover: "rgba(0, 0, 0, 0.04)"
+        },
+        text: {
+          primary: "#fff",
+          secondary: "#bdbdbd"
+        },
+        common: {
+          white: "#fff",
+          black: "#000"
+        },
+        background: {
+          paper: "#424242",
+          default: "#303030"
         }
       }
     },
     fontFamily1: "Arial",
-    fontSizeTiny: "11px"
+    fontSizeTiny: "11px",
+    fontSizeNormal: "14px",
+    fontSizeSmall: "12px",
+    spacing: (value: number) => `${value * 8}px`
   })
 }));
 

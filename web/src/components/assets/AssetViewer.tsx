@@ -54,13 +54,14 @@ const styles = (theme: Theme) =>
     },
     ".MuiPaper-root": {
       overflow: "hidden",
-      height: "100%",
+      height: "100vh",
+      maxHeight: "100vh",
       backgroundColor: theme.vars.palette.grey[900],
-      width: "100%",
-      maxWidth: "100%",
-      maxHeight: "100%",
+      width: "100vw",
+      maxWidth: "100vw",
       zIndex: 11000,
-      margin: 0
+      margin: 0,
+      borderRadius: 0
     },
     ".asset-info": {
       position: "relative",
@@ -95,12 +96,12 @@ const styles = (theme: Theme) =>
       right: "2em"
     },
     ".actions .button": {
-      width: "1.75em",
-      height: "1.75em",
-      backgroundColor: `rgba(${theme.vars.palette.grey[500]} / 0.67)`,
-      color: theme.vars.palette.grey[900],
-      borderRadius: "0.2em",
-      padding: "0.3em"
+      width: "2.5em",
+      height: "2.5em",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      color: "#fff",
+      borderRadius: "50%",
+      padding: "0.4em"
     },
     ".actions button svg": {
       fontSize: "1.5em"
@@ -612,7 +613,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         css={styles(theme)}
         maxWidth={false}
         fullWidth
-        open={asset !== undefined || url !== undefined}
+        open={open}
       >
         <div className="actions">
           <Tooltip title="Download">
