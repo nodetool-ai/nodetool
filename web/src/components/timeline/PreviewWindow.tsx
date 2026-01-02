@@ -22,6 +22,7 @@ const styles = (theme: Theme) =>
     width: "100%",
     maxWidth: "400px",
     height: "100%",
+    minHeight: "200px", // Ensure minimum height
     backgroundColor:
       theme.vars?.palette?.background?.paper || theme.palette.background.paper,
     borderRadius: theme.shape.borderRadius,
@@ -34,7 +35,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      overflow: "hidden"
+      overflow: "hidden",
+      minHeight: "150px" // Ensure canvas container has minimum height
     },
 
     ".preview-video": {
@@ -54,9 +56,9 @@ const styles = (theme: Theme) =>
     },
 
     ".preview-canvas": {
+      display: "block",
       width: "100%",
-      height: "100%",
-      objectFit: "contain"
+      height: "100%"
     },
 
     ".preview-controls": {
@@ -99,12 +101,13 @@ const styles = (theme: Theme) =>
 
 const PreviewWindow: React.FC = () => {
   const theme = useTheme();
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const { project, playback, togglePlayback, getClipsAtTime } =
     useTimelineStore();
@@ -118,30 +121,64 @@ const PreviewWindow: React.FC = () => {
   )?.clip;
   const audioClips = currentClips.filter(({ clip }) => clip.type === "audio");
 
-  // Load and display image/video content
+  // Use ResizeObserver to track container size
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setCanvasSize({ width, height });
+        }
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    // Initial size
+    const rect = container.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      setCanvasSize({ width: rect.width, height: rect.height });
+    }
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Draw canvas content when size changes or clips change
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) {
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
+    const width = canvasSize.width;
+    const height = canvasSize.height;
 
-    // Set canvas size
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    // Set canvas size with device pixel ratio for crisp rendering
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
     ctx.scale(dpr, dpr);
 
     // Clear canvas
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, rect.width, rect.height);
+    ctx.fillRect(0, 0, width, height);
 
     if (!project || !visualClip) {
       // Draw placeholder
       ctx.fillStyle = "#1a1a1a";
-      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.fillRect(0, 0, width, height);
 
       ctx.fillStyle = "#555";
       ctx.font = "14px Inter, system-ui, sans-serif";
@@ -151,8 +188,8 @@ const PreviewWindow: React.FC = () => {
         currentClips.length > 0
           ? "Audio only - no visual content"
           : "Move playhead to a clip",
-        rect.width / 2,
-        rect.height / 2
+        width / 2,
+        height / 2
       );
 
       // Show audio indicator if there are audio clips
@@ -163,8 +200,8 @@ const PreviewWindow: React.FC = () => {
           `♪ ${audioClips.length} audio track${
             audioClips.length > 1 ? "s" : ""
           }`,
-          rect.width / 2,
-          rect.height / 2 + 25
+          width / 2,
+          height / 2 + 25
         );
       }
       return;
@@ -186,20 +223,17 @@ const PreviewWindow: React.FC = () => {
       } else if (imageRef.current) {
         // Draw the loaded image
         const img = imageRef.current;
-        const scale = Math.min(
-          rect.width / img.width,
-          rect.height / img.height
-        );
+        const scale = Math.min(width / img.width, height / img.height);
         const drawWidth = img.width * scale;
         const drawHeight = img.height * scale;
-        const drawX = (rect.width - drawWidth) / 2;
-        const drawY = (rect.height - drawHeight) / 2;
+        const drawX = (width - drawWidth) / 2;
+        const drawY = (height - drawHeight) / 2;
 
         ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
 
         // Draw clip name overlay
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(0, 0, rect.width, 28);
+        ctx.fillRect(0, 0, width, 28);
         ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
         ctx.font = "12px Inter, system-ui, sans-serif";
         ctx.textAlign = "left";
@@ -211,21 +245,21 @@ const PreviewWindow: React.FC = () => {
           (playback.playheadPosition - visualClip.startTime) /
           visualClip.duration;
         ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.fillRect(0, rect.height - 4, rect.width, 4);
+        ctx.fillRect(0, height - 4, width, 4);
         ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-        ctx.fillRect(0, rect.height - 4, rect.width * clipProgress, 4);
+        ctx.fillRect(0, height - 4, width * clipProgress, 4);
       }
     } else if (visualClip.type === "video" && sourceUrl) {
       // For video, show a thumbnail with a play indicator
       // In a real implementation, we'd use a <video> element
       ctx.fillStyle = "#222";
-      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.fillRect(0, 0, width, height);
 
       // Draw video icon
       ctx.fillStyle = "#666";
       ctx.beginPath();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
+      const centerX = width / 2;
+      const centerY = height / 2;
       ctx.moveTo(centerX - 15, centerY - 20);
       ctx.lineTo(centerX - 15, centerY + 20);
       ctx.lineTo(centerX + 20, centerY);
@@ -234,7 +268,7 @@ const PreviewWindow: React.FC = () => {
 
       // Draw clip name
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-      ctx.fillRect(0, 0, rect.width, 28);
+      ctx.fillRect(0, 0, width, 28);
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
       ctx.font = "12px Inter, system-ui, sans-serif";
       ctx.textAlign = "left";
@@ -246,9 +280,9 @@ const PreviewWindow: React.FC = () => {
         (playback.playheadPosition - visualClip.startTime) /
         visualClip.duration;
       ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.fillRect(0, rect.height - 4, rect.width, 4);
+      ctx.fillRect(0, height - 4, width, 4);
       ctx.fillStyle = "rgba(100, 150, 255, 0.8)";
-      ctx.fillRect(0, rect.height - 4, rect.width * clipProgress, 4);
+      ctx.fillRect(0, height - 4, width * clipProgress, 4);
     }
 
     // Draw audio indicator if there are audio clips playing
@@ -257,7 +291,7 @@ const PreviewWindow: React.FC = () => {
       ctx.font = "10px Inter, system-ui, sans-serif";
       ctx.textAlign = "right";
       ctx.textBaseline = "top";
-      ctx.fillText(`♪ ${audioClips.length} audio`, rect.width - 8, 8);
+      ctx.fillText(`♪ ${audioClips.length} audio`, width - 8, 8);
     }
   }, [
     project,
@@ -265,7 +299,8 @@ const PreviewWindow: React.FC = () => {
     visualClip,
     audioClips.length,
     loadedImageUrl,
-    currentClips.length
+    currentClips.length,
+    canvasSize
   ]);
 
   const handleVolumeChange = useCallback(
@@ -297,7 +332,7 @@ const PreviewWindow: React.FC = () => {
   return (
     <Box css={styles(theme)} className="preview-window">
       {/* Video/Image preview area */}
-      <div className="preview-video-container">
+      <div ref={containerRef} className="preview-video-container">
         <canvas ref={canvasRef} className="preview-canvas" />
       </div>
 

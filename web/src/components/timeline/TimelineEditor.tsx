@@ -160,9 +160,10 @@ const styles = (theme: Theme) =>
     ".timeline-preview-container": {
       flex: 1,
       display: "flex",
-      alignItems: "center",
+      alignItems: "stretch",
       justifyContent: "center",
-      padding: theme.spacing(1)
+      padding: theme.spacing(1),
+      minHeight: "200px"
     }
   });
 
@@ -331,7 +332,10 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   return (
     <Box css={styles(theme)} className="timeline-editor">
       {/* Toolbar */}
-      <TimelineToolbar />
+      <TimelineToolbar
+        showAssetBrowser={showAssetBrowser}
+        onToggleAssetBrowser={() => setShowAssetBrowser(!showAssetBrowser)}
+      />
 
       {/* Main timeline area */}
       <div className="timeline-main">

@@ -35,10 +35,12 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
+import DataObjectIcon from "@mui/icons-material/DataObject";
 
 import useTimelineStore, {
   useTimelineHistory,
-  TrackType
+  TrackType,
+  Clip
 } from "../../stores/TimelineStore";
 import { formatTimecode, formatTimeShort } from "../../utils/timelineUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -132,7 +134,8 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
     zoomOut,
     zoomToFit,
     toggleSnap,
-    addTrack
+    addTrack,
+    addClip
   } = useTimelineStore();
 
   const { undo, redo, canUndo, canRedo } = useTimelineHistory((state) => ({
@@ -167,6 +170,80 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
     },
     [addTrack, handleAddTrackClose]
   );
+
+  const handleAddDemoClips = useCallback(() => {
+    // Add an image track with a placeholder image
+    const imageTrackId = addTrack("image", "Demo Images");
+    if (imageTrackId) {
+      // Using picsum.photos for placeholder images
+      const imageClip: Omit<Clip, "id"> = {
+        type: "image",
+        sourceRef: null,
+        sourceUrl: "https://picsum.photos/800/450",
+        name: "Demo Image 1",
+        startTime: 0,
+        duration: 5,
+        inPoint: 0,
+        outPoint: 5,
+        sourceDuration: 5,
+        speed: 1,
+        opacity: 1
+      };
+      addClip(imageTrackId, imageClip);
+
+      addClip(imageTrackId, {
+        type: "image",
+        sourceRef: null,
+        sourceUrl: "https://picsum.photos/800/451",
+        name: "Demo Image 2",
+        startTime: 6,
+        duration: 4,
+        inPoint: 0,
+        outPoint: 4,
+        sourceDuration: 4,
+        speed: 1,
+        opacity: 1
+      });
+    }
+
+    // Add a video track (placeholder - shows play icon)
+    const videoTrackId = addTrack("video", "Demo Video");
+    if (videoTrackId) {
+      addClip(videoTrackId, {
+        type: "video",
+        sourceRef: null,
+        sourceUrl: "",
+        name: "Video Clip 1",
+        startTime: 0,
+        duration: 8,
+        inPoint: 0,
+        outPoint: 8,
+        sourceDuration: 10,
+        speed: 1,
+        opacity: 1
+      });
+    }
+
+    // Add an audio track
+    const audioTrackId = addTrack("audio", "Demo Audio");
+    if (audioTrackId) {
+      addClip(audioTrackId, {
+        type: "audio",
+        sourceRef: null,
+        sourceUrl: "",
+        name: "Background Music",
+        startTime: 0,
+        duration: 15,
+        inPoint: 0,
+        outPoint: 15,
+        sourceDuration: 20,
+        speed: 1,
+        volume: 0.8
+      });
+    }
+
+    handleAddTrackClose();
+  }, [addTrack, addClip, handleAddTrackClose]);
 
   const handleOpenAssets = useCallback(() => {
     navigate("/assets");
@@ -285,6 +362,13 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
               <ImageIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Image Track</ListItemText>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleAddDemoClips}>
+            <ListItemIcon>
+              <DataObjectIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Add Demo Clips</ListItemText>
           </MenuItem>
         </Menu>
 
