@@ -123,7 +123,7 @@ const tileStyles = (theme: Theme) =>
       textOverflow: "ellipsis",
       display: "-webkit-box",
       WebkitLineClamp: 2,
-      WebkitBoxOrient: "vertical" as any
+      WebkitBoxOrient: "vertical"
     },
     ".empty-state": {
       padding: "1em",
@@ -291,7 +291,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                 onMouseEnter={() => onTileMouseEnter(nodeType)}
                 style={
                   {
-                    background: "rgba(100, 100, 120, 0.15)"
+                    background: theme.vars.palette.action.selected
                   } as CSSProperties
                 }
               >
