@@ -4,7 +4,7 @@
  */
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import {
   Box,
   Typography,
@@ -175,6 +175,10 @@ const TrackList: React.FC = () => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  // Use refs to track current drag state for event handlers (avoids stale closures)
+  const dragIndexRef = useRef<number | null>(null);
+  const dragOverIndexRef = useRef<number | null>(null);
+
   const { project, selection, selectTrack, addTrack, reorderTrack } =
     useTimelineStore();
 
@@ -207,26 +211,37 @@ const TrackList: React.FC = () => {
   // Drag reorder handlers
   const handleDragStart = useCallback(
     (index: number) => {
+      // Update both state (for rendering) and ref (for event handlers)
       setDragIndex(index);
+      dragIndexRef.current = index;
 
       const handleMouseMove = (e: MouseEvent) => {
         e.preventDefault();
       };
 
       const handleMouseUp = () => {
+        // Use refs to get current values (avoids stale closure issue)
+        const currentDragIndex = dragIndexRef.current;
+        const currentDragOverIndex = dragOverIndexRef.current;
+
         if (
-          dragIndex !== null &&
-          dragOverIndex !== null &&
-          dragIndex !== dragOverIndex &&
+          currentDragIndex !== null &&
+          currentDragOverIndex !== null &&
+          currentDragIndex !== currentDragOverIndex &&
           project
         ) {
-          const track = project.tracks[dragIndex];
+          const track = project.tracks[currentDragIndex];
           if (track) {
-            reorderTrack(track.id, dragOverIndex);
+            reorderTrack(track.id, currentDragOverIndex);
           }
         }
+
+        // Reset both state and refs
         setDragIndex(null);
         setDragOverIndex(null);
+        dragIndexRef.current = null;
+        dragOverIndexRef.current = null;
+
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
       };
@@ -234,21 +249,24 @@ const TrackList: React.FC = () => {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     },
-    [dragIndex, dragOverIndex, project, reorderTrack]
+    [project, reorderTrack]
   );
 
   const handleDragOver = useCallback(
     (index: number) => {
-      if (dragIndex !== null) {
+      if (dragIndexRef.current !== null) {
         setDragOverIndex(index);
+        dragOverIndexRef.current = index;
       }
     },
-    [dragIndex]
+    []
   );
 
   const handleDragEnd = useCallback(() => {
     setDragIndex(null);
     setDragOverIndex(null);
+    dragIndexRef.current = null;
+    dragOverIndexRef.current = null;
   }, []);
 
   if (!project) {
