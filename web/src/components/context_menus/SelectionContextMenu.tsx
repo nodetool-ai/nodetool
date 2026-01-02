@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from "react";
-import { Divider, Typography, MenuItem, Menu } from "@mui/material";
+import React, { useCallback, useMemo, useState } from "react";
+import { Divider, Typography, MenuItem, Menu, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -9,6 +9,7 @@ import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { useCreateSubpatch } from "../../hooks/nodes/useCreateSubpatch";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
@@ -17,6 +18,7 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { useNodes } from "../../contexts/NodeContext";
 
 interface SelectionContextMenuProps {
@@ -33,6 +35,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
+  const { createSubpatch } = useCreateSubpatch();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -40,6 +43,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { selectedNodes } = useNodes((state) => ({
     selectedNodes: state.getSelectedNodes()
   }));
+
+  // State for subpatch name dialog
+  const [showSubpatchDialog, setShowSubpatchDialog] = useState(false);
+  const [subpatchName, setSubpatchName] = useState("New Subpatch");
 
   // any has parent
   const anyHasParent = useMemo(() => {
@@ -60,6 +67,27 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     }
     closeContextMenu();
   }, [closeContextMenu, deleteNode, selectedNodes]);
+
+  // Create subpatch from selection
+  const handleOpenSubpatchDialog = useCallback(() => {
+    setSubpatchName("New Subpatch");
+    setShowSubpatchDialog(true);
+  }, []);
+
+  const handleCreateSubpatch = useCallback(async () => {
+    if (selectedNodes?.length) {
+      await createSubpatch({
+        selectedNodes,
+        subpatchName
+      });
+    }
+    setShowSubpatchDialog(false);
+    closeContextMenu();
+  }, [selectedNodes, subpatchName, createSubpatch, closeContextMenu]);
+
+  const handleCancelSubpatchDialog = useCallback(() => {
+    setShowSubpatchDialog(false);
+  }, []);
 
   //collapse
   // const handleCollapseAll = useCallback(
@@ -230,6 +258,25 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         />
       )}
 
+      {!anyHasParent && selectedNodes.length >= 1 && (
+        <ContextMenuItem
+          onClick={handleOpenSubpatchDialog}
+          label="Create Subpatch"
+          IconComponent={<AccountTreeIcon />}
+          tooltip={
+            <div className="tooltip-span">
+              <div className="tooltip-title">Create Subpatch</div>
+              <div className="tooltip-description">
+                Convert selected nodes into a reusable subpatch workflow
+              </div>
+            </div>
+          }
+          addButtonClassName={`action ${
+            selectedNodes.length < 1 ? "disabled" : ""
+          }`}
+        />
+      )}
+
       {anyHasParent && (
         <ContextMenuItem
           onClick={() => {
@@ -265,6 +312,34 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }
         addButtonClassName="delete"
       />
+
+      {/* Subpatch Name Dialog */}
+      <Dialog open={showSubpatchDialog} onClose={handleCancelSubpatchDialog}>
+        <DialogTitle>Create Subpatch</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Subpatch Name"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={subpatchName}
+            onChange={(e) => setSubpatchName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleCreateSubpatch();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelSubpatchDialog}>Cancel</Button>
+          <Button onClick={handleCreateSubpatch} variant="contained">
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Menu>
   );
 };
