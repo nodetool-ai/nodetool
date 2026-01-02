@@ -4,7 +4,12 @@
 import {
   GROUP_NODE_TYPE,
   GROUP_NODE_METADATA,
-  COMMENT_NODE_METADATA
+  COMMENT_NODE_METADATA,
+  FOREACH_REGION_TYPE,
+  IF_REGION_TYPE,
+  FOREACH_REGION_METADATA,
+  IF_REGION_METADATA,
+  isRegionNodeType
 } from "../nodeUtils";
 
 describe("nodeUtils", () => {
@@ -151,6 +156,168 @@ describe("nodeUtils", () => {
       );
       expect(GROUP_NODE_METADATA.supports_dynamic_outputs).toBe(
         COMMENT_NODE_METADATA.supports_dynamic_outputs
+      );
+    });
+  });
+
+  describe("Region Node Type constants", () => {
+    it("should have the correct ForEach region type value", () => {
+      expect(FOREACH_REGION_TYPE).toBe("nodetool.regions.ForEachRegion");
+    });
+
+    it("should have the correct If region type value", () => {
+      expect(IF_REGION_TYPE).toBe("nodetool.regions.IfRegion");
+    });
+
+    it("should be strings", () => {
+      expect(typeof FOREACH_REGION_TYPE).toBe("string");
+      expect(typeof IF_REGION_TYPE).toBe("string");
+    });
+  });
+
+  describe("FOREACH_REGION_METADATA", () => {
+    it("should have the correct structure", () => {
+      expect(FOREACH_REGION_METADATA).toHaveProperty("namespace");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("node_type");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("properties");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("title");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("description");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("outputs");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("the_model_info");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("layout");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("recommended_models");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("basic_fields");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("is_dynamic");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("expose_as_tool");
+      expect(FOREACH_REGION_METADATA).toHaveProperty("supports_dynamic_outputs");
+    });
+
+    it("should have correct default values for ForEach Region node", () => {
+      expect(FOREACH_REGION_METADATA.namespace).toBe("nodetool.regions");
+      expect(FOREACH_REGION_METADATA.node_type).toBe(FOREACH_REGION_TYPE);
+      expect(FOREACH_REGION_METADATA.title).toBe("ForEach Region");
+      expect(FOREACH_REGION_METADATA.layout).toBe("default");
+    });
+
+    it("should have input_list property", () => {
+      expect(FOREACH_REGION_METADATA.properties.length).toBe(1);
+      expect(FOREACH_REGION_METADATA.properties[0].name).toBe("input_list");
+      expect(FOREACH_REGION_METADATA.properties[0].type.type).toBe("list");
+    });
+
+    it("should have three outputs", () => {
+      expect(FOREACH_REGION_METADATA.outputs.length).toBe(3);
+      const outputNames = FOREACH_REGION_METADATA.outputs.map((o) => o.name);
+      expect(outputNames).toContain("current_item");
+      expect(outputNames).toContain("current_index");
+      expect(outputNames).toContain("accumulated");
+    });
+
+    it("should have input_list as basic field", () => {
+      expect(FOREACH_REGION_METADATA.basic_fields).toEqual(["input_list"]);
+    });
+
+    it("should have all boolean flags set to false", () => {
+      expect(FOREACH_REGION_METADATA.is_dynamic).toBe(false);
+      expect(FOREACH_REGION_METADATA.expose_as_tool).toBe(false);
+      expect(FOREACH_REGION_METADATA.supports_dynamic_outputs).toBe(false);
+    });
+  });
+
+  describe("IF_REGION_METADATA", () => {
+    it("should have the correct structure", () => {
+      expect(IF_REGION_METADATA).toHaveProperty("namespace");
+      expect(IF_REGION_METADATA).toHaveProperty("node_type");
+      expect(IF_REGION_METADATA).toHaveProperty("properties");
+      expect(IF_REGION_METADATA).toHaveProperty("title");
+      expect(IF_REGION_METADATA).toHaveProperty("description");
+      expect(IF_REGION_METADATA).toHaveProperty("outputs");
+      expect(IF_REGION_METADATA).toHaveProperty("the_model_info");
+      expect(IF_REGION_METADATA).toHaveProperty("layout");
+      expect(IF_REGION_METADATA).toHaveProperty("recommended_models");
+      expect(IF_REGION_METADATA).toHaveProperty("basic_fields");
+      expect(IF_REGION_METADATA).toHaveProperty("is_dynamic");
+      expect(IF_REGION_METADATA).toHaveProperty("expose_as_tool");
+      expect(IF_REGION_METADATA).toHaveProperty("supports_dynamic_outputs");
+    });
+
+    it("should have correct default values for If Region node", () => {
+      expect(IF_REGION_METADATA.namespace).toBe("nodetool.regions");
+      expect(IF_REGION_METADATA.node_type).toBe(IF_REGION_TYPE);
+      expect(IF_REGION_METADATA.title).toBe("If Region");
+      expect(IF_REGION_METADATA.layout).toBe("default");
+    });
+
+    it("should have condition property", () => {
+      expect(IF_REGION_METADATA.properties.length).toBe(1);
+      expect(IF_REGION_METADATA.properties[0].name).toBe("condition");
+      expect(IF_REGION_METADATA.properties[0].type.type).toBe("bool");
+    });
+
+    it("should have result output", () => {
+      expect(IF_REGION_METADATA.outputs.length).toBe(1);
+      expect(IF_REGION_METADATA.outputs[0].name).toBe("result");
+    });
+
+    it("should have condition as basic field", () => {
+      expect(IF_REGION_METADATA.basic_fields).toEqual(["condition"]);
+    });
+
+    it("should have all boolean flags set to false", () => {
+      expect(IF_REGION_METADATA.is_dynamic).toBe(false);
+      expect(IF_REGION_METADATA.expose_as_tool).toBe(false);
+      expect(IF_REGION_METADATA.supports_dynamic_outputs).toBe(false);
+    });
+  });
+
+  describe("isRegionNodeType function", () => {
+    it("should return true for ForEach region type", () => {
+      expect(isRegionNodeType(FOREACH_REGION_TYPE)).toBe(true);
+    });
+
+    it("should return true for If region type", () => {
+      expect(isRegionNodeType(IF_REGION_TYPE)).toBe(true);
+    });
+
+    it("should return false for Group node type", () => {
+      expect(isRegionNodeType(GROUP_NODE_TYPE)).toBe(false);
+    });
+
+    it("should return false for arbitrary string", () => {
+      expect(isRegionNodeType("some.other.node")).toBe(false);
+    });
+
+    it("should return false for empty string", () => {
+      expect(isRegionNodeType("")).toBe(false);
+    });
+  });
+
+  describe("Region metadata comparison", () => {
+    it("should have same namespace for both region types", () => {
+      expect(FOREACH_REGION_METADATA.namespace).toBe(
+        IF_REGION_METADATA.namespace
+      );
+    });
+
+    it("should have different node_type values", () => {
+      expect(FOREACH_REGION_METADATA.node_type).not.toBe(
+        IF_REGION_METADATA.node_type
+      );
+    });
+
+    it("should have different titles", () => {
+      expect(FOREACH_REGION_METADATA.title).not.toBe(IF_REGION_METADATA.title);
+    });
+
+    it("should both have same boolean flag values", () => {
+      expect(FOREACH_REGION_METADATA.is_dynamic).toBe(
+        IF_REGION_METADATA.is_dynamic
+      );
+      expect(FOREACH_REGION_METADATA.expose_as_tool).toBe(
+        IF_REGION_METADATA.expose_as_tool
+      );
+      expect(FOREACH_REGION_METADATA.supports_dynamic_outputs).toBe(
+        IF_REGION_METADATA.supports_dynamic_outputs
       );
     });
   });

@@ -2,6 +2,7 @@ import { Node } from "@xyflow/react";
 import { Workflow, Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
+import { isRegionNodeType } from "../utils/nodeUtils";
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -10,6 +11,7 @@ export function graphNodeToReactFlowNode(
   const ui_properties = node.ui_properties as NodeUIProperties;
   const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
+  const isRegion = isRegionNodeType(node.type);
 
   // Debug: warn if node.data contains a stale workflow_id
   if (
@@ -41,6 +43,13 @@ export function graphNodeToReactFlowNode(
   if (isCompareImagesNode && !ui_properties?.height) {
     defaultHeight = 350;
   }
+  // Set default size for region nodes
+  if (isRegion && !ui_properties?.width) {
+    defaultWidth = 300;
+  }
+  if (isRegion && !ui_properties?.height) {
+    defaultHeight = 250;
+  }
 
   return {
     type: node.type,
@@ -50,7 +59,8 @@ export function graphNodeToReactFlowNode(
     expandParent: !(
       node.type === "nodetool.group.Loop" ||
       node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type === "nodetool.workflows.base_node.Group" ||
+      isRegion
     ),
     selectable: ui_properties?.selectable,
     data: {
@@ -72,7 +82,8 @@ export function graphNodeToReactFlowNode(
     },
     zIndex:
       node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type === "nodetool.workflows.base_node.Group" ||
+      isRegion
         ? -10
         : ui_properties?.zIndex
   };

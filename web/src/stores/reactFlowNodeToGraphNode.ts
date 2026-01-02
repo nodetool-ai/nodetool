@@ -2,6 +2,7 @@ import { Node } from "@xyflow/react";
 import { Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
+import { isRegionNodeType } from "../utils/nodeUtils";
 
 export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const ui_properties: NodeUIProperties = {
@@ -16,6 +17,12 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   };
 
   if (node.type === "nodetool.group.Loop") {
+    ui_properties.selectable = false;
+    ui_properties.height = node.measured?.height;
+  }
+
+  // Region nodes need height stored and should not be selectable by default
+  if (isRegionNodeType(node.type || "")) {
     ui_properties.selectable = false;
     ui_properties.height = node.measured?.height;
   }

@@ -35,6 +35,8 @@ import PreviewNode from "../node/PreviewNode/PreviewNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
+import ForEachRegion from "../node_types/ForEachRegion";
+import IfRegion from "../node_types/IfRegion";
 //utils
 
 //hooks
@@ -248,6 +250,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
   nodeTypes["nodetool.compare.CompareImages"] = CompareImagesNode;
   nodeTypes["nodetool.control.Reroute"] = RerouteNode;
+  nodeTypes["nodetool.regions.ForEachRegion"] = ForEachRegion;
+  nodeTypes["nodetool.regions.IfRegion"] = IfRegion;
   nodeTypes["default"] = PlaceholderNode;
 
   /* SETTINGS */
