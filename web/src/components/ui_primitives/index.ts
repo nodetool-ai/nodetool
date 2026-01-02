@@ -40,6 +40,28 @@ export type { RefreshButtonProps } from "./RefreshButton";
 export { SelectionControls } from "./SelectionControls";
 export type { SelectionControlsProps } from "./SelectionControls";
 
+// New action buttons
+export { CopyButton } from "./CopyButton";
+export type { CopyButtonProps } from "./CopyButton";
+
+export { CloseButton } from "./CloseButton";
+export type { CloseButtonProps } from "./CloseButton";
+
+export { DeleteButton } from "./DeleteButton";
+export type { DeleteButtonProps } from "./DeleteButton";
+
+export { DownloadButton } from "./DownloadButton";
+export type { DownloadButtonProps } from "./DownloadButton";
+
+export { UploadButton } from "./UploadButton";
+export type { UploadButtonProps } from "./UploadButton";
+
+export { EditButton } from "./EditButton";
+export type { EditButtonProps } from "./EditButton";
+
+export { SettingsButton } from "./SettingsButton";
+export type { SettingsButtonProps } from "./SettingsButton";
+
 // Re-export editor_ui primitives for convenience
 export {
   NodeTextField,
