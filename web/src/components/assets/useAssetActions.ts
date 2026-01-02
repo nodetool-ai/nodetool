@@ -80,7 +80,8 @@ export const useAssetActions = (asset: Asset) => {
         e.dataTransfer
       );
 
-      // Also set legacy single asset key for backward compatibility
+      // Also set legacy single asset key for components that only check "asset"
+      // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
       // Create and set drag image using the unified utility

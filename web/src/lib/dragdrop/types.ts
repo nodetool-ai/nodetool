@@ -67,9 +67,6 @@ export interface DropZoneConfig<T extends DragDataType = DragDataType> {
     event: React.DragEvent
   ) => boolean | Promise<boolean>;
 
-  /** Whether to convert screen position to flow position (for ReactFlow canvas) */
-  useFlowPosition?: boolean;
-
   /** CSS class applied when dragging over */
   activeClassName?: string;
 

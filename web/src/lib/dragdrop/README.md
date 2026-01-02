@@ -27,21 +27,25 @@ const NodeMenuItem = ({ node }: { node: NodeMetadata }) => {
 
 ```tsx
 import { useDropZone } from "@/lib/dragdrop";
+import { useReactFlow } from "@xyflow/react";
 
 const Canvas = () => {
+  const reactFlow = useReactFlow();
   const dropProps = useDropZone({
     accepts: ["create-node", "asset", "file"],
-    useFlowPosition: true, // Converts to ReactFlow coordinates
     onDrop: async (data, event, position) => {
+      // Convert screen position to flow position if needed
+      const flowPosition = reactFlow.screenToFlowPosition(position);
+      
       switch (data.type) {
         case "create-node":
-          createNode(data.payload, position);
+          createNode(data.payload, flowPosition);
           break;
         case "asset":
-          addAssetNode(data.payload, position);
+          addAssetNode(data.payload, flowPosition);
           break;
         case "file":
-          uploadAndCreateNode(data.payload, position);
+          uploadAndCreateNode(data.payload, flowPosition);
           break;
       }
     }

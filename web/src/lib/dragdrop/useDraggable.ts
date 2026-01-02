@@ -99,9 +99,9 @@ export function useDraggable<T extends DragDataType>(
 
   const handleDragEnd = useCallback(
     (event: React.DragEvent) => {
-      // Clean up drag image
-      if (dragImageRef.current && dragImageRef.current.parentElement) {
-        dragImageRef.current.parentElement.removeChild(dragImageRef.current);
+      // Clean up drag image using modern remove() method
+      if (dragImageRef.current) {
+        dragImageRef.current.remove();
         dragImageRef.current = null;
       }
 

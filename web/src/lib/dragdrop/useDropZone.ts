@@ -31,7 +31,6 @@
  */
 
 import { useCallback, useMemo, useState, useRef } from "react";
-import { useReactFlow } from "@xyflow/react";
 import { useDragDropStore } from "./store";
 import type { DragData, DragDataType, DropZoneConfig } from "./types";
 import {
@@ -39,6 +38,44 @@ import {
   hasExternalFiles,
   extractFiles
 } from "./serialization";
+
+/**
+ * Custom hook for optional ReactFlow position conversion
+ * Returns a function that converts screen coordinates to flow coordinates if available
+ */
+function useOptionalScreenToFlowPosition(useFlowPosition: boolean = false): (
+  screenX: number,
+  screenY: number
+) => { x: number; y: number } {
+  // Try to access ReactFlow context only if useFlowPosition is true
+  // We use dynamic import pattern to avoid hook rules issues
+  const screenToFlowRef = useRef<
+    ((pos: { x: number; y: number }) => { x: number; y: number }) | null
+  >(null);
+
+  // This will be set when used inside ReactFlow context
+  if (useFlowPosition && typeof window !== "undefined") {
+    try {
+      // Check if we're in a ReactFlow context by looking for the store
+      const reactFlowStore = (window as any).__REACT_FLOW_STORE__;
+      if (reactFlowStore) {
+        screenToFlowRef.current = reactFlowStore.getState().screenToFlowPosition;
+      }
+    } catch {
+      // Not in ReactFlow context
+    }
+  }
+
+  return useCallback(
+    (screenX: number, screenY: number) => {
+      if (screenToFlowRef.current) {
+        return screenToFlowRef.current({ x: screenX, y: screenY });
+      }
+      return { x: screenX, y: screenY };
+    },
+    []
+  );
+}
 
 export function useDropZone<T extends DragDataType = DragDataType>(
   config: DropZoneConfig<T>
@@ -48,26 +85,13 @@ export function useDropZone<T extends DragDataType = DragDataType>(
   const activeDrag = useDragDropStore((s) => s.activeDrag);
   const dragCounter = useRef(0); // Track nested drag enter/leave
 
-  // Optional ReactFlow integration - wrapped in try/catch for use outside ReactFlow context
-  let reactFlow: ReturnType<typeof useReactFlow> | null = null;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    reactFlow = useReactFlow();
-  } catch {
-    // Not in ReactFlow context - that's fine
-  }
-
   const getPosition = useCallback(
     (event: React.DragEvent) => {
-      if (config.useFlowPosition && reactFlow) {
-        return reactFlow.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY
-        });
-      }
+      // Position conversion should be done by the caller if needed
+      // via config.onDrop
       return { x: event.clientX, y: event.clientY };
     },
-    [config.useFlowPosition, reactFlow]
+    []
   );
 
   const checkCanDrop = useCallback(
