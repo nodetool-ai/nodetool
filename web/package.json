@@ -10,6 +10,7 @@
     "@floating-ui/react": "^0.27.3",
     "@fontsource/inter": "^5.1.0",
     "@fontsource/jetbrains-mono": "^5.1.1",
+    "@google/model-viewer": "^4.1.0",
     "@lexical/code": "^0.32.1",
     "@lexical/history": "^0.32.1",
     "@lexical/link": "^0.32.1",

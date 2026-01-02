@@ -39,6 +39,7 @@ import "./styles/command_menu.css";
 import "./styles/mobile.css";
 import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
+import "./lib/dragdrop/dragdrop.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./queryClient";
 import { useAssetStore } from "./stores/AssetStore";

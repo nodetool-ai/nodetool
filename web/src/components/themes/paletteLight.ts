@@ -186,13 +186,13 @@ export const paletteLight: PaletteOptions = {
   c_scroll_bg: "transparent",
   c_scroll_hover: "#D9D2C9",
   c_scroll_thumb: "#C7BEB3",
-  c_node_bg: "#FAF7F2",
+  c_node_bg: "#f9f8f7",
   c_node_bg_group: "#FAF7F2",
   c_node_header_bg: "#FAF7F2",
   c_node_header_bg_group: "#FAF7F2",
   c_bg_loop: "#5E9A8F14",
   c_bg_group: "#A59F9730",
-  c_editor_bg_color: "#f1f2f4",
+  c_editor_bg_color: "#f1efe9",
   c_editor_grid_color: "#E6E6E6",
   c_editor_axis_color: "#E7E7E7",
   c_selection_rect: "rgba(94, 154, 143, 0.12)",
@@ -208,7 +208,7 @@ export const paletteLight: PaletteOptions = {
   providerHf: "#6D4B6F",
 
   primary: {
-    main: "#5E9A8F",
+    main: "#50cead",
     light: "#8DC2BA",
     dark: "#3E7F77",
     contrastText: "#FAF7F2"

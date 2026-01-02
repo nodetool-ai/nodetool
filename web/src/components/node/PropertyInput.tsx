@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo } from "react";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
@@ -9,6 +10,7 @@ import TextProperty from "../properties/TextProperty";
 import ImageProperty from "../properties/ImageProperty";
 import AudioProperty from "../properties/AudioProperty";
 import VideoProperty from "../properties/VideoProperty";
+import Model3DProperty from "../properties/Model3DProperty";
 import IntegerProperty from "../properties/IntegerProperty";
 import FloatProperty from "../properties/FloatProperty";
 import EnumProperty from "../properties/EnumProperty";
@@ -33,6 +35,7 @@ import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
@@ -41,6 +44,42 @@ import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
+
+const propertyInputContainerStyles = (theme: Theme) =>
+  css({
+    "&.property-input-container": {
+      position: "relative"
+    },
+
+    // ACTION ICONS
+    "&:hover .action-icons": {
+      opacity: 1
+    },
+
+    ".action-icon": {
+      fontSize: "1.2em",
+      cursor: "pointer",
+      margin: "0.2em 0.2em 0.2em 0.5em"
+    },
+
+    ".action-icon.close": {
+      margin: "0.2em 0.5em 0.2em 0"
+    },
+
+    // INPUT FORM
+    ".property-input-form": {
+      display: "inline"
+    },
+
+    ".property-input-form input": {
+      padding: "2px 4px",
+      border: `1px solid ${theme.vars.palette.grey[500]}`,
+      borderRadius: "3px",
+      background: "transparent",
+      color: "inherit",
+      fontSize: "inherit"
+    }
+  });
 
 export type PropertyProps = {
   property: Property;
@@ -53,6 +92,10 @@ export type PropertyProps = {
   onChange: (value: any) => void;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  /**
+   * Value differs from default — shows visual indicator
+   */
+  changed?: boolean;
 };
 
 function InputProperty(props: PropertyProps) {
@@ -68,11 +111,6 @@ function InputProperty(props: PropertyProps) {
     </>
   );
 }
-
-const basicComponentTypeMap: Record<
-  string,
-  React.ComponentType<PropertyProps>
-> = {};
 
 function getComponentForProperty(
   property: Property
@@ -113,6 +151,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return AudioProperty;
     case "video":
       return VideoProperty;
+    case "model_3d":
+      return Model3DProperty;
     case "collection":
       return CollectionProperty;
     case "json":
@@ -250,6 +290,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   isInspector,
   onValueChange
 }: PropertyInputProps) => {
+  const theme = useTheme();
   const { updateNodeProperties, findNode, updateNodeData } = useNodes(
     (state) => ({
       updateNodeProperties: state.updateNodeProperties,
@@ -267,7 +308,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       }
       if (isDynamicProperty) {
         const node = findNode(id);
-        if (!node || !node.data) {return;}
+        if (!node || !node.data) {
+          return;
+        }
 
         const dynamicProperties = node.data.dynamic_properties || {};
         const updatedDynamicProperties = {
@@ -292,6 +335,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     ]
   );
 
+  // Calculate changed state: value differs from default
+  const isChanged = value !== property.default;
+
   const propertyProps = {
     property: property,
     value: value,
@@ -301,7 +347,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     onChange: onChange,
     tabIndex: tabIndex,
     isDynamicProperty: isDynamicProperty,
-    isInspector: isInspector
+    isInspector: isInspector,
+    changed: isChanged
   };
 
   // Property Context Menu
@@ -332,7 +379,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       if (controlKeyPressed) {
         // Reset to default value with Ctrl+Right-click
         const node = findNode(id);
-        if (!node || !node.data) {return;}
+        if (!node || !node.data) {
+          return;
+        }
 
         if (isDynamicProperty) {
           // For dynamic properties, get default from metadata
@@ -382,9 +431,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     ]
   );
 
-  const className =
-    value === property.default ? "value-default" : "value-changed";
-
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editedName, setEditedName] = React.useState(property.name);
   const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
@@ -426,7 +472,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   }
   const handleDoubleClick = React.useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!isDynamicProperty) {return;}
+      if (!isDynamicProperty) {
+        return;
+      }
       const target = e.target as HTMLElement;
       if (target && target.closest && target.closest(".property-label")) {
         e.stopPropagation();
@@ -439,7 +487,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   return (
     <div
-      className={`${className} property-input-container`}
+      className="property-input-container"
+      css={propertyInputContainerStyles(theme)}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >

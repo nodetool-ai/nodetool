@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -19,7 +21,14 @@ const ImageProperty = (props: PropertyProps) => {
   });
 
   return (
-    <div className="image-property">
+    <div
+      className="image-property"
+      css={css({
+        "& .property-label": {
+          marginBottom: "5px"
+        }
+      })}
+    >
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
