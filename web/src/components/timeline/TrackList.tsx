@@ -252,15 +252,12 @@ const TrackList: React.FC = () => {
     [project, reorderTrack]
   );
 
-  const handleDragOver = useCallback(
-    (index: number) => {
-      if (dragIndexRef.current !== null) {
-        setDragOverIndex(index);
-        dragOverIndexRef.current = index;
-      }
-    },
-    []
-  );
+  const handleDragOver = useCallback((index: number) => {
+    if (dragIndexRef.current !== null) {
+      setDragOverIndex(index);
+      dragOverIndexRef.current = index;
+    }
+  }, []);
 
   const handleDragEnd = useCallback(() => {
     setDragIndex(null);
