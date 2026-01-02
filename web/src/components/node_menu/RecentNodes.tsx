@@ -23,7 +23,9 @@ const recentNodesStyles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       padding: "0.5em 0.75em 0.75em 0.5em",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      marginBottom: "0.5em"
     },
     ".recent-header": {
       marginBottom: "0.5em",

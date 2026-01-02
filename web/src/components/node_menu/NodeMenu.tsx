@@ -75,11 +75,18 @@ const treeStyles = (theme: Theme) =>
     },
     ".node-menu-container": {
       borderRadius: "0 0 16px 16px",
-      padding: "0.75em 0px 1em 0.75em",
+      padding: "0.5em 0px 1em 0.75em",
       width: "100%",
       maxHeight: "77vh",
       flexGrow: 1,
+      overflowY: "auto",
+      overflowX: "hidden",
       // Removed inner shadow to keep it clean
+    },
+    ".main-content": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.75em"
     },
     ".search-toolbar": {
       display: "flex",
