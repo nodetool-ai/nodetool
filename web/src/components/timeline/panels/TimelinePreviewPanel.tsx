@@ -8,7 +8,9 @@ import { Box } from "@mui/material";
 import PreviewWindow from "../PreviewWindow";
 import { TimelinePanelProps } from "../timelinePanelConfig";
 
-const TimelinePreviewPanel: React.FC<IDockviewPanelProps<TimelinePanelProps>> = () => {
+const TimelinePreviewPanel: React.FC<
+  IDockviewPanelProps<TimelinePanelProps>
+> = () => {
   return (
     <Box
       sx={{
@@ -18,7 +20,8 @@ const TimelinePreviewPanel: React.FC<IDockviewPanelProps<TimelinePanelProps>> = 
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        p: 1
+        p: 1,
+        pt: "1.75rem"
       }}
     >
       <PreviewWindow />
@@ -27,4 +30,3 @@ const TimelinePreviewPanel: React.FC<IDockviewPanelProps<TimelinePanelProps>> = 
 };
 
 export default TimelinePreviewPanel;
-

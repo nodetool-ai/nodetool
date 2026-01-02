@@ -27,10 +27,18 @@ const styles = (theme: Theme) =>
     overflow: "hidden",
     userSelect: "none",
 
+    ".timeline-toolbar-wrapper": {
+      position: "relative",
+      zIndex: 100,
+      flexShrink: 0
+    },
+
     ".timeline-dockview-container": {
       flex: 1,
       minHeight: 0,
-      overflow: "hidden"
+      overflow: "hidden",
+      position: "relative",
+      zIndex: 1
     },
 
     ".timeline-empty-state": {
@@ -111,7 +119,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = () => {
   return (
     <Box css={styles(theme)} className="timeline-editor">
       {/* Fixed Toolbar */}
-      <TimelineToolbar />
+      <div className="timeline-toolbar-wrapper">
+        <TimelineToolbar />
+      </div>
 
       {/* Dockview Panel Container */}
       <div className="timeline-dockview-container">

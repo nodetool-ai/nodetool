@@ -26,6 +26,8 @@ const styles = (theme: Theme) =>
     backgroundColor:
       theme.vars?.palette?.background?.default ||
       theme.palette.background.default,
+    // Add padding to clear Dockview's tab/drag overlay
+    paddingTop: "1.75rem",
 
     ".timeline-ruler-container": {
       height: "30px",

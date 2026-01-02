@@ -16,7 +16,9 @@ const TimelineTracksPanel: React.FC<IDockviewPanelProps<TimelinePanelProps>> = (
         width: "100%",
         overflow: "hidden",
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
+        // Add padding to clear Dockview's tab/drag overlay
+        pt: "1.75rem"
       }}
     >
       <TrackList />
