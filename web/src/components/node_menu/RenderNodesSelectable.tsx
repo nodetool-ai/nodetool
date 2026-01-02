@@ -21,6 +21,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SearchResultGroup } from "../../utils/nodeSearch";
+import { serializeDragData } from "../../lib/dragdrop";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 
 interface RenderNodesSelectableProps {
   nodes: NodeMetadata[];
@@ -152,6 +154,8 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     groupedSearchResults: state.groupedSearchResults,
     searchTerm: state.searchTerm
   }));
+  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
+  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   // No-op drag start for selection mode
   const handleDragStart = useCallback(
@@ -161,11 +165,22 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         return;
       }
       // Allow dragging if not in checkbox mode
-      event.dataTransfer.setData("create-node", JSON.stringify(node));
+      // Use unified drag serialization
+      serializeDragData(
+        { type: "create-node", payload: node },
+        event.dataTransfer
+      );
       event.dataTransfer.effectAllowed = "move";
+
+      // Update global drag state
+      setActiveDrag({ type: "create-node", payload: node });
     },
-    [showCheckboxes]
+    [showCheckboxes, setActiveDrag]
   );
+
+  const handleDragEnd = useCallback(() => {
+    clearDrag();
+  }, [clearDrag]);
 
   // Handle node click - either selection or custom handler
   const handleNodeClick = useCallback(
@@ -273,6 +288,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         key={node.node_type}
                         node={node}
                         onDragStart={handleDragStart(node)}
+                        onDragEnd={handleDragEnd}
                         onClick={() => handleNodeClick(node)}
                         showCheckbox={showCheckboxes}
                         isSelected={selectedNodeTypes.includes(node.node_type)}
@@ -290,6 +306,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     [
       selectedPath,
       handleDragStart,
+      handleDragEnd,
       showCheckboxes,
       selectedNodeTypes,
       onToggleSelection,
@@ -365,6 +382,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                   key={`selected-${node.node_type}`}
                   node={node}
                   onDragStart={handleDragStart(node)}
+                  onDragEnd={handleDragEnd}
                   onClick={() => handleNodeClick(node)}
                   showCheckbox={showCheckboxes}
                   isSelected={true}
@@ -439,6 +457,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                     key={node.node_type}
                     node={node}
                     onDragStart={handleDragStart(node)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => handleNodeClick(node)}
                     showCheckbox={showCheckboxes}
                     isSelected={selectedNodeTypes.includes(node.node_type)}
@@ -460,6 +479,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     renderGroup,
     selectedPath,
     handleDragStart,
+    handleDragEnd,
     handleNodeClick,
     showCheckboxes,
     selectedNodeTypes,
