@@ -11,6 +11,7 @@ import CloseIcon from "@mui/icons-material/Close";
 // components
 import TypeFilter from "./TypeFilter";
 import NamespaceList from "./NamespaceList";
+import RecentNodes from "./RecentNodes";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -300,6 +301,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         </div>
         <Box className="node-menu-container">
           <div className="main-content">
+            <RecentNodes />
             <Box className="search-toolbar">
               <SearchInput
                 focusSearchInput={focusSearchInput}
