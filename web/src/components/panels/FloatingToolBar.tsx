@@ -183,6 +183,32 @@ const styles = (theme: Theme) =>
       }
     },
 
+    /* Node menu button: secondary prominent, distinct color */
+    ".floating-action-button.node-menu": {
+      backgroundColor: theme.vars.palette.secondary.main,
+      color: theme.vars.palette.grey[900],
+      borderColor: theme.vars.palette.secondary.main,
+      "&:hover": {
+        boxShadow: `0 6px 16px rgba(0,0,0,.35), 0 0 20px ${theme.vars.palette.secondary.main}25`,
+        transform: "scale(1.05)"
+      }
+    },
+
+    /* Mini app button: vibrant inviting color */
+    ".floating-action-button.mini-app": {
+      backgroundColor: "info.main",
+      color: "info.contrastText",
+      borderColor: "info.main",
+      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)`,
+      filter: "saturate(1.1)",
+      "&:hover": {
+        backgroundColor: "info.dark",
+        borderColor: "info.dark",
+        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)`,
+        transform: "scale(1.06)"
+      }
+    },
+
     "@keyframes pulse-scale": {
       "0%": { transform: "scale(1)" },
       "50%": { transform: "scale(1.1)" },
