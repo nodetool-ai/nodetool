@@ -186,6 +186,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     playback,
     setScrollLeft,
     setViewportWidth,
+    setZoom,
     seek,
     createProject
   } = useTimelineStore();
@@ -275,6 +276,20 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     [viewport.pixelsPerSecond, seek]
   );
 
+  // Handle zoom with mouse wheel
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      // Only zoom when Ctrl/Cmd is held
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const zoomDelta = e.deltaY > 0 ? -10 : 10;
+        const newZoom = Math.max(10, Math.min(500, viewport.pixelsPerSecond + zoomDelta));
+        setZoom(newZoom);
+      }
+    },
+    [viewport.pixelsPerSecond, setZoom]
+  );
+
   // Calculate total timeline width based on project duration
   const timelineWidth = project
     ? Math.max(
@@ -341,14 +356,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       <div className="timeline-main">
         {/* Sidebar with track headers */}
         <div className="timeline-sidebar">
-          <div className="timeline-sidebar-header">
-            <Typography variant="caption" color="textSecondary">
-              Tracks
-            </Typography>
-          </div>
-          <div className="timeline-track-headers">
-            <TrackList />
-          </div>
+          <TrackList />
         </div>
 
         {/* Timeline content */}
@@ -372,6 +380,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               onScroll={handleScroll}
               onClick={handleTimelineClick}
               onMouseDown={handleMouseDown}
+              onWheel={handleWheel}
             >
               <div
                 className="timeline-tracks-canvas"

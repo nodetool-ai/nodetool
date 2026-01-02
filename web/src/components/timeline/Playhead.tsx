@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef } from "react";
 import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import useTimelineStore from "../../stores/TimelineStore";
@@ -11,7 +11,8 @@ const styles = (theme: Theme) =>
     position: "absolute",
     top: 0,
     width: "2px",
-    backgroundColor: theme.vars?.palette?.error?.main || theme.palette.error.main,
+    backgroundColor:
+      theme.vars?.palette?.error?.main || theme.palette.error.main,
     zIndex: 1000,
     pointerEvents: "none",
     transform: "translateX(-50%)",
@@ -26,7 +27,9 @@ const styles = (theme: Theme) =>
       height: 0,
       borderLeft: "8px solid transparent",
       borderRight: "8px solid transparent",
-      borderTop: `10px solid ${theme.vars?.palette?.error?.main || theme.palette.error.main}`
+      borderTop: `10px solid ${
+        theme.vars?.palette?.error?.main || theme.palette.error.main
+      }`
     },
 
     "&::after": {
@@ -39,7 +42,9 @@ const styles = (theme: Theme) =>
       height: 0,
       borderLeft: "6px solid transparent",
       borderRight: "6px solid transparent",
-      borderBottom: `8px solid ${theme.vars?.palette?.error?.main || theme.palette.error.main}`
+      borderBottom: `8px solid ${
+        theme.vars?.palette?.error?.main || theme.palette.error.main
+      }`
     },
 
     ".playhead-line": {
@@ -47,13 +52,16 @@ const styles = (theme: Theme) =>
       top: "10px",
       bottom: "8px",
       width: "2px",
-      backgroundColor: theme.vars?.palette?.error?.main || theme.palette.error.main,
-      boxShadow: `0 0 4px ${theme.vars?.palette?.error?.main || theme.palette.error.main}`
+      backgroundColor:
+        theme.vars?.palette?.error?.main || theme.palette.error.main,
+      boxShadow: `0 0 4px ${
+        theme.vars?.palette?.error?.main || theme.palette.error.main
+      }`
     }
   });
 
 interface PlayheadProps {
-  position: number;       // Time in seconds
+  position: number; // Time in seconds
   pixelsPerSecond: number;
   height: string | number;
 }
@@ -85,9 +93,9 @@ const Playhead: React.FC<PlayheadProps> = ({
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - lastTimeRef.current;
-      
+
       if (elapsed >= frameDuration) {
-        const newPosition = playback.playheadPosition + (elapsed / 1000);
+        const newPosition = playback.playheadPosition + elapsed / 1000;
         lastTimeRef.current = currentTime;
 
         // Check for loop
@@ -129,7 +137,6 @@ const Playhead: React.FC<PlayheadProps> = ({
     if (playback.isPlaying) {
       const { viewport } = useTimelineStore.getState();
       const playheadPixels = position * pixelsPerSecond;
-      const viewStart = viewport.scrollLeft;
       const viewEnd = viewport.scrollLeft + viewport.viewportWidth;
 
       // Scroll if playhead is near the edge

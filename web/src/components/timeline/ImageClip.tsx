@@ -9,7 +9,7 @@ import Clip, { ClipProps } from "./Clip";
 // Thumbnail size in pixels - each repeat shows this width
 const THUMBNAIL_WIDTH = 60;
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     ".image-container": {
       width: "100%",
@@ -74,9 +74,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface ImageClipProps extends Omit<ClipProps, "children"> {
-  // Additional image-specific props can be added here
-}
+type ImageClipProps = Omit<ClipProps, "children">;
 
 const ImageClip: React.FC<ImageClipProps> = (props) => {
   const theme = useTheme();
@@ -84,7 +82,9 @@ const ImageClip: React.FC<ImageClipProps> = (props) => {
 
   // Calculate how many thumbnails to show based on clip width
   const thumbnailCount = useMemo(() => {
-    if (!width || width <= 0) return 1;
+    if (!width || width <= 0) {
+      return 1;
+    }
     // At least 1 thumbnail, then repeat every THUMBNAIL_WIDTH pixels
     return Math.max(1, Math.ceil(width / THUMBNAIL_WIDTH));
   }, [width]);

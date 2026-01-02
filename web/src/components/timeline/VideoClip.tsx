@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo, useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import Clip, { ClipProps } from "./Clip";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     ".thumbnail-container": {
       width: "100%",
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       flexShrink: 0,
       borderRight: "1px solid rgba(0, 0, 0, 0.2)",
-      
+
       "& svg": {
         width: "16px",
         height: "16px",
@@ -62,16 +62,14 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface VideoClipProps extends Omit<ClipProps, "children"> {
-  // Additional video-specific props can be added here
-}
+type VideoClipProps = Omit<ClipProps, "children">;
 
 const VideoClip: React.FC<VideoClipProps> = (props) => {
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const { clip, width, pixelsPerSecond } = props;
+
+  const { clip, width } = props;
 
   // Calculate thumbnail dimensions
   const aspectRatio = 16 / 9; // Assume 16:9 video
@@ -108,27 +106,28 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
 
     // Draw thumbnail placeholders
     const thumbWidth = rect.width / numThumbnails;
-    
+
     for (let i = 0; i < numThumbnails; i++) {
       const x = i * thumbWidth;
-      const timePercent = startPercent + (i / numThumbnails) * (endPercent - startPercent);
-      
+      const timePercent =
+        startPercent + (i / numThumbnails) * (endPercent - startPercent);
+
       // Generate a gradient based on time position (simulating video content)
       const hue = (timePercent * 120) % 360;
       ctx.fillStyle = `hsla(${hue}, 30%, 30%, 0.8)`;
       ctx.fillRect(x, 0, thumbWidth - 1, rect.height);
-      
+
       // Draw a simple video frame icon
       ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 4, 4, thumbWidth - 9, rect.height - 8);
-      
+
       // Draw play triangle in center (only for first few thumbs)
       if (i < 3 || i === numThumbnails - 1) {
         const centerX = x + thumbWidth / 2;
         const centerY = rect.height / 2;
         const triangleSize = Math.min(8, rect.height / 3);
-        
+
         ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
         ctx.beginPath();
         ctx.moveTo(centerX - triangleSize / 2, centerY - triangleSize / 2);
@@ -143,7 +142,7 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
     const markerInterval = rect.width / 10;
     ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
     ctx.lineWidth = 1;
-    
+
     for (let i = 1; i < 10; i++) {
       const x = i * markerInterval;
       ctx.beginPath();
@@ -162,10 +161,7 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
           {isLoading ? (
             <div className="video-loading">Loading thumbnails...</div>
           ) : (
-            <canvas
-              ref={canvasRef}
-              className="thumbnail-canvas"
-            />
+            <canvas ref={canvasRef} className="thumbnail-canvas" />
           )}
         </div>
       </Box>

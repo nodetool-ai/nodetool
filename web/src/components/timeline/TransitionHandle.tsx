@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useState } from "react";
-import { Box, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Box, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 
 // Icons
@@ -11,7 +11,6 @@ import GradientIcon from "@mui/icons-material/Gradient";
 
 import useTimelineStore, { Clip, Transition } from "../../stores/TimelineStore";
 import { timeToPixels } from "../../utils/timelineUtils";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const styles = (theme: Theme) =>
   css({
@@ -21,8 +20,11 @@ const styles = (theme: Theme) =>
     width: "20px",
     height: "20px",
     borderRadius: "50%",
-    backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
-    border: `2px solid ${theme.vars?.palette?.divider || theme.palette.divider}`,
+    backgroundColor:
+      theme.vars?.palette?.background?.paper || theme.palette.background.paper,
+    border: `2px solid ${
+      theme.vars?.palette?.divider || theme.palette.divider
+    }`,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -31,14 +33,18 @@ const styles = (theme: Theme) =>
     transition: "all 0.15s ease",
 
     "&:hover": {
-      backgroundColor: theme.vars?.palette?.primary?.main || theme.palette.primary.main,
-      borderColor: theme.vars?.palette?.primary?.main || theme.palette.primary.main,
+      backgroundColor:
+        theme.vars?.palette?.primary?.main || theme.palette.primary.main,
+      borderColor:
+        theme.vars?.palette?.primary?.main || theme.palette.primary.main,
       transform: "translate(-50%, -50%) scale(1.2)"
     },
 
     "&.has-transition": {
-      backgroundColor: theme.vars?.palette?.primary?.main || theme.palette.primary.main,
-      borderColor: theme.vars?.palette?.primary?.light || theme.palette.primary.light
+      backgroundColor:
+        theme.vars?.palette?.primary?.main || theme.palette.primary.main,
+      borderColor:
+        theme.vars?.palette?.primary?.light || theme.palette.primary.light
     },
 
     ".transition-icon": {
@@ -53,7 +59,9 @@ const styles = (theme: Theme) =>
       transform: "translateX(-50%)",
       marginTop: "4px",
       padding: "2px 6px",
-      backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
+      backgroundColor:
+        theme.vars?.palette?.background?.paper ||
+        theme.palette.background.paper,
       borderRadius: "4px",
       fontSize: "0.6rem",
       whiteSpace: "nowrap",
@@ -90,16 +98,17 @@ const TransitionHandle: React.FC<TransitionHandleProps> = ({
   const { updateClip } = useTimelineStore();
 
   // Calculate position
-  const transitionTime = position === "between"
-    ? (fromClip.startTime + fromClip.duration + toClip.startTime) / 2
-    : position === "start"
-    ? fromClip.startTime
-    : fromClip.startTime + fromClip.duration;
+  const transitionTime =
+    position === "between"
+      ? (fromClip.startTime + fromClip.duration + toClip.startTime) / 2
+      : position === "start"
+      ? fromClip.startTime
+      : fromClip.startTime + fromClip.duration;
 
   const left = timeToPixels(transitionTime, pixelsPerSecond);
 
   // Get current transition
-  const currentTransition: Transition | undefined = 
+  const currentTransition: Transition | undefined =
     position === "between" || position === "end"
       ? fromClip.transitions?.out
       : toClip?.transitions?.in;
@@ -113,51 +122,54 @@ const TransitionHandle: React.FC<TransitionHandleProps> = ({
     setMenuAnchor(null);
   }, []);
 
-  const handleSelectTransition = useCallback((type: Transition["type"] | "none") => {
-    if (type === "none") {
-      // Remove transition
-      if (position === "between" || position === "end") {
-        updateClip(trackId, fromClip.id, {
-          transitions: {
-            ...fromClip.transitions,
-            out: undefined
-          }
-        });
-      }
-      if (position === "between" || position === "start") {
-        updateClip(trackId, toClip.id, {
-          transitions: {
-            ...toClip.transitions,
-            in: undefined
-          }
-        });
-      }
-    } else {
-      const transition: Transition = {
-        type,
-        duration: 0.5 // Default 500ms transition
-      };
+  const handleSelectTransition = useCallback(
+    (type: Transition["type"] | "none") => {
+      if (type === "none") {
+        // Remove transition
+        if (position === "between" || position === "end") {
+          updateClip(trackId, fromClip.id, {
+            transitions: {
+              ...fromClip.transitions,
+              out: undefined
+            }
+          });
+        }
+        if (position === "between" || position === "start") {
+          updateClip(trackId, toClip.id, {
+            transitions: {
+              ...toClip.transitions,
+              in: undefined
+            }
+          });
+        }
+      } else {
+        const transition: Transition = {
+          type,
+          duration: 0.5 // Default 500ms transition
+        };
 
-      // Set transition on both clips for "between"
-      if (position === "between" || position === "end") {
-        updateClip(trackId, fromClip.id, {
-          transitions: {
-            ...fromClip.transitions,
-            out: transition
-          }
-        });
+        // Set transition on both clips for "between"
+        if (position === "between" || position === "end") {
+          updateClip(trackId, fromClip.id, {
+            transitions: {
+              ...fromClip.transitions,
+              out: transition
+            }
+          });
+        }
+        if (position === "between" || position === "start") {
+          updateClip(trackId, toClip.id, {
+            transitions: {
+              ...toClip.transitions,
+              in: transition
+            }
+          });
+        }
       }
-      if (position === "between" || position === "start") {
-        updateClip(trackId, toClip.id, {
-          transitions: {
-            ...toClip.transitions,
-            in: transition
-          }
-        });
-      }
-    }
-    handleClose();
-  }, [trackId, fromClip, toClip, position, updateClip, handleClose]);
+      handleClose();
+    },
+    [trackId, fromClip, toClip, position, updateClip, handleClose]
+  );
 
   const getTransitionIcon = () => {
     if (!currentTransition) {
@@ -192,7 +204,9 @@ const TransitionHandle: React.FC<TransitionHandleProps> = ({
   const classNames = [
     "transition-handle",
     currentTransition ? "has-transition" : ""
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <>
@@ -203,9 +217,7 @@ const TransitionHandle: React.FC<TransitionHandleProps> = ({
         onClick={handleClick}
       >
         {getTransitionIcon()}
-        <div className="transition-preview">
-          {getTransitionLabel()}
-        </div>
+        <div className="transition-preview">{getTransitionLabel()}</div>
       </Box>
 
       <Menu

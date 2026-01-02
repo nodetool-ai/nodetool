@@ -139,7 +139,7 @@ const Clip: React.FC<ClipProps> = ({
     getSnappedTime
   } = useTimelineStore();
 
-  // Handle clip drag
+  // Handle clip drag (supports moving between tracks)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0 || clip.locked) {
       return;
@@ -149,17 +149,35 @@ const Clip: React.FC<ClipProps> = ({
     onClick(e);
 
     const startX = e.clientX;
+    const startY = e.clientY;
     const startTime = clip.startTime;
+    let currentTrackId = trackId;
+    const TRACK_HEIGHT = 60; // Default track height
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
       const deltaTime = deltaX / pixelsPerSecond;
       const newStartTime = getSnappedTime(startTime + deltaTime, clip.id);
       
-      if (newStartTime !== clip.startTime) {
-        setIsDragging(true);
-        moveClip(trackId, clip.id, trackId, newStartTime);
+      // Calculate track change based on vertical movement
+      const trackDelta = Math.round(deltaY / TRACK_HEIGHT);
+      
+      // Get the new track ID if moving vertically
+      const project = useTimelineStore.getState().project;
+      if (project && trackDelta !== 0) {
+        const currentTrackIndex = project.tracks.findIndex(t => t.id === currentTrackId);
+        const newTrackIndex = Math.max(0, Math.min(project.tracks.length - 1, currentTrackIndex + trackDelta));
+        const newTrack = project.tracks[newTrackIndex];
+        
+        // Only move to tracks of the same type
+        if (newTrack && newTrack.type === clip.type && !newTrack.locked) {
+          currentTrackId = newTrack.id;
+        }
       }
+      
+      setIsDragging(true);
+      moveClip(trackId, clip.id, currentTrackId, newStartTime);
     };
 
     const handleMouseUp = () => {

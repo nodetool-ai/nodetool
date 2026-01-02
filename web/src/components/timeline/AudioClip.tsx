@@ -5,7 +5,7 @@ import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import Clip, { ClipProps } from "./Clip";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     ".waveform-container": {
       width: "100%",
@@ -29,9 +29,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface AudioClipProps extends Omit<ClipProps, "children"> {
-  // Additional audio-specific props can be added here
-}
+type AudioClipProps = Omit<ClipProps, "children">;
 
 const AudioClip: React.FC<AudioClipProps> = (props) => {
   const theme = useTheme();
@@ -39,7 +37,7 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
   const [isLoading, setIsLoading] = useState(true);
   const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
 
-  const { clip, pixelsPerSecond, width } = props;
+  const { clip, width } = props;
 
   // Generate mock waveform data (in a real implementation, this would come from audio analysis)
   useEffect(() => {
@@ -47,7 +45,7 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
     const generateMockWaveform = () => {
       const numSamples = Math.max(100, Math.floor(width / 2));
       const data = new Float32Array(numSamples);
-      
+
       // Generate a somewhat realistic-looking waveform
       for (let i = 0; i < numSamples; i++) {
         const t = i / numSamples;
@@ -57,7 +55,7 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
         const noise = (Math.random() - 0.5) * 0.4;
         data[i] = Math.max(-1, Math.min(1, base + detail + noise));
       }
-      
+
       return data;
     };
 
@@ -96,7 +94,7 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
     // Calculate visible portion based on inPoint/outPoint
     const startPercent = clip.inPoint / clip.sourceDuration;
     const endPercent = clip.outPoint / clip.sourceDuration;
-    
+
     const startSample = Math.floor(startPercent * waveformData.length);
     const endSample = Math.floor(endPercent * waveformData.length);
     const visibleSamples = endSample - startSample;
@@ -108,7 +106,7 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
     // Draw waveform
     const centerY = rect.height / 2;
     const amplitude = rect.height * 0.4;
-    
+
     // Gradient for waveform
     const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
     gradient.addColorStop(0, "rgba(255, 255, 255, 0.8)");
@@ -128,11 +126,11 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
       if (sampleIndex >= waveformData.length) {
         break;
       }
-      
+
       const value = Math.abs(waveformData[sampleIndex]);
       const barHeight = value * amplitude;
       const x = (i / visibleSamples) * rect.width;
-      
+
       ctx.fillRect(x, centerY - barHeight, barWidth - 0.5, barHeight * 2);
     }
 
@@ -142,7 +140,6 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
     ctx.moveTo(0, centerY);
     ctx.lineTo(rect.width, centerY);
     ctx.stroke();
-
   }, [waveformData, clip.inPoint, clip.outPoint, clip.sourceDuration, width]);
 
   return (
@@ -152,10 +149,7 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
           {isLoading ? (
             <div className="waveform-loading">Loading waveform...</div>
           ) : (
-            <canvas
-              ref={canvasRef}
-              className="waveform-canvas"
-            />
+            <canvas ref={canvasRef} className="waveform-canvas" />
           )}
         </div>
       </Box>

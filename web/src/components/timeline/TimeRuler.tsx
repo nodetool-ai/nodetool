@@ -1,16 +1,21 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo, useRef, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
-import { generateRulerTicks, formatTimeShort, timeToPixels } from "../../utils/timelineUtils";
+import {
+  generateRulerTicks,
+  formatTimeShort,
+  timeToPixels
+} from "../../utils/timelineUtils";
 
 const styles = (theme: Theme) =>
   css({
     position: "relative",
     height: "100%",
     overflow: "hidden",
-    backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
+    backgroundColor:
+      theme.vars?.palette?.background?.paper || theme.palette.background.paper,
 
     ".ruler-canvas": {
       display: "block"
@@ -29,7 +34,7 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
   scrollLeft,
   pixelsPerSecond,
   duration,
-  frameRate,
+  frameRate: _frameRate,
   width
 }) => {
   const theme = useTheme();
@@ -55,7 +60,7 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    
+
     // Set canvas size accounting for device pixel ratio
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
@@ -68,7 +73,10 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
     // Calculate visible time range with padding
     const padding = 100; // Extra pixels to render for smooth scrolling
     const startTime = Math.max(0, (scrollLeft - padding) / pixelsPerSecond);
-    const endTime = Math.min(duration, (scrollLeft + rect.width + padding) / pixelsPerSecond);
+    const endTime = Math.min(
+      duration,
+      (scrollLeft + rect.width + padding) / pixelsPerSecond
+    );
 
     // Generate ticks
     const ticks = generateRulerTicks(startTime, endTime, pixelsPerSecond);
@@ -80,7 +88,7 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
 
     for (const tick of ticks) {
       const x = timeToPixels(tick.time, pixelsPerSecond) - scrollLeft;
-      
+
       if (x < -padding || x > rect.width + padding) {
         continue;
       }
@@ -125,7 +133,6 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
     ctx.moveTo(0, rect.height - 0.5);
     ctx.lineTo(rect.width, rect.height - 0.5);
     ctx.stroke();
-
   }, [
     scrollLeft,
     pixelsPerSecond,
