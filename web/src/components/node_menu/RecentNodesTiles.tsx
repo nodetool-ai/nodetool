@@ -15,6 +15,11 @@ import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles";
+
+const QUICK_ACTION_NODE_TYPES = new Set(
+  QUICK_ACTION_BUTTONS.map((action) => action.nodeType)
+);
 
 const tileStyles = (theme: Theme) =>
   css({
@@ -22,7 +27,7 @@ const tileStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       width: "100%",
-      height: "100%",
+      height: "fit-content",
       padding: "0.5em 1em 0.5em 0.5em",
       boxSizing: "border-box"
     },
@@ -53,7 +58,6 @@ const tileStyles = (theme: Theme) =>
       alignContent: "start",
       overflowY: "auto",
       padding: "2px",
-      maxHeight: "200px",
       "&::-webkit-scrollbar": {
         width: "6px"
       },
@@ -235,7 +239,13 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     [getMetadata]
   );
 
-  if (recentNodes.length === 0) {
+  // Filter out nodes that are already shown in Quick Actions
+  const filteredRecentNodes = useMemo(
+    () => recentNodes.filter((node) => !QUICK_ACTION_NODE_TYPES.has(node.nodeType)),
+    [recentNodes]
+  );
+
+  if (filteredRecentNodes.length === 0) {
     return null;
   }
 
@@ -258,7 +268,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
         </Tooltip>
       </div>
       <div className="tiles-container">
-        {recentNodes.map((recentNode) => {
+        {filteredRecentNodes.map((recentNode) => {
           const { nodeType } = recentNode;
           const displayName = getNodeDisplayName(nodeType);
 

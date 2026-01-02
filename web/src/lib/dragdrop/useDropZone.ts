@@ -102,7 +102,7 @@ export function useDropZone<T extends DragDataType = DragDataType>(
         return acceptsFiles;
       }
 
-      if (!data) return false;
+      if (!data) {return false;}
 
       // Type check
       if (!config.accepts.includes(data.type as T)) {
@@ -163,7 +163,7 @@ export function useDropZone<T extends DragDataType = DragDataType>(
       setIsOver(false);
       setCanDrop(false);
 
-      if (config.disabled) return;
+      if (config.disabled) {return;}
 
       const position = getPosition(event);
 
@@ -185,9 +185,9 @@ export function useDropZone<T extends DragDataType = DragDataType>(
 
       // Handle internal drag data
       const data = deserializeDragData(event.dataTransfer);
-      if (!data) return;
+      if (!data) {return;}
 
-      if (!config.accepts.includes(data.type as T)) return;
+      if (!config.accepts.includes(data.type as T)) {return;}
 
       // Validate
       if (
