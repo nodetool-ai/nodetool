@@ -108,6 +108,7 @@ const TimelineContentPanel: React.FC<
     project,
     viewport,
     playback,
+    selection,
     setScrollLeft,
     setViewportWidth,
     seek,
@@ -115,7 +116,8 @@ const TimelineContentPanel: React.FC<
     toggleLoop,
     togglePlayback,
     stop,
-    stepFrame
+    stepFrame,
+    deleteSelectedClips
   } = useTimelineStore();
 
   const {
@@ -228,6 +230,14 @@ const TimelineContentPanel: React.FC<
       }
 
       switch (e.key.toLowerCase()) {
+        case "delete":
+        case "backspace":
+          // Delete selected clips
+          if (selection.selectedClipIds.length > 0) {
+            e.preventDefault();
+            deleteSelectedClips();
+          }
+          break;
         case "i": {
           e.preventDefault();
           const currentEnd =
@@ -269,6 +279,8 @@ const TimelineContentPanel: React.FC<
     playback.loopStart,
     playback.loopEnd,
     project?.duration,
+    selection.selectedClipIds.length,
+    deleteSelectedClips,
     setLoopRegion,
     toggleLoop,
     togglePlayback,

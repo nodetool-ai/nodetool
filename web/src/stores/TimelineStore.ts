@@ -188,6 +188,7 @@ export interface TimelineStoreState {
   selectTrack: (trackId: string | null) => void;
   setTimeSelection: (start: number | null, end: number | null) => void;
   selectAllClipsInRange: (start: number, end: number) => void;
+  deleteSelectedClips: () => void;
   
   // Snap operations
   toggleSnap: () => void;
@@ -1131,6 +1132,29 @@ export const useTimelineStore = create<TimelineStoreState>()(
 
         set(state => ({
           selection: { ...state.selection, selectedClipIds: clipIds }
+        }));
+      },
+
+      deleteSelectedClips: () => {
+        const { project, selection, removeClip } = get();
+        if (!project || selection.selectedClipIds.length === 0) {
+          return;
+        }
+
+        // Find which track each clip belongs to and remove it
+        for (const clipId of selection.selectedClipIds) {
+          for (const track of project.tracks) {
+            const clipExists = track.clips.some(c => c.id === clipId);
+            if (clipExists) {
+              removeClip(track.id, clipId);
+              break;
+            }
+          }
+        }
+
+        // Clear selection after deletion
+        set(state => ({
+          selection: { ...state.selection, selectedClipIds: [] }
         }));
       },
 
