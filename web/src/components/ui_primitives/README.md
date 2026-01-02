@@ -25,6 +25,16 @@ The UI primitives provide:
 ### Buttons
 
 - **EditorButton** - Button with density variants
+- **DialogActionButtons** - Standardized confirm/cancel button pairs for dialogs
+- **ToolbarIconButton** - Icon button with tooltip for toolbar actions
+- **NavButton** - Navigation button with icon and optional label
+- **CreateFab** - Extended FAB for create/add actions
+- **PlaybackButton** - Audio/video playback controls (play/pause/stop)
+- **RunWorkflowButton** - Run/stop workflow actions
+- **ExpandCollapseButton** - Toggle button for expand/collapse content
+- **RefreshButton** - Refresh/reset button with loading state
+- **SelectionControls** - Bulk selection controls (select all/clear)
+- **ViewModeToggle** - Toggle button group for view mode switching
 
 ### Menus
 
