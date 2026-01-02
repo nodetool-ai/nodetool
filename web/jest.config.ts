@@ -27,7 +27,9 @@ export default {
     "BASE_URL\\.js$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
     "^.*stores/BASE_URL$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
     "^.*stores/BASE_URL.js$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
-    "^.*lib/supabaseClient$": "<rootDir>/src/__mocks__/supabaseClientMock.ts"
+    "^.*lib/supabaseClient$": "<rootDir>/src/__mocks__/supabaseClientMock.ts",
+    // Mock @google/model-viewer to prevent ESM issues
+    "^@google/model-viewer$": "<rootDir>/src/__mocks__/modelViewerMock.ts"
   },
   setupFiles: ["<rootDir>/jest.setup.js"],
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],

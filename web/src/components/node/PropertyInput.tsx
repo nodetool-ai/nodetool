@@ -10,6 +10,7 @@ import TextProperty from "../properties/TextProperty";
 import ImageProperty from "../properties/ImageProperty";
 import AudioProperty from "../properties/AudioProperty";
 import VideoProperty from "../properties/VideoProperty";
+import Model3DProperty from "../properties/Model3DProperty";
 import IntegerProperty from "../properties/IntegerProperty";
 import FloatProperty from "../properties/FloatProperty";
 import EnumProperty from "../properties/EnumProperty";
@@ -150,6 +151,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return AudioProperty;
     case "video":
       return VideoProperty;
+    case "model_3d":
+      return Model3DProperty;
     case "collection":
       return CollectionProperty;
     case "json":
