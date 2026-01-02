@@ -83,13 +83,14 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-// Keep service worker alive
-const keepAlive = () => {
-  setInterval(() => {
-    console.log('[Background] Service worker heartbeat');
-  }, 20000);
-};
+// Keep service worker alive using chrome.alarms API
+// Service workers can be terminated by Chrome after 30 seconds of inactivity
+chrome.alarms.create('keepAlive', { periodInMinutes: 0.4 }); // ~24 seconds
 
-keepAlive();
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'keepAlive') {
+    console.log('[Background] Service worker heartbeat');
+  }
+});
 
 export {};

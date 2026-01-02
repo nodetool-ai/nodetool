@@ -1,24 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
-
-// Copy function for recursive directory copy
-function copyDir(src: string, dest: string) {
-  if (!existsSync(dest)) {
-    mkdirSync(dest, { recursive: true });
-  }
-  const entries = readdirSync(src, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = resolve(src, entry.name);
-    const destPath = resolve(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDir(srcPath, destPath);
-    } else {
-      copyFileSync(srcPath, destPath);
-    }
-  }
-}
+import { copyFileSync, cpSync } from 'fs';
 
 export default defineConfig({
   plugins: [
@@ -36,10 +19,11 @@ export default defineConfig({
           resolve(__dirname, 'public/manifest.json'),
           resolve(__dirname, 'dist/manifest.json')
         );
-        // Copy icons
-        copyDir(
+        // Copy icons using Node.js built-in recursive copy
+        cpSync(
           resolve(__dirname, 'assets/icons'),
-          resolve(__dirname, 'dist/assets/icons')
+          resolve(__dirname, 'dist/assets/icons'),
+          { recursive: true }
         );
       }
     }

@@ -272,14 +272,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   // Auto-connect on mount if configured
   useEffect(() => {
-    if (serverConfig.autoConnect && connectionStatus === 'disconnected') {
+    if (serverConfigRef.current.autoConnect && connectionStatus === 'disconnected') {
       connect();
     }
 
     return () => {
       clearReconnectTimer();
     };
-  }, [serverConfig.autoConnect]); // eslint-disable-line react-hooks/exhaustive-deps
+    // We intentionally only run this effect once on mount and when autoConnect changes.
+    // Using refs for serverConfig to avoid recreating the effect when config changes during connection.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Health check
   const checkHealth = useCallback(async (): Promise<boolean> => {
