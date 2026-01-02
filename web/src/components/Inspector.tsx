@@ -62,52 +62,52 @@ const styles = (theme: Theme) =>
       maxHeight: "20vh",
       padding: "0.5em "
     },
-    ".node-property": {
-      display: "flex",
-      flexShrink: 0,
-      flexDirection: "column",
-      margin: 0,
-      padding: 0,
-      width: "100%",
-      minWidth: "180px",
-      maxWidth: "300px",
-      marginBottom: ".1em"
-    },
-    ".node-property .MuiTextField-root textarea": {
-      fontSize: theme.fontSizeNormal
-    },
-    ".node-property textarea": {
-      margin: 0,
-      padding: "0.25em",
-      backgroundColor: theme.vars.palette.grey[600],
-      fontSize: theme.fontSizeSmall,
-      minHeight: "1.75em",
-      maxHeight: "20em"
-    },
-    ".node-property label": {
-      fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1,
-      minHeight: "18px",
-      userSelect: "none"
-    },
-    ".node-property.enum .mui-select": {
-      height: "2em",
-      backgroundColor: theme.vars.palette.grey[600],
-      marginTop: "0.25em",
-      padding: "0.5em .5em",
-      fontSize: theme.fontSizeSmall
-    },
-    ".node-property.enum .property-label": {
-      height: "1em"
-    },
-    ".node-property.enum label": {
-      fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1,
-      transform: "translate(0, 0)"
-    },
-    ".node-property.enum .MuiFormControl-root": {
-      margin: 0
-    },
+    // ".node-property": {
+    //   display: "flex",
+    //   flexShrink: 0,
+    //   flexDirection: "column",
+    //   margin: 0,
+    //   padding: 0,
+    //   width: "100%",
+    //   minWidth: "180px",
+    //   maxWidth: "300px",
+    //   marginBottom: ".1em"
+    // },
+    // ".node-property .MuiTextField-root textarea": {
+    //   fontSize: theme.fontSizeNormal
+    // },
+    // ".node-property textarea": {
+    //   margin: 0,
+    //   padding: "0.25em",
+    //   backgroundColor: theme.vars.palette.grey[600],
+    //   fontSize: theme.fontSizeSmall,
+    //   minHeight: "1.75em",
+    //   maxHeight: "20em"
+    // },
+    // ".node-property label": {
+    //   fontSize: theme.fontSizeNormal,
+    //   fontFamily: theme.fontFamily1,
+    //   minHeight: "18px",
+    //   userSelect: "none"
+    // },
+    // ".node-property.enum .mui-select": {
+    //   height: "2em",
+    //   backgroundColor: theme.vars.palette.grey[600],
+    //   marginTop: "0.25em",
+    //   padding: "0.5em .5em",
+    //   fontSize: theme.fontSizeSmall
+    // },
+    // ".node-property.enum .property-label": {
+    //   height: "1em"
+    // },
+    // ".node-property.enum label": {
+    //   fontSize: theme.fontSizeNormal,
+    //   fontFamily: theme.fontFamily1,
+    //   transform: "translate(0, 0)"
+    // },
+    // ".node-property.enum .MuiFormControl-root": {
+    //   margin: 0
+    // },
     ".inspector-header": {
       display: "flex",
       flexDirection: "column",
@@ -311,50 +311,50 @@ const Inspector: React.FC = () => {
                 </div>
               </div>
               {multiPropertyEntries.length > 0 ? (
-              multiPropertyEntries.map(({ property, value, isMixed }) => (
-                <div
-                  className="multi-property-row"
-                  key={`multi-${property.name}-${nodesWithMetadata[0].node.id}`}
+                multiPropertyEntries.map(({ property, value, isMixed }) => (
+                  <div
+                    className="multi-property-row"
+                    key={`multi-${property.name}-${nodesWithMetadata[0].node.id}`}
+                  >
+                    {isMixed && (
+                      <Tooltip
+                        title="Mixed values across the selected nodes"
+                        placement="top-start"
+                      >
+                        <span className="mixed-indicator">
+                          <WarningAmberOutlinedIcon fontSize="small" />
+                        </span>
+                      </Tooltip>
+                    )}
+                    <PropertyField
+                      id={nodesWithMetadata[0].node.id}
+                      value={value}
+                      property={property}
+                      propertyIndex={property.name}
+                      showHandle={false}
+                      isInspector={true}
+                      nodeType="inspector"
+                      data={nodesWithMetadata[0].node.data}
+                      layout=""
+                      onValueChange={(newValue) =>
+                        handleMultiPropertyChange(property.name, newValue)
+                      }
+                    />
+                  </div>
+                ))
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ padding: "0.25em 0" }}
                 >
-                  {isMixed && (
-                    <Tooltip
-                      title="Mixed values across the selected nodes"
-                      placement="top-start"
-                    >
-                      <span className="mixed-indicator">
-                        <WarningAmberOutlinedIcon fontSize="small" />
-                      </span>
-                    </Tooltip>
-                  )}
-                  <PropertyField
-                    id={nodesWithMetadata[0].node.id}
-                    value={value}
-                    property={property}
-                    propertyIndex={property.name}
-                    showHandle={false}
-                    isInspector={true}
-                    nodeType="inspector"
-                    data={nodesWithMetadata[0].node.data}
-                    layout=""
-                    onValueChange={(newValue) =>
-                      handleMultiPropertyChange(property.name, newValue)
-                    }
-                  />
-                </div>
-              ))
-            ) : (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ padding: "0.25em 0" }}
-              >
-                No shared editable properties across the selected nodes.
-              </Typography>
-            )}
+                  No shared editable properties across the selected nodes.
+                </Typography>
+              )}
+            </Box>
           </Box>
+          <div className="bottom"></div>
         </Box>
-        <div className="bottom"></div>
-      </Box>
       </EditorUiProvider>
     );
   }
@@ -419,93 +419,94 @@ const Inspector: React.FC = () => {
               </IconButton>
               <div className="header-row">
                 <div className="title">{metadata.title}</div>
+              </div>
             </div>
-          </div>
-          {/* Base properties */}
-          {metadata.properties.map((property, index) => (
-            <PropertyField
-              key={`inspector-${property.name}-${selectedNode.id}`}
-              id={selectedNode.id}
-              value={selectedNode.data.properties[property.name]}
-              property={property}
-              propertyIndex={index.toString()}
-              showHandle={false}
-              isInspector={true}
-              nodeType="inspector"
-              data={selectedNode.data}
-              layout=""
-            />
-          ))}
+            {/* Base properties */}
+            {metadata.properties.map((property, index) => (
+              <PropertyField
+                key={`inspector-${property.name}-${selectedNode.id}`}
+                id={selectedNode.id}
+                value={selectedNode.data.properties[property.name]}
+                property={property}
+                propertyIndex={index.toString()}
+                showHandle={false}
+                isInspector={true}
+                nodeType="inspector"
+                data={selectedNode.data}
+                layout=""
+              />
+            ))}
 
-          {/* Dynamic properties, if any */}
-          {Object.entries(selectedNode.data.dynamic_properties || {}).map(
-            ([name, value], index) => {
-              // Infer type from incoming edge
-              const incoming = edges.find(
-                (edge) =>
-                  edge.target === selectedNode.id && edge.targetHandle === name
-              );
-              let resolvedType: TypeMetadata = {
-                type: "any",
-                type_args: [],
-                optional: false
-              } as any;
-              if (incoming) {
-                const sourceNode = findNode(incoming.source);
-                if (sourceNode) {
-                  const sourceMeta = getMetadata(sourceNode.type || "");
-                  const handle = sourceMeta
-                    ? findOutputHandle(
-                        sourceNode,
-                        incoming.sourceHandle || "",
-                        sourceMeta
-                      )
-                    : undefined;
-                  if (handle?.type) {
-                    resolvedType = handle.type;
+            {/* Dynamic properties, if any */}
+            {Object.entries(selectedNode.data.dynamic_properties || {}).map(
+              ([name, value], index) => {
+                // Infer type from incoming edge
+                const incoming = edges.find(
+                  (edge) =>
+                    edge.target === selectedNode.id &&
+                    edge.targetHandle === name
+                );
+                let resolvedType: TypeMetadata = {
+                  type: "any",
+                  type_args: [],
+                  optional: false
+                } as any;
+                if (incoming) {
+                  const sourceNode = findNode(incoming.source);
+                  if (sourceNode) {
+                    const sourceMeta = getMetadata(sourceNode.type || "");
+                    const handle = sourceMeta
+                      ? findOutputHandle(
+                          sourceNode,
+                          incoming.sourceHandle || "",
+                          sourceMeta
+                        )
+                      : undefined;
+                    if (handle?.type) {
+                      resolvedType = handle.type;
+                    }
                   }
                 }
+                return (
+                  <PropertyField
+                    key={`inspector-dynamic-${name}-${selectedNode.id}`}
+                    id={selectedNode.id}
+                    value={value}
+                    property={{ name, type: resolvedType } as any}
+                    propertyIndex={`dynamic-${index}`}
+                    showHandle={false}
+                    isInspector={true}
+                    nodeType="inspector"
+                    data={selectedNode.data}
+                    layout=""
+                    isDynamicProperty={true}
+                  />
+                );
               }
-              return (
-                <PropertyField
-                  key={`inspector-dynamic-${name}-${selectedNode.id}`}
-                  id={selectedNode.id}
-                  value={value}
-                  property={{ name, type: resolvedType } as any}
-                  propertyIndex={`dynamic-${index}`}
-                  showHandle={false}
-                  isInspector={true}
-                  nodeType="inspector"
-                  data={selectedNode.data}
-                  layout=""
-                  isDynamicProperty={true}
-                />
-              );
-            }
-          )}
+            )}
+          </Box>
         </Box>
+        <div className="bottom">
+          <NodeDescription
+            className="description"
+            description={metadata.description}
+            onTagClick={handleTagClick}
+          />
+          <Tooltip title="Show in NodeMenu" placement="top-start">
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{
+                padding: ".5em"
+              }}
+              className="namespace"
+              onClick={handleOpenNodeMenu}
+            >
+              {metadata.namespace}
+            </Button>
+          </Tooltip>
+        </div>
       </Box>
-      <div className="bottom">
-        <NodeDescription
-          className="description"
-          description={metadata.description}
-          onTagClick={handleTagClick}
-        />
-        <Tooltip title="Show in NodeMenu" placement="top-start">
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{
-              padding: ".5em"
-            }}
-            className="namespace"
-            onClick={handleOpenNodeMenu}
-          >
-            {metadata.namespace}
-          </Button>
-        </Tooltip>
-      </div>
-    </Box>
     </EditorUiProvider>
   );
 };

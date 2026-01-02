@@ -19,6 +19,11 @@ interface PropertyLabelProps {
    * the label.
    */
   showTooltip?: boolean;
+  /**
+   * Controls the density/spacing of the label. When "compact", removes the bottom margin.
+   * Defaults to "normal".
+   */
+  density?: "compact" | "normal";
 }
 
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
@@ -26,7 +31,8 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   name,
   description,
   showTooltip = true,
-  isDynamicProperty = false
+  isDynamicProperty = false,
+  density = "normal"
 }) => {
   const theme = useTheme();
   const scope = useEditorScope();
@@ -39,7 +45,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
 
   const labelFontSize =
     scope === "inspector" ? theme.fontSizeNormal : theme.fontSizeSmall;
-  const labelMarginBottom = theme.spacing(1.5);
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1.5);
 
   return (
     <div
@@ -50,7 +56,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         padding: 0,
         overflow: "visible",
         flexGrow: 1,
-
+        "&:hover": {
+          "& label": {
+            opacity: 0.94
+          }
+        },
         "& label": {
           display: "block",
           fontWeight: 500,
@@ -69,8 +79,27 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     >
       <Tooltip
         title={showTooltip ? description || "" : ""}
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterDelay={TOOLTIP_ENTER_DELAY * 2}
+        enterNextDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
+        slotProps={{
+          tooltip: {
+            sx: {
+              fontSize: theme.fontSizeSmall + " !important",
+              color: theme.vars.palette.common.white
+            }
+          },
+          popper: {
+            modifiers: [
+              {
+                name: "offset",
+                options: {
+                  offset: density === "compact" ? [0, 64] : [0, 16] // [skidding, distance] - distance pushes tooltip further left
+                }
+              }
+            ]
+          }
+        }}
         disableInteractive
       >
         <label draggable={false} htmlFor={id}>

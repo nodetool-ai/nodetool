@@ -34,26 +34,37 @@ import { EditorUiProvider } from "../editor_ui";
 Replace raw MUI components with editor primitives:
 
 ```tsx
-import { NodeTextField, NodeSwitch, NodeSelect, NodeMenuItem } from "../editor_ui";
+import { NodeTextField, NodeSwitch, NodeSelect, NodeMenuItem, EditorButton } from "../editor_ui";
 
-// Text input
+// Text input with semantic props
 <NodeTextField
   value={value}
   onChange={(e) => onChange(e.target.value)}
+  changed={hasChanged}  // Shows visual indicator when value differs from default
+  invalid={hasError}    // Shows error state
   multiline
 />
 
-// Boolean switch
+// Boolean switch with semantic props
 <NodeSwitch
   checked={isEnabled}
   onChange={(e) => onChange(e.target.checked)}
+  changed={hasChanged}  // Shows visual indicator
 />
 
-// Select dropdown
-<NodeSelect value={selected} onChange={(e) => onChange(e.target.value)}>
+// Select dropdown with semantic props
+<NodeSelect 
+  value={selected} 
+  onChange={(e) => onChange(e.target.value)}
+  changed={hasChanged}
+  invalid={hasError}
+>
   <NodeMenuItem value="option1">Option 1</NodeMenuItem>
   <NodeMenuItem value="option2">Option 2</NodeMenuItem>
 </NodeSelect>
+
+// Button with density control
+<EditorButton density="compact">Click me</EditorButton>
 ```
 
 ### Utilities
@@ -96,7 +107,6 @@ For custom editor components:
 
 - Add global `.Mui*` selector overrides for editor components
 - Create new `styled()` components - use `sx` or Emotion `css` instead
-- Import from `node_styles/` - that layer is deprecated
 - Add editor-specific inline `sx` state styling in many places (prefer theme slice + marker classes)
 
 ## File Structure

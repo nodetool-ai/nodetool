@@ -11,8 +11,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText,
-  Divider
+  ListItemText
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -61,6 +60,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       color: theme.vars.palette.grey[200],
       border: `1px solid ${theme.vars.palette.grey[700]}`,
+      borderRadius: "3px",
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
       backdropFilter: "blur(2px)",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -92,7 +92,7 @@ const styles = (theme: Theme) =>
         right: 0,
         height: "55%",
         background:
-          "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
+          "linear-gradient(to bottom, rgba(255,255,255,0.12), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
         pointerEvents: "none",
         zIndex: 0
       },
@@ -102,7 +102,7 @@ const styles = (theme: Theme) =>
         position: "absolute",
         inset: 0,
         borderRadius: "inherit",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
         pointerEvents: "none"
       },
 
@@ -125,6 +125,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "var(--palette-primary-main)",
       color: "#0B1220",
       borderColor: "var(--palette-primary-main)",
+      borderRadius: "100%",
       boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px var(--palette-primary-main)20`,
       filter: "saturate(1.1)",
       "&:hover": {

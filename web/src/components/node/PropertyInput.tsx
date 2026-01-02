@@ -50,32 +50,6 @@ const propertyInputContainerStyles = (theme: Theme) =>
       position: "relative"
     },
 
-    // PROPERTY VALUE CHANGED
-    // value
-    "&.value-changed .value": {
-      color: theme.vars.palette.primary.main + " !important"
-    },
-    // string, enum
-    "&.value-changed fieldset, &.value-changed .select-header": {
-      borderRight: `2px solid ${theme.vars.palette.primary.main} !important`
-    },
-    // select model button
-    "&.value-changed .select-model-button": {
-      backgroundColor: `${theme.vars.palette.primary.main} `
-    },
-    "&.value-changed .select-model-button .model-select-button-label-text": {
-      color: `${theme.vars.palette.c_black} !important`
-    },
-    "&.value-changed .select-model-button .model-select-button-label-text-secondary":
-      {
-        color: `${theme.vars.palette.grey[800]} !important`
-      },
-    // bool
-    "&.value-changed .bool-property label": {
-      borderRight: `2px solid ${theme.vars.palette.primary.main} !important`,
-      borderRadius: ".2em"
-    },
-
     // ACTION ICONS
     "&:hover .action-icons": {
       opacity: 1
@@ -117,6 +91,10 @@ export type PropertyProps = {
   onChange: (value: any) => void;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  /**
+   * Value differs from default — shows visual indicator
+   */
+  changed?: boolean;
 };
 
 function InputProperty(props: PropertyProps) {
@@ -354,6 +332,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     ]
   );
 
+  // Calculate changed state: value differs from default
+  const isChanged = value !== property.default;
+
   const propertyProps = {
     property: property,
     value: value,
@@ -363,7 +344,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     onChange: onChange,
     tabIndex: tabIndex,
     isDynamicProperty: isDynamicProperty,
-    isInspector: isInspector
+    isInspector: isInspector,
+    changed: isChanged
   };
 
   // Property Context Menu
@@ -446,9 +428,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     ]
   );
 
-  const className =
-    value === property.default ? "value-default" : "value-changed";
-
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editedName, setEditedName] = React.useState(property.name);
   const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
@@ -505,7 +484,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   return (
     <div
-      className={`${className} property-input-container`}
+      className="property-input-container"
       css={propertyInputContainerStyles(theme)}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
