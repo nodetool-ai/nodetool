@@ -287,11 +287,11 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
             Connection Changes
           </Typography>
           <List dense disablePadding>
-            {diff.addedEdges.map((edge) => (
-              <EdgeDiffItem key={edge.id} edge={edge} type="added" />
+            {diff.addedEdges.map((edge, index) => (
+              <EdgeDiffItem key={`added-${edge.source}-${edge.target}-${index}`} edge={edge} type="added" />
             ))}
-            {diff.removedEdges.map((edge) => (
-              <EdgeDiffItem key={edge.id} edge={edge} type="removed" />
+            {diff.removedEdges.map((edge, index) => (
+              <EdgeDiffItem key={`removed-${edge.source}-${edge.target}-${index}`} edge={edge} type="removed" />
             ))}
           </List>
         </>

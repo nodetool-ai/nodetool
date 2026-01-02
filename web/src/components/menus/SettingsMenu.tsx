@@ -84,6 +84,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
     setSoundNotifications,
+    updateAutosaveSettings,
     settings
   } = useSettingsStore((state) => ({
     isMenuOpen: state.isMenuOpen,
@@ -97,7 +98,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setTimeFormat: state.setTimeFormat,
     setSelectNodesOnDrag: state.setSelectNodesOnDrag,
     setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
-    setSoundNotifications: state.setSoundNotifications
+    setSoundNotifications: state.setSoundNotifications,
+    updateAutosaveSettings: state.updateAutosaveSettings
   }));
 
   const [activeSection, setActiveSection] = useState("editor");
@@ -272,6 +274,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       category: "General",
       items: [
         { id: "editor", label: "Editor" },
+        { id: "autosave", label: "Autosave" },
         { id: "navigation", label: "Navigation" },
         { id: "grid", label: "Grid & Connections" },
         { id: "appearance", label: "Appearance" }
@@ -582,6 +585,124 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </Typography>
                         </div>
                       )}
+                    </div>
+
+                    <Typography variant="h3" id="autosave">
+                      Autosave & Version History
+                    </Typography>
+                    <div className="settings-section">
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="autosave-enabled">
+                            Enable Autosave
+                          </InputLabel>
+                          <Switch
+                            checked={settings.autosave.enabled}
+                            onChange={(e) =>
+                              updateAutosaveSettings({ enabled: e.target.checked })
+                            }
+                            inputProps={{ "aria-label": "autosave-enabled" }}
+                          />
+                        </FormControl>
+                        <Typography className="description">
+                          Automatically save your workflow at regular intervals.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="autosave-interval">
+                            Autosave Interval (minutes)
+                          </InputLabel>
+                          <Select
+                            id="autosave-interval"
+                            value={settings.autosave.intervalMinutes}
+                            variant="standard"
+                            onChange={(e) =>
+                              updateAutosaveSettings({
+                                intervalMinutes: Number(e.target.value)
+                              })
+                            }
+                            disabled={!settings.autosave.enabled}
+                          >
+                            <MenuItem value={1}>1 minute</MenuItem>
+                            <MenuItem value={5}>5 minutes</MenuItem>
+                            <MenuItem value={10}>10 minutes</MenuItem>
+                            <MenuItem value={15}>15 minutes</MenuItem>
+                            <MenuItem value={30}>30 minutes</MenuItem>
+                            <MenuItem value={60}>60 minutes</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Typography className="description">
+                          How often to automatically save your workflow.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="save-before-run">
+                            Save Before Running
+                          </InputLabel>
+                          <Switch
+                            checked={settings.autosave.saveBeforeRun}
+                            onChange={(e) =>
+                              updateAutosaveSettings({
+                                saveBeforeRun: e.target.checked
+                              })
+                            }
+                            inputProps={{ "aria-label": "save-before-run" }}
+                          />
+                        </FormControl>
+                        <Typography className="description">
+                          Create a checkpoint version before executing workflow.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="save-on-close">
+                            Save on Window Close
+                          </InputLabel>
+                          <Switch
+                            checked={settings.autosave.saveOnClose}
+                            onChange={(e) =>
+                              updateAutosaveSettings({
+                                saveOnClose: e.target.checked
+                              })
+                            }
+                            inputProps={{ "aria-label": "save-on-close" }}
+                          />
+                        </FormControl>
+                        <Typography className="description">
+                          Automatically save when closing the tab or window.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="max-versions">
+                            Max Versions per Workflow
+                          </InputLabel>
+                          <Select
+                            id="max-versions"
+                            value={settings.autosave.maxVersionsPerWorkflow}
+                            variant="standard"
+                            onChange={(e) =>
+                              updateAutosaveSettings({
+                                maxVersionsPerWorkflow: Number(e.target.value)
+                              })
+                            }
+                          >
+                            <MenuItem value={10}>10 versions</MenuItem>
+                            <MenuItem value={25}>25 versions</MenuItem>
+                            <MenuItem value={50}>50 versions</MenuItem>
+                            <MenuItem value={100}>100 versions</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Typography className="description">
+                          Maximum number of versions to keep per workflow.
+                        </Typography>
+                      </div>
                     </div>
 
                     <Typography variant="h3" id="navigation">

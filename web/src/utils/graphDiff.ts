@@ -142,7 +142,9 @@ const findModifiedNodes = (
  * Create a unique edge identifier for comparison
  */
 const getEdgeKey = (edge: Edge): string => {
-  return `${edge.source}:${edge.sourceHandle || "default"}->${edge.target}:${edge.targetHandle || "default"}`;
+  const source = edge.source ?? "unknown";
+  const target = edge.target ?? "unknown";
+  return `${source}:${edge.sourceHandle || "default"}->${target}:${edge.targetHandle || "default"}`;
 };
 
 /**

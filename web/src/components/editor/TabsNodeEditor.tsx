@@ -453,18 +453,21 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     }
 
     // Import the conversion functions dynamically to avoid circular deps
-    import("../../stores/graphNodeToReactFlowNode").then(({ graphNodeToReactFlowNode }) => {
-      import("../../stores/graphEdgeToReactFlowEdge").then(({ graphEdgeToReactFlowEdge }) => {
-        const graph = version.graph_snapshot;
-        const newNodes = graph.nodes.map((n) =>
-          graphNodeToReactFlowNode({ ...workflow, graph } as Workflow, n)
-        );
-        const newEdges = graph.edges.map((e) => graphEdgeToReactFlowEdge(e));
+    Promise.all([
+      import("../../stores/graphNodeToReactFlowNode"),
+      import("../../stores/graphEdgeToReactFlowEdge")
+    ]).then(([{ graphNodeToReactFlowNode }, { graphEdgeToReactFlowEdge }]) => {
+      const graph = version.graph_snapshot;
+      const newNodes = graph.nodes.map((n) =>
+        graphNodeToReactFlowNode({ ...workflow, graph } as Workflow, n)
+      );
+      const newEdges = graph.edges.map((e) => graphEdgeToReactFlowEdge(e));
 
-        storeState.setNodes(newNodes);
-        storeState.setEdges(newEdges);
-        storeState.setWorkflowDirty(true);
-      });
+      storeState.setNodes(newNodes);
+      storeState.setEdges(newEdges);
+      storeState.setWorkflowDirty(true);
+    }).catch((error) => {
+      console.error("Failed to restore version:", error);
     });
 
     setHistoryPanelOpen(false);
