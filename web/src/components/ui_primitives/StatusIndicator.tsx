@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, Typography, Tooltip } from "@mui/material";
@@ -11,13 +11,20 @@ import WarningIcon from "@mui/icons-material/Warning";
 import PendingIcon from "@mui/icons-material/Pending";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
-const styles = (theme: Theme) =>
+const pulseAnimation = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+`;
+
+const styles = (theme: Theme, pulse: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
     gap: theme.spacing(0.75),
     ".status-icon": {
-      fontSize: 12
+      fontSize: 12,
+      animation: pulse ? `${pulseAnimation} 2s infinite` : "none"
     },
     ".status-label": {
       fontSize: 12,
@@ -88,19 +95,15 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
     return <CircleIcon className="status-icon" fontSize={iconSize} />;
   };
 
+  const statusClassName = `status-indicator status-${status}${className ? ` ${className}` : ""}`;
+
   const content = (
     <Box
-      css={styles(theme)}
-      className={`status-indicator status-${status} ${className || ""}`}
+      css={styles(theme, pulse)}
+      className={statusClassName}
       sx={{
         ".status-icon": {
-          color: statusColors[status],
-          animation: pulse ? "pulse 2s infinite" : "none",
-          "@keyframes pulse": {
-            "0%": { opacity: 1 },
-            "50%": { opacity: 0.4 },
-            "100%": { opacity: 1 }
-          }
+          color: statusColors[status]
         },
         ".status-label": {
           color: statusColors[status],
