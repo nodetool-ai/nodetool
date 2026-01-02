@@ -1,33 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import React from "react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { Tabs, Tab } from "@mui/material";
 import { ColorMode } from "./ColorInputs";
-
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      minHeight: "36px"
-    },
-    ".MuiTab-root": {
-      minWidth: "auto",
-      minHeight: "36px",
-      padding: "6px 12px",
-      fontSize: "11px",
-      fontWeight: 600,
-      textTransform: "uppercase",
-      color: theme.vars.palette.grey[400],
-      "&.Mui-selected": {
-        color: theme.vars.palette.primary.main
-      }
-    },
-    ".MuiTabs-indicator": {
-      height: "2px",
-      backgroundColor: theme.vars.palette.primary.main
-    }
-  });
 
 interface ColorModeSelectorProps {
   mode: ColorMode;
@@ -35,6 +10,12 @@ interface ColorModeSelectorProps {
   showAllModes?: boolean;
 }
 
+/**
+ * ColorModeSelector
+ * 
+ * A tab selector for choosing color input modes (hex, rgb, hsl, etc.).
+ * Uses semantic sx prop styling instead of CSS class selectors.
+ */
 const ColorModeSelector: React.FC<ColorModeSelectorProps> = ({
   mode,
   onChange,
@@ -52,14 +33,43 @@ const ColorModeSelector: React.FC<ColorModeSelectorProps> = ({
 
   return (
     <Tabs
-      css={styles(theme)}
       value={mode}
       onChange={handleChange}
       variant="scrollable"
       scrollButtons="auto"
+      sx={{
+        minHeight: "36px",
+        // Indicator styling
+        "& .MuiTabs-indicator": {
+          height: "2px",
+          backgroundColor: theme.vars.palette.primary.main
+        }
+      }}
+      TabIndicatorProps={{
+        sx: {
+          height: "2px",
+          backgroundColor: theme.vars.palette.primary.main
+        }
+      }}
     >
       {modes.map((m) => (
-        <Tab key={m} value={m} label={m} />
+        <Tab
+          key={m}
+          value={m}
+          label={m}
+          sx={{
+            minWidth: "auto",
+            minHeight: "36px",
+            padding: "6px 12px",
+            fontSize: "11px",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            color: theme.vars.palette.grey[400],
+            "&.Mui-selected": {
+              color: theme.vars.palette.primary.main
+            }
+          }}
+        />
       ))}
     </Tabs>
   );
