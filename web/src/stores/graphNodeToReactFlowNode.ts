@@ -42,6 +42,8 @@ export function graphNodeToReactFlowNode(
     defaultHeight = 350;
   }
 
+  const isBypassed = ui_properties?.bypassed || false;
+
   return {
     type: node.type,
     id: node.id,
@@ -53,6 +55,7 @@ export function graphNodeToReactFlowNode(
       node.type === "nodetool.workflows.base_node.Group"
     ),
     selectable: ui_properties?.selectable,
+    className: isBypassed ? "bypassed" : undefined,
     data: {
       properties: node.data || {},
       dynamic_properties: node.dynamic_properties || {},
@@ -60,6 +63,7 @@ export function graphNodeToReactFlowNode(
       sync_mode: node.sync_mode,
       selectable: ui_properties?.selectable,
       collapsed: false,
+      bypassed: isBypassed,
       workflow_id: workflow.id,
       title: ui_properties?.title,
       color: ui_properties?.color,

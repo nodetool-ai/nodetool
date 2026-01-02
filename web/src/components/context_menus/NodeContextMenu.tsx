@@ -11,6 +11,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -52,13 +53,14 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
-  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes, nodes, edges, workflow } =
+  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes, toggleBypass, nodes, edges, workflow } =
     useNodes((state) => ({
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
       selectNodesByType: state.selectNodesByType,
       deleteNode: state.deleteNode,
       selectedNodes: state.getSelectedNodes(),
+      toggleBypass: state.toggleBypass,
       nodes: state.nodes,
       edges: state.edges,
       workflow: state.workflow
@@ -69,6 +71,8 @@ const NodeContextMenu: React.FC = () => {
   );
   const getResult = useResultsStore((state) => state.getResult);
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const isBypassed = Boolean(nodeData?.bypassed);
+
   const handleToggleComment = useCallback(() => {
     if (!nodeId) {
       return;
@@ -173,6 +177,14 @@ const NodeContextMenu: React.FC = () => {
     metadata,
     closeContextMenu
   ]);
+
+  const handleToggleBypass = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    toggleBypass(nodeId);
+    closeContextMenu();
+  }, [closeContextMenu, nodeId, toggleBypass]);
 
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
@@ -288,6 +300,19 @@ const NodeContextMenu: React.FC = () => {
         IconComponent={<PlayArrowIcon />}
         tooltip="Run the workflow from this node onwards, using previous results as inputs"
         addButtonClassName={isWorkflowRunning ? "disabled" : ""}
+      />
+    ),
+    nodeId && (
+      <ContextMenuItem
+        key="toggle-bypass"
+        onClick={handleToggleBypass}
+        label={isBypassed ? "Enable Node" : "Bypass Node"}
+        IconComponent={isBypassed ? <PlayArrowIcon /> : <BlockIcon />}
+        tooltip={
+          isBypassed
+            ? "Enable this node to process normally"
+            : "Bypass this node to pass inputs through to outputs"
+        }
       />
     ),
     nodeId && (

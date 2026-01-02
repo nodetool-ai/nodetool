@@ -39,6 +39,19 @@ For a visual overview first, see the [Start Here guide](index.md#start-here).
 
 > See the [Installation Guide](installation.md) for GPU requirements and troubleshooting.
 
+![Dashboard Overview](assets/screenshots/dashboard-overview.png)
+
+### Using the Getting Started Panel
+
+When you first open NodeTool, the **Getting Started Panel** on the Dashboard guides you through:
+
+1. **Overview**: Quick introduction to what NodeTool can do
+2. **First Workflow**: Step-by-step instructions to run your first template
+3. **AI Models**: How to install the models you need
+4. **Tips**: Helpful shortcuts and features to know
+
+You can dismiss the panel when ready, or access it again from the Dashboard.
+
 ### Install Your First AI Models
 
 To run the example workflows:
@@ -80,6 +93,8 @@ Run a pre-built template. Choose one:
 **Result**: Input → AI strategy → image generation → output.
 
 ### Option B: Creative Story Ideas (Text Generation)
+
+![Creative Story Ideas Workflow](assets/screenshots/creative-story-workflow.png)
 
 1. **Find the template**: Look for "Creative Story Ideas" in Templates and open it
 2. **Understand the flow**:

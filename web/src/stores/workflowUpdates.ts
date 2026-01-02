@@ -23,6 +23,7 @@ import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
+import { queryClient } from "../queryClient";
 
 /**
  * Central reducer for WorkflowRunner WebSocket updates.
@@ -168,29 +169,84 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
-    runnerStore.setState({
-      state:
-        job.status === "running" || job.status === "queued" ? "running" : "idle"
-    });
+    // Access run_state from WebSocket message (may not be in TypeScript types yet)
+    const runState = (job as any).run_state as
+      | {
+          status: string;
+          suspended_node_id?: string;
+          suspension_reason?: string;
+          error_message?: string;
+          execution_strategy?: string;
+          is_resumable?: boolean;
+        }
+      | undefined;
+
+    // Consolidate state mapping
+    let newState:
+      | "idle"
+      | "running"
+      | "paused"
+      | "suspended"
+      | "error"
+      | "cancelled"
+      | undefined;
+
+    if (job.status === "running" || job.status === "queued") {
+      newState = "running";
+    } else if (job.status === "suspended") {
+      newState = "suspended";
+    } else if (job.status === "paused") {
+      newState = "paused";
+    } else if (job.status === "completed") {
+      newState = "idle";
+    } else if (job.status === "cancelled") {
+      newState = "cancelled";
+    } else if (job.status === "failed" || job.status === "timed_out") {
+      newState = "error";
+    }
+
+    console.log(
+      `Job update: ${job.status} -> setting state to ${newState || "no change"}`,
+      runState ? `(run_state: ${runState.status}, resumable: ${runState.is_resumable})` : ""
+    );
+
+    if (newState) {
+      runnerStore.setState({ state: newState });
+    }
+
     if (job.job_id) {
       runnerStore.setState({ job_id: job.job_id });
     }
+
+    // Use suspension reason from run_state if available
+    if (runState?.suspension_reason && newState === "suspended") {
+      runnerStore.setState({ statusMessage: runState.suspension_reason });
+    }
+
+    // Invalidate jobs query to refresh the job panel when job state changes
+    if (
+      job.status === "running" ||
+      job.status === "completed" ||
+      job.status === "cancelled" ||
+      job.status === "failed" ||
+      job.status === "suspended" ||
+      job.status === "paused"
+    ) {
+      console.log("INVALIDATING JOBS QUERY - status:", job.status);
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    }
+    
     switch (job.status) {
       case "completed":
-        runnerStore.setState({ state: "idle" });
         runner.addNotification({
           type: "info",
           alert: true,
           content: "Job completed"
         });
-        // Avoiding this as the result overlay for output node breaks otherwise
-        // clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
-        // Don't clear outputResults - output nodes should keep their results visible
         break;
       case "cancelled":
-        runnerStore.setState({ state: "cancelled" });
         runner.addNotification({
           type: "info",
           alert: true,
@@ -203,7 +259,6 @@ export const handleUpdate = (
         break;
       case "failed":
       case "timed_out":
-        runnerStore.setState({ state: "error" });
         runner.addNotification({
           type: "error",
           alert: true,
@@ -228,6 +283,14 @@ export const handleUpdate = (
             content: job.message
           });
         }
+        break;
+      case "suspended":
+        runner.addNotification({
+          type: "info",
+          alert: true,
+          content: job.message || "Workflow suspended - waiting for external input",
+          timeout: 10000
+        });
         break;
     }
   }

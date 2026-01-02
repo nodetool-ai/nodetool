@@ -63,7 +63,6 @@
     "loglevel": "^1.9.2",
     "luxon": "^3.5.0",
     "mock-socket": "^9.3.1",
-    "mui-color-input": "^7.0.0",
     "openapi-fetch": "^0.14.0",
     "openapi-typescript": "^7.8.0",
     "papaparse": "^5.4.1",
@@ -122,7 +121,8 @@
     "release": "ts-node release.ts",
     "openapi": "openapi-typescript http://127.0.0.1:7777/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "upload-stock-images": "node scripts/upload-stock-images.js"
   },
   "browserslist": {
     "production": [
