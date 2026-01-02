@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useMemo } from "react";
 import { Box, Typography, IconButton, List, ListItemButton, ListItemText, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -71,10 +72,12 @@ export function ThreadList({
   onSelectThread,
   onDeleteThread
 }: ThreadListProps) {
-  // Sort threads by updated_at descending
-  const sortedThreads = Object.values(threads).sort((a, b) => 
-    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  );
+  // Memoize sorted threads to avoid repeated Date object creation
+  const sortedThreads = useMemo(() => {
+    return Object.values(threads)
+      .map(thread => ({ ...thread, timestamp: new Date(thread.updated_at).getTime() }))
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, [threads]);
 
   if (sortedThreads.length === 0) {
     return (

@@ -123,13 +123,14 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
         components={{
           a: ({ ...props }) => {
             const { href, children } = props;
+            const lowerHref = href?.toLowerCase();
             const isAudio =
-              href &&
-              (href.toLowerCase().endsWith(".mp3") ||
-                href.toLowerCase().endsWith(".wav") ||
-                href.toLowerCase().endsWith(".ogg") ||
-                href.toLowerCase().endsWith(".m4a") ||
-                href.toLowerCase().endsWith(".webm"));
+              lowerHref &&
+              (lowerHref.endsWith(".mp3") ||
+                lowerHref.endsWith(".wav") ||
+                lowerHref.endsWith(".ogg") ||
+                lowerHref.endsWith(".m4a") ||
+                lowerHref.endsWith(".webm"));
 
             if (isAudio && href) {
               return (
