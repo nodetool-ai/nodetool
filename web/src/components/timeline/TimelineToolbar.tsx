@@ -172,6 +172,9 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
   );
 
   const handleAddDemoClips = useCallback(() => {
+    // Images can be extended indefinitely - use a very high source duration
+    const IMAGE_MAX_DURATION = 3600;
+
     // Add an image track with a placeholder image
     const imageTrackId = addTrack("image", "Demo Images");
     if (imageTrackId) {
@@ -185,7 +188,7 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
         duration: 5,
         inPoint: 0,
         outPoint: 5,
-        sourceDuration: 5,
+        sourceDuration: IMAGE_MAX_DURATION, // Allow extending image clips
         speed: 1,
         opacity: 1
       };
@@ -200,7 +203,7 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
         duration: 4,
         inPoint: 0,
         outPoint: 4,
-        sourceDuration: 4,
+        sourceDuration: IMAGE_MAX_DURATION, // Allow extending image clips
         speed: 1,
         opacity: 1
       });

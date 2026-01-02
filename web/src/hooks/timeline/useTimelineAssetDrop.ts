@@ -14,6 +14,9 @@ const DEFAULT_IMAGE_DURATION = 5;
 // Default duration when media duration can't be determined
 const DEFAULT_MEDIA_DURATION = 10;
 
+// Images can be extended indefinitely - use a very high source duration
+const IMAGE_MAX_DURATION = 3600; // 1 hour - effectively unlimited for most use cases
+
 /**
  * Determines the clip type from an asset's content_type
  */
@@ -52,6 +55,12 @@ export function createClipFromAsset(
   // Use provided duration, or estimate based on type
   const clipDuration = duration ?? (clipType === "image" ? DEFAULT_IMAGE_DURATION : DEFAULT_MEDIA_DURATION);
   
+  // For images, allow unlimited extension by setting a very high source duration
+  // For video/audio, source duration should match the actual media length
+  const sourceDuration = clipType === "image" 
+    ? IMAGE_MAX_DURATION 
+    : clipDuration;
+  
   return {
     type: clipType,
     sourceRef: null, // Could be enhanced to use proper refs
@@ -61,7 +70,7 @@ export function createClipFromAsset(
     duration: clipDuration,
     inPoint: 0,
     outPoint: clipDuration,
-    sourceDuration: clipDuration,
+    sourceDuration,
     speed: 1,
     volume: clipType === "audio" ? 1 : undefined,
     opacity: clipType === "video" || clipType === "image" ? 1 : undefined

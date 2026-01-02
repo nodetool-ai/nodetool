@@ -758,9 +758,12 @@ export const useTimelineStore = create<TimelineStoreState>()(
         const newDuration = snappedEnd - clip.startTime;
         const newOutPoint = clip.inPoint + newDuration;
 
-        // Don't allow outPoint to exceed source duration
-        if (newOutPoint > clip.sourceDuration || newOutPoint <= clip.inPoint) {
-          return;
+        // For video/audio: don't allow outPoint to exceed source duration
+        // For images: allow any duration (images can be shown indefinitely)
+        if (clip.type !== "image") {
+          if (newOutPoint > clip.sourceDuration || newOutPoint <= clip.inPoint) {
+            return;
+          }
         }
 
         set({
