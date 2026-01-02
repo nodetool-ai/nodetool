@@ -94,8 +94,20 @@ async function extractFrame(
   thumbnailWidth: number
 ): Promise<VideoThumbnail> {
   return new Promise((resolve, reject) => {
-    // Set the time to seek to
-    video.currentTime = time;
+    // Clamp time to valid range (with small buffer to avoid edge issues)
+    const safeTime = Math.max(0.1, Math.min(time, video.duration - 0.1));
+    
+    // Timeout for seek operation (some videos fail silently)
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Seek timeout at ${safeTime}s`));
+    }, 5000);
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("error", onError);
+    };
 
     const onSeeked = () => {
       try {
@@ -118,30 +130,30 @@ async function extractFrame(
 
         const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
 
-        video.removeEventListener("seeked", onSeeked);
-        video.removeEventListener("error", onError);
+        cleanup();
 
         resolve({
-          time,
+          time: safeTime,
           dataUrl,
           width,
           height
         });
       } catch (err) {
-        video.removeEventListener("seeked", onSeeked);
-        video.removeEventListener("error", onError);
+        cleanup();
         reject(err);
       }
     };
 
     const onError = () => {
-      video.removeEventListener("seeked", onSeeked);
-      video.removeEventListener("error", onError);
-      reject(new Error("Video seek error"));
+      cleanup();
+      reject(new Error(`Video seek error at ${safeTime}s`));
     };
 
     video.addEventListener("seeked", onSeeked);
     video.addEventListener("error", onError);
+    
+    // Set the time to seek to
+    video.currentTime = safeTime;
   });
 }
 
@@ -215,15 +227,21 @@ async function extractThumbnailsWithCORS(
         const interval = duration / numThumbnails;
         const thumbnails: VideoThumbnail[] = [];
 
+        let failedFrames = 0;
         for (let i = 0; i < numThumbnails; i++) {
           const time = i * interval + interval / 2;
           try {
             const thumbnail = await extractFrame(video, time, thumbnailWidth);
             thumbnails.push(thumbnail);
-          } catch (err) {
+          } catch {
             // Continue with other frames if one fails
-            console.warn(`Failed to extract frame at ${time}s:`, err);
+            failedFrames++;
           }
+        }
+        
+        // Log summary instead of individual failures
+        if (failedFrames > 0) {
+          console.debug(`Thumbnail extraction: ${failedFrames}/${numThumbnails} frames failed for ${videoUrl.slice(-30)}`);
         }
 
         cleanup();

@@ -431,6 +431,21 @@ const TimelineToolbar: React.FC = () => {
             </ListItemIcon>
             <ListItemText>Add Demo Clips</ListItemText>
           </MenuItem>
+          <MenuItem
+            onClick={() => {
+              console.log(
+                "Timeline Project Data:",
+                JSON.stringify(project, null, 2)
+              );
+              console.log("Timeline Project (raw):", project);
+              handleAddTrackClose();
+            }}
+          >
+            <ListItemIcon>
+              <DataObjectIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Log Project Data</ListItemText>
+          </MenuItem>
         </Menu>
 
         <Tooltip title="Open Assets Page" enterDelay={TOOLTIP_ENTER_DELAY}>
