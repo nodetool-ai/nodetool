@@ -327,10 +327,14 @@ import { NodeTextField } from "../ui_primitives";
 
 ## Files Changed
 
-### New Files (6)
+### Moved Files
+- `web/src/components/ui_primitives/NodeNumberInput.tsx` → `web/src/components/editor_ui/NodeNumberInput.tsx`
+
+### Deleted Files
+- `web/src/components/ui_primitives/NodeSelectPrimitive.tsx` (consolidated into `editor_ui/NodeSelect.tsx`)
+
+### New Files (5)
 - `web/src/components/ui_primitives/NodeSlider.tsx`
-- `web/src/components/ui_primitives/NodeSelectPrimitive.tsx`
-- `web/src/components/ui_primitives/NodeNumberInput.tsx`
 - `web/src/components/ui_primitives/index.ts`
 - `web/src/components/ui_primitives/README.md`
 - `web/src/components/ui_primitives/EXAMPLES.md`

@@ -9,17 +9,12 @@
 export { NodeSlider } from "./NodeSlider";
 export type { NodeSliderProps } from "./NodeSlider";
 
-export { NodeSelectPrimitive, NodeMenuItem } from "./NodeSelectPrimitive";
-export type { NodeSelectProps } from "./NodeSelectPrimitive";
-
-export { NodeNumberInput } from "./NodeNumberInput";
-export type { NodeNumberInputProps } from "./NodeNumberInput";
-
 // Re-export editor_ui primitives for convenience
 export {
   NodeTextField,
   NodeSwitch,
   NodeSelect,
+  NodeMenuItem,
   EditorButton,
   EditorMenu,
   EditorMenuItem
@@ -27,6 +22,8 @@ export {
 export type {
   NodeTextFieldProps,
   NodeSwitchProps,
+  NodeSelectProps,
+  NodeMenuItemProps,
   EditorButtonProps
 } from "../editor_ui";
 

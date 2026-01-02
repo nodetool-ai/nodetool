@@ -14,9 +14,9 @@
 import React, { forwardRef } from "react";
 import { TextField, TextFieldProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useEditorScope } from "../editor_ui/EditorUiContext";
+import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";
-import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { editorClassNames, cn } from "./editorUtils";
 
 export interface NodeNumberInputProps
   extends Omit<TextFieldProps, "variant" | "size" | "type"> {
