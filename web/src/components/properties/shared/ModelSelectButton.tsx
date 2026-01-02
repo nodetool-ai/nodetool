@@ -1,7 +1,9 @@
 import React, { forwardRef } from "react";
 import { Button, Typography, Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useEditorScope } from "../../editor_ui";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -26,6 +28,9 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
     },
     ref
   ) => {
+    const theme = useTheme();
+    const scope = useEditorScope();
+
     return (
       <Tooltip
         title={
@@ -52,7 +57,15 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             </div>
           )
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterDelay={TOOLTIP_ENTER_DELAY * 2}
+        enterNextDelay={TOOLTIP_ENTER_DELAY * 2}
+        slotProps={{
+          tooltip: {
+            sx: {
+              maxWidth: "350px !important"
+            }
+          }
+        }}
       >
         <Button
           ref={ref}
@@ -60,10 +73,12 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             active ? "active" : ""
           }`}
           sx={{
-            fontSize: "var(--fontSizeTinyer)",
             border: active
               ? "1px solid var(--palette-divider)"
               : "1px solid var(--palette-warning-main)",
+            backgroundColor: active
+              ? "var(--palette-primary-main) !important"
+              : "var(--palette-warning-main) !important",
             borderRadius: "4px",
             color: "var(--palette-text-primary)",
             textTransform: "none",
@@ -75,7 +90,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             height: "auto",
             padding: "4px 8px !important",
             width: "100%",
-            backgroundColor: "var(--palette-background-default)",
+            // backgroundColor: "var(--palette-background-default)",
             "&:hover": {
               backgroundColor: "var(--palette-action-hover)",
               borderColor: "var(--palette-primary-main)"
@@ -85,6 +100,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
           size="small"
         >
           <div
+            className="model-select-button-label"
             style={{
               textAlign: "left",
               flexGrow: 1,
@@ -93,13 +109,16 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             }}
           >
             <Typography
+              className="model-select-button-label-text"
               component="div"
               variant="body2"
               sx={{
-                color: active
-                  ? "var(--palette-text-primary)"
-                  : "var(--palette-text-secondary)",
-                lineHeight: 1.2,
+                color: "var(--palette-common-black)",
+                fontSize:
+                  scope === "inspector"
+                    ? theme.fontSizeSmall
+                    : theme.fontSizeTinyer,
+                lineHeight: "1.2em",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
@@ -112,13 +131,18 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             </Typography>
             {secondaryLabel && (
               <Typography
+                className="model-select-button-label-text-secondary"
                 component="div"
                 variant="body2"
                 sx={{
-                  color: "var(--palette-grey-400)",
-                  lineHeight: 1.2,
+                  color: "var(--palette-common-white)",
+                  lineHeight: "1.1em",
                   display: "block",
-                  fontSize: "0.75em",
+                  fontSize:
+                    scope === "inspector"
+                      ? theme.fontSizeSmall
+                      : theme.fontSizeTinyer,
+                  fontWeight: "light",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis"
@@ -130,11 +154,11 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
           </div>
           <ExpandMoreIcon
             sx={{
-              fontSize: 10,
-              color: "var(--palette-grey-500)",
+              fontSize: 12,
+              color: "var(--palette-grey-800)",
               flexShrink: 0,
               ml: 0,
-              mr: "-5px",
+              mr: "-6px",
               opacity: 0.7
             }}
           />

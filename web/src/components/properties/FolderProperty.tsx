@@ -1,9 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import {
-  Select,
-  MenuItem,
   Button,
   Popover,
   DialogTitle,
@@ -21,6 +18,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useRef, useEffect, useMemo } from "react";
 import dialogStyles from "../../styles/DialogStyles";
 import isEqual from "lodash/isEqual";
+import { NodeSelect, NodeMenuItem } from "../editor_ui";
 
 const FolderProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
@@ -83,34 +81,21 @@ const FolderProperty = (props: PropertyProps) => {
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
       <div style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
-        <Select
+        <NodeSelect
           id={id}
           labelId={id}
           name=""
           value={selectValue}
-          variant="standard"
           onChange={(e) =>
             props.onChange({ type: "folder", asset_id: e.target.value })
           }
-          className="mui-select nodrag"
-          disableUnderline={true}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "left"
-            },
-            transformOrigin: {
-              vertical: "top",
-              horizontal: "left"
-            }
-          }}
         >
           {data?.assets.map((folder) => (
-            <MenuItem key={folder.id} value={folder.id}>
+            <NodeMenuItem key={folder.id} value={folder.id}>
               {folder.name}
-            </MenuItem>
+            </NodeMenuItem>
           ))}
-        </Select>
+        </NodeSelect>
         <Button
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
