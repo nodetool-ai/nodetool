@@ -35,19 +35,19 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       padding: theme.spacing(0.5, 1),
-      borderBottom: `1px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.background.paper,
+      borderBottom: `1px solid ${theme.vars?.palette?.divider || theme.palette.divider}`,
+      backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
       minHeight: "60px",
       gap: theme.spacing(0.5),
       cursor: "pointer",
       transition: "background-color 0.15s ease",
 
       "&:hover": {
-        backgroundColor: theme.palette.action.hover
+        backgroundColor: theme.vars?.palette?.action?.hover || theme.palette.action.hover
       },
 
       "&.selected": {
-        backgroundColor: theme.palette.action.selected
+        backgroundColor: theme.vars?.palette?.action?.selected || theme.palette.action.selected
       },
 
       "&.muted": {
@@ -77,12 +77,13 @@ const styles = (theme: Theme) =>
       fontSize: "0.8rem",
       whiteSpace: "nowrap",
       overflow: "hidden",
-      textOverflow: "ellipsis"
+      textOverflow: "ellipsis",
+      color: theme.vars?.palette?.text?.primary || theme.palette.text.primary
     },
 
     ".track-type": {
       fontSize: "0.65rem",
-      color: theme.palette.text.secondary,
+      color: theme.vars?.palette?.text?.secondary || theme.palette.text.secondary,
       textTransform: "capitalize"
     },
 
@@ -104,7 +105,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       flex: 1,
-      color: theme.palette.text.secondary,
+      color: theme.vars?.palette?.text?.secondary || theme.palette.text.secondary,
       fontSize: "0.75rem",
       padding: theme.spacing(2)
     }

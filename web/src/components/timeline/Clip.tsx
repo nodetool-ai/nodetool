@@ -18,11 +18,11 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
 
     "&:hover": {
-      boxShadow: `0 0 0 2px ${theme.palette.primary.main}40`
+      boxShadow: `0 0 0 2px ${theme.vars?.palette?.primary?.main || theme.palette.primary.main}40`
     },
 
     "&.selected": {
-      boxShadow: `0 0 0 2px ${theme.palette.primary.main}`
+      boxShadow: `0 0 0 2px ${theme.vars?.palette?.primary?.main || theme.palette.primary.main}`
     },
 
     "&.dragging": {

@@ -9,7 +9,6 @@ import {
   Slider,
   Divider,
   ToggleButton,
-  ToggleButtonGroup,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -35,7 +34,10 @@ import ImageIcon from "@mui/icons-material/Image";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 
-import useTimelineStore, { useTimelineHistory, TrackType } from "../../stores/TimelineStore";
+import useTimelineStore, {
+  useTimelineHistory,
+  TrackType
+} from "../../stores/TimelineStore";
 import { formatTimecode, formatTimeShort } from "../../utils/timelineUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -44,8 +46,11 @@ const styles = (theme: Theme) =>
     display: "flex",
     alignItems: "center",
     padding: theme.spacing(0.5, 1),
-    backgroundColor: theme.palette.background.paper,
-    borderBottom: `1px solid ${theme.palette.divider}`,
+    backgroundColor:
+      theme.vars?.palette?.background?.paper || theme.palette.background.paper,
+    borderBottom: `1px solid ${
+      theme.vars?.palette?.divider || theme.palette.divider
+    }`,
     gap: theme.spacing(1),
     flexWrap: "wrap",
     minHeight: "48px",
@@ -65,10 +70,12 @@ const styles = (theme: Theme) =>
       fontFamily: "monospace",
       fontSize: "0.875rem",
       padding: theme.spacing(0.5, 1),
-      backgroundColor: theme.palette.action.hover,
+      backgroundColor:
+        theme.vars?.palette?.action?.hover || theme.palette.action.hover,
       borderRadius: theme.shape.borderRadius,
       minWidth: "110px",
-      textAlign: "center"
+      textAlign: "center",
+      color: theme.vars?.palette?.text?.primary || theme.palette.text.primary
     },
 
     ".zoom-slider": {
@@ -85,23 +92,25 @@ const styles = (theme: Theme) =>
 
     ".snap-toggle": {
       "&.Mui-selected": {
-        backgroundColor: theme.palette.primary.dark,
-        color: theme.palette.primary.contrastText
+        backgroundColor:
+          theme.vars?.palette?.primary?.dark || theme.palette.primary.dark,
+        color:
+          theme.vars?.palette?.primary?.contrastText ||
+          theme.palette.primary.contrastText
       }
     }
   });
 
 const TimelineToolbar: React.FC = () => {
   const theme = useTheme();
-  const [addTrackAnchor, setAddTrackAnchor] = React.useState<null | HTMLElement>(null);
+  const [addTrackAnchor, setAddTrackAnchor] =
+    React.useState<null | HTMLElement>(null);
 
   const {
     project,
     playback,
     viewport,
     snapEnabled,
-    play,
-    pause,
     stop,
     togglePlayback,
     stepFrame,
@@ -114,29 +123,38 @@ const TimelineToolbar: React.FC = () => {
     addTrack
   } = useTimelineStore();
 
-  const { undo, redo, canUndo, canRedo } = useTimelineHistory(state => ({
+  const { undo, redo, canUndo, canRedo } = useTimelineHistory((state) => ({
     undo: state.undo,
     redo: state.redo,
     canUndo: state.pastStates.length > 0,
     canRedo: state.futureStates.length > 0
   }));
 
-  const handleZoomChange = useCallback((_event: Event, value: number | number[]) => {
-    setZoom(value as number);
-  }, [setZoom]);
+  const handleZoomChange = useCallback(
+    (_event: Event, value: number | number[]) => {
+      setZoom(value as number);
+    },
+    [setZoom]
+  );
 
-  const handleAddTrackClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setAddTrackAnchor(event.currentTarget);
-  }, []);
+  const handleAddTrackClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      setAddTrackAnchor(event.currentTarget);
+    },
+    []
+  );
 
   const handleAddTrackClose = useCallback(() => {
     setAddTrackAnchor(null);
   }, []);
 
-  const handleAddTrack = useCallback((type: TrackType) => {
-    addTrack(type);
-    handleAddTrackClose();
-  }, [addTrack, handleAddTrackClose]);
+  const handleAddTrack = useCallback(
+    (type: TrackType) => {
+      addTrack(type);
+      handleAddTrackClose();
+    },
+    [addTrack, handleAddTrackClose]
+  );
 
   const frameRate = project?.frameRate || 30;
 
@@ -156,9 +174,12 @@ const TimelineToolbar: React.FC = () => {
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={playback.isPlaying ? "Pause (Space)" : "Play (Space)"} enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton 
-            size="small" 
+        <Tooltip
+          title={playback.isPlaying ? "Pause (Space)" : "Play (Space)"}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <IconButton
+            size="small"
             onClick={togglePlayback}
             color={playback.isPlaying ? "primary" : "default"}
           >
@@ -172,9 +193,12 @@ const TimelineToolbar: React.FC = () => {
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={`Loop ${playback.loopEnabled ? "(On)" : "(Off)"}`} enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton 
-            size="small" 
+        <Tooltip
+          title={`Loop ${playback.loopEnabled ? "(On)" : "(Off)"}`}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <IconButton
+            size="small"
             onClick={toggleLoop}
             color={playback.loopEnabled ? "primary" : "default"}
           >
@@ -291,7 +315,10 @@ const TimelineToolbar: React.FC = () => {
 
       {/* Snap toggle */}
       <div className="toolbar-section">
-        <Tooltip title={`Snap ${snapEnabled ? "(On)" : "(Off)"}`} enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip
+          title={`Snap ${snapEnabled ? "(On)" : "(Off)"}`}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
           <ToggleButton
             value="snap"
             selected={snapEnabled}

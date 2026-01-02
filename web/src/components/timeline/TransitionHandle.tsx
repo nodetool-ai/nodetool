@@ -21,8 +21,8 @@ const styles = (theme: Theme) =>
     width: "20px",
     height: "20px",
     borderRadius: "50%",
-    backgroundColor: theme.palette.background.paper,
-    border: `2px solid ${theme.palette.divider}`,
+    backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
+    border: `2px solid ${theme.vars?.palette?.divider || theme.palette.divider}`,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -31,19 +31,19 @@ const styles = (theme: Theme) =>
     transition: "all 0.15s ease",
 
     "&:hover": {
-      backgroundColor: theme.palette.primary.main,
-      borderColor: theme.palette.primary.main,
+      backgroundColor: theme.vars?.palette?.primary?.main || theme.palette.primary.main,
+      borderColor: theme.vars?.palette?.primary?.main || theme.palette.primary.main,
       transform: "translate(-50%, -50%) scale(1.2)"
     },
 
     "&.has-transition": {
-      backgroundColor: theme.palette.primary.main,
-      borderColor: theme.palette.primary.light
+      backgroundColor: theme.vars?.palette?.primary?.main || theme.palette.primary.main,
+      borderColor: theme.vars?.palette?.primary?.light || theme.palette.primary.light
     },
 
     ".transition-icon": {
       fontSize: "12px",
-      color: theme.palette.text.primary
+      color: theme.vars?.palette?.text?.primary || theme.palette.text.primary
     },
 
     ".transition-preview": {
@@ -53,14 +53,15 @@ const styles = (theme: Theme) =>
       transform: "translateX(-50%)",
       marginTop: "4px",
       padding: "2px 6px",
-      backgroundColor: theme.palette.background.paper,
+      backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
       borderRadius: "4px",
       fontSize: "0.6rem",
       whiteSpace: "nowrap",
       boxShadow: theme.shadows[2],
       pointerEvents: "none",
       opacity: 0,
-      transition: "opacity 0.15s ease"
+      transition: "opacity 0.15s ease",
+      color: theme.vars?.palette?.text?.primary || theme.palette.text.primary
     },
 
     "&:hover .transition-preview": {

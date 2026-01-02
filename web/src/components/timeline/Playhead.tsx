@@ -11,7 +11,7 @@ const styles = (theme: Theme) =>
     position: "absolute",
     top: 0,
     width: "2px",
-    backgroundColor: theme.palette.error.main,
+    backgroundColor: theme.vars?.palette?.error?.main || theme.palette.error.main,
     zIndex: 1000,
     pointerEvents: "none",
     transform: "translateX(-50%)",
@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
       height: 0,
       borderLeft: "8px solid transparent",
       borderRight: "8px solid transparent",
-      borderTop: `10px solid ${theme.palette.error.main}`
+      borderTop: `10px solid ${theme.vars?.palette?.error?.main || theme.palette.error.main}`
     },
 
     "&::after": {
@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       height: 0,
       borderLeft: "6px solid transparent",
       borderRight: "6px solid transparent",
-      borderBottom: `8px solid ${theme.palette.error.main}`
+      borderBottom: `8px solid ${theme.vars?.palette?.error?.main || theme.palette.error.main}`
     },
 
     ".playhead-line": {
@@ -47,8 +47,8 @@ const styles = (theme: Theme) =>
       top: "10px",
       bottom: "8px",
       width: "2px",
-      backgroundColor: theme.palette.error.main,
-      boxShadow: `0 0 4px ${theme.palette.error.main}`
+      backgroundColor: theme.vars?.palette?.error?.main || theme.palette.error.main,
+      boxShadow: `0 0 4px ${theme.vars?.palette?.error?.main || theme.palette.error.main}`
     }
   });
 

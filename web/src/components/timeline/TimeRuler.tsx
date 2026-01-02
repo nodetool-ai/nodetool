@@ -10,7 +10,7 @@ const styles = (theme: Theme) =>
     position: "relative",
     height: "100%",
     overflow: "hidden",
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
 
     ".ruler-canvas": {
       display: "block"

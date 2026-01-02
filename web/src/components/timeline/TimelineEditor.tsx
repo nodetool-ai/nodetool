@@ -17,7 +17,9 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     height: "100%",
     width: "100%",
-    backgroundColor: theme.palette.background.default,
+    backgroundColor:
+      theme.vars?.palette?.background?.default ||
+      theme.palette.background.default,
     overflow: "hidden",
     userSelect: "none",
 
@@ -30,19 +32,26 @@ const styles = (theme: Theme) =>
     ".timeline-sidebar": {
       width: "200px",
       minWidth: "200px",
-      backgroundColor: theme.palette.background.paper,
-      borderRight: `1px solid ${theme.palette.divider}`,
+      backgroundColor:
+        theme.vars?.palette?.background?.paper ||
+        theme.palette.background.paper,
+      borderRight: `1px solid ${
+        theme.vars?.palette?.divider || theme.palette.divider
+      }`,
       display: "flex",
       flexDirection: "column"
     },
 
     ".timeline-sidebar-header": {
       height: "30px",
-      borderBottom: `1px solid ${theme.palette.divider}`,
+      borderBottom: `1px solid ${
+        theme.vars?.palette?.divider || theme.palette.divider
+      }`,
       display: "flex",
       alignItems: "center",
       paddingLeft: theme.spacing(1),
-      backgroundColor: theme.palette.background.paper
+      backgroundColor:
+        theme.vars?.palette?.background?.paper || theme.palette.background.paper
     },
 
     ".timeline-content": {
@@ -55,8 +64,12 @@ const styles = (theme: Theme) =>
 
     ".timeline-ruler-container": {
       height: "30px",
-      backgroundColor: theme.palette.background.paper,
-      borderBottom: `1px solid ${theme.palette.divider}`,
+      backgroundColor:
+        theme.vars?.palette?.background?.paper ||
+        theme.palette.background.paper,
+      borderBottom: `1px solid ${
+        theme.vars?.palette?.divider || theme.palette.divider
+      }`,
       overflow: "hidden"
     },
 
@@ -91,15 +104,19 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       height: "100%",
-      color: theme.palette.text.secondary,
+      color:
+        theme.vars?.palette?.text?.secondary || theme.palette.text.secondary,
       gap: theme.spacing(2)
     },
 
     ".timeline-bottom-panel": {
       display: "flex",
       height: "250px",
-      borderTop: `1px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.background.paper
+      borderTop: `1px solid ${
+        theme.vars?.palette?.divider || theme.palette.divider
+      }`,
+      backgroundColor:
+        theme.vars?.palette?.background?.paper || theme.palette.background.paper
     },
 
     ".timeline-preview-container": {
@@ -115,7 +132,9 @@ interface TimelineEditorProps {
   showPreview?: boolean;
 }
 
-const TimelineEditor: React.FC<TimelineEditorProps> = ({ showPreview = true }) => {
+const TimelineEditor: React.FC<TimelineEditorProps> = ({
+  showPreview = true
+}) => {
   const theme = useTheme();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
@@ -151,56 +170,70 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({ showPreview = true }) =
   }, [setViewportWidth]);
 
   // Handle horizontal scroll
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    setScrollLeft(target.scrollLeft);
-  }, [setScrollLeft]);
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.currentTarget;
+      setScrollLeft(target.scrollLeft);
+    },
+    [setScrollLeft]
+  );
 
   // Handle click on timeline to seek
-  const handleTimelineClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!scrollContainerRef.current || isScrolling) {
-      return;
-    }
-
-    const rect = scrollContainerRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left + scrollContainerRef.current.scrollLeft;
-    const time = clickX / viewport.pixelsPerSecond;
-    
-    seek(Math.max(0, time));
-  }, [viewport.pixelsPerSecond, seek, isScrolling]);
-
-  // Handle mouse drag for scrubbing
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.button !== 0) {
-      return;
-    } // Only left click
-    
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!scrollContainerRef.current) {
+  const handleTimelineClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!scrollContainerRef.current || isScrolling) {
         return;
       }
-      
-      setIsScrolling(true);
+
       const rect = scrollContainerRef.current.getBoundingClientRect();
-      const clickX = moveEvent.clientX - rect.left + scrollContainerRef.current.scrollLeft;
+      const clickX =
+        e.clientX - rect.left + scrollContainerRef.current.scrollLeft;
       const time = clickX / viewport.pixelsPerSecond;
-      
+
       seek(Math.max(0, time));
-    };
+    },
+    [viewport.pixelsPerSecond, seek, isScrolling]
+  );
 
-    const handleMouseUp = () => {
-      setIsScrolling(false);
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
+  // Handle mouse drag for scrubbing
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.button !== 0) {
+        return;
+      } // Only left click
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  }, [viewport.pixelsPerSecond, seek]);
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!scrollContainerRef.current) {
+          return;
+        }
+
+        setIsScrolling(true);
+        const rect = scrollContainerRef.current.getBoundingClientRect();
+        const clickX =
+          moveEvent.clientX - rect.left + scrollContainerRef.current.scrollLeft;
+        const time = clickX / viewport.pixelsPerSecond;
+
+        seek(Math.max(0, time));
+      };
+
+      const handleMouseUp = () => {
+        setIsScrolling(false);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [viewport.pixelsPerSecond, seek]
+  );
 
   // Calculate total timeline width based on project duration
-  const timelineWidth = project 
-    ? Math.max(project.duration * viewport.pixelsPerSecond, viewport.viewportWidth)
+  const timelineWidth = project
+    ? Math.max(
+        project.duration * viewport.pixelsPerSecond,
+        viewport.viewportWidth
+      )
     : viewport.viewportWidth;
 
   if (!project) {
@@ -270,9 +303,20 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({ showPreview = true }) =
 
                 {/* Empty state if no tracks */}
                 {project.tracks.length === 0 && (
-                  <div className="timeline-empty-state" style={{ height: "200px" }}>
+                  <div
+                    className="timeline-empty-state"
+                    style={{ height: "200px" }}
+                  >
+                    <Typography
+                      variant="body1"
+                      color="textSecondary"
+                      sx={{ mb: 1 }}
+                    >
+                      No tracks yet
+                    </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      No tracks yet. Add a track to get started.
+                      Click the <strong>+</strong> button in the toolbar above
+                      to add a Video, Audio, or Image track.
                     </Typography>
                   </div>
                 )}

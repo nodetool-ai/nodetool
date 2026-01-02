@@ -12,8 +12,8 @@ import { timeToPixels } from "../../utils/timelineUtils";
 const styles = (theme: Theme) =>
   css({
     position: "relative",
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    backgroundColor: theme.palette.background.default,
+    borderBottom: `1px solid ${theme.vars?.palette?.divider || theme.palette.divider}`,
+    backgroundColor: theme.vars?.palette?.background?.default || theme.palette.background.default,
 
     "&.muted": {
       opacity: 0.5

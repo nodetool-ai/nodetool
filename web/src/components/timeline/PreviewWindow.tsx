@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
     width: "100%",
     maxWidth: "400px",
     height: "100%",
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
     borderRadius: theme.shape.borderRadius,
     overflow: "hidden",
 
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      color: theme.palette.text.secondary,
+      color: theme.vars?.palette?.text?.secondary || theme.palette.text.secondary,
       gap: theme.spacing(1)
     },
 
@@ -62,14 +62,15 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       padding: theme.spacing(0.5, 1),
       gap: theme.spacing(1),
-      backgroundColor: theme.palette.background.default,
-      borderTop: `1px solid ${theme.palette.divider}`
+      backgroundColor: theme.vars?.palette?.background?.default || theme.palette.background.default,
+      borderTop: `1px solid ${theme.vars?.palette?.divider || theme.palette.divider}`
     },
 
     ".preview-time": {
       fontSize: "0.75rem",
       fontFamily: "monospace",
-      minWidth: "80px"
+      minWidth: "80px",
+      color: theme.vars?.palette?.text?.primary || theme.palette.text.primary
     },
 
     ".preview-volume": {
@@ -84,7 +85,7 @@ const styles = (theme: Theme) =>
 
     ".no-clips-message": {
       fontSize: "0.75rem",
-      color: theme.palette.text.disabled,
+      color: theme.vars?.palette?.text?.disabled || theme.palette.text.disabled,
       textAlign: "center",
       padding: theme.spacing(1)
     }
