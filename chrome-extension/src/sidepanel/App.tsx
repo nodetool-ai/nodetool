@@ -11,8 +11,10 @@ import {
   ServerStatus,
   EmptyChatState
 } from './components';
+import { ChatToolBar } from '../components/chat/controls';
 import { useExtensionStore } from './store';
 import { useWebSocket } from './hooks/useWebSocket';
+import useGlobalChatStore from '../stores/GlobalChatStore';
 import type { PageContext } from '../types';
 import '../styles/index.css';
 
@@ -37,6 +39,12 @@ const messagesContainerStyles = css({
   paddingTop: '16px'
 });
 
+const toolbarContainerStyles = css({
+  padding: '8px 12px',
+  borderBottom: '1px solid',
+  borderColor: 'var(--palette-divider)'
+});
+
 function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const {
@@ -48,6 +56,14 @@ function App() {
 
   const messages = useExtensionStore((state) => state.getCurrentMessages());
   const isStreaming = useExtensionStore((state) => state.isStreaming);
+
+  // Global chat store state for toolbar
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
+  const selectedTools = useGlobalChatStore((state) => state.selectedTools);
+  const setSelectedTools = useGlobalChatStore((state) => state.setSelectedTools);
+  const agentMode = useGlobalChatStore((state) => state.agentMode);
+  const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
 
   const { connect, sendMessage, stopGeneration, isConnected } = useWebSocket();
 
@@ -138,6 +154,18 @@ function App() {
       <CssBaseline />
       <Box css={appContainerStyles} sx={{ bgcolor: 'background.default', color: 'text.primary' }}>
         <ChatHeader />
+
+        {/* ChatToolBar - Model selector, Tools selector, Agent mode */}
+        <Box css={toolbarContainerStyles}>
+          <ChatToolBar
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            selectedTools={selectedTools}
+            onToolsChange={setSelectedTools}
+            agentMode={agentMode}
+            onAgentModeToggle={setAgentMode}
+          />
+        </Box>
 
         <Box css={chatContainerStyles}>
           {renderChatContent()}

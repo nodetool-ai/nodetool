@@ -85,8 +85,9 @@ Implement the full GlobalChat UI from the web application in the Chrome extensio
 
 ### 2.3 Composer Components
 - [x] Enhanced existing `ChatInput.tsx` with context toggle
-- [ ] Model selector (deferred - can add later)
-- [ ] Tools selector (deferred - can add later)
+- [x] Model selector - `LanguageModelSelect` component
+- [x] Tools selector - `WorkflowToolsSelector` component
+- [x] Agent mode toggle - `AgentModeToggle` component
 - [ ] Attachment handling (deferred - can add later)
 
 ### 2.4 Message Components
@@ -97,7 +98,8 @@ Implement the full GlobalChat UI from the web application in the Chrome extensio
 ### 2.5 Controls & Status Components
 - [x] Status indicator in ChatHeader
 - [x] Connection status chip with colors
-- [ ] Agent mode toggle (deferred - can add later)
+- [x] Agent mode toggle (`AgentModeToggle.tsx`)
+- [x] Chat toolbar (`ChatToolBar.tsx`) with model/tools/agent mode
 
 ### 2.6 Chat Utilities
 - [x] Date formatting using date-fns (isToday, isYesterday, isThisWeek)

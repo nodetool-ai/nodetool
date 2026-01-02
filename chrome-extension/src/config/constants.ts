@@ -12,3 +12,8 @@ export const DEFAULT_MAX_TOKENS = 4096;
  * Default temperature for completions.
  */
 export const DEFAULT_TEMPERATURE = 0.7;
+
+/**
+ * Tooltip enter delay in milliseconds.
+ */
+export const TOOLTIP_ENTER_DELAY = 500;

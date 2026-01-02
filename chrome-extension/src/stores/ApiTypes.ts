@@ -183,3 +183,18 @@ export interface PreviewUpdate {
   node_id: string;
   preview: string | ArrayBuffer;
 }
+
+// Provider types
+export interface ProviderInfo {
+  provider: string;
+  name: string;
+  capabilities: string[];
+}
+
+// Workflow Tool types
+export interface WorkflowTool {
+  tool_name: string | null;
+  name: string;
+  description: string;
+  workflow_id: string;
+}

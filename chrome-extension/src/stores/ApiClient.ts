@@ -8,7 +8,10 @@ import {
   ThreadList,
   MessageList,
   ThreadUpdateRequest,
-  ThreadSummarizeRequest
+  ThreadSummarizeRequest,
+  LanguageModel,
+  ProviderInfo,
+  WorkflowTool
 } from "./ApiTypes";
 
 export interface ApiClientConfig {
@@ -147,6 +150,22 @@ export class ApiClient {
       params.set("cursor", cursor);
     }
     return this.GET<MessageList>(`/api/messages/?${params.toString()}`);
+  }
+
+  // Provider and Model API methods
+  async getProviders(): Promise<{ data?: ProviderInfo[]; error?: { detail?: { msg: string }[] } }> {
+    return this.GET<ProviderInfo[]>("/api/models/providers");
+  }
+
+  async getLanguageModels(
+    provider: string
+  ): Promise<{ data?: LanguageModel[]; error?: { detail?: { msg: string }[] } }> {
+    return this.GET<LanguageModel[]>(`/api/models/llm/${provider}`);
+  }
+
+  // Workflow Tools API
+  async getWorkflowTools(): Promise<{ data?: WorkflowTool[]; error?: { detail?: { msg: string }[] } }> {
+    return this.GET<WorkflowTool[]>("/api/workflows/tools");
   }
 }
 
