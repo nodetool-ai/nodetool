@@ -107,50 +107,52 @@ Implement the full GlobalChat UI from the web application in the Chrome extensio
 ## Phase 3: Copy & Adapt Stores
 
 ### 3.1 Core Chat Store
-- [ ] Copy `web/src/stores/GlobalChatStore.ts` → `chrome-extension/src/stores/GlobalChatStore.ts`
-- [ ] Adapt for Chrome extension:
-  - Remove/suppress Supabase dependencies if not needed
-  - Use localStorage for thread persistence
-  - WebSocket URL may need to be configurable
+- [x] Create `chrome-extension/src/stores/GlobalChatStore.ts` (adapted from web version)
+- [x] Adapt for Chrome extension:
+  - [x] Removed Supabase dependencies
+  - [x] Configurable server URL and API key
+  - [x] Uses Zustand persist with localStorage
+  - [x] WebSocket URL configurable via settings
 
 ### 3.2 Supporting Stores
-- [ ] Copy `web/src/stores/NotificationStore.ts` → `chrome-extension/src/stores/NotificationStore.ts`
-- [ ] Copy `web/src/stores/ApiClient.ts` → `chrome-extension/src/stores/ApiClient.ts`
-- [ ] Copy `web/src/stores/ApiTypes.ts` → `chrome-extension/src/stores/ApiTypes.ts`
-- [ ] Copy `web/src/stores/PanelStore.ts` → `chrome-extension/src/stores/PanelStore.ts`
-- [ ] Copy `web/src/stores/RightPanelStore.ts` → `chrome-extension/src/stores/RightPanelStore.ts`
-- [ ] Copy `web/src/stores/SettingsStore.ts` → `chrome-extension/src/stores/SettingsStore.ts`
+- [x] Create `chrome-extension/src/stores/NotificationStore.ts`
+- [x] Create `chrome-extension/src/stores/ApiClient.ts` (simplified fetch-based client)
+- [x] Create `chrome-extension/src/stores/ApiTypes.ts` (chat-focused types)
+- [x] Create `chrome-extension/src/stores/BASE_URL.ts` (URL utilities)
+- [x] Create `chrome-extension/src/stores/uuidv4.ts`
 
 ### 3.3 Store Utilities
-- [ ] Copy `web/src/stores/customEquality.ts` → `chrome-extension/src/stores/customEquality.ts`
+- [x] Create `chrome-extension/src/stores/customEquality.ts`
 
 ---
 
 ## Phase 4: Copy Hooks
 
 ### 4.1 Chat Hooks
-- [ ] Copy `web/src/hooks/useEnsureChatConnected.ts` → `chrome-extension/src/hooks/useEnsureChatConnected.ts`
-- [ ] Copy `web/src/hooks/useChatService.ts` → `chrome-extension/src/hooks/useChatService.ts`
-- [ ] Copy `web/src/hooks/useRunningJobs.ts` → `chrome-extension/src/hooks/useRunningJobs.ts`
+- [x] Create `chrome-extension/src/hooks/useEnsureChatConnected.ts`
+- [x] Create `chrome-extension/src/hooks/useChatService.ts`
+- [ ] useRunningJobs (deferred - not needed for basic chat)
 
 ### 4.2 Server State Hooks (React Query)
-- [ ] Copy `web/src/serverState/useThreadsQuery.ts` → `chrome-extension/src/serverState/useThreadsQuery.ts`
-- [ ] Copy `web/src/serverState/useWorkflow.ts` → `chrome-extension/src/serverState/useWorkflow.ts`
+- [ ] useThreadsQuery (deferred - using GlobalChatStore instead)
+- [ ] useWorkflow (deferred - not needed for basic chat)
 
 ### 4.3 UI Hooks
-- [ ] Copy `web/src/hooks/useDelayedHover.ts` → `chrome-extension/src/hooks/useDelayedHover.ts`
-- [ ] Copy `web/src/hooks/useNumberInput.ts` → `chrome-extension/src/hooks/useNumberInput.ts`
+- [ ] useDelayedHover (deferred - not needed)
+- [ ] useNumberInput (deferred - not needed)
 
 ---
 
 ## Phase 5: Copy WebSocket & API Utilities
 
 ### 5.1 WebSocket Manager
-- [ ] Copy `web/src/lib/websocket/WebSocketManager.ts` → `chrome-extension/src/lib/websocket/WebSocketManager.ts`
+- [x] Create `chrome-extension/src/lib/websocket/WebSocketManager.ts` (adapted from web version)
 
-### 5.2 API Client
-- [ ] Copy `web/src/lib/api.ts` → `chrome-extension/src/lib/api.ts`
-- [ ] Adapt base URLs for extension context
+### 5.2 Chat Protocol
+- [x] Create `chrome-extension/src/core/chat/chatProtocol.ts` (simplified message handler)
+
+### 5.3 API Client
+- [x] API client integrated into stores/ApiClient.ts
 
 ---
 

@@ -39,13 +39,25 @@ export default [
         fetch: "readonly",
         Uint8Array: "readonly",
         URL: "readonly",
+        URLSearchParams: "readonly",
         HTMLElement: "readonly",
         HTMLDivElement: "readonly",
         HTMLButtonElement: "readonly",
         Date: "readonly",
         Math: "readonly",
         Error: "readonly",
-        Blob: "readonly"
+        Blob: "readonly",
+        BlobPart: "readonly",
+        BinaryType: "readonly",
+        MessageEvent: "readonly",
+        Event: "readonly",
+        CloseEvent: "readonly",
+        HeadersInit: "readonly",
+        ArrayBuffer: "readonly",
+        Object: "readonly",
+        Promise: "readonly",
+        JSON: "readonly",
+        String: "readonly"
       }
     },
     settings: {
