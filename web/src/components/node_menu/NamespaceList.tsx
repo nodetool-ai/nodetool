@@ -15,6 +15,7 @@ import {
 } from "../../config/constants";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
+import RecentNodesTiles from "./RecentNodesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
@@ -752,6 +753,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
               minSearchTermLength={minSearchTermLength}
             />
             <div className="quick-action-tiles-container">
+              <RecentNodesTiles />
               <QuickActionTiles />
             </div>
           </>
