@@ -7,6 +7,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
+  Button,
   Fab
 } from "@mui/material";
 import { memo, useEffect } from "react";
@@ -219,13 +221,9 @@ const CollectionList = () => {
               ))}
             </List>
           </DialogContent>
-          <DialogActionButtons
-            onConfirm={() => setIndexErrors([])}
-            onCancel={() => setIndexErrors([])}
-            confirmText="Close"
-            cancelText=""
-            cancelDisabled={true}
-          />
+          <DialogActions>
+            <Button onClick={() => setIndexErrors([])}>Close</Button>
+          </DialogActions>
         </Dialog>
       )}
     </>
