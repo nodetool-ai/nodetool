@@ -95,13 +95,13 @@ export function Settings() {
         sx: {
           width: '100%',
           maxWidth: '100%',
-          bgcolor: theme.palette.background.default
+          bgcolor: theme.vars.palette.background.default
         }
       }}
     >
       <Box css={drawerContentStyles}>
         {/* Header */}
-        <Box css={headerStyles} sx={{ borderColor: theme.palette.divider }}>
+        <Box css={headerStyles} sx={{ borderColor: theme.vars.palette.divider }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Settings
           </Typography>
