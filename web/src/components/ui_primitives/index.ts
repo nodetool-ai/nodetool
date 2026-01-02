@@ -62,6 +62,34 @@ export type { EditButtonProps } from "./EditButton";
 export { SettingsButton } from "./SettingsButton";
 export type { SettingsButtonProps } from "./SettingsButton";
 
+// Display & feedback primitives
+export { ZoomControls } from "./ZoomControls";
+export type { ZoomControlsProps } from "./ZoomControls";
+
+export { FavoriteButton } from "./FavoriteButton";
+export type { FavoriteButtonProps } from "./FavoriteButton";
+
+export { EmptyState } from "./EmptyState";
+export type { EmptyStateProps, EmptyStateVariant } from "./EmptyState";
+
+export { LoadingSpinner } from "./LoadingSpinner";
+export type { LoadingSpinnerProps, LoadingVariant } from "./LoadingSpinner";
+
+export { ProgressBar } from "./ProgressBar";
+export type { ProgressBarProps } from "./ProgressBar";
+
+export { ExternalLink } from "./ExternalLink";
+export type { ExternalLinkProps } from "./ExternalLink";
+
+export { StatusIndicator } from "./StatusIndicator";
+export type { StatusIndicatorProps, StatusType } from "./StatusIndicator";
+
+export { TagButton } from "./TagButton";
+export type { TagButtonProps } from "./TagButton";
+
+export { ThemeToggleButton } from "./ThemeToggleButton";
+export type { ThemeToggleButtonProps } from "./ThemeToggleButton";
+
 // Re-export editor_ui primitives for convenience
 export {
   NodeTextField,

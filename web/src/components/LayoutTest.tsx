@@ -52,7 +52,16 @@ import {
   NodeTextField,
   NodeSwitch,
   NodeSlider,
-  EditorButton
+  EditorButton,
+  ZoomControls,
+  FavoriteButton,
+  EmptyState,
+  LoadingSpinner,
+  ProgressBar,
+  ExternalLink,
+  StatusIndicator,
+  TagButton,
+  ThemeToggleButton
 } from "./ui_primitives";
 
 const styles = (theme: Theme) => css`
@@ -180,7 +189,8 @@ const categories = [
   { id: "control", label: "Control Buttons", count: 5 },
   { id: "dialog", label: "Dialog Actions", count: 2 },
   { id: "input", label: "Input Controls", count: 4 },
-  { id: "fab", label: "FABs", count: 2 }
+  { id: "fab", label: "FABs", count: 2 },
+  { id: "display", label: "Display & Feedback", count: 9 }
 ] as const;
 
 type CategoryId = typeof categories[number]["id"];
@@ -202,6 +212,10 @@ const LayoutTest: React.FC = () => {
   const [textValue, setTextValue] = useState("Sample text");
   const [switchValue, setSwitchValue] = useState(true);
   const [sliderValue, setSliderValue] = useState(50);
+  const [zoom, setZoom] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [progress, setProgress] = useState(65);
+  const [selectedTag, setSelectedTag] = useState<string | null>("react");
 
   const toggleColorMode = () => {
     setMode(mode === "light" ? "dark" : "light");
@@ -713,6 +727,189 @@ const LayoutTest: React.FC = () => {
     </div>
   );
 
+  const renderDisplayFeedback = () => (
+    <div className="component-grid">
+      {/* Zoom Controls */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">ZoomControls</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Default:</span>
+            <ZoomControls zoom={zoom} onZoomChange={setZoom} />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">No value:</span>
+            <ZoomControls zoom={zoom} onZoomChange={setZoom} showValue={false} />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Favorite Button */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">FavoriteButton</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Variants:</span>
+            <FavoriteButton isFavorite={isFavorite} onToggle={setIsFavorite} variant="star" />
+            <FavoriteButton isFavorite={isFavorite} onToggle={setIsFavorite} variant="heart" />
+            <FavoriteButton isFavorite={isFavorite} onToggle={setIsFavorite} variant="bookmark" />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Sizes:</span>
+            <FavoriteButton isFavorite={true} onToggle={() => {}} buttonSize="small" />
+            <FavoriteButton isFavorite={true} onToggle={() => {}} buttonSize="medium" />
+            <FavoriteButton isFavorite={true} onToggle={() => {}} buttonSize="large" />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Empty State */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">EmptyState</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body" style={{ minHeight: 200 }}>
+          <EmptyState
+            variant="empty"
+            size="small"
+            actionText="Get Started"
+            onAction={() => {}}
+          />
+        </div>
+      </Paper>
+
+      {/* Loading Spinner */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">LoadingSpinner</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Circular:</span>
+            <LoadingSpinner variant="circular" size="small" />
+            <LoadingSpinner variant="circular" size="medium" />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Dots:</span>
+            <LoadingSpinner variant="dots" size="small" />
+            <LoadingSpinner variant="dots" size="medium" />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">With text:</span>
+            <LoadingSpinner variant="circular" size="small" text="Loading..." />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Progress Bar */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">ProgressBar</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row" style={{ width: "100%" }}>
+            <ProgressBar value={progress} label="Uploading file.txt" />
+          </div>
+          <div className="demo-row" style={{ width: "100%" }}>
+            <ProgressBar value={progress} showValue={false} color="secondary" />
+          </div>
+        </div>
+      </Paper>
+
+      {/* External Link */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">ExternalLink</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Arrow:</span>
+            <ExternalLink href="https://example.com" iconVariant="arrow">Documentation</ExternalLink>
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Open:</span>
+            <ExternalLink href="https://example.com" iconVariant="open">Open in new tab</ExternalLink>
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Launch:</span>
+            <ExternalLink href="https://example.com" iconVariant="launch">Launch app</ExternalLink>
+          </div>
+        </div>
+      </Paper>
+
+      {/* Status Indicator */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">StatusIndicator</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <StatusIndicator status="success" label="Online" />
+            <StatusIndicator status="error" label="Error" />
+            <StatusIndicator status="warning" label="Warning" />
+          </div>
+          <div className="demo-row">
+            <StatusIndicator status="info" label="Info" filledIcon />
+            <StatusIndicator status="pending" label="Pending" pulse />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Tag Button */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">TagButton</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <TagButton label="React" selected={selectedTag === "react"} onClick={() => setSelectedTag("react")} />
+            <TagButton label="TypeScript" selected={selectedTag === "ts"} onClick={() => setSelectedTag("ts")} />
+            <TagButton label="Node.js" selected={selectedTag === "node"} onClick={() => setSelectedTag("node")} />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Chip:</span>
+            <TagButton label="Tag" variant="chip" selected onClick={() => {}} />
+            <TagButton label="Tag" variant="chip" onClick={() => {}} />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Theme Toggle Button */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">ThemeToggleButton</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Icon:</span>
+            <ThemeToggleButton variant="icon" />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Switch:</span>
+            <ThemeToggleButton variant="switch" />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Labeled:</span>
+            <ThemeToggleButton variant="labeled" />
+          </div>
+        </div>
+      </Paper>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case "action":
@@ -725,6 +922,8 @@ const LayoutTest: React.FC = () => {
         return renderInputControls();
       case "fab":
         return renderFabs();
+      case "display":
+        return renderDisplayFeedback();
       default:
         return null;
     }
