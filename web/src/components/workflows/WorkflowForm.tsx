@@ -97,14 +97,14 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: "6px",
       transition: "all 0.2s ease",
-      "& fieldset": {
+      "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.grey[700],
         transition: "border-color 0.2s ease"
       },
-      "&:hover fieldset": {
+      "&:hover .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.grey[500]
       },
-      "&.Mui-focused fieldset": {
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
         borderColor: "var(--palette-primary-main)",
         borderWidth: "1px"
       }

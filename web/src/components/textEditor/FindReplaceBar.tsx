@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
-        "& fieldset": {
+        "& .MuiOutlinedInput-notchedOutline": {
           border: "none"
         },
         "&:hover ": {
@@ -90,13 +90,13 @@ const styles = (theme: Theme) =>
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
-        "& fieldset": {
+        "& .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.grey[500]
         },
-        "&:hover fieldset": {
+        "&:hover .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.grey[400]
         },
-        "&.Mui-focused fieldset": {
+        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.grey[0]
         }
       }

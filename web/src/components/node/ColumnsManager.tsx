@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
     ".select svg": {
       right: "0"
     },
-    ".select fieldset": {
+    ".select .MuiOutlinedInput-notchedOutline": {
       border: "0"
     },
     ".delete": {

@@ -38,13 +38,6 @@ const styles = (theme: Theme) =>
       position: "relative",
       overflow: "hidden"
     },
-    ".gradient-type-selector": {
-      "& .MuiToggleButton-root": {
-        fontSize: "11px",
-        padding: "4px 12px",
-        textTransform: "none"
-      }
-    },
     ".stops-container": {
       position: "relative",
       width: "100%",
@@ -245,11 +238,17 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
 
       {/* Type Selector */}
       <ToggleButtonGroup
-        className="gradient-type-selector"
         value={gradient.type}
         exclusive
         onChange={handleTypeChange}
         size="small"
+        sx={{
+          "& .MuiToggleButton-root": {
+            fontSize: "11px",
+            padding: "4px 12px",
+            textTransform: "none"
+          }
+        }}
       >
         <ToggleButton value="linear">Linear</ToggleButton>
         <ToggleButton value="radial">Radial</ToggleButton>
