@@ -1,9 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import Clip, { ClipProps } from "./Clip";
+import { useVideoThumbnails } from "../../hooks/timeline/useVideoThumbnails";
 
 const styles = (_theme: Theme) =>
   css({
@@ -20,10 +21,11 @@ const styles = (_theme: Theme) =>
       height: "100%",
       position: "absolute",
       top: 0,
-      left: 0
+      left: 0,
+      right: 0
     },
 
-    ".thumbnail": {
+    ".thumbnail-img": {
       height: "100%",
       objectFit: "cover",
       flexShrink: 0,
@@ -32,18 +34,11 @@ const styles = (_theme: Theme) =>
 
     ".thumbnail-placeholder": {
       height: "100%",
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
-      borderRight: "1px solid rgba(0, 0, 0, 0.2)",
-
-      "& svg": {
-        width: "16px",
-        height: "16px",
-        opacity: 0.5
-      }
+      borderRight: "1px solid rgba(0, 0, 0, 0.2)"
     },
 
     ".thumbnail-canvas": {
@@ -67,99 +62,140 @@ type VideoClipProps = Omit<ClipProps, "children">;
 const VideoClip: React.FC<VideoClipProps> = (props) => {
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const { clip, width } = props;
 
   // Calculate thumbnail dimensions
-  const aspectRatio = 16 / 9; // Assume 16:9 video
-  const containerHeight = 40; // Approximate content height
+  const aspectRatio = 16 / 9;
+  const containerHeight = 40;
   const thumbnailWidth = containerHeight * aspectRatio;
   const numThumbnails = Math.max(1, Math.ceil(width / thumbnailWidth));
 
-  // Draw thumbnail placeholders
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
+  // Use the video thumbnails hook
+  const { thumbnails: thumbnailData, isLoading } = useVideoThumbnails({
+    url: clip.sourceUrl,
+    durationHint: clip.sourceDuration,
+    numThumbnails: Math.min(numThumbnails, 20), // Cap at 20 thumbnails
+    thumbnailWidth: Math.round(thumbnailWidth * 2), // Higher res for quality
+    usePlaceholder: !clip.sourceUrl
+  });
+
+  // Get the thumbnails to display based on visible portion
+  const visibleThumbnails = useMemo(() => {
+    if (!thumbnailData) return [];
+
+    const startPercent = clip.inPoint / clip.sourceDuration;
+    const endPercent = clip.outPoint / clip.sourceDuration;
+    const visibleDuration = endPercent - startPercent;
+
+    // Filter thumbnails that fall within the visible time range
+    const result: Array<{ dataUrl: string; time: number; width: number }> = [];
+
+    for (let i = 0; i < numThumbnails; i++) {
+      const thumbPercent =
+        startPercent + (i / numThumbnails) * visibleDuration;
+      const thumbTime = thumbPercent * thumbnailData.duration;
+
+      // Find the closest thumbnail
+      let closest = thumbnailData.thumbnails[0];
+      let minDiff = Math.abs(closest.time - thumbTime);
+
+      for (const thumb of thumbnailData.thumbnails) {
+        const diff = Math.abs(thumb.time - thumbTime);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = thumb;
+        }
+      }
+
+      result.push({
+        dataUrl: closest?.dataUrl || "",
+        time: thumbTime,
+        width: width / numThumbnails
+      });
     }
 
+    return result;
+  }, [thumbnailData, clip.inPoint, clip.outPoint, clip.sourceDuration, width, numThumbnails]);
+
+  // Draw placeholder thumbnails on canvas if no real thumbnails
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !isLoading) return;
+
     const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
+    if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
 
-    // Set canvas size
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
 
-    // Clear canvas
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    // Calculate visible portion
+    // Draw placeholder pattern
     const startPercent = clip.inPoint / clip.sourceDuration;
     const endPercent = clip.outPoint / clip.sourceDuration;
-
-    // Draw thumbnail placeholders
     const thumbWidth = rect.width / numThumbnails;
 
     for (let i = 0; i < numThumbnails; i++) {
       const x = i * thumbWidth;
       const timePercent =
         startPercent + (i / numThumbnails) * (endPercent - startPercent);
-
-      // Generate a gradient based on time position (simulating video content)
       const hue = (timePercent * 120) % 360;
+
       ctx.fillStyle = `hsla(${hue}, 30%, 30%, 0.8)`;
       ctx.fillRect(x, 0, thumbWidth - 1, rect.height);
 
-      // Draw a simple video frame icon
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 4, 4, thumbWidth - 9, rect.height - 8);
+      // Draw play triangle
+      const centerX = x + thumbWidth / 2;
+      const centerY = rect.height / 2;
+      const triangleSize = Math.min(8, rect.height / 3);
 
-      // Draw play triangle in center (only for first few thumbs)
-      if (i < 3 || i === numThumbnails - 1) {
-        const centerX = x + thumbWidth / 2;
-        const centerY = rect.height / 2;
-        const triangleSize = Math.min(8, rect.height / 3);
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-        ctx.beginPath();
-        ctx.moveTo(centerX - triangleSize / 2, centerY - triangleSize / 2);
-        ctx.lineTo(centerX + triangleSize / 2, centerY);
-        ctx.lineTo(centerX - triangleSize / 2, centerY + triangleSize / 2);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-
-    // Draw timeline marker lines
-    const markerInterval = rect.width / 10;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-    ctx.lineWidth = 1;
-
-    for (let i = 1; i < 10; i++) {
-      const x = i * markerInterval;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
       ctx.beginPath();
-      ctx.moveTo(x, rect.height - 4);
-      ctx.lineTo(x, rect.height);
-      ctx.stroke();
+      ctx.moveTo(centerX - triangleSize / 2, centerY - triangleSize / 2);
+      ctx.lineTo(centerX + triangleSize / 2, centerY);
+      ctx.lineTo(centerX - triangleSize / 2, centerY + triangleSize / 2);
+      ctx.closePath();
+      ctx.fill();
     }
+  }, [isLoading, clip.inPoint, clip.outPoint, clip.sourceDuration, width, numThumbnails]);
 
-    setIsLoading(false);
-  }, [clip.inPoint, clip.outPoint, clip.sourceDuration, width, numThumbnails]);
+  // Check if we have real thumbnails with data
+  const hasRealThumbnails = visibleThumbnails.some((t) => t.dataUrl);
 
   return (
     <Clip {...props}>
       <Box css={styles(theme)} className="video-clip-content">
         <div className="thumbnail-container">
           {isLoading ? (
-            <div className="video-loading">Loading thumbnails...</div>
+            <canvas ref={canvasRef} className="thumbnail-canvas" />
+          ) : hasRealThumbnails ? (
+            <div className="thumbnail-strip">
+              {visibleThumbnails.map((thumb, index) => (
+                thumb.dataUrl ? (
+                  <img
+                    key={index}
+                    src={thumb.dataUrl}
+                    alt=""
+                    className="thumbnail-img"
+                    style={{ width: thumb.width }}
+                  />
+                ) : (
+                  <div
+                    key={index}
+                    className="thumbnail-placeholder"
+                    style={{
+                      width: thumb.width,
+                      backgroundColor: `hsla(${(thumb.time / clip.sourceDuration) * 120}, 30%, 30%, 0.8)`
+                    }}
+                  />
+                )
+              ))}
+            </div>
           ) : (
             <canvas ref={canvasRef} className="thumbnail-canvas" />
           )}

@@ -7,7 +7,8 @@ export const TIMELINE_PANEL_CONFIG = {
   tracks: { title: "Tracks" },
   timeline: { title: "Timeline" },
   "media-assets": { title: "Media Assets" },
-  preview: { title: "Preview" }
+  preview: { title: "Preview" },
+  inspector: { title: "Inspector" }
 } as const;
 
 export type TimelinePanelType = keyof typeof TIMELINE_PANEL_CONFIG;

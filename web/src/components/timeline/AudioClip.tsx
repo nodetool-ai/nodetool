@@ -1,9 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import Clip, { ClipProps } from "./Clip";
+import { useWaveform } from "../../hooks/timeline/useWaveform";
 
 const styles = (_theme: Theme) =>
   css({
@@ -34,44 +35,21 @@ type AudioClipProps = Omit<ClipProps, "children">;
 const AudioClip: React.FC<AudioClipProps> = (props) => {
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
 
   const { clip, width } = props;
 
-  // Generate mock waveform data (in a real implementation, this would come from audio analysis)
-  useEffect(() => {
-    // Simulate loading waveform data
-    const generateMockWaveform = () => {
-      const numSamples = Math.max(100, Math.floor(width / 2));
-      const data = new Float32Array(numSamples);
-
-      // Generate a somewhat realistic-looking waveform
-      for (let i = 0; i < numSamples; i++) {
-        const t = i / numSamples;
-        // Combine several sine waves for a more natural look
-        const base = Math.sin(t * 10 * Math.PI) * 0.3;
-        const detail = Math.sin(t * 30 * Math.PI) * 0.2;
-        const noise = (Math.random() - 0.5) * 0.4;
-        data[i] = Math.max(-1, Math.min(1, base + detail + noise));
-      }
-
-      return data;
-    };
-
-    // Simulate async loading
-    const timer = setTimeout(() => {
-      setWaveformData(generateMockWaveform());
-      setIsLoading(false);
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [width, clip.sourceUrl]);
+  // Use the waveform hook to extract/cache audio data
+  const { waveform, isLoading } = useWaveform({
+    url: clip.sourceUrl,
+    durationHint: clip.sourceDuration,
+    targetPeaks: 1000,
+    useMock: !clip.sourceUrl // Use mock if no URL
+  });
 
   // Draw waveform
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !waveformData) {
+    if (!canvas || !waveform) {
       return;
     }
 
@@ -95,8 +73,8 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
     const startPercent = clip.inPoint / clip.sourceDuration;
     const endPercent = clip.outPoint / clip.sourceDuration;
 
-    const startSample = Math.floor(startPercent * waveformData.length);
-    const endSample = Math.floor(endPercent * waveformData.length);
+    const startSample = Math.floor(startPercent * waveform.peaks.length);
+    const endSample = Math.floor(endPercent * waveform.peaks.length);
     const visibleSamples = endSample - startSample;
 
     if (visibleSamples <= 0) {
@@ -123,11 +101,11 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
 
     for (let i = 0; i < visibleSamples; i += step) {
       const sampleIndex = startSample + i;
-      if (sampleIndex >= waveformData.length) {
+      if (sampleIndex >= waveform.peaks.length) {
         break;
       }
 
-      const value = Math.abs(waveformData[sampleIndex]);
+      const value = waveform.peaks[sampleIndex];
       const barHeight = value * amplitude;
       const x = (i / visibleSamples) * rect.width;
 
@@ -140,7 +118,7 @@ const AudioClip: React.FC<AudioClipProps> = (props) => {
     ctx.moveTo(0, centerY);
     ctx.lineTo(rect.width, centerY);
     ctx.stroke();
-  }, [waveformData, clip.inPoint, clip.outPoint, clip.sourceDuration, width]);
+  }, [waveform, clip.inPoint, clip.outPoint, clip.sourceDuration, width]);
 
   return (
     <Clip {...props}>

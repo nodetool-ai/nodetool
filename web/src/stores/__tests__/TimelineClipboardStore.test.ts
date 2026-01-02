@@ -103,8 +103,8 @@ describe("TimelineClipboardStore", () => {
 
   describe("cutSelectedClips", () => {
     it("cuts selected clips", () => {
-      let clipId: string | null;
-      let trackId: string;
+      let clipId: string | null = null;
+      let trackId: string = "";
 
       act(() => {
         useTimelineStore.getState().createProject("Test Project");

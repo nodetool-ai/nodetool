@@ -2,14 +2,14 @@
  * Default Dockview layout for the Timeline Editor
  *
  * Layout structure:
- * ┌─────────┬───────────────────────────────────┐
- * │ Tracks  │           Timeline                │
- * │         │                                   │
- * │ (200px) │                                   │
- * ├─────────┼─────────────────┬─────────────────┤
- * │         │  Media Assets   │     Preview     │
- * │         │                 │                 │
- * └─────────┴─────────────────┴─────────────────┘
+ * ┌─────────┬───────────────────────────┬───────────┐
+ * │ Tracks  │           Timeline        │ Inspector │
+ * │         │                           │           │
+ * │ (200px) │                           │  (250px)  │
+ * ├─────────┼─────────────────┬─────────┴───────────┤
+ * │         │  Media Assets   │       Preview       │
+ * │         │                 │                     │
+ * └─────────┴─────────────────┴─────────────────────┘
  */
 import { SerializedDockview, Orientation } from "dockview";
 
@@ -37,7 +37,16 @@ export const timelineDefaultLayout: SerializedDockview = {
                 activeView: "timeline",
                 id: "timeline"
               },
-              size: 800
+              size: 550
+            },
+            {
+              type: "leaf",
+              data: {
+                views: ["inspector"],
+                activeView: "inspector",
+                id: "inspector"
+              },
+              size: 250
             }
           ],
           size: 500
@@ -93,6 +102,11 @@ export const timelineDefaultLayout: SerializedDockview = {
       id: "preview",
       contentComponent: "preview",
       title: "Preview"
+    },
+    inspector: {
+      id: "inspector",
+      contentComponent: "inspector",
+      title: "Inspector"
     }
   },
   activeGroup: "timeline"

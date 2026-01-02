@@ -9,6 +9,7 @@ import TimelineTracksPanel from "./panels/TimelineTracksPanel";
 import TimelineContentPanel from "./panels/TimelineContentPanel";
 import TimelineMediaPanel from "./panels/TimelineMediaPanel";
 import TimelinePreviewPanel from "./panels/TimelinePreviewPanel";
+import TimelineInspectorPanel from "./panels/TimelineInspectorPanel";
 
 export const createTimelinePanelComponents = () => ({
   tracks: (props: IDockviewPanelProps<TimelinePanelProps>) => (
@@ -22,6 +23,9 @@ export const createTimelinePanelComponents = () => ({
   ),
   preview: (props: IDockviewPanelProps<TimelinePanelProps>) => (
     <TimelinePreviewPanel {...props} />
+  ),
+  inspector: (props: IDockviewPanelProps<TimelinePanelProps>) => (
+    <TimelineInspectorPanel {...props} />
   )
 });
 
