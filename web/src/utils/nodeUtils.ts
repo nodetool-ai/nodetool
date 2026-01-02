@@ -3,6 +3,11 @@ import { NodeMetadata } from "../stores/ApiTypes";
 export const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 
 /**
+ * Z-index for container nodes (groups, regions) to ensure they render behind child nodes
+ */
+export const CONTAINER_NODE_ZINDEX = -10;
+
+/**
  * Default metadata used for creating a Group node when
  * backend metadata might be unavailable.
  */
@@ -134,4 +139,16 @@ export const IF_REGION_METADATA: NodeMetadata = {
  */
 export const isRegionNodeType = (nodeType: string): boolean => {
   return nodeType === FOREACH_REGION_TYPE || nodeType === IF_REGION_TYPE;
+};
+
+/**
+ * Helper function to check if a node type is a container type (group, loop, or region)
+ * Container nodes can contain other nodes and should render behind their children.
+ */
+export const isContainerNodeType = (nodeType: string): boolean => {
+  return (
+    nodeType === GROUP_NODE_TYPE ||
+    nodeType === "nodetool.group.Loop" ||
+    isRegionNodeType(nodeType)
+  );
 };

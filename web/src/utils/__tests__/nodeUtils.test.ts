@@ -9,7 +9,9 @@ import {
   IF_REGION_TYPE,
   FOREACH_REGION_METADATA,
   IF_REGION_METADATA,
-  isRegionNodeType
+  isRegionNodeType,
+  isContainerNodeType,
+  CONTAINER_NODE_ZINDEX
 } from "../nodeUtils";
 
 describe("nodeUtils", () => {
@@ -319,6 +321,43 @@ describe("nodeUtils", () => {
       expect(FOREACH_REGION_METADATA.supports_dynamic_outputs).toBe(
         IF_REGION_METADATA.supports_dynamic_outputs
       );
+    });
+  });
+
+  describe("CONTAINER_NODE_ZINDEX constant", () => {
+    it("should be a negative number to render behind child nodes", () => {
+      expect(CONTAINER_NODE_ZINDEX).toBe(-10);
+      expect(CONTAINER_NODE_ZINDEX).toBeLessThan(0);
+    });
+  });
+
+  describe("isContainerNodeType function", () => {
+    it("should return true for Group node type", () => {
+      expect(isContainerNodeType(GROUP_NODE_TYPE)).toBe(true);
+    });
+
+    it("should return true for Loop node type", () => {
+      expect(isContainerNodeType("nodetool.group.Loop")).toBe(true);
+    });
+
+    it("should return true for ForEach region type", () => {
+      expect(isContainerNodeType(FOREACH_REGION_TYPE)).toBe(true);
+    });
+
+    it("should return true for If region type", () => {
+      expect(isContainerNodeType(IF_REGION_TYPE)).toBe(true);
+    });
+
+    it("should return false for Comment node type", () => {
+      expect(isContainerNodeType("nodetool.workflows.base_node.Comment")).toBe(false);
+    });
+
+    it("should return false for arbitrary string", () => {
+      expect(isContainerNodeType("some.other.node")).toBe(false);
+    });
+
+    it("should return false for empty string", () => {
+      expect(isContainerNodeType("")).toBe(false);
     });
   });
 });
