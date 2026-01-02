@@ -51,23 +51,23 @@ Implement the full GlobalChat UI from the web application in the Chrome extensio
 ## Phase 1: Theme Setup
 
 ### 1.1 Copy Theme Files
-- [ ] Copy `web/src/components/themes/ThemeNodetool.tsx` → `chrome-extension/src/themes/ThemeNodetool.tsx`
-- [ ] Copy `web/src/components/themes/paletteDark.ts` → `chrome-extension/src/themes/paletteDark.ts`
-- [ ] Copy `web/src/components/themes/paletteLight.ts` → `chrome-extension/src/themes/paletteLight.ts`
-- [ ] Copy `web/src/components/themes/components/editorControls.ts` → `chrome-extension/src/themes/components/editorControls.ts`
-- [ ] Create `chrome-extension/src/themes/index.ts` exporting all theme files
+- [x] Copy `web/src/components/themes/ThemeNodetool.tsx` → `chrome-extension/src/themes/ThemeNodetool.tsx`
+- [x] Copy `web/src/components/themes/paletteDark.ts` → `chrome-extension/src/themes/paletteDark.ts`
+- [x] Copy `web/src/components/themes/paletteLight.ts` → `chrome-extension/src/themes/paletteLight.ts`
+- [x] Copy `web/src/components/themes/components/editorControls.ts` → `chrome-extension/src/themes/components/editorControls.ts`
+- [x] Create `chrome-extension/src/themes/index.ts` exporting all theme files
 
 ### 1.2 Copy Theme Type Augmentations
-- [ ] Copy `web/src/theme.d.ts` → `chrome-extension/src/theme.d.ts`
-- [ ] Copy `web/src/emotion.d.ts` → `chrome-extension/src/emotion.d.ts`
-- [ ] Copy `web/src/material-ui.d.ts` → `chrome-extension/src/material-ui.d.ts`
+- [x] Copy `web/src/theme.d.ts` → `chrome-extension/src/theme.d.ts`
+- [x] Copy `web/src/emotion.d.ts` → `chrome-extension/src/emotion.d.ts`
+- [x] Copy `web/src/material-ui.d.ts` → `chrome-extension/src/material-ui.d.ts`
 
 ### 1.3 Configure Theme in Sidepanel
-- [ ] Update `chrome-extension/src/sidepanel/index.tsx`:
+- [x] Update `chrome-extension/src/sidepanel/App.tsx`:
   - Import `ThemeProvider` and `CssBaseline` from `@mui/material`
-  - Import `InitColorSchemeScript` from `@mui/material-next`
-  - Import `ThemeNodetool` from `./themes/ThemeNodetool`
-  - Wrap app with `<ThemeProvider theme={ThemeNodetool}><InitColorSchemeScript /><CssBaseline />{children}</ThemeProvider>`
+  - Import `ThemeNodetool` from `../themes/ThemeNodetool`
+  - Import CSS variables from `../styles/index.css`
+  - Wrap app with `<ThemeProvider theme={ThemeNodetool} defaultMode="dark"><CssBaseline />{children}</ThemeProvider>`
 
 ---
 
@@ -159,65 +159,37 @@ Implement the full GlobalChat UI from the web application in the Chrome extensio
 ## Phase 6: Dependencies & Build Configuration
 
 ### 6.1 Install Dependencies
-- [ ] Add all required packages to `chrome-extension/package.json`:
-  ```json
-  "dependencies": {
-    "@emotion/react": "^11.x",
-    "@emotion/styled": "^11.x",
-    "@fontsource/inter": "^5.x",
-    "@fontsource/jetbrains-mono": "^5.x",
-    "@lexical/code": "^0.x",
-    "@lexical/link": "^0.x",
-    "@lexical/list": "^0.x",
-    "@lexical/markdown": "^0.x",
-    "@lexical/react": "^0.x",
-    "@lexical/rich-text": "^0.x",
-    "@mui/icons-material": "^5.x",
-    "@mui/material": "^5.x",
-    "@tanstack/react-query": "^5.x",
-    "@xyflow/react": "^12.x",
-    "date-fns": "^3.x",
-    "dompurify": "^3.x",
-    "lodash": "^4.x",
-    "loglevel": "^1.x",
-    "prismjs": "^1.x",
-    "react": "^18.x",
-    "react-dom": "^18.x",
-    "react-markdown": "^9.x",
-    "react-plotly.js": "^2.x",
-    "react-router-dom": "^6.x",
-    "react-syntax-highlighter": "^15.x",
-    "react-virtualized-auto-sizer": "^1.x",
-    "react-window": "^1.x",
-    "rehype-raw": "^7.x",
-    "remark-gfm": "^4.x",
-    "tabulator-tables": "^5.x",
-    "zustand": "^4.x"
-  }
-  ```
+- [x] Add all required packages to `chrome-extension/package.json`:
+  - All dependencies installed including fontsource, lexical, mui, react-query, etc.
+  - Added @types/node for NodeJS namespace support
 
 ### 6.2 TypeScript Configuration
-- [ ] Update `chrome-extension/tsconfig.json`:
-  - Add `jsxImportSource: "@emotion/react"`
-  - Ensure paths alias works for imports
-  - Copy relevant compiler options from web/tsconfig.json
+- [x] `chrome-extension/tsconfig.json` is configured with proper settings
+  - `jsxImportSource: "@emotion/react"` already set
+  - Paths alias `@/*` configured
 
 ### 6.3 Vite Configuration
-- [ ] Update `chrome-extension/vite.config.ts`:
-  - Configure alias for `@/` to point to `src/`
-  - Add emotion plugin if needed
-  - Configure for extension build
+- [x] `chrome-extension/vite.config.ts` configured:
+  - Alias for `@/` pointing to `src/`
+  - Emotion plugin configured
+  - Extension build configured
 
 ---
 
 ## Phase 7: Entry Point & Routing
 
 ### 7.1 Update Sidepanel Entry
-- [ ] Modify `chrome-extension/src/sidepanel/index.tsx`:
-  ```tsx
-  import React from 'react';
-  import ReactDOM from 'react-dom/client';
-  import { ThemeProvider } from '@mui/material';
+- [x] Modified `chrome-extension/src/sidepanel/App.tsx`:
+  - Uses ThemeProvider with ThemeNodetool
+  - Uses CssBaseline from @mui/material
+  - Imports global CSS for scrollbars and styling
+  - Uses dark mode by default
+
+### 7.2 Remove Router Dependencies
+- [x] Extension uses internal state instead of react-router-dom for thread navigation
+- [x] Simplified GlobalChat to work without URL-based routing
+
+---
   import CssBaseline from '@mui/material/CssBaseline';
   import { InitColorSchemeScript } from '@mui/material-next';
   import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

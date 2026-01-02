@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 import { useEffect, useRef, useCallback } from 'react';
-import { Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { Box, CssBaseline, ThemeProvider } from '@mui/material';
+import ThemeNodetool from '../themes/ThemeNodetool';
 import {
   ChatHeader,
   ChatMessage,
@@ -13,6 +14,7 @@ import {
 import { useExtensionStore } from './store';
 import { useWebSocket } from './hooks/useWebSocket';
 import type { PageContext } from '../types';
+import '../styles/index.css';
 
 const appContainerStyles = css({
   display: 'flex',
@@ -40,7 +42,6 @@ function App() {
   const {
     connectionStatus,
     connectionError,
-    theme: themePreference,
     pageContext,
     setPageContext
   } = useExtensionStore();
@@ -49,15 +50,6 @@ function App() {
   const isStreaming = useExtensionStore((state) => state.isStreaming);
 
   const { connect, sendMessage, stopGeneration, isConnected } = useWebSocket();
-
-  // Create MUI theme based on preference
-  const theme = createTheme({
-    palette: {
-      mode: themePreference === 'system'
-        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        : themePreference
-    }
-  });
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -142,7 +134,7 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
       <CssBaseline />
       <Box css={appContainerStyles} sx={{ bgcolor: 'background.default' }}>
         <ChatHeader />
