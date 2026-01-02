@@ -14,6 +14,7 @@ import { useTheme } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
 import StopIcon from '@mui/icons-material/Stop';
 import LanguageIcon from '@mui/icons-material/Language';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useExtensionStore } from '../store';
 
 const inputContainerStyles = css({
@@ -33,10 +34,11 @@ const inputRowStyles = css({
 interface ChatInputProps {
   onSendMessage: (message: string, includeContext: boolean) => Promise<void>;
   onStopGeneration: () => void;
+  onRefreshContext?: () => void;
   disabled?: boolean;
 }
 
-export function ChatInput({ onSendMessage, onStopGeneration, disabled }: ChatInputProps) {
+export function ChatInput({ onSendMessage, onStopGeneration, onRefreshContext, disabled }: ChatInputProps) {
   const theme = useTheme();
   const [message, setMessage] = useState('');
   const {
@@ -98,12 +100,12 @@ export function ChatInput({ onSendMessage, onStopGeneration, disabled }: ChatInp
           sx={{ m: 0, gap: 0.5 }}
         />
         {pageContext && autoIncludeContext && (
-          <Tooltip title={pageContext.title}>
+          <Tooltip title={`${pageContext.title}\n${pageContext.url}`}>
             <Typography
               variant="caption"
               sx={{
                 color: theme.palette.primary.main,
-                maxWidth: 150,
+                maxWidth: 120,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
@@ -111,6 +113,13 @@ export function ChatInput({ onSendMessage, onStopGeneration, disabled }: ChatInp
             >
               {pageContext.title}
             </Typography>
+          </Tooltip>
+        )}
+        {onRefreshContext && (
+          <Tooltip title="Refresh page context">
+            <IconButton size="small" onClick={onRefreshContext}>
+              <RefreshIcon sx={{ fontSize: 16 }} />
+            </IconButton>
           </Tooltip>
         )}
       </Box>

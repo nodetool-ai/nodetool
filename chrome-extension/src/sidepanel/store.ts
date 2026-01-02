@@ -12,7 +12,7 @@ import type {
   PageContext
 } from '../types';
 
-const DEFAULT_SERVER_URL = 'http://localhost:8000';
+const DEFAULT_SERVER_URL = 'http://localhost:7777';
 const DEFAULT_MODEL = 'gpt-4o-mini';
 
 interface ExtensionState {
@@ -120,12 +120,19 @@ export const useExtensionStore = create<ExtensionState>()(
       // Message management
       messageCache: {},
       addMessage: (threadId, message) =>
-        set((state) => ({
-          messageCache: {
-            ...state.messageCache,
-            [threadId]: [...(state.messageCache[threadId] || []), message]
+        set((state) => {
+          const existingMessages = state.messageCache[threadId] || [];
+          // Prevent duplicate messages with same ID
+          if (message.id && existingMessages.some(m => m.id === message.id)) {
+            return state;
           }
-        })),
+          return {
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...existingMessages, message]
+            }
+          };
+        }),
       updateLastMessage: (threadId, content, append = true) =>
         set((state) => {
           const messages = state.messageCache[threadId] || [];

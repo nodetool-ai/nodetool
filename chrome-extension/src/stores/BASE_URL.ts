@@ -4,7 +4,7 @@
  */
 
 // Default server URL when running locally
-export const DEFAULT_SERVER_URL = "http://localhost:8000";
+export const DEFAULT_SERVER_URL = "http://localhost:7777";
 
 /**
  * Get the base URL for API requests.

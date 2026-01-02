@@ -102,9 +102,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           // Append to existing assistant message
           updateLastMessage(threadId, data.content || '');
         } else {
-          // Create new assistant message
+          // Create new assistant message (mark as streaming)
           const newMessage: ChatMessage = {
-            id: generateId(),
+            id: `streaming-${Date.now()}`,
             role: 'assistant',
             content: data.content || '',
             timestamp: Date.now()
@@ -127,13 +127,38 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         addMessage(threadId, errorMessage);
       } else if (data.type === 'message') {
         // Complete message from server
-        const message: ChatMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: data.content || '',
-          timestamp: Date.now()
-        };
-        addMessage(threadId, message);
+        const messages = useExtensionStore.getState().messageCache[threadId] || [];
+        
+        // Check if there's a streaming assistant message to replace/update
+        const streamingAssistantIndex = messages.findIndex(
+          m => m.role === 'assistant' && m.id?.startsWith('streaming-')
+        );
+        
+        if (streamingAssistantIndex !== -1) {
+          // Replace the streaming message with the complete message
+          const updatedMessages = [...messages];
+          updatedMessages[streamingAssistantIndex] = {
+            id: generateId(),
+            role: 'assistant',
+            content: data.content || '',
+            timestamp: Date.now()
+          };
+          useExtensionStore.setState((state) => ({
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: updatedMessages
+            }
+          }));
+        } else {
+          // No streaming message, add the complete message
+          const message: ChatMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: data.content || '',
+            timestamp: Date.now()
+          };
+          addMessage(threadId, message);
+        }
         setIsStreaming(false);
       }
     },
@@ -195,6 +220,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       ws.onmessage = async (event) => {
         try {
           const data = decode(new Uint8Array(event.data)) as IncomingMessage;
+          console.log('← WS INCOMING:', JSON.stringify(data, null, 2).slice(0, 500));
           handleIncomingMessage(data);
           optionsRef.current.onMessage?.(data);
         } catch (error) {
@@ -242,7 +268,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, [clearReconnectTimer, setConnectionStatus]);
 
   const sendMessage = useCallback(
-    async (content: string, context?: { pageUrl?: string; pageTitle?: string; pageContent?: string }) => {
+    async (
+      content: string,
+      context?: { pageUrl?: string; pageTitle?: string; pageContent?: string },
+      model?: { id: string; provider: string }
+    ) => {
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         throw new Error('Not connected to server');
       }
@@ -276,14 +306,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         role: 'user',
         content,
         thread_id: threadId,
-        context
+        context,
+        model: model?.id,
+        provider: model?.provider
+      };
+
+      const chatCommand = {
+        command: 'chat_message',
+        data: outgoingMessage
       };
 
       // Send via WebSocket using MessagePack
-      const encoded = encode({
-        command: 'chat_message',
-        data: outgoingMessage
-      });
+      const encoded = encode(chatCommand);
+      console.log('→ WS OUTGOING:', JSON.stringify(chatCommand, null, 2).slice(0, 500));
 
       wsRef.current.send(encoded);
       setIsStreaming(true);
@@ -296,10 +331,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       return;
     }
 
-    const encoded = encode({
+    const stopCommand = {
       command: 'stop',
       data: { thread_id: currentThreadId }
-    });
+    };
+    const encoded = encode(stopCommand);
+    console.log('→ WS OUTGOING:', JSON.stringify(stopCommand, null, 2).slice(0, 500));
 
     wsRef.current.send(encoded);
     setIsStreaming(false);

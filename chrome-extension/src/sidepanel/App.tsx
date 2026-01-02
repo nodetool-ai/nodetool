@@ -60,8 +60,6 @@ function App() {
   // Global chat store state for toolbar
   const selectedModel = useGlobalChatStore((state) => state.selectedModel);
   const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
-  const selectedTools = useGlobalChatStore((state) => state.selectedTools);
-  const setSelectedTools = useGlobalChatStore((state) => state.setSelectedTools);
   const agentMode = useGlobalChatStore((state) => state.agentMode);
   const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
 
@@ -77,13 +75,17 @@ function App() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.id) {
+        console.log('[App] Requesting page context from tab:', tab.id, tab.url);
         const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_CONTEXT' });
+        console.log('[App] Page context response:', response);
         if (response?.context) {
           setPageContext(response.context as PageContext);
         }
       }
     } catch (error) {
-      console.log('Failed to get page context:', error);
+      console.log('[App] Failed to get page context:', error);
+      // Content script may not be loaded - this is expected on some pages
+      setPageContext(null);
     }
   }, [setPageContext]);
 
@@ -117,9 +119,12 @@ function App() {
           }
         : undefined;
 
-      await sendMessage(message, context);
+      await sendMessage(message, context, {
+        id: selectedModel?.id || '',
+        provider: selectedModel?.provider || ''
+      });
     },
-    [sendMessage, pageContext]
+    [sendMessage, pageContext, selectedModel]
   );
 
   // Determine what to show in the chat area
@@ -155,13 +160,11 @@ function App() {
       <Box css={appContainerStyles} sx={{ bgcolor: 'background.default', color: 'text.primary' }}>
         <ChatHeader />
 
-        {/* ChatToolBar - Model selector, Tools selector, Agent mode */}
+        {/* ChatToolBar - Model selector, Agent mode */}
         <Box css={toolbarContainerStyles}>
           <ChatToolBar
             selectedModel={selectedModel}
             onModelChange={setSelectedModel}
-            selectedTools={selectedTools}
-            onToolsChange={setSelectedTools}
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}
           />
@@ -174,6 +177,7 @@ function App() {
         <ChatInput
           onSendMessage={handleSendMessage}
           onStopGeneration={stopGeneration}
+          onRefreshContext={requestPageContext}
           disabled={!isConnected}
         />
 

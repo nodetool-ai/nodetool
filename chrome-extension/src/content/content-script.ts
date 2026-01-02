@@ -21,6 +21,12 @@ function capturePageContext(): PageContext {
     const clone = contentElement.cloneNode(true) as HTMLElement;
     clone.querySelectorAll('script, style, nav, header, footer, aside').forEach((el) => el.remove());
     bodyText = clone.innerText.trim().slice(0, 10000);
+    console.log('[ContentScript] Captured page context:', {
+      url: window.location.href,
+      title: document.title,
+      bodyTextLength: bodyText.length,
+      selectedTextLength: selectedText.length
+    });
   } catch {
     bodyText = document.body.innerText.slice(0, 10000);
   }
@@ -37,6 +43,7 @@ function capturePageContext(): PageContext {
 // Listen for messages from extension
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'GET_PAGE_CONTEXT') {
+    console.log('[ContentScript] Received GET_PAGE_CONTEXT request');
     const context = capturePageContext();
     sendResponse({ context });
     return true;
@@ -47,6 +54,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // Notify background script that content script is ready
 try {
+  console.log('[ContentScript] Content script loaded on:', window.location.href);
   chrome.runtime.sendMessage({ type: 'CONTENT_SCRIPT_READY', url: window.location.href });
 } catch {
   // Extension might not be available (e.g., chrome:// pages)

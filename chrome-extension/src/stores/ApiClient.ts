@@ -171,7 +171,7 @@ export class ApiClient {
 
 // Default client instance
 export const apiClient = new ApiClient({
-  baseUrl: "http://localhost:8000"
+  baseUrl: "http://localhost:7777"
 });
 
 // Export isLocalhost for compatibility

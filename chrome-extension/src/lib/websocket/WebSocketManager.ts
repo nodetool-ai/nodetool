@@ -213,6 +213,7 @@ export class WebSocketManager {
     try {
       const encoded = encode(message);
       this.ws!.send(encoded);
+      console.log("→ WS OUTGOING:", JSON.stringify(message, null, 2).slice(0, 500));
       this.emit("messageSent", message);
     } catch (error) {
       log.error("Failed to send message:", error);
@@ -289,11 +290,12 @@ export class WebSocketManager {
       } else if (typeof event.data === "string") {
         data = JSON.parse(event.data);
       } else {
-        data = event.data;
-      }
+      data = event.data;
+    }
 
-      this.emit("message", data);
-    } catch (error) {
+    console.log("← WS INCOMING:", JSON.stringify(data, null, 2).slice(0, 500));
+    this.emit("message", data);
+  } catch (error) {
       log.error("Failed to process message:", error);
       this.emit("error", error);
     }

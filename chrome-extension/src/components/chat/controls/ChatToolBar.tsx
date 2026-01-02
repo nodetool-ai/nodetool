@@ -6,7 +6,6 @@ import React from "react";
 import { Box } from "@mui/material";
 import { AgentModeToggle } from "../composer/AgentModeToggle";
 import LanguageModelSelect from "./LanguageModelSelect";
-import WorkflowToolsSelector from "./WorkflowToolsSelector";
 import type { LanguageModel } from "../../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
@@ -130,8 +129,6 @@ const styles = (theme: Theme) =>
   });
 
 interface ChatToolBarProps {
-  selectedTools: string[];
-  onToolsChange?: (tools: string[]) => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
@@ -140,8 +137,6 @@ interface ChatToolBarProps {
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
-  selectedTools,
-  onToolsChange,
   selectedModel,
   onModelChange,
   agentMode,
@@ -150,7 +145,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
 }) => {
   const theme = useTheme();
 
-  const hasToolsSection = onToolsChange;
   const hasModelSection = onModelChange;
   const hasAgentSection = onAgentModeToggle;
 
@@ -163,21 +157,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
             onChange={(model) => onModelChange(model)}
             value={selectedModel}
             allowedProviders={allowedProviders}
-          />
-        </Box>
-      )}
-
-      {/* Visual Divider */}
-      {hasModelSection && hasToolsSection && (
-        <div className="toolbar-divider" />
-      )}
-
-      {/* Tools Group */}
-      {hasToolsSection && (
-        <Box className="toolbar-group">
-          <WorkflowToolsSelector
-            value={selectedTools}
-            onChange={onToolsChange}
           />
         </Box>
       )}

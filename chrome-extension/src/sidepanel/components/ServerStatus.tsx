@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 import { Box, Typography, CircularProgress } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import ChatIcon from '@mui/icons-material/Chat';
 
 const statusContainerStyles = css({
@@ -21,8 +20,6 @@ interface ServerStatusProps {
 }
 
 export function ServerStatus({ status, error }: ServerStatusProps) {
-  const theme = useTheme();
-
   const getStatusContent = () => {
     switch (status) {
       case 'connecting':
@@ -60,7 +57,7 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
-                bgcolor: 'rgba(244, 67, 54, 0.1)',
+                bgcolor: 'rgba(255, 85, 85, 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -90,7 +87,7 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
-                bgcolor: 'rgba(255, 152, 0, 0.1)',
+                bgcolor: 'rgba(255, 152, 0, 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -111,30 +108,28 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
   };
 
   return (
-    <Box css={statusContainerStyles} sx={{ bgcolor: theme.palette.background.default }}>
+    <Box css={statusContainerStyles} sx={{ bgcolor: 'var(--palette-background-default)' }}>
       {getStatusContent()}
     </Box>
   );
 }
 
 export function EmptyChatState() {
-  const theme = useTheme();
-
   return (
-    <Box css={statusContainerStyles} sx={{ bgcolor: theme.palette.background.default }}>
+    <Box css={statusContainerStyles} sx={{ bgcolor: 'var(--palette-background-default)' }}>
       <Box
         sx={{
           width: 80,
           height: 80,
           borderRadius: '50%',
-          bgcolor: 'rgba(33, 150, 243, 0.1)',
+          bgcolor: 'rgba(96, 165, 250, 0.15)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           mb: 3
         }}
       >
-        <ChatIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+        <ChatIcon sx={{ fontSize: 40, color: '#60A5FA' }} />
       </Box>
       <Typography variant="h6" sx={{ mb: 1 }}>
         Start a Conversation

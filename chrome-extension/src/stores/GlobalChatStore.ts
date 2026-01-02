@@ -16,6 +16,7 @@ import {
   LanguageModel
 } from "./ApiTypes";
 import { apiClient } from "./ApiClient";
+import { useExtensionStore } from '../sidepanel/store';
 import { DEFAULT_MODEL } from "../config/constants";
 import {
   WebSocketManager,
@@ -38,12 +39,6 @@ type ChatStatus =
   | "stopping";
 
 export interface GlobalChatState {
-  // Server configuration
-  serverUrl: string;
-  setServerUrl: (url: string) => void;
-  apiKey: string | null;
-  setApiKey: (key: string | null) => void;
-
   // Connection state
   status: ChatStatus;
   statusMessage: string | null;
@@ -128,18 +123,6 @@ function buildDefaultLanguageModel(): LanguageModel {
 const useGlobalChatStore = create<GlobalChatState>()(
   persist<GlobalChatState>(
     (set, get) => ({
-      // Server configuration
-      serverUrl: "http://localhost:8000",
-      setServerUrl: (url: string) => {
-        set({ serverUrl: url });
-        apiClient.setBaseUrl(url);
-      },
-      apiKey: null,
-      setApiKey: (key: string | null) => {
-        set({ apiKey: key });
-        apiClient.setApiKey(key || undefined);
-      },
-
       // Connection state
       status: "disconnected",
       statusMessage: null,
@@ -206,8 +189,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
 
         // Get WebSocket URL
-        const wsUrl = getChatUrl(state.serverUrl);
-        const finalUrl = state.apiKey ? `${wsUrl}?api_key=${state.apiKey}` : wsUrl;
+        const serverConfig = useExtensionStore.getState().serverConfig;
+        const wsUrl = getChatUrl(serverConfig.url);
+        const finalUrl = serverConfig.apiKey ? `${wsUrl}?api_key=${serverConfig.apiKey}` : wsUrl;
 
         // Create WebSocket manager
         const wsManager = new WebSocketManager({
@@ -769,8 +753,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
     {
       name: "global-chat-storage-extension",
       partialize: (state) => ({
-        serverUrl: state.serverUrl,
-        apiKey: state.apiKey,
         threads: state.threads || {},
         lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,
@@ -796,12 +778,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
           if (typeof state.lastUsedThreadId === "undefined")
             state.lastUsedThreadId = null;
             
-          // Update API client with stored settings
-          if (state.serverUrl) {
-            apiClient.setBaseUrl(state.serverUrl);
-          }
-          if (state.apiKey) {
-            apiClient.setApiKey(state.apiKey);
+          // Update API client with settings from extension store
+          const serverConfig = useExtensionStore.getState().serverConfig;
+          apiClient.setBaseUrl(serverConfig.url);
+          if (serverConfig.apiKey) {
+            apiClient.setApiKey(serverConfig.apiKey);
           }
         }
       }

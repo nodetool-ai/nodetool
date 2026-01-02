@@ -85,6 +85,7 @@ export interface OutgoingMessage {
   role: 'user';
   content: string | MessageContent[];
   model?: string;
+  provider?: string;
   thread_id?: string;
   context?: {
     pageUrl?: string;
