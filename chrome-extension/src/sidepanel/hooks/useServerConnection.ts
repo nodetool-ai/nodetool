@@ -31,27 +31,23 @@ export function useServerConnection() {
   }, [serverConfig.url, serverConfig.apiKey]);
 
   const testConnection = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
-    setConnectionStatus('connecting');
     setConnectionError(null);
 
     try {
       const isHealthy = await checkHealth();
-      
+
       if (isHealthy) {
-        setConnectionStatus('connected');
         return { success: true };
       } else {
-        setConnectionStatus('failed');
         setConnectionError('Server health check failed');
         return { success: false, error: 'Server health check failed' };
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Connection failed';
-      setConnectionStatus('failed');
       setConnectionError(message);
       return { success: false, error: message };
     }
-  }, [checkHealth, setConnectionStatus, setConnectionError]);
+  }, [checkHealth, setConnectionError]);
 
   // Start periodic health checks when connected
   useEffect(() => {

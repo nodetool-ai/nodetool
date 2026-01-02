@@ -17,6 +17,42 @@ interface UseWebSocketOptions {
 
 const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+const normalizeBasePath = (pathname: string) => {
+  const trimmed = pathname.replace(/\/+$/, '');
+  const withoutV1 = trimmed.endsWith('/v1') ? trimmed.slice(0, -3) : trimmed;
+  return withoutV1 === '' ? '/' : withoutV1;
+};
+
+const ensureUrl = (rawUrl: string) => {
+  try {
+    return new URL(rawUrl);
+  } catch {
+    return new URL(`http://${rawUrl}`);
+  }
+};
+
+const buildWebSocketUrl = (rawUrl: string, apiKey?: string) => {
+  const url = ensureUrl(rawUrl.trim());
+  const protocol = url.protocol === 'https:' || url.protocol === 'wss:' ? 'wss:' : 'ws:';
+  url.protocol = protocol;
+
+  const basePath = normalizeBasePath(url.pathname);
+  const normalizedPath = basePath.replace(/\/+$/, '');
+  const hasExplicitWsPath =
+    normalizedPath.endsWith('/ws') || normalizedPath.endsWith('/chat') || normalizedPath.endsWith('/ws/chat');
+  const wsPath = hasExplicitWsPath
+    ? normalizedPath
+    : `${normalizedPath === '/' ? '' : normalizedPath}/ws`;
+
+  url.pathname = wsPath || '/ws';
+
+  if (apiKey && !url.searchParams.has('api_key')) {
+    url.searchParams.set('api_key', apiKey);
+  }
+
+  return url.toString();
+};
+
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -141,10 +177,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     try {
       const config = serverConfigRef.current;
-      const wsUrl = config.url.replace(/^http/, 'ws');
-      const chatUrl = `${wsUrl}/chat${config.apiKey ? `?api_key=${config.apiKey}` : ''}`;
+      const wsUrl = buildWebSocketUrl(config.url, config.apiKey);
 
-      const ws = new WebSocket(chatUrl);
+      const ws = new WebSocket(wsUrl);
       ws.binaryType = 'arraybuffer';
       wsRef.current = ws;
 
