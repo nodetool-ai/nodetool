@@ -67,6 +67,7 @@ export interface ExposedInput {
 
 // Main canvas data structure
 export interface LayoutCanvasData {
+  type: "layout_canvas";  // Required for backend type system
   width: number;
   height: number;
   backgroundColor: string;
@@ -131,6 +132,7 @@ export const DEFAULT_GROUP_PROPS: GroupProps = {
 
 // Default canvas data
 export const DEFAULT_CANVAS_DATA: LayoutCanvasData = {
+  type: "layout_canvas",
   width: 800,
   height: 600,
   backgroundColor: "#ffffff",

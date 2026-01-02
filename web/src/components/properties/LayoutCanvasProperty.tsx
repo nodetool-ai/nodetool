@@ -3,7 +3,7 @@
  * Renders the LayoutCanvasEditor in a modal for editing canvas layouts
  */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -20,15 +20,56 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "lodash/isEqual";
 import { LayoutCanvasEditor } from "../design";
-import { LayoutCanvasData, DEFAULT_CANVAS_DATA } from "../design/types";
+import { LayoutCanvasData, DEFAULT_CANVAS_DATA, ExposedInput } from "../design/types";
+import { useNodes } from "../../contexts/NodeContext";
 
 const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
   const theme = useTheme();
   const id = `layout-canvas-${props.property.name}-${props.propertyIndex}`;
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
-  // Get current value or use default
-  const canvasData: LayoutCanvasData = props.value || DEFAULT_CANVAS_DATA;
+  // Access node store for updating dynamic properties
+  const { findNode, updateNodeData } = useNodes((state) => ({
+    findNode: state.findNode,
+    updateNodeData: state.updateNodeData
+  }));
+
+  // Get current value or use default, ensuring type field is present
+  const canvasData: LayoutCanvasData = props.value 
+    ? { ...props.value, type: "layout_canvas" as const }
+    : DEFAULT_CANVAS_DATA;
+
+  // Sync exposed inputs to node's dynamic_properties
+  const syncExposedInputs = useCallback(
+    (exposedInputs: ExposedInput[]) => {
+      const node = findNode(props.nodeId);
+      if (!node) return;
+
+      // Build dynamic properties from exposed inputs
+      const dynamicProps: Record<string, any> = {};
+      exposedInputs.forEach((input) => {
+        // Use a default value based on input type
+        const defaultValue = input.inputType === "image" ? null : "";
+        // Preserve existing value if it exists
+        const existingValue = node.data.dynamic_properties?.[input.inputName];
+        dynamicProps[input.inputName] = existingValue !== undefined ? existingValue : defaultValue;
+      });
+
+      // Only update if dynamic properties changed
+      const currentDynamic = node.data.dynamic_properties || {};
+      if (!isEqual(Object.keys(dynamicProps).sort(), Object.keys(currentDynamic).sort())) {
+        updateNodeData(props.nodeId, { dynamic_properties: dynamicProps });
+      }
+    },
+    [findNode, updateNodeData, props.nodeId]
+  );
+
+  // Sync exposed inputs when canvas data changes
+  useEffect(() => {
+    if (canvasData.exposedInputs) {
+      syncExposedInputs(canvasData.exposedInputs);
+    }
+  }, [canvasData.exposedInputs, syncExposedInputs]);
 
   const handleOpenEditor = useCallback(() => {
     setIsEditorOpen(true);
@@ -41,8 +82,12 @@ const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
   const handleChange = useCallback(
     (newData: LayoutCanvasData) => {
       props.onChange(newData);
+      // Also sync exposed inputs to dynamic properties
+      if (newData.exposedInputs) {
+        syncExposedInputs(newData.exposedInputs);
+      }
     },
-    [props]
+    [props, syncExposedInputs]
   );
 
   // Summary of canvas contents
@@ -108,6 +153,7 @@ const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
         }}
       >
         <DialogTitle
+          component="div"
           sx={{
             display: "flex",
             alignItems: "center",
@@ -116,7 +162,7 @@ const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
             py: 1
           }}
         >
-          <Typography variant="h6">Layout Canvas Editor</Typography>
+          <Typography variant="h6" component="span">Layout Canvas Editor</Typography>
           <IconButton
             size="small"
             onClick={handleCloseEditor}

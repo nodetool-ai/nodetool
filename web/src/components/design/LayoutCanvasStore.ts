@@ -115,7 +115,8 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
 
   // Set entire canvas data
   setCanvasData: (data) => {
-    set({ canvasData: data });
+    // Ensure type field is always present for backend compatibility
+    set({ canvasData: { ...data, type: "layout_canvas" as const } });
     get().saveToHistory();
   },
 
@@ -660,7 +661,8 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
   saveToHistory: () => {
     set((state) => {
       const newHistory = state.history.slice(0, state.historyIndex + 1);
-      newHistory.push({ ...state.canvasData });
+      // Ensure type field is preserved in history
+      newHistory.push({ ...state.canvasData, type: "layout_canvas" as const });
       
       // Limit history to 50 entries
       if (newHistory.length > 50) {
@@ -679,7 +681,7 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       set({
-        canvasData: { ...history[newIndex] },
+        canvasData: { ...history[newIndex], type: "layout_canvas" as const },
         historyIndex: newIndex
       });
     }
@@ -690,7 +692,7 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       set({
-        canvasData: { ...history[newIndex] },
+        canvasData: { ...history[newIndex], type: "layout_canvas" as const },
         historyIndex: newIndex
       });
     }
