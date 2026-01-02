@@ -4,13 +4,14 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Button, TextField, Tooltip } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
+import { NodeTextField } from "../ui_primitives";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -77,25 +78,11 @@ const PropertyDropzone = ({
         }
       },
       ".url-input": {
-        height: "1em",
         width: "calc(100% - 24px)",
         maxWidth: "120px",
         zIndex: 1,
         bottom: "0em",
-        borderRadius: "0",
-        backgroundColor: theme.vars.palette.grey[600],
-        margin: "0 0 .5em 0",
-        padding: ".2em .5em .1em .5em"
-      },
-      ".url-input input": {
-        margin: 0,
-        maxWidth: "230px",
-        fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeTiny,
-        padding: "0"
-      },
-      ".url-input fieldset": {
-        border: "0"
+        margin: "0 0 .5em 0"
       },
       ".dropzone": {
         position: "relative",
@@ -290,17 +277,27 @@ const PropertyDropzone = ({
     <div css={styles(theme)}>
       <div className="drop-container">
         {showUrlInput && (
-          <TextField
-            className="url-input nowheel nodrag"
+          <NodeTextField
+            className="url-input"
             value={uri || ""}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
             onChange={(e) =>
               onChange({ uri: e.target.value, type: contentType })
             }
             placeholder={`Enter ${contentType.split("/")[0]} URL`}
+            sx={{
+              backgroundColor: theme.vars.palette.grey[600],
+              "& .MuiOutlinedInput-root": {
+                height: "1.8em"
+              },
+              "& .MuiOutlinedInput-input": {
+                padding: ".2em .5em",
+                fontFamily: theme.fontFamily1,
+                fontSize: theme.fontSizeTiny
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                border: "0"
+              }
+            }}
           />
         )}
 
