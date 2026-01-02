@@ -4,6 +4,7 @@ import {
   calculateClipOpacity,
   calculateTransitionProgress,
   isInTransition,
+  isClipInFade,
   calculateAudioVolume
 } from "../transitionRenderer";
 import { Clip, Transition } from "../../../stores/TimelineStore";
@@ -101,6 +102,40 @@ describe("transitionRenderer", () => {
       const clip = createTestClip(0, 10, { fadeIn: 2, fadeOut: 2, opacity: 0.8 });
       expect(calculateClipOpacity(clip, 1)).toBeCloseTo(0.4); // 0.5 * 1 * 0.8
       expect(calculateClipOpacity(clip, 5)).toBeCloseTo(0.8); // 1 * 1 * 0.8
+    });
+  });
+
+  describe("isClipInFade", () => {
+    it("returns false when no fades", () => {
+      const clip = createTestClip(0, 10);
+      expect(isClipInFade(clip, 0)).toBe(false);
+      expect(isClipInFade(clip, 5)).toBe(false);
+      expect(isClipInFade(clip, 10)).toBe(false);
+    });
+
+    it("returns true during fade in", () => {
+      const clip = createTestClip(0, 10, { fadeIn: 2 });
+      expect(isClipInFade(clip, 0)).toBe(true);
+      expect(isClipInFade(clip, 1)).toBe(true);
+      expect(isClipInFade(clip, 1.9)).toBe(true);
+      expect(isClipInFade(clip, 2)).toBe(false);
+      expect(isClipInFade(clip, 5)).toBe(false);
+    });
+
+    it("returns true during fade out", () => {
+      const clip = createTestClip(0, 10, { fadeOut: 2 });
+      expect(isClipInFade(clip, 5)).toBe(false);
+      expect(isClipInFade(clip, 8)).toBe(false);
+      expect(isClipInFade(clip, 8.1)).toBe(true);
+      expect(isClipInFade(clip, 9)).toBe(true);
+      expect(isClipInFade(clip, 10)).toBe(true);
+    });
+
+    it("returns true during either fade", () => {
+      const clip = createTestClip(0, 10, { fadeIn: 2, fadeOut: 2 });
+      expect(isClipInFade(clip, 1)).toBe(true);
+      expect(isClipInFade(clip, 5)).toBe(false);
+      expect(isClipInFade(clip, 9)).toBe(true);
     });
   });
 

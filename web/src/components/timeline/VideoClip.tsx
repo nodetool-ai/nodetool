@@ -59,6 +59,9 @@ const styles = (_theme: Theme) =>
 
 type VideoClipProps = Omit<ClipProps, "children">;
 
+// Maximum number of thumbnails to extract per clip for performance
+const MAX_THUMBNAILS_PER_CLIP = 20;
+
 const VideoClip: React.FC<VideoClipProps> = (props) => {
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -75,7 +78,7 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
   const { thumbnails: thumbnailData, isLoading } = useVideoThumbnails({
     url: clip.sourceUrl,
     durationHint: clip.sourceDuration,
-    numThumbnails: Math.min(numThumbnails, 20), // Cap at 20 thumbnails
+    numThumbnails: Math.min(numThumbnails, MAX_THUMBNAILS_PER_CLIP),
     thumbnailWidth: Math.round(thumbnailWidth * 2), // Higher res for quality
     usePlaceholder: !clip.sourceUrl
   });

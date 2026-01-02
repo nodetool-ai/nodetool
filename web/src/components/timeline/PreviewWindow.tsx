@@ -16,6 +16,7 @@ import { formatTimeShort } from "../../utils/timelineUtils";
 import {
   calculateClipOpacity,
   isInTransition,
+  isClipInFade,
   renderWithTransition,
   renderClipWithFades
 } from "../../utils/timeline/transitionRenderer";
@@ -358,8 +359,7 @@ const PreviewWindow: React.FC = () => {
       ctx.globalAlpha = 1;
 
       // Draw fade indicator if fades are active
-      if ((visualClip.fadeIn && clipTime < visualClip.fadeIn) ||
-          (visualClip.fadeOut && clipTime > visualClip.duration - visualClip.fadeOut)) {
+      if (isClipInFade(visualClip, clipTime)) {
         ctx.fillStyle = "rgba(255, 193, 7, 0.8)";
         ctx.font = "10px Inter, system-ui, sans-serif";
         ctx.textAlign = "center";
@@ -439,19 +439,19 @@ const PreviewWindow: React.FC = () => {
     ? (playback.playheadPosition - visualClip.startTime) / visualClip.duration
     : 0;
 
+  // Calculate clip time for fade checks
+  const clipTime = visualClip
+    ? playback.playheadPosition - visualClip.startTime
+    : 0;
+
   // Calculate image opacity for fade effects
   const imageOpacity = visualClip
-    ? calculateClipOpacity(
-        visualClip,
-        playback.playheadPosition - visualClip.startTime
-      )
+    ? calculateClipOpacity(visualClip, clipTime)
     : 1;
 
   // Check if we should use canvas for image (when in transition or has fades)
   const useCanvasForImage = visualClip?.type === "image" && (
-    nextClip ||
-    (visualClip.fadeIn && playback.playheadPosition - visualClip.startTime < visualClip.fadeIn) ||
-    (visualClip.fadeOut && playback.playheadPosition > visualClip.startTime + visualClip.duration - visualClip.fadeOut)
+    nextClip || isClipInFade(visualClip, clipTime)
   );
 
   return (

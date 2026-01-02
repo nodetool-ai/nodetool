@@ -73,6 +73,15 @@ export function calculateClipOpacity(clip: Clip, clipTime: number): number {
   return baseOpacity * fadeIn * fadeOut;
 }
 
+/**
+ * Check if a clip is currently in a fade in or fade out period
+ */
+export function isClipInFade(clip: Clip, clipTime: number): boolean {
+  const inFadeIn = (clip.fadeIn ?? 0) > 0 && clipTime < (clip.fadeIn ?? 0);
+  const inFadeOut = (clip.fadeOut ?? 0) > 0 && clipTime > clip.duration - (clip.fadeOut ?? 0);
+  return inFadeIn || inFadeOut;
+}
+
 // ============================================================================
 // Transition Calculations
 // ============================================================================
@@ -159,6 +168,18 @@ export function applyCrossfade(
   ctx.globalAlpha = 1;
 }
 
+// Canvas pool for dissolve effect to avoid repeated DOM element creation
+let dissolveCanvasPool: HTMLCanvasElement | null = null;
+
+function getDissolveCanvas(width: number, height: number): HTMLCanvasElement {
+  if (!dissolveCanvasPool || dissolveCanvasPool.width !== width || dissolveCanvasPool.height !== height) {
+    dissolveCanvasPool = document.createElement("canvas");
+    dissolveCanvasPool.width = width;
+    dissolveCanvasPool.height = height;
+  }
+  return dissolveCanvasPool;
+}
+
 /**
  * Apply dissolve effect between two clips
  * Creates a pixel-based dissolve pattern
@@ -182,14 +203,13 @@ export function applyDissolve(
     drawFittedSource(ctx, fromSource, width, height);
   }
 
-  // Create a temporary canvas for the "to" clip
-  const tempCanvas = document.createElement("canvas");
-  tempCanvas.width = width;
-  tempCanvas.height = height;
+  // Reuse pooled canvas for the "to" clip
+  const tempCanvas = getDissolveCanvas(width, height);
   const tempCtx = tempCanvas.getContext("2d");
 
   if (tempCtx && toSource) {
-    // Draw "to" clip on temp canvas
+    // Clear and draw "to" clip on temp canvas
+    tempCtx.clearRect(0, 0, width, height);
     drawFittedSource(tempCtx, toSource, width, height);
 
     // Apply noise-based dissolve mask

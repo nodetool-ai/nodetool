@@ -83,7 +83,8 @@ const ClipContextMenu: React.FC<ClipContextMenuProps> = ({
     splitClip,
     duplicateClip,
     selectClips,
-    selection
+    selection,
+    deleteSelectedClips
   } = useTimelineStore();
 
   const { copySelectedClips, cutSelectedClips, pasteClips, hasClips } =
@@ -120,14 +121,13 @@ const ClipContextMenu: React.FC<ClipContextMenuProps> = ({
 
     if (isMultiSelection && clipIsSelected) {
       // Delete all selected clips
-      const state = useTimelineStore.getState();
-      state.deleteSelectedClips();
+      deleteSelectedClips();
     } else {
       // Delete just this clip
       removeClip(trackId, clip.id);
     }
     onClose();
-  }, [clip, trackId, isMultiSelection, clipIsSelected, removeClip, onClose]);
+  }, [clip, trackId, isMultiSelection, clipIsSelected, removeClip, deleteSelectedClips, onClose]);
 
   const handleSplit = useCallback(() => {
     if (!clip || !trackId) return;

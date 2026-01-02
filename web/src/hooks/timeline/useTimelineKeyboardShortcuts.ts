@@ -180,6 +180,13 @@ export function useTimelineKeyboardShortcuts(
             e.preventDefault();
             selectAllClips();
             break;
+          case "m":
+            // Ctrl+Shift+M: Go to previous marker
+            if (isShift) {
+              e.preventDefault();
+              goToPreviousMarker();
+            }
+            break;
           case "z":
             // Undo/Redo handled by TimelineStore's temporal
             break;
@@ -253,10 +260,6 @@ export function useTimelineKeyboardShortcuts(
           if (isShift) {
             // Shift+M: Go to next marker
             goToNextMarker();
-          } else if (isCtrlOrCmd) {
-            // Ctrl/Cmd+Shift+M handled above in Ctrl block
-            // Ctrl+M alone: Go to previous marker
-            goToPreviousMarker();
           } else {
             // M: Add marker at playhead
             addMarker();

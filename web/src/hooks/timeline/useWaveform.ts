@@ -77,14 +77,23 @@ function setCachedWaveform(url: string, data: WaveformData): void {
 /**
  * Extracts waveform data from an audio file URL
  */
+/**
+ * Create an AudioContext with webkit fallback for older browsers
+ */
+function createAudioContext(): AudioContext {
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext })
+      .webkitAudioContext;
+  return new AudioContextClass();
+}
+
 async function extractWaveform(
   audioUrl: string,
   targetPeaks: number = 1000
 ): Promise<WaveformData> {
   // Create audio context
-  const audioContext = new (window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext })
-      .webkitAudioContext)();
+  const audioContext = createAudioContext();
 
   try {
     // Fetch the audio file
