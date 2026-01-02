@@ -114,6 +114,7 @@ export interface ClipProps {
   left: number;
   width: number;
   onClick: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent, clip: ClipType, trackId: string) => void;
   children?: React.ReactNode;
 }
 
@@ -125,6 +126,7 @@ const Clip: React.FC<ClipProps> = ({
   left,
   width,
   onClick,
+  onContextMenu,
   children
 }) => {
   const theme = useTheme();
@@ -248,6 +250,15 @@ const Clip: React.FC<ClipProps> = ({
     document.addEventListener("mouseup", handleMouseUp);
   }, [clip, trackId, pixelsPerSecond, trimClipEnd, getSnappedTime]);
 
+  // Handle right-click context menu
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onContextMenu) {
+      onContextMenu(e, clip, trackId);
+    }
+  }, [clip, trackId, onContextMenu]);
+
   // Format duration for display
   const formatDuration = (seconds: number): string => {
     if (seconds < 1) {
@@ -283,6 +294,7 @@ const Clip: React.FC<ClipProps> = ({
         backgroundColor: clip.color || "#666"
       }}
       onMouseDown={handleMouseDown}
+      onContextMenu={handleContextMenu}
     >
       {/* Left trim handle */}
       <div

@@ -7,6 +7,7 @@ import useTimelineStore, { Track, Clip } from "../../stores/TimelineStore";
 import AudioClip from "./AudioClip";
 import VideoClip from "./VideoClip";
 import ImageClip from "./ImageClip";
+import ClipContextMenu from "./ClipContextMenu";
 import { timeToPixels, pixelsToTime } from "../../utils/timelineUtils";
 import { useTimelineAssetDrop } from "../../hooks/timeline/useTimelineAssetDrop";
 
@@ -62,6 +63,13 @@ const TrackLane: React.FC<TrackLaneProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const trackRef = React.useRef<HTMLDivElement>(null);
 
+  // Context menu state
+  const [contextMenuPosition, setContextMenuPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [contextMenuClip, setContextMenuClip] = useState<Clip | null>(null);
+
   const { selection, selectClip } = useTimelineStore();
   const {
     handleDropOnTrack,
@@ -74,6 +82,27 @@ const TrackLane: React.FC<TrackLaneProps> = ({
     const addToSelection = e.shiftKey || e.metaKey || e.ctrlKey;
     selectClip(clipId, addToSelection);
   }, [selectClip]);
+
+  // Handle right-click context menu
+  const handleClipContextMenu = useCallback(
+    (e: React.MouseEvent, clip: Clip, clipTrackId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenuPosition({ x: e.clientX, y: e.clientY });
+      setContextMenuClip(clip);
+
+      // Select the clip if not already selected
+      if (!selection.selectedClipIds.includes(clip.id)) {
+        selectClip(clip.id);
+      }
+    },
+    [selection.selectedClipIds, selectClip]
+  );
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuPosition(null);
+    setContextMenuClip(null);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     onDragOver(e);
@@ -131,7 +160,8 @@ const TrackLane: React.FC<TrackLaneProps> = ({
       pixelsPerSecond,
       left,
       width,
-      onClick: (e: React.MouseEvent) => handleClipClick(clip.id, e)
+      onClick: (e: React.MouseEvent) => handleClipClick(clip.id, e),
+      onContextMenu: handleClipContextMenu
     };
 
     switch (clip.type) {
@@ -171,6 +201,14 @@ const TrackLane: React.FC<TrackLaneProps> = ({
       <div className="track-clips">
         {track.clips.map(clip => renderClip(clip))}
       </div>
+
+      {/* Context Menu */}
+      <ClipContextMenu
+        anchorPosition={contextMenuPosition}
+        clip={contextMenuClip}
+        trackId={track.id}
+        onClose={handleCloseContextMenu}
+      />
     </Box>
   );
 };

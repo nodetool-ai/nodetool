@@ -13,6 +13,7 @@ import TimeRuler from "../TimeRuler";
 import TrackLane from "../TrackLane";
 import Playhead from "../Playhead";
 import { useTimelineAssetDrop } from "../../../hooks/timeline/useTimelineAssetDrop";
+import { useTimelineKeyboardShortcuts } from "../../../hooks/timeline/useTimelineKeyboardShortcuts";
 import { pixelsToTime } from "../../../utils/timelineUtils";
 import { TimelinePanelProps } from "../timelinePanelConfig";
 
@@ -108,16 +109,9 @@ const TimelineContentPanel: React.FC<
     project,
     viewport,
     playback,
-    selection,
     setScrollLeft,
     setViewportWidth,
-    seek,
-    setLoopRegion,
-    toggleLoop,
-    togglePlayback,
-    stop,
-    stepFrame,
-    deleteSelectedClips
+    seek
   } = useTimelineStore();
 
   const {
@@ -125,6 +119,9 @@ const TimelineContentPanel: React.FC<
     handleDragOver: onAssetDragOver,
     canAcceptDrop
   } = useTimelineAssetDrop();
+
+  // Enable keyboard shortcuts for the timeline
+  useTimelineKeyboardShortcuts({ enabled: true });
 
   // Update viewport width on mount and resize
   useEffect(() => {
@@ -218,75 +215,6 @@ const TimelineContentPanel: React.FC<
       container.removeEventListener("wheel", handleWheel, { capture: true });
     };
   }, []);
-
-  // Keyboard shortcuts for timeline
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      switch (e.key.toLowerCase()) {
-        case "delete":
-        case "backspace":
-          // Delete selected clips
-          if (selection.selectedClipIds.length > 0) {
-            e.preventDefault();
-            deleteSelectedClips();
-          }
-          break;
-        case "i": {
-          e.preventDefault();
-          const currentEnd =
-            playback.loopEnd > 0 ? playback.loopEnd : project?.duration || 60;
-          setLoopRegion(playback.playheadPosition, currentEnd);
-          break;
-        }
-        case "o":
-          e.preventDefault();
-          setLoopRegion(playback.loopStart, playback.playheadPosition);
-          break;
-        case "l":
-          e.preventDefault();
-          toggleLoop();
-          break;
-        case " ":
-          e.preventDefault();
-          togglePlayback();
-          break;
-        case "home":
-          e.preventDefault();
-          stop();
-          break;
-        case "arrowleft":
-          e.preventDefault();
-          stepFrame(-1);
-          break;
-        case "arrowright":
-          e.preventDefault();
-          stepFrame(1);
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    playback.playheadPosition,
-    playback.loopStart,
-    playback.loopEnd,
-    project?.duration,
-    selection.selectedClipIds.length,
-    deleteSelectedClips,
-    setLoopRegion,
-    toggleLoop,
-    togglePlayback,
-    stop,
-    stepFrame
-  ]);
 
   const timelineWidth = project
     ? Math.max(
