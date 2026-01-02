@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, {
+  Component,
   Suspense,
   useRef,
   useCallback,
@@ -219,33 +220,29 @@ interface ModelProps {
   url: string;
   wireframe: boolean;
   onLoad?: () => void;
-  onError?: (error: Error) => void;
   onClick?: () => void;
 }
 
-function Model({ url, wireframe, onLoad, onError, onClick }: ModelProps) {
-  const { scene } = useGLTF(url, true, true, (loader) => {
-    loader.manager.onLoad = () => onLoad?.();
-    loader.manager.onError = (errorUrl) =>
-      onError?.(new Error(`Failed to load: ${errorUrl}`));
-  });
+function Model({ url, wireframe, onLoad, onClick }: ModelProps) {
+  const { scene } = useGLTF(url);
 
   // Clone scene to avoid modifying original
   const clonedScene = useMemo(() => scene.clone(), [scene]);
 
-  // Apply wireframe mode
+  // Apply wireframe mode to all mesh materials
   useEffect(() => {
     clonedScene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach((mat) => {
-            if (mat instanceof THREE.MeshStandardMaterial) {
-              mat.wireframe = wireframe;
-            }
-          });
-        } else if (child.material instanceof THREE.MeshStandardMaterial) {
-          child.material.wireframe = wireframe;
-        }
+        const materials = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+        materials.forEach((mat) => {
+          // Apply wireframe to any material that supports it
+          if (mat && "wireframe" in mat) {
+            (mat as THREE.Material & { wireframe: boolean }).wireframe =
+              wireframe;
+          }
+        });
       }
     });
   }, [clonedScene, wireframe]);
@@ -269,6 +266,42 @@ function Model({ url, wireframe, onLoad, onError, onClick }: ModelProps) {
       <primitive object={clonedScene} onClick={handleClick} />
     </Center>
   );
+}
+
+// Error boundary for handling model loading errors
+interface ModelErrorBoundaryProps {
+  children: React.ReactNode;
+  onError: (error: Error) => void;
+  fallback: React.ReactNode;
+}
+
+interface ModelErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ModelErrorBoundary extends Component<
+  ModelErrorBoundaryProps,
+  ModelErrorBoundaryState
+> {
+  constructor(props: ModelErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ModelErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error): void {
+    this.props.onError(error);
+  }
+
+  render(): React.ReactNode {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
 }
 
 // Helper grid and axis component
@@ -307,6 +340,23 @@ interface CameraControllerProps {
   resetTrigger: number;
 }
 
+// Type for OrbitControls-like objects
+interface OrbitControlsLike {
+  target: THREE.Vector3;
+  update: () => void;
+}
+
+// Type guard for OrbitControls
+function isOrbitControlsLike(obj: unknown): obj is OrbitControlsLike {
+  return (
+    obj !== null &&
+    typeof obj === "object" &&
+    "target" in obj &&
+    "update" in obj &&
+    typeof (obj as OrbitControlsLike).update === "function"
+  );
+}
+
 function CameraController({ resetTrigger }: CameraControllerProps) {
   const { camera, controls } = useThree();
 
@@ -314,13 +364,9 @@ function CameraController({ resetTrigger }: CameraControllerProps) {
     if (resetTrigger > 0) {
       camera.position.set(3, 2, 3);
       camera.lookAt(0, 0, 0);
-      if (controls && "target" in controls) {
-        const orbitControls = controls as unknown as {
-          target: THREE.Vector3;
-          update: () => void;
-        };
-        orbitControls.target.set(0, 0, 0);
-        orbitControls.update();
+      if (isOrbitControlsLike(controls)) {
+        controls.target.set(0, 0, 0);
+        controls.update();
       }
     }
   }, [resetTrigger, camera, controls]);
@@ -555,68 +601,72 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             gl={{ preserveDrawingBuffer: true }}
             style={{ background: bgColorValue }}
           >
-            <Suspense
-              fallback={
-                <Html center>
-                  <CircularProgress size={40} />
-                </Html>
-              }
+            <ModelErrorBoundary
+              onError={handleModelError}
+              fallback={null}
             >
-              {/* Lighting based on preset */}
-              {/* eslint-disable-next-line react/no-unknown-property */}
-              <ambientLight intensity={0.3} />
-              <Environment
-                preset={lightingPreset}
-                background={backgroundColor === "gradient"}
-              />
-
-              {/* Contact shadows for grounded look */}
-              {!compact && (
-                <ContactShadows
-                  position={[0, -0.001, 0]}
-                  opacity={0.5}
-                  scale={10}
-                  blur={2}
-                  far={4}
+              <Suspense
+                fallback={
+                  <Html center>
+                    <CircularProgress size={40} />
+                  </Html>
+                }
+              >
+                {/* Lighting based on preset */}
+                {/* eslint-disable-next-line react/no-unknown-property */}
+                <ambientLight intensity={0.3} />
+                <Environment
+                  preset={lightingPreset}
+                  background={backgroundColor === "gradient"}
                 />
-              )}
 
-              {/* The 3D Model */}
-              <Model
-                url={modelUrl}
-                wireframe={wireframe}
-                onLoad={handleModelLoad}
-                onError={handleModelError}
-                onClick={compact ? onClick : undefined}
-              />
+                {/* Contact shadows for grounded look */}
+                {!compact && (
+                  <ContactShadows
+                    position={[0, -0.001, 0]}
+                    opacity={0.5}
+                    scale={10}
+                    blur={2}
+                    far={4}
+                  />
+                )}
 
-              {/* Scene helpers */}
-              {!compact && (
-                <SceneHelpers showGrid={showGrid} showAxes={showAxes} />
-              )}
+                {/* The 3D Model */}
+                <Model
+                  url={modelUrl}
+                  wireframe={wireframe}
+                  onLoad={handleModelLoad}
+                  onClick={compact ? onClick : undefined}
+                />
 
-              {/* Orbit controls */}
-              <OrbitControls
-                makeDefault
-                enablePan={!compact}
-                enableZoom={!compact}
-                enableRotate={true}
-                minDistance={0.5}
-                maxDistance={50}
-              />
+                {/* Scene helpers */}
+                {!compact && (
+                  <SceneHelpers showGrid={showGrid} showAxes={showAxes} />
+                )}
 
-              {/* Camera controller */}
-              <CameraController resetTrigger={resetCameraTrigger} />
+                {/* Orbit controls */}
+                <OrbitControls
+                  makeDefault
+                  enablePan={!compact}
+                  enableZoom={!compact}
+                  enableRotate={true}
+                  minDistance={0.5}
+                  maxDistance={50}
+                />
 
-              {/* Auto rotate for compact mode */}
-              {compact && <AutoRotate enabled={true} />}
+                {/* Camera controller */}
+                <CameraController resetTrigger={resetCameraTrigger} />
 
-              {/* Screenshot handler */}
-              <ScreenshotHandler
-                onCapture={handleCaptureScreenshot}
-                triggerCapture={screenshotTrigger}
-              />
-            </Suspense>
+                {/* Auto rotate for compact mode */}
+                {compact && <AutoRotate enabled={true} />}
+
+                {/* Screenshot handler */}
+                <ScreenshotHandler
+                  onCapture={handleCaptureScreenshot}
+                  triggerCapture={screenshotTrigger}
+                />
+              </Suspense>
+            </ModelErrorBoundary>
           </Canvas>
         </div>
 
