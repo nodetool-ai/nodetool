@@ -14,7 +14,7 @@
  */
 
 import React, { forwardRef, memo } from "react";
-import { Button, ButtonProps, IconButton, Tooltip } from "@mui/material";
+import { Button, ButtonProps, IconButton, IconButtonProps, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -22,7 +22,10 @@ import {
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 
-export interface NavButtonProps extends Omit<ButtonProps, "children"> {
+// Common props shared between Button and IconButton
+type CommonButtonProps = Pick<ButtonProps, "onClick" | "disabled" | "color">;
+
+export interface NavButtonProps extends CommonButtonProps {
   /**
    * The icon to display
    */
@@ -67,6 +70,14 @@ export interface NavButtonProps extends Omit<ButtonProps, "children"> {
    * @default "medium"
    */
   navSize?: "small" | "medium" | "large";
+  /**
+   * Additional class name
+   */
+  className?: string;
+  /**
+   * Additional sx props
+   */
+  sx?: ButtonProps["sx"];
 }
 
 /**
@@ -156,7 +167,8 @@ export const NavButton = memo(
               )}
               tabIndex={-1}
               sx={baseStyles}
-              {...(props as any)}
+              onClick={props.onClick}
+              disabled={props.disabled}
             >
               {icon}
             </IconButton>

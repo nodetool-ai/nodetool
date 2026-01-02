@@ -195,7 +195,7 @@ export const PlaybackButton = memo(
         return {
           color: "var(--palette-primary-main)",
           "&:hover": {
-            backgroundColor: `${"var(--palette-primary-main)"}20`,
+            backgroundColor: "rgba(var(--palette-primaryChannel), 0.12)",
             color: "var(--palette-primary-light)"
           }
         };
