@@ -14,7 +14,6 @@ import {
   Box,
   Typography,
   List,
-  ListItem,
   ListItemIcon,
   ListItemText,
   ListItemButton,
@@ -104,7 +103,7 @@ export const PropertyBindingDialog: React.FC<PropertyBindingDialogProps> = ({
 
   // Get bindable attributes for this element's tag
   const bindableAttributes = useMemo(() => {
-    if (!element) return [];
+    if (!element) {return [];}
     return getBindableAttributes(element.tag);
   }, [element]);
 

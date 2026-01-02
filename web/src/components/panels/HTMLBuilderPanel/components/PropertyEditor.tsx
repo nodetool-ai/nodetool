@@ -26,11 +26,10 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import DeleteIcon from "@mui/icons-material/Delete";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { useHTMLBuilderStore } from "../../../../stores/useHTMLBuilderStore";
-import type { BuilderElement, PropertyBinding } from "../types/builder.types";
+import type { BuilderElement } from "../types/builder.types";
 import type { CSSProperties } from "react";
 
 /**
@@ -65,6 +64,13 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 };
 
 /**
+ * Font weight options for style select
+ */
+const FONT_WEIGHT_OPTIONS = [
+  "normal", "bold", "100", "200", "300", "400", "500", "600", "700", "800", "900"
+];
+
+/**
  * Common style properties with their types
  */
 const styleProperties = [
@@ -75,7 +81,7 @@ const styleProperties = [
   { name: "backgroundColor", label: "Background", type: "color" },
   { name: "color", label: "Text Color", type: "color" },
   { name: "fontSize", label: "Font Size", type: "text" },
-  { name: "fontWeight", label: "Font Weight", type: "select", options: ["normal", "bold", "100", "200", "300", "400", "500", "600", "700", "800", "900"] },
+  { name: "fontWeight", label: "Font Weight", type: "select", options: FONT_WEIGHT_OPTIONS },
   { name: "textAlign", label: "Text Align", type: "select", options: ["left", "center", "right", "justify"] },
   { name: "display", label: "Display", type: "select", options: ["block", "inline", "flex", "grid", "inline-block", "none"] },
   { name: "flexDirection", label: "Flex Direction", type: "select", options: ["row", "column", "row-reverse", "column-reverse"] },
@@ -168,7 +174,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
   // Get common attributes for the element's tag
   const commonAttributes = useMemo(() => {
-    if (!element) return [];
+    if (!element) {return [];}
 
     const baseAttrs = ["id", "class", "title"];
     const tagSpecificAttrs: Record<string, string[]> = {

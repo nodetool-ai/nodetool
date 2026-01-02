@@ -249,7 +249,7 @@ const resolveBindings = (
     attributes: { ...element.attributes }
   };
 
-  for (const [key, binding] of Object.entries(element.propertyBindings)) {
+  for (const [_key, binding] of Object.entries(element.propertyBindings)) {
     const value = propertyValues[binding.propertyName];
     if (value === undefined) {
       continue;
@@ -421,7 +421,7 @@ export const useHTMLBuilderStore = create<HTMLBuilderState>()(
           const idsToDelete = new Set(collectDescendants(id));
 
           // Remove from parent or root
-          let newRootIds = state.rootElementIds.filter(
+          const newRootIds = state.rootElementIds.filter(
             (rid) => !idsToDelete.has(rid)
           );
           const newElements = { ...state.elements };
@@ -491,22 +491,6 @@ export const useHTMLBuilderStore = create<HTMLBuilderState>()(
         };
 
         const cloned = cloneElement(element, element.parentId);
-
-        // Add all cloned elements
-        const addClonedElements = (el: BuilderElement): void => {
-          set((s) => ({
-            elements: { ...s.elements, [el.id]: el },
-            rootElementIds: !el.parentId
-              ? [...s.rootElementIds, el.id]
-              : s.rootElementIds,
-            isDirty: true
-          }));
-
-          for (const childId of el.children) {
-            const child = { ...state.elements[childId], parentId: el.id };
-            addClonedElements(child as BuilderElement);
-          }
-        };
 
         // Insert after original
         set((s) => {

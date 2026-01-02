@@ -31,8 +31,7 @@ import TouchAppIcon from "@mui/icons-material/TouchApp";
 
 import {
   componentRegistry,
-  getCategories,
-  getComponentsByCategory
+  getCategories
 } from "../utils/componentRegistry";
 import type { ComponentDefinition } from "../types/builder.types";
 

@@ -5,7 +5,7 @@
  * dynamic property binding capabilities for the HTML builder.
  */
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useHTMLBuilderStore } from "../../../../stores/useHTMLBuilderStore";
 import type {
   WorkflowInput,

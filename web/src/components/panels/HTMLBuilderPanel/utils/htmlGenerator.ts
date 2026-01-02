@@ -7,8 +7,7 @@
 
 import type {
   BuilderElement,
-  HTMLGenerationOptions,
-  PropertyBinding
+  HTMLGenerationOptions
 } from "../types/builder.types";
 import type { CSSProperties } from "react";
 
@@ -191,7 +190,7 @@ export const resolveBindings = (
   };
 
   // Process explicit bindings
-  for (const [key, binding] of Object.entries(element.propertyBindings)) {
+  for (const [_key, binding] of Object.entries(element.propertyBindings)) {
     const value = propertyValues[binding.propertyName];
     if (value === undefined) {
       continue;
