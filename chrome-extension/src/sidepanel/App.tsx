@@ -136,7 +136,7 @@ function App() {
   return (
     <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
       <CssBaseline />
-      <Box css={appContainerStyles} sx={{ bgcolor: 'background.default' }}>
+      <Box css={appContainerStyles} sx={{ bgcolor: 'background.default', color: 'text.primary' }}>
         <ChatHeader />
 
         <Box css={chatContainerStyles}>

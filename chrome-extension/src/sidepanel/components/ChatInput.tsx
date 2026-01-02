@@ -76,7 +76,7 @@ export function ChatInput({ onSendMessage, onStopGeneration, disabled }: ChatInp
   return (
     <Box
       css={inputContainerStyles}
-      sx={{ borderColor: theme.palette.divider, bgcolor: theme.palette.background.paper }}
+      sx={{ borderColor: theme.vars.palette.divider, bgcolor: theme.vars.palette.background.paper }}
     >
       {/* Context toggle */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -130,7 +130,7 @@ export function ChatInput({ onSendMessage, onStopGeneration, disabled }: ChatInp
           sx={{
             '& .MuiOutlinedInput-root': {
               borderRadius: '24px',
-              backgroundColor: theme.palette.background.default,
+              backgroundColor: theme.vars.palette.background.default,
               '& fieldset': {
                 borderColor: theme.palette.divider
               },
