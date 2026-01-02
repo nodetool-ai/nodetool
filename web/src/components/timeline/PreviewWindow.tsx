@@ -215,7 +215,7 @@ const PreviewWindow: React.FC = () => {
   }, [project]);
 
   // Load media sources for clips
-  const { getSource, seekVideo: _seekVideo } = useMediaSources({
+  const { getSource, seekVideo } = useMediaSources({
     clips: allVisualClips
   });
 
@@ -232,6 +232,27 @@ const PreviewWindow: React.FC = () => {
     next: nextClip,
     track: _visualTrack
   } = visualClipData;
+
+  // Seek video elements to correct time position
+  useEffect(() => {
+    if (!visualClip || visualClip.type !== "video") {
+      return;
+    }
+
+    // Calculate time within the clip (accounting for inPoint)
+    const clipTime = playback.playheadPosition - visualClip.startTime;
+    const sourceTime = visualClip.inPoint + clipTime * visualClip.speed;
+
+    // Seek to the correct position
+    seekVideo(visualClip.id, sourceTime);
+
+    // Also seek next clip if in transition
+    if (nextClip && nextClip.type === "video") {
+      const nextClipTime = playback.playheadPosition - nextClip.startTime;
+      const nextSourceTime = nextClip.inPoint + nextClipTime * nextClip.speed;
+      seekVideo(nextClip.id, nextSourceTime);
+    }
+  }, [playback.playheadPosition, visualClip, nextClip, seekVideo]);
 
   // Get current clips at playhead
   const currentClips = project ? getClipsAtTime(playback.playheadPosition) : [];

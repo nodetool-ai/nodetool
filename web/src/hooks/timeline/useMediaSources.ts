@@ -66,17 +66,49 @@ async function loadImage(url: string): Promise<HTMLImageElement> {
 
 /**
  * Load a video element from URL
+ * Tries with CORS first, falls back to without for same-origin URLs
  */
 async function loadVideo(url: string): Promise<HTMLVideoElement> {
+  // Try with CORS first
+  try {
+    return await loadVideoWithCORS(url, true);
+  } catch (corsError) {
+    // If CORS fails, try without (may work for same-origin or blob URLs)
+    console.warn("CORS-enabled video load failed, trying without:", corsError);
+    return await loadVideoWithCORS(url, false);
+  }
+}
+
+/**
+ * Load a video element with or without CORS
+ */
+async function loadVideoWithCORS(
+  url: string,
+  useCORS: boolean
+): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
-    video.crossOrigin = "anonymous";
+    if (useCORS) {
+      video.crossOrigin = "anonymous";
+    }
     video.preload = "auto";
     video.muted = true; // Must be muted for autoplay to work
     video.playsInline = true;
 
-    video.onloadeddata = () => resolve(video);
-    video.onerror = () => reject(new Error(`Failed to load video: ${url}`));
+    // Timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`Video load timeout: ${url}`));
+    }, 30000);
+
+    video.onloadeddata = () => {
+      clearTimeout(timeoutId);
+      resolve(video);
+    };
+
+    video.onerror = () => {
+      clearTimeout(timeoutId);
+      reject(new Error(`Failed to load video: ${url}`));
+    };
 
     video.src = url;
     video.load();
