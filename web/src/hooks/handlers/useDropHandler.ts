@@ -13,6 +13,7 @@ import {
   hasExternalFiles,
   extractFiles
 } from "../../lib/dragdrop";
+import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 
 // Node spacing when dropping multiple assets
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -55,6 +56,7 @@ export const useDropHandler = () => {
     (state) => state.addNotification
   );
   const addNodeFromAsset = useAddNodeFromAsset();
+  const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -74,6 +76,8 @@ export const useDropHandler = () => {
         const node = dragData.payload as NodeMetadata;
         const newNode = createNode(node, position);
         addNode(newNode);
+        // Track this node as recently used
+        addRecentNode(node.node_type);
         return;
       }
 

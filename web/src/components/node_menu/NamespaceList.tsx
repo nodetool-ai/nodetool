@@ -15,6 +15,7 @@ import {
 } from "../../config/constants";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
+import RecentNodesTiles from "./RecentNodesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
@@ -513,20 +514,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
             <li>clear search by clicking the clear button</li>
           </ul>
         </>
-      ) : (
-        <div className="explanation">
-          <h4>Node Search</h4>
-          <p>
-            Browse through available nodes by selecting namespaces from the menu
-            on the left
-          </p>
-          <p>Add nodes to your workflow by:</p>
-          <ul>
-            <li>Clicking on the desired node</li>
-            <li>Or dragging it directly onto the canvas</li>
-          </ul>
-        </div>
-      )}
+      ) : null}
       <div className="node-packs-info">
         <Button
           startIcon={<AddCircleOutline />}
@@ -544,7 +532,6 @@ const NoSelectionContent = memo(function NoSelectionContent({
           Install additional node packs
         </Button>
       </div>
-
     </div>
   );
 });
@@ -752,6 +739,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
               minSearchTermLength={minSearchTermLength}
             />
             <div className="quick-action-tiles-container">
+              <RecentNodesTiles />
               <QuickActionTiles />
             </div>
           </>
