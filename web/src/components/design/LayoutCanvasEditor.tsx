@@ -343,6 +343,44 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     setGridSettings({ enabled: !gridSettings.enabled });
   }, [gridSettings.enabled, setGridSettings]);
 
+  // Export canvas as PNG using Konva's native toDataURL
+  const handleExport = useCallback(() => {
+    if (!stageRef.current) {
+      return;
+    }
+
+    // Temporarily hide grid for export
+    const wasGridEnabled = gridSettings.enabled;
+    if (wasGridEnabled) {
+      setGridSettings({ enabled: false });
+    }
+
+    // Wait for render to complete, then export
+    requestAnimationFrame(() => {
+      if (!stageRef.current) {
+        return;
+      }
+      
+      const uri = stageRef.current.toDataURL({
+        pixelRatio: 2, // Higher resolution for better quality
+        mimeType: "image/png"
+      });
+
+      // Create download link
+      const link = document.createElement("a");
+      link.download = "canvas-export.png";
+      link.href = uri;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Restore grid if it was enabled
+      if (wasGridEnabled) {
+        setGridSettings({ enabled: true });
+      }
+    });
+  }, [gridSettings.enabled, setGridSettings]);
+
   // Get currently selected element for properties panel
   const selectedElement =
     selectedIds.length === 1 ? findElement(selectedIds[0]) : null;
@@ -392,6 +430,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onFitToScreen={handleFitToScreen}
+        onExport={handleExport}
       />
 
       {/* Main content area */}

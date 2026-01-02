@@ -39,6 +39,7 @@ import GridOffIcon from "@mui/icons-material/GridOff";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
+import DownloadIcon from "@mui/icons-material/Download";
 import { ElementType, GridSettings } from "./types";
 
 interface CanvasToolbarProps {
@@ -68,6 +69,7 @@ interface CanvasToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitToScreen: () => void;
+  onExport: () => void;
 }
 
 // Toolbar button component
@@ -143,7 +145,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onToggleGrid,
   onZoomIn,
   onZoomOut,
-  onFitToScreen
+  onFitToScreen,
+  onExport
 }) => {
   const theme = useTheme();
   const [addMenuAnchor, setAddMenuAnchor] = React.useState<null | HTMLElement>(null);
@@ -337,6 +340,15 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         icon={gridSettings.enabled ? <GridOnIcon /> : <GridOffIcon />}
         tooltip={gridSettings.enabled ? "Hide grid" : "Show grid"}
         onClick={onToggleGrid}
+      />
+
+      <ToolbarDivider />
+
+      {/* Export */}
+      <ToolbarButton
+        icon={<DownloadIcon />}
+        tooltip="Export as PNG"
+        onClick={onExport}
       />
 
       {/* Spacer */}
