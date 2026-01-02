@@ -78,25 +78,21 @@ const NodeContextMenu: React.FC = () => {
     closeContextMenu();
   }, [closeContextMenu, nodeId, toggleBypass]);
 
-  //copy metadata to clipboard
-  const handleCopyMetadataToClipboard = useCallback(() => {
+  //copy node data to clipboard
+  const handleCopyNodeDataToClipboard = useCallback(() => {
     if (nodeId && nodeData) {
-      const metadataToCopy = {
-        NodeData: metadata
-      };
-      log.info("Copying metadata to clipboard", metadataToCopy);
+      log.info("Copying node data to clipboard", nodeData);
       addNotification({
         type: "info",
         alert: true,
-        content: "Copied NodeData to Clipboard!"
+        content: "Copied Node Data to Clipboard!"
       });
-      writeClipboard(JSON.stringify(metadataToCopy), true, true);
+      writeClipboard(JSON.stringify(nodeData, null, 2), true, true);
       closeContextMenu();
     }
   }, [
     nodeId,
     nodeData,
-    metadata,
     addNotification,
     writeClipboard,
     closeContextMenu
@@ -253,10 +249,10 @@ const NodeContextMenu: React.FC = () => {
       <React.Fragment key="dev">
         <Divider />
         <ContextMenuItem
-          onClick={handleCopyMetadataToClipboard}
+          onClick={handleCopyNodeDataToClipboard}
           label="Copy NodeData"
           IconComponent={<DataArrayIcon />}
-          tooltip="Copy node metadata to the clipboard"
+          tooltip="Copy node data to the clipboard"
         />
       </React.Fragment>
     )
