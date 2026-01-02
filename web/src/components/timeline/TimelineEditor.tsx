@@ -101,6 +101,17 @@ const styles = (theme: Theme) =>
       minHeight: "100%"
     },
 
+    ".loop-region-overlay": {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      backgroundColor: "rgba(255, 193, 7, 0.08)",
+      borderLeft: "1px dashed rgba(255, 193, 7, 0.5)",
+      borderRight: "1px dashed rgba(255, 193, 7, 0.5)",
+      pointerEvents: "none",
+      zIndex: 5
+    },
+
     ".timeline-empty-state": {
       display: "flex",
       flexDirection: "column",
@@ -176,6 +187,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
 }) => {
   const theme = useTheme();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const timelineContentRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [isDropZoneDragOver, setIsDropZoneDragOver] = useState(false);
   const [showAssetBrowser, setShowAssetBrowser] = useState(true);
@@ -186,9 +198,13 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     playback,
     setScrollLeft,
     setViewportWidth,
-    setZoom,
     seek,
-    createProject
+    createProject,
+    setLoopRegion,
+    toggleLoop,
+    togglePlayback,
+    stop,
+    stepFrame
   } = useTimelineStore();
 
   const {
@@ -277,25 +293,104 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   );
 
   // Handle zoom with mouse wheel - using native event for proper preventDefault
+  // Attach to timeline content area and use capture phase to intercept before scroll
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+    const container = timelineContentRef.current;
+    if (!container) {
+      return;
+    }
 
     const handleWheel = (e: WheelEvent) => {
       // Only zoom when Ctrl/Cmd is held
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         e.stopPropagation();
+        const { pixelsPerSecond } = useTimelineStore.getState().viewport;
         const zoomDelta = e.deltaY > 0 ? -10 : 10;
-        const newZoom = Math.max(10, Math.min(500, viewport.pixelsPerSecond + zoomDelta));
-        setZoom(newZoom);
+        const newZoom = Math.max(
+          10,
+          Math.min(500, pixelsPerSecond + zoomDelta)
+        );
+        useTimelineStore.getState().setZoom(newZoom);
       }
     };
 
-    // Use passive: false to allow preventDefault
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => container.removeEventListener("wheel", handleWheel);
-  }, [viewport.pixelsPerSecond, setZoom]);
+    // Use capture phase and passive: false to intercept before scroll
+    container.addEventListener("wheel", handleWheel, {
+      passive: false,
+      capture: true
+    });
+    return () => {
+      container.removeEventListener("wheel", handleWheel, { capture: true });
+    };
+  }, []); // No dependencies - use getState() to get current values
+
+  // Keyboard shortcuts for timeline
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle if typing in an input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case "i": {
+          // Set loop in point at playhead
+          e.preventDefault();
+          const currentEnd =
+            playback.loopEnd > 0 ? playback.loopEnd : project?.duration || 60;
+          setLoopRegion(playback.playheadPosition, currentEnd);
+          break;
+        }
+        case "o":
+          // Set loop out point at playhead
+          e.preventDefault();
+          setLoopRegion(playback.loopStart, playback.playheadPosition);
+          break;
+        case "l":
+          // Toggle loop
+          e.preventDefault();
+          toggleLoop();
+          break;
+        case " ":
+          // Play/pause
+          e.preventDefault();
+          togglePlayback();
+          break;
+        case "home":
+          // Go to start
+          e.preventDefault();
+          stop();
+          break;
+        case "arrowleft":
+          // Step back one frame
+          e.preventDefault();
+          stepFrame(-1);
+          break;
+        case "arrowright":
+          // Step forward one frame
+          e.preventDefault();
+          stepFrame(1);
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    playback.playheadPosition,
+    playback.loopStart,
+    playback.loopEnd,
+    project?.duration,
+    setLoopRegion,
+    toggleLoop,
+    togglePlayback,
+    stop,
+    stepFrame
+  ]);
 
   // Calculate total timeline width based on project duration
   const timelineWidth = project
@@ -367,7 +462,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         </div>
 
         {/* Timeline content */}
-        <div className="timeline-content">
+        <div ref={timelineContentRef} className="timeline-content">
           {/* Time ruler */}
           <div className="timeline-ruler-container">
             <TimeRuler
@@ -392,6 +487,20 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                 className="timeline-tracks-canvas"
                 style={{ width: timelineWidth }}
               >
+                {/* Loop region overlay */}
+                {playback.loopEnabled &&
+                  playback.loopEnd > playback.loopStart && (
+                    <div
+                      className="loop-region-overlay"
+                      style={{
+                        left: playback.loopStart * viewport.pixelsPerSecond,
+                        width:
+                          (playback.loopEnd - playback.loopStart) *
+                          viewport.pixelsPerSecond
+                      }}
+                    />
+                  )}
+
                 {/* Render track lanes */}
                 {project.tracks.map((track) => (
                   <TrackLane

@@ -259,9 +259,15 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
 
   // Set loop in point at current playhead position
   const handleSetLoopIn = useCallback(() => {
-    const currentEnd = playback.loopEnd > 0 ? playback.loopEnd : (project?.duration || 60);
+    const currentEnd =
+      playback.loopEnd > 0 ? playback.loopEnd : project?.duration || 60;
     setLoopRegion(playback.playheadPosition, currentEnd);
-  }, [playback.playheadPosition, playback.loopEnd, project?.duration, setLoopRegion]);
+  }, [
+    playback.playheadPosition,
+    playback.loopEnd,
+    project?.duration,
+    setLoopRegion
+  ]);
 
   // Set loop out point at current playhead position
   const handleSetLoopOut = useCallback(() => {
@@ -318,7 +324,10 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Set Loop In (I)" enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip
+          title="Set Loop In at playhead (I) • Alt/Shift+drag on ruler to select"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
           <IconButton
             size="small"
             onClick={handleSetLoopIn}

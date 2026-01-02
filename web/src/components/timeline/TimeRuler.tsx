@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import {
@@ -87,8 +87,12 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [dragSelection, setDragSelection] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
 
-  const { playback, setLoopRegion } = useTimelineStore();
+  const { playback, setLoopRegion, seek } = useTimelineStore();
   const { loopEnabled, loopStart, loopEnd } = playback;
 
   // Colors from theme
@@ -105,10 +109,15 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
       e.stopPropagation();
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
-        if (!containerRef.current) return;
+        if (!containerRef.current) {
+          return;
+        }
         const rect = containerRef.current.getBoundingClientRect();
         const x = moveEvent.clientX - rect.left + scrollLeft;
-        const time = Math.max(0, Math.min(duration, pixelsToTime(x, pixelsPerSecond)));
+        const time = Math.max(
+          0,
+          Math.min(duration, pixelsToTime(x, pixelsPerSecond))
+        );
 
         if (handle === "in") {
           setLoopRegion(time, loopEnd);
@@ -126,6 +135,81 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
       document.addEventListener("mouseup", handleMouseUp);
     },
     [scrollLeft, pixelsPerSecond, duration, loopStart, loopEnd, setLoopRegion]
+  );
+
+  // Handle drag on ruler to create loop region (Alt+drag or Shift+drag)
+  // or click to seek
+  const handleRulerMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (!containerRef.current) {
+        return;
+      }
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const startX = e.clientX - rect.left + scrollLeft;
+      const startTime = Math.max(
+        0,
+        Math.min(duration, pixelsToTime(startX, pixelsPerSecond))
+      );
+
+      // Alt+drag or Shift+drag to create loop region
+      if (e.altKey || e.shiftKey) {
+        e.preventDefault();
+        setDragSelection({ start: startTime, end: startTime });
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+          if (!containerRef.current) {
+            return;
+          }
+          const currentRect = containerRef.current.getBoundingClientRect();
+          const currentX = moveEvent.clientX - currentRect.left + scrollLeft;
+          const currentTime = Math.max(
+            0,
+            Math.min(duration, pixelsToTime(currentX, pixelsPerSecond))
+          );
+
+          // Update preview
+          setDragSelection({
+            start: Math.min(startTime, currentTime),
+            end: Math.max(startTime, currentTime)
+          });
+        };
+
+        const handleMouseUp = (upEvent: MouseEvent) => {
+          if (!containerRef.current) {
+            setDragSelection(null);
+            document.removeEventListener("mousemove", handleMouseMove);
+            document.removeEventListener("mouseup", handleMouseUp);
+            return;
+          }
+          const currentRect = containerRef.current.getBoundingClientRect();
+          const currentX = upEvent.clientX - currentRect.left + scrollLeft;
+          const currentTime = Math.max(
+            0,
+            Math.min(duration, pixelsToTime(currentX, pixelsPerSecond))
+          );
+
+          // Set loop region from start to current (auto-swaps if needed)
+          const loopIn = Math.min(startTime, currentTime);
+          const loopOut = Math.max(startTime, currentTime);
+          if (loopOut - loopIn > 0.1) {
+            // Only set if drag was significant
+            setLoopRegion(loopIn, loopOut);
+          }
+
+          setDragSelection(null);
+          document.removeEventListener("mousemove", handleMouseMove);
+          document.removeEventListener("mouseup", handleMouseUp);
+        };
+
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
+      } else {
+        // Regular click - seek to position
+        seek(startTime);
+      }
+    },
+    [scrollLeft, pixelsPerSecond, duration, setLoopRegion, seek]
   );
 
   useEffect(() => {
@@ -240,11 +324,29 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
         className="ruler-canvas"
         style={{
           width: "100%",
-          height: "100%"
+          height: "100%",
+          cursor: "pointer"
         }}
+        onMouseDown={handleRulerMouseDown}
       />
+      {/* Drag selection preview */}
+      {dragSelection && (
+        <div
+          className="loop-region"
+          style={{
+            left:
+              timeToPixels(dragSelection.start, pixelsPerSecond) - scrollLeft,
+            width: Math.max(
+              0,
+              (dragSelection.end - dragSelection.start) * pixelsPerSecond
+            ),
+            opacity: 0.6
+          }}
+        />
+      )}
+
       {/* Loop region overlay and handles */}
-      {showLoopRegion && (
+      {showLoopRegion && !dragSelection && (
         <>
           <div
             className="loop-region"
