@@ -169,7 +169,15 @@ export const WarningBanner: React.FC<WarningBannerProps> = ({
       
       <Box className="banner-actions">
         {action && onAction && (
-          <Box onClick={onAction}>{action}</Box>
+          <Box 
+            onClick={onAction}
+            onKeyDown={(e) => e.key === "Enter" && onAction()}
+            role="button"
+            tabIndex={0}
+            aria-label="Take action"
+          >
+            {action}
+          </Box>
         )}
         {dismissible && onDismiss && (
           <Tooltip title="Dismiss" enterDelay={TOOLTIP_ENTER_DELAY}>

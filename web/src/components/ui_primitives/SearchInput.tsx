@@ -182,10 +182,9 @@ export const SearchInput: React.FC<SearchInputProps> = ({
                   placement={tooltipPlacement}
                 >
                   <IconButton
-                    className={`clear-button ${!localValue ? "disabled" : ""}`}
+                    className="clear-button"
                     onClick={handleClear}
                     size="small"
-                    disabled={!localValue}
                   >
                     <ClearIcon fontSize="small" />
                   </IconButton>

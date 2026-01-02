@@ -7,7 +7,6 @@ import {
   Breadcrumbs as MuiBreadcrumbs, 
   Link, 
   Typography,
-  IconButton,
   Tooltip 
 } from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
@@ -126,9 +125,15 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
   };
   
   const getIcon = (item: BreadcrumbItem, index: number) => {
-    if (item.icon) return item.icon;
-    if (showHomeIcon && index === 0) return <HomeIcon className="breadcrumb-icon" />;
-    if (showFolderIcons && index > 0) return <FolderIcon className="breadcrumb-icon" />;
+    if (item.icon) {
+      return item.icon;
+    }
+    if (showHomeIcon && index === 0) {
+      return <HomeIcon className="breadcrumb-icon" />;
+    }
+    if (showFolderIcons && index > 0) {
+      return <FolderIcon className="breadcrumb-icon" />;
+    }
     return null;
   };
   

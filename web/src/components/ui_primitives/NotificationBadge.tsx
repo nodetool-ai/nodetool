@@ -39,14 +39,14 @@ const styles = (theme: Theme, animate: boolean) => css`
       min-width: 18px;
       height: 18px;
       padding: 0 4px;
-      transition: transform 0.2s ease, opacity 0.2s ease;
-      
-      ${animate && css`
+      ${animate ? css`
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        
         &.MuiBadge-invisible {
           transform: scale(0);
           opacity: 0;
         }
-      `}
+      ` : ""}
     }
     
     &.small .MuiBadge-badge {

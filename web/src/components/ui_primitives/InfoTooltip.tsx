@@ -156,7 +156,28 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
     );
   }
   
-  // Popover mode
+  // Popover mode - parse placement for anchor and transform origins
+  const getPopoverOrigins = (placement: string) => {
+    const vertical: "top" | "bottom" = placement.includes("top") ? "top" : "bottom";
+    let horizontal: "left" | "center" | "right" = "center";
+    if (placement.includes("start") || placement === "left") {
+      horizontal = "left";
+    }
+    if (placement.includes("end") || placement === "right") {
+      horizontal = "right";
+    }
+    
+    return {
+      anchor: { vertical, horizontal },
+      transform: { 
+        vertical: (vertical === "top" ? "bottom" : "top") as "top" | "bottom", 
+        horizontal 
+      }
+    };
+  };
+  
+  const origins = getPopoverOrigins(placement);
+  
   return (
     <div className={`info-tooltip nodrag ${className || ""}`} css={styles(theme)}>
       {button}
@@ -165,12 +186,12 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
         anchorEl={anchorEl}
         onClose={handleClose}
         anchorOrigin={{
-          vertical: placement.includes("top") ? "top" : "bottom",
-          horizontal: "center"
+          vertical: origins.anchor.vertical,
+          horizontal: origins.anchor.horizontal
         }}
         transformOrigin={{
-          vertical: placement.includes("top") ? "bottom" : "top",
-          horizontal: "center"
+          vertical: origins.transform.vertical,
+          horizontal: origins.transform.horizontal
         }}
         css={popoverStyles(theme)}
         style={{ "--max-width": `${maxWidth}px` } as React.CSSProperties}
