@@ -10,6 +10,8 @@ import TrackList from "./TrackList";
 import TrackLane from "./TrackLane";
 import Playhead from "./Playhead";
 import PreviewWindow from "./PreviewWindow";
+import { useTimelineAssetDrop } from "../../hooks/timeline/useTimelineAssetDrop";
+import { pixelsToTime } from "../../utils/timelineUtils";
 
 const styles = (theme: Theme) =>
   css({
@@ -109,6 +111,30 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(2)
     },
 
+    ".timeline-drop-zone": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "200px",
+      border: "2px dashed",
+      borderColor: theme.vars?.palette?.divider || theme.palette.divider,
+      borderRadius: theme.shape.borderRadius,
+      margin: theme.spacing(2),
+      color:
+        theme.vars?.palette?.text?.secondary || theme.palette.text.secondary,
+      transition: "all 0.2s ease",
+      gap: theme.spacing(1),
+
+      "&.drag-over": {
+        borderColor:
+          theme.vars?.palette?.primary?.main || theme.palette.primary.main,
+        backgroundColor: `rgba(${
+          theme.vars?.palette?.primary?.mainChannel || "25, 118, 210"
+        } / 0.1)`
+      }
+    },
+
     ".timeline-bottom-panel": {
       display: "flex",
       height: "250px",
@@ -138,6 +164,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   const theme = useTheme();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [isDropZoneDragOver, setIsDropZoneDragOver] = useState(false);
 
   const {
     project,
@@ -148,6 +175,12 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     seek,
     createProject
   } = useTimelineStore();
+
+  const {
+    handleDropOnTimeline,
+    handleDragOver: onAssetDragOver,
+    canAcceptDrop
+  } = useTimelineAssetDrop();
 
   // Initialize project if none exists
   useEffect(() => {
@@ -236,6 +269,42 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       )
     : viewport.viewportWidth;
 
+  // Drop zone handlers for empty state
+  const handleDropZoneDragOver = useCallback(
+    (e: React.DragEvent) => {
+      onAssetDragOver(e);
+      if (canAcceptDrop(e)) {
+        setIsDropZoneDragOver(true);
+      }
+    },
+    [onAssetDragOver, canAcceptDrop]
+  );
+
+  const handleDropZoneDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDropZoneDragOver(false);
+  }, []);
+
+  const handleDropZoneDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDropZoneDragOver(false);
+
+      // Calculate drop position if dropped on track area
+      const rect = scrollContainerRef.current?.getBoundingClientRect();
+      let dropTime = 0;
+      if (rect) {
+        const scrollLeft = scrollContainerRef.current?.scrollLeft || 0;
+        const dropX = e.clientX - rect.left + scrollLeft;
+        dropTime = pixelsToTime(dropX, viewport.pixelsPerSecond);
+      }
+
+      handleDropOnTimeline(e, Math.max(0, dropTime));
+    },
+    [handleDropOnTimeline, viewport.pixelsPerSecond]
+  );
+
   if (!project) {
     return (
       <Box css={styles(theme)}>
@@ -301,22 +370,26 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                   />
                 ))}
 
-                {/* Empty state if no tracks */}
+                {/* Empty state if no tracks - also a drop zone */}
                 {project.tracks.length === 0 && (
                   <div
-                    className="timeline-empty-state"
-                    style={{ height: "200px" }}
+                    className={`timeline-drop-zone ${
+                      isDropZoneDragOver ? "drag-over" : ""
+                    }`}
+                    onDragOver={handleDropZoneDragOver}
+                    onDragLeave={handleDropZoneDragLeave}
+                    onDrop={handleDropZoneDrop}
                   >
                     <Typography
                       variant="body1"
                       color="textSecondary"
                       sx={{ mb: 1 }}
                     >
-                      No tracks yet
+                      Drop media files here
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      Click the <strong>+</strong> button in the toolbar above
-                      to add a Video, Audio, or Image track.
+                      Or click the <strong>+</strong> button in the toolbar to
+                      add a track, then drag assets from the Asset Browser.
                     </Typography>
                   </div>
                 )}

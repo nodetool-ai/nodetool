@@ -33,6 +33,7 @@ import VideocamIcon from "@mui/icons-material/Videocam";
 import ImageIcon from "@mui/icons-material/Image";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 
 import useTimelineStore, {
   useTimelineHistory,
@@ -40,6 +41,7 @@ import useTimelineStore, {
 } from "../../stores/TimelineStore";
 import { formatTimecode, formatTimeShort } from "../../utils/timelineUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useNavigate } from "react-router-dom";
 
 const styles = (theme: Theme) =>
   css({
@@ -103,6 +105,7 @@ const styles = (theme: Theme) =>
 
 const TimelineToolbar: React.FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [addTrackAnchor, setAddTrackAnchor] =
     React.useState<null | HTMLElement>(null);
 
@@ -155,6 +158,10 @@ const TimelineToolbar: React.FC = () => {
     },
     [addTrack, handleAddTrackClose]
   );
+
+  const handleOpenAssets = useCallback(() => {
+    navigate("/assets");
+  }, [navigate]);
 
   const frameRate = project?.frameRate || 30;
 
@@ -271,6 +278,12 @@ const TimelineToolbar: React.FC = () => {
             <ListItemText>Image Track</ListItemText>
           </MenuItem>
         </Menu>
+
+        <Tooltip title="Browse Assets" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton size="small" onClick={handleOpenAssets}>
+            <FolderOpenIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </div>
 
       <Divider orientation="vertical" className="toolbar-divider" />

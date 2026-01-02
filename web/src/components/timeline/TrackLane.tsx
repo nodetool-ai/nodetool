@@ -1,13 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import useTimelineStore, { Track, Clip } from "../../stores/TimelineStore";
 import AudioClip from "./AudioClip";
 import VideoClip from "./VideoClip";
 import ImageClip from "./ImageClip";
-import { timeToPixels } from "../../utils/timelineUtils";
+import { timeToPixels, pixelsToTime } from "../../utils/timelineUtils";
+import { useTimelineAssetDrop } from "../../hooks/timeline/useTimelineAssetDrop";
 
 const styles = (theme: Theme) =>
   css({
@@ -36,6 +37,13 @@ const styles = (theme: Theme) =>
     ".track-clips": {
       position: "relative",
       height: "100%"
+    },
+
+    "&.drag-over": {
+      outline: "2px dashed",
+      outlineColor: "var(--palette-primary-main)",
+      outlineOffset: "-2px",
+      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.1)"
     }
   });
 
@@ -51,14 +59,65 @@ const TrackLane: React.FC<TrackLaneProps> = ({
   scrollLeft
 }) => {
   const theme = useTheme();
+  const [isDragOver, setIsDragOver] = useState(false);
+  const trackRef = React.useRef<HTMLDivElement>(null);
 
   const { selection, selectClip } = useTimelineStore();
+  const {
+    handleDropOnTrack,
+    handleDragOver: onDragOver,
+    canAcceptDrop
+  } = useTimelineAssetDrop();
 
   const handleClipClick = useCallback((clipId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const addToSelection = e.shiftKey || e.metaKey || e.ctrlKey;
     selectClip(clipId, addToSelection);
   }, [selectClip]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    onDragOver(e);
+    if (canAcceptDrop(e) && !track.locked) {
+      setIsDragOver(true);
+    }
+  }, [onDragOver, canAcceptDrop, track.locked]);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (canAcceptDrop(e) && !track.locked) {
+      setIsDragOver(true);
+    }
+  }, [canAcceptDrop, track.locked]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    // Only set to false if we're leaving the track, not entering a child
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+    if (!trackRef.current?.contains(relatedTarget)) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    if (track.locked) {
+      return;
+    }
+
+    // Calculate drop position in time
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+
+    const dropX = e.clientX - rect.left + scrollLeft;
+    const dropTime = pixelsToTime(dropX, pixelsPerSecond);
+
+    handleDropOnTrack(e, track.id, Math.max(0, dropTime));
+  }, [handleDropOnTrack, track.id, track.locked, pixelsPerSecond, scrollLeft]);
 
   const renderClip = (clip: Clip) => {
     const isSelected = selection.selectedClipIds.includes(clip.id);
@@ -90,14 +149,20 @@ const TrackLane: React.FC<TrackLaneProps> = ({
   const classNames = [
     "track-lane",
     track.muted ? "muted" : "",
-    track.locked ? "locked" : ""
+    track.locked ? "locked" : "",
+    isDragOver ? "drag-over" : ""
   ].filter(Boolean).join(" ");
 
   return (
     <Box
+      ref={trackRef}
       css={styles(theme)}
       className={classNames}
       style={{ height: track.height }}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       {/* Background */}
       <div className="track-background" />
