@@ -1,4 +1,4 @@
-import { Switch } from "@mui/material";
+import Switch from "../ui_primitives/controls/Switch";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo } from "react";
@@ -6,6 +6,7 @@ import isEqual from "lodash/isEqual";
 
 const BoolProperty = (props: PropertyProps) => {
   const id = `switch-${props.property.name}-${props.propertyIndex}`;
+  const changed = props.value !== props.property.default;
 
   return (
     <div className="bool-property">
@@ -16,7 +17,8 @@ const BoolProperty = (props: PropertyProps) => {
         onChange={(e) => props.onChange(e.target.checked)}
         name={props.property.name}
         className="nodrag"
-        size="small"
+        changed={changed}
+        density="compact"
       />
       <PropertyLabel
         name={props.property.name}
