@@ -275,6 +275,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleClick,
     // handleDoubleClick,
     handleDrag,
+    handleDragEnd,
     handleDragOver,
     handleDragEnter,
     handleDragLeave,
@@ -336,6 +337,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       key={asset.id}
       draggable={draggable}
       onDragStart={handleDrag}
+      onDragEnd={handleDragEnd}
       onDoubleClick={(e) => {
         e.stopPropagation();
         if (onDoubleClick) {

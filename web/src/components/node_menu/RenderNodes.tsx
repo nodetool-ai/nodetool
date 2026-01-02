@@ -19,6 +19,8 @@ import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { SearchResultGroup } from "../../utils/nodeSearch";
+import { serializeDragData } from "../../lib/dragdrop";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -83,16 +85,29 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       groupedSearchResults: state.groupedSearchResults,
       searchTerm: state.searchTerm
     }));
+  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
+  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   const handleCreateNode = useCreateNode();
   const handleDragStart = useCallback(
     (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
       setDragToCreate(true);
-      event.dataTransfer.setData("create-node", JSON.stringify(node));
+      // Use unified drag serialization
+      serializeDragData(
+        { type: "create-node", payload: node },
+        event.dataTransfer
+      );
       event.dataTransfer.effectAllowed = "move";
+
+      // Update global drag state
+      setActiveDrag({ type: "create-node", payload: node });
     },
-    [setDragToCreate]
+    [setDragToCreate, setActiveDrag]
   );
+
+  const handleDragEnd = useCallback(() => {
+    clearDrag();
+  }, [clearDrag]);
 
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
@@ -130,6 +145,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
                         key={node.node_type}
                         node={node}
                         onDragStart={handleDragStart(node)}
+                        onDragEnd={handleDragEnd}
                         onClick={() => handleCreateNode(node)}
                         showCheckbox={showCheckboxes}
                         isSelected={selectedNodeTypes.includes(node.node_type)}
@@ -147,6 +163,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     [
       selectedPath,
       handleDragStart,
+      handleDragEnd,
       showCheckboxes,
       selectedNodeTypes,
       onToggleSelection,

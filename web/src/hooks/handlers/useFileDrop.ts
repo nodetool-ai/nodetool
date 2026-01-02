@@ -5,6 +5,11 @@ import { Asset } from "../../stores/ApiTypes";
 import { DragEventHandler, useCallback, DragEvent, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import {
+  deserializeDragData,
+  hasExternalFiles,
+  extractFiles
+} from "../../lib/dragdrop";
 
 export type FileDropProps = {
   type: "image" | "audio" | "video" | "document" | "all";
@@ -31,28 +36,27 @@ export function useFileDrop(props: FileDropProps): {
       event.preventDefault();
       event.stopPropagation();
 
-      const assetJSON = event.dataTransfer.getData("asset");
-      if (assetJSON) {
-        try {
-          const asset = JSON.parse(assetJSON) as Asset;
-          const assetType = asset.content_type.split("/")[0];
-          if (
-            props.type === "all" ||
-            assetType === props.type ||
-            (props.type === "document" &&
-              (assetType === "application" || assetType === "text"))
-          ) {
-            props.onChangeAsset?.(asset);
-            props.onChange?.(asset.get_url as string);
-          } else {
-            notificationStore.addNotification({
-              type: "error",
-              alert: true,
-              content: `Invalid file type. Please drop a ${props.type} file.`
-            });
-          }
-        } catch {
-          /* Ignore JSON parse errors */
+      // Use unified deserialization
+      const dragData = deserializeDragData(event.dataTransfer);
+
+      // Handle asset drops
+      if (dragData?.type === "asset") {
+        const asset = dragData.payload as Asset;
+        const assetType = asset.content_type.split("/")[0];
+        if (
+          props.type === "all" ||
+          assetType === props.type ||
+          (props.type === "document" &&
+            (assetType === "application" || assetType === "text"))
+        ) {
+          props.onChangeAsset?.(asset);
+          props.onChange?.(asset.get_url as string);
+        } else {
+          notificationStore.addNotification({
+            type: "error",
+            alert: true,
+            content: `Invalid file type. Please drop a ${props.type} file.`
+          });
         }
         return;
       }
@@ -72,66 +76,52 @@ export function useFileDrop(props: FileDropProps): {
         return;
       }
 
-      // Handle file transfer
-      if (event.dataTransfer.files[0]) {
-        const file = event.dataTransfer.files[0];
-        const isDocument =
-          file.type === "application/pdf" ||
-          file.type === "application/msword" ||
-          file.type ===
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      // Handle external file drops
+      if (hasExternalFiles(event.dataTransfer)) {
+        const files = extractFiles(event.dataTransfer);
+        const file = files[0];
+        if (file) {
+          const isDocument =
+            file.type === "application/pdf" ||
+            file.type === "application/msword" ||
+            file.type ===
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-        const fileTypeMatchesType = file?.type.startsWith(`${props.type}/`);
-        const documentTypeMatchesType = isDocument && props.type === "document";
+          const fileTypeMatchesType = file?.type.startsWith(`${props.type}/`);
+          const documentTypeMatchesType = isDocument && props.type === "document";
 
-        if (
-          props.type === "all" ||
-          fileTypeMatchesType ||
-          documentTypeMatchesType
-        ) {
-          setFilename(file.name);
-          const reader = new FileReader();
+          if (
+            props.type === "all" ||
+            fileTypeMatchesType ||
+            documentTypeMatchesType
+          ) {
+            setFilename(file.name);
+            const reader = new FileReader();
 
-          if (props.uploadAsset) {
-            uploadAsset({
-              file,
-              onCompleted: (asset) => {
-                if (props.onChangeAsset) {
-                  props.onChangeAsset(asset);
+            if (props.uploadAsset) {
+              uploadAsset({
+                file,
+                onCompleted: (asset) => {
+                  if (props.onChangeAsset) {
+                    props.onChangeAsset(asset);
+                  }
                 }
-              }
-            });
+              });
+            } else {
+              reader.onload = function (event) {
+                if (event.target?.result && props.onChange) {
+                  props.onChange(event.target.result as string);
+                }
+              };
+              reader.readAsDataURL(file);
+            }
           } else {
-            reader.onload = function (event) {
-              if (event.target?.result && props.onChange) {
-                props.onChange(event.target.result as string);
-              }
-            };
-            reader.readAsDataURL(file);
+            notificationStore.addNotification({
+              type: "error",
+              alert: true,
+              content: `Invalid file type. Please drop a ${props.type} file.`
+            });
           }
-        } else {
-          notificationStore.addNotification({
-            type: "error",
-            alert: true,
-            content: `Invalid file type. Please drop a ${props.type} file.`
-          });
-        }
-      } else {
-        const assetJSON = event.dataTransfer.getData("asset");
-        const asset = assetJSON ? (JSON.parse(assetJSON) as Asset) : null;
-        if (asset?.content_type?.startsWith(`${props.type}/`)) {
-          if (props.onChangeAsset) {
-            props.onChangeAsset(asset);
-          }
-          if (props.onChange) {
-            props.onChange(asset.get_url as string);
-          }
-        } else {
-          notificationStore.addNotification({
-            type: "error",
-            alert: true,
-            content: `Invalid file type. Please drop a ${props.type} file.`
-          });
         }
       }
     },

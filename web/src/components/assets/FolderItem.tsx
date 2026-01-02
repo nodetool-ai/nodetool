@@ -116,6 +116,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
   const {
     isDragHovered,
     handleDrag,
+    handleDragEnd,
     handleDragOver,
     handleDragEnter,
     handleDragLeave,
@@ -141,6 +142,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
       }}
       // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
+      onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
