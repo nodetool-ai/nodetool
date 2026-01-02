@@ -15,7 +15,6 @@ import React, {
 } from "react";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
-import set from "lodash/set";
 import throttle from "lodash/throttle";
 import AudioControls from "./AudioControls";
 import log from "loglevel";
@@ -46,6 +45,7 @@ type WaveSurferProps = {
   dragToSeek?: boolean;
   autoplay?: boolean;
   playOnLoad?: boolean;
+  mimeType?: string;
 };
 
 const wsprops: WaveSurferProps = {
@@ -141,6 +141,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     minimapBarHeight = wsprops.minimapBarHeight,
     fontSize = wsprops.fontSize,
     minPxPerSec = wsprops.minPxPerSec,
+    mimeType = "audio/mp3",
     ...otherProps
   } = incomingProps;
 
@@ -199,7 +200,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       const copied = new Uint8Array(source.byteLength);
       copied.set(source);
       const blob = new Blob([copied.buffer as ArrayBuffer], {
-        type: "audio/mp3"
+        type: mimeType
       });
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
@@ -207,7 +208,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     } else {
       setAudioUrl(source ?? "");
     }
-  }, [source]);
+  }, [source, mimeType]);
 
   const loadWaveSurfer = useCallback(async () => {
     if (audioUrl === "" || lastLoadedUrlRef.current === audioUrl) {return;}
@@ -216,7 +217,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
 
     try {
       const response = await axios.get(audioUrl, {
-        headers: { Accept: "audio/mp3" },
+        headers: { Accept: mimeType },
         responseType: "blob",
         signal: abortCtrl.signal
       });

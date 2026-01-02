@@ -16,6 +16,11 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import {
+  serializeDragData,
+  createDragCountBadge
+} from "../../lib/dragdrop";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 
 interface GlobalSearchResultsProps {
   results: AssetWithPath[];
@@ -192,7 +197,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
 }) => {
   const theme = useTheme();
   // Optimize selection hook to prevent new arrays on every render
-  const resultsSignature = useMemo(
+  useMemo(
     () => results.map((r) => r.id).join(","),
     [results]
   );
@@ -211,6 +216,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     (state) => state.setSelectedAssets
   );
   const { isSearching } = useAssetSearch();
+  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
+  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, assetId?: string) => {
@@ -252,33 +259,39 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         handleSelectAsset(asset.id);
       }
 
-      e.dataTransfer.setData("selectedAssetIds", JSON.stringify(assetIds));
+      // Use unified drag serialization
+      serializeDragData(
+        {
+          type: "assets-multiple",
+          payload: assetIds,
+          metadata: { count: assetIds.length, sourceId: asset.id }
+        },
+        e.dataTransfer
+      );
+
+      // Also set legacy single asset key for components that only check "asset"
+      // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
-      const dragImage = document.createElement("div");
-      dragImage.textContent = assetIds.length.toString();
-      dragImage.style.cssText = `
-        position: absolute;
-        top: -99999px;
-        background-color: #222;
-        color: #999;
-        border: 3px solid #333;
-        border-radius: 4px;
-        height: 40px;
-        width: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        font-weight: bold;
-      `;
-
+      // Create and set drag image using the unified utility
+      const dragImage = createDragCountBadge(assetIds.length);
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 25, 30);
       setTimeout(() => document.body.removeChild(dragImage), 0);
+
+      // Update global drag state
+      setActiveDrag({
+        type: "assets-multiple",
+        payload: assetIds,
+        metadata: { count: assetIds.length, sourceId: asset.id }
+      });
     },
-    [selectedAssetIds, handleSelectAsset]
+    [selectedAssetIds, handleSelectAsset, setActiveDrag]
   );
+
+  const handleDragEnd = useCallback(() => {
+    clearDrag();
+  }, [clearDrag]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -377,6 +390,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                 }`}
                 draggable={true}
                 onDragStart={(e) => handleDragStart(e, asset)}
+                onDragEnd={handleDragEnd}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSelectAsset(asset.id);

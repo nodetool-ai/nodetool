@@ -3,10 +3,9 @@ layout: page
 title: "NodeTool Workflow Cookbook"
 ---
 
-*A comprehensive guide for building AI workflows with NodeTool*
+Guide for building AI workflows with NodeTool.
 
-**Version:** 1.0 **Target Audience:** AI Agents, Developers, and Workflow Designers **Purpose:** Learn workflow
-patterns, understand streaming architecture, and build production-ready AI workflows
+**Version:** 1.0 **Target Audience:** Developers and Workflow Designers
 
 ______________________________________________________________________
 
@@ -546,25 +545,25 @@ ______________________________________________________________________
 
 ## Conclusion
 
-This cookbook provides patterns and examples for building production-ready NodeTool workflows. Key takeaways:
+Key takeaways:
 
 1. **Start Simple**: Begin with basic pipelines, add complexity as needed
-1. **Use Streaming**: Leverage streaming for better UX and performance
-1. **Preview Often**: Add Preview nodes to debug and validate
-1. **Combine Patterns**: Mix patterns to create sophisticated workflows
-1. **Test Incrementally**: Build workflows step by step, testing each addition
+2. **Use Streaming**: Use streaming for better UX and performance
+3. **Preview Often**: Add Preview nodes to debug and validate
+4. **Combine Patterns**: Mix patterns for sophisticated workflows
+5. **Test Incrementally**: Build step by step, test each addition
 
 ### Next Steps
 
-1. **Explore Examples**: Try running the example workflows in this cookbook
-1. **Build Your Own**: Start with a simple pattern and customize it
-1. **Share Workflows**: Export and share your workflows with the community
-1. **Extend NodeTool**: Create custom nodes for specific use cases
+1. **Explore Examples**: Run the example workflows
+2. **Build Your Own**: Start with a simple pattern and customize
+3. **Share Workflows**: Export and share with the community
+4. **Extend NodeTool**: Create custom nodes
 
 ### Resources
 
 - **MCP Server**: Use `export_workflow_digraph` to visualize workflows
-- **Node Search**: Use `search_nodes` to discover available nodes
+- **Node Search**: Use `search_nodes` to discover nodes
 - **Documentation**: Check node descriptions with `get_node_info`
 
 ______________________________________________________________________

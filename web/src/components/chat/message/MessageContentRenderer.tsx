@@ -1,7 +1,6 @@
-import React, { useCallback, useMemo, useRef, useEffect } from "react";
+import React, { useCallback, useRef, useEffect } from "react";
 import { MessageContent } from "../../../stores/ApiTypes";
 import ImageView from "../../node/ImageView";
-import ChatMarkdown from "./ChatMarkdown";
 import AudioPlayer from "../../audio/AudioPlayer";
 import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
 

@@ -135,6 +135,14 @@ NodeTool follows a client-server architecture with multiple components:
    npm run test:e2e
    ```
 
+   **NodeTool Server Details:**
+   
+   The server provides:
+   - REST API endpoints at `http://localhost:7777/api/`
+   - Health check at `http://localhost:7777/health`
+   - WebSocket connections for workflow execution
+   - Models API for managing AI models
+
    **Manual Testing** (for debugging):
    ```bash
    # Terminal 1: Start backend
@@ -168,7 +176,15 @@ NodeTool follows a client-server architecture with multiple components:
 
 ### Linting & Type Checking
 
-1. **Web UI:**
+1. **Using Make (Recommended):**
+
+   ```bash
+   make typecheck        # Type check all packages
+   make lint             # Lint all packages
+   make lint-fix         # Auto-fix linting issues
+   ```
+
+2. **Web UI:**
 
    ```bash
    cd web
@@ -177,7 +193,7 @@ NodeTool follows a client-server architecture with multiple components:
    npm run typecheck   # Check TypeScript types
    ```
 
-2. **Electron App:**
+3. **Electron App:**
 
    ```bash
    cd electron
@@ -234,6 +250,30 @@ NodeTool follows a client-server architecture with multiple components:
    - Mock external dependencies and API calls
    - Keep tests independent and isolated
    - Follow existing test patterns in the codebase
+
+## Mandatory Post-Change Verification
+
+After making any code changes, you MUST run the following commands to ensure code quality:
+
+```bash
+make typecheck  # Type check all packages
+make lint       # Lint all packages
+make test       # Run all tests
+```
+
+**Keep it green** - All three commands must pass with exit code 0 before considering the task complete.
+
+If any of these commands fail:
+1. Fix the errors reported
+2. Re-run the failing command(s)
+3. Continue until all three pass
+
+This ensures:
+- Type safety across the codebase
+- Consistent code style and patterns
+- No regressions in existing functionality
+
+---
 
 ## Development Workflow
 

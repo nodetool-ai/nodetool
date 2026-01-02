@@ -307,6 +307,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         nodeNamespace={resolvedNamespace}
         metadata={mockMetadata}
         nodeType={resolvedType || nodeType || ""}
+        workflowId={nodeData.workflow_id || ""}
       />
     </Container>
   );

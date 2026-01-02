@@ -54,7 +54,6 @@ export const MessageView: React.FC<
   onToggleThought,
   onInsertCode,
   toolResultsByCallId,
-  componentStyles,
   executionMessagesById
 }) => {
   const insertIntoEditor = useEditorInsertion();
@@ -69,11 +68,11 @@ export const MessageView: React.FC<
         if (typeof executionContent === "string") {
           try {
             executionContent = JSON.parse(executionContent);
-          } catch (error) {
+          } catch {
             // Keep intermediate string if nested JSON parsing fails.
           }
         }
-      } catch (error) {
+      } catch {
         // Keep original string if JSON parsing fails.
       }
     }
@@ -199,7 +198,7 @@ export const MessageView: React.FC<
 
   const messageClass = [
     baseClass,
-    message.error_type ? "error-message" : null,
+    (message as Message & { error_type?: string }).error_type ? "error-message" : null,
     hasToolCalls ? "has-tool-calls" : null,
     hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null
   ]
@@ -319,7 +318,7 @@ export const MessageView: React.FC<
   const ToolCallCard: React.FC<{
     tc: ToolCall;
     result?: { name?: string | null; content: any };
-  }> = ({ tc, result }) => {
+  }> = ({ tc, result: _result }) => {
     const [open, setOpen] = useState(false);
     const runningToolCallId = useGlobalChatStore(
       (s) => s.currentRunningToolCallId
@@ -417,7 +416,7 @@ export const MessageView: React.FC<
           </>
         )}
       </div>
-      {message.error_type && <ErrorIcon className="error-icon" />}
+      {(message as Message & { error_type?: string }).error_type && <ErrorIcon className="error-icon" />}
     </li>
   );
 };

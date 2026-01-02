@@ -7,7 +7,7 @@ import React, {
   useState,
   useCallback
 } from "react";
-import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
+import { Box, Alert, Typography, useMediaQuery, IconButton, Tooltip, Popover } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -16,14 +16,17 @@ import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
 import { NewChatButton } from "../thread/NewChatButton";
+import ThreadList from "../thread/ThreadList";
+import type { ThreadInfo } from "../types/thread.types";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
+import ListIcon from "@mui/icons-material/List";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
-  const {
+   const {
     status,
     sendMessage,
     progress,
@@ -43,7 +46,10 @@ const GlobalChat: React.FC = () => {
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread,
     currentLogUpdate,
-    threadsLoaded
+    threadsLoaded,
+    workflowId,
+    deleteThread,
+    messageCache
   } = useGlobalChatStore();
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
@@ -63,8 +69,12 @@ const GlobalChat: React.FC = () => {
     (s) => s.setSelectedCollections
   );
   const theme = useTheme();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [_drawerOpen, setDrawerOpen] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
+
+  // Thread list popover state
+  const [threadListAnchorEl, setThreadListAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const isThreadListOpen = Boolean(threadListAnchorEl);
 
   // Reset dismissed state when status or error changes
   useEffect(() => {
@@ -241,12 +251,98 @@ const GlobalChat: React.FC = () => {
       const newThreadId = await createNewThread();
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
+      setThreadListAnchorEl(null);
     } catch (error) {
       console.error("Failed to create new thread:", error);
     }
   };
 
-  const mainAreaStyles = (theme: Theme) =>
+  // Thread list handlers
+  const handleOpenThreadList = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setThreadListAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleCloseThreadList = useCallback(() => {
+    setThreadListAnchorEl(null);
+  }, []);
+
+  const handleSelectThread = useCallback(
+    (id: string) => {
+      switchThread(id);
+      navigate(`/chat/${id}`);
+      setThreadListAnchorEl(null);
+    },
+    [switchThread, navigate]
+  );
+
+  const handleDeleteThread = useCallback(
+    (id: string) => {
+      deleteThread(id).catch((error) => {
+        console.error("Failed to delete thread:", error);
+      });
+    },
+    [deleteThread]
+  );
+
+  const getThreadPreview = useCallback(
+    (threadId: string) => {
+      if (!threads) {
+        return "Loading...";
+      }
+      const thread = threads[threadId];
+      if (!thread) {
+        return "Empty conversation";
+      }
+
+      // Use thread title if available
+      if (thread.title) {
+        return thread.title;
+      }
+
+      // Check if we have cached messages for this thread
+      const threadMessages = messageCache[threadId];
+      if (!threadMessages || threadMessages.length === 0) {
+        return "New conversation";
+      }
+
+      const firstUserMessage = threadMessages.find(
+        (msg: any) => msg.role === "user"
+      );
+      if (firstUserMessage) {
+        const content =
+          typeof firstUserMessage.content === "string"
+            ? firstUserMessage.content
+            : Array.isArray(firstUserMessage.content) &&
+              firstUserMessage.content[0]?.type === "text"
+            ? (firstUserMessage.content[0] as any).text
+            : "[Media message]";
+        return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
+      }
+
+      return "New conversation";
+    },
+    [threads, messageCache]
+  );
+
+  // Create ThreadInfo-compatible data for ThreadList
+  const threadsWithMessages: Record<string, ThreadInfo> = useMemo(() => {
+    if (!threads) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(threads).map(([id, thread]) => [
+        id,
+        {
+          id: thread.id,
+          title: thread.title ?? undefined,
+          updatedAt: thread.updated_at,
+          messages: messageCache[id] || []
+        }
+      ])
+    );
+  }, [threads, messageCache]);
+
+  const mainAreaStyles = (_theme: Theme) =>
     css({
       position: "relative",
       flex: 1,
@@ -389,6 +485,43 @@ const GlobalChat: React.FC = () => {
           }}
         >
           <NewChatButton onNewThread={handleNewChat} />
+          <Tooltip title="Chat History">
+            <IconButton onClick={handleOpenThreadList} size="small">
+              <ListIcon />
+            </IconButton>
+          </Tooltip>
+          <Popover
+            open={isThreadListOpen}
+            anchorEl={threadListAnchorEl}
+            onClose={handleCloseThreadList}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right"
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right"
+            }}
+            slotProps={{
+              paper: {
+                sx: {
+                  width: 320,
+                  maxHeight: "70vh",
+                  borderRadius: 2,
+                  overflow: "hidden"
+                }
+              }
+            }}
+          >
+            <ThreadList
+              threads={threadsWithMessages}
+              currentThreadId={currentThreadId}
+              onNewThread={handleNewChat}
+              onSelectThread={handleSelectThread}
+              onDeleteThread={handleDeleteThread}
+              getThreadPreview={getThreadPreview}
+            />
+          </Popover>
         </Box>
 
         <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
@@ -414,6 +547,7 @@ const GlobalChat: React.FC = () => {
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={taskUpdateForDisplay}
             currentLogUpdate={currentLogUpdate}
+            workflowId={workflowId}
           />
         </Box>
       </Box>

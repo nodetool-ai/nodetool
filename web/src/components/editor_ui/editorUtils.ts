@@ -4,11 +4,14 @@
  * Shared utility functions and class names for editor UI components.
  */
 
+// Re-export marker classes from central location
+export { editorUiClasses } from "../../constants/editorUiClasses";
+
 /**
- * Common class names used in editor components.
- * These classes are used for ReactFlow behavior control.
+ * ReactFlow behavior control class names.
+ * These are distinct from `editorUiClasses` (theme opt-in markers).
  */
-export const editorClassNames = {
+export const reactFlowClasses = {
   /**
    * Prevents ReactFlow from starting a drag when interacting with the element.
    * Use on inputs, buttons, and other interactive elements within nodes.
@@ -28,10 +31,9 @@ export const editorClassNames = {
   nopan: "nopan"
 } as const;
 
-/**
- * Editor marker classes used to opt-in to theme overrides.
- * Source of truth lives in `web/src/constants/editorUiClasses.ts`.
- */
+// Keep legacy export for backward compatibility
+export const editorClassNames = reactFlowClasses;
+
 /**
  * Combines multiple class names, filtering out falsy values.
  *
@@ -39,7 +41,7 @@ export const editorClassNames = {
  * @returns Combined class string
  *
  * @example
- * cn(editorClassNames.nodrag, isFocused && editorClassNames.nowheel)
+ * cn(reactFlowClasses.nodrag, isFocused && reactFlowClasses.nowheel)
  * // Returns "nodrag nowheel" or "nodrag"
  */
 export const cn = (
@@ -57,10 +59,10 @@ export const cn = (
  */
 export const textFieldNodragSlotProps = {
   input: {
-    className: editorClassNames.nodrag
+    className: reactFlowClasses.nodrag
   },
   htmlInput: {
-    className: editorClassNames.nodrag
+    className: reactFlowClasses.nodrag
   }
 } as const;
 

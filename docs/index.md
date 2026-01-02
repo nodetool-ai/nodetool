@@ -4,9 +4,9 @@ layout: home
 
 <section class="home-hero">
   <p class="eyebrow">Open-Source Visual AI Workflow Builder</p>
-  <h1>Build AI Workflows. Visually. Effortlessly.</h1>
+  <h1>Build AI Workflows Visually</h1>
   <p class="lead">
-   Connect AI building blocks to generate content, analyze data, and automate tasks. Use models on your machine or in the cloud. Your workflows, your data—always under your control.
+   Connect nodes to generate content, analyze data, and automate tasks. Run models locally or via cloud APIs.
   </p>
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
@@ -19,23 +19,23 @@ layout: home
 
 ## Start Here
 
-NodeTool is your **visual canvas for building AI workflows**—connect nodes for images, video, text, data, and automation, then run them locally or deploy to RunPod, Cloud Run, or your own servers.
+NodeTool is a visual workflow builder for AI pipelines—connect nodes for images, video, text, data, and automation. Run locally or deploy to RunPod, Cloud Run, or self-hosted servers.
 
 ### Who uses NodeTool?
 
 <div class="persona-grid">
   <article class="persona-tile">
     <h4>Creators & Designers</h4>
-    <p>Generate art, transform media, and build unique visual pipelines with AI.</p>
+    <p>Generate and transform media with AI.</p>
     <ul>
-      <li>Mix Flux, SDXL, and custom models</li>
-      <li>Create unlimited variations</li>
-      <li>Build signature creative workflows</li>
+      <li>Use Flux, SDXL, and custom models</li>
+      <li>Generate variations</li>
+      <li>Build reusable workflows</li>
     </ul>
   </article>
   <article class="persona-tile">
     <h4>Developers & Researchers</h4>
-    <p>Build AI agents, RAG systems, and automated pipelines with full transparency.</p>
+    <p>Build agents, RAG systems, and pipelines.</p>
     <ul>
       <li>Design multi-step LLM agents</li>
       <li>Index and query documents locally</li>
@@ -44,11 +44,11 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
   </article>
   <article class="persona-tile">
     <h4>Data & Business Users</h4>
-    <p>Analyze documents, automate tasks, and extract insights without coding.</p>
+    <p>Process documents and automate tasks without coding.</p>
     <ul>
       <li>Process data with AI pipelines</li>
       <li>Automate document workflows</li>
-      <li>Build custom business tools</li>
+      <li>Build custom tools</li>
     </ul>
   </article>
 </div>
@@ -58,25 +58,25 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
 <div class="pattern-grid">
   <article class="pattern-card">
     <h5>AI Agents & Automation</h5>
-    <p>Build multi-step agents that plan, execute, and adapt. Automate complex workflows with AI reasoning.</p>
+    <p>Build multi-step agents that plan and execute tasks.</p>
     <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation">Agent patterns →</a>
     <a href="{{ '/workflows/realtime-agent' | relative_url }}">Realtime Agent →</a>
   </article>
   <article class="pattern-card">
     <h5>Document Intelligence & RAG</h5>
-    <p>Index documents, search with AI, and answer questions grounded in your sources.</p>
+    <p>Index documents, search with AI, and answer questions from sources.</p>
     <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-4-rag-retrieval-augmented-generation">RAG pattern →</a>
     <a href="{{ '/workflows/chat-with-docs' | relative_url }}">Chat with Docs →</a>
   </article>
   <article class="pattern-card">
     <h5>Image & Video Creation</h5>
-    <p>Generate visuals, transform media, and build creative pipelines with AI models.</p>
+    <p>Generate and transform media with AI models.</p>
     <a href="{{ '/workflows/movie-posters' | relative_url }}">Movie Posters →</a>
     <a href="{{ '/workflows/story-to-video-generator' | relative_url }}">Story to Video →</a>
   </article>
   <article class="pattern-card">
     <h5>Data Processing & Analysis</h5>
-    <p>Transform data, extract insights, and automate reports with AI-powered workflows.</p>
+    <p>Transform data, extract information, and automate reports.</p>
     <a href="{{ '/workflows/data-visualization-pipeline' | relative_url }}">Data Visualization →</a>
     <a href="{{ '/cookbook/patterns' | relative_url }}#pattern-10-data-processing-pipeline">Data patterns →</a>
   </article>
@@ -94,12 +94,13 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Tips & Tricks]({{ '/tips-and-tricks' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
+- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
 - **I want to explore:** [Example Workflows]({{ '/workflows/' | relative_url }}), [Workflow Patterns]({{ '/cookbook' | relative_url }}), [Community](https://discord.gg/WmQTWZRcYE).
 - **I need AI models:** [Models & Providers]({{ '/models-and-providers' | relative_url }}), [HuggingFace Integration]({{ '/huggingface' | relative_url }}), [Local vs Cloud]({{ '/models' | relative_url }}).
-- **I'm ready to deploy:** [Deployment Guide]({{ '/deployment' | relative_url }}), [Self-Hosted Setup]({{ '/self_hosted' | relative_url }}), [API Access]({{ '/workflow-api' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).
-- **I'm a developer:** [Developer Guide]({{ '/developer/' | relative_url }}), [CLI Reference]({{ '/cli' | relative_url }}), [API Reference]({{ '/api-reference' | relative_url }}), [Architecture]({{ '/architecture' | relative_url }}).
-- **Reference & Help:** [Node Library]({{ '/node-packs' | relative_url }}), [Glossary]({{ '/glossary' | relative_url }}), [Troubleshooting]({{ '/troubleshooting' | relative_url }}), [Asset Management]({{ '/asset-management' | relative_url }}).
+- **I'm coming from another tool:** [How NodeTool Compares]({{ '/comparisons' | relative_url }}), [ComfyUI Migration]({{ '/comparisons#from-comfyui-to-nodetool' | relative_url }}), [LangChain Migration]({{ '/comparisons#from-langchain-to-nodetool' | relative_url }}).
+- **I'm ready to deploy:** [Deployment Guide]({{ '/deployment' | relative_url }}), [Self-Hosted Setup]({{ '/self_hosted' | relative_url }}), [API Access]({{ '/api-reference#headless-mode-running-workflows-via-cliapi' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).
+- **I'm a developer:** [Developer Guide]({{ '/developer/' | relative_url }}), [Custom Nodes]({{ '/developer/node-reference' | relative_url }}), [CLI Reference]({{ '/cli' | relative_url }}), [API Reference]({{ '/api-reference' | relative_url }}).
+- **Reference & Help:** [Workflow Debugging]({{ '/workflow-debugging' | relative_url }}), [Troubleshooting]({{ '/troubleshooting' | relative_url }}), [Glossary]({{ '/glossary' | relative_url }}), [Node Library]({{ '/node-packs' | relative_url }}).
 
 ### Local-first or cloud-augmented
 
@@ -127,12 +128,12 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
 </div>
 
 <section class="home-section">
-  <h2 id="personal-ai-stack">📱 Your Personal AI Stack</h2>
+  <h2 id="personal-ai-stack">📱 Personal AI Stack</h2>
   <p class="lead">
-    <strong>The future of AI isn't in the cloud—it's in your pocket, connected to your own infrastructure.</strong>
+    Access self-hosted AI infrastructure from mobile devices.
   </p>
   <p>
-    NodeTool's mobile app transforms your phone into a portal to your personal AI universe. Run AI workflows from anywhere in the world, accessing models and data hosted on hardware you control. Your AI assistant, your creative tools, your knowledge base—always available, always private.
+    NodeTool's mobile app connects to your own NodeTool server. Run workflows remotely, accessing models and data on hardware you control.
   </p>
 
   <div class="architecture-diagram">
@@ -154,41 +155,37 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
     {% endmermaid %}
   </div>
 
-  <h3>Choose Your Architecture</h3>
+  <h3>Deployment Options</h3>
   <div class="pattern-grid">
     <article class="pattern-card">
-      <h5>🏠 Fully Local Stack</h5>
-      <p><strong>Maximum privacy.</strong> Your mobile device connects through VPN to your home server. All AI processing happens on your hardware. Your documents, photos, and conversations never leave your network.</p>
-      <p><code>[Mobile] → [VPN] → [Home Server] → [Local LLMs + Your Data]</code></p>
-      <p><em>Perfect for: Privacy advocates, sensitive work, air-gapped environments</em></p>
+      <h5>🏠 Local Stack</h5>
+      <p>Connect via VPN to a home server. All processing on your hardware. Data stays on your network.</p>
+      <p><code>[Mobile] → [VPN] → [Home Server] → [Local LLMs + Data]</code></p>
     </article>
     <article class="pattern-card">
       <h5>☁️ NodeTool Cloud</h5>
-      <p><strong>Zero configuration.</strong> Connect to NodeTool's managed infrastructure. Get started in minutes with no hardware to manage. Your workflows sync across devices automatically.</p>
-      <p><code>[Mobile] → [NodeTool Cloud] → [Managed LLMs + Encrypted Storage]</code></p>
-      <p><em>Perfect for: Quick start, teams, users without dedicated hardware</em></p>
+      <p>Managed infrastructure. No hardware setup. Workflows sync across devices.</p>
+      <p><code>[Mobile] → [NodeTool Cloud] → [Managed LLMs + Storage]</code></p>
     </article>
     <article class="pattern-card">
       <h5>🏢 Private Cloud</h5>
-      <p><strong>Enterprise control.</strong> Deploy NodeTool to your organization's cloud VPC. Meet compliance requirements while enabling mobile access for your entire team.</p>
-      <p><code>[Mobile] → [VPN] → [Your VPC] → [Self-Hosted NodeTool + Private Data]</code></p>
-      <p><em>Perfect for: Enterprises, regulated industries, multi-user deployments</em></p>
+      <p>Deploy to your organization's VPC. Supports compliance requirements and multi-user access.</p>
+      <p><code>[Mobile] → [VPN] → [VPC] → [Self-Hosted NodeTool]</code></p>
     </article>
     <article class="pattern-card">
       <h5>🌐 Hybrid Stack</h5>
-      <p><strong>Best of both worlds.</strong> Run sensitive workflows locally while tapping into cloud APIs for cutting-edge models. You control which data stays local and which goes to the cloud.</p>
-      <p><code>[Mobile] → [Local Server] → [Local LLMs + Cloud APIs when needed]</code></p>
-      <p><em>Perfect for: Power users who want flexibility and the latest models</em></p>
+      <p>Local processing for sensitive data, cloud APIs for additional models.</p>
+      <p><code>[Mobile] → [Local Server] → [Local LLMs + Cloud APIs]</code></p>
     </article>
   </div>
 
-  <h3>What This Enables</h3>
+  <h3>Capabilities</h3>
   <ul>
-    <li><strong>Your Personal AI Assistant</strong> — Chat with an AI that has access to your documents, notes, and knowledge base. Unlike cloud assistants, this one runs on your hardware and keeps your data private.</li>
-    <li><strong>Mobile AI Workspace</strong> — Generate images, music, and video from your phone using Flux, Whisper, and other models running on your home GPU. No subscriptions, no rate limits.</li>
-    <li><strong>Private Knowledge Base</strong> — Index your PDFs, notes, and research papers. Query them with RAG from anywhere. Your intellectual property never touches third-party servers.</li>
-    <li><strong>Home Automation AI</strong> — Connect NodeTool to your smart home. Voice-controlled workflows that understand context and execute across your devices.</li>
-    <li><strong>Secure Team Collaboration</strong> — Share workflows with your team while keeping data in your private cloud. Everyone gets AI superpowers without compromising security.</li>
+    <li><strong>Personal AI Assistant</strong> — Chat with an AI that accesses your documents and knowledge base.</li>
+    <li><strong>Mobile AI Workspace</strong> — Generate images, audio, and video from your phone using local models.</li>
+    <li><strong>Private Knowledge Base</strong> — Index and query your documents with RAG.</li>
+    <li><strong>Home Automation</strong> — Connect NodeTool to smart home devices.</li>
+    <li><strong>Team Collaboration</strong> — Share workflows while keeping data in your infrastructure.</li>
   </ul>
 
   <div class="cta-row">
@@ -199,19 +196,19 @@ NodeTool is your **visual canvas for building AI workflows**—connect nodes for
 </section>
 
 <section class="home-section">
-  <h2>Why teams choose NodeTool</h2>
+  <h2>Key Features</h2>
   <div class="feature-grid">
     <article class="feature-card">
-      <h3>🎯 Visual & Accessible</h3>
-      <p>Build AI workflows without coding. Drag-and-drop interface makes complex AI pipelines approachable for everyone—from developers to business users to creators. See your entire workflow on one canvas.</p>
+      <h3>🎯 Visual Editor</h3>
+      <p>Build workflows by connecting nodes. No coding required. View the entire pipeline on one canvas.</p>
     </article>
     <article class="feature-card">
-      <h3>👁️ Transparent & Debuggable</h3>
-      <p>See every step of your AI pipeline in real-time. Inspect intermediate outputs, understand what's happening, and debug with confidence. No black-box mystery—streaming execution shows progress as it happens.</p>
+      <h3>👁️ Real-time Debugging</h3>
+      <p>See every step execute in real-time. Inspect intermediate outputs. Streaming execution shows progress as it happens.</p>
     </article>
     <article class="feature-card">
-      <h3>🔒 Privacy-first by design</h3>
-      <p>Run LLMs, Whisper, and diffusion models entirely on your infrastructure. Keep sensitive data private with local execution. Opt into cloud APIs only when you choose—never by default.</p>
+      <h3>🔒 Local Execution</h3>
+      <p>Run LLMs, Whisper, and diffusion models on your infrastructure. Cloud APIs are opt-in.</p>
     </article>
   </div>
 </section>

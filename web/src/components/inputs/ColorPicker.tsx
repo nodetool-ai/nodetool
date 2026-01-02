@@ -2,11 +2,11 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, useState } from "react";
-import { MuiColorInput } from "mui-color-input";
+import React, { useCallback, useState, useRef } from "react";
 import { Popover, Button, Tooltip } from "@mui/material";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { ColorPickerModal } from "../color_picker";
 
 const PALETTE_BUTTON_SIZE = 28;
 
@@ -44,6 +44,12 @@ const colorMatrixStyle = (theme: Theme) =>
       minHeight: "unset",
       width: PALETTE_BUTTON_SIZE,
       height: PALETTE_BUTTON_SIZE
+    },
+    ".custom-button": {
+      width: "100%",
+      marginTop: "8px",
+      fontSize: "11px",
+      textTransform: "none"
     }
   });
 
@@ -66,6 +72,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const currentColorRef = useRef(color || "#ffffff");
+
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -84,6 +93,31 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     },
     [onColorChange]
   );
+
+  const handleOpenModal = useCallback(() => {
+    currentColorRef.current = color || "#ffffff";
+    setShowModal(true);
+    handleClose();
+  }, [color]);
+
+  const handleModalChange = useCallback(
+    (newColor: string, alpha: number) => {
+      // Convert to hex with alpha if needed
+      if (alpha < 1) {
+        const alphaHex = Math.round(alpha * 255)
+          .toString(16)
+          .padStart(2, "0");
+        onColorChange(newColor + alphaHex);
+      } else {
+        onColorChange(newColor);
+      }
+    },
+    [onColorChange]
+  );
+
+  const handleModalClose = useCallback(() => {
+    setShowModal(false);
+  }, []);
 
   return (
     <div className="color-picker" css={styles(theme)}>
@@ -138,20 +172,30 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               onClick={() => handleColorCellClick(cellColor)}
             />
           ))}
+          {showCustom && (
+            <Button
+              className="custom-button"
+              variant="outlined"
+              size="small"
+              onClick={handleOpenModal}
+            >
+              Custom Color...
+            </Button>
+          )}
         </div>
-        {showCustom && (
-          <div className="custom-selection">
-            <div className="custom-selection-title">CUSTOM</div>
-            <MuiColorInput
-              format="hex"
-              value={color || ""}
-              onChange={(newColor) => {
-                onColorChange(newColor);
-              }}
-            />
-          </div>
-        )}
       </Popover>
+
+      {/* Professional Color Picker Modal */}
+      {showModal && (
+        <ColorPickerModal
+          color={currentColorRef.current}
+          alpha={1}
+          onChange={handleModalChange}
+          onClose={handleModalClose}
+          showGradient={true}
+          showContrast={true}
+        />
+      )}
     </div>
   );
 };

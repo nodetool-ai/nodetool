@@ -21,7 +21,6 @@ import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
-import OutputRenderer from "./OutputRenderer";
 import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
@@ -39,7 +38,7 @@ import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import { useNodes } from "../../contexts/NodeContext";
 import { getIsElectronDetails } from "../../utils/browser";
-import ResultOverlay from "./ResultOverlay";
+
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -301,11 +300,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Results and rendering
-  const result = useResultsStore((state) => state.getResult(workflow_id, id));
-
-  const renderedResult = useMemo(() => {
-    return result && <OutputRenderer value={result} />;
-  }, [result]);
+  const result = useResultsStore((state) => {
+    const r = nodeType.isOutputNode
+      ? state.getOutputResult(workflow_id, id)
+      : state.getResult(workflow_id, id);
+    return r;
+  });
 
   // Manage overlay visibility based on node status and result
   useEffect(() => {
@@ -327,6 +327,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const handleShowResults = useCallback(() => {
     setShowResultOverlay(true);
   }, []);
+
+  // Compute if overlay is actually visible (mirrors logic in NodeContent)
+  const isEmptyResult = (obj: any) => obj && typeof obj === "object" && Object.keys(obj).length === 0;
+  const isOverlayVisible = nodeType.isOutputNode
+    ? (result && !isEmptyResult(result))
+    : (showResultOverlay && result && !isEmptyResult(result));
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>
@@ -393,10 +399,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           hasParent && !isLoading
             ? parentColor
             : selected
-            ? "transparent !important"
-            : // theme.vars.palette.c_node_bg
-              // : "#121212", // Darker background
-              theme.vars.palette.c_node_bg, // Darker background
+              ? "transparent !important"
+              : // theme.vars.palette.c_node_bg
+                // : "#121212", // Darker background
+                theme.vars.palette.c_node_bg, // Darker background
         backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         borderRadius: "var(--rounded-node)",
@@ -417,7 +423,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
-      {(getIsElectronDetails().isElectron || !isProduction) && (
+      {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (
         <ModelRecommendations nodeType={type} />
       )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
@@ -435,7 +441,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         basicFields={meta.nodeBasicFields}
         status={status}
         workflowId={workflow_id}
-        renderedResult={renderedResult}
         showResultOverlay={showResultOverlay}
         result={result}
         onShowInputs={handleShowInputs}
@@ -458,6 +463,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           metadata={metadata}
           nodeType={type}
           data={data}
+          workflowId={workflow_id}
         />
       )}
 

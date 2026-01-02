@@ -23,6 +23,7 @@ jest.mock("../useAssetActions", () => ({
       if (!isParent && onSelect) {onSelect();}
     },
     handleDrag: jest.fn(),
+    handleDragEnd: jest.fn(),
     handleDragOver: jest.fn(),
     handleDragEnter: jest.fn(),
     handleDragLeave: jest.fn(),

@@ -21,14 +21,14 @@ type OutputRendererProps = {
 
 // Simple helper to detect type - can be expanded based on ApiTypes from web
 const getType = (value: any): string => {
-  if (value === null || value === undefined) return "null";
-  if (typeof value === "string") return "string";
-  if (typeof value === "number") return "number";
-  if (typeof value === "boolean") return "boolean";
-  if (Array.isArray(value)) return "array";
+  if (value === null || value === undefined) {return "null";}
+  if (typeof value === "string") {return "string";}
+  if (typeof value === "number") {return "number";}
+  if (typeof value === "boolean") {return "boolean";}
+  if (Array.isArray(value)) {return "array";}
   if (typeof value === "object") {
-    if (value.type === "image") return "image";
-    if (value.type === "audio") return "audio";
+    if (value.type === "image") {return "image";}
+    if (value.type === "audio") {return "audio";}
     return "object";
   }
   return "unknown";
@@ -77,11 +77,11 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
       const source = value?.uri || value?.data;
       if (!source)
-        return (
+        {return (
           <Text style={[styles.error, { color: colors.error }]}>
             Invalid Image Data
           </Text>
-        );
+        );}
 
       if (typeof source === "string") {
         return (

@@ -61,7 +61,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const canSend = !disabled && !isDisconnected && (text.trim().length > 0 || hasFiles);
 
   const handleSend = useCallback(() => {
-    if (!canSend) return;
+    if (!canSend) {return;}
 
     const trimmedText = text.trim();
     const content: MessageContent[] = [];
@@ -157,62 +157,39 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
   // Pick image from photo library
   const handlePickImage = useCallback(async () => {
-    console.log('[handlePickImage] Starting image picker flow');
     setShowAttachmentMenu(false);
-    console.log('[handlePickImage] Attachment menu closed');
     
-    // Wait for modal to fully close before launching picker
-    console.log('[handlePickImage] Waiting for modal animation to complete...');
     await new Promise(resolve => setTimeout(resolve, 300));
-    console.log('[handlePickImage] Delay complete, proceeding...');
     
-    console.log('[handlePickImage] Checking media library permissions...');
     let { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
-    console.log('[handlePickImage] Current permission status:', status);
     
     if (status !== 'granted') {
-      console.log('[handlePickImage] Permission not granted, requesting...');
       const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
       status = result.status;
-      console.log('[handlePickImage] Permission request result:', status);
     }
     
     if (status !== 'granted') {
-      console.log('[handlePickImage] Permission denied, showing alert');
       Alert.alert('Permission Required', 'Photo library access is needed to select photos.');
       return;
     }
-    console.log('[handlePickImage] Permissions OK, proceeding to picker...');
 
-    console.log('[handlePickImage] Launching image library picker...');
-    console.log('[handlePickImage] Platform:', Platform.OS, '__DEV__:', __DEV__);
     if (Platform.OS === 'ios' && __DEV__) {
       console.warn('[handlePickImage] ⚠️ iOS Simulator detected! The image picker may hang if:');
       console.warn('  1. The simulator has no photos - drag images into the Photos app first');
       console.warn('  2. The Photos app has never been opened in this simulator');
     }
-    console.log('[handlePickImage] About to call launchImageLibraryAsync NOW');
     try {
-      // Request base64 data so we can send it to the server
       const pickerOptions: ImagePicker.ImagePickerOptions = {
         mediaTypes: ['images', 'videos'],
         allowsMultipleSelection: true,
         quality: 0.8,
-        base64: true, // Get base64 data for server upload
+        base64: true,
       };
-      console.log('[handlePickImage] Picker options:', JSON.stringify(pickerOptions));
       const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
-      console.log('[handlePickImage] Picker returned!');
-      console.log('[handlePickImage] Picker result received:', {
-        canceled: result.canceled,
-        assetCount: result.assets?.length ?? 0,
-      });
 
       if (!result.canceled && result.assets.length > 0) {
-        console.log('[handlePickImage] Processing selected assets...');
         const newFiles: DroppedFile[] = result.assets.map((asset, index) => {
           const mimeType = asset.mimeType || 'image/jpeg';
-          // Create data URI from base64 if available
           const dataUri = asset.base64 
             ? `data:${mimeType};base64,${asset.base64}`
             : undefined;
@@ -224,23 +201,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             uri: asset.uri,
             dataUri: dataUri, // This is what will be sent to the server
           };
-          console.log(`[handlePickImage] Asset ${index}:`, {
-            fileName: asset.fileName,
-            mimeType: asset.mimeType,
-            fileSize: asset.fileSize,
-            hasBase64: !!asset.base64,
-            base64Length: asset.base64?.length ?? 0,
-            uri: asset.uri?.substring(0, 50) + '...',
-            width: asset.width,
-            height: asset.height,
-          });
           return file;
         });
-        console.log('[handlePickImage] Adding files to state, count:', newFiles.length);
         addFilesToState(newFiles);
-        console.log('[handlePickImage] Files added successfully');
       } else {
-        console.log('[handlePickImage] User canceled or no assets selected');
       }
     } catch (error) {
       console.error('[handlePickImage] Error launching picker:', error);

@@ -8,31 +8,28 @@ import {
   Tooltip,
   Box,
   Button,
-  useMediaQuery
+  useMediaQuery,
+  Typography
 } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, useEffect } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
-import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import ThreadList from "../chat/thread/ThreadList";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
-import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
-import FolderIcon from "@mui/icons-material/Folder";
 import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
@@ -45,6 +42,12 @@ import {
 } from "@mui/material";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
+import { useWorkflowRunnerState } from "../../hooks/useWorkflowRunnerState";
+import { Job } from "../../stores/ApiTypes";
+import { useWorkflow } from "../../serverState/useWorkflow";
+import { queryClient } from "../../queryClient";
+import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -348,37 +351,178 @@ const styles = (
   });
 };
 
+/**
+ * Format elapsed time since job started
+ */
+const formatElapsedTime = (startedAt: string | null | undefined): string => {
+  if (!startedAt) return "Not started";
+  const start = new Date(startedAt).getTime();
+  // Validate the date - getTime() returns NaN for invalid dates
+  if (isNaN(start)) return "Invalid date";
+  const now = Date.now();
+  const elapsed = Math.floor((now - start) / 1000);
+  // Handle negative elapsed time (future dates)
+  if (elapsed < 0) return "0s";
+
+  if (elapsed < 60) return `${elapsed}s`;
+  if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;
+  const hours = Math.floor(elapsed / 3600);
+  const minutes = Math.floor((elapsed % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+};
+
+/**
+ * Component to display a single job item with workflow name and runner state detection
+ */
+const JobItem = ({ job }: { job: Job }) => {
+  const navigate = useNavigate();
+  const runnerState = useWorkflowRunnerState(job.workflow_id);
+  const { data: workflow } = useWorkflow(job.workflow_id);
+  const [elapsedTime, setElapsedTime] = useState(
+    formatElapsedTime(job.started_at)
+  );
+
+  // Update elapsed time every second while job is running
+  useEffect(() => {
+    if (job.status !== "running" && job.status !== "queued") return;
+
+    const interval = setInterval(() => {
+      setElapsedTime(formatElapsedTime(job.started_at));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [job.started_at, job.status]);
+
+  // Refresh jobs list when runner state changes from running to idle/error/cancelled
+  useEffect(() => {
+    if (
+      runnerState === "idle" ||
+      runnerState === "error" ||
+      runnerState === "cancelled"
+    ) {
+      // Invalidate all jobs queries to refresh the list
+      // queryKey: ["jobs"] matches any query whose key starts with "jobs"
+      // This includes ["jobs", "running", userId] used in useRunningJobs
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    }
+  }, [runnerState]);
+
+  const handleClick = () => {
+    navigate(`/editor/${job.workflow_id}`);
+  };
+
+  const handleStop = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation
+    const runnerStore = getWorkflowRunnerStore(job.workflow_id);
+    runnerStore.getState().cancel();
+  };
+
+  const getStatusIcon = () => {
+    if (job.error) {
+      return <ErrorOutlineIcon color="error" />;
+    }
+    switch (job.status) {
+      case "running":
+        return <CircularProgress size={24} />;
+      case "queued":
+      case "starting":
+        return <HourglassEmptyIcon color="action" />;
+      default:
+        return <PlayArrowIcon color="action" />;
+    }
+  };
+
+  const workflowName = workflow?.name || "Loading...";
+  const statusText =
+    job.status === "running"
+      ? `Running • ${elapsedTime}`
+      : job.status === "queued"
+        ? "Queued"
+        : job.status === "starting"
+          ? "Starting..."
+          : job.status;
+
+  return (
+    <ListItem
+      onClick={handleClick}
+      sx={{
+        cursor: "pointer",
+        borderRadius: 1,
+        mb: 0.5,
+        "&:hover": {
+          backgroundColor: "action.hover"
+        }
+      }}
+    >
+      <ListItemIcon sx={{ minWidth: 40 }}>{getStatusIcon()}</ListItemIcon>
+      <ListItemText
+        primary={
+          <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
+            {workflowName}
+          </Typography>
+        }
+        secondary={
+          <Box component="span" sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+            <Typography variant="caption" color="text.secondary">
+              {statusText}
+            </Typography>
+            {job.error && (
+              <Typography variant="caption" color="error" noWrap>
+                {job.error}
+              </Typography>
+            )}
+          </Box>
+        }
+      />
+      {(job.status === "running" || job.status === "queued" || job.status === "starting") && (
+        <IconButton
+          size="small"
+          onClick={handleStop}
+          sx={{
+            ml: 1,
+            color: "error.main",
+            "&:hover": {
+              backgroundColor: "error.light",
+              color: "error.contrastText"
+            }
+          }}
+        >
+          <StopIcon fontSize="small" />
+        </IconButton>
+      )}
+    </ListItem>
+  );
+};
+
 const RunningJobsList = () => {
   const { data: jobs, isLoading, error } = useRunningJobs();
 
   if (isLoading) {
-    return <div style={{ padding: "1em" }}>Loading...</div>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+        <CircularProgress size={24} />
+      </Box>
+    );
   }
   if (error) {
-    return <div style={{ padding: "1em" }}>Error loading jobs</div>;
+    return (
+      <Box sx={{ p: 2, color: "error.main" }}>
+        <Typography variant="body2">Error loading jobs</Typography>
+      </Box>
+    );
   }
   if (!jobs?.length) {
-    return <div style={{ padding: "1em" }}>No running jobs</div>;
+    return (
+      <Box sx={{ p: 5, color: "text.secondary" }}>
+        <Typography variant="body2">No running jobs</Typography>
+      </Box>
+    );
   }
 
   return (
-    <List>
+    <List sx={{ px: 1 }}>
       {jobs.map((job) => (
-        <ListItem key={job.id}>
-          <ListItemIcon>
-            {job.status === "running" ? (
-              <CircularProgress size={24} />
-            ) : job.status === "queued" ? (
-              <HourglassEmptyIcon />
-            ) : (
-              <PlayArrowIcon />
-            )}
-          </ListItemIcon>
-          <ListItemText
-            primary={job.job_type}
-            secondary={`Status: ${job.status}`}
-          />
-        </ListItem>
+        <JobItem key={job.id} job={job} />
       ))}
     </List>
   );
@@ -398,24 +542,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
   return (
     <div className="vertical-toolbar">
       <Tooltip
-        title={getShortcutTooltip("toggleChat")}
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          onClick={() => onViewChange("chat")}
-          className={activeView === "chat" && panelVisible ? "active" : ""}
-        >
-          <ChatIcon />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Workflows</div>
             <div className="tooltip-key">
-              <kbd>2</kbd>
+              <kbd>1</kbd>
             </div>
           </div>
         }
@@ -448,27 +579,10 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip
         title={
           <div className="tooltip-span">
-            <div className="tooltip-title">Workspace</div>
-            <div className="tooltip-key">
-              <kbd>4</kbd>
-            </div>
-          </div>
-        }
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          onClick={() => onViewChange("workspace")}
-          className={activeView === "workspace" && panelVisible ? "active" : ""}
-        >
-          <FolderIcon />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title={
-          <div className="tooltip-span">
             <div className="tooltip-title">Jobs</div>
+            <div className="tooltip-key">
+              <kbd>3</kbd>
+            </div>
           </div>
         }
         placement="right-start"
@@ -504,113 +618,8 @@ const PanelContent = memo(function PanelContent({
   const navigate = useNavigate();
   const path = useLocation().pathname;
 
-  const {
-    threads,
-    currentThreadId,
-    createNewThread,
-    switchThread,
-    deleteThread,
-    messageCache
-  } = useGlobalChatStore();
-
-  const handleNewChat = () => {
-    createNewThread()
-      .then((newThreadId) => {
-        switchThread(newThreadId);
-        navigate(`/chat/${newThreadId}`);
-        usePanelStore.getState().setVisibility(false);
-      })
-      .catch((error) => {
-        console.error("Failed to create new thread:", error);
-      });
-  };
-
-  const handleSelectThread = (id: string) => {
-    switchThread(id);
-    navigate(`/chat/${id}`);
-    usePanelStore.getState().setVisibility(false);
-  };
-
-  const handleDeleteThread = (id: string) => {
-    deleteThread(id).catch((error) => {
-      console.error("Failed to delete thread:", error);
-    });
-  };
-
-  const getThreadPreview = (threadId: string) => {
-    if (!threads) {
-      return "Loading...";
-    }
-    const thread = threads[threadId];
-    if (!thread) {
-      return "Empty conversation";
-    }
-
-    // Use thread title if available
-    if (thread.title) {
-      return thread.title;
-    }
-
-    // Check if we have cached messages for this thread
-    const threadMessages = messageCache[threadId];
-    if (!threadMessages || threadMessages.length === 0) {
-      return "New conversation";
-    }
-
-    const firstUserMessage = threadMessages.find(
-      (msg: any) => msg.role === "user"
-    );
-    if (firstUserMessage) {
-      const content =
-        typeof firstUserMessage.content === "string"
-          ? firstUserMessage.content
-          : Array.isArray(firstUserMessage.content) &&
-            firstUserMessage.content[0]?.type === "text"
-          ? (firstUserMessage.content[0] as any).text
-          : "[Media message]";
-      return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
-    }
-
-    return "New conversation";
-  };
-
-  // Create ThreadInfo compatible data for ThreadList
-  const threadsWithMessages: Record<
-    string,
-    import("../chat/types/thread.types").ThreadInfo
-  > = Object.fromEntries(
-    Object.entries(threads).map(([id, thread]) => {
-      const item: import("../chat/types/thread.types").ThreadInfo = {
-        id: thread.id,
-        title: (thread.title ?? undefined) as string | undefined,
-        updatedAt: thread.updated_at,
-        messages: messageCache[id] || []
-      };
-      return [id, item];
-    })
-  );
-
   return (
     <>
-      {activeView === "chat" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden",
-            margin: "0"
-          }}
-        >
-          <ThreadList
-            threads={threadsWithMessages}
-            currentThreadId={currentThreadId}
-            onNewThread={handleNewChat}
-            onSelectThread={handleSelectThread}
-            onDeleteThread={handleDeleteThread}
-            getThreadPreview={getThreadPreview}
-          />
-        </Box>
-      )}
       {activeView === "assets" && (
         <Box
           className="assets-container"
@@ -647,17 +656,6 @@ const PanelContent = memo(function PanelContent({
         >
           <h3 style={{ paddingLeft: "1em" }}>Workflows</h3>
           <WorkflowList />
-        </Box>
-      )}
-      {activeView === "workspace" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden"
-          }}
-        >
-          <WorkspaceTree />
         </Box>
       )}
       {activeView === "jobs" && (
@@ -697,12 +695,9 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  useCombo(["1"], () => handlePanelToggle("chat"), false);
-  useCombo(["2"], () => handlePanelToggle("workflowGrid"), false);
-  useCombo(["3"], () => handlePanelToggle("assets"), false);
-  useCombo(["4"], () => handlePanelToggle("workspace"), false);
-
-  useCombo(["5"], () => handlePanelToggle("packs"), false);
+  useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
+  useCombo(["2"], () => handlePanelToggle("assets"), false);
+  useCombo(["3"], () => handlePanelToggle("jobs"), false);
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";

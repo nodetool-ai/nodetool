@@ -31,7 +31,6 @@ const FontProperty: React.FC<PropertyProps> = ({
     queryKey: ["fonts"],
     queryFn: fetchFonts
   });
-  console.log(fonts);
 
   // Handle value change
   const handleChange = useCallback(

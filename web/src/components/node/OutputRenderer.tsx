@@ -26,7 +26,6 @@ import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { Container, List, ListItem, ListItemText } from "@mui/material";
 import ListTable from "./DataTable/ListTable";
-import DictTable from "./DataTable/DictTable";
 import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
 import TaskPlanView from "./TaskPlanView";
@@ -50,6 +49,7 @@ import { AssetGrid } from "./output/AssetGrid";
 import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
+import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
 
@@ -341,16 +341,29 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
+              onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)}
             />
           ));
         } else {
-          return <ImageView source={value?.uri ? value?.uri : value?.data} />;
+          let imageSource: string | Uint8Array;
+          if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
+            imageSource = value.uri;
+          } else if (value?.data instanceof Uint8Array) {
+            imageSource = value.data;
+          } else if (Array.isArray(value?.data)) {
+            imageSource = new Uint8Array(value.data);
+          } else if (typeof value?.data === "string") {
+            imageSource = value.data;
+          } else {
+            imageSource = "";
+          }
+          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)} />;
         }
       case "audio": {
         // Handle different audio data formats
         let audioSource: string | Uint8Array;
 
-        if (value?.uri && value.uri !== "") {
+        if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
           // Use URI if available
           audioSource = value.uri;
         } else if (Array.isArray(value?.data)) {
@@ -367,9 +380,17 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           audioSource = "";
         }
 
+        const metadata = (value as any).metadata || {};
+        const mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
+
         return (
           <div className="audio" style={{ padding: "1em" }}>
-            <AudioPlayer source={audioSource} />
+            <AudioPlayer
+              source={audioSource}
+              mimeType={mimeType}
+              height={150}
+              waveformHeight={150}
+            />
           </div>
         );
       }
@@ -390,28 +411,49 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           </div>
         );
       case "object": {
+        const keys = Object.keys(value);
         const vals = Object.values(value);
-        // Check if any values are nested objects/arrays - use JSON renderer for complex structures
-        const hasNestedObjects = vals.some(
-          (v) => v !== null && typeof v === "object"
+
+        // For empty objects, return null
+        if (keys.length === 0) {
+          return null;
+        }
+
+        // Single-key object: render the value directly (unwrap the object)
+        if (keys.length === 1) {
+          const singleValue = vals[0];
+          // If it's a primitive, render it directly
+          if (typeof singleValue === "string") {
+            return (
+              <TextRenderer text={singleValue} showActions={showTextActions} />
+            );
+          }
+          if (typeof singleValue === "number") {
+            return (
+              <TextRenderer
+                text={String(singleValue)}
+                showActions={showTextActions}
+              />
+            );
+          }
+          if (typeof singleValue === "boolean") {
+            return <BooleanRenderer value={singleValue} />;
+          }
+          // For objects/arrays, recurse
+          return (
+            <OutputRenderer value={singleValue} showTextActions={showTextActions} />
+          );
+        }
+
+        // Multi-key object: use ObjectRenderer for clean sectioned display
+        return (
+          <ObjectRenderer
+            value={value}
+            renderValue={(v) => (
+              <OutputRenderer value={v} showTextActions={showTextActions} />
+            )}
+          />
         );
-        if (hasNestedObjects) {
-          return <JSONRenderer value={value} showActions={showTextActions} />;
-        }
-        // Simple key-value pairs - use DictTable
-        if (vals.length > 0) {
-          if (typeof vals[0] === "string") {
-            return (
-              <DictTable data={value} data_type="string" editable={false} />
-            );
-          }
-          if (typeof vals[0] === "number") {
-            return (
-              <DictTable data={value} data_type="float" editable={false} />
-            );
-          }
-        }
-        return <DictTable data={value} editable={false} data_type="string" />;
       }
       case "task":
         return <TaskView task={value as Task} />;
@@ -504,11 +546,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 (c) => c.content_type === "audio"
               );
               if (audioChunks.length >= 2) {
+                const firstMeta = (audioChunks[0] as any).content_metadata;
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
-                    sampleRate={22000}
-                    channels={1}
+                    sampleRate={firstMeta?.sample_rate || 22000}
+                    channels={firstMeta?.channels || 1}
                   />
                 );
               }
@@ -637,6 +680,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "json":
         return <JSONRenderer value={value} showActions={showTextActions} />;
       default:
+        if (value !== null && typeof value === "object") {
+          return <JSONRenderer value={value} showActions={showTextActions} />;
+        }
         return (
           <TextRenderer
             text={value?.toString?.() ?? ""}

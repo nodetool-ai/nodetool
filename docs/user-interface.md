@@ -1,26 +1,26 @@
 ---
 layout: page
 title: "NodeTool User Interface"
-description: "Navigate your creative studio with confidence – a visual guide for creators."
+description: "Visual guide to the NodeTool interface."
 ---
 
-This guide introduces you to the NodeTool interface. Whether you're using the desktop app or web version, you'll learn where everything is and how to create efficiently.
+This guide introduces the NodeTool interface. Covers both desktop app and web version.
 
-> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md) for a hands-on creative tutorial.
+> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md).
 
 ---
 
 ## At a Glance
 
-NodeTool has five creative workspaces:
+NodeTool has five workspaces:
 
-| Workspace | What It's For | When You'll Use It |
-|-----------|---------------|-------------------|
-| **Dashboard** | Your creative hub | Starting projects, finding inspiration |
-| **Workflow Canvas** | Building AI workflows | Creating and designing your workflows |
-| **Global Chat** | Conversational creation | Quick iterations, chatting with AI |
-| **Mini-Apps** | Simplified creative tools | Sharing workflows with collaborators |
-| **Assets** | Media library | Managing your creative files |
+| Workspace | Purpose | Use Case |
+|-----------|---------|----------|
+| **Dashboard** | Home screen | Starting projects, finding templates |
+| **Workflow Canvas** | Building workflows | Creating and designing workflows |
+| **Global Chat** | Conversational AI | Quick iterations, chatting with AI |
+| **Mini-Apps** | Simplified interfaces | Sharing workflows with others |
+| **Assets** | Media library | Managing files |
 
 ---
 
@@ -38,16 +38,16 @@ The header bar is your creative command center (always visible at the top):
 
 ---
 
-## Dashboard – Your Creative Hub
+## Dashboard
 
-The Dashboard is your creative home base.
+The Dashboard is the home screen.
 
-### What You'll Find
+### Contents
 
-- **Your Workflows** – Your saved creative projects
-- **Templates** – Ready-to-use creative workflows
-- **Recent Chats** – Past conversations and generations
-- **Quick Start** – Getting started tips (for new users)
+- **Your Workflows** – Saved projects
+- **Templates** – Ready-to-use workflows
+- **Recent Chats** – Past conversations
+- **Getting Started Panel** – Interactive onboarding guide for new users with step-by-step instructions
 
 ### Common Actions
 
@@ -60,50 +60,46 @@ The Dashboard is your creative home base.
 
 ---
 
-## Workflow Canvas – Your Creative Studio
+## Workflow Canvas
 
-This is where you build creative AI workflows visually—think of it as your canvas for connecting creative ideas.
+Build workflows visually by connecting nodes.
 
 ### The Canvas
 
-The large center area is your **infinite canvas** – like an endless artboard where you arrange your creative process.
+The center area is an **infinite canvas** for arranging workflows.
 
-**Moving Around:**
-- **Pan** (scroll the view): Hold `Space` and drag, or right-click and drag (like navigating in Photoshop)
-- **Zoom**: `Ctrl/⌘` + scroll wheel (like pinch-to-zoom)
-- **Fit everything**: Press `F` (frame all, like in design tools)
+**Navigation:**
+- **Pan**: Hold `Space` and drag, or right-click drag
+- **Zoom**: `Ctrl/⌘` + scroll wheel
+- **Fit all**: Press `F`
 
-### Adding Creative Nodes
+### Adding Nodes
 
-Nodes are your creative building blocks—like tools in a toolbox. To add one:
+To add a node:
 
 1. Press `Space` anywhere on canvas, **OR**
 2. Double-click an empty area
 
-This opens the **Node Library** where you can:
-- **Search** by typing what you want (e.g., "generate image", "transform video")
+This opens the **Node Library**:
+- **Search** by typing (e.g., "generate image", "transform video")
 - **Browse** categories on the left (Image, Video, Audio, Text)
-- **Click** a node to add it to your canvas
+- **Click** a node to add it
 
-**Think of it like:** Adding a new layer in Photoshop or a new track in a DAW (Digital Audio Workstation).
+### Connecting Nodes
 
-### Connecting Your Creative Flow
+Connections show data flow between nodes:
 
-Connections show how your creative work flows between nodes:
-
-1. Find the small **circles** on nodes (outputs on right, inputs on left)
+1. Find the **circles** on nodes (outputs on right, inputs on left)
 2. **Click and drag** from an output circle
 3. **Release** on an input circle of another node
 
-> **Pro tip**: Drop a connection on empty space to see compatible nodes—NodeTool suggests what can connect!
+> **Tip**: Drop a connection on empty space to see compatible nodes.
 
-**Think of it like:** Connecting effect pedals in a music setup, or routing layers in After Effects.
+### Properties Panel
 
-### The Properties Panel
+When you select a node, the right panel shows its **configuration**:
 
-When you select a node, the right panel shows its **creative controls** (like adjustment sliders in Lightroom):
-
-- **Inputs** – What the node needs (text, images, etc.)
+- **Inputs** – What the node needs
 - **Settings** – Configuration options
 - **Output** – What the node produces
 
@@ -111,14 +107,16 @@ When you select a node, the right panel shows its **creative controls** (like ad
 
 ## Global Chat
 
-Global Chat is your AI assistant built into NodeTool.
+AI assistant built into NodeTool.
 
-### What You Can Do
+![Global Chat Interface](assets/screenshots/global-chat-interface.png)
 
-- **Chat** with AI models about anything
-- **Run workflows** directly from conversation
-- **Enable Agent Mode** to let AI build and modify workflows
-- **Share files** – images, audio, documents
+### Features
+
+- **Chat** with AI models
+- **Run workflows** from conversation
+- **Agent Mode** for autonomous task execution
+- **File sharing** – images, audio, documents
 
 ### Chat Features
 
@@ -129,17 +127,26 @@ Global Chat is your AI assistant built into NodeTool.
 | **Workflow Menu** | Attach and run your saved workflows |
 | **Agent Mode** | Let the AI use tools and modify your canvas |
 
+### Standalone Chat Window
+
+Access chat directly from the system tray for quick conversations:
+
+- **Quick Access**: Click the tray icon → **Chat** to open a dedicated chat window
+- **Focused Interface**: Chat without the full NodeTool interface
+- **Background Access**: Start conversations while other apps are open
+- **Thread Persistence**: All threads sync with the main application
+
 ---
 
 ## Mini-Apps
 
-Transform any workflow into a simple app that anyone can use.
+Convert workflows into simple apps.
 
-### Why Use Mini-Apps?
+### Purpose
 
 - **Hide complexity** – Users see only inputs and outputs
 - **Share easily** – No NodeTool knowledge required
-- **Focused experience** – Just what they need, nothing more
+- **Focused interface** – Just what users need
 
 ### How It Works
 
@@ -149,6 +156,14 @@ Transform any workflow into a simple app that anyone can use.
    - Input fields (from your Input nodes)
    - Run button
    - Output results
+
+### Standalone Mini-App Windows
+
+Launch mini-apps in dedicated windows from the system tray:
+
+- **Quick Launch**: Right-click the tray icon to see available mini-apps
+- **Independent Windows**: Run mini-apps without opening the main editor
+- **Background Execution**: Keep mini-apps running while working on other tasks
 
 ---
 
@@ -171,6 +186,14 @@ The Asset Explorer manages all your files.
 | Use in workflow | Drag asset onto the canvas |
 | Preview | Click any asset to preview |
 | Organize | Create folders, rename files |
+
+### Audio Player
+
+The built-in audio player features waveform visualization:
+
+- **Visual Waveforms**: See the audio shape with WaveSurfer.js integration
+- **Playback Controls**: Play, pause, and seek through audio files
+- **Preview in Workflows**: Audio results display with interactive waveforms
 
 ---
 
@@ -228,7 +251,7 @@ Just start typing what you want!
 
 ## Keyboard Shortcuts
 
-### Essentials (Learn These First!)
+### Essentials
 
 | Shortcut | Action |
 |----------|--------|
@@ -237,7 +260,7 @@ Just start typing what you want!
 | `Ctrl/⌘ + S` | Save |
 | `Ctrl/⌘ + Z` | Undo |
 | `F` | Fit view |
-| `Esc` | Stop running workflow |
+| `Esc` | Stop workflow |
 
 ### All Shortcuts
 

@@ -16,7 +16,7 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -95,6 +95,7 @@ type ChatViewProps = {
   noMessagesPlaceholder?: React.ReactNode;
   onInsertCode?: (text: string, language?: string) => void;
   allowedProviders?: string[];
+  workflowId?: string | null;
 };
 
 const ChatView = ({
@@ -114,7 +115,6 @@ const ChatView = ({
   onStop,
   onNewChat,
   agentMode,
-  workflowAssistant = false,
   onAgentModeToggle,
   helpMode = false,
   currentPlanningUpdate,
@@ -125,7 +125,8 @@ const ChatView = ({
   onInsertCode,
   runningToolCallId,
   runningToolMessage,
-  allowedProviders
+  allowedProviders,
+  workflowId
 }: ChatViewProps) => {
   const theme = useTheme();
   const chatThreadContainerRef = useRef<HTMLDivElement | null>(null);
@@ -158,8 +159,9 @@ const ChatView = ({
             selectedCollections.length > 0 ? selectedCollections : undefined,
           agent_mode: messageAgentMode,
           help_mode: helpMode,
-          workflow_assistant: workflowAssistant,
-          graph: graph
+          graph: graph,
+          workflow_id: workflowId ?? undefined,
+          workflow_target: graph ? "workflow" : undefined
         });
       } catch (error) {
         console.error("Error sending message:", error);
@@ -171,8 +173,8 @@ const ChatView = ({
       selectedTools,
       selectedCollections,
       helpMode,
-      workflowAssistant,
-      graph
+      graph,
+      workflowId
     ]
   );
 

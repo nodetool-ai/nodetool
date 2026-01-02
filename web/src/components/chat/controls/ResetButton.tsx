@@ -18,7 +18,7 @@ export const ResetButton: React.FC<ResetButtonProps> = ({
     <span>
       <IconButton
         className="reset-chat-button"
-        onClick={(e) => !disabled && onClick()}
+        onClick={() => !disabled && onClick()}
         sx={{
           p: 2,
           mt: 2,

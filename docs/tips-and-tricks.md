@@ -1,25 +1,23 @@
 ---
 layout: page
 title: "Tips and Tricks"
-description: "Power user shortcuts and workflow efficiency tips for NodeTool."
+description: "Shortcuts and efficiency tips for NodeTool."
 ---
 
-Level up your NodeTool skills with these tips, tricks, and shortcuts. From quick actions to hidden features, these will help you work faster and smarter.
+Shortcuts, hidden features, and workflow efficiency tips.
 
 ---
 
 ## Essential Shortcuts
 
-**Learn these first – they'll save you hours!**
-
-| Shortcut | What It Does |
-|----------|--------------|
-| `Space` | Open node menu to add nodes |
-| `Ctrl/⌘ + Enter` | Run your workflow |
+| Shortcut | Action |
+|----------|--------|
+| `Space` | Open node menu |
+| `Ctrl/⌘ + Enter` | Run workflow |
 | `Ctrl/⌘ + S` | Save |
-| `F` | Fit view (zoom to show all nodes) |
+| `F` | Fit view |
 | `Ctrl/⌘ + Z` | Undo |
-| `Alt/⌘ + K` | Open command menu |
+| `Alt/⌘ + K` | Command menu |
 
 ---
 
@@ -104,6 +102,15 @@ Level up your NodeTool skills with these tips, tricks, and shortcuts. From quick
 2. **Check node errors** – red borders or icons indicate issues
 3. **Verify connections** – ensure types match
 4. **Test incrementally** – run partial workflows first
+5. **Bypass nodes** – right-click → Bypass to skip suspicious nodes
+
+### Using Bypass for Debugging
+
+Bypass is a powerful debugging tool:
+
+- **Isolate issues**: Bypass nodes one at a time to find the problem
+- **Compare outputs**: Toggle bypass to see before/after results
+- **Skip slow steps**: Temporarily bypass heavy processing during testing
 
 ### Common Fixes
 
@@ -113,6 +120,7 @@ Level up your NodeTool skills with these tips, tricks, and shortcuts. From quick
 | Wrong output | Check input data and node settings |
 | Workflow won't run | Look for disconnected required inputs |
 | Slow execution | Try cloud providers for heavy tasks |
+| Node causing errors | Bypass it to test downstream nodes |
 
 ---
 
@@ -149,14 +157,14 @@ Press `Alt/⌘ + K` to open the command menu – the fastest way to:
 ### Choosing Models
 
 - **Local for privacy**: Use local models for sensitive data
-- **Cloud for speed**: API models are faster, especially for images
+- **Cloud for speed**: API models are faster
 - **Mix both**: Local preprocessing → cloud generation → local post-processing
 
-### Optimizing Performance
+### Performance
 
 - **Smaller models first**: Test with fast models, upgrade for quality
-- **Quantized models**: Smaller files, nearly same quality (look for Q4, Q8)
-- **Streaming nodes**: See progress instead of waiting
+- **Quantized models**: Smaller files, similar quality (Q4, Q8)
+- **Streaming nodes**: See progress during execution
 
 ---
 

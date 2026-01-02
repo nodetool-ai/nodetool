@@ -14,32 +14,52 @@
 
 **Build AI Workflows Visually. Run Them Anywhere.**
 
-NodeTool is an open-source visual workflow builder for everyone. Connect AI building blocks to generate images, analyze documents, automate tasks, and process data—all without coding. Run powerful models locally or in the cloud. Your workflows, your data, your control.
+NodeTool is an open-source visual workflow builder. Connect nodes to generate images, analyze documents, automate tasks, and process data—no coding required. Run models locally or via cloud APIs.
 
 ![Screenshot](screenshot.png)
 
-## Why Choose NodeTool
+## Features
 
-- **Build Visually**: Create workflows like connecting building blocks. Drag, drop, and see results instantly. No coding required, but full flexibility when you need it.
-- **Your Data, Your Rules**: Run AI models on your machine for complete privacy, or use cloud services when you want. You're always in control of where your data goes.
-- **See Every Step**: Watch your workflows execute in real-time. Every action is visible—understand what's happening, tweak as you go, perfect your results.
-- **Run Anywhere**: Design on your laptop, deploy to the cloud. Same workflow works on RunPod, Cloud Run, or your own servers. True portability.
+- **Visual Editor**: Drag-and-drop node connections. No coding required.
+- **Local Execution**: Run models on your hardware for privacy. Or use cloud APIs.
+- **Real-time Feedback**: See results stream as workflows execute.
+- **Portable Workflows**: Same workflow runs locally, on RunPod, Cloud Run, or self-hosted servers.
 
-## Powerful Features
+## Capabilities
 
-- **Visual Workflow Canvas**: Drag-and-drop interface for building AI pipelines. Real-time execution, multimodal support (text, image, audio, video). Watch results stream as they generate.
-- **Run Models Locally**: Access cutting-edge models (Flux, SDXL, LLMs) on Apple Silicon, NVIDIA GPUs, or CPU. No subscription fees. Works offline.
-- **500,000+ Models**: Browse and use any model from HuggingFace Hub. From image generation to data analysis—your toolkit is vast.
-- **Flexible Deployment**: Mix local models with cloud APIs (OpenAI, Anthropic, Gemini, Replicate). Use the right tool for each task.
-- **One-Click Deployment**: Deploy workflows to RunPod, Cloud Run, or self-hosted infrastructure. Same workflow, any environment.
-- **Built-in Asset Management**: Organize images, audio, videos, and documents. Access from any workflow node.
+- **Multimodal Support**: Text, image, audio, and video processing.
+- **Local Models**: Run Flux, SDXL, LLMs on Apple Silicon, NVIDIA GPUs, or CPU. Works offline.
+- **HuggingFace Integration**: Access 500,000+ models from the Hub.
+- **Cloud APIs**: Connect to OpenAI, Anthropic, Gemini, Replicate.
+- **Deployment**: Deploy to RunPod, Cloud Run, or self-hosted infrastructure.
+- **Asset Management**: Organize and access media files from workflows.
 
-## What You Can Build
+## Use Cases
 
-- **Media Generation**: Generate images, videos, and music. Transform media with AI. Build multi-stage content pipelines.
-- **Document Intelligence**: Chat with documents, build RAG systems, extract insights. Keep your data private with local processing.
-- **Data Analysis**: Transform data with AI, create visualizations, automate reports. Build data processing pipelines.
-- **Smart Automation**: Create AI agents that plan and execute tasks. Automate workflows, integrate with tools, save time.
+- **Media Generation**: Generate and transform images, videos, and audio.
+- **Document Processing**: Build RAG systems, extract text, query documents.
+- **Data Analysis**: Transform data, create visualizations, generate reports.
+- **Automation**: Build AI agents that plan and execute multi-step tasks.
+
+## State-of-the-Art Cloud Models
+
+NodeTool provides access to the latest high-quality generative AI models for creative workflows:
+
+### Video Generation
+- **OpenAI Sora 2 Pro** – Realistic motion with refined physics and synchronized native audio; T2V/I2V up to 15s in 1080p
+- **Google Veo 3.1** – Upgraded realistic motion, extended clips, multi-image references, native 1080p with synced audio
+- **xAI Grok Imagine** – Multimodal text/image to short video with coherent motion and synchronized audio
+- **Alibaba Wan 2.6** – Affordable multi-shot 1080p with stable characters and native audio; T2V/I2V/reference-guided
+- **MiniMax Hailuo 2.3** – High-fidelity video with expressive characters, complex motion and lighting
+- **Kling 2.6** – Text/image to synchronized video with speech, ambient sound, and effects
+
+### Image & Audio Generation
+- **Black Forest Labs FLUX.2** – Photoreal images with multi-reference consistency and accurate text rendering
+- **Google Nano Banana Pro** – Sharper 2K output, intelligent 4K scaling, improved text rendering and character consistency
+
+Use these models through NodeTool's generic nodes (`TextToVideo`, `ImageToVideo`, `TextToImage`) by selecting the appropriate provider and model in the node properties.
+
+> **Direct API Key Support**: OpenAI Sora 2 Pro, Google Veo 3.1, and MiniMax Hailuo 2.3 have direct NodeTool API key support. Other models can be accessed through [kie.ai](https://kie.ai/), which aggregates multiple AI providers and often offers competitive pricing.
 
 ## Get Started
 
@@ -121,86 +141,35 @@ See [mobile/README.md](mobile/README.md) for detailed setup and usage instructio
 
 ______________________________________________________________________
 
-## 📱 Your Personal AI Stack
+## 📱 Personal AI Stack
 
-**The future of AI isn't in the cloud. It's in your pocket, connected to your own infrastructure.**
+NodeTool supports mobile access to self-hosted AI infrastructure. Run models on your own hardware and access them from anywhere via secure connection.
 
-NodeTool enables a revolutionary personal AI architecture: your mobile device becomes a window into your own AI-powered world—running on hardware you control, accessing data you own, with privacy guaranteed by design.
+### Deployment Patterns
 
-### The Vision: AI Without Compromise
-
+#### 🏠 **Local Stack**
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        YOUR PERSONAL AI STACK                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   📱 Mobile App                                                         │
-│       │                                                                 │
-│       │ (Secure Connection)                                             │
-│       ▼                                                                 │
-│   🔒 VPN / Tailscale / WireGuard                                        │
-│       │                                                                 │
-│       │ (Encrypted Tunnel)                                              │
-│       ▼                                                                 │
-│   🖥️  NodeTool Server (Your Hardware)                                   │
-│       │                                                                 │
-│       ├──────────────────┬──────────────────┐                          │
-│       ▼                  ▼                  ▼                          │
-│   🧠 Local LLMs      📁 Personal Data    🎨 Creative Tools             │
-│   (Llama, Flux)      (Documents, Photos)  (Audio, Video)               │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+[Mobile] → [VPN] → [Home Server] → [Local LLMs] + [Data]
 ```
 
-### Why This Changes Everything
-
-| Traditional Cloud AI | Your Personal AI Stack |
-| :--- | :--- |
-| Your data on someone else's servers | Your data stays on your hardware |
-| Monthly subscriptions, usage fees | One-time hardware investment |
-| Limited by API rate limits | Unlimited local inference |
-| Internet required | Works on your LAN, offline-capable |
-| Privacy policies you can't verify | Privacy you can mathematically prove |
-| Vendor lock-in | Full portability and control |
-
-### Deployment Architectures
-
-NodeTool supports multiple deployment patterns to fit your needs:
-
-#### 🏠 **Fully Local Stack** (Maximum Privacy)
+#### 🏢 **Private Cloud**
 ```
-[Mobile] → [VPN] → [Home Server] → [Local LLMs] + [Personal Data]
+[Mobile] → [VPN] → [VPC] → [Self-Hosted NodeTool] → [Private LLMs]
 ```
-*Perfect for: Privacy-conscious individuals, sensitive work, offline environments*
 
-#### ☁️ **NodeTool Cloud** (Zero Configuration)
+#### 🌐 **Hybrid**
 ```
-[Mobile] → [NodeTool Cloud] → [Managed LLMs] + [Encrypted Storage]
+[Mobile] → [VPN] → [Local Server] → [Local LLMs] + [Cloud APIs]
 ```
-*Perfect for: Quick start, no hardware management, team collaboration*
 
-#### 🏢 **Private Cloud** (Enterprise Control)
-```
-[Mobile] → [VPN] → [Your Cloud VPC] → [Self-Hosted NodeTool] → [Private LLMs]
-```
-*Perfect for: Enterprises, compliance requirements, multi-user deployments*
+### Setup
 
-#### 🌐 **Hybrid Stack** (Best of Both Worlds)
-```
-[Mobile] → [VPN] → [Local Server] → [Local LLMs] + [Cloud APIs when needed]
-```
-*Perfect for: Flexibility—use local for privacy, cloud for cutting-edge models*
+1. Set up NodeTool Server on your machine or cloud instance
+2. Configure VPN access (Tailscale, WireGuard, etc.)
+3. Install the Mobile App (iOS/Android)
+4. Connect to your server
 
-### Getting Started with Your Personal Stack
-
-1. **Set up NodeTool Server** on your home machine or cloud instance
-2. **Configure secure access** via Tailscale, WireGuard, or your preferred VPN
-3. **Install the Mobile App** on iOS or Android
-4. **Connect** and access your AI workflows from anywhere in the world
-
-**Your AI. Your data. Your rules.**
-
-See the [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/self_hosted.md) for detailed setup instructions.
+See [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/self_hosted.md).
 
 ## Testing
 

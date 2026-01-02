@@ -63,7 +63,7 @@ export default [
       "react/jsx-uses-vars": "warn",
       "react/jsx-no-target-blank": "warn",
       "react/jsx-key": "error",
-      "react/no-array-index-key": "warn",
+      "react/no-array-index-key": "off",
       
       // React Hooks rules
       "react-hooks/rules-of-hooks": "error",

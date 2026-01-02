@@ -293,7 +293,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
           setIsGlobalSearchActive(true);
           setGlobalSearchQuery(localSearchTerm);
         }
-      } catch (error) {
+      } catch (_error) {
         if (!ac.signal.aborted) {
           setIsGlobalSearchActive(false);
           setGlobalSearchResults([]);

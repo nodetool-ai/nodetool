@@ -1,17 +1,19 @@
 import { jest } from '@jest/globals';
+import { BrowserWindow } from 'electron';
 
-// Mock BrowserWindow before importing events
+jest.mock('electron', () => ({
+  BrowserWindow: {
+    getAllWindows: jest.fn(),
+  },
+}));
+
 const mockWebContents = { send: jest.fn() };
 const mockWindow = {
   webContents: mockWebContents,
   isDestroyed: jest.fn().mockReturnValue(false)
 } as unknown as Electron.BrowserWindow;
 
-jest.mock('electron', () => ({
-  BrowserWindow: {
-    getAllWindows: jest.fn().mockReturnValue([mockWindow]),
-  },
-}));
+(BrowserWindow.getAllWindows as jest.Mock).mockReturnValue([mockWindow]);
 
 const mockServerState = {
   isStarted: false,
@@ -84,7 +86,6 @@ describe('events module', () => {
   });
 
   it('handles missing window gracefully', () => {
-    const { BrowserWindow } = require('electron');
     (BrowserWindow.getAllWindows as jest.Mock).mockReturnValue([]);
     emitBootMessage('No window');
     expect(mockWebContents.send).not.toHaveBeenCalled();

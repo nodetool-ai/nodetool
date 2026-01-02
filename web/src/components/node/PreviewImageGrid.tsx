@@ -211,7 +211,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   }, []);
 
   const handleCompare = useCallback(() => {
-    if (selectedIndices.size !== 2) return;
+    if (selectedIndices.size !== 2) {return;}
     const indices = Array.from(selectedIndices);
     const map = urlMapRef.current;
     const urlA = map.get(images[indices[0]]);

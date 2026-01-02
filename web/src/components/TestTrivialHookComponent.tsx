@@ -1,7 +1,7 @@
 import React from "react";
 
 export function useTestHook() {
-  const [x, setX] = React.useState(0);
+  const [x] = React.useState(0);
   React.useEffect(() => {}, []);
   return x;
 }

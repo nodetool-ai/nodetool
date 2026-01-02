@@ -17,18 +17,9 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import {
   Message,
-  JobUpdate,
-  NodeUpdate,
-  NodeProgress,
-  OutputUpdate,
-  ToolCallUpdate,
-  Chunk,
   TaskUpdate,
   PlanningUpdate,
   LogUpdate,
-  Prediction,
-  StepResult,
-  MessageList,
   Thread,
   ThreadUpdateRequest,
   ThreadSummarizeRequest,
@@ -40,7 +31,6 @@ import { client } from "./ApiClient";
 import log from "loglevel";
 import { supabase } from "../lib/supabaseClient";
 import { DEFAULT_MODEL } from "../config/constants";
-import { NodeStore } from "./NodeStore";
 import {
   WebSocketManager,
   ConnectionState
@@ -426,7 +416,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       sendMessage: async (message: Message) => {
-        const { wsManager, currentThreadId, workflowId, agentMode } = get();
+        const { wsManager, currentThreadId, workflowId, agentMode, selectedModel, selectedTools, selectedCollections } = get();
 
         set({ error: null });
 
@@ -451,20 +441,32 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }));
 
         // Prepare messages for cache and wire (workflow_id only on wire)
+        // Preserve workflow_id if already set by caller (e.g., WorkflowAssistantChat)
         const messageForCache: Message = {
           ...(message as any),
           thread_id: threadId,
           agent_mode: agentMode
         } as any;
 
-        const messageToSend = {
+        // Build the chat_message command data
+        const chatMessageData = {
           ...(message as any),
-          workflow_id: workflowId ?? null,
+          workflow_id: (message as any).workflow_id ?? workflowId ?? null,
           thread_id: threadId,
-          agent_mode: agentMode
-        } as any;
+          agent_mode: agentMode,
+          model: selectedModel?.id,
+          provider: selectedModel?.provider,
+          tools: selectedTools.length > 0 ? selectedTools : undefined,
+          collections: selectedCollections.length > 0 ? selectedCollections : undefined
+        };
 
-        console.log("sendMessage", messageToSend);
+        // Wrap in chat_message command structure as per unified WebSocket API
+        const commandMessage = {
+          command: "chat_message",
+          data: chatMessageData
+        };
+
+        console.log("sendMessage (chat_message command)", commandMessage);
 
         // Check if this is the first user message BEFORE adding to cache
         const existingMessages = get().messageCache[threadId] || [];
@@ -509,7 +511,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set({ status: "loading" }); // Waiting for response
 
         try {
-          wsManager.send(messageToSend);
+          wsManager.send(commandMessage);
 
           // Safety timeout - reset status if no response after 60 seconds
           setTimeout(() => {
@@ -944,7 +946,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
         console.log("Sending stop signal with thread_id:", currentThreadId);
 
         try {
-          wsManager.send({ type: "stop", thread_id: currentThreadId });
+          // Use command wrapper as per unified WebSocket API
+          wsManager.send({
+            command: "stop",
+            data: { thread_id: currentThreadId }
+          });
 
           set({
             status: "connected",

@@ -15,7 +15,6 @@ import TextFieldsIcon from "@mui/icons-material/TextFields";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
-import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -86,25 +85,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       const metadata = useMetadataStore
         .getState()
         .getMetadata(`nodetool.input.${nodeType}`);
-      if (metadata) {
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: menuPosition?.x || event.clientX,
-          y: menuPosition?.y || event.clientY
-        });
-        const newNode = createNode(metadata, position);
-        addNode(newNode);
-      }
-      closeContextMenu();
-    },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
-  );
-
-  const addAgentNode = useCallback(
-    (event: React.MouseEvent | undefined) => {
-      if (!event) {return;}
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.agents.Agent`);
       if (metadata) {
         const position = reactFlowInstance.screenToFlowPosition({
           x: menuPosition?.x || event.clientX,

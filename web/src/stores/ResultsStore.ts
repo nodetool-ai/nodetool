@@ -3,6 +3,7 @@ import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
 
 type ResultsStore = {
   results: Record<string, any>;
+  outputResults: Record<string, any>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
   edges: Record<string, { status: string; counter?: number }>;
   chunks: Record<string, string>;
@@ -12,6 +13,7 @@ type ResultsStore = {
   previews: Record<string, any>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   clearResults: (workflowId: string) => void;
+  clearOutputResults: (workflowId: string) => void;
   clearProgress: (workflowId: string) => void;
   clearToolCalls: (workflowId: string) => void;
   clearTasks: (workflowId: string) => void;
@@ -43,6 +45,13 @@ type ResultsStore = {
     append?: boolean
   ) => void;
   getResult: (workflowId: string, nodeId: string) => any;
+  getOutputResult: (workflowId: string, nodeId: string) => any;
+  setOutputResult: (
+    workflowId: string,
+    nodeId: string,
+    result: any,
+    append?: boolean
+  ) => void;
   setTask: (workflowId: string, nodeId: string, task: Task) => void;
   getTask: (workflowId: string, nodeId: string) => Task | undefined;
   addChunk: (workflowId: string, nodeId: string, chunk: string) => void;
@@ -82,6 +91,7 @@ export const hashKey = (workflowId: string, nodeId: string) =>
 
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
+  outputResults: {},
   progress: {},
   chunks: {},
   tasks: {},
@@ -168,10 +178,14 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     status: string,
     counter?: number
   ) => {
+    const key = hashKey(workflowId, edgeId);
+    const existing = get().edges[key];
+    const newCounter = counter !== undefined ? counter : existing?.counter;
+
     set({
       edges: {
         ...get().edges,
-        [hashKey(workflowId, edgeId)]: { status, counter }
+        [key]: { status, counter: newCounter }
       }
     });
   },
@@ -241,6 +255,15 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       }
     }
     set({ results });
+  },
+  clearOutputResults: (workflowId: string) => {
+    const outputResults = get().outputResults;
+    for (const key in outputResults) {
+      if (key.startsWith(workflowId)) {
+        delete outputResults[key];
+      }
+    }
+    set({ outputResults });
   },
   /**
    * Clear the progress for a workflow.
@@ -358,6 +381,60 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const results = get().results;
     const key = hashKey(workflowId, nodeId);
     return results[key];
+  },
+
+  /**
+   * Get the output result for a node (from OutputUpdate messages).
+   *
+   * @param workflowId The id of the workflow.
+   * @param nodeId The id of the node.
+   * @returns The output result for the node.
+   */
+  getOutputResult: (workflowId: string, nodeId: string) => {
+    const outputResults = get().outputResults;
+    const key = hashKey(workflowId, nodeId);
+    const result = outputResults[key];
+    return result;
+  },
+
+  /**
+   * Set the output result for a node (from OutputUpdate messages).
+   * The result is stored in the outputResults map.
+   *
+   * @param workflowId The id of the workflow.
+   * @param nodeId The id of the node.
+   * @param result The result to set.
+   * @param append Whether to append to existing result.
+   */
+  setOutputResult: (
+    workflowId: string,
+    nodeId: string,
+    result: any,
+    append?: boolean
+  ) => {
+    const key = hashKey(workflowId, nodeId);
+    if (get().outputResults[key] === undefined || !append) {
+      set({
+        outputResults: { ...get().outputResults, [key]: result }
+      });
+    } else {
+      if (Array.isArray(get().outputResults[key])) {
+        set({
+          outputResults: {
+            ...get().outputResults,
+            [key]: [...get().outputResults[key], result]
+          }
+        });
+      } else {
+        set({
+          outputResults: {
+            ...get().outputResults,
+            [key]: [get().outputResults[key], result]
+          }
+        });
+      }
+    }
+    console.log("setOutputResult after:", get().outputResults[key]);
   },
 
   /**

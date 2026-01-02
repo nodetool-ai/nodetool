@@ -1,66 +1,108 @@
 ---
 layout: page
 title: "Models & Providers"
-description: "Understand AI models and choose between local and cloud options – explained for beginners."
+description: "AI models and local vs cloud options."
 ---
 
-This guide explains how AI models work in NodeTool and helps you choose the right setup for your needs. **No prior AI knowledge required** – we'll explain everything in plain terms.
+This guide explains AI models in NodeTool and how to choose between local and cloud execution.
 
 ---
 
 ## What Are AI Models?
 
-Think of an AI **model** as a specialized expert that has learned to do one thing really well:
+An AI **model** is a trained program for a specific task:
 
-| Model Type | What It Does | Example |
-|------------|--------------|---------|
-| **Language Model (LLM)** | Reads and writes text | Write stories, answer questions, summarize documents |
-| **Image Model** | Creates or edits images | Generate artwork, edit photos, create variations |
-| **Speech Model** | Converts between speech and text | Transcribe meetings, read documents aloud |
-| **Vision Model** | Understands images | Describe photos, extract text from documents |
+| Model Type | Function | Example |
+|------------|----------|---------|
+| **Language Model (LLM)** | Text generation | Stories, Q&A, summarization |
+| **Image Model** | Image generation/editing | Artwork, photos, variations |
+| **Speech Model** | Speech↔text conversion | Transcription, text-to-speech |
+| **Vision Model** | Image understanding | Photo descriptions, OCR |
 
-**You don't train models** – they come pre-trained and ready to use. Just pick one for your task!
+Models come pre-trained. Select one for your task.
 
 ---
 
-## Local vs. Cloud: Which Should You Choose?
+## Local vs. Cloud
 
-NodeTool lets you run AI models either on your computer (local) or through internet services (cloud). Here's how to decide:
+NodeTool runs AI models locally or through cloud APIs.
 
-### Local Models (On Your Computer)
+### Local Models
 
 **Pros:**
-- 🔒 **Private** – Your data never leaves your machine
-- 💰 **Free** – No usage costs after download
+- 🔒 **Private** – Data stays local
+- 💰 **Free** – No usage costs
 - 📶 **Offline** – Works without internet
 
 **Cons:**
-- 💾 **Requires space** – Models can be 4-15 GB each
-- ⚡ **Needs power** – Faster with GPU, slower on CPU-only
-- ⏳ **Initial download** – One-time setup required
+- 💾 **Requires space** – 4-15 GB per model
+- ⚡ **Needs hardware** – Faster with GPU
+- ⏳ **Initial download** – One-time setup
 
-**Best for:** Privacy-sensitive work, offline use, unlimited experimentation
-
-### Cloud Models (Via Internet APIs)
+### Cloud Models
 
 **Pros:**
-- 🚀 **Fast** – No downloads, start immediately
-- 💻 **Any computer** – Works on older machines
-- 🆕 **Latest models** – Access newest AI capabilities
+- 🚀 **Fast** – No downloads
+- 💻 **Any hardware** – Works on older machines
+- 🆕 **Latest models** – Access newest capabilities
 
 **Cons:**
-- 💵 **Costs money** – Pay per use (usually pennies per task)
-- 🌐 **Needs internet** – Requires connection
-- 📤 **Data sent** – Your prompts go to external servers
+- 💵 **Usage costs** – Pay per task
+- 🌐 **Requires internet**
+- 📤 **Data sent externally**
 
-**Best for:** Quick start, limited hardware, accessing cutting-edge models
+### Mixed Approach (Recommended)
 
-### Mix Both! (Recommended)
+Combine local and cloud:
+- **Speech recognition** – local for privacy
+- **Image generation** – cloud for quality
+- **Document processing** – local for confidential files
 
-Most users benefit from combining local and cloud:
-- Run **speech recognition locally** for privacy
-- Use **cloud image generation** for quality
-- Keep **document processing local** for confidential files
+---
+
+## State-of-the-Art Cloud Models for Creative Workflows
+
+NodeTool provides access to the latest high-quality generative AI models through cloud providers. These models represent the cutting edge in video, image, and audio generation:
+
+### Top Video Generation Models
+
+| Model | Provider | Capabilities | Key Features |
+|-------|----------|-------------|--------------|
+| **OpenAI Sora 2 Pro** | OpenAI | T2V/I2V up to 15s | Realistic motion, refined physics, synchronized native audio, 1080p output |
+| **Google Veo 3.1** | Google | T2V/I2V with references | Upgraded realistic motion, extended clip length, multi-image references, native 1080p with synced audio |
+| **xAI Grok Imagine** | xAI | T2V/I2V/T2I | Multimodal text/image to short video with coherent motion and synchronized audio; also text-to-image |
+| **Alibaba Wan 2.6** | Alibaba | Multi-shot T2V/I2V | Affordable 1080p with stable characters and native audio; reference-guided generation |
+| **MiniMax Hailuo 2.3** | MiniMax | High-fidelity T2V/I2V | Expressive characters, complex motion and lighting effects |
+| **Kling 2.6** | Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
+
+### Top Image Generation Models
+
+| Model | Provider | Capabilities | Key Features |
+|-------|----------|-------------|--------------|
+| **Black Forest Labs FLUX.2** | BFL | T2I with control | Photoreal images, multi-reference consistency, accurate text rendering, flexible control |
+| **Google Nano Banana Pro** | Google | High-res T2I | Sharper 2K output, intelligent 4K scaling, improved text rendering, enhanced character consistency |
+
+### Using These Models
+
+Access these models through NodeTool's **generic nodes**:
+
+1. **For Video**: Use `nodetool.video.TextToVideo` or `nodetool.video.ImageToVideo`
+2. **For Images**: Use `nodetool.image.TextToImage`
+3. **Select Provider**: Click the model dropdown in the node properties
+4. **Configure API**: Add provider API keys in `Settings → Providers`
+
+**Direct NodeTool API Key Support:**
+- OpenAI Sora 2 Pro: `OPENAI_API_KEY`
+- Google Veo 3.1: `GEMINI_API_KEY`
+- MiniMax Hailuo 2.3: `MINIMAX_API_KEY`
+
+**Access via kie.ai (recommended for other models):**
+- xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6, Black Forest Labs FLUX.2, Google Nano Banana Pro
+- Configure using `KIE_API_KEY` in `Settings → Providers`
+
+> **Cost Considerations**: Cloud models typically charge per generation. Check each provider's pricing before extensive use. Local models are free after download but require capable hardware.
+
+> **Alternative Access**: Many of these models are available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers. For models without direct NodeTool API key support (xAI, Alibaba, Kling), kie.ai is the recommended access method.
 
 ---
 
@@ -104,28 +146,26 @@ Model names can look confusing, but they follow patterns:
 - Instruction-tuned (follows directions well)
 - Q4 quantization (compressed to save space)
 
-**Don't worry about memorizing this** – NodeTool's Model Manager shows you which models work for each task.
+**Don't memorize this** – NodeTool's Model Manager shows compatible models for each task.
 
 ---
 
 ## Detailed Guides
 
-Ready to dive deeper? Check these specialized guides:
-
-### For Everyone
+### General
 - **[Models Manager](models-manager.md)** – Download and manage AI models
-- **[Getting Started](getting-started.md)** – Your first workflow
+- **[Getting Started](getting-started.md)** – First workflow
 
-### For Local AI
-- **[Supported Models](models.md)** – Complete list of local models (llama.cpp, MLX, Whisper, Flux, and more)
+### Local AI
+- **[Supported Models](models.md)** – List of local models (llama.cpp, MLX, Whisper, Flux)
 
-### For Cloud AI
-- **[Providers Guide](providers.md)** – Set up OpenAI, Anthropic, Google, and other cloud services
-- **[HuggingFace Integration](huggingface.md)** – Access 500,000+ models through HuggingFace
+### Cloud AI
+- **[Providers Guide](providers.md)** – Set up OpenAI, Anthropic, Google
+- **[HuggingFace Integration](huggingface.md)** – Access 500,000+ models
 
-### For Advanced Users
-- **[Proxy & Self-Hosted](proxy.md)** – Secure deployments with remote GPUs
-- **[Deployment Guide](deployment.md)** – Run workflows on cloud infrastructure
+### Advanced
+- **[Proxy & Self-Hosted](proxy.md)** – Secure deployments
+- **[Deployment Guide](deployment.md)** – Cloud infrastructure
 
 ---
 
@@ -155,10 +195,10 @@ Ready to dive deeper? Check these specialized guides:
 A: For local models, a GPU helps but isn't required. Cloud providers work on any computer.
 
 **Q: How much do cloud models cost?**  
-A: Typically $0.001-0.03 per task. Most providers offer free credits to start.
+A: Typically $0.001-0.03 per task. Most providers offer free credits.
 
 **Q: Can I switch models later?**  
-A: Yes! Use the **Model** button on any AI node to change models without rebuilding your workflow.
+A: Yes. Use the **Model** button on any AI node to change models without rebuilding the workflow.
 
-**Q: Which is better, local or cloud?**  
-A: Neither is "better" – it depends on your needs. Try both and see what works for you!
+**Q: Local or cloud?**  
+A: Depends on your needs. Try both.

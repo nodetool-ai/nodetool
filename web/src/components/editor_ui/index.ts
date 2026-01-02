@@ -57,6 +57,8 @@ export type { EditorMenuProps, EditorMenuItemProps } from "./EditorMenu";
 // Utilities
 export {
   editorClassNames,
+  reactFlowClasses,
+  editorUiClasses,
   cn,
   textFieldNodragSlotProps,
   stopPropagationHandlers

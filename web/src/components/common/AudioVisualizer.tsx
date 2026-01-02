@@ -111,7 +111,7 @@ const AudioVisualizer = ({
       window.removeEventListener("resize", onResize);
       try {
         audioContext.close();
-      } catch (e) {
+      } catch {
         // noop
       }
       analyserRef.current = null;

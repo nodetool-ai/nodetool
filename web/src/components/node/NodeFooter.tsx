@@ -7,17 +7,21 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Badge
 } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { memo, useCallback, useState } from "react";
 import isEqual from "lodash/isEqual";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import NodeInfo from "../node_menu/NodeInfo";
 import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
+import useLogsStore from "../../stores/LogStore";
+import { NodeLogsDialog } from "./NodeLogs";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -54,13 +58,15 @@ export interface NodeFooterProps {
   metadata: NodeMetadata;
   nodeType: string;
   data: NodeData;
+  workflowId: string;
 }
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
   id,
   nodeNamespace,
   metadata,
-  data
+  data,
+  workflowId
 }) => {
   const rootCss = css({
     display: "flex",
@@ -78,10 +84,13 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
     openNodeMenu: state.openNodeMenu
   }));
   const updateNodeData = useNodes((state) => state.updateNodeData);
+  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+  const logCount = logs?.length || 0;
 
   const [syncMenuAnchor, setSyncMenuAnchor] = useState<null | HTMLElement>(
     null
   );
+  const [logsDialogOpen, setLogsDialogOpen] = useState(false);
   const [isSyncTooltipOpen, setIsSyncTooltipOpen] = useState(false);
 
   const handleOpenNodeMenu = useCallback(
@@ -226,6 +235,39 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
       </div>
 
       <div className="footer-right">
+        {logCount > 0 && (
+          <Tooltip
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            disableInteractive
+            title={`View logs (${logCount})`}
+            placement="bottom"
+            arrow
+          >
+            <Button
+              className="footer-icon-button logs-button"
+              aria-label={`View logs (${logCount})`}
+              onClick={() => setLogsDialogOpen(true)}
+              size="small"
+              sx={{ minWidth: "auto", padding: "4px" }}
+            >
+              <Badge
+                badgeContent={logCount}
+                color="default"
+                max={99}
+                sx={{
+                  "& .MuiBadge-badge": {
+                    fontSize: "0.6rem",
+                    height: "14px",
+                    minWidth: "14px",
+                    padding: "0 3px"
+                  }
+                }}
+              >
+                <ListAltIcon sx={{ fontSize: "1rem" }} />
+              </Badge>
+            </Button>
+          </Tooltip>
+        )}
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}
           disableInteractive
@@ -289,6 +331,13 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
             <HelpOutlineIcon fontSize="small" />
           </Button>
         </Tooltip>
+
+        <NodeLogsDialog
+          id={id}
+          workflowId={workflowId}
+          open={logsDialogOpen}
+          onClose={() => setLogsDialogOpen(false)}
+        />
 
         <Menu
           anchorEl={syncMenuAnchor}

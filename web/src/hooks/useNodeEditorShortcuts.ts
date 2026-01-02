@@ -38,7 +38,8 @@ export const useNodeEditorShortcuts = (
   const nodesStore = useNodes((state) => ({
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
-    setNodes: state.setNodes
+    setNodes: state.setNodes,
+    toggleBypassSelected: state.toggleBypassSelected
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -70,7 +71,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes } = nodesStore;
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } = nodesStore;
   const {
     saveExample,
     removeWorkflow,
@@ -96,6 +97,12 @@ export const useNodeEditorShortcuts = (
       surroundWithGroup({ selectedNodes });
     }
   }, [surroundWithGroup, selectedNodes]);
+
+  const handleBypassSelected = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      toggleBypassSelected();
+    }
+  }, [selectedNodes.length, toggleBypassSelected]);
 
   const handleZoomIn = useCallback(() => {
     reactFlow.zoomIn({ duration: 200 });
@@ -209,7 +216,6 @@ export const useNodeEditorShortcuts = (
   const handleMenuEvent = useCallback(
     (data: any) => {
       if (!active) {return;}
-      console.log("menu-event", data);
       switch (data.type) {
         case "copy":
           handleCopy();
@@ -387,7 +393,8 @@ export const useNodeEditorShortcuts = (
       moveLeft: { callback: () => handleMoveNodes({ x: -10 }) },
       moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
       moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
-      moveDown: { callback: () => handleMoveNodes({ y: 10 }) }
+      moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
+      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 }
     };
 
     // Switch-to-tab (1-9)
@@ -422,7 +429,8 @@ export const useNodeEditorShortcuts = (
     handleZoomOut,
     handleSwitchTab,
     handleMoveNodes,
-    handleSwitchToTab
+    handleSwitchToTab,
+    handleBypassSelected
   ]);
 
   // useEffect for shortcut registration

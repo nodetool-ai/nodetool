@@ -1,10 +1,10 @@
 ---
 layout: page
 title: "How NodeTool Compares"
-description: "Understand when to choose NodeTool vs LangChain, n8n, Flowise, or custom scripts."
+description: "When to choose NodeTool vs LangChain, n8n, Flowise, or custom scripts."
 ---
 
-This guide helps you understand when NodeTool is the right choice for your AI workflow needs, and how it differs from popular alternatives.
+This guide compares NodeTool with alternatives to help choose the right tool.
 
 ---
 
@@ -42,9 +42,9 @@ This guide helps you understand when NodeTool is the right choice for your AI wo
 - You want **maximum flexibility** in integrations (at the cost of complexity)
 
 ### Key Difference
-LangChain is a **Python library** for building AI applications in code. NodeTool is a **visual platform** that lets you design workflows graphically and deploy them without writing code. Both support local and cloud execution, but NodeTool prioritizes visual development and deployment portability.
+LangChain is a Python library for building AI applications in code. NodeTool is a visual platform for designing workflows graphically. Both support local and cloud execution.
 
-**Hybrid approach:** Use LangChain for complex custom nodes, then expose them as NodeTool nodes via the [Developer Guide](developer/index.md).
+**Hybrid approach:** Use LangChain for custom nodes, then expose them as NodeTool nodes via the [Developer Guide](developer/index.md).
 
 ---
 
@@ -65,9 +65,9 @@ LangChain is a **Python library** for building AI applications in code. NodeTool
 - You're comfortable with **vendor lock-in** for ease of use
 
 ### Key Difference
-n8n and Zapier are **general-purpose automation platforms** built for SaaS integration. NodeTool is **AI-native**, designed specifically for building, testing, and deploying machine learning workflows. n8n/Zapier excel at "if this, then that" logic; NodeTool excels at "process this data through these AI models."
+n8n and Zapier are general-purpose automation platforms for SaaS integration. NodeTool is AI-focused, designed for building, testing, and deploying ML workflows. n8n/Zapier handle "if this, then that" logic; NodeTool handles "process data through AI models."
 
-**Cost consideration:** NodeTool's local execution can save thousands in API fees for high-volume AI workloads. n8n/Zapier charge per workflow execution.
+**Cost consideration:** NodeTool's local execution can reduce API fees for high-volume AI workloads. n8n/Zapier charge per workflow execution.
 
 ---
 
@@ -88,9 +88,9 @@ n8n and Zapier are **general-purpose automation platforms** built for SaaS integ
 - You need **simpler, lighter-weight** solution
 
 ### Key Difference
-Flowise is a **visual interface for LangChain**, focused primarily on chatbot and conversational AI use cases. NodeTool is a **full-stack AI workflow platform** with broader multimodal support, deployment options, and production features. Both are visual and open-source, but NodeTool targets more complex, production-grade use cases.
+Flowise is a visual interface for LangChain, focused on chatbot and conversational AI use cases. NodeTool is a full-stack AI workflow platform with broader multimodal support, deployment options, and production features. Both are visual and open-source.
 
-**Migration path:** Flowise workflows can often be reimplemented in NodeTool with additional deployment and monitoring capabilities.
+**Migration path:** Flowise workflows can be reimplemented in NodeTool with additional deployment and monitoring capabilities.
 
 ---
 
@@ -112,31 +112,31 @@ Flowise is a **visual interface for LangChain**, focused primarily on chatbot an
 - Your team is **100% developers** comfortable with code
 
 ### Key Difference
-Custom Python scripts give you **unlimited flexibility** but require **manual work** for deployment, debugging, and collaboration. NodeTool gives you **80% of flexibility** with **20% of the effort** through visual development, built-in deployment, and interactive debugging.
+Custom Python scripts provide unlimited flexibility but require manual deployment, debugging, and collaboration setup. NodeTool provides visual development, built-in deployment, and interactive debugging with less flexibility.
 
 **Hybrid approach:** Use NodeTool's [Python DSL](developer/dsl-guide.md) to generate workflows programmatically, or create [custom nodes](developer/node-reference.md) for specialized logic.
 
 ---
 
-## Decision Guide: When to Choose NodeTool
+## Decision Guide
 
-### ✅ NodeTool is ideal if you...
-- Need **privacy-first AI** (local execution without cloud dependencies)
-- Want **visual workflow development** for faster iteration and collaboration
-- Require **deployment portability** (same workflow runs locally and in production)
-- Need **real-time streaming** and interactive debugging
-- Work with **multimodal data** (text, image, audio, video)
-- Want to **avoid vendor lock-in** with open-source infrastructure
-- Need to **deploy self-hosted** for compliance or cost reasons
-- Want **multiple execution surfaces** (editor, chat, API, Mini-Apps)
+### Use NodeTool if you...
+- Need local AI execution (privacy, no cloud dependencies)
+- Want visual workflow development
+- Require deployment portability (local ↔ production)
+- Need real-time streaming and interactive debugging
+- Work with multimodal data (text, image, audio, video)
+- Want open-source infrastructure
+- Need self-hosted deployment for compliance or cost
+- Want multiple execution surfaces (editor, chat, API, Mini-Apps)
 
-### ⚠️ Consider alternatives if you...
-- Only need **simple SaaS automation** without AI (use n8n/Zapier)
-- Prefer **pure code-first development** (use LangChain or custom scripts)
-- Only build **conversational chatbots** (consider Flowise)
-- Need **managed SaaS** with guaranteed uptime SLAs (NodeTool is self-hosted/open-source)
-- Require **maximum performance** at any cost (optimize custom scripts)
-- Have **zero Python/AI experience** and no learning budget (use no-code tools like Zapier)
+### Consider alternatives if you...
+- Need simple SaaS automation without AI (use n8n/Zapier)
+- Prefer code-first development (use LangChain or custom scripts)
+- Only build conversational chatbots (consider Flowise)
+- Need managed SaaS with uptime SLAs (NodeTool is self-hosted/open-source)
+- Require maximum performance (optimize custom scripts)
+- Have no technical experience (use no-code tools like Zapier)
 
 ---
 
@@ -168,6 +168,121 @@ Custom Python scripts give you **unlimited flexibility** but require **manual wo
 5. Deploy with built-in deployment tools
 
 **Benefit:** Faster iteration, better collaboration, easier deployment
+
+### From ComfyUI to NodeTool
+
+ComfyUI users will find NodeTool familiar yet more powerful. Here's how the concepts map:
+
+#### Terminology Translation
+
+| ComfyUI | NodeTool | Notes |
+|---------|----------|-------|
+| **Node** | **Node** | Same concept! Drag-and-drop building blocks |
+| **Widget** | **Input Field** | Configuration options on nodes |
+| **Workflow** | **Workflow** | The complete graph of connected nodes |
+| **Queue** | **Run** | Execute the workflow (Ctrl/⌘ + Enter) |
+| **KSampler** | **StableDiffusion** / **Flux** | Image generation nodes with similar parameters |
+| **CLIP Text Encode** | Built into generation nodes | Text encoding is automatic in NodeTool |
+| **VAE Decode** | Automatic | NodeTool handles VAE internally |
+| **Load Checkpoint** | **Model selection dropdown** | Models are selected in node UI, not loaded separately |
+| **Preview Image** | **Preview** node | Add Preview nodes anywhere to inspect outputs |
+| **Save Image** | **Output** node / **SaveImage** | Results appear in Output nodes or save to disk |
+
+#### Execution Model Differences
+
+**ComfyUI**: Executes the entire graph when you queue, processing nodes in dependency order. You wait for completion, then see all outputs.
+
+**NodeTool**: Also executes in dependency order, but with **streaming output**:
+- See intermediate results as they're generated
+- LLM responses stream token-by-token
+- Images appear as they finish generating
+- Preview nodes show real-time progress
+
+**What this means for you:**
+- No more waiting for the entire workflow to complete
+- Easier debugging – see where things go wrong immediately
+- Better UX for complex multi-step workflows
+
+#### Key Differences
+
+| Aspect | ComfyUI | NodeTool |
+|--------|---------|----------|
+| **Model Loading** | Explicit `Load Checkpoint` node | Automatic – select model in generation node |
+| **CLIP/VAE** | Separate nodes | Built into generation pipeline |
+| **Conditioning** | Manual CLIP encoding | Automatic prompt handling |
+| **ControlNet** | Separate loader + apply nodes | Single `ControlNet` node handles everything |
+| **Latent Space** | Explicit latent operations | Automatic – work with images directly |
+| **Custom Nodes** | Python files in `custom_nodes/` | Python classes inheriting `BaseNode` |
+| **Workflows** | JSON files | JSON files (compatible structure) |
+| **Execution** | Queue-based, blocking | Async, streaming |
+| **Deployment** | Self-host only | RunPod, Cloud Run, self-hosted, or local |
+
+#### Migration Steps
+
+1. **Identify your workflow pattern**
+   - Text-to-Image: Use `StableDiffusion`, `StableDiffusionXL`, or `Flux` nodes
+   - Image-to-Image: Use `*Img2Img` variants
+   - ControlNet: Use `*ControlNet` nodes
+   - Inpainting: Use `*Inpaint` nodes
+
+2. **Map your nodes**
+   - Remove explicit model loaders – select model in generation node
+   - Remove CLIP/VAE nodes – handled automatically
+   - Replace KSampler with appropriate generation node
+   - Add Preview nodes where you want to see intermediate results
+
+3. **Adapt your workflow**
+   ```
+   ComfyUI:
+   LoadCheckpoint → CLIPTextEncode → KSampler → VAEDecode → SaveImage
+   
+   NodeTool:
+   StringInput (prompt) → StableDiffusionXL → Output
+   ```
+
+4. **Test and iterate**
+   - Run workflow, watch streaming output
+   - Add Preview nodes to debug
+   - Adjust parameters as needed
+
+#### Example: Basic txt2img
+
+**ComfyUI nodes:**
+- Load Checkpoint (model)
+- CLIP Text Encode (positive prompt)
+- CLIP Text Encode (negative prompt)  
+- Empty Latent Image (dimensions)
+- KSampler
+- VAE Decode
+- Save Image
+
+**NodeTool equivalent:**
+- `StringInput` (prompt)
+- `StringInput` (negative prompt, optional)
+- `StableDiffusionXL` (select model, set dimensions, steps, etc.)
+- `Output`
+
+That's it – 4 nodes instead of 7+. The complexity is hidden, not removed.
+
+#### What NodeTool Adds
+
+Coming from ComfyUI, you gain:
+
+- **LLM Integration**: Add AI reasoning, text generation, and agents to image workflows
+- **RAG Support**: Index documents and query them alongside image generation
+- **Deployment**: One-click deploy to RunPod or Cloud Run
+- **Multi-Modal**: Audio, video, and data processing alongside images
+- **Mini-Apps**: Turn workflows into simple UIs for non-technical users
+- **Chat Interface**: Run workflows through natural language in Global Chat
+
+#### What's Different
+
+- **Less granular control**: NodeTool abstracts some low-level operations
+- **Different node ecosystem**: ComfyUI custom nodes won't work directly
+- **Learning curve**: New UI and different workflow patterns
+- **No A1111 extensions**: NodeTool has its own extension system
+
+**Recommendation:** Keep ComfyUI for highly specialized image workflows. Use NodeTool when you need deployment, LLM integration, or collaboration features.
 
 ---
 

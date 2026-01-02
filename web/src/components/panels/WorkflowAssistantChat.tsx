@@ -2,14 +2,15 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { LanguageModel, Message, Workflow } from "../../stores/ApiTypes";
+import { LanguageModel, Message, Workflow, NodeMetadata } from "../../stores/ApiTypes";
 import { NewChatButton } from "../chat/thread/NewChatButton";
-import { Dialog, DialogContent, IconButton, Tooltip } from "@mui/material";
+import { IconButton, Tooltip, Switch, FormControlLabel, Box, Button, Popover } from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import AddIcon from "@mui/icons-material/Add";
 import ThreadList from "../chat/thread/ThreadList";
 import type { ThreadInfo } from "../chat/thread";
 import { useNodes, NodeContext } from "../../contexts/NodeContext";
@@ -58,7 +59,6 @@ const containerStyles = css({
  */
 const WorkflowAssistantChat: React.FC = () => {
   const theme = useTheme();
-  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     status,
     sendMessage,
@@ -180,8 +180,25 @@ const WorkflowAssistantChat: React.FC = () => {
     return saved ? tryParseModel(saved) : DEFAULT_MODEL;
   });
 
-  // Modal state for thread list
-  const [isThreadListOpen, setIsThreadListOpen] = useState(false);
+  // Popover state for thread list
+  const [threadListAnchorEl, setThreadListAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const isThreadListOpen = Boolean(threadListAnchorEl);
+
+  // Chat mode toggle state (help mode vs workflow chat mode)
+  const [isHelpMode, setIsHelpMode] = useState(true);
+
+  // Check if workflow has message input nodes
+  const hasMessageInput = (() => {
+    if (!nodes || nodes.length === 0) {return false;}
+    return nodes.some((node: any) => {
+      const nodeType = node.data?.type || node.type;
+      const nodeName = node.data?.name || node.name;
+      return (
+        (nodeName === "message" || nodeName === "messages") &&
+        (nodeType === "MessageInput" || nodeType === "MessageListInput")
+      );
+    });
+  })();
 
   const { models: approvedModels } = useLanguageModelsByProvider({
     allowedProviders: ["OpenAI", "MiniMax", "Anthropic"]
@@ -216,7 +233,7 @@ const WorkflowAssistantChat: React.FC = () => {
     createNewThread()
       .then((newThreadId) => {
         switchThread(newThreadId);
-        setIsThreadListOpen(false);
+        setThreadListAnchorEl(null);
       })
       .catch((error) => {
         console.error("Failed to create new thread:", error);
@@ -226,10 +243,18 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleSelectThread = useCallback(
     (id: string) => {
       switchThread(id);
-      setIsThreadListOpen(false);
+      setThreadListAnchorEl(null);
     },
     [switchThread]
   );
+
+  const handleOpenThreadList = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setThreadListAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleCloseThreadList = useCallback(() => {
+    setThreadListAnchorEl(null);
+  }, []);
 
   const handleDeleteThread = useCallback(
     (id: string) => {
@@ -296,10 +321,51 @@ const WorkflowAssistantChat: React.FC = () => {
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
-      await sendMessage(message);
+      const enrichedMessage = {
+        ...message,
+        workflow_id: currentWorkflowId ?? undefined,
+        workflow_target: "workflow"
+      };
+      await sendMessage(enrichedMessage);
     },
-    [sendMessage]
+    [sendMessage, currentWorkflowId]
   );
+
+  // Add MessageInput node to workflow
+  const handleAddMessageInput = useCallback(() => {
+    const workflowId = currentWorkflowId;
+    if (!workflowId) {
+      console.error("No current workflow ID");
+      return;
+    }
+    const currentNodeStore = getNodeStore(workflowId);
+    if (!currentNodeStore) {
+      console.error("No node store found for current workflow");
+      return;
+    }
+
+    // Get metadata for MessageInput node
+    const metadata = nodeMetadata["nodetool.input.MessageInput"];
+    if (!metadata) {
+      console.error("MessageInput node metadata not found");
+      return;
+    }
+
+    // Get the actual store state
+    const store = currentNodeStore.getState();
+
+    // Create MessageInput node with name "message" at a random position
+    const position = {
+      x: 100 + Math.random() * 200,
+      y: 100 + Math.random() * 200
+    };
+
+    const newNode = store.createNode(metadata, position, {
+      name: "message"
+    });
+
+    store.addNode(newNode);
+  }, [currentWorkflowId, getNodeStore, nodeMetadata]);
 
   // Map status to ChatView compatible status
   const getChatViewStatus = () => {
@@ -335,7 +401,7 @@ const WorkflowAssistantChat: React.FC = () => {
     >
       <SvgFileIcon
         wrapperStyle=" color: 'var(--c_hl)' "
-        iconName="assistant"
+        iconName={isHelpMode ? "assistant" : "chat"}
         svgProp={{
           width: 44,
           height: 44,
@@ -344,9 +410,13 @@ const WorkflowAssistantChat: React.FC = () => {
         }}
       />
       <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
-        OPERATOR
+        {isHelpMode ? "OPERATOR" : "WORKFLOW CHAT"}
       </h2>
-      <p>Ask questions about your workflow or describe what you want to do.</p>
+      <p>
+        {isHelpMode
+          ? "Ask questions about your workflow or describe what you want to do."
+          : "Chat with your workflow. Make sure run_mode is set to 'chat' in workflow settings."}
+      </p>
       <p
         style={{
           fontSize: "0.85em",
@@ -355,8 +425,25 @@ const WorkflowAssistantChat: React.FC = () => {
           maxWidth: "280px"
         }}
       >
-        This assistant uses OpenAI models for optimal workflow assistance.
+        {isHelpMode
+          ? "This assistant uses OpenAI models for optimal workflow assistance."
+          : "Messages will be sent to your workflow's MessageInput/MessageListInput nodes."}
       </p>
+      {!hasMessageInput && !isHelpMode && (
+        <Button
+          onClick={handleAddMessageInput}
+          size="small"
+          variant="outlined"
+          color="primary"
+          startIcon={<AddIcon />}
+          sx={{
+            marginTop: "1.5em",
+            textTransform: "none"
+          }}
+        >
+          Add Message Input
+        </Button>
+      )}
     </div>
   );
 
@@ -371,46 +458,109 @@ const WorkflowAssistantChat: React.FC = () => {
           padding: "4px 8px"
         }}
       >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            marginRight: "auto",
+            flexWrap: "wrap"
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isHelpMode}
+                onChange={(e) => setIsHelpMode(e.target.checked)}
+                size="small"
+                color="primary"
+              />
+            }
+            label={isHelpMode ? "Help Mode" : "Workflow Chat"}
+            sx={{
+              fontSize: "0.85em",
+              "& .MuiFormControlLabel-label": {
+                fontSize: "0.85em"
+              }
+            }}
+          />
+          <Tooltip
+            title={
+              <div style={{ fontSize: "0.9em", lineHeight: 1.5, maxWidth: "350px" }}>
+                <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                  {isHelpMode ? "Help Mode" : "Workflow Chat Mode"}
+                </div>
+                {isHelpMode ? (
+                  <>
+                    <div>• Ask questions about your workflow</div>
+                    <div>• Get assistance with building and editing</div>
+                    <div>• The AI can modify your workflow using tools</div>
+                  </>
+                ) : (
+                  <>
+                    <div>• Run the current workflow as a chat bot</div>
+                    <div style={{ marginTop: "8px", fontWeight: "bold" }}>
+                      To use Workflow Chat:
+                    </div>
+                    <div>1. Set workflow <strong>run_mode</strong> to &quot;chat&quot; in settings</div>
+                    <div>2. Add a <strong>MessageInput</strong> or <strong>MessageListInput</strong> node</div>
+                    <div>3. The node will receive:</div>
+                    <div style={{ marginLeft: "16px" }}>
+                      • <code>message</code>: Current message object
+                    </div>
+                    <div style={{ marginLeft: "16px" }}>
+                      • <code>messages</code>: Full chat history
+                    </div>
+                    <div style={{ marginTop: "8px", fontWeight: "bold" }}>
+                      Output:
+                    </div>
+                    <div>Workflow outputs will be sent as chat responses</div>
+                  </>
+                )}
+              </div>
+            }
+            placement="bottom-start"
+            arrow
+          >
+            <HelpOutlineIcon
+              sx={{
+                fontSize: "1.1em",
+                cursor: "help",
+                color: "var(--palette-primary-main)"
+              }}
+            />
+          </Tooltip>
+        </Box>
         <NewChatButton onNewThread={handleNewChat} />
         <Tooltip title="Chat History">
-          <IconButton onClick={() => setIsThreadListOpen(true)} size="small">
+          <IconButton onClick={handleOpenThreadList} size="small">
             <ListIcon />
           </IconButton>
         </Tooltip>
-      </div>
-      {/* Thread List Modal */}
-      <Dialog
-        open={isThreadListOpen}
-        onClose={() => setIsThreadListOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        transitionDuration={isSmall ? 0 : undefined}
-        slotProps={{
-          backdrop: {
-            style: {
-              backdropFilter: isSmall ? "none" : theme.vars.palette.glass.blur,
-              backgroundColor: isSmall
-                ? theme.vars.palette.background.default
-                : theme.vars.palette.glass.backgroundDialog
+        {/* Thread List Popover */}
+        <Popover
+          open={isThreadListOpen}
+          anchorEl={threadListAnchorEl}
+          onClose={handleCloseThreadList}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "right"
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "right"
+          }}
+          slotProps={{
+            paper: {
+              sx: {
+                width: 320,
+                maxHeight: "70vh",
+                borderRadius: 2,
+                overflow: "hidden"
+              }
             }
-          },
-          paper: {
-            style: {
-              borderRadius: theme.vars.rounded.dialog,
-              background: theme.vars.palette.glass.backgroundDialogContent
-            }
-          }
-        }}
-        sx={{
-          "& .MuiDialog-paper": {
-            margin: "auto",
-            borderRadius: 1.5,
-            background: "transparent",
-            border: `1px solid ${theme.vars.palette.grey[700]}`
-          }
-        }}
-      >
-        <DialogContent style={{ padding: 0, height: "70vh" }}>
+          }}
+        >
           <ThreadList
             threads={threadsWithMessages}
             currentThreadId={currentThreadId}
@@ -419,8 +569,8 @@ const WorkflowAssistantChat: React.FC = () => {
             onDeleteThread={handleDeleteThread}
             getThreadPreview={getThreadPreview}
           />
-        </DialogContent>
-      </Dialog>
+        </Popover>
+      </div>
       {error && (
         <div
           className="error-message"
@@ -444,13 +594,13 @@ const WorkflowAssistantChat: React.FC = () => {
         progress={progress.current}
         total={total}
         messages={messages}
-        sendMessage={sendMessage}
+        sendMessage={handleSendMessage}
         progressMessage={statusMessage}
         model={selectedModel}
         selectedTools={[]}
         selectedCollections={[]}
         onModelChange={setSelectedModel}
-        helpMode={true}
+        helpMode={isHelpMode}
         workflowAssistant={true}
         onStop={stopGeneration}
         onNewChat={handleNewChat}
@@ -458,10 +608,10 @@ const WorkflowAssistantChat: React.FC = () => {
         allowedProviders={["OpenAI", "MiniMax", "Anthropic"]}
         runningToolCallId={currentRunningToolCallId}
         runningToolMessage={currentToolMessage}
-        graph={{
+        graph={isHelpMode ? {
           nodes: nodes.map(reactFlowNodeToGraphNode),
           edges: edges.map(reactFlowEdgeToGraphEdge)
-        }}
+        } : undefined}
       />
     </div>
   );

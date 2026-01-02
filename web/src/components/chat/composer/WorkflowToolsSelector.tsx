@@ -198,7 +198,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
     });
   }, [workflowTools, searchTerm, selectedTools]);
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+  const handleClick = useCallback(() => {
     setIsMenuOpen(true);
   }, []);
 
@@ -217,7 +217,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
     [selectedTools, onChange]
   );
 
-  const handleClearAll = useCallback(() => {
+  const _handleClearAll = useCallback(() => {
     onChange([]);
   }, [onChange]);
 

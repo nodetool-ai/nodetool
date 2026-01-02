@@ -12,6 +12,7 @@ import log from "loglevel";
 
 import {
   Chunk,
+  EdgeUpdate,
   JobUpdate,
   Message,
   MessageContent,
@@ -30,6 +31,8 @@ import {
   FrontendToolState
 } from "../../lib/tools/frontendTools";
 import type { GlobalChatState, StepToolCall } from "../../stores/GlobalChatStore";
+import useResultsStore from "../../stores/ResultsStore";
+import useStatusStore from "../../stores/StatusStore";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -62,6 +65,7 @@ export type MsgpackData =
   | Prediction
   | NodeProgress
   | NodeUpdate
+  | EdgeUpdate
   | Message
   | ToolCallUpdate
   | TaskUpdate
@@ -159,10 +163,49 @@ const applyJobUpdate = (
   return noopUpdate;
 };
 
+const applyEdgeUpdate = (
+  state: GlobalChatState,
+  update: EdgeUpdate
+): ReducerResult => {
+  const workflowId =
+    (update as any).workflow_id ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+  if (workflowId) {
+    useResultsStore
+      .getState()
+      .setEdge(
+        workflowId, 
+        update.edge_id, 
+        update.status, 
+        update.counter ?? undefined
+      );
+  }
+  return noopUpdate;
+};
+
 const applyNodeUpdate = (
   state: GlobalChatState,
   update: NodeUpdate
 ): ReducerResult => {
+  const workflowId =
+    (update as any).workflow_id ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+
+  if (workflowId) {
+    // Sync with ResultsStore
+    // If running, we might want to clear previous error or result?
+    // For now, allow multiple updates.
+    
+    // Sync status 
+    useStatusStore
+      .getState()
+      .setStatus(workflowId, update.node_id, update.status);
+
+    if (update.result) {
+      useResultsStore
+        .getState()
+        .setResult(workflowId, update.node_id, update.result);
+    }
+  }
+
   if (update.status === "completed") {
     return {
       update: {
@@ -256,6 +299,19 @@ const applyOutputUpdate = (
 
   const thread = state.threads[threadId];
   if (!thread) {return noopUpdate;}
+
+  const workflowId =
+    (update as any).workflow_id ?? state.threadWorkflowId[threadId];
+  if (workflowId) {
+    useResultsStore
+      .getState()
+      .setOutputResult(
+        workflowId,
+        update.node_id,
+        update.value,
+        true // append
+      );
+  }
 
   if (update.output_type === "string") {
     const messages = state.messageCache[threadId] || [];
@@ -613,15 +669,31 @@ const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
 };
 
 const applyNodeProgress = (
-  _state: GlobalChatState,
+  state: GlobalChatState,
   progress: NodeProgress
-): ReducerResult => ({
-  update: {
-    status: "loading",
-    progress: { current: progress.progress, total: progress.total },
-    statusMessage: null
+): ReducerResult => {
+  const workflowId =
+    (progress as any).workflow_id ??
+    state.threadWorkflowId[state.currentThreadId ?? ""];
+  if (workflowId) {
+    useResultsStore
+      .getState()
+      .setProgress(
+        workflowId,
+        progress.node_id,
+        progress.progress,
+        progress.total
+      );
   }
-});
+
+  return {
+    update: {
+      status: "loading",
+      progress: { current: progress.progress, total: progress.total },
+      statusMessage: null
+    }
+  };
+};
 
 const applyGenerationStopped = (): ReducerResult => ({
   update: {
@@ -650,8 +722,6 @@ export async function handleChatWebSocketMessage(
 ) {
   const currentState = get();
 
-  console.log("handleChatWebSocketMessage", data);
-
   if (currentState.status === "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
       return;
@@ -677,6 +747,8 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyJobUpdate, data as JobUpdate);
   } else if (data.type === "node_update") {
     applyReducer(applyNodeUpdate, data as NodeUpdate);
+  } else if (data.type === "edge_update") {
+    applyReducer(applyEdgeUpdate, data as EdgeUpdate);
   } else if (data.type === "chunk") {
     applyReducer(applyChunk, data as Chunk);
   } else if (data.type === "output_update") {

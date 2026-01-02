@@ -23,6 +23,7 @@ import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
+import { queryClient } from "../queryClient";
 
 /**
  * Central reducer for WorkflowRunner WebSocket updates.
@@ -58,7 +59,8 @@ export const handleUpdate = (
 ) => {
   const runner = runnerStore.getState();
   const setResult = useResultsStore.getState().setResult;
-  const clearResults = useResultsStore.getState().clearResults;
+  const setOutputResult = useResultsStore.getState().setOutputResult;
+  const clearOutputResults = useResultsStore.getState().clearOutputResults;
   const setStatus = useStatusStore.getState().setStatus;
   const clearStatuses = useStatusStore.getState().clearStatuses;
   const appendLog = useLogsStore.getState().appendLog;
@@ -73,7 +75,13 @@ export const handleUpdate = (
   const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
 
-  // console.log("handleUpdate", data);
+  console.log("handleUpdate", data);
+
+  if (window.__UPDATES__ === undefined) {
+    window.__UPDATES__ = [];
+  }
+
+  window.__UPDATES__.push(data);
 
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;
@@ -138,7 +146,13 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
-    setResult(workflow.id, update.node_id, update.value, true);
+    console.log("workflowUpdates output_update:", {
+      workflowId: workflow.id,
+      nodeId: update.node_id,
+      value: update.value,
+      valueType: typeof update.value
+    });
+    setOutputResult(workflow.id, update.node_id, update.value, true);
     appendLog({
       workflowId: workflow.id,
       workflowName: workflow.name,
@@ -155,27 +169,84 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
-    runnerStore.setState({
-      state:
-        job.status === "running" || job.status === "queued" ? "running" : "idle"
-    });
+    // Access run_state from WebSocket message (may not be in TypeScript types yet)
+    const runState = (job as any).run_state as
+      | {
+          status: string;
+          suspended_node_id?: string;
+          suspension_reason?: string;
+          error_message?: string;
+          execution_strategy?: string;
+          is_resumable?: boolean;
+        }
+      | undefined;
+
+    // Consolidate state mapping
+    let newState:
+      | "idle"
+      | "running"
+      | "paused"
+      | "suspended"
+      | "error"
+      | "cancelled"
+      | undefined;
+
+    if (job.status === "running" || job.status === "queued") {
+      newState = "running";
+    } else if (job.status === "suspended") {
+      newState = "suspended";
+    } else if (job.status === "paused") {
+      newState = "paused";
+    } else if (job.status === "completed") {
+      newState = "idle";
+    } else if (job.status === "cancelled") {
+      newState = "cancelled";
+    } else if (job.status === "failed" || job.status === "timed_out") {
+      newState = "error";
+    }
+
+    console.log(
+      `Job update: ${job.status} -> setting state to ${newState || "no change"}`,
+      runState ? `(run_state: ${runState.status}, resumable: ${runState.is_resumable})` : ""
+    );
+
+    if (newState) {
+      runnerStore.setState({ state: newState });
+    }
+
     if (job.job_id) {
       runnerStore.setState({ job_id: job.job_id });
     }
+
+    // Use suspension reason from run_state if available
+    if (runState?.suspension_reason && newState === "suspended") {
+      runnerStore.setState({ statusMessage: runState.suspension_reason });
+    }
+
+    // Invalidate jobs query to refresh the job panel when job state changes
+    if (
+      job.status === "running" ||
+      job.status === "completed" ||
+      job.status === "cancelled" ||
+      job.status === "failed" ||
+      job.status === "suspended" ||
+      job.status === "paused"
+    ) {
+      console.log("INVALIDATING JOBS QUERY - status:", job.status);
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    }
+    
     switch (job.status) {
       case "completed":
-        runnerStore.setState({ state: "idle" });
         runner.addNotification({
           type: "info",
           alert: true,
           content: "Job completed"
         });
-        clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
         break;
       case "cancelled":
-        runnerStore.setState({ state: "cancelled" });
         runner.addNotification({
           type: "info",
           alert: true,
@@ -184,10 +255,10 @@ export const handleUpdate = (
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
+        clearOutputResults(workflow.id);
         break;
       case "failed":
       case "timed_out":
-        runnerStore.setState({ state: "error" });
         runner.addNotification({
           type: "error",
           alert: true,
@@ -197,6 +268,7 @@ export const handleUpdate = (
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
+        clearOutputResults(workflow.id);
         break;
       case "queued":
         runnerStore.setState({
@@ -211,6 +283,14 @@ export const handleUpdate = (
             content: job.message
           });
         }
+        break;
+      case "suspended":
+        runner.addNotification({
+          type: "info",
+          alert: true,
+          content: job.message || "Workflow suspended - waiting for external input",
+          timeout: 10000
+        });
         break;
     }
   }
@@ -283,12 +363,12 @@ export const handleUpdate = (
         statusMessage: `${update.node_name} ${update.status}`
       });
       setStatus(workflow.id, update.node_id, update.status);
-      
+
       // Store result if present
       if (update.result) {
         setResult(workflow.id, update.node_id, update.result);
       }
-      
+
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,

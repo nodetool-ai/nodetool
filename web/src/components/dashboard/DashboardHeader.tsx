@@ -4,13 +4,12 @@ import { Box } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import BackToEditorButton from "../panels/BackToEditorButton";
 
 interface DashboardHeaderProps {
   children?: React.ReactNode;
 }
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     position: "absolute",
     height: "40px",

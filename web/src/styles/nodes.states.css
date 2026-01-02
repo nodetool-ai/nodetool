@@ -1,4 +1,4 @@
-/* NODE STATE STYLES (selection, hover, loading) */
+/* NODE STATE STYLES (selection, hover, loading, bypassed) */
 
 /* --------------------------------------------- */
 /* Selection and highlighting                     */
@@ -54,6 +54,51 @@
     var(--c_node_header_bg_group) 82%,
     var(--palette-primary-main) 18%
   ) !important;
+}
+
+/* --------------------------------------------- */
+/* Bypassed state                                  */
+/* --------------------------------------------- */
+.react-flow__node.bypassed {
+  opacity: 0.5;
+}
+
+.react-flow__node.bypassed .base-node {
+  border-style: dashed !important;
+  border-width: 2px !important;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(128, 128, 128, 0.08) 5px,
+    rgba(128, 128, 128, 0.08) 10px
+  );
+}
+
+.react-flow__node.bypassed .node-header .node-title {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.react-flow__node.bypassed .bypass-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--c_warn, rgba(255, 152, 0, 0.2));
+  color: var(--palette-warning-main, rgb(255, 152, 0));
+  margin-left: 8px;
+}
+
+/* Edges from bypassed nodes */
+.react-flow__edge.from-bypassed path {
+  stroke-dasharray: 5, 5;
+  opacity: 0.5;
 }
 
 /* --------------------------------------------- */

@@ -7,8 +7,6 @@ import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
-import Logo from "../Logo";
-import { getIsElectronDetails } from "../../utils/browser";
 import { isMac } from "../../utils/platform";
 
 interface TabsBarProps {
@@ -32,8 +30,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     updateWorkflow,
     removeWorkflow,
     saveWorkflow,
-    createNewWorkflow,
-    getNodeStore
+    createNewWorkflow
   } = useWorkflowManager((state) => ({
     openWorkflows: state.openWorkflows,
     getWorkflow: state.getWorkflow,
@@ -41,8 +38,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     reorderWorkflows: state.reorderWorkflows,
     updateWorkflow: state.updateWorkflow,
     saveWorkflow: state.saveWorkflow,
-    createNewWorkflow: state.createNew,
-    getNodeStore: state.getNodeStore
+    createNewWorkflow: state.createNew
   }));
 
   const [dropTarget, setDropTarget] = useState<{
@@ -211,15 +207,6 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     const newWorkflow = await createNewWorkflow();
     navigate(`/editor/${newWorkflow.id}`);
   }, [createNewWorkflow, navigate]);
-
-  const handleLogoClick = useCallback(() => {
-    navigate("/welcome");
-  }, [navigate]);
-
-  // Determine if we are running inside Electron on macOS to avoid overlapping the traffic lights
-  const electronDetails = getIsElectronDetails();
-  const onMacElectron = isMac() && electronDetails.isElectron;
-  const logoLeftMargin = onMacElectron ? 80 : 15;
 
   useEffect(() => {
     checkScrollability();

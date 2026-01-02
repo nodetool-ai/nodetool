@@ -55,9 +55,9 @@ const OutputContextMenu: React.FC = () => {
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
   const {
     showMenu,
-    typeMetadata,
+    typeMetadata: _typeMetadata,
     setSourceHandle,
-    setTargetHandle,
+    setTargetHandle: _setTargetHandle,
     setNodeId,
     setFilterType,
     setConnectableType

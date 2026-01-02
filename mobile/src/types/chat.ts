@@ -76,7 +76,6 @@ export interface ChatMessageRequest {
   collections?: string[];
   agent_mode?: boolean;
   help_mode?: boolean;
-  workflow_assistant?: boolean;
 }
 
 /**
