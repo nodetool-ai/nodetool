@@ -61,7 +61,7 @@ export const useDragAndDrop = (
             });
           }
 
-          // Handle single asset
+          // Handle single asset (direct asset drop or fallback from assets-multiple)
           if (droppedFiles.length === 0 && dragData.type === "asset") {
             const asset = dragData.payload as Asset;
             if (asset.get_url) {
@@ -70,6 +70,26 @@ export const useDragAndDrop = (
                 type: asset.content_type || "application/octet-stream",
                 name: asset.name
               });
+            }
+          }
+
+          // Fallback: if assets-multiple lookup failed, try the legacy "asset" key directly
+          // This handles the case where asset IDs couldn't be found in stores
+          if (droppedFiles.length === 0 && dragData.type === "assets-multiple") {
+            const assetJson = e.dataTransfer.getData("asset");
+            if (assetJson) {
+              try {
+                const asset: Asset = JSON.parse(assetJson);
+                if (asset.get_url) {
+                  droppedFiles.push({
+                    dataUri: asset.get_url,
+                    type: asset.content_type || "application/octet-stream",
+                    name: asset.name
+                  });
+                }
+              } catch {
+                // Ignore parse errors
+              }
             }
           }
 
