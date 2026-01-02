@@ -92,6 +92,7 @@ describe("TimelineStore", () => {
           frameRate: 24,
           sampleRate: 48000,
           tracks: [],
+          markers: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };

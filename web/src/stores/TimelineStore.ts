@@ -68,6 +68,13 @@ export interface Track {
   color?: string;         // Track color
 }
 
+export interface TimelineMarker {
+  id: string;
+  time: number;           // Position in seconds
+  name: string;
+  color?: string;
+}
+
 export interface TimelineProject {
   id: string;
   name: string;
@@ -75,6 +82,7 @@ export interface TimelineProject {
   frameRate: number;      // Frames per second (24, 30, 60)
   sampleRate: number;     // Audio sample rate
   tracks: Track[];
+  markers: TimelineMarker[];
   createdAt: string;
   updatedAt: string;
 }
@@ -121,6 +129,9 @@ export interface TimelineStoreState {
   snapEnabled: boolean;
   snapToFrames: boolean;
   snapToClips: boolean;
+  
+  // Edit mode settings
+  rippleEditEnabled: boolean;
   
   // UI state
   isLoading: boolean;
@@ -196,6 +207,18 @@ export interface TimelineStoreState {
   setSnapToClips: (enabled: boolean) => void;
   getSnappedTime: (time: number, excludeClipId?: string) => number;
   
+  // Ripple edit operations
+  toggleRippleEdit: () => void;
+  rippleDeleteClip: (trackId: string, clipId: string) => void;
+  rippleDeleteSelectedClips: () => void;
+  
+  // Marker operations
+  addMarker: (time?: number, name?: string, color?: string) => string | null;
+  removeMarker: (markerId: string) => void;
+  updateMarker: (markerId: string, updates: Partial<TimelineMarker>) => void;
+  goToNextMarker: () => void;
+  goToPreviousMarker: () => void;
+  
   // Utility
   getTrackById: (trackId: string) => Track | undefined;
   getClipById: (clipId: string) => { track: Track; clip: Clip } | undefined;
@@ -248,6 +271,7 @@ const createDefaultProject = (name: string, frameRate: number): TimelineProject 
   frameRate,
   sampleRate: DEFAULT_SAMPLE_RATE,
   tracks: [],
+  markers: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 });
@@ -293,6 +317,7 @@ export const useTimelineStore = create<TimelineStoreState>()(
       snapEnabled: true,
       snapToFrames: true,
       snapToClips: true,
+      rippleEditEnabled: false,
       isLoading: false,
       error: null,
 
@@ -1216,6 +1241,167 @@ export const useTimelineStore = create<TimelineStoreState>()(
         }
 
         return snappedTime;
+      },
+
+      // Ripple edit operations
+      toggleRippleEdit: () => {
+        set({ rippleEditEnabled: !get().rippleEditEnabled });
+      },
+
+      rippleDeleteClip: (trackId: string, clipId: string) => {
+        const { project, selection, getTrackById, updateProjectDuration } = get();
+        if (!project) {
+          return;
+        }
+
+        const track = getTrackById(trackId);
+        if (!track || track.locked) {
+          return;
+        }
+
+        const clipToDelete = track.clips.find(c => c.id === clipId);
+        if (!clipToDelete || clipToDelete.locked) {
+          return;
+        }
+
+        const deleteStart = clipToDelete.startTime;
+        const deleteEnd = clipToDelete.startTime + clipToDelete.duration;
+        const gapDuration = clipToDelete.duration;
+
+        // Remove the clip and shift subsequent clips
+        const updatedClips = track.clips
+          .filter(c => c.id !== clipId)
+          .map(c => {
+            if (c.startTime >= deleteEnd) {
+              // Shift clip earlier to fill the gap
+              return { ...c, startTime: c.startTime - gapDuration };
+            }
+            return c;
+          })
+          .sort((a, b) => a.startTime - b.startTime);
+
+        set({
+          project: {
+            ...project,
+            tracks: project.tracks.map(t =>
+              t.id === trackId ? { ...t, clips: updatedClips } : t
+            ),
+            updatedAt: new Date().toISOString()
+          },
+          selection: {
+            ...selection,
+            selectedClipIds: selection.selectedClipIds.filter(id => id !== clipId)
+          }
+        });
+
+        updateProjectDuration();
+      },
+
+      rippleDeleteSelectedClips: () => {
+        const { project, selection, rippleDeleteClip, getClipById, updateProjectDuration } = get();
+        if (!project || selection.selectedClipIds.length === 0) {
+          return;
+        }
+
+        // Sort clips by start time (delete from end to start to maintain positions)
+        const clipsToDelete = selection.selectedClipIds
+          .map(clipId => getClipById(clipId))
+          .filter((result): result is { track: Track; clip: Clip } => result !== undefined)
+          .sort((a, b) => b.clip.startTime - a.clip.startTime);
+
+        // Delete each clip with ripple
+        for (const { track, clip } of clipsToDelete) {
+          rippleDeleteClip(track.id, clip.id);
+        }
+
+        updateProjectDuration();
+      },
+
+      // Marker operations
+      addMarker: (time?: number, name?: string, color?: string) => {
+        const { project, playback } = get();
+        if (!project) {
+          return null;
+        }
+
+        const markerTime = time ?? playback.playheadPosition;
+        const markerCount = project.markers.length + 1;
+        const newMarker: TimelineMarker = {
+          id: generateTimelineId(),
+          time: markerTime,
+          name: name || `Marker ${markerCount}`,
+          color: color || "#ffcc00"
+        };
+
+        set({
+          project: {
+            ...project,
+            markers: [...project.markers, newMarker].sort((a, b) => a.time - b.time),
+            updatedAt: new Date().toISOString()
+          }
+        });
+
+        return newMarker.id;
+      },
+
+      removeMarker: (markerId: string) => {
+        const { project } = get();
+        if (!project) {
+          return;
+        }
+
+        set({
+          project: {
+            ...project,
+            markers: project.markers.filter(m => m.id !== markerId),
+            updatedAt: new Date().toISOString()
+          }
+        });
+      },
+
+      updateMarker: (markerId: string, updates: Partial<TimelineMarker>) => {
+        const { project } = get();
+        if (!project) {
+          return;
+        }
+
+        set({
+          project: {
+            ...project,
+            markers: project.markers
+              .map(m => m.id === markerId ? { ...m, ...updates } : m)
+              .sort((a, b) => a.time - b.time),
+            updatedAt: new Date().toISOString()
+          }
+        });
+      },
+
+      goToNextMarker: () => {
+        const { project, playback, seek } = get();
+        if (!project || project.markers.length === 0) {
+          return;
+        }
+
+        const currentTime = playback.playheadPosition;
+        const nextMarker = project.markers.find(m => m.time > currentTime + 0.01);
+
+        if (nextMarker) {
+          seek(nextMarker.time);
+        }
+      },
+
+      goToPreviousMarker: () => {
+        const { project, playback, seek } = get();
+        if (!project || project.markers.length === 0) {
+          return;
+        }
+
+        const currentTime = playback.playheadPosition;
+        const previousMarkers = project.markers.filter(m => m.time < currentTime - 0.01);
+
+        if (previousMarkers.length > 0) {
+          seek(previousMarkers[previousMarkers.length - 1].time);
+        }
       },
 
       // Utility functions

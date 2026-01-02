@@ -6,6 +6,7 @@
  * - Home: Stop
  * - Arrow keys: Step frames
  * - Delete/Backspace: Delete selected clips
+ * - Shift+Delete: Ripple delete selected clips
  * - Ctrl+C: Copy selected clips
  * - Ctrl+X: Cut selected clips
  * - Ctrl+V: Paste clips at playhead
@@ -16,6 +17,10 @@
  * - I: Set loop in point
  * - O: Set loop out point
  * - L: Toggle loop
+ * - R: Toggle ripple edit mode
+ * - M: Add marker at playhead
+ * - Shift+M: Go to next marker
+ * - Ctrl+M: Go to previous marker
  * - +/-: Zoom in/out
  * - F: Zoom to fit
  */
@@ -58,20 +63,26 @@ export function useTimelineKeyboardShortcuts(
     project,
     playback,
     selection,
+    rippleEditEnabled,
     togglePlayback,
     stop,
     stepFrame,
     setLoopRegion,
     toggleLoop,
+    toggleRippleEdit,
     zoomIn,
     zoomOut,
     zoomToFit,
     deleteSelectedClips,
+    rippleDeleteSelectedClips,
     selectClips,
     clearClipSelection,
     splitClip,
     duplicateClip,
-    getClipById
+    getClipById,
+    addMarker,
+    goToNextMarker,
+    goToPreviousMarker
   } = useTimelineStore();
 
   const { copySelectedClips, cutSelectedClips, pasteClips } =
@@ -198,7 +209,12 @@ export function useTimelineKeyboardShortcuts(
         case "backspace":
           if (selection.selectedClipIds.length > 0) {
             e.preventDefault();
-            deleteSelectedClips();
+            // Use ripple delete if shift is held or ripple mode is enabled
+            if (isShift || rippleEditEnabled) {
+              rippleDeleteSelectedClips();
+            } else {
+              deleteSelectedClips();
+            }
           }
           break;
         case "escape":
@@ -209,6 +225,11 @@ export function useTimelineKeyboardShortcuts(
           // Split at playhead
           e.preventDefault();
           splitSelectedClipsAtPlayhead();
+          break;
+        case "r":
+          // Toggle ripple edit mode
+          e.preventDefault();
+          toggleRippleEdit();
           break;
         case "i": {
           // Set loop in point
@@ -226,6 +247,20 @@ export function useTimelineKeyboardShortcuts(
         case "l":
           e.preventDefault();
           toggleLoop();
+          break;
+        case "m":
+          e.preventDefault();
+          if (isShift) {
+            // Shift+M: Go to next marker
+            goToNextMarker();
+          } else if (isCtrlOrCmd) {
+            // Ctrl/Cmd+Shift+M handled above in Ctrl block
+            // Ctrl+M alone: Go to previous marker
+            goToPreviousMarker();
+          } else {
+            // M: Add marker at playhead
+            addMarker();
+          }
           break;
         case "f":
           e.preventDefault();
@@ -248,13 +283,19 @@ export function useTimelineKeyboardShortcuts(
       playback.loopStart,
       playback.loopEnd,
       selection.selectedClipIds,
+      rippleEditEnabled,
       togglePlayback,
       stop,
       stepFrame,
       deleteSelectedClips,
+      rippleDeleteSelectedClips,
       clearClipSelection,
       setLoopRegion,
       toggleLoop,
+      toggleRippleEdit,
+      addMarker,
+      goToNextMarker,
+      goToPreviousMarker,
       zoomIn,
       zoomOut,
       zoomToFit,

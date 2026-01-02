@@ -66,6 +66,35 @@ const styles = (theme: Theme) =>
       "&.loop-out": {
         transform: "translateX(-6px)"
       }
+    },
+
+    ".marker": {
+      position: "absolute",
+      top: 0,
+      transform: "translateX(-6px)",
+      zIndex: 3,
+      cursor: "pointer",
+
+      "&:hover": {
+        filter: "brightness(1.2)"
+      }
+    },
+
+    ".marker-triangle": {
+      width: 0,
+      height: 0,
+      borderLeft: "6px solid transparent",
+      borderRight: "6px solid transparent",
+      borderTop: "8px solid",
+      marginBottom: "2px"
+    },
+
+    ".marker-line": {
+      position: "absolute",
+      top: "8px",
+      left: "5px",
+      width: "2px",
+      bottom: 0
     }
   });
 
@@ -92,8 +121,9 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
     end: number;
   } | null>(null);
 
-  const { playback, setLoopRegion, seek } = useTimelineStore();
+  const { project, playback, setLoopRegion, seek, removeMarker } = useTimelineStore();
   const { loopEnabled, loopStart, loopEnd } = playback;
+  const markers = project?.markers ?? [];
 
   // Colors from theme
   const textColor = theme.palette.text.secondary;
@@ -101,6 +131,22 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
   const minorTickColor = theme.palette.divider;
   const microTickColor = theme.palette.action.disabled;
   const bgColor = theme.palette.background.paper;
+
+  // Handle clicking on a marker
+  const handleMarkerClick = useCallback(
+    (markerId: string, time: number, e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      if (e.button === 2) {
+        // Right-click to delete marker
+        removeMarker(markerId);
+      } else {
+        // Left-click to seek to marker
+        seek(time);
+      }
+    },
+    [seek, removeMarker]
+  );
 
   // Handle dragging loop markers
   const handleLoopHandleMouseDown = useCallback(
@@ -369,6 +415,35 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
           />
         </>
       )}
+
+      {/* Markers */}
+      {markers.map((marker) => {
+        const markerX = timeToPixels(marker.time, pixelsPerSecond) - scrollLeft;
+        const markerColor = marker.color || "#ffcc00";
+
+        return (
+          <div
+            key={marker.id}
+            className="marker"
+            style={{ left: markerX }}
+            title={`${marker.name} (${formatTimeShort(marker.time)})\nClick to go to marker\nRight-click to delete`}
+            onClick={(e) => handleMarkerClick(marker.id, marker.time, e)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              handleMarkerClick(marker.id, marker.time, e);
+            }}
+          >
+            <div
+              className="marker-triangle"
+              style={{ borderTopColor: markerColor }}
+            />
+            <div
+              className="marker-line"
+              style={{ backgroundColor: markerColor }}
+            />
+          </div>
+        );
+      })}
     </Box>
   );
 };

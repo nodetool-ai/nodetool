@@ -37,7 +37,8 @@ import {
   Undo as UndoIcon,
   Redo as RedoIcon,
   FolderOpen as FolderOpenIcon,
-  DataObject as DataObjectIcon
+  DataObject as DataObjectIcon,
+  SwapHoriz as RippleIcon
 } from "@mui/icons-material";
 
 import useTimelineStore, {
@@ -120,6 +121,7 @@ const TimelineToolbar: React.FC = () => {
     playback,
     viewport,
     snapEnabled,
+    rippleEditEnabled,
     stop,
     togglePlayback,
     stepFrame,
@@ -131,6 +133,7 @@ const TimelineToolbar: React.FC = () => {
     zoomOut,
     zoomToFit,
     toggleSnap,
+    toggleRippleEdit,
     addTrack,
     addClip
   } = useTimelineStore();
@@ -481,6 +484,21 @@ const TimelineToolbar: React.FC = () => {
             className="snap-toggle"
           >
             <MagnetIcon fontSize="small" />
+          </ToggleButton>
+        </Tooltip>
+
+        <Tooltip
+          title={`Ripple Edit ${rippleEditEnabled ? "(On)" : "(Off)"} (R)`}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <ToggleButton
+            value="ripple"
+            selected={rippleEditEnabled}
+            onChange={toggleRippleEdit}
+            size="small"
+            className="snap-toggle"
+          >
+            <RippleIcon fontSize="small" />
           </ToggleButton>
         </Tooltip>
       </div>
