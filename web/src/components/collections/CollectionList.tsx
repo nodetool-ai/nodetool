@@ -7,8 +7,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
   Fab
 } from "@mui/material";
 import { memo, useEffect } from "react";
@@ -18,6 +16,7 @@ import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
 import { useCollectionStore } from "../../stores/CollectionStore";
+import { DialogActionButtons } from "../ui_primitives";
 
 const CollectionList = () => {
   const {
@@ -196,12 +195,13 @@ const CollectionList = () => {
           Are you sure you want to delete the collection &quot;{deleteTarget}
           &quot;?
         </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelDelete}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
+        <DialogActionButtons
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+          confirmText="Delete"
+          cancelText="Cancel"
+          destructive={true}
+        />
       </Dialog>
 
       {indexErrors.length > 0 && (
@@ -219,9 +219,13 @@ const CollectionList = () => {
               ))}
             </List>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setIndexErrors([])}>Close</Button>
-          </DialogActions>
+          <DialogActionButtons
+            onConfirm={() => setIndexErrors([])}
+            onCancel={() => setIndexErrors([])}
+            confirmText="Close"
+            cancelText=""
+            cancelDisabled={true}
+          />
         </Dialog>
       )}
     </>

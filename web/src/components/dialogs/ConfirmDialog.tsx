@@ -7,8 +7,7 @@ import React, { useCallback } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import Button from "@mui/material/Button";
+import { DialogActionButtons } from "../ui_primitives";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -68,14 +67,12 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           {title}
         </DialogTitle>
         {content && <DialogContent>{content}</DialogContent>}
-        <DialogActions className="dialog-actions">
-          <Button className="button-cancel" onClick={onClose}>
-            {cancelText}
-          </Button>
-          <Button className="button-confirm" onClick={handleConfirm} autoFocus>
-            {confirmText}
-          </Button>
-        </DialogActions>
+        <DialogActionButtons
+          onConfirm={handleConfirm}
+          onCancel={onClose}
+          confirmText={confirmText}
+          cancelText={cancelText}
+        />
       </Dialog>
     </div>
   );
