@@ -12,7 +12,9 @@ import React, {
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
 import { Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { selectStyles } from "./selectStyles";
 
 interface Option {
   value: any;
@@ -28,6 +30,10 @@ interface SelectProps {
   label?: string;
   tabIndex?: number;
   fuseOptions?: IFuseOptions<Option>;
+  /**
+   * Value differs from default — shows visual indicator (right border)
+   */
+  changed?: boolean;
 }
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -56,8 +62,10 @@ const Select: React.FC<SelectProps> = ({
   placeholder,
   label,
   tabIndex,
-  fuseOptions
+  fuseOptions,
+  changed
 }) => {
+  const theme = useTheme();
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -197,8 +205,16 @@ const Select: React.FC<SelectProps> = ({
     setHighlightedIndex(-1);
   }, [searchQuery]);
 
+  // Memoize styles to avoid recalculation on each render
+  const styles = useMemo(() => selectStyles(theme), [theme]);
+
+  // Changed state styling for select-header
+  const changedStyle = changed
+    ? { borderRight: `2px solid ${theme.vars.palette.primary.main}` }
+    : undefined;
+
   return (
-    <div className="select-container">
+    <div className="select-container" css={styles}>
       <Tooltip placement="top" enterDelay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}
@@ -214,6 +230,7 @@ const Select: React.FC<SelectProps> = ({
               onClick={toggleDropdown}
               tabIndex={tabIndex}
               role="button"
+              style={changedStyle}
             >
               <span className="select-header-text">
                 {selectedOption

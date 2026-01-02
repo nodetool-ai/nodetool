@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { memo, useCallback, useMemo } from "react";
 import isEqual from "lodash/isEqual";
@@ -33,6 +34,62 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
+
+  const headerCss = useMemo(
+    () =>
+      css({
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "8px",
+        width: "100%",
+        minHeight: "44px",
+        backgroundColor: "transparent",
+        color: "var(--palette-grey-0)",
+        margin: 0,
+        padding: "0 4px",
+        borderRadius:
+          "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+        transition: "background-color 0.2s ease-in-out, opacity 0.15s",
+        ".header-left": {
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "4px 4px"
+        },
+        ".node-icon": {
+          width: "28px",
+          minWidth: "28px",
+          height: "28px",
+          borderRadius: "6px",
+          display: "grid",
+          placeItems: "center",
+          boxShadow: "0 0 3px rgba(0, 0, 0, 0.1)",
+          marginRight: "4px",
+          flexShrink: 0,
+          "& svg": {
+            transform: "scale(0.9)"
+          }
+        },
+        ".node-title": {
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+          flexGrow: 1,
+          textAlign: "left",
+          maxWidth: "250px",
+          wordWrap: "break-word",
+          lineHeight: "1.2em",
+          fontSize: "var(--fontSizeNormal)",
+          fontWeight: 600,
+          letterSpacing: "0.02em",
+          padding: "2px 0",
+          color: "var(--palette-text-primary)"
+        }
+      }),
+    []
+  );
 
   const handleOpenContextMenu = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -90,6 +147,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       className={`node-drag-handle node-header ${
         hasParent ? "has-parent" : ""
       }`}
+      css={headerCss}
       onClick={handleHeaderClick}
       onContextMenu={handleHeaderContextMenu}
       style={headerStyle || { backgroundColor }}

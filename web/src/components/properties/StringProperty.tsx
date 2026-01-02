@@ -1,12 +1,15 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import isEqual from "lodash/isEqual";
-import { TextField, IconButton, Tooltip } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -38,7 +41,8 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isDynamicProperty
+  isDynamicProperty,
+  changed
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -74,7 +78,41 @@ const StringProperty = ({
 
   if (showTextEditor) {
     return (
-      <div className={`string-property ${isConstant ? "constant-node" : ""}`}>
+      <div
+        className={`string-property ${isConstant ? "constant-node" : ""}`}
+        css={css({
+          ".property-row": {
+            width: "100%",
+            display: "flex",
+            flexDirection: "column"
+          },
+          ".property-row > .property-label": {
+            order: 1
+          },
+          ".value-container": {
+            width: "100%",
+            order: 2
+          },
+          ".string-action-buttons": {
+            position: "absolute",
+            right: 0,
+            top: "-3px",
+            opacity: 0.8,
+            zIndex: 10
+          },
+          ".string-value-input": {
+            fontSize: "var(--fontSizeSmaller)",
+            lineHeight: "1.25em"
+          },
+          ".string-action-buttons .MuiIconButton-root": {
+            margin: "0 0 0 5px",
+            padding: 0
+          },
+          ".string-action-buttons .MuiIconButton-root svg": {
+            fontSize: "0.75rem"
+          }
+        })}
+      >
         <div
           className="property-row"
           onMouseEnter={() => setIsHovered(true)}
@@ -101,18 +139,21 @@ const StringProperty = ({
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <TextField
-              className={`string-value-input nodrag ${
-                isFocused ? "nowheel" : ""
-              }`}
-              slotProps={{
-                input: {
-                  className: "nodrag"
-                },
-                htmlInput: {
-                  className: "nodrag"
-                }
-              }}
+            <NodeTextField
+              className={cn(
+                "string-value-input",
+                isFocused && editorClassNames.nowheel
+              )}
+              sx={
+                isConstant
+                  ? {
+                      "& .MuiInputBase-inputMultiline": {
+                        // Constant nodes intentionally allow larger editing surface.
+                        maxHeight: "300px"
+                      }
+                    }
+                  : undefined
+              }
               value={value || ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 onChange(e.target.value)
@@ -131,17 +172,11 @@ const StringProperty = ({
                 e.stopPropagation();
               }}
               tabIndex={tabIndex}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
               multiline
               minRows={1}
               maxRows={isConstant ? 20 : 2}
-              fullWidth
-              size="small"
-              variant="outlined"
               autoFocus={false}
+              changed={changed}
             />
           </div>
         </div>
@@ -160,7 +195,16 @@ const StringProperty = ({
   }
 
   return (
-    <div className={`string-property ${isConstant ? "constant-node" : ""}`}>
+    <div
+      className={`string-property ${isConstant ? "constant-node" : ""}`}
+      css={css({
+        ".property-row": {
+          width: "100%",
+          display: "flex",
+          flexDirection: "column"
+        }
+      })}
+    >
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}

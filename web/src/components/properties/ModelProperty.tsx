@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import ComfyModelSelect from "./ComfyModelSelect";
@@ -11,11 +13,39 @@ import TTSModelSelect from "./TTSModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
 import VideoModelSelect from "./VideoModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+
+const styles = (theme: Theme) =>
+  css({
+    // Model selects that use the custom `Select` component need slightly tighter density.
+    // This is intentionally co-located with ModelProperty rather than global CSS.
+    "& .select-container .options-list": {
+      padding: "2px 0"
+    },
+    "& .select-container .option": {
+      fontSize: theme.fontSizeSmaller,
+      borderTop: `1px solid ${theme.vars.palette.grey[600]}`
+    },
+    "& .select-container .option:first-of-type": {
+      borderTop: "none"
+    },
+    "& .select-container .option:hover": {
+      backgroundColor: `${theme.vars.palette.grey[500]} !important`
+    },
+    "& .select-container .select-header-text": {
+      fontSize: `${theme.fontSizeSmaller} !important`
+    },
+    "& .select-container .select-header": {
+      padding: "0 4px !important"
+    }
+  });
 
 const ModelProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const modelType = props.property.type.type;
   const edges = useNodes((state) => state.edges);
+  const theme = useTheme();
   const isConnected = useMemo(() => {
     return edges.some(
       (edge) =>
@@ -110,7 +140,7 @@ const ModelProperty = (props: PropertyProps) => {
   };
 
   return (
-    <div className={`model-property ${modelClass}`}>
+    <div className={`model-property ${modelClass}`} css={styles(theme)}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

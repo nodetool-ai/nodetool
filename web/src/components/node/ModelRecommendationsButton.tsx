@@ -58,6 +58,14 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
             className="model-button"
             onClick={handleOpenModelDialog}
             startIcon={<DownloadIcon fontSize="small" />}
+            sx={(theme) => ({
+              width: "90%",
+              border: 0,
+              "&:hover": {
+                border: 0,
+                backgroundColor: theme.vars.palette.grey[600]
+              }
+            })}
           >
             Models
           </Button>

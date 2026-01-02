@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
 import isEqual from "lodash/isEqual";
 import {
-  Menu,
-  MenuItem,
   ListItemText,
   ListItemIcon,
   Typography,
@@ -13,6 +11,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import { isElectron } from "../../stores/ApiClient";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import { EditorMenu, EditorMenuItem } from "../editor_ui";
 // no providers here; always Ollama
 
 interface LlamaModelSelectProps {
@@ -75,11 +74,14 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
         subLabel="Select Model"
         onClick={handleClick}
       />
-      <Menu
-        className="model-menu"
+      <EditorMenu
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
+        paperSx={{
+          minWidth: 280,
+          maxHeight: 400
+        }}
         anchorOrigin={{
           vertical: "top",
           horizontal: "left"
@@ -90,7 +92,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
         }}
       >
         {ollamaLoading ? (
-          <Box className="loading-container">
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              padding: 2
+            }}
+          >
             <CircularProgress size={24} />
           </Box>
         ) : ollamaError ? (
@@ -130,17 +138,15 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             )}
           </Box>
         ) : sortedModels.length === 0 ? (
-          <MenuItem disabled>
+          <EditorMenuItem disabled>
             <ListItemText primary="No models available" />
-          </MenuItem>
+          </EditorMenuItem>
         ) : (
           sortedModels.map((model) => (
-            <MenuItem
+            <EditorMenuItem
               key={model.repo_id}
               onClick={() => handleModelSelect(model.repo_id)}
-              className={`model-item ${
-                value === model.repo_id ? "selected" : ""
-              }`}
+              selected={value === model.repo_id}
             >
               {value === model.repo_id && (
                 <ListItemIcon>
@@ -149,12 +155,12 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
               )}
               <ListItemText
                 inset={value !== model.repo_id}
-                primary={<span className="model-name">{model.name}</span>}
+                primary={model.name}
               />
-            </MenuItem>
+            </EditorMenuItem>
           ))
         )}
-      </Menu>
+      </EditorMenu>
     </>
   );
 };

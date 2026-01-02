@@ -55,8 +55,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
   );
 
   const isEmptyObject = (obj: any) => {
-   return obj && typeof obj === "object" && Object.keys(obj).length === 0;
-};
+    return obj && typeof obj === "object" && Object.keys(obj).length === 0;
+  };
 
   // For output nodes, always show overlay when result is available
   const shouldShowOverlay = isOutputNode 

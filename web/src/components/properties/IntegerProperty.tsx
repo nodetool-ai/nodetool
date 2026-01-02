@@ -2,7 +2,6 @@ import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
-import PropertyLabel from "../node/PropertyLabel";
 
 const IntegerProperty = (props: PropertyProps) => {
   const id = `slider-${props.property.name}-${props.propertyIndex}`;
@@ -32,6 +31,7 @@ const IntegerProperty = (props: PropertyProps) => {
         hideLabel={props.hideLabel}
         tabIndex={props.tabIndex}
         zoomAffectsDragging={true}
+        changed={props.changed}
         onChange={(_, value) => props.onChange(Number(value))}
       />
     </>

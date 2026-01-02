@@ -1,16 +1,16 @@
 import { memo, useCallback } from "react";
-import { Select, OutlinedInput } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
+import { OutlinedInput, SelectChangeEvent } from "@mui/material";
 import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { NodeSelect, NodeMenuItem } from "../editor_ui";
 
 const WorkflowListProperty = (props: PropertyProps) => {
   const id = `workflow-list-${props.property.name}-${props.propertyIndex}`;
-  const workflowIds = props.value?.map((workflow: any) => workflow.id);
+  const workflowIds: string[] = props.value?.map((workflow: { id: string }) => workflow.id) || [];
   const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
@@ -30,11 +30,20 @@ const WorkflowListProperty = (props: PropertyProps) => {
     [data]
   );
 
-  const onChange = useCallback(
-    (workflowIds: string[]) => {
-      props.onChange(workflowIds.map((id) => ({ type: "workflow", id })));
+  const handleChange = useCallback(
+    (e: SelectChangeEvent<unknown>) => {
+      const ids = e.target.value as string[];
+      props.onChange(ids.map((id) => ({ type: "workflow", id })));
     },
     [props]
+  );
+
+  const renderSelectedValue = useCallback(
+    (selected: unknown) => {
+      const ids = selected as string[];
+      return ids.map((id: string) => findWorkflow(id).name).join(", ");
+    },
+    [findWorkflow]
   );
 
   return (
@@ -44,26 +53,23 @@ const WorkflowListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      <Select
+      <NodeSelect
         id={id}
         multiple
-        value={workflowIds || []}
-        onChange={(e) => onChange(e.target.value)}
-        className="mui-select nodrag"
+        value={workflowIds}
+        onChange={handleChange}
         input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
-        renderValue={(selected) =>
-          selected.map((id: string) => findWorkflow(id).name).join(", ")
-        }
+        renderValue={renderSelectedValue}
       >
-        {isLoading && <MenuItem disabled>Loading...</MenuItem>}
-        {error && <MenuItem disabled>Error: {error.message}</MenuItem>}
+        {isLoading && <NodeMenuItem disabled>Loading...</NodeMenuItem>}
+        {error && <NodeMenuItem disabled>Error: {error.message}</NodeMenuItem>}
         {data?.workflows &&
-          data.workflows.map((workflow: any) => (
-            <MenuItem key={workflow.id} value={workflow.id}>
+          data.workflows.map((workflow) => (
+            <NodeMenuItem key={workflow.id} value={workflow.id}>
               {workflow.name}
-            </MenuItem>
+            </NodeMenuItem>
           ))}
-      </Select>
+      </NodeSelect>
     </>
   );
 };

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useState, useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback } from "react";
 import { Node, NodeProps } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
 import { Container, Tooltip, Button } from "@mui/material";
@@ -15,7 +15,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const humanizeType = (type: string) => {
@@ -77,7 +76,9 @@ const styles = (theme: Theme) =>
       minWidth: "unset",
       padding: "6px 12px",
       borderRadius: 10,
-      color: (theme as any).vars?.palette?.primary?.contrastText || "var(--palette-text-primary)",
+      color:
+        (theme as any).vars?.palette?.primary?.contrastText ||
+        "var(--palette-text-primary)",
       backgroundImage: `linear-gradient(135deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
       backgroundSize: "200% 200%",
       border: `1px solid ${theme.vars.palette.action.selected}`,
@@ -109,16 +110,6 @@ const styles = (theme: Theme) =>
         transform: "translateY(0) scale(0.99)"
       }
     }
-    // ".open-menu-button": {
-    //   backgroundColor: "var(--palette-grey-400)",
-    //   fontSize: "var(--fontSizeTiny)",
-    //   lineHeight: "1.1em",
-    //   minWidth: "unset",
-    //   padding: "2px 6px",
-    //   "&:hover": {
-    //     backgroundColor: "var(--palette-grey-200)"
-    //   }
-    // }
   });
 
 const typeForValue = (value: any) => {
@@ -150,7 +141,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const hasParent = props.parentId !== null;
   const edges = useNodes((n) => n.edges);
   const incomingEdges = edges.filter((e) => e.target === props.id);
-  const openNodeMenu = useNodeMenuStore((s) => s.openNodeMenu);
 
   // Resolve the type/namespace to display strictly from originalType when available
   const resolvedType = useMemo(() => {
@@ -162,11 +152,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const resolvedNamespace = useMemo(() => {
     return resolvedType.split(".").slice(0, -1).join(".") || "unknown";
   }, [resolvedType]);
-
-  const [packageInfo, setPackageInfo] = useState<{
-    node_type: string;
-    package: string;
-  } | null>(null);
 
   const installPackage = useCallback(() => {
     // Pass the node type to the package manager to pre-fill the search
@@ -211,11 +196,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const computedHeaderTitle = useMemo(() => {
     const originalType = (nodeData as any)?.originalType as string | undefined;
     const sourceType =
-      packageInfo?.node_type ||
-      originalType ||
-      nodeType ||
-      (nodeData as any)?.node_type ||
-      "";
+      originalType || nodeType || (nodeData as any)?.node_type || "";
     const preferredTitle = (nodeData as any)?.title as string | undefined;
     const raw =
       preferredTitle && preferredTitle.trim().length > 0
@@ -223,7 +204,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         : sourceType;
     const lastSegment = raw?.split(".").pop() || "";
     return humanizeType(lastSegment) || "Missing Node";
-  }, [packageInfo?.node_type, nodeType, nodeData]);
+  }, [nodeType, nodeData]);
 
   const mockMetadata: NodeMetadata = useMemo(
     () => ({

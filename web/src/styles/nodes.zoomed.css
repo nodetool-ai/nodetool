@@ -8,12 +8,12 @@
   min-width: 100px;
 }
 
-/* Simplify glass nodes for readability and perf */
+/* Simplify glass nodes */
 .react-flow.zoomed-out .react-flow__node .node-body {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
-  opacity: 0.85; /* prefer opacity over darker fill */
+  opacity: 0.85;
 }
 
 /* Tighten header and hide decorative icon */
@@ -32,7 +32,7 @@
   max-width: 140px !important;
 }
 
-/* Lighten node outline a touch */
+/* Lighten node outline */
 .react-flow.zoomed-out .react-flow__node:not(.selected) {
   outline-color: var(--c_node_header_bg) !important; /* fallback */
   outline-color: color-mix(
@@ -52,12 +52,18 @@
   ) !important;
 }
 
-/* Apply same opacity simplification to PreviewNode root */
+/* PreviewNode */
 .react-flow.zoomed-out .react-flow__node .preview-node {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
   opacity: 0.85;
+}
+/* Edges thickness */
+.react-flow.zoomed-out .react-flow__edge .react-flow__edge-path,
+.react-flow.zoomed-out .react-flow__connection .react-flow__connection-path {
+  stroke: var(--palette-grey-400);
+  stroke-width: 6 !important;
 }
 
 /* Hide lower-priority UI at zoom */
@@ -96,7 +102,7 @@
   visibility: visible;
 }
 
-/* Resize handle size at zoom */
+/* Increase resize handle size */
 .react-flow.zoomed-out .node-resize-handle,
 .react-flow.zoomed-out .node-resize-handle svg {
   width: 60px !important;
@@ -105,7 +111,7 @@
   right: -10px;
 }
 
-/* Selected node shadow at zoom */
+/* Selected node shadow */
 .react-flow.zoomed-out .react-flow__node.selected {
   box-shadow: 0 0 0 4px var(--node-primary-color, var(--palette-text-primary)),
     0 2px 8px rgba(0, 0, 0, 0.4) !important;
