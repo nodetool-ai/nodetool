@@ -23,7 +23,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
-import AddIcon from "@mui/icons-material/Add";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
     flexDirection: "row",
     alignItems: "center",
     gap: "8px",
-    padding: "6px 12px",
+    padding: "8px 12px",
     backgroundColor: theme.vars.palette.grey[900],
     borderRadius: "16px",
     border: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       width: "44px",
       height: "44px",
       position: "relative",
-      borderRadius: "10px",
+      borderRadius: "16px",
       border: "none",
       boxShadow: "none",
       transition: "all 0.15s ease-out",
@@ -131,7 +131,7 @@ const styles = (theme: Theme) =>
     ".floating-action-button.primary": {
       backgroundColor: theme.vars.palette.primary.main,
       color: "#0B1220",
-      borderRadius: "10px",
+      borderRadius: "16px",
       boxShadow: `0 4px 12px rgba(59, 130, 246, 0.3)`,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.light,
@@ -171,8 +171,8 @@ const styles = (theme: Theme) =>
     },
 
     ".floating-action-button.stop": {
-      backgroundColor: theme.vars.palette.grey[800],
-      color: theme.vars.palette.grey[500],
+      backgroundColor: theme.vars.palette.grey[700],
+      color: theme.vars.palette.grey[400],
       "&:hover": {
         backgroundColor: theme.vars.palette.warning.main,
         color: theme.vars.palette.warning.contrastText
@@ -440,7 +440,7 @@ const FloatingToolBar: React.FC<{
         )}
 
         <ToolbarButton
-          icon={<AddIcon />}
+          icon={<AddCircleIcon />}
           tooltip="Add Node"
           shortcut="openNodeMenu"
           variant="secondary"
@@ -479,6 +479,15 @@ const FloatingToolBar: React.FC<{
             aria-label="Resume workflow"
           />
         )}
+
+        <Box
+          css={css({
+            width: "1px",
+            height: "24px",
+            backgroundColor: theme.vars.palette.grey[700],
+            margin: "0 4px"
+          })}
+        />
 
         <ToolbarButton
           icon={<StopIcon />}
