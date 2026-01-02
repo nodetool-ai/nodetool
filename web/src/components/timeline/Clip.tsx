@@ -397,6 +397,11 @@ const Clip: React.FC<ClipProps> = ({
   const fadeInWidth = clip.fadeIn ? (clip.fadeIn / clip.duration) * 100 : 0;
   const fadeOutWidth = clip.fadeOut ? (clip.fadeOut / clip.duration) * 100 : 0;
 
+  // Stop click from bubbling to track (which would clear selection)
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
   return (
     <Box
       ref={clipRef}
@@ -407,6 +412,7 @@ const Clip: React.FC<ClipProps> = ({
         width: Math.max(width, 20), // Minimum width for visibility
         backgroundColor: clip.color || "#666"
       }}
+      onClick={handleClick}
       onMouseDown={handleMouseDown}
       onContextMenu={handleContextMenu}
     >

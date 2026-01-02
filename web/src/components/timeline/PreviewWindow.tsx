@@ -237,7 +237,7 @@ const PreviewWindow: React.FC = () => {
   const currentClips = project ? getClipsAtTime(playback.playheadPosition) : [];
 
   // Audio playback - syncs audio with timeline playhead
-  const { activeAudioCount } = useAudioPlayback({
+  const { activeAudioCount, setMutedImmediate } = useAudioPlayback({
     tracks: project?.tracks ?? [],
     playheadPosition: playback.playheadPosition,
     isPlaying: playback.isPlaying,
@@ -464,8 +464,13 @@ const PreviewWindow: React.FC = () => {
   );
 
   const toggleMute = useCallback(() => {
-    setIsMuted(!isMuted);
-  }, [isMuted]);
+    const newMuted = !isMuted;
+    // Call setMutedImmediate FIRST to bypass React's state batching
+    // This directly manipulates audio elements without waiting for effects
+    setMutedImmediate(newMuted);
+    // Then update React state for UI sync
+    setIsMuted(newMuted);
+  }, [isMuted, setMutedImmediate]);
 
   if (!project) {
     return (

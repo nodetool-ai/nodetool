@@ -95,16 +95,22 @@ const Playhead: React.FC<PlayheadProps> = ({
       const elapsed = currentTime - lastTimeRef.current;
 
       if (elapsed >= frameDuration) {
-        const newPosition = playback.playheadPosition + elapsed / 1000;
+        // Get current state directly from store to avoid stale closures
+        const state = useTimelineStore.getState();
+        const currentPosition = state.playback.playheadPosition;
+        const newPosition = currentPosition + elapsed / 1000;
         lastTimeRef.current = currentTime;
 
         // Check for loop
-        if (playback.loopEnabled && newPosition >= playback.loopEnd) {
-          seek(playback.loopStart);
+        if (
+          state.playback.loopEnabled &&
+          newPosition >= state.playback.loopEnd
+        ) {
+          seek(state.playback.loopStart);
         } else if (newPosition >= project.duration) {
           // Stop at end
           seek(project.duration);
-          useTimelineStore.getState().pause();
+          state.pause();
           return;
         } else {
           seek(newPosition);
@@ -122,15 +128,9 @@ const Playhead: React.FC<PlayheadProps> = ({
         animationRef.current = null;
       }
     };
-  }, [
-    playback.isPlaying,
-    playback.loopEnabled,
-    playback.loopStart,
-    playback.loopEnd,
-    playback.playheadPosition,
-    project,
-    seek
-  ]);
+    // Note: playback.playheadPosition is NOT in deps - we read it from store directly
+    // to avoid restarting the animation on every frame
+  }, [playback.isPlaying, project, seek]);
 
   // Auto-scroll to follow playhead during playback
   useEffect(() => {

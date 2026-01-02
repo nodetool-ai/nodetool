@@ -14,8 +14,12 @@ import { useTimelineAssetDrop } from "../../hooks/timeline/useTimelineAssetDrop"
 const styles = (theme: Theme) =>
   css({
     position: "relative",
-    borderBottom: `1px solid ${theme.vars?.palette?.divider || theme.palette.divider}`,
-    backgroundColor: theme.vars?.palette?.background?.default || theme.palette.background.default,
+    borderBottom: `1px solid ${
+      theme.vars?.palette?.divider || theme.palette.divider
+    }`,
+    backgroundColor:
+      theme.vars?.palette?.background?.default ||
+      theme.palette.background.default,
 
     "&.muted": {
       opacity: 0.5
@@ -70,22 +74,35 @@ const TrackLane: React.FC<TrackLaneProps> = ({
   } | null>(null);
   const [contextMenuClip, setContextMenuClip] = useState<Clip | null>(null);
 
-  const { selection, selectClip } = useTimelineStore();
+  const { selection, selectClip, clearClipSelection } = useTimelineStore();
   const {
     handleDropOnTrack,
     handleDragOver: onDragOver,
     canAcceptDrop
   } = useTimelineAssetDrop();
 
-  const handleClipClick = useCallback((clipId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const addToSelection = e.shiftKey || e.metaKey || e.ctrlKey;
-    selectClip(clipId, addToSelection);
-  }, [selectClip]);
+  const handleClipClick = useCallback(
+    (clipId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const addToSelection = e.shiftKey || e.metaKey || e.ctrlKey;
+      selectClip(clipId, addToSelection);
+    },
+    [selectClip]
+  );
+
+  // Click on empty track space clears selection
+  const handleTrackClick = useCallback(
+    (_e: React.MouseEvent) => {
+      // Only clear if clicking directly on the track (not on a clip)
+      // Clips call stopPropagation, so this only fires for empty space
+      clearClipSelection();
+    },
+    [clearClipSelection]
+  );
 
   // Handle right-click context menu
   const handleClipContextMenu = useCallback(
-    (e: React.MouseEvent, clip: Clip, clipTrackId: string) => {
+    (e: React.MouseEvent, clip: Clip, _clipTrackId: string) => {
       e.preventDefault();
       e.stopPropagation();
       setContextMenuPosition({ x: e.clientX, y: e.clientY });
@@ -104,19 +121,25 @@ const TrackLane: React.FC<TrackLaneProps> = ({
     setContextMenuClip(null);
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    onDragOver(e);
-    if (canAcceptDrop(e) && !track.locked) {
-      setIsDragOver(true);
-    }
-  }, [onDragOver, canAcceptDrop, track.locked]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      onDragOver(e);
+      if (canAcceptDrop(e) && !track.locked) {
+        setIsDragOver(true);
+      }
+    },
+    [onDragOver, canAcceptDrop, track.locked]
+  );
 
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (canAcceptDrop(e) && !track.locked) {
-      setIsDragOver(true);
-    }
-  }, [canAcceptDrop, track.locked]);
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (canAcceptDrop(e) && !track.locked) {
+        setIsDragOver(true);
+      }
+    },
+    [canAcceptDrop, track.locked]
+  );
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -127,26 +150,29 @@ const TrackLane: React.FC<TrackLaneProps> = ({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
 
-    if (track.locked) {
-      return;
-    }
+      if (track.locked) {
+        return;
+      }
 
-    // Calculate drop position in time
-    const rect = trackRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
+      // Calculate drop position in time
+      const rect = trackRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
 
-    const dropX = e.clientX - rect.left + scrollLeft;
-    const dropTime = pixelsToTime(dropX, pixelsPerSecond);
+      const dropX = e.clientX - rect.left + scrollLeft;
+      const dropTime = pixelsToTime(dropX, pixelsPerSecond);
 
-    handleDropOnTrack(e, track.id, Math.max(0, dropTime));
-  }, [handleDropOnTrack, track.id, track.locked, pixelsPerSecond, scrollLeft]);
+      handleDropOnTrack(e, track.id, Math.max(0, dropTime));
+    },
+    [handleDropOnTrack, track.id, track.locked, pixelsPerSecond, scrollLeft]
+  );
 
   const renderClip = (clip: Clip) => {
     const isSelected = selection.selectedClipIds.includes(clip.id);
@@ -181,7 +207,9 @@ const TrackLane: React.FC<TrackLaneProps> = ({
     track.muted ? "muted" : "",
     track.locked ? "locked" : "",
     isDragOver ? "drag-over" : ""
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Box
@@ -189,6 +217,7 @@ const TrackLane: React.FC<TrackLaneProps> = ({
       css={styles(theme)}
       className={classNames}
       style={{ height: track.height }}
+      onClick={handleTrackClick}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -199,7 +228,7 @@ const TrackLane: React.FC<TrackLaneProps> = ({
 
       {/* Clips */}
       <div className="track-clips">
-        {track.clips.map(clip => renderClip(clip))}
+        {track.clips.map((clip) => renderClip(clip))}
       </div>
 
       {/* Context Menu */}

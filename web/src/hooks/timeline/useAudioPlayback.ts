@@ -35,20 +35,22 @@ interface UseAudioPlaybackOptions {
 interface UseAudioPlaybackResult {
   /** Number of audio clips currently playing */
   activeAudioCount: number;
+  /** Directly mute/unmute all audio - call this from click handler to bypass React batching */
+  setMutedImmediate: (muted: boolean) => void;
 }
 
 // ============================================================================
-// Audio Cache
+// Audio Cache - keyed by CLIP ID (not URL) to avoid sharing between split clips
 // ============================================================================
 
 const audioCache = new Map<string, HTMLAudioElement>();
-const MAX_CACHE_SIZE = 10;
+const MAX_CACHE_SIZE = 20;
 
-function getCachedAudio(url: string): HTMLAudioElement | null {
-  return audioCache.get(url) ?? null;
+function getCachedAudio(clipId: string): HTMLAudioElement | null {
+  return audioCache.get(clipId) ?? null;
 }
 
-function setCachedAudio(url: string, audio: HTMLAudioElement): void {
+function setCachedAudio(clipId: string, audio: HTMLAudioElement): void {
   if (audioCache.size >= MAX_CACHE_SIZE) {
     // Remove and cleanup oldest entry
     const firstKey = audioCache.keys().next().value;
@@ -61,7 +63,16 @@ function setCachedAudio(url: string, audio: HTMLAudioElement): void {
       audioCache.delete(firstKey);
     }
   }
-  audioCache.set(url, audio);
+  audioCache.set(clipId, audio);
+}
+
+function removeCachedAudio(clipId: string): void {
+  const audio = audioCache.get(clipId);
+  if (audio) {
+    audio.pause();
+    audio.src = "";
+    audioCache.delete(clipId);
+  }
 }
 
 // ============================================================================
@@ -101,14 +112,14 @@ export function useAudioPlayback(
     return clips;
   }, [tracks]);
 
-  // Load audio for a clip
+  // Load audio for a clip - each clip gets its own Audio element
   const loadAudio = useCallback(async (clip: Clip) => {
     if (!clip.sourceUrl || loadingRef.current.has(clip.id)) {
       return;
     }
 
-    // Check cache first
-    const cached = getCachedAudio(clip.sourceUrl);
+    // Check cache by clip ID (not URL - split clips need separate elements)
+    const cached = getCachedAudio(clip.id);
     if (cached) {
       setAudioEntries((prev) => {
         const next = new Map(prev);
@@ -139,8 +150,8 @@ export function useAudioPlayback(
         audio.load();
       });
 
-      // Cache the loaded audio
-      setCachedAudio(clip.sourceUrl, audio);
+      // Cache by clip ID so each clip has its own audio element
+      setCachedAudio(clip.id, audio);
 
       setAudioEntries((prev) => {
         const next = new Map(prev);
@@ -178,6 +189,26 @@ export function useAudioPlayback(
       }
     }
   }, [audioClips, audioEntries, loadAudio]);
+
+  // Clean up audio entries for clips that no longer exist
+  useEffect(() => {
+    const currentClipIds = new Set(audioClips.map(({ clip }) => clip.id));
+    
+    for (const [clipId, entry] of audioEntries) {
+      if (!currentClipIds.has(clipId)) {
+        // Clip was removed (e.g., deleted or split was undone)
+        if (entry.audio) {
+          entry.audio.pause();
+        }
+        removeCachedAudio(clipId);
+        setAudioEntries((prev) => {
+          const next = new Map(prev);
+          next.delete(clipId);
+          return next;
+        });
+      }
+    }
+  }, [audioClips, audioEntries]);
 
   // Helper to get clip time from playhead position
   const getClipTime = useCallback((clip: Clip, playhead: number): number => {
@@ -217,12 +248,14 @@ export function useAudioPlayback(
         const effectiveVolume = masterVolume * trackVolume * clipVolume;
         audio.volume = Math.max(0, Math.min(1, effectiveVolume));
         audio.muted = isMutedRef.current;
+        
+        // Set playback rate to match clip speed
+        audio.playbackRate = clip.speed;
 
         // Seek to correct position and play
         audio.currentTime = clipTime;
         audio.play().then(() => {
           // Ensure muted state is correct after play starts
-          console.log(`[useAudioPlayback] play().then() for start, setting muted=${isMutedRef.current}`);
           audio.muted = isMutedRef.current;
         }).catch(() => {
           // Autoplay may be blocked
@@ -267,12 +300,14 @@ export function useAudioPlayback(
           const effectiveVolume = masterVolume * trackVolume * clipVolume;
           audio.volume = Math.max(0, Math.min(1, effectiveVolume));
           audio.muted = isMutedRef.current;
+          
+          // Set playback rate to match clip speed
+          audio.playbackRate = clip.speed;
 
           // Seek and ensure playing
           audio.currentTime = clipTime;
           if (audio.paused) {
             audio.play().then(() => {
-              console.log(`[useAudioPlayback] play().then() for seek, setting muted=${isMutedRef.current}`);
               audio.muted = isMutedRef.current;
             }).catch(() => {});
           }
@@ -312,10 +347,12 @@ export function useAudioPlayback(
         const effectiveVolume = masterVolume * trackVolume * clipVolume;
         audio.volume = Math.max(0, Math.min(1, effectiveVolume));
         audio.muted = isMutedRef.current;
+        
+        // Set playback rate to match clip speed
+        audio.playbackRate = clip.speed;
 
         audio.currentTime = clipTime;
         audio.play().then(() => {
-          console.log(`[useAudioPlayback] play().then() for clip enter, setting muted=${isMutedRef.current}`);
           audio.muted = isMutedRef.current;
         }).catch(() => {});
       } else if (!shouldBePlaying && !audio.paused) {
@@ -325,41 +362,43 @@ export function useAudioPlayback(
     }
   }, [playheadPosition, isPlaying, audioClips, audioEntries, masterVolume, isMuted, getClipTime, isClipAtPlayhead]);
 
-  // Store audio entries in a ref for immediate access in effects
+  // Store audio entries in a ref for immediate access
   const audioEntriesRef = useRef<Map<string, AudioEntry>>(new Map());
   audioEntriesRef.current = audioEntries;
 
-  // Immediate mute toggle - uses useLayoutEffect for synchronous DOM update
-  // Also directly accesses the audio cache to ensure all elements are updated
-  useLayoutEffect(() => {
-    console.log('[useAudioPlayback] mute useLayoutEffect triggered, isMuted:', isMuted);
-    console.log('[useAudioPlayback] audioEntriesRef.current size:', audioEntriesRef.current.size);
-    console.log('[useAudioPlayback] audioCache size:', audioCache.size);
+  // Direct mute function - bypasses React's state batching
+  // Call this from click handlers for immediate audio mute/unmute
+  const setMutedImmediate = useCallback((muted: boolean) => {
+    // Update the ref immediately
+    isMutedRef.current = muted;
     
-    // Update all entries from state
-    for (const [clipId, entry] of audioEntriesRef.current) {
+    // Directly manipulate all audio elements - no waiting for React
+    for (const [, entry] of audioEntriesRef.current) {
       if (entry?.audio) {
-        console.log(`[useAudioPlayback] Setting entry ${clipId} muted=${isMuted}, was=${entry.audio.muted}, paused=${entry.audio.paused}`);
+        entry.audio.muted = muted;
+      }
+    }
+    // Also update all cached audio elements
+    for (const [, audio] of audioCache) {
+      if (audio) {
+        audio.muted = muted;
+      }
+    }
+  }, []);
+
+  // Sync mute state when prop changes (for non-click-triggered updates)
+  useLayoutEffect(() => {
+    // Update all audio elements with current mute state
+    for (const [, entry] of audioEntriesRef.current) {
+      if (entry?.audio) {
         entry.audio.muted = isMuted;
       }
     }
-    // Also update all cached audio elements directly
-    for (const [url, audio] of audioCache) {
+    for (const [, audio] of audioCache) {
       if (audio) {
-        console.log(`[useAudioPlayback] Setting cached ${url.slice(-20)} muted=${isMuted}, was=${audio.muted}, paused=${audio.paused}`);
         audio.muted = isMuted;
       }
     }
-    
-    // Debug: Check if muted state sticks after a delay
-    const checkMuted = isMuted;
-    setTimeout(() => {
-      for (const [clipId, entry] of audioEntriesRef.current) {
-        if (entry?.audio) {
-          console.log(`[useAudioPlayback] DELAYED CHECK (50ms): ${clipId} muted=${entry.audio.muted}, expected=${checkMuted}`);
-        }
-      }
-    }, 50);
   }, [isMuted]);
 
   // Update volume when master volume changes (separate from mute)
@@ -406,7 +445,8 @@ export function useAudioPlayback(
   }, [audioEntries]);
 
   return {
-    activeAudioCount
+    activeAudioCount,
+    setMutedImmediate
   };
 }
 

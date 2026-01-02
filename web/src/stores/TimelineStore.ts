@@ -911,7 +911,9 @@ export const useTimelineStore = create<TimelineStoreState>()(
           return null;
         }
 
-        const splitInSource = clip.inPoint + (snappedSplit - clip.startTime);
+        // Calculate split point in source time (accounting for speed)
+        const timelineOffsetAtSplit = snappedSplit - clip.startTime;
+        const splitInSource = clip.inPoint + timelineOffsetAtSplit * clip.speed;
 
         // Create two clips from the split
         const firstClip: Clip = {
