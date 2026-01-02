@@ -3,6 +3,7 @@
  *
  * Provides common actions:
  * - Cut, Copy, Delete
+ * - Ripple Delete (Shift+Delete) - deletes and shifts subsequent clips
  * - Split at Playhead
  * - Duplicate
  * - Lock/Unlock
@@ -18,7 +19,9 @@ import {
   ListItemIcon,
   ListItemText,
   Popover,
-  Box
+  Box,
+  Tooltip,
+  Typography
 } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import {
@@ -26,6 +29,7 @@ import {
   ContentCopy as CopyIcon,
   ContentPaste as PasteIcon,
   Delete as DeleteIcon,
+  DeleteSweep as RippleDeleteIcon,
   ContentPasteGo as SplitIcon,
   FileCopy as DuplicateIcon,
   Lock as LockIcon,
@@ -84,7 +88,9 @@ const ClipContextMenu: React.FC<ClipContextMenuProps> = ({
     duplicateClip,
     selectClips,
     selection,
-    deleteSelectedClips
+    deleteSelectedClips,
+    rippleDeleteClip,
+    rippleDeleteSelectedClips
   } = useTimelineStore();
 
   const { copySelectedClips, cutSelectedClips, pasteClips, hasClips } =
@@ -117,7 +123,9 @@ const ClipContextMenu: React.FC<ClipContextMenuProps> = ({
   }, [pasteClips, onClose]);
 
   const handleDelete = useCallback(() => {
-    if (!clip || !trackId) return;
+    if (!clip || !trackId) {
+      return;
+    }
 
     if (isMultiSelection && clipIsSelected) {
       // Delete all selected clips
@@ -127,7 +135,38 @@ const ClipContextMenu: React.FC<ClipContextMenuProps> = ({
       removeClip(trackId, clip.id);
     }
     onClose();
-  }, [clip, trackId, isMultiSelection, clipIsSelected, removeClip, deleteSelectedClips, onClose]);
+  }, [
+    clip,
+    trackId,
+    isMultiSelection,
+    clipIsSelected,
+    removeClip,
+    deleteSelectedClips,
+    onClose
+  ]);
+
+  const handleRippleDelete = useCallback(() => {
+    if (!clip || !trackId) {
+      return;
+    }
+
+    if (isMultiSelection && clipIsSelected) {
+      // Ripple delete all selected clips
+      rippleDeleteSelectedClips();
+    } else {
+      // Ripple delete just this clip
+      rippleDeleteClip(trackId, clip.id);
+    }
+    onClose();
+  }, [
+    clip,
+    trackId,
+    isMultiSelection,
+    clipIsSelected,
+    rippleDeleteClip,
+    rippleDeleteSelectedClips,
+    onClose
+  ]);
 
   const handleSplit = useCallback(() => {
     if (!clip || !trackId) return;
@@ -228,6 +267,35 @@ const ClipContextMenu: React.FC<ClipContextMenuProps> = ({
             {isMultiSelection && clipIsSelected ? "Delete Selected" : "Delete"}
           </ListItemText>
         </MenuItem>
+
+        <Tooltip
+          title={
+            <Box>
+              <Typography variant="body2">
+                Delete and shift subsequent clips to fill the gap
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.7, display: "block", mt: 0.5 }}
+              >
+                Shortcut: Shift+Delete
+              </Typography>
+            </Box>
+          }
+          placement="right"
+          arrow
+        >
+          <MenuItem onClick={handleRippleDelete}>
+            <ListItemIcon>
+              <RippleDeleteIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>
+              {isMultiSelection && clipIsSelected
+                ? "Ripple Delete Selected"
+                : "Ripple Delete"}
+            </ListItemText>
+          </MenuItem>
+        </Tooltip>
 
         <Divider />
 

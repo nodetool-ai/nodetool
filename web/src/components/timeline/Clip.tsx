@@ -195,7 +195,6 @@ const Clip: React.FC<ClipProps> = ({
       }
 
       e.stopPropagation();
-      onClick(e);
 
       const startX = e.clientX;
       const startY = e.clientY;
@@ -203,11 +202,35 @@ const Clip: React.FC<ClipProps> = ({
       let currentTrackId = trackId;
       const TRACK_HEIGHT = 60; // Default track height
 
-      // Check if we're moving multiple selected clips
+      // Check if we're moving multiple selected clips BEFORE calling onClick
+      // because onClick might deselect other clips
       const currentSelection = useTimelineStore.getState().selection;
+      const isAlreadySelected = currentSelection.selectedClipIds.includes(
+        clip.id
+      );
       const isMultiSelect =
-        currentSelection.selectedClipIds.length > 1 &&
-        currentSelection.selectedClipIds.includes(clip.id);
+        currentSelection.selectedClipIds.length > 1 && isAlreadySelected;
+
+      // Only call onClick if this clip isn't already part of a multi-selection
+      // This prevents deselecting other clips when starting a multi-drag
+      if (!isMultiSelect) {
+        onClick(e);
+      }
+
+      // Capture starting positions of all selected clips for multi-select drag
+      const startingPositions: Record<string, number> = {};
+      if (isMultiSelect) {
+        const project = useTimelineStore.getState().project;
+        if (project) {
+          for (const track of project.tracks) {
+            for (const c of track.clips) {
+              if (currentSelection.selectedClipIds.includes(c.id)) {
+                startingPositions[c.id] = c.startTime;
+              }
+            }
+          }
+        }
+      }
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const deltaX = moveEvent.clientX - startX;
@@ -218,7 +241,7 @@ const Clip: React.FC<ClipProps> = ({
 
         if (isMultiSelect) {
           // Move all selected clips together (horizontal only for multi-select)
-          moveSelectedClips(deltaTime, clip.id);
+          moveSelectedClips(startingPositions, deltaTime);
         } else {
           // Single clip movement with track change support
           const newStartTime = getSnappedTime(startTime + deltaTime, clip.id);

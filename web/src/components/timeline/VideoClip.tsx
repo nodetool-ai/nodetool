@@ -85,7 +85,9 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
 
   // Get the thumbnails to display based on visible portion
   const visibleThumbnails = useMemo(() => {
-    if (!thumbnailData) return [];
+    if (!thumbnailData) {
+      return [];
+    }
 
     const startPercent = clip.inPoint / clip.sourceDuration;
     const endPercent = clip.outPoint / clip.sourceDuration;
@@ -95,8 +97,7 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
     const result: Array<{ dataUrl: string; time: number; width: number }> = [];
 
     for (let i = 0; i < numThumbnails; i++) {
-      const thumbPercent =
-        startPercent + (i / numThumbnails) * visibleDuration;
+      const thumbPercent = startPercent + (i / numThumbnails) * visibleDuration;
       const thumbTime = thumbPercent * thumbnailData.duration;
 
       // Find the closest thumbnail
@@ -119,7 +120,14 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
     }
 
     return result;
-  }, [thumbnailData, clip.inPoint, clip.outPoint, clip.sourceDuration, width, numThumbnails]);
+  }, [
+    thumbnailData,
+    clip.inPoint,
+    clip.outPoint,
+    clip.sourceDuration,
+    width,
+    numThumbnails
+  ]);
 
   // Check if we have real thumbnails with data
   const hasRealThumbnails = visibleThumbnails.some((t) => t.dataUrl);
@@ -131,16 +139,22 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     // Only draw if we're showing the placeholder canvas
-    if (!canvas || !showPlaceholderCanvas) return;
+    if (!canvas || !showPlaceholderCanvas) {
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
 
     // Avoid drawing on zero-size canvas
-    if (rect.width === 0 || rect.height === 0) return;
+    if (rect.width === 0 || rect.height === 0) {
+      return;
+    }
 
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
@@ -175,7 +189,14 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
       ctx.closePath();
       ctx.fill();
     }
-  }, [showPlaceholderCanvas, clip.inPoint, clip.outPoint, clip.sourceDuration, width, numThumbnails]);
+  }, [
+    showPlaceholderCanvas,
+    clip.inPoint,
+    clip.outPoint,
+    clip.sourceDuration,
+    width,
+    numThumbnails
+  ]);
 
   return (
     <Clip {...props}>
@@ -183,7 +204,7 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
         <div className="thumbnail-container">
           {hasRealThumbnails ? (
             <div className="thumbnail-strip">
-              {visibleThumbnails.map((thumb, index) => (
+              {visibleThumbnails.map((thumb, index) =>
                 thumb.dataUrl ? (
                   <img
                     key={index}
@@ -198,11 +219,13 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
                     className="thumbnail-placeholder"
                     style={{
                       width: thumb.width,
-                      backgroundColor: `hsla(${(thumb.time / clip.sourceDuration) * 120}, 30%, 30%, 0.8)`
+                      backgroundColor: `hsla(${
+                        (thumb.time / clip.sourceDuration) * 120
+                      }, 30%, 30%, 0.8)`
                     }}
                   />
                 )
-              ))}
+              )}
             </div>
           ) : (
             <canvas ref={canvasRef} className="thumbnail-canvas" />

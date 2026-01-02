@@ -13,7 +13,6 @@ import { useTimelineLayoutStore } from "../../stores/TimelineLayoutStore";
 import TimelineToolbar from "./TimelineToolbar";
 import { createTimelinePanelComponents } from "./timelinePanelComponents";
 import { timelineDefaultLayout } from "./timelineDefaultLayout";
-import { applyDockviewLayoutSafely } from "../../utils/dockviewLayout";
 
 const styles = (theme: Theme) =>
   css({
@@ -89,10 +88,24 @@ const TimelineEditor: React.FC<TimelineEditorProps> = () => {
       dockviewApiRef.current = api;
 
       // Apply saved layout or default
-      if (savedLayout) {
-        applyDockviewLayoutSafely(api, savedLayout);
-      } else {
-        applyDockviewLayoutSafely(api, timelineDefaultLayout);
+      // Note: We use api.fromJSON directly instead of applyDockviewLayoutSafely
+      // because that function is designed for dashboard layouts and would filter out timeline panels
+      try {
+        if (savedLayout) {
+          api.fromJSON(savedLayout);
+        } else {
+          api.fromJSON(timelineDefaultLayout);
+        }
+      } catch (err) {
+        console.warn("Failed to apply timeline layout, using default:", err);
+        try {
+          api.fromJSON(timelineDefaultLayout);
+        } catch (fallbackErr) {
+          console.error(
+            "Failed to apply default timeline layout:",
+            fallbackErr
+          );
+        }
       }
 
       // Subscribe to layout changes for persistence

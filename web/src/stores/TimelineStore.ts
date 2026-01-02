@@ -165,7 +165,7 @@ export interface TimelineStoreState {
     targetTrackId: string,
     newStartTime: number
   ) => void;
-  moveSelectedClips: (deltaTime: number, primaryClipId?: string) => void;
+  moveSelectedClips: (startingPositions: Record<string, number>, deltaTime: number) => void;
   trimClipStart: (trackId: string, clipId: string, newStartTime: number) => void;
   trimClipEnd: (trackId: string, clipId: string, newEndTime: number) => void;
   splitClip: (trackId: string, clipId: string, splitTime: number) => string | null;
@@ -703,75 +703,71 @@ export const useTimelineStore = create<TimelineStoreState>()(
         updateProjectDuration();
       },
 
-      moveSelectedClips: (deltaTime: number, primaryClipId?: string) => {
-        const { project, selection, getSnappedTime, updateProjectDuration } = get();
-        if (!project || selection.selectedClipIds.length === 0) {
+      moveSelectedClips: (startingPositions: Record<string, number>, deltaTime: number) => {
+        const { project, selection, updateProjectDuration } = get();
+        if (!project || Object.keys(startingPositions).length === 0) {
           return;
         }
 
-        // Find all selected clips with their track info
-        const clipsToMove: Array<{ trackId: string; clip: Clip }> = [];
+        const clipIds = Object.keys(startingPositions);
+
+        // Calculate the minimum starting position to prevent going negative
+        const minStartingPosition = Math.min(...Object.values(startingPositions));
+        const adjustedDelta = Math.max(-minStartingPosition, deltaTime);
+
+        // Build new positions for each clip
+        const newPositions: Record<string, number> = {};
+        for (const [clipId, startPos] of Object.entries(startingPositions)) {
+          newPositions[clipId] = startPos + adjustedDelta;
+        }
+
+        // Check for overlaps with non-selected clips
+        let wouldOverlap = false;
         for (const track of project.tracks) {
           if (track.locked) continue;
           for (const clip of track.clips) {
-            if (selection.selectedClipIds.includes(clip.id) && !clip.locked) {
-              clipsToMove.push({ trackId: track.id, clip });
+            if (clip.locked) continue;
+            if (clipIds.includes(clip.id)) {
+              const newStart = newPositions[clip.id];
+              const newEnd = newStart + clip.duration;
+
+              // Check against non-selected clips in same track
+              for (const otherClip of track.clips) {
+                if (clipIds.includes(otherClip.id)) continue;
+                if (rangesOverlap(
+                  newStart,
+                  newEnd,
+                  otherClip.startTime,
+                  otherClip.startTime + otherClip.duration
+                )) {
+                  wouldOverlap = true;
+                  break;
+                }
+              }
+              if (wouldOverlap) break;
             }
           }
+          if (wouldOverlap) break;
         }
-
-        if (clipsToMove.length === 0) {
-          return;
-        }
-
-        // Calculate the minimum start time across selected clips to prevent going negative
-        const minStartTime = Math.min(...clipsToMove.map(c => c.clip.startTime));
-        const adjustedDelta = Math.max(-minStartTime, deltaTime);
-
-        // Check for overlaps with non-selected clips
-        const wouldOverlap = clipsToMove.some(({ trackId, clip }) => {
-          const newStart = clip.startTime + adjustedDelta;
-          const newEnd = newStart + clip.duration;
-          const track = project.tracks.find(t => t.id === trackId);
-          if (!track) return false;
-
-          return track.clips.some(existingClip => {
-            // Skip selected clips (they're all moving together)
-            if (selection.selectedClipIds.includes(existingClip.id)) {
-              return false;
-            }
-            return rangesOverlap(
-              newStart,
-              newEnd,
-              existingClip.startTime,
-              existingClip.startTime + existingClip.duration
-            );
-          });
-        });
 
         if (wouldOverlap) {
           return; // Don't allow move that causes overlap
         }
 
-        // Build map of updates per track
-        const trackUpdates = new Map<string, Clip[]>();
-        
-        for (const track of project.tracks) {
-          const updatedClips = track.clips.map(clip => {
-            if (selection.selectedClipIds.includes(clip.id) && !clip.locked) {
-              return { ...clip, startTime: clip.startTime + adjustedDelta };
-            }
-            return clip;
-          }).sort((a, b) => a.startTime - b.startTime);
-          trackUpdates.set(track.id, updatedClips);
-        }
-
+        // Apply the new positions
         set({
           project: {
             ...project,
-            tracks: project.tracks.map(t => ({
-              ...t,
-              clips: trackUpdates.get(t.id) || t.clips
+            tracks: project.tracks.map(track => ({
+              ...track,
+              clips: track.clips
+                .map(clip => {
+                  if (clipIds.includes(clip.id) && !clip.locked && !track.locked) {
+                    return { ...clip, startTime: newPositions[clip.id] };
+                  }
+                  return clip;
+                })
+                .sort((a, b) => a.startTime - b.startTime)
             })),
             updatedAt: new Date().toISOString()
           }

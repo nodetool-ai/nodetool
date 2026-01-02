@@ -38,7 +38,8 @@ import {
   Redo as RedoIcon,
   FolderOpen as FolderOpenIcon,
   DataObject as DataObjectIcon,
-  SwapHoriz as RippleIcon
+  SwapHoriz as RippleIcon,
+  RestartAlt as ResetLayoutIcon
 } from "@mui/icons-material";
 
 import useTimelineStore, {
@@ -46,6 +47,7 @@ import useTimelineStore, {
   TrackType,
   Clip
 } from "../../stores/TimelineStore";
+import { useTimelineLayoutStore } from "../../stores/TimelineLayoutStore";
 import { formatTimecode, formatTimeShort } from "../../utils/timelineUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useNavigate } from "react-router-dom";
@@ -251,6 +253,14 @@ const TimelineToolbar: React.FC = () => {
   const handleOpenAssets = useCallback(() => {
     navigate("/assets");
   }, [navigate]);
+
+  const { resetLayout } = useTimelineLayoutStore();
+
+  const handleResetLayout = useCallback(() => {
+    resetLayout();
+    // Reload the page to apply the default layout
+    window.location.reload();
+  }, [resetLayout]);
 
   // Set loop in point at current playhead position
   const handleSetLoopIn = useCallback(() => {
@@ -514,6 +524,15 @@ const TimelineToolbar: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* Layout reset */}
+      <div className="toolbar-section" style={{ marginLeft: "auto" }}>
+        <Tooltip title="Reset Panel Layout" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton size="small" onClick={handleResetLayout}>
+            <ResetLayoutIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </div>
     </Box>
   );
 };
