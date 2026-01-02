@@ -147,19 +147,53 @@ async function extractFrame(
 
 /**
  * Extracts multiple thumbnails from a video URL
+ * Tries with crossOrigin first (for CORS-enabled servers), falls back to without
  */
 async function extractThumbnails(
   videoUrl: string,
   numThumbnails: number = 10,
   thumbnailWidth: number = 120
 ): Promise<VideoThumbnailData> {
+  // Try with CORS first (allows canvas operations on cross-origin videos)
+  try {
+    return await extractThumbnailsWithCORS(videoUrl, numThumbnails, thumbnailWidth, true);
+  } catch (corsError) {
+    // If CORS fails, try without (may work for same-origin or blob URLs)
+    console.warn("CORS-enabled video load failed, trying without crossOrigin:", corsError);
+    try {
+      return await extractThumbnailsWithCORS(videoUrl, numThumbnails, thumbnailWidth, false);
+    } catch (noCorsError) {
+      // Both failed, throw the original error
+      throw corsError;
+    }
+  }
+}
+
+/**
+ * Internal function to extract thumbnails with or without CORS
+ */
+async function extractThumbnailsWithCORS(
+  videoUrl: string,
+  numThumbnails: number,
+  thumbnailWidth: number,
+  useCORS: boolean
+): Promise<VideoThumbnailData> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
-    video.crossOrigin = "anonymous";
+    if (useCORS) {
+      video.crossOrigin = "anonymous";
+    }
     video.preload = "metadata";
     video.muted = true;
 
+    // Timeout to prevent hanging on slow loads
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Video load timeout: ${videoUrl}`));
+    }, 30000);
+
     const cleanup = () => {
+      clearTimeout(timeoutId);
       video.src = "";
       video.load();
     };
@@ -169,6 +203,13 @@ async function extractThumbnails(
         const duration = video.duration;
         const videoWidth = video.videoWidth;
         const videoHeight = video.videoHeight;
+
+        // Check if we got valid metadata
+        if (!isFinite(duration) || duration <= 0) {
+          cleanup();
+          reject(new Error("Invalid video duration"));
+          return;
+        }
 
         // Calculate time intervals for thumbnails
         const interval = duration / numThumbnails;
@@ -186,6 +227,13 @@ async function extractThumbnails(
         }
 
         cleanup();
+        
+        // If no thumbnails were extracted (likely CORS/tainting issue), reject
+        if (thumbnails.length === 0) {
+          reject(new Error("No thumbnails could be extracted (possible CORS issue)"));
+          return;
+        }
+
         resolve({
           thumbnails,
           duration,

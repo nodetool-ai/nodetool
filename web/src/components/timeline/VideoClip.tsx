@@ -121,16 +121,26 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
     return result;
   }, [thumbnailData, clip.inPoint, clip.outPoint, clip.sourceDuration, width, numThumbnails]);
 
-  // Draw placeholder thumbnails on canvas if no real thumbnails
+  // Check if we have real thumbnails with data
+  const hasRealThumbnails = visibleThumbnails.some((t) => t.dataUrl);
+
+  // Determine if we should show placeholder canvas (loading or no real thumbnails)
+  const showPlaceholderCanvas = isLoading || !hasRealThumbnails;
+
+  // Draw placeholder thumbnails on canvas if loading or no real thumbnails
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !isLoading) return;
+    // Only draw if we're showing the placeholder canvas
+    if (!canvas || !showPlaceholderCanvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+
+    // Avoid drawing on zero-size canvas
+    if (rect.width === 0 || rect.height === 0) return;
 
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
@@ -165,18 +175,13 @@ const VideoClip: React.FC<VideoClipProps> = (props) => {
       ctx.closePath();
       ctx.fill();
     }
-  }, [isLoading, clip.inPoint, clip.outPoint, clip.sourceDuration, width, numThumbnails]);
-
-  // Check if we have real thumbnails with data
-  const hasRealThumbnails = visibleThumbnails.some((t) => t.dataUrl);
+  }, [showPlaceholderCanvas, clip.inPoint, clip.outPoint, clip.sourceDuration, width, numThumbnails]);
 
   return (
     <Clip {...props}>
       <Box css={styles(theme)} className="video-clip-content">
         <div className="thumbnail-container">
-          {isLoading ? (
-            <canvas ref={canvasRef} className="thumbnail-canvas" />
-          ) : hasRealThumbnails ? (
+          {hasRealThumbnails ? (
             <div className="thumbnail-strip">
               {visibleThumbnails.map((thumb, index) => (
                 thumb.dataUrl ? (

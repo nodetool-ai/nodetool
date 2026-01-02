@@ -4,7 +4,7 @@
  * Handles loading, playing, and syncing audio elements with the timeline playhead.
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
 import { Clip, Track } from "../../stores/TimelineStore";
 
 // ============================================================================
@@ -82,6 +82,10 @@ export function useAudioPlayback(
   const loadingRef = useRef<Set<string>>(new Set());
   const wasPlayingRef = useRef<boolean>(false);
   const lastSeekTimeRef = useRef<number>(0);
+  
+  // Keep mute state in a ref for immediate access during playback
+  const isMutedRef = useRef<boolean>(isMuted);
+  isMutedRef.current = isMuted;
 
   // Get all audio clips from tracks
   const audioClips = useMemo(() => {
@@ -207,15 +211,20 @@ export function useAudioPlayback(
         const audio = entry.audio;
         const clipTime = getClipTime(clip, playheadPosition);
 
-        // Set volume
+        // Set volume and mute state (use ref for most current value)
         const clipVolume = clip.volume ?? 1;
         const trackVolume = track.volume ?? 1;
-        const effectiveVolume = isMuted ? 0 : masterVolume * trackVolume * clipVolume;
+        const effectiveVolume = masterVolume * trackVolume * clipVolume;
         audio.volume = Math.max(0, Math.min(1, effectiveVolume));
+        audio.muted = isMutedRef.current;
 
         // Seek to correct position and play
         audio.currentTime = clipTime;
-        audio.play().catch(() => {
+        audio.play().then(() => {
+          // Ensure muted state is correct after play starts
+          console.log(`[useAudioPlayback] play().then() for start, setting muted=${isMutedRef.current}`);
+          audio.muted = isMutedRef.current;
+        }).catch(() => {
           // Autoplay may be blocked
         });
       }
@@ -252,16 +261,20 @@ export function useAudioPlayback(
         if (shouldBePlaying) {
           const clipTime = getClipTime(clip, playheadPosition);
           
-          // Update volume
+          // Update volume and mute state (use ref for most current value)
           const clipVolume = clip.volume ?? 1;
           const trackVolume = track.volume ?? 1;
-          const effectiveVolume = isMuted ? 0 : masterVolume * trackVolume * clipVolume;
+          const effectiveVolume = masterVolume * trackVolume * clipVolume;
           audio.volume = Math.max(0, Math.min(1, effectiveVolume));
+          audio.muted = isMutedRef.current;
 
           // Seek and ensure playing
           audio.currentTime = clipTime;
           if (audio.paused) {
-            audio.play().catch(() => {});
+            audio.play().then(() => {
+              console.log(`[useAudioPlayback] play().then() for seek, setting muted=${isMutedRef.current}`);
+              audio.muted = isMutedRef.current;
+            }).catch(() => {});
           }
         } else {
           // Should not be playing
@@ -296,11 +309,15 @@ export function useAudioPlayback(
         
         const clipVolume = clip.volume ?? 1;
         const trackVolume = track.volume ?? 1;
-        const effectiveVolume = isMuted ? 0 : masterVolume * trackVolume * clipVolume;
+        const effectiveVolume = masterVolume * trackVolume * clipVolume;
         audio.volume = Math.max(0, Math.min(1, effectiveVolume));
+        audio.muted = isMutedRef.current;
 
         audio.currentTime = clipTime;
-        audio.play().catch(() => {});
+        audio.play().then(() => {
+          console.log(`[useAudioPlayback] play().then() for clip enter, setting muted=${isMutedRef.current}`);
+          audio.muted = isMutedRef.current;
+        }).catch(() => {});
       } else if (!shouldBePlaying && !audio.paused) {
         // Clip just exited playhead range - stop it
         audio.pause();
@@ -308,20 +325,63 @@ export function useAudioPlayback(
     }
   }, [playheadPosition, isPlaying, audioClips, audioEntries, masterVolume, isMuted, getClipTime, isClipAtPlayhead]);
 
-  // Update volume when master volume or mute changes
+  // Store audio entries in a ref for immediate access in effects
+  const audioEntriesRef = useRef<Map<string, AudioEntry>>(new Map());
+  audioEntriesRef.current = audioEntries;
+
+  // Immediate mute toggle - uses useLayoutEffect for synchronous DOM update
+  // Also directly accesses the audio cache to ensure all elements are updated
+  useLayoutEffect(() => {
+    console.log('[useAudioPlayback] mute useLayoutEffect triggered, isMuted:', isMuted);
+    console.log('[useAudioPlayback] audioEntriesRef.current size:', audioEntriesRef.current.size);
+    console.log('[useAudioPlayback] audioCache size:', audioCache.size);
+    
+    // Update all entries from state
+    for (const [clipId, entry] of audioEntriesRef.current) {
+      if (entry?.audio) {
+        console.log(`[useAudioPlayback] Setting entry ${clipId} muted=${isMuted}, was=${entry.audio.muted}, paused=${entry.audio.paused}`);
+        entry.audio.muted = isMuted;
+      }
+    }
+    // Also update all cached audio elements directly
+    for (const [url, audio] of audioCache) {
+      if (audio) {
+        console.log(`[useAudioPlayback] Setting cached ${url.slice(-20)} muted=${isMuted}, was=${audio.muted}, paused=${audio.paused}`);
+        audio.muted = isMuted;
+      }
+    }
+    
+    // Debug: Check if muted state sticks after a delay
+    const checkMuted = isMuted;
+    setTimeout(() => {
+      for (const [clipId, entry] of audioEntriesRef.current) {
+        if (entry?.audio) {
+          console.log(`[useAudioPlayback] DELAYED CHECK (50ms): ${clipId} muted=${entry.audio.muted}, expected=${checkMuted}`);
+        }
+      }
+    }, 50);
+  }, [isMuted]);
+
+  // Update volume when master volume changes (separate from mute)
   useEffect(() => {
-    for (const { clip, track } of audioClips) {
-      const entry = audioEntries.get(clip.id);
+    for (const [clipId, entry] of audioEntries) {
       if (!entry || entry.loading || entry.error) {
         continue;
       }
 
-      const clipVolume = clip.volume ?? 1;
-      const trackVolume = track.volume ?? 1;
-      const effectiveVolume = isMuted ? 0 : masterVolume * trackVolume * clipVolume;
-      entry.audio.volume = Math.max(0, Math.min(1, effectiveVolume));
+      // Find the clip and track for this entry
+      const clipData = audioClips.find(c => c.clip.id === clipId);
+      if (clipData) {
+        const { clip, track } = clipData;
+        const clipVolume = clip.volume ?? 1;
+        const trackVolume = track.volume ?? 1;
+        const effectiveVolume = masterVolume * trackVolume * clipVolume;
+        entry.audio.volume = Math.max(0, Math.min(1, effectiveVolume));
+      } else {
+        entry.audio.volume = masterVolume;
+      }
     }
-  }, [masterVolume, isMuted, audioClips, audioEntries]);
+  }, [masterVolume, audioClips, audioEntries]);
 
   // Count active audio clips
   const activeAudioCount = useMemo(() => {

@@ -165,6 +165,7 @@ export interface TimelineStoreState {
     targetTrackId: string,
     newStartTime: number
   ) => void;
+  moveSelectedClips: (deltaTime: number, primaryClipId?: string) => void;
   trimClipStart: (trackId: string, clipId: string, newStartTime: number) => void;
   trimClipEnd: (trackId: string, clipId: string, newEndTime: number) => void;
   splitClip: (trackId: string, clipId: string, splitTime: number) => string | null;
@@ -695,6 +696,83 @@ export const useTimelineStore = create<TimelineStoreState>()(
               }
               return t;
             }),
+            updatedAt: new Date().toISOString()
+          }
+        });
+
+        updateProjectDuration();
+      },
+
+      moveSelectedClips: (deltaTime: number, primaryClipId?: string) => {
+        const { project, selection, getSnappedTime, updateProjectDuration } = get();
+        if (!project || selection.selectedClipIds.length === 0) {
+          return;
+        }
+
+        // Find all selected clips with their track info
+        const clipsToMove: Array<{ trackId: string; clip: Clip }> = [];
+        for (const track of project.tracks) {
+          if (track.locked) continue;
+          for (const clip of track.clips) {
+            if (selection.selectedClipIds.includes(clip.id) && !clip.locked) {
+              clipsToMove.push({ trackId: track.id, clip });
+            }
+          }
+        }
+
+        if (clipsToMove.length === 0) {
+          return;
+        }
+
+        // Calculate the minimum start time across selected clips to prevent going negative
+        const minStartTime = Math.min(...clipsToMove.map(c => c.clip.startTime));
+        const adjustedDelta = Math.max(-minStartTime, deltaTime);
+
+        // Check for overlaps with non-selected clips
+        const wouldOverlap = clipsToMove.some(({ trackId, clip }) => {
+          const newStart = clip.startTime + adjustedDelta;
+          const newEnd = newStart + clip.duration;
+          const track = project.tracks.find(t => t.id === trackId);
+          if (!track) return false;
+
+          return track.clips.some(existingClip => {
+            // Skip selected clips (they're all moving together)
+            if (selection.selectedClipIds.includes(existingClip.id)) {
+              return false;
+            }
+            return rangesOverlap(
+              newStart,
+              newEnd,
+              existingClip.startTime,
+              existingClip.startTime + existingClip.duration
+            );
+          });
+        });
+
+        if (wouldOverlap) {
+          return; // Don't allow move that causes overlap
+        }
+
+        // Build map of updates per track
+        const trackUpdates = new Map<string, Clip[]>();
+        
+        for (const track of project.tracks) {
+          const updatedClips = track.clips.map(clip => {
+            if (selection.selectedClipIds.includes(clip.id) && !clip.locked) {
+              return { ...clip, startTime: clip.startTime + adjustedDelta };
+            }
+            return clip;
+          }).sort((a, b) => a.startTime - b.startTime);
+          trackUpdates.set(track.id, updatedClips);
+        }
+
+        set({
+          project: {
+            ...project,
+            tracks: project.tracks.map(t => ({
+              ...t,
+              clips: trackUpdates.get(t.id) || t.clips
+            })),
             updatedAt: new Date().toISOString()
           }
         });

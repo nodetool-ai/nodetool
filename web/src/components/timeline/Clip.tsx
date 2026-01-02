@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import React, { useCallback, useRef, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
+import LockIcon from "@mui/icons-material/Lock";
 import useTimelineStore, { Clip as ClipType } from "../../stores/TimelineStore";
 
 const styles = (theme: Theme) =>
@@ -18,16 +19,47 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
 
     "&:hover": {
-      boxShadow: `0 0 0 2px ${theme.vars?.palette?.primary?.main || theme.palette.primary.main}40`
+      boxShadow: `0 0 0 2px ${
+        theme.vars?.palette?.primary?.main || theme.palette.primary.main
+      }40`
     },
 
     "&.selected": {
-      boxShadow: `0 0 0 2px ${theme.vars?.palette?.primary?.main || theme.palette.primary.main}`
+      boxShadow: `0 0 0 2px ${
+        theme.vars?.palette?.primary?.main || theme.palette.primary.main
+      }`
     },
 
     "&.dragging": {
       opacity: 0.8,
       cursor: "grabbing"
+    },
+
+    "&.locked": {
+      cursor: "not-allowed",
+      opacity: 0.7,
+
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `repeating-linear-gradient(
+          -45deg,
+          transparent,
+          transparent 4px,
+          rgba(0, 0, 0, 0.15) 4px,
+          rgba(0, 0, 0, 0.15) 8px
+        )`,
+        pointerEvents: "none",
+        zIndex: 5
+      },
+
+      "&:hover": {
+        boxShadow: "none"
+      }
     },
 
     ".clip-header": {
@@ -52,6 +84,13 @@ const styles = (theme: Theme) =>
     ".clip-duration": {
       fontSize: "0.6rem",
       color: "rgba(255, 255, 255, 0.7)"
+    },
+
+    ".clip-lock-icon": {
+      fontSize: "0.6rem",
+      color: "rgba(255, 255, 255, 0.8)",
+      display: "flex",
+      alignItems: "center"
     },
 
     ".clip-content": {
@@ -92,7 +131,8 @@ const styles = (theme: Theme) =>
       left: 0,
       top: 0,
       bottom: 0,
-      background: "linear-gradient(90deg, rgba(0,0,0,0.5) 0%, transparent 100%)",
+      background:
+        "linear-gradient(90deg, rgba(0,0,0,0.5) 0%, transparent 100%)",
       pointerEvents: "none"
     },
 
@@ -101,7 +141,8 @@ const styles = (theme: Theme) =>
       right: 0,
       top: 0,
       bottom: 0,
-      background: "linear-gradient(270deg, rgba(0,0,0,0.5) 0%, transparent 100%)",
+      background:
+        "linear-gradient(270deg, rgba(0,0,0,0.5) 0%, transparent 100%)",
       pointerEvents: "none"
     }
   });
@@ -114,7 +155,11 @@ export interface ClipProps {
   left: number;
   width: number;
   onClick: (e: React.MouseEvent) => void;
-  onContextMenu?: (e: React.MouseEvent, clip: ClipType, trackId: string) => void;
+  onContextMenu?: (
+    e: React.MouseEvent,
+    clip: ClipType,
+    trackId: string
+  ) => void;
   children?: React.ReactNode;
 }
 
@@ -136,128 +181,171 @@ const Clip: React.FC<ClipProps> = ({
 
   const {
     moveClip,
+    moveSelectedClips,
     trimClipStart,
     trimClipEnd,
     getSnappedTime
   } = useTimelineStore();
 
-  // Handle clip drag (supports moving between tracks)
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0 || clip.locked) {
-      return;
-    }
-    
-    e.stopPropagation();
-    onClick(e);
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startTime = clip.startTime;
-    let currentTrackId = trackId;
-    const TRACK_HEIGHT = 60; // Default track height
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
-      const deltaTime = deltaX / pixelsPerSecond;
-      const newStartTime = getSnappedTime(startTime + deltaTime, clip.id);
-      
-      // Calculate track change based on vertical movement
-      const trackDelta = Math.round(deltaY / TRACK_HEIGHT);
-      
-      // Get the new track ID if moving vertically
-      const project = useTimelineStore.getState().project;
-      if (project && trackDelta !== 0) {
-        const currentTrackIndex = project.tracks.findIndex(t => t.id === currentTrackId);
-        const newTrackIndex = Math.max(0, Math.min(project.tracks.length - 1, currentTrackIndex + trackDelta));
-        const newTrack = project.tracks[newTrackIndex];
-        
-        // Only move to tracks of the same type
-        if (newTrack && newTrack.type === clip.type && !newTrack.locked) {
-          currentTrackId = newTrack.id;
-        }
+  // Handle clip drag (supports moving between tracks and multi-selection)
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 0 || clip.locked) {
+        return;
       }
-      
-      setIsDragging(true);
-      moveClip(trackId, clip.id, currentTrackId, newStartTime);
-    };
 
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
+      e.stopPropagation();
+      onClick(e);
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  }, [clip, trackId, pixelsPerSecond, moveClip, getSnappedTime, onClick]);
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startTime = clip.startTime;
+      let currentTrackId = trackId;
+      const TRACK_HEIGHT = 60; // Default track height
+
+      // Check if we're moving multiple selected clips
+      const currentSelection = useTimelineStore.getState().selection;
+      const isMultiSelect =
+        currentSelection.selectedClipIds.length > 1 &&
+        currentSelection.selectedClipIds.includes(clip.id);
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        const deltaTime = deltaX / pixelsPerSecond;
+
+        setIsDragging(true);
+
+        if (isMultiSelect) {
+          // Move all selected clips together (horizontal only for multi-select)
+          moveSelectedClips(deltaTime, clip.id);
+        } else {
+          // Single clip movement with track change support
+          const newStartTime = getSnappedTime(startTime + deltaTime, clip.id);
+
+          // Calculate track change based on vertical movement
+          const trackDelta = Math.round(deltaY / TRACK_HEIGHT);
+
+          // Get the new track ID if moving vertically
+          const project = useTimelineStore.getState().project;
+          if (project && trackDelta !== 0) {
+            const currentTrackIndex = project.tracks.findIndex(
+              (t) => t.id === currentTrackId
+            );
+            const newTrackIndex = Math.max(
+              0,
+              Math.min(
+                project.tracks.length - 1,
+                currentTrackIndex + trackDelta
+              )
+            );
+            const newTrack = project.tracks[newTrackIndex];
+
+            // Only move to tracks of the same type
+            if (newTrack && newTrack.type === clip.type && !newTrack.locked) {
+              currentTrackId = newTrack.id;
+            }
+          }
+
+          moveClip(trackId, clip.id, currentTrackId, newStartTime);
+        }
+      };
+
+      const handleMouseUp = () => {
+        setIsDragging(false);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [
+      clip,
+      trackId,
+      pixelsPerSecond,
+      moveClip,
+      moveSelectedClips,
+      getSnappedTime,
+      onClick
+    ]
+  );
 
   // Handle trim left
-  const handleTrimLeftMouseDown = useCallback((e: React.MouseEvent) => {
-    if (clip.locked) {
-      return;
-    }
-    
-    e.stopPropagation();
-    const startX = e.clientX;
-    const startTime = clip.startTime;
+  const handleTrimLeftMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (clip.locked) {
+        return;
+      }
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaTime = deltaX / pixelsPerSecond;
-      const newStartTime = getSnappedTime(startTime + deltaTime, clip.id);
-      
-      setIsTrimming("left");
-      trimClipStart(trackId, clip.id, newStartTime);
-    };
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startTime = clip.startTime;
 
-    const handleMouseUp = () => {
-      setIsTrimming(null);
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaTime = deltaX / pixelsPerSecond;
+        const newStartTime = getSnappedTime(startTime + deltaTime, clip.id);
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  }, [clip, trackId, pixelsPerSecond, trimClipStart, getSnappedTime]);
+        setIsTrimming("left");
+        trimClipStart(trackId, clip.id, newStartTime);
+      };
+
+      const handleMouseUp = () => {
+        setIsTrimming(null);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [clip, trackId, pixelsPerSecond, trimClipStart, getSnappedTime]
+  );
 
   // Handle trim right
-  const handleTrimRightMouseDown = useCallback((e: React.MouseEvent) => {
-    if (clip.locked) {
-      return;
-    }
-    
-    e.stopPropagation();
-    const startX = e.clientX;
-    const endTime = clip.startTime + clip.duration;
+  const handleTrimRightMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (clip.locked) {
+        return;
+      }
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaTime = deltaX / pixelsPerSecond;
-      const newEndTime = getSnappedTime(endTime + deltaTime, clip.id);
-      
-      setIsTrimming("right");
-      trimClipEnd(trackId, clip.id, newEndTime);
-    };
+      e.stopPropagation();
+      const startX = e.clientX;
+      const endTime = clip.startTime + clip.duration;
 
-    const handleMouseUp = () => {
-      setIsTrimming(null);
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaTime = deltaX / pixelsPerSecond;
+        const newEndTime = getSnappedTime(endTime + deltaTime, clip.id);
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  }, [clip, trackId, pixelsPerSecond, trimClipEnd, getSnappedTime]);
+        setIsTrimming("right");
+        trimClipEnd(trackId, clip.id, newEndTime);
+      };
+
+      const handleMouseUp = () => {
+        setIsTrimming(null);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [clip, trackId, pixelsPerSecond, trimClipEnd, getSnappedTime]
+  );
 
   // Handle right-click context menu
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onContextMenu) {
-      onContextMenu(e, clip, trackId);
-    }
-  }, [clip, trackId, onContextMenu]);
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onContextMenu) {
+        onContextMenu(e, clip, trackId);
+      }
+    },
+    [clip, trackId, onContextMenu]
+  );
 
   // Format duration for display
   const formatDuration = (seconds: number): string => {
@@ -276,8 +364,11 @@ const Clip: React.FC<ClipProps> = ({
     "clip",
     isSelected ? "selected" : "",
     isDragging ? "dragging" : "",
-    isTrimming ? "trimming" : ""
-  ].filter(Boolean).join(" ");
+    isTrimming ? "trimming" : "",
+    clip.locked ? "locked" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   // Calculate fade indicator widths
   const fadeInWidth = clip.fadeIn ? (clip.fadeIn / clip.duration) * 100 : 0;
@@ -297,13 +388,20 @@ const Clip: React.FC<ClipProps> = ({
       onContextMenu={handleContextMenu}
     >
       {/* Left trim handle */}
-      <div
-        className="clip-handle handle-left"
-        onMouseDown={handleTrimLeftMouseDown}
-      />
+      {!clip.locked && (
+        <div
+          className="clip-handle handle-left"
+          onMouseDown={handleTrimLeftMouseDown}
+        />
+      )}
 
       {/* Header */}
       <div className="clip-header">
+        {clip.locked && (
+          <span className="clip-lock-icon">
+            <LockIcon sx={{ fontSize: "0.7rem" }} />
+          </span>
+        )}
         <Typography className="clip-name" title={clip.name}>
           {clip.name}
         </Typography>
@@ -318,10 +416,7 @@ const Clip: React.FC<ClipProps> = ({
 
         {/* Fade indicators */}
         {fadeInWidth > 0 && (
-          <div
-            className="clip-fade-in"
-            style={{ width: `${fadeInWidth}%` }}
-          />
+          <div className="clip-fade-in" style={{ width: `${fadeInWidth}%` }} />
         )}
         {fadeOutWidth > 0 && (
           <div
@@ -332,10 +427,12 @@ const Clip: React.FC<ClipProps> = ({
       </div>
 
       {/* Right trim handle */}
-      <div
-        className="clip-handle handle-right"
-        onMouseDown={handleTrimRightMouseDown}
-      />
+      {!clip.locked && (
+        <div
+          className="clip-handle handle-right"
+          onMouseDown={handleTrimRightMouseDown}
+        />
+      )}
     </Box>
   );
 };
