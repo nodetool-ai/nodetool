@@ -89,9 +89,10 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
   }, [defaultZoom, onZoomChange]);
 
   const zoomPercentage = Math.round(zoom * 100);
+  const containerClassName = `nodrag zoom-controls${className ? ` ${className}` : ""}`;
 
   return (
-    <Box css={styles(theme)} className={`nodrag zoom-controls ${className || ""}`}>
+    <Box css={styles(theme)} className={containerClassName}>
       <Tooltip title="Zoom out" placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
         <span>
           <IconButton

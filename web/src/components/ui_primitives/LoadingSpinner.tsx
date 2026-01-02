@@ -44,7 +44,7 @@ const styles = (theme: Theme, variant: string, size: string) =>
     }
   });
 
-export type LoadingVariant = "circular" | "dots" | "spinner";
+export type LoadingVariant = "circular" | "dots";
 
 export interface LoadingSpinnerProps {
   /** Loading variant */
@@ -80,7 +80,6 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
             <span className="dot" />
           </Box>
         );
-      case "spinner":
       case "circular":
       default:
         return <CircularProgress size={circularSize} color={color} />;

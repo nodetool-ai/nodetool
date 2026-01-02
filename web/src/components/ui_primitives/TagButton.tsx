@@ -66,13 +66,14 @@ export const TagButton: React.FC<TagButtonProps> = ({
   const theme = useTheme();
 
   const displayLabel = count !== undefined ? `${label} (${count})` : label;
+  const buttonClassName = `nodrag tag-button${selected ? " selected" : ""}${className ? ` ${className}` : ""}`;
 
   const content =
     variant === "chip" ? (
       <Chip
         label={displayLabel}
         onClick={onClick}
-        className={`nodrag tag-button ${selected ? "selected" : ""} ${className || ""}`}
+        className={buttonClassName}
         color={selected ? "primary" : "default"}
         variant={selected ? "filled" : "outlined"}
         size={size}
@@ -85,7 +86,7 @@ export const TagButton: React.FC<TagButtonProps> = ({
         variant="outlined"
         size={size}
         disabled={disabled}
-        className={`nodrag tag-button ${selected ? "selected" : ""} ${className || ""}`}
+        className={buttonClassName}
       >
         {displayLabel}
       </Button>

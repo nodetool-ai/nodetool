@@ -55,12 +55,13 @@ export const ExternalLink: React.FC<ExternalLinkProps> = ({
 }) => {
   const theme = useTheme();
 
+  // Use theme typography scale for consistent sizing
   const fontSize =
     size === "small"
-      ? theme.fontSizeSmaller
+      ? "0.75rem"
       : size === "large"
-      ? theme.fontSizeNormal
-      : theme.fontSizeSmall;
+      ? "1rem"
+      : "0.875rem";
 
   const getIcon = () => {
     switch (iconVariant) {
@@ -76,13 +77,15 @@ export const ExternalLink: React.FC<ExternalLinkProps> = ({
     }
   };
 
+  const linkClassName = `external-link nodrag${className ? ` ${className}` : ""}`;
+
   const link = (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
       css={styles(theme)}
-      className={`external-link nodrag ${className || ""}`}
+      className={linkClassName}
       style={{ fontSize }}
     >
       <span>{children}</span>
