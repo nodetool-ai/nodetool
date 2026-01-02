@@ -9,6 +9,12 @@
 export { NodeSlider } from "./NodeSlider";
 export type { NodeSliderProps } from "./NodeSlider";
 
+export { NodeButton } from "./NodeButton";
+export type { NodeButtonProps } from "./NodeButton";
+
+export { NodeIconButton } from "./NodeIconButton";
+export type { NodeIconButtonProps } from "./NodeIconButton";
+
 // Re-export editor_ui primitives for convenience
 export {
   NodeTextField,

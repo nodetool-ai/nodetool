@@ -24,7 +24,9 @@ The UI primitives provide:
 
 ### Buttons
 
-- **EditorButton** - Button with density variants
+- **NodeButton** - Button with density variants and changed indicator
+- **NodeIconButton** - Icon button with density variants and changed indicator
+- **EditorButton** - Legacy button with density variants (use NodeButton for new code)
 
 ### Menus
 
@@ -61,7 +63,8 @@ import {
   NodeSelectPrimitive,
   NodeMenuItem,
   NodeSlider,
-  EditorButton
+  NodeButton,
+  NodeIconButton
 } from "../ui_primitives";
 
 // Text input with semantic props
@@ -109,13 +112,38 @@ import {
   changed={hasChanged}
 />
 
-// Button
-<EditorButton
+// Button with variants
+<NodeButton
   onClick={handleClick}
   density="compact"
+  variant="contained"
 >
   Click me
-</EditorButton>
+</NodeButton>
+
+// Button with changed indicator
+<NodeButton
+  onClick={handleReset}
+  changed={hasChanged}
+>
+  Reset to Default
+</NodeButton>
+
+// Icon button
+<NodeIconButton
+  onClick={handleDelete}
+  density="compact"
+>
+  <DeleteIcon />
+</NodeIconButton>
+
+// Icon button with changed indicator
+<NodeIconButton
+  onClick={handleClose}
+  changed={hasChanged}
+>
+  <CloseIcon />
+</NodeIconButton>
 ```
 
 ### Utilities
@@ -239,7 +267,9 @@ ui_primitives/
 ├── NodeSwitch.tsx              # (via editor_ui) Switch primitive
 ├── NodeSelectPrimitive.tsx     # Select and MenuItem primitives
 ├── NodeSlider.tsx              # Slider primitive
-├── EditorButton.tsx            # (via editor_ui) Button primitive
+├── NodeButton.tsx              # Button primitive with semantic props
+├── NodeIconButton.tsx          # Icon button primitive with semantic props
+├── EditorButton.tsx            # (via editor_ui) Legacy button primitive
 └── README.md                   # This file
 ```
 
