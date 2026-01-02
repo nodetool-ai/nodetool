@@ -10,6 +10,7 @@ import TrackList from "./TrackList";
 import TrackLane from "./TrackLane";
 import Playhead from "./Playhead";
 import PreviewWindow from "./PreviewWindow";
+import TimelineAssetBrowser from "./TimelineAssetBrowser";
 import { useTimelineAssetDrop } from "../../hooks/timeline/useTimelineAssetDrop";
 import { pixelsToTime } from "../../utils/timelineUtils";
 
@@ -151,6 +152,17 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: theme.spacing(1)
+    },
+
+    ".timeline-asset-panel": {
+      width: "280px",
+      minWidth: "280px",
+      borderLeft: `1px solid ${
+        theme.vars?.palette?.divider || theme.palette.divider
+      }`,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
     }
   });
 
@@ -165,6 +177,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [isDropZoneDragOver, setIsDropZoneDragOver] = useState(false);
+  const [showAssetBrowser, setShowAssetBrowser] = useState(true);
 
   const {
     project,
@@ -333,6 +346,15 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             <TrackList />
           </div>
         </div>
+
+        {/* Asset Browser Panel */}
+        {showAssetBrowser && (
+          <div className="timeline-asset-panel">
+            <TimelineAssetBrowser
+              onClose={() => setShowAssetBrowser(false)}
+            />
+          </div>
+        )}
 
         {/* Timeline content */}
         <div className="timeline-content">

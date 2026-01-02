@@ -34,6 +34,7 @@ import ImageIcon from "@mui/icons-material/Image";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 
 import useTimelineStore, {
   useTimelineHistory,
@@ -103,7 +104,15 @@ const styles = (theme: Theme) =>
     }
   });
 
-const TimelineToolbar: React.FC = () => {
+interface TimelineToolbarProps {
+  showAssetBrowser?: boolean;
+  onToggleAssetBrowser?: () => void;
+}
+
+const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
+  showAssetBrowser = true,
+  onToggleAssetBrowser
+}) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [addTrackAnchor, setAddTrackAnchor] =
@@ -279,7 +288,22 @@ const TimelineToolbar: React.FC = () => {
           </MenuItem>
         </Menu>
 
-        <Tooltip title="Browse Assets" enterDelay={TOOLTIP_ENTER_DELAY}>
+        {onToggleAssetBrowser && (
+          <Tooltip
+            title={showAssetBrowser ? "Hide Media Panel" : "Show Media Panel"}
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <IconButton
+              size="small"
+              onClick={onToggleAssetBrowser}
+              color={showAssetBrowser ? "primary" : "default"}
+            >
+              <VideoLibraryIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        <Tooltip title="Open Assets Page" enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton size="small" onClick={handleOpenAssets}>
             <FolderOpenIcon fontSize="small" />
           </IconButton>
