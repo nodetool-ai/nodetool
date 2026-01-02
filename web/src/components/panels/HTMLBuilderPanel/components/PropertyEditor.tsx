@@ -3,6 +3,7 @@
  *
  * Professional editor panel for modifying element properties, styles, and bindings.
  * Features collapsible sections with visual controls similar to modern design tools.
+ * Design follows NodeTool's settings panel styling patterns.
  */
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -13,7 +14,6 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   Button,
   IconButton,
   Accordion,
@@ -22,9 +22,7 @@ import {
   Tooltip,
   Chip,
   ToggleButton,
-  ToggleButtonGroup,
-  InputAdornment,
-  SelectChangeEvent
+  ToggleButtonGroup
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -34,7 +32,6 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CropFreeIcon from "@mui/icons-material/CropFree";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import VerticalAlignTopIcon from "@mui/icons-material/VerticalAlignTop";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import FormatAlignCenterIcon from "@mui/icons-material/FormatAlignCenter";
 import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
@@ -54,36 +51,36 @@ interface PropertyEditorProps {
 }
 
 /**
- * Styled input for compact number/text values
+ * Styled input component matching NodeTool's design
  */
-interface CompactInputProps {
+interface PropertyInputProps {
   value: string;
   onChange: (value: string) => void;
   label?: string;
-  unit?: string;
   placeholder?: string;
-  type?: "text" | "number";
+  type?: "text" | "number" | "color";
+  fullWidth?: boolean;
 }
 
-const CompactInput: React.FC<CompactInputProps> = ({
+const PropertyInput: React.FC<PropertyInputProps> = ({
   value,
   onChange,
   label,
-  unit,
-  placeholder = "Auto"
+  placeholder = "",
+  type = "text",
+  fullWidth = true
 }) => {
   const theme = useTheme();
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: fullWidth ? 1 : "none" }}>
       {label && (
         <Typography
-          variant="caption"
           sx={{
-            color: theme.vars.palette.text.secondary,
-            fontSize: "10px",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px"
+            color: theme.vars.palette.c_gray1,
+            fontSize: "0.75rem",
+            fontWeight: 500,
+            marginBottom: "4px"
           }}
         >
           {label}
@@ -93,37 +90,99 @@ const CompactInput: React.FC<CompactInputProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        type={type}
         size="small"
-        slotProps={{
-          input: {
-            endAdornment: unit ? (
-              <InputAdornment position="end">
-                <Typography
-                  variant="caption"
-                  sx={{ color: theme.vars.palette.text.secondary, fontSize: "10px" }}
-                >
-                  {unit}
-                </Typography>
-              </InputAdornment>
-            ) : undefined,
-            sx: {
-              fontSize: "12px",
-              height: "32px",
-              backgroundColor: theme.vars.palette.background.default,
-              "& input": {
-                padding: "6px 8px"
-              }
+        fullWidth={fullWidth}
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            fontSize: "0.8125rem",
+            backgroundColor: theme.vars.palette.background.paper,
+            borderRadius: "4px",
+            "& fieldset": {
+              borderColor: theme.vars.palette.divider
+            },
+            "&:hover fieldset": {
+              borderColor: theme.vars.palette.c_gray2
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: theme.vars.palette.primary.main,
+              borderWidth: 1
             }
+          },
+          "& input": {
+            padding: "8px 12px"
           }
         }}
-        sx={{ width: "100%" }}
       />
     </Box>
   );
 };
 
 /**
- * Spacing box visual editor (margin/padding)
+ * Labeled dropdown select component
+ */
+interface PropertySelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  options: { value: string; label: string }[];
+  fullWidth?: boolean;
+}
+
+const PropertySelect: React.FC<PropertySelectProps> = ({
+  value,
+  onChange,
+  label,
+  options,
+  fullWidth = true
+}) => {
+  const theme = useTheme();
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: fullWidth ? 1 : "none" }}>
+      <Typography
+        sx={{
+          color: theme.vars.palette.c_gray1,
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          marginBottom: "4px"
+        }}
+      >
+        {label}
+      </Typography>
+      <FormControl fullWidth={fullWidth} size="small">
+        <Select
+          value={value}
+          onChange={(e) => onChange(e.target.value as string)}
+          sx={{
+            fontSize: "0.8125rem",
+            backgroundColor: theme.vars.palette.background.paper,
+            borderRadius: "4px",
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.vars.palette.divider
+            },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.vars.palette.c_gray2
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.vars.palette.primary.main,
+              borderWidth: 1
+            }
+          }}
+        >
+          {options.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: "0.8125rem" }}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Box>
+  );
+};
+
+/**
+ * Spacing box visual editor (margin/padding) - improved design
  */
 interface SpacingBoxProps {
   marginTop: string;
@@ -153,15 +212,25 @@ const SpacingBox: React.FC<SpacingBoxProps> = ({
   const theme = useTheme();
 
   const inputStyle = {
-    width: "40px",
+    width: "36px",
     "& input": {
       textAlign: "center" as const,
       padding: "4px",
-      fontSize: "11px"
+      fontSize: "0.75rem"
     },
     "& .MuiOutlinedInput-root": {
-      height: "24px",
-      backgroundColor: "transparent"
+      height: "26px",
+      backgroundColor: "transparent",
+      "& fieldset": {
+        borderColor: theme.vars.palette.divider
+      },
+      "&:hover fieldset": {
+        borderColor: theme.vars.palette.c_gray2
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: theme.vars.palette.primary.main,
+        borderWidth: 1
+      }
     }
   };
 
@@ -170,20 +239,22 @@ const SpacingBox: React.FC<SpacingBoxProps> = ({
       sx={{
         position: "relative",
         backgroundColor: theme.vars.palette.background.default,
-        borderRadius: 1,
-        p: 1
+        borderRadius: "6px",
+        padding: "12px",
+        border: `1px solid ${theme.vars.palette.divider}`
       }}
     >
       {/* Margin label */}
       <Typography
-        variant="caption"
         sx={{
           position: "absolute",
-          top: 4,
-          left: 8,
-          fontSize: "9px",
-          color: theme.vars.palette.text.secondary,
-          textTransform: "uppercase"
+          top: 6,
+          left: 10,
+          fontSize: "0.625rem",
+          color: theme.vars.palette.c_gray1,
+          textTransform: "uppercase",
+          fontWeight: 500,
+          letterSpacing: "0.5px"
         }}
       >
         Margin
@@ -230,21 +301,22 @@ const SpacingBox: React.FC<SpacingBoxProps> = ({
             sx={{
               backgroundColor: theme.vars.palette.background.paper,
               border: `1px solid ${theme.vars.palette.divider}`,
-              borderRadius: 1,
-              p: 1,
+              borderRadius: "4px",
+              padding: "10px",
               position: "relative"
             }}
           >
             {/* Padding label */}
             <Typography
-              variant="caption"
               sx={{
                 position: "absolute",
-                top: 2,
-                left: 6,
-                fontSize: "9px",
-                color: theme.vars.palette.text.secondary,
-                textTransform: "uppercase"
+                top: 4,
+                left: 8,
+                fontSize: "0.625rem",
+                color: theme.vars.palette.c_gray1,
+                textTransform: "uppercase",
+                fontWeight: 500,
+                letterSpacing: "0.5px"
               }}
             >
               Padding
@@ -285,10 +357,10 @@ const SpacingBox: React.FC<SpacingBoxProps> = ({
                 />
                 <Box
                   sx={{
-                    width: 60,
-                    height: 30,
+                    width: 50,
+                    height: 26,
                     backgroundColor: theme.vars.palette.action.hover,
-                    borderRadius: 0.5
+                    borderRadius: "3px"
                   }}
                 />
                 <TextField
@@ -335,7 +407,7 @@ const SpacingBox: React.FC<SpacingBoxProps> = ({
 };
 
 /**
- * Section header with expand/collapse
+ * Section component with professional styling
  */
 interface SectionProps {
   title: string;
@@ -358,32 +430,39 @@ const Section: React.FC<SectionProps> = ({
       sx={{
         backgroundColor: "transparent",
         "&:before": { display: "none" },
+        borderBottom: `1px solid ${theme.vars.palette.divider}`,
+        "&:last-of-type": {
+          borderBottom: "none"
+        },
         "& .MuiAccordionSummary-root": {
-          minHeight: 36,
-          padding: "0 8px",
+          minHeight: 40,
+          padding: "0 12px",
           "&.Mui-expanded": {
-            minHeight: 36
+            minHeight: 40
           }
         },
         "& .MuiAccordionSummary-content": {
-          margin: "8px 0",
+          margin: "10px 0",
           "&.Mui-expanded": {
-            margin: "8px 0"
+            margin: "10px 0"
           }
         }
       }}
     >
       <AccordionSummary
-        expandIcon={<ExpandMoreIcon sx={{ fontSize: 18 }} />}
-        sx={{
-          borderBottom: `1px solid ${theme.vars.palette.divider}`
-        }}
+        expandIcon={<ExpandMoreIcon sx={{ fontSize: 18, color: theme.vars.palette.c_gray2 }} />}
       >
-        <Typography variant="subtitle2" fontWeight={600} fontSize="13px">
+        <Typography 
+          sx={{ 
+            fontWeight: 600, 
+            fontSize: "0.8125rem",
+            color: theme.vars.palette.c_gray0
+          }}
+        >
           {title}
         </Typography>
       </AccordionSummary>
-      <AccordionDetails sx={{ p: 1.5 }}>{children}</AccordionDetails>
+      <AccordionDetails sx={{ p: "4px 12px 16px 12px" }}>{children}</AccordionDetails>
     </Accordion>
   );
 };
@@ -475,16 +554,6 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
     [element, handleStyleChange]
   );
 
-  // Handle position change
-  const handlePositionChange = useCallback(
-    (event: SelectChangeEvent<string>) => {
-      if (element) {
-        handleStyleChange("position", event.target.value);
-      }
-    },
-    [element, handleStyleChange]
-  );
-
   // Parse spacing value from combined shorthand
   const parseSpacing = useMemo(() => {
     if (!element) {
@@ -524,7 +593,12 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           textAlign: "center"
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography 
+          sx={{ 
+            color: theme.vars.palette.c_gray2,
+            fontSize: "0.8125rem"
+          }}
+        >
           Select an element to edit its properties
         </Typography>
       </Box>
@@ -536,6 +610,33 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   const currentOverflow = String(element.styles.overflow || "visible");
   const currentPosition = String(element.styles.position || "static");
 
+  // Common toggle button group styles
+  const toggleButtonGroupSx = {
+    "& .MuiToggleButton-root": {
+      flex: 1,
+      fontSize: "0.75rem",
+      py: 0.75,
+      textTransform: "capitalize",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      "&.Mui-selected": {
+        backgroundColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.primary.contrastText,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.primary.dark
+        }
+      }
+    }
+  };
+
+  // Common label style
+  const labelSx = {
+    color: theme.vars.palette.c_gray1,
+    fontSize: "0.75rem",
+    fontWeight: 500,
+    marginBottom: "6px",
+    display: "block"
+  };
+
   return (
     <Box
       sx={{
@@ -543,40 +644,32 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
         display: "flex",
         flexDirection: "column",
         overflow: "auto",
-        backgroundColor: theme.vars.palette.background.paper
+        backgroundColor: theme.vars.palette.background.default,
+        "&::-webkit-scrollbar": {
+          width: "6px"
+        },
+        "&::-webkit-scrollbar-track": {
+          background: "transparent"
+        },
+        "&::-webkit-scrollbar-thumb": {
+          background: theme.vars.palette.c_gray4,
+          borderRadius: "3px"
+        }
       }}
     >
       {/* Layout Section */}
       <Section title="Layout" defaultExpanded={expandedSections.layout}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* Display Toggle */}
           <Box>
-            <Typography
-              variant="caption"
-              sx={{
-                color: theme.vars.palette.text.secondary,
-                fontSize: "10px",
-                textTransform: "uppercase",
-                mb: 0.5,
-                display: "block"
-              }}
-            >
-              Display
-            </Typography>
+            <Typography sx={labelSx}>Display</Typography>
             <ToggleButtonGroup
               value={currentDisplay}
               exclusive
               onChange={handleDisplayChange}
               size="small"
               fullWidth
-              sx={{
-                "& .MuiToggleButton-root": {
-                  flex: 1,
-                  fontSize: "11px",
-                  py: 0.5,
-                  textTransform: "capitalize"
-                }
-              }}
+              sx={toggleButtonGroupSx}
             >
               <ToggleButton value="block">Block</ToggleButton>
               <ToggleButton value="flex">Flex</ToggleButton>
@@ -587,76 +680,64 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
           {/* Flex direction (show when display is flex) */}
           {currentDisplay === "flex" && (
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <FormControl size="small" fullWidth>
-                <InputLabel sx={{ fontSize: "12px" }}>Direction</InputLabel>
-                <Select
-                  value={String(element.styles.flexDirection || "row")}
-                  label="Direction"
-                  onChange={(e) => handleStyleChange("flexDirection", e.target.value)}
-                  sx={{ fontSize: "12px" }}
-                >
-                  <MenuItem value="row">Row</MenuItem>
-                  <MenuItem value="column">Column</MenuItem>
-                  <MenuItem value="row-reverse">Row Reverse</MenuItem>
-                  <MenuItem value="column-reverse">Column Reverse</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl size="small" fullWidth>
-                <InputLabel sx={{ fontSize: "12px" }}>Wrap</InputLabel>
-                <Select
-                  value={String(element.styles.flexWrap || "nowrap")}
-                  label="Wrap"
-                  onChange={(e) => handleStyleChange("flexWrap", e.target.value)}
-                  sx={{ fontSize: "12px" }}
-                >
-                  <MenuItem value="nowrap">No Wrap</MenuItem>
-                  <MenuItem value="wrap">Wrap</MenuItem>
-                  <MenuItem value="wrap-reverse">Wrap Reverse</MenuItem>
-                </Select>
-              </FormControl>
+            <Box sx={{ display: "flex", gap: "12px" }}>
+              <PropertySelect
+                label="Direction"
+                value={String(element.styles.flexDirection || "row")}
+                onChange={(v) => handleStyleChange("flexDirection", v)}
+                options={[
+                  { value: "row", label: "Row" },
+                  { value: "column", label: "Column" },
+                  { value: "row-reverse", label: "Row Reverse" },
+                  { value: "column-reverse", label: "Column Reverse" }
+                ]}
+              />
+              <PropertySelect
+                label="Wrap"
+                value={String(element.styles.flexWrap || "nowrap")}
+                onChange={(v) => handleStyleChange("flexWrap", v)}
+                options={[
+                  { value: "nowrap", label: "No Wrap" },
+                  { value: "wrap", label: "Wrap" },
+                  { value: "wrap-reverse", label: "Wrap Reverse" }
+                ]}
+              />
             </Box>
           )}
 
           {/* Justify and Align (show when display is flex or grid) */}
           {(currentDisplay === "flex" || currentDisplay === "grid") && (
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <FormControl size="small" fullWidth>
-                <InputLabel sx={{ fontSize: "12px" }}>Justify</InputLabel>
-                <Select
-                  value={String(element.styles.justifyContent || "flex-start")}
-                  label="Justify"
-                  onChange={(e) => handleStyleChange("justifyContent", e.target.value)}
-                  sx={{ fontSize: "12px" }}
-                >
-                  <MenuItem value="flex-start">Start</MenuItem>
-                  <MenuItem value="center">Center</MenuItem>
-                  <MenuItem value="flex-end">End</MenuItem>
-                  <MenuItem value="space-between">Space Between</MenuItem>
-                  <MenuItem value="space-around">Space Around</MenuItem>
-                  <MenuItem value="space-evenly">Space Evenly</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl size="small" fullWidth>
-                <InputLabel sx={{ fontSize: "12px" }}>Align</InputLabel>
-                <Select
-                  value={String(element.styles.alignItems || "stretch")}
-                  label="Align"
-                  onChange={(e) => handleStyleChange("alignItems", e.target.value)}
-                  sx={{ fontSize: "12px" }}
-                >
-                  <MenuItem value="flex-start">Start</MenuItem>
-                  <MenuItem value="center">Center</MenuItem>
-                  <MenuItem value="flex-end">End</MenuItem>
-                  <MenuItem value="stretch">Stretch</MenuItem>
-                  <MenuItem value="baseline">Baseline</MenuItem>
-                </Select>
-              </FormControl>
+            <Box sx={{ display: "flex", gap: "12px" }}>
+              <PropertySelect
+                label="Justify"
+                value={String(element.styles.justifyContent || "flex-start")}
+                onChange={(v) => handleStyleChange("justifyContent", v)}
+                options={[
+                  { value: "flex-start", label: "Start" },
+                  { value: "center", label: "Center" },
+                  { value: "flex-end", label: "End" },
+                  { value: "space-between", label: "Space Between" },
+                  { value: "space-around", label: "Space Around" },
+                  { value: "space-evenly", label: "Space Evenly" }
+                ]}
+              />
+              <PropertySelect
+                label="Align"
+                value={String(element.styles.alignItems || "stretch")}
+                onChange={(v) => handleStyleChange("alignItems", v)}
+                options={[
+                  { value: "flex-start", label: "Start" },
+                  { value: "center", label: "Center" },
+                  { value: "flex-end", label: "End" },
+                  { value: "stretch", label: "Stretch" },
+                  { value: "baseline", label: "Baseline" }
+                ]}
+              />
             </Box>
           )}
 
           {/* Gap */}
-          <CompactInput
+          <PropertyInput
             label="Gap"
             value={String(element.styles.gap || "")}
             onChange={(v) => handleStyleChange("gap", v)}
@@ -683,65 +764,58 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
       {/* Size Section */}
       <Section title="Size" defaultExpanded={expandedSections.size}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {/* Width/Height */}
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <CompactInput
+          <Box sx={{ display: "flex", gap: "12px" }}>
+            <PropertyInput
               label="Width"
               value={String(element.styles.width || "")}
               onChange={(v) => handleStyleChange("width", v)}
+              placeholder="Auto"
             />
-            <CompactInput
+            <PropertyInput
               label="Height"
               value={String(element.styles.height || "")}
               onChange={(v) => handleStyleChange("height", v)}
+              placeholder="Auto"
             />
           </Box>
 
           {/* Min Width/Height */}
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <CompactInput
+          <Box sx={{ display: "flex", gap: "12px" }}>
+            <PropertyInput
               label="Min W"
               value={String(element.styles.minWidth || "")}
               onChange={(v) => handleStyleChange("minWidth", v)}
-              unit="PX"
+              placeholder="0"
             />
-            <CompactInput
+            <PropertyInput
               label="Min H"
               value={String(element.styles.minHeight || "")}
               onChange={(v) => handleStyleChange("minHeight", v)}
-              unit="PX"
+              placeholder="0"
             />
           </Box>
 
           {/* Max Width/Height */}
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <CompactInput
+          <Box sx={{ display: "flex", gap: "12px" }}>
+            <PropertyInput
               label="Max W"
               value={String(element.styles.maxWidth || "")}
               onChange={(v) => handleStyleChange("maxWidth", v)}
+              placeholder="None"
             />
-            <CompactInput
+            <PropertyInput
               label="Max H"
               value={String(element.styles.maxHeight || "")}
               onChange={(v) => handleStyleChange("maxHeight", v)}
+              placeholder="None"
             />
           </Box>
 
           {/* Overflow */}
           <Box>
-            <Typography
-              variant="caption"
-              sx={{
-                color: theme.vars.palette.text.secondary,
-                fontSize: "10px",
-                textTransform: "uppercase",
-                mb: 0.5,
-                display: "block"
-              }}
-            >
-              Overflow
-            </Typography>
+            <Typography sx={labelSx}>Overflow</Typography>
             <ToggleButtonGroup
               value={currentOverflow}
               exclusive
@@ -750,7 +824,12 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
               sx={{
                 "& .MuiToggleButton-root": {
                   px: 1.5,
-                  py: 0.5
+                  py: 0.75,
+                  border: `1px solid ${theme.vars.palette.divider}`,
+                  "&.Mui-selected": {
+                    backgroundColor: theme.vars.palette.primary.main,
+                    color: theme.vars.palette.primary.contrastText
+                  }
                 }
               }}
             >
@@ -781,54 +860,52 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
       {/* Position Section */}
       <Section title="Position" defaultExpanded={expandedSections.position}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-          <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: "12px" }}>Position</InputLabel>
-            <Select
-              value={currentPosition}
-              label="Position"
-              onChange={handlePositionChange}
-              sx={{ fontSize: "12px" }}
-              startAdornment={
-                <VerticalAlignTopIcon sx={{ fontSize: 16, mr: 1, color: theme.vars.palette.text.secondary }} />
-              }
-            >
-              <MenuItem value="static">Static</MenuItem>
-              <MenuItem value="relative">Relative</MenuItem>
-              <MenuItem value="absolute">Absolute</MenuItem>
-              <MenuItem value="fixed">Fixed</MenuItem>
-              <MenuItem value="sticky">Sticky</MenuItem>
-            </Select>
-          </FormControl>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <PropertySelect
+            label="Position"
+            value={currentPosition}
+            onChange={(v) => handleStyleChange("position", v)}
+            options={[
+              { value: "static", label: "Static" },
+              { value: "relative", label: "Relative" },
+              { value: "absolute", label: "Absolute" },
+              { value: "fixed", label: "Fixed" },
+              { value: "sticky", label: "Sticky" }
+            ]}
+          />
 
           {/* Position offsets (show when not static) */}
           {currentPosition !== "static" && (
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
-              <CompactInput
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <PropertyInput
                 label="Top"
                 value={String(element.styles.top || "")}
                 onChange={(v) => handleStyleChange("top", v)}
+                placeholder="auto"
               />
-              <CompactInput
+              <PropertyInput
                 label="Right"
                 value={String(element.styles.right || "")}
                 onChange={(v) => handleStyleChange("right", v)}
+                placeholder="auto"
               />
-              <CompactInput
+              <PropertyInput
                 label="Bottom"
                 value={String(element.styles.bottom || "")}
                 onChange={(v) => handleStyleChange("bottom", v)}
+                placeholder="auto"
               />
-              <CompactInput
+              <PropertyInput
                 label="Left"
                 value={String(element.styles.left || "")}
                 onChange={(v) => handleStyleChange("left", v)}
+                placeholder="auto"
               />
             </Box>
           )}
 
           {/* Z-index */}
-          <CompactInput
+          <PropertyInput
             label="Z-Index"
             value={String(element.styles.zIndex || "")}
             onChange={(v) => handleStyleChange("zIndex", v)}
@@ -839,58 +916,52 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
       {/* Typography Section */}
       <Section title="Typography" defaultExpanded={expandedSections.typography}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {/* Font Family */}
-          <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: "12px" }}>Font</InputLabel>
-            <Select
-              value={String(element.styles.fontFamily || "inherit")}
-              label="Font"
-              onChange={(e) => handleStyleChange("fontFamily", e.target.value)}
-              sx={{ fontSize: "12px" }}
-            >
-              <MenuItem value="inherit">Inherit</MenuItem>
-              <MenuItem value="Arial, sans-serif">Arial</MenuItem>
-              <MenuItem value="'Helvetica Neue', sans-serif">Helvetica</MenuItem>
-              <MenuItem value="'Times New Roman', serif">Times New Roman</MenuItem>
-              <MenuItem value="Georgia, serif">Georgia</MenuItem>
-              <MenuItem value="'Courier New', monospace">Courier New</MenuItem>
-              <MenuItem value="Roboto, sans-serif">Roboto</MenuItem>
-              <MenuItem value="'Open Sans', sans-serif">Open Sans</MenuItem>
-              <MenuItem value="system-ui, sans-serif">System UI</MenuItem>
-            </Select>
-          </FormControl>
+          <PropertySelect
+            label="Font"
+            value={String(element.styles.fontFamily || "inherit")}
+            onChange={(v) => handleStyleChange("fontFamily", v)}
+            options={[
+              { value: "inherit", label: "Inherit" },
+              { value: "Arial, sans-serif", label: "Arial" },
+              { value: "'Helvetica Neue', sans-serif", label: "Helvetica" },
+              { value: "'Times New Roman', serif", label: "Times New Roman" },
+              { value: "Georgia, serif", label: "Georgia" },
+              { value: "'Courier New', monospace", label: "Courier New" },
+              { value: "Roboto, sans-serif", label: "Roboto" },
+              { value: "'Open Sans', sans-serif", label: "Open Sans" },
+              { value: "system-ui, sans-serif", label: "System UI" }
+            ]}
+          />
 
           {/* Font Weight */}
-          <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: "12px" }}>Weight</InputLabel>
-            <Select
-              value={String(element.styles.fontWeight || "400")}
-              label="Weight"
-              onChange={(e) => handleStyleChange("fontWeight", e.target.value)}
-              sx={{ fontSize: "12px" }}
-            >
-              <MenuItem value="100">100 - Thin</MenuItem>
-              <MenuItem value="200">200 - Extra Light</MenuItem>
-              <MenuItem value="300">300 - Light</MenuItem>
-              <MenuItem value="400">400 - Normal</MenuItem>
-              <MenuItem value="500">500 - Medium</MenuItem>
-              <MenuItem value="600">600 - Semi Bold</MenuItem>
-              <MenuItem value="700">700 - Bold</MenuItem>
-              <MenuItem value="800">800 - Extra Bold</MenuItem>
-              <MenuItem value="900">900 - Black</MenuItem>
-            </Select>
-          </FormControl>
+          <PropertySelect
+            label="Weight"
+            value={String(element.styles.fontWeight || "400")}
+            onChange={(v) => handleStyleChange("fontWeight", v)}
+            options={[
+              { value: "100", label: "100 - Thin" },
+              { value: "200", label: "200 - Extra Light" },
+              { value: "300", label: "300 - Light" },
+              { value: "400", label: "400 - Normal" },
+              { value: "500", label: "500 - Medium" },
+              { value: "600", label: "600 - Semi Bold" },
+              { value: "700", label: "700 - Bold" },
+              { value: "800", label: "800 - Extra Bold" },
+              { value: "900", label: "900 - Black" }
+            ]}
+          />
 
           {/* Font Size and Line Height */}
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <CompactInput
+          <Box sx={{ display: "flex", gap: "12px" }}>
+            <PropertyInput
               label="Size"
               value={String(element.styles.fontSize || "")}
               onChange={(v) => handleStyleChange("fontSize", v)}
               placeholder="16px"
             />
-            <CompactInput
+            <PropertyInput
               label="Line Height"
               value={String(element.styles.lineHeight || "")}
               onChange={(v) => handleStyleChange("lineHeight", v)}
@@ -899,7 +970,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           </Box>
 
           {/* Letter Spacing */}
-          <CompactInput
+          <PropertyInput
             label="Letter Spacing"
             value={String(element.styles.letterSpacing || "")}
             onChange={(v) => handleStyleChange("letterSpacing", v)}
@@ -908,18 +979,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
           {/* Text Align */}
           <Box>
-            <Typography
-              variant="caption"
-              sx={{
-                color: theme.vars.palette.text.secondary,
-                fontSize: "10px",
-                textTransform: "uppercase",
-                mb: 0.5,
-                display: "block"
-              }}
-            >
-              Text Align
-            </Typography>
+            <Typography sx={labelSx}>Text Align</Typography>
             <ToggleButtonGroup
               value={currentTextAlign}
               exclusive
@@ -928,7 +988,12 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
               sx={{
                 "& .MuiToggleButton-root": {
                   px: 1.5,
-                  py: 0.5
+                  py: 0.75,
+                  border: `1px solid ${theme.vars.palette.divider}`,
+                  "&.Mui-selected": {
+                    backgroundColor: theme.vars.palette.primary.main,
+                    color: theme.vars.palette.primary.contrastText
+                  }
                 }
               }}
             >
@@ -948,88 +1013,94 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           </Box>
 
           {/* Text Color */}
-          <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
-            <Box sx={{ flex: 1 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: theme.vars.palette.text.secondary,
-                  fontSize: "10px",
-                  textTransform: "uppercase",
-                  mb: 0.5,
-                  display: "block"
-                }}
-              >
-                Color
-              </Typography>
+          <Box>
+            <Typography sx={labelSx}>Color</Typography>
+            <Box sx={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <TextField
                 type="color"
                 value={String(element.styles.color || "#000000")}
                 onChange={(e) => handleStyleChange("color", e.target.value)}
                 size="small"
                 sx={{
-                  width: 50,
-                  "& input": { padding: "4px", height: "24px", cursor: "pointer" }
+                  width: 44,
+                  "& .MuiOutlinedInput-root": {
+                    padding: 0,
+                    "& fieldset": { borderColor: theme.vars.palette.divider }
+                  },
+                  "& input": { 
+                    padding: "6px", 
+                    height: "28px", 
+                    cursor: "pointer",
+                    borderRadius: "4px"
+                  }
+                }}
+              />
+              <TextField
+                value={String(element.styles.color || "")}
+                onChange={(e) => handleStyleChange("color", e.target.value)}
+                placeholder="#000000"
+                size="small"
+                sx={{
+                  flex: 1,
+                  "& .MuiOutlinedInput-root": {
+                    fontSize: "0.8125rem",
+                    backgroundColor: theme.vars.palette.background.paper,
+                    "& fieldset": { borderColor: theme.vars.palette.divider }
+                  },
+                  "& input": { padding: "8px 12px" }
                 }}
               />
             </Box>
-            <TextField
-              value={String(element.styles.color || "")}
-              onChange={(e) => handleStyleChange("color", e.target.value)}
-              placeholder="#000000"
-              size="small"
-              sx={{
-                flex: 2,
-                "& input": { fontSize: "12px" }
-              }}
-            />
           </Box>
         </Box>
       </Section>
 
       {/* Appearance Section */}
       <Section title="Appearance" defaultExpanded={expandedSections.appearance}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {/* Background Color */}
-          <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
-            <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: theme.vars.palette.text.secondary,
-                  fontSize: "10px",
-                  textTransform: "uppercase",
-                  mb: 0.5,
-                  display: "block"
-                }}
-              >
-                Background
-              </Typography>
+          <Box>
+            <Typography sx={labelSx}>Background</Typography>
+            <Box sx={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <TextField
                 type="color"
                 value={String(element.styles.backgroundColor || "#ffffff")}
                 onChange={(e) => handleStyleChange("backgroundColor", e.target.value)}
                 size="small"
                 sx={{
-                  width: 50,
-                  "& input": { padding: "4px", height: "24px", cursor: "pointer" }
+                  width: 44,
+                  "& .MuiOutlinedInput-root": {
+                    padding: 0,
+                    "& fieldset": { borderColor: theme.vars.palette.divider }
+                  },
+                  "& input": { 
+                    padding: "6px", 
+                    height: "28px", 
+                    cursor: "pointer",
+                    borderRadius: "4px"
+                  }
+                }}
+              />
+              <TextField
+                value={String(element.styles.backgroundColor || "")}
+                onChange={(e) => handleStyleChange("backgroundColor", e.target.value)}
+                placeholder="transparent"
+                size="small"
+                sx={{
+                  flex: 1,
+                  "& .MuiOutlinedInput-root": {
+                    fontSize: "0.8125rem",
+                    backgroundColor: theme.vars.palette.background.paper,
+                    "& fieldset": { borderColor: theme.vars.palette.divider }
+                  },
+                  "& input": { padding: "8px 12px" }
                 }}
               />
             </Box>
-            <TextField
-              value={String(element.styles.backgroundColor || "")}
-              onChange={(e) => handleStyleChange("backgroundColor", e.target.value)}
-              placeholder="transparent"
-              size="small"
-              sx={{
-                flex: 1,
-                "& input": { fontSize: "12px" }
-              }}
-            />
           </Box>
 
           {/* Border Radius */}
-          <CompactInput
+          <PropertyInput
             label="Border Radius"
             value={String(element.styles.borderRadius || "")}
             onChange={(v) => handleStyleChange("borderRadius", v)}
@@ -1037,7 +1108,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           />
 
           {/* Border */}
-          <CompactInput
+          <PropertyInput
             label="Border"
             value={String(element.styles.border || "")}
             onChange={(v) => handleStyleChange("border", v)}
@@ -1045,7 +1116,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           />
 
           {/* Box Shadow */}
-          <CompactInput
+          <PropertyInput
             label="Box Shadow"
             value={String(element.styles.boxShadow || "")}
             onChange={(v) => handleStyleChange("boxShadow", v)}
@@ -1053,7 +1124,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           />
 
           {/* Opacity */}
-          <CompactInput
+          <PropertyInput
             label="Opacity"
             value={String(element.styles.opacity || "")}
             onChange={(v) => handleStyleChange("opacity", v)}
@@ -1064,20 +1135,20 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
       {/* Attributes Section */}
       <Section title="Attributes" defaultExpanded={false}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-          <CompactInput
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <PropertyInput
             label="ID"
             value={element.attributes.id || ""}
             onChange={(v) => handleAttributeChange("id", v)}
             placeholder="element-id"
           />
-          <CompactInput
+          <PropertyInput
             label="Class"
             value={element.attributes.class || ""}
             onChange={(v) => handleAttributeChange("class", v)}
             placeholder="class-name"
           />
-          <CompactInput
+          <PropertyInput
             label="Title"
             value={element.attributes.title || ""}
             onChange={(v) => handleAttributeChange("title", v)}
@@ -1087,13 +1158,13 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           {/* Tag-specific attributes */}
           {element.tag === "a" && (
             <>
-              <CompactInput
+              <PropertyInput
                 label="Href"
                 value={element.attributes.href || ""}
                 onChange={(v) => handleAttributeChange("href", v)}
                 placeholder="https://..."
               />
-              <CompactInput
+              <PropertyInput
                 label="Target"
                 value={element.attributes.target || ""}
                 onChange={(v) => handleAttributeChange("target", v)}
@@ -1103,13 +1174,13 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           )}
           {element.tag === "img" && (
             <>
-              <CompactInput
+              <PropertyInput
                 label="Src"
                 value={element.attributes.src || ""}
                 onChange={(v) => handleAttributeChange("src", v)}
                 placeholder="image-url"
               />
-              <CompactInput
+              <PropertyInput
                 label="Alt"
                 value={element.attributes.alt || ""}
                 onChange={(v) => handleAttributeChange("alt", v)}
@@ -1122,7 +1193,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
       {/* Bindings Section */}
       <Section title="Property Bindings" defaultExpanded={expandedSections.bindings}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {/* Existing bindings */}
           {Object.entries(element.propertyBindings).length > 0 && (
             <Box>
@@ -1133,22 +1204,28 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 1,
-                    p: 1,
+                    p: 1.5,
                     mb: 1,
-                    borderRadius: 1,
-                    backgroundColor: theme.vars.palette.action.hover
+                    borderRadius: "6px",
+                    backgroundColor: theme.vars.palette.background.paper,
+                    border: `1px solid ${theme.vars.palette.divider}`
                   }}
                 >
-                  <LinkIcon fontSize="small" color="primary" />
+                  <LinkIcon fontSize="small" sx={{ color: theme.vars.palette.primary.main }} />
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" fontSize="12px">
+                    <Typography sx={{ fontSize: "0.8125rem", fontWeight: 500 }}>
                       {binding.propertyName}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" fontSize="10px">
+                    <Typography sx={{ fontSize: "0.75rem", color: theme.vars.palette.c_gray2 }}>
                       → {binding.bindingType === "content" ? "content" : binding.attributeName || binding.styleProperty}
                     </Typography>
                   </Box>
-                  <Chip label={binding.propertyType} size="small" variant="outlined" sx={{ fontSize: "10px" }} />
+                  <Chip 
+                    label={binding.propertyType} 
+                    size="small" 
+                    variant="outlined" 
+                    sx={{ fontSize: "0.625rem", height: "20px" }} 
+                  />
                   <Tooltip title="Remove binding">
                     <IconButton size="small" onClick={() => handleUnbind(key)}>
                       <LinkOffIcon sx={{ fontSize: 14 }} />
@@ -1165,7 +1242,15 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
             startIcon={<LinkIcon />}
             onClick={() => onOpenBindingDialog?.(element.id, "content")}
             size="small"
-            sx={{ fontSize: "12px" }}
+            sx={{ 
+              fontSize: "0.8125rem",
+              borderColor: theme.vars.palette.divider,
+              color: theme.vars.palette.c_gray1,
+              "&:hover": {
+                borderColor: theme.vars.palette.primary.main,
+                backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
+              }
+            }}
           >
             Add Property Binding
           </Button>
@@ -1173,12 +1258,13 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           {/* Template syntax help */}
           <Box
             sx={{
-              p: 1,
-              backgroundColor: theme.vars.palette.action.hover,
-              borderRadius: 1
+              p: 1.5,
+              backgroundColor: theme.vars.palette.background.paper,
+              borderRadius: "6px",
+              border: `1px solid ${theme.vars.palette.divider}`
             }}
           >
-            <Typography variant="caption" color="text.secondary" fontSize="10px">
+            <Typography sx={{ fontSize: "0.75rem", color: theme.vars.palette.c_gray2 }}>
               Use {"{{property_name}}"} in text content or attributes for dynamic values
             </Typography>
           </Box>
