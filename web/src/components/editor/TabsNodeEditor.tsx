@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQueries } from "@tanstack/react-query";
 import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -19,6 +19,10 @@ import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { VersionHistoryPanel } from "../version";
+import { useVersionHistoryStore, WorkflowVersion } from "../../stores/VersionHistoryStore";
+import { useAutosave } from "../../hooks/useAutosave";
+import { Drawer } from "@mui/material";
 // import { getIsElectronDetails } from "../../utils/browser";
 
 const styles = (theme: Theme) =>
@@ -272,6 +276,65 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       : undefined
   );
 
+  const { isHistoryPanelOpen, setHistoryPanelOpen, saveVersion, incrementEditCount } = useVersionHistoryStore(
+    (state) => ({
+      isHistoryPanelOpen: state.isHistoryPanelOpen,
+      setHistoryPanelOpen: state.setHistoryPanelOpen,
+      saveVersion: state.saveVersion,
+      incrementEditCount: state.incrementEditCount
+    })
+  );
+
+  const { saveWorkflow: saveWorkflowToBackend } = useWorkflowManager((state) => ({
+    saveWorkflow: state.saveWorkflow
+  }));
+
+  // Autosave hook integration
+  const getWorkflowForAutosave = useCallback(() => {
+    if (!activeNodeStore) {
+      return undefined;
+    }
+    return activeNodeStore.getState().getWorkflow();
+  }, [activeNodeStore]);
+
+  const getIsDirty = useCallback(() => {
+    if (!activeNodeStore) {
+      return false;
+    }
+    return activeNodeStore.getState().workflowIsDirty;
+  }, [activeNodeStore]);
+
+  const handleAutosaveWorkflow = useCallback(async (workflow: Workflow) => {
+    await saveWorkflowToBackend(workflow);
+  }, [saveWorkflowToBackend]);
+
+  // Use the autosave hook
+  useAutosave({
+    workflowId: currentWorkflowId || null,
+    getWorkflow: getWorkflowForAutosave,
+    isDirty: getIsDirty,
+    onSaveWorkflow: handleAutosaveWorkflow
+  });
+
+  // Track edit counts for significant changes autosave
+  useEffect(() => {
+    if (!activeNodeStore || !currentWorkflowId) {
+      return;
+    }
+
+    // Subscribe to node store changes to increment edit count
+    const unsubscribe = activeNodeStore.subscribe((state, prevState) => {
+      // Only count significant changes (nodes or edges changed)
+      if (state.nodes !== prevState.nodes || state.edges !== prevState.edges) {
+        incrementEditCount(currentWorkflowId);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [activeNodeStore, currentWorkflowId, incrementEditCount]);
+
   // const electronDetectionDetails = getIsElectronDetails();
   // const isElectron = electronDetectionDetails.isElectron;
   // const isMac = normalizedPlatform.includes("mac");
@@ -375,6 +438,38 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
 
   const theme = useTheme();
 
+  // Handler to restore a workflow version
+  const handleRestoreVersion = (version: WorkflowVersion) => {
+    if (!activeNodeStore || !currentWorkflowId) {
+      return;
+    }
+
+    const storeState = activeNodeStore.getState();
+    const workflow = storeState.getWorkflow();
+
+    // Save current state as a "restore" version before applying the old one
+    if (workflow && workflow.graph) {
+      saveVersion(currentWorkflowId, workflow.graph, "restore", "Before restore");
+    }
+
+    // Import the conversion functions dynamically to avoid circular deps
+    import("../../stores/graphNodeToReactFlowNode").then(({ graphNodeToReactFlowNode }) => {
+      import("../../stores/graphEdgeToReactFlowEdge").then(({ graphEdgeToReactFlowEdge }) => {
+        const graph = version.graph_snapshot;
+        const newNodes = graph.nodes.map((n) =>
+          graphNodeToReactFlowNode({ ...workflow, graph } as Workflow, n)
+        );
+        const newEdges = graph.edges.map((e) => graphEdgeToReactFlowEdge(e));
+
+        storeState.setNodes(newNodes);
+        storeState.setEdges(newEdges);
+        storeState.setWorkflowDirty(true);
+      });
+    });
+
+    setHistoryPanelOpen(false);
+  };
+
   return (
     <>
       {workflowToEdit && (
@@ -452,6 +547,29 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
           </div>
         )}
       </div>
+
+      {/* Version History Drawer */}
+      <Drawer
+        anchor="right"
+        open={isHistoryPanelOpen && !!currentWorkflowId}
+        onClose={() => setHistoryPanelOpen(false)}
+        variant="persistent"
+        sx={{
+          "& .MuiDrawer-paper": {
+            width: 360,
+            top: hideContent ? 0 : 40,
+            height: hideContent ? "100%" : "calc(100% - 40px)"
+          }
+        }}
+      >
+        {currentWorkflowId && (
+          <VersionHistoryPanel
+            workflowId={currentWorkflowId}
+            onRestore={handleRestoreVersion}
+            onClose={() => setHistoryPanelOpen(false)}
+          />
+        )}
+      </Drawer>
     </>
   );
 };
