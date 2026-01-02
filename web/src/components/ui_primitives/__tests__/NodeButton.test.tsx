@@ -7,17 +7,6 @@ import mockTheme from "../../../__mocks__/themeMock";
 // Add fontSizeTiny to mockTheme for NodeButton
 (mockTheme as any).fontSizeTiny = "0.65em";
 
-// Create mock button component outside of jest.mock
-const MockButton = forwardRef<
-  HTMLButtonElement,
-  { children?: React.ReactNode; className?: string }
->(({ children, className, ...rest }, ref) => (
-  <button ref={ref} className={className} {...rest}>
-    {children}
-  </button>
-));
-MockButton.displayName = "MockButton";
-
 // Mock MUI Button to avoid reliance on theme.vars internals in tests
 jest.mock("@mui/material/Button", () => ({
   __esModule: true,
