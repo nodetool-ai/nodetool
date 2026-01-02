@@ -144,7 +144,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: theme.palette.background.default
+        backgroundColor: theme.vars.palette.background.default
       }}
     >
       {/* Toolbar */}
@@ -154,7 +154,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           alignItems: "center",
           gap: 1,
           p: 1,
-          borderBottom: `1px solid ${theme.palette.divider}`
+          borderBottom: `1px solid ${theme.vars.palette.divider}`
         }}
       >
         {/* View mode toggle */}
@@ -244,7 +244,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           p: 2,
           backgroundColor:
             currentBreakpoint !== "desktop"
-              ? theme.palette.grey[900]
+              ? theme.vars.palette.grey[900]
               : "transparent"
         }}
       >
@@ -264,7 +264,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
                   : "none",
               border:
                 currentBreakpoint !== "desktop"
-                  ? `2px solid ${theme.palette.grey[700]}`
+                  ? `2px solid ${theme.vars.palette.grey[700]}`
                   : "none"
             }}
           >
@@ -292,8 +292,8 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
               style={{
                 margin: 0,
                 padding: "16px",
-                backgroundColor: theme.palette.grey[900],
-                color: theme.palette.grey[100],
+                backgroundColor: theme.vars.palette.grey[900],
+                color: theme.vars.palette.grey[100],
                 fontFamily: '"JetBrains Mono", monospace',
                 fontSize: "13px",
                 lineHeight: 1.5,
@@ -317,8 +317,8 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           gap: 2,
           px: 2,
           py: 0.5,
-          borderTop: `1px solid ${theme.palette.divider}`,
-          backgroundColor: theme.palette.background.paper
+          borderTop: `1px solid ${theme.vars.palette.divider}`,
+          backgroundColor: theme.vars.palette.background.paper
         }}
       >
         <Typography variant="caption" color="text.secondary">

@@ -113,14 +113,14 @@ const ComponentItem: React.FC<ComponentItemProps> = ({
           py: 1,
           px: 1.5,
           "&:hover": {
-            backgroundColor: theme.palette.action.hover
+            backgroundColor: theme.vars.palette.action.hover
           },
           "&:active": {
             cursor: "grabbing"
           }
         }}
       >
-        <ListItemIcon sx={{ minWidth: 36, color: theme.palette.text.secondary }}>
+        <ListItemIcon sx={{ minWidth: 36, color: theme.vars.palette.text.secondary }}>
           {getIconComponent(component.icon)}
         </ListItemIcon>
         <ListItemText
@@ -233,7 +233,7 @@ export const ComponentLibrary: React.FC<ComponentLibraryProps> = ({
       }}
     >
       {/* Header */}
-      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.vars.palette.divider}` }}>
         <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
           Components
         </Typography>

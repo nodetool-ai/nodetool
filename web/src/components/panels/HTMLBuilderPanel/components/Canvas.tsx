@@ -62,9 +62,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
       position: "relative" as const,
       cursor: "pointer",
       outline: isSelected
-        ? `2px solid ${theme.palette.primary.main}`
+        ? `2px solid ${theme.vars.palette.primary.main}`
         : isMultiSelected
-          ? `2px dashed ${theme.palette.primary.light}`
+          ? `2px dashed ${theme.vars.palette.primary.light}`
           : "1px dashed transparent",
       outlineOffset: "2px",
       transition: "outline 0.15s ease",
@@ -73,7 +73,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     };
 
     return baseStyles;
-  }, [element.styles, element.children.length, element.textContent, isSelected, isMultiSelected, theme.palette.primary]);
+  }, [element.styles, element.children.length, element.textContent, isSelected, isMultiSelected, theme.vars.palette.primary]);
 
   // Render children
   const renderedChildren = useMemo(() => {
@@ -202,9 +202,9 @@ export const Canvas: React.FC<CanvasProps> = ({
     width: "100%",
     height: "100%",
     minHeight: "400px",
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.vars.palette.background.paper,
     backgroundImage: canvas.gridEnabled
-      ? `linear-gradient(${theme.palette.divider} 1px, transparent 1px), linear-gradient(90deg, ${theme.palette.divider} 1px, transparent 1px)`
+      ? `linear-gradient(${theme.vars.palette.divider} 1px, transparent 1px), linear-gradient(90deg, ${theme.vars.palette.divider} 1px, transparent 1px)`
       : "none",
     backgroundSize: `${canvas.gridSize}px ${canvas.gridSize}px`,
     backgroundPosition: `${canvas.panOffset.x}px ${canvas.panOffset.y}px`,
@@ -213,7 +213,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     transform: `scale(${canvas.zoom})`,
     transformOrigin: "top left",
     cursor: "default"
-  }), [theme.palette, canvas]);
+  }), [theme.vars.palette, canvas]);
 
   return (
     <Box
@@ -232,7 +232,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             justifyContent: "center",
             height: "100%",
             minHeight: "300px",
-            color: theme.palette.text.secondary,
+            color: theme.vars.palette.text.secondary,
             textAlign: "center",
             p: 4
           }}

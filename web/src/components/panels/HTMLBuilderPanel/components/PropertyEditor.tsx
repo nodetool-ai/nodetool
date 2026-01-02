@@ -213,7 +213,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Element info header */}
-      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.vars.palette.divider}` }}>
         <Typography variant="subtitle2" fontWeight="bold">
           {element.displayName || element.tag.toUpperCase()}
         </Typography>
@@ -227,7 +227,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
         value={activeTab}
         onChange={handleTabChange}
         variant="fullWidth"
-        sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}
+        sx={{ borderBottom: `1px solid ${theme.vars.palette.divider}` }}
       >
         <Tab label="Properties" />
         <Tab label="Styles" />
@@ -417,7 +417,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                       p: 1,
                       mb: 1,
                       borderRadius: 1,
-                      backgroundColor: theme.palette.action.hover
+                      backgroundColor: theme.vars.palette.action.hover
                     }}
                   >
                     <LinkIcon fontSize="small" color="primary" />
@@ -469,7 +469,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           <Box
             sx={{
               p: 1.5,
-              backgroundColor: theme.palette.action.hover,
+              backgroundColor: theme.vars.palette.action.hover,
               borderRadius: 1,
               fontFamily: "monospace",
               fontSize: "0.85em"

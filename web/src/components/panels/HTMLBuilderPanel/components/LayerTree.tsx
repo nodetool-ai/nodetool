@@ -170,15 +170,15 @@ const LayerItem: React.FC<LayerItemProps> = ({
           pl: depth * 2 + 1,
           cursor: "pointer",
           backgroundColor: isSelected
-            ? theme.palette.action.selected
+            ? theme.vars.palette.action.selected
             : "transparent",
           "&:hover": {
             backgroundColor: isSelected
-              ? theme.palette.action.selected
-              : theme.palette.action.hover
+              ? theme.vars.palette.action.selected
+              : theme.vars.palette.action.hover
           },
           borderLeft: isSelected
-            ? `2px solid ${theme.palette.primary.main}`
+            ? `2px solid ${theme.vars.palette.primary.main}`
             : "2px solid transparent",
           transition: "all 0.15s ease"
         }}
@@ -365,7 +365,7 @@ export const LayerTree: React.FC<LayerTreeProps> = ({ onElementSelect }) => {
       <Box
         sx={{
           p: 2,
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          borderBottom: `1px solid ${theme.vars.palette.divider}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between"

@@ -275,7 +275,7 @@ export const HTMLBuilderPanel: React.FC<HTMLBuilderPanelProps> = ({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: theme.vars.palette.background.default,
         overflow: "hidden"
       }}
     >
@@ -286,8 +286,8 @@ export const HTMLBuilderPanel: React.FC<HTMLBuilderPanelProps> = ({
           alignItems: "center",
           gap: 1,
           p: 1,
-          borderBottom: `1px solid ${theme.palette.divider}`,
-          backgroundColor: theme.palette.background.paper
+          borderBottom: `1px solid ${theme.vars.palette.divider}`,
+          backgroundColor: theme.vars.palette.background.paper
         }}
       >
         <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 2 }}>
@@ -383,15 +383,15 @@ export const HTMLBuilderPanel: React.FC<HTMLBuilderPanelProps> = ({
             flexShrink: 0,
             display: "flex",
             flexDirection: "column",
-            borderRight: `1px solid ${theme.palette.divider}`,
-            backgroundColor: theme.palette.background.paper
+            borderRight: `1px solid ${theme.vars.palette.divider}`,
+            backgroundColor: theme.vars.palette.background.paper
           }}
         >
           <Tabs
             value={leftTab}
             onChange={(_, v) => setLeftTab(v)}
             variant="fullWidth"
-            sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}
+            sx={{ borderBottom: `1px solid ${theme.vars.palette.divider}` }}
           >
             <Tab label="Components" value="components" />
             <Tab label="Layers" value="layers" />
@@ -424,15 +424,15 @@ export const HTMLBuilderPanel: React.FC<HTMLBuilderPanelProps> = ({
             flexShrink: 0,
             display: "flex",
             flexDirection: "column",
-            borderLeft: `1px solid ${theme.palette.divider}`,
-            backgroundColor: theme.palette.background.paper
+            borderLeft: `1px solid ${theme.vars.palette.divider}`,
+            backgroundColor: theme.vars.palette.background.paper
           }}
         >
           <Tabs
             value={rightTab}
             onChange={(_, v) => setRightTab(v)}
             variant="fullWidth"
-            sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}
+            sx={{ borderBottom: `1px solid ${theme.vars.palette.divider}` }}
           >
             <Tab label="Properties" value="properties" />
             <Tab label="Preview" value="preview" />

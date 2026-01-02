@@ -299,7 +299,7 @@ export const PropertyBindingDialog: React.FC<PropertyBindingDialogProps> = ({
                         mb: 0.5,
                         border:
                           selectedInput?.name === input.name
-                            ? `2px solid ${theme.palette.primary.main}`
+                            ? `2px solid ${theme.vars.palette.primary.main}`
                             : "2px solid transparent"
                       }}
                     >
@@ -326,7 +326,7 @@ export const PropertyBindingDialog: React.FC<PropertyBindingDialogProps> = ({
               <Box
                 sx={{
                   p: 2,
-                  backgroundColor: theme.palette.action.hover,
+                  backgroundColor: theme.vars.palette.action.hover,
                   borderRadius: 1
                 }}
               >
