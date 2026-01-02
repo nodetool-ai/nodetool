@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback, useState } from "react";
+import React, { useRef, useEffect, useCallback, useState, useMemo } from "react";
 import { Box, Typography, IconButton, Tooltip, Slider } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 
@@ -11,8 +11,15 @@ import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 
-import useTimelineStore from "../../stores/TimelineStore";
+import useTimelineStore, { Clip, Track } from "../../stores/TimelineStore";
 import { formatTimeShort } from "../../utils/timelineUtils";
+import {
+  calculateClipOpacity,
+  isInTransition,
+  renderWithTransition,
+  renderClipWithFades
+} from "../../utils/timeline/transitionRenderer";
+import { useMediaSources } from "../../hooks/timeline/useMediaSources";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const styles = (theme: Theme) =>
@@ -134,6 +141,44 @@ const styles = (theme: Theme) =>
     }
   });
 
+/**
+ * Find visual clips at a specific time, including those in transition
+ */
+function findVisualClipsAtTime(
+  tracks: Track[],
+  currentTime: number
+): { current: Clip | null; next: Clip | null; track: Track | null } {
+  for (const track of tracks) {
+    if (track.type !== "video" && track.type !== "image") continue;
+    if (!track.visible || track.muted) continue;
+
+    // Find clips at current time and the next clip
+    const sortedClips = [...track.clips].sort((a, b) => a.startTime - b.startTime);
+
+    for (let i = 0; i < sortedClips.length; i++) {
+      const clip = sortedClips[i];
+      const clipEnd = clip.startTime + clip.duration;
+      const nextClip = sortedClips[i + 1];
+
+      // Check if we're in this clip
+      if (currentTime >= clip.startTime && currentTime < clipEnd) {
+        // Check if we're in a transition to the next clip
+        if (nextClip && isInTransition(currentTime, clip, nextClip)) {
+          return { current: clip, next: nextClip, track };
+        }
+        return { current: clip, next: null, track };
+      }
+
+      // Check if we're in a transition from the previous clip
+      if (nextClip && isInTransition(currentTime, clip, nextClip)) {
+        return { current: clip, next: nextClip, track };
+      }
+    }
+  }
+
+  return { current: null, next: null, track: null };
+}
+
 const PreviewWindow: React.FC = () => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -145,13 +190,27 @@ const PreviewWindow: React.FC = () => {
   const { project, playback, togglePlayback, getClipsAtTime } =
     useTimelineStore();
 
-  // Get current clips at playhead
-  const currentClips = project ? getClipsAtTime(playback.playheadPosition) : [];
+  // Get all visual clips for media loading
+  const allVisualClips = useMemo(() => {
+    if (!project) return [];
+    return project.tracks
+      .filter((t) => t.type === "video" || t.type === "image")
+      .flatMap((t) => t.clips);
+  }, [project]);
 
-  // Find first visual clip (video or image)
-  const visualClip = currentClips.find(
-    ({ clip }) => clip.type === "video" || clip.type === "image"
-  )?.clip;
+  // Load media sources for clips
+  const { getSource, seekVideo } = useMediaSources({ clips: allVisualClips });
+
+  // Find current visual clips (including transitions)
+  const visualClipData = useMemo(() => {
+    if (!project) return { current: null, next: null, track: null };
+    return findVisualClipsAtTime(project.tracks, playback.playheadPosition);
+  }, [project, playback.playheadPosition]);
+
+  const { current: visualClip, next: nextClip, track: visualTrack } = visualClipData;
+
+  // Get current clips at playhead for audio info
+  const currentClips = project ? getClipsAtTime(playback.playheadPosition) : [];
   const audioClips = currentClips.filter(({ clip }) => clip.type === "audio");
 
   // Use ResizeObserver to track container size
@@ -254,23 +313,39 @@ const PreviewWindow: React.FC = () => {
       return;
     }
 
-    // For images, we use an <img> element to avoid CORS issues
-    // Canvas is only used for video thumbnails and placeholders
-    if (visualClip.type === "image") {
-      // Image will be rendered via <img> element, not canvas
-      // Just clear the canvas (it will be hidden behind the image)
-      return;
-    }
+    // Get the media sources for current clips
+    const currentSource = getSource(visualClip.id);
+    const nextSource = nextClip ? getSource(nextClip.id) : null;
 
-    // Handle video clips
-    const sourceUrl = visualClip.sourceUrl;
-    if (visualClip.type === "video" && sourceUrl) {
-      // For video, show a thumbnail with a play indicator
-      // In a real implementation, we'd use a <video> element
+    // Calculate clip time
+    const clipTime = playback.playheadPosition - visualClip.startTime;
+
+    // Check if we're in a transition
+    if (nextClip && isInTransition(playback.playheadPosition, visualClip, nextClip)) {
+      // Render with transition effect
+      renderWithTransition(
+        ctx,
+        width,
+        height,
+        visualClip,
+        nextClip,
+        currentSource,
+        nextSource,
+        playback.playheadPosition
+      );
+    } else if (currentSource) {
+      // Render single clip with fades
+      renderClipWithFades(ctx, width, height, visualClip, currentSource, clipTime);
+    } else {
+      // No source loaded yet - show loading placeholder
       ctx.fillStyle = "#222";
       ctx.fillRect(0, 0, width, height);
 
-      // Draw video icon
+      // Calculate opacity for fade effect visualization
+      const opacity = calculateClipOpacity(visualClip, clipTime);
+
+      // Draw placeholder with opacity indicator
+      ctx.globalAlpha = opacity;
       ctx.fillStyle = "#666";
       ctx.beginPath();
       const centerX = width / 2;
@@ -280,25 +355,39 @@ const PreviewWindow: React.FC = () => {
       ctx.lineTo(centerX + 20, centerY);
       ctx.closePath();
       ctx.fill();
+      ctx.globalAlpha = 1;
 
-      // Draw clip name
-      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-      ctx.fillRect(0, 0, width, 28);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.font = "12px Inter, system-ui, sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(visualClip.name, 8, 8);
-
-      // Draw progress bar
-      const clipProgress =
-        (playback.playheadPosition - visualClip.startTime) /
-        visualClip.duration;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.fillRect(0, height - 4, width, 4);
-      ctx.fillStyle = "rgba(100, 150, 255, 0.8)";
-      ctx.fillRect(0, height - 4, width * clipProgress, 4);
+      // Draw fade indicator if fades are active
+      if ((visualClip.fadeIn && clipTime < visualClip.fadeIn) ||
+          (visualClip.fadeOut && clipTime > visualClip.duration - visualClip.fadeOut)) {
+        ctx.fillStyle = "rgba(255, 193, 7, 0.8)";
+        ctx.font = "10px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`Fade: ${Math.round(opacity * 100)}%`, width / 2, height - 20);
+      }
     }
+
+    // Draw clip name overlay
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillRect(0, 0, width, 28);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.font = "12px Inter, system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+
+    let clipLabel = visualClip.name;
+    if (nextClip && isInTransition(playback.playheadPosition, visualClip, nextClip)) {
+      const transition = visualClip.transitions?.out || nextClip.transitions?.in;
+      clipLabel += ` → ${nextClip.name} (${transition?.type || "transition"})`;
+    }
+    ctx.fillText(clipLabel, 8, 8);
+
+    // Draw progress bar
+    const clipProgress = clipTime / visualClip.duration;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.fillRect(0, height - 4, width, 4);
+    ctx.fillStyle = "rgba(100, 150, 255, 0.8)";
+    ctx.fillRect(0, height - 4, width * Math.min(1, clipProgress), 4);
 
     // Draw audio indicator if there are audio clips playing
     if (audioClips.length > 0) {
@@ -312,9 +401,11 @@ const PreviewWindow: React.FC = () => {
     project,
     playback.playheadPosition,
     visualClip,
+    nextClip,
     audioClips.length,
     currentClips.length,
-    canvasSize
+    canvasSize,
+    getSource
   ]);
 
   const handleVolumeChange = useCallback(
@@ -343,31 +434,47 @@ const PreviewWindow: React.FC = () => {
     );
   }
 
-  // Calculate clip progress for overlay
+  // Calculate clip progress and opacity for overlay
   const clipProgress = visualClip
     ? (playback.playheadPosition - visualClip.startTime) / visualClip.duration
     : 0;
+
+  // Calculate image opacity for fade effects
+  const imageOpacity = visualClip
+    ? calculateClipOpacity(
+        visualClip,
+        playback.playheadPosition - visualClip.startTime
+      )
+    : 1;
+
+  // Check if we should use canvas for image (when in transition or has fades)
+  const useCanvasForImage = visualClip?.type === "image" && (
+    nextClip ||
+    (visualClip.fadeIn && playback.playheadPosition - visualClip.startTime < visualClip.fadeIn) ||
+    (visualClip.fadeOut && playback.playheadPosition > visualClip.startTime + visualClip.duration - visualClip.fadeOut)
+  );
 
   return (
     <Box css={styles(theme)} className="preview-window">
       {/* Video/Image preview area */}
       <div ref={containerRef} className="preview-video-container">
-        {/* Canvas for video/placeholder */}
+        {/* Canvas for video/placeholder/transitions */}
         <canvas
           ref={canvasRef}
           className="preview-canvas"
           style={{
-            display: visualClip?.type === "image" ? "none" : "block"
+            display: (visualClip?.type === "image" && !useCanvasForImage) ? "none" : "block"
           }}
         />
 
-        {/* Image element for image clips (avoids CORS issues) */}
-        {visualClip?.type === "image" && visualClip.sourceUrl && (
+        {/* Image element for image clips without active fades (avoids CORS issues) */}
+        {visualClip?.type === "image" && visualClip.sourceUrl && !useCanvasForImage && (
           <>
             <img
               src={visualClip.sourceUrl}
               alt={visualClip.name}
               className="preview-image"
+              style={{ opacity: imageOpacity }}
             />
             {/* Overlay with clip name */}
             <div className="preview-overlay">{visualClip.name}</div>
