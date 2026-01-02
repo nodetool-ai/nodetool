@@ -1,4 +1,4 @@
-import { useSettingsStore, defaultSettings } from '../SettingsStore';
+import { useSettingsStore, defaultSettings, defaultAutosaveSettings } from '../SettingsStore';
 
 describe('SettingsStore', () => {
   const initialState = useSettingsStore.getState();
@@ -24,5 +24,31 @@ describe('SettingsStore', () => {
     useSettingsStore.getState().setGridSnap(3);
     useSettingsStore.getState().resetSettings();
     expect(useSettingsStore.getState().settings.gridSnap).toBe(defaultSettings.gridSnap);
+  });
+
+  describe('Autosave Settings', () => {
+    test('default autosave settings are present', () => {
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.autosave).toBeDefined();
+      expect(settings.autosave.enabled).toBe(defaultAutosaveSettings.enabled);
+      expect(settings.autosave.intervalMinutes).toBe(defaultAutosaveSettings.intervalMinutes);
+    });
+
+    test('updateAutosaveSettings updates only autosave properties', () => {
+      useSettingsStore.getState().updateAutosaveSettings({ enabled: false, intervalMinutes: 5 });
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.autosave.enabled).toBe(false);
+      expect(settings.autosave.intervalMinutes).toBe(5);
+      // Other autosave settings should remain default
+      expect(settings.autosave.saveBeforeRun).toBe(defaultAutosaveSettings.saveBeforeRun);
+    });
+
+    test('updateAutosaveSettings preserves other settings', () => {
+      useSettingsStore.getState().setGridSnap(10);
+      useSettingsStore.getState().updateAutosaveSettings({ enabled: false });
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.gridSnap).toBe(10);
+      expect(settings.autosave.enabled).toBe(false);
+    });
   });
 });
