@@ -16,29 +16,29 @@ import {
 } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 
-// Icons
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import PauseIcon from "@mui/icons-material/Pause";
-import StopIcon from "@mui/icons-material/Stop";
-import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
-import SkipNextIcon from "@mui/icons-material/SkipNext";
-import RepeatIcon from "@mui/icons-material/Repeat";
-import FirstPageIcon from "@mui/icons-material/FirstPage";
-import LastPageIcon from "@mui/icons-material/LastPage";
-import ClearIcon from "@mui/icons-material/Clear";
-import ZoomInIcon from "@mui/icons-material/ZoomIn";
-import ZoomOutIcon from "@mui/icons-material/ZoomOut";
-import FitScreenIcon from "@mui/icons-material/FitScreen";
-import MagnetIcon from "@mui/icons-material/Grid4x4";
-import AddIcon from "@mui/icons-material/Add";
-import AudiotrackIcon from "@mui/icons-material/Audiotrack";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import ImageIcon from "@mui/icons-material/Image";
-import UndoIcon from "@mui/icons-material/Undo";
-import RedoIcon from "@mui/icons-material/Redo";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
-import DataObjectIcon from "@mui/icons-material/DataObject";
+import {
+  PlayArrow as PlayArrowIcon,
+  Pause as PauseIcon,
+  Stop as StopIcon,
+  SkipPrevious as SkipPreviousIcon,
+  SkipNext as SkipNextIcon,
+  Repeat as RepeatIcon,
+  FirstPage as FirstPageIcon,
+  LastPage as LastPageIcon,
+  Clear as ClearIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon,
+  FitScreen as FitScreenIcon,
+  Grid4x4 as MagnetIcon,
+  Add as AddIcon,
+  Audiotrack as AudiotrackIcon,
+  Videocam as VideocamIcon,
+  Image as ImageIcon,
+  Undo as UndoIcon,
+  Redo as RedoIcon,
+  FolderOpen as FolderOpenIcon,
+  DataObject as DataObjectIcon
+} from "@mui/icons-material";
 
 import useTimelineStore, {
   useTimelineHistory,
@@ -109,15 +109,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface TimelineToolbarProps {
-  showAssetBrowser?: boolean;
-  onToggleAssetBrowser?: () => void;
-}
-
-const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
-  showAssetBrowser = true,
-  onToggleAssetBrowser
-}) => {
+const TimelineToolbar: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [addTrackAnchor, setAddTrackAnchor] =
@@ -427,21 +419,6 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
             <ListItemText>Add Demo Clips</ListItemText>
           </MenuItem>
         </Menu>
-
-        {onToggleAssetBrowser && (
-          <Tooltip
-            title={showAssetBrowser ? "Hide Media Panel" : "Show Media Panel"}
-            enterDelay={TOOLTIP_ENTER_DELAY}
-          >
-            <IconButton
-              size="small"
-              onClick={onToggleAssetBrowser}
-              color={showAssetBrowser ? "primary" : "default"}
-            >
-              <VideoLibraryIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
 
         <Tooltip title="Open Assets Page" enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton size="small" onClick={handleOpenAssets}>

@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
-import CloseIcon from "@mui/icons-material/Close";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import ImageIcon from "@mui/icons-material/Image";
@@ -28,11 +27,9 @@ const styles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     height: "100%",
+    width: "100%",
     backgroundColor:
       theme.vars?.palette?.background?.paper || theme.palette.background.paper,
-    borderLeft: `1px solid ${
-      theme.vars?.palette?.divider || theme.palette.divider
-    }`,
 
     ".asset-browser-header": {
       display: "flex",
@@ -138,17 +135,9 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface TimelineAssetBrowserProps {
-  onClose?: () => void;
-  width?: number;
-}
-
 type MediaFilter = "all" | "video" | "audio" | "image";
 
-const TimelineAssetBrowser: React.FC<TimelineAssetBrowserProps> = ({
-  onClose,
-  width = 280
-}) => {
+const TimelineAssetBrowser: React.FC = () => {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>("all");
@@ -257,24 +246,15 @@ const TimelineAssetBrowser: React.FC<TimelineAssetBrowserProps> = ({
   };
 
   return (
-    <Box css={styles(theme)} style={{ width }} className="timeline-asset-browser">
+    <Box css={styles(theme)} className="timeline-asset-browser">
       {/* Header */}
       <div className="asset-browser-header">
         <Typography variant="subtitle2">Media Assets</Typography>
-        <div>
-          <Tooltip title="Refresh" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton size="small" onClick={() => refetch()}>
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          {onClose && (
-            <Tooltip title="Close" enterDelay={TOOLTIP_ENTER_DELAY}>
-              <IconButton size="small" onClick={onClose}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </div>
+        <Tooltip title="Refresh" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton size="small" onClick={() => refetch()}>
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </div>
 
       {/* Search */}
@@ -319,13 +299,11 @@ const TimelineAssetBrowser: React.FC<TimelineAssetBrowserProps> = ({
         ) : filteredAssets.length === 0 ? (
           <div className="empty-state">
             <Typography variant="body2">
-              {searchTerm
-                ? "No matching media found"
-                : "No media assets found"}
+              {searchTerm ? "No matching media found" : "No media assets found"}
             </Typography>
             <Typography variant="caption" sx={{ mt: 1 }}>
-              Upload video, audio, or image files in the Assets page to see
-              them here.
+              Upload video, audio, or image files in the Assets page to see them
+              here.
             </Typography>
           </div>
         ) : (
@@ -368,4 +346,3 @@ const TimelineAssetBrowser: React.FC<TimelineAssetBrowserProps> = ({
 };
 
 export default TimelineAssetBrowser;
-
