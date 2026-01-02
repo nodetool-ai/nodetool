@@ -57,4 +57,3 @@ export const useRecentNodesStore = create<RecentNodesStore>()(
   )
 );
 
-export default useRecentNodesStore;

@@ -33,7 +33,7 @@ const recentNodesStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "space-between",
       padding: "0 4px",
-      "& h5": {
+      "& .recent-header-title": {
         margin: 0,
         fontSize: "0.85rem",
         fontWeight: 600,
@@ -151,7 +151,7 @@ const recentNodesStyles = (theme: Theme) =>
       textOverflow: "ellipsis",
       display: "-webkit-box",
       WebkitLineClamp: 2,
-      WebkitBoxOrient: "vertical" as const
+      WebkitBoxOrient: "vertical"
     },
     ".empty-message": {
       padding: "1em",
@@ -270,7 +270,7 @@ const RecentNodes = memo(function RecentNodes() {
   return (
     <Box css={memoizedStyles}>
       <div className="recent-header">
-        <Typography variant="h5">
+        <Typography variant="h5" className="recent-header-title">
           <HistoryIcon className="history-icon" />
           Recent Nodes
         </Typography>

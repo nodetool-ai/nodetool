@@ -79,14 +79,16 @@ const treeStyles = (theme: Theme) =>
       width: "100%",
       maxHeight: "77vh",
       flexGrow: 1,
-      overflowY: "auto",
-      overflowX: "hidden",
+      overflow: "hidden"
       // Removed inner shadow to keep it clean
     },
     ".main-content": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.75em"
+      gap: "0.75em",
+      height: "100%",
+      overflowY: "auto",
+      overflowX: "hidden"
     },
     ".search-toolbar": {
       display: "flex",
