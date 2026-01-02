@@ -32,6 +32,7 @@ interface ExtensionState {
   setCurrentThreadId: (id: string | null) => void;
   addThread: (thread: Thread) => void;
   deleteThread: (id: string) => void;
+  createNewThread: (threadId?: string) => string;
 
   // Message management
   messageCache: Record<string, ChatMessage[]>;
@@ -100,6 +101,21 @@ export const useExtensionStore = create<ExtensionState>()(
             currentThreadId: state.currentThreadId === id ? null : state.currentThreadId
           };
         }),
+      createNewThread: (threadId) => {
+        const id = threadId || `thread-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const newThread: Thread = {
+          id,
+          title: 'New Chat',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        set((state) => ({
+          threads: { ...state.threads, [id]: newThread },
+          currentThreadId: id,
+          messageCache: { ...state.messageCache, [id]: [] }
+        }));
+        return id;
+      },
 
       // Message management
       messageCache: {},

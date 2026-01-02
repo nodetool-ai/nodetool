@@ -4,6 +4,7 @@ import { useTheme } from '@mui/material/styles';
 import { Box, IconButton, Tooltip, Typography, Chip } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import AddCommentIcon from '@mui/icons-material/AddComment';
 import { useExtensionStore } from '../store';
 
 const headerStyles = css({
@@ -12,19 +13,18 @@ const headerStyles = css({
   justifyContent: 'space-between',
   padding: '8px 16px',
   borderBottom: '1px solid',
-  borderColor: 'rgba(255, 255, 255, 0.12)',
   minHeight: '48px'
 });
 
 const statusIndicatorStyles = (isConnected: boolean) => css({
-  color: isConnected ? '#4caf50' : '#f44336',
+  color: isConnected ? 'var(--palette-success-main)' : 'var(--palette-error-main)',
   fontSize: '10px',
   marginRight: '4px'
 });
 
 export function ChatHeader() {
   const theme = useTheme();
-  const { connectionStatus, setIsSettingsOpen, serverConfig } = useExtensionStore();
+  const { connectionStatus, setIsSettingsOpen, serverConfig, createNewThread } = useExtensionStore();
 
   const isConnected = connectionStatus === 'connected';
   const statusText = {
@@ -47,25 +47,38 @@ export function ChatHeader() {
     error: 'error'
   }[connectionStatus] as 'default' | 'warning' | 'success' | 'error';
 
+  const handleNewChat = () => {
+    const newThreadId = `thread-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    createNewThread(newThreadId);
+  };
+
   return (
-    <Box css={headerStyles} sx={{ borderColor: theme.palette.divider }}>
+    <Box css={headerStyles} sx={{ borderColor: 'divider', bgcolor: 'background.paper' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Typography
           variant="h6"
           sx={{
             fontSize: '1rem',
             fontWeight: 600,
-            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            color: 'transparent'
+            fontFamily: theme.fontFamily2,
+            color: 'primary.main'
           }}
         >
           Nodetool
         </Typography>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Tooltip title="New Chat">
+          <IconButton
+            size="small"
+            onClick={handleNewChat}
+            sx={{ color: 'primary.main' }}
+          >
+            <AddCommentIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
         <Tooltip title={`${statusText} - ${serverConfig.url}`}>
           <Chip
             icon={<FiberManualRecordIcon css={statusIndicatorStyles(isConnected)} />}
@@ -76,8 +89,8 @@ export function ChatHeader() {
             sx={{
               height: '24px',
               '& .MuiChip-label': {
-                fontSize: '0.75rem',
-                px: 1
+                fontSize: '0.7rem',
+                px: 0.5
               }
             }}
           />
@@ -87,7 +100,7 @@ export function ChatHeader() {
           <IconButton
             size="small"
             onClick={() => setIsSettingsOpen(true)}
-            sx={{ color: theme.palette.text.secondary }}
+            sx={{ color: 'text.secondary' }}
           >
             <SettingsIcon fontSize="small" />
           </IconButton>

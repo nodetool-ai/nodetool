@@ -5,6 +5,7 @@ import { useTheme } from '@mui/material/styles';
 import PersonIcon from '@mui/icons-material/Person';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import type { ChatMessage as ChatMessageType } from '../../types';
+import ChatMarkdown from '../../components/chat/message/ChatMarkdown';
 
 const messageContainerStyles = (isUser: boolean) => css({
   display: 'flex',
@@ -15,13 +16,12 @@ const messageContainerStyles = (isUser: boolean) => css({
 });
 
 const messageBubbleStyles = (isUser: boolean) => css({
-  maxWidth: '85%',
+  maxWidth: '90%',
   padding: '12px 16px',
   borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-  backgroundColor: isUser ? '#1976d2' : 'rgba(255, 255, 255, 0.08)',
+  backgroundColor: isUser ? 'var(--palette-primary-main)' : 'var(--palette-grey-800)',
   color: isUser ? '#fff' : 'inherit',
-  wordBreak: 'break-word',
-  whiteSpace: 'pre-wrap'
+  wordBreak: 'break-word'
 });
 
 const avatarStyles = css({
@@ -40,7 +40,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
-  const getContent = () => {
+  const getContent = (): string => {
     if (typeof message.content === 'string') {
       return message.content;
     }
@@ -51,7 +51,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
           return c.text;
         }
         if (c.type === 'image_url' && c.image) {
-          return `[Image: ${c.image.uri}]`;
+          return `![Image](${c.image.uri})`;
         }
         return '';
       })
@@ -84,28 +84,32 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
         <Avatar
           css={avatarStyles}
           sx={{
-            bgcolor: isUser ? theme.palette.primary.main : theme.palette.secondary.main
+            bgcolor: isUser ? 'primary.main' : 'secondary.main'
           }}
         >
           {isUser ? <PersonIcon fontSize="small" /> : <SmartToyIcon fontSize="small" />}
         </Avatar>
 
         <Box css={messageBubbleStyles(isUser)}>
-          <Typography variant="body2" component="div">
-            {content}
-            {isStreaming && message.role === 'assistant' && (
-              <CircularProgress
-                size={12}
-                sx={{ ml: 1, verticalAlign: 'middle' }}
-              />
-            )}
-          </Typography>
+          {isUser ? (
+            <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
+              {content}
+            </Typography>
+          ) : (
+            <ChatMarkdown content={content} />
+          )}
+          {isStreaming && message.role === 'assistant' && (
+            <CircularProgress
+              size={12}
+              sx={{ ml: 1, verticalAlign: 'middle' }}
+            />
+          )}
         </Box>
 
         <Typography
           variant="caption"
           sx={{
-            color: theme.palette.text.disabled,
+            color: 'text.disabled',
             mt: 0.5,
             fontSize: '0.7rem'
           }}

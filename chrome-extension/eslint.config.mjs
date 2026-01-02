@@ -26,6 +26,7 @@ export default [
         }
       },
       globals: {
+        React: "readonly",
         chrome: "readonly",
         window: "readonly",
         document: "readonly",
@@ -58,6 +59,7 @@ export default [
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
+      "react/no-unknown-property": ["error", { ignore: ["css"] }],
       "no-console": "off"
     }
   }
