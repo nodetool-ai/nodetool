@@ -61,8 +61,19 @@ import {
   ExternalLink,
   StatusIndicator,
   TagButton,
-  ThemeToggleButton
+  ThemeToggleButton,
+  SearchInput,
+  Breadcrumbs,
+  InfoTooltip,
+  WarningBanner,
+  NotificationBadge,
+  UndoRedoButtons,
+  ConfirmButton,
+  HelpButton
 } from "./ui_primitives";
+
+// Additional icons
+import NotificationsIcon from "@mui/icons-material/Notifications";
 
 const styles = (theme: Theme) => css`
   min-height: 100vh;
@@ -185,12 +196,13 @@ const styles = (theme: Theme) => css`
 
 // Component categories
 const categories = [
-  { id: "action", label: "Action Buttons", count: 8 },
+  { id: "action", label: "Action Buttons", count: 11 },
   { id: "control", label: "Control Buttons", count: 5 },
   { id: "dialog", label: "Dialog Actions", count: 2 },
-  { id: "input", label: "Input Controls", count: 4 },
+  { id: "input", label: "Input Controls", count: 5 },
   { id: "fab", label: "FABs", count: 2 },
-  { id: "display", label: "Display & Feedback", count: 9 }
+  { id: "display", label: "Display & Feedback", count: 9 },
+  { id: "navigation", label: "Navigation & Layout", count: 8 }
 ] as const;
 
 type CategoryId = typeof categories[number]["id"];
@@ -214,8 +226,14 @@ const LayoutTest: React.FC = () => {
   const [sliderValue, setSliderValue] = useState(50);
   const [zoom, setZoom] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [progress, setProgress] = useState(65);
+  const [progress, _setProgress] = useState(65);
   const [selectedTag, setSelectedTag] = useState<string | null>("react");
+  const [searchValue, setSearchValue] = useState("");
+  const [canUndo, setCanUndo] = useState(true);
+  const [canRedo, setCanRedo] = useState(false);
+  const [helpActive, setHelpActive] = useState(false);
+  const [showWarning, setShowWarning] = useState(true);
+  const [notificationCount, _setNotificationCount] = useState(5);
 
   const toggleColorMode = () => {
     setMode(mode === "light" ? "dark" : "light");
@@ -910,6 +928,208 @@ const LayoutTest: React.FC = () => {
     </div>
   );
 
+  const renderNavigationLayout = () => (
+    <div className="component-grid">
+      {/* Search Input */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">SearchInput</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row" style={{ width: "100%" }}>
+            <SearchInput
+              value={searchValue}
+              onChange={setSearchValue}
+              placeholder="Search components..."
+            />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Value:</span>
+            <span className="demo-value">{searchValue || "(empty)"}</span>
+          </div>
+        </div>
+      </Paper>
+
+      {/* Breadcrumbs */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">Breadcrumbs</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row" style={{ width: "100%" }}>
+            <Breadcrumbs
+              items={[
+                { label: "Home", path: "/" },
+                { label: "Components", path: "/components" },
+                { label: "Buttons", path: "/buttons" }
+              ]}
+              showHomeIcon
+              onNavigate={(item) => console.log("Navigate to:", item.path)}
+            />
+          </div>
+          <div className="demo-row" style={{ width: "100%" }}>
+            <Breadcrumbs
+              items={[
+                { label: "Root", path: "/" },
+                { label: "Folder", path: "/folder" },
+                { label: "Subfolder" }
+              ]}
+              showFolderIcons
+              separator="chevron"
+            />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Info Tooltip */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">InfoTooltip</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Hover:</span>
+            <InfoTooltip content="This is helpful information" />
+            <InfoTooltip content="With a title" title="Important" iconVariant="info" />
+            <InfoTooltip content="Help text" iconVariant="help" />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Popover:</span>
+            <InfoTooltip 
+              content="Click to see more detailed information about this feature."
+              title="Feature Info"
+              mode="popover"
+            />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Warning Banner */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">WarningBanner</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          {showWarning && (
+            <WarningBanner
+              message="This is a warning message"
+              description="Additional context about the warning"
+              dismissible
+              onDismiss={() => setShowWarning(false)}
+            />
+          )}
+          <WarningBanner
+            message="Error occurred"
+            variant="error"
+            compact
+          />
+          <WarningBanner
+            message="Information notice"
+            variant="info"
+            compact
+          />
+        </div>
+      </Paper>
+
+      {/* Notification Badge */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">NotificationBadge</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Count:</span>
+            <NotificationBadge count={notificationCount}>
+              <NotificationsIcon />
+            </NotificationBadge>
+            <NotificationBadge count={notificationCount} color="primary">
+              <NotificationsIcon />
+            </NotificationBadge>
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Dot:</span>
+            <NotificationBadge count={1} dot>
+              <NotificationsIcon />
+            </NotificationBadge>
+          </div>
+        </div>
+      </Paper>
+
+      {/* Undo/Redo Buttons */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">UndoRedoButtons</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Horizontal:</span>
+            <UndoRedoButtons
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={() => { setCanUndo(false); setCanRedo(true); }}
+              onRedo={() => { setCanRedo(false); setCanUndo(true); }}
+            />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">With divider:</span>
+            <UndoRedoButtons
+              canUndo={true}
+              canRedo={true}
+              onUndo={() => {}}
+              onRedo={() => {}}
+              showDivider
+            />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Confirm Button */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">ConfirmButton</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Variants:</span>
+            <ConfirmButton onClick={() => {}} iconVariant="check" />
+            <ConfirmButton onClick={() => {}} iconVariant="done" />
+            <ConfirmButton onClick={() => {}} iconVariant="circle" />
+            <ConfirmButton onClick={() => {}} iconVariant="circleOutline" />
+          </div>
+          <div className="demo-row">
+            <span className="demo-label">Colors:</span>
+            <ConfirmButton onClick={() => {}} color="primary" />
+            <ConfirmButton onClick={() => {}} color="success" />
+          </div>
+        </div>
+      </Paper>
+
+      {/* Help Button */}
+      <Paper className="component-card" elevation={0}>
+        <div className="card-header">
+          <span className="card-title">HelpButton</span>
+          <Chip label="New" size="small" color="primary" />
+        </div>
+        <div className="card-body">
+          <div className="demo-row">
+            <span className="demo-label">Variants:</span>
+            <HelpButton onClick={() => setHelpActive(!helpActive)} iconVariant="helpOutline" active={helpActive} />
+            <HelpButton onClick={() => {}} iconVariant="help" />
+            <HelpButton onClick={() => {}} iconVariant="question" />
+            <HelpButton onClick={() => {}} iconVariant="liveHelp" />
+          </div>
+        </div>
+      </Paper>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case "action":
@@ -924,6 +1144,8 @@ const LayoutTest: React.FC = () => {
         return renderFabs();
       case "display":
         return renderDisplayFeedback();
+      case "navigation":
+        return renderNavigationLayout();
       default:
         return null;
     }

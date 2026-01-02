@@ -90,6 +90,34 @@ export type { TagButtonProps } from "./TagButton";
 export { ThemeToggleButton } from "./ThemeToggleButton";
 export type { ThemeToggleButtonProps } from "./ThemeToggleButton";
 
+// Navigation & Layout primitives
+export { SearchInput } from "./SearchInput";
+export type { SearchInputProps } from "./SearchInput";
+
+export { Breadcrumbs } from "./Breadcrumbs";
+export type { BreadcrumbsProps, BreadcrumbItem } from "./Breadcrumbs";
+
+export { InfoTooltip } from "./InfoTooltip";
+export type { InfoTooltipProps } from "./InfoTooltip";
+
+export { WarningBanner } from "./WarningBanner";
+export type { WarningBannerProps, BannerVariant } from "./WarningBanner";
+
+export { NotificationBadge } from "./NotificationBadge";
+export type { NotificationBadgeProps } from "./NotificationBadge";
+
+export { UndoRedoButtons } from "./UndoRedoButtons";
+export type { UndoRedoButtonsProps } from "./UndoRedoButtons";
+
+export { ConfirmButton } from "./ConfirmButton";
+export type { ConfirmButtonProps, ConfirmIconVariant } from "./ConfirmButton";
+
+export { MenuItemPrimitive } from "./MenuItemPrimitive";
+export type { MenuItemPrimitiveProps } from "./MenuItemPrimitive";
+
+export { HelpButton } from "./HelpButton";
+export type { HelpButtonProps, HelpIconVariant } from "./HelpButton";
+
 // Re-export editor_ui primitives for convenience
 export {
   NodeTextField,
