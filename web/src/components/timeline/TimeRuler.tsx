@@ -1,13 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { Box } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 import {
   generateRulerTicks,
   formatTimeShort,
-  timeToPixels
+  timeToPixels,
+  pixelsToTime
 } from "../../utils/timelineUtils";
+import useTimelineStore from "../../stores/TimelineStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -19,6 +21,51 @@ const styles = (theme: Theme) =>
 
     ".ruler-canvas": {
       display: "block"
+    },
+
+    ".loop-region": {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      backgroundColor: "rgba(255, 193, 7, 0.2)",
+      borderLeft: "2px solid #ffc107",
+      borderRight: "2px solid #ffc107",
+      pointerEvents: "none",
+      zIndex: 1
+    },
+
+    ".loop-handle": {
+      position: "absolute",
+      top: 0,
+      width: "12px",
+      height: "100%",
+      cursor: "ew-resize",
+      zIndex: 2,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+
+      "&::before": {
+        content: '""',
+        width: "4px",
+        height: "16px",
+        backgroundColor: "#ffc107",
+        borderRadius: "2px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.3)"
+      },
+
+      "&:hover::before": {
+        backgroundColor: "#ffca28",
+        transform: "scaleY(1.1)"
+      },
+
+      "&.loop-in": {
+        transform: "translateX(-6px)"
+      },
+
+      "&.loop-out": {
+        transform: "translateX(-6px)"
+      }
     }
   });
 
@@ -39,6 +86,10 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
 }) => {
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const { playback, setLoopRegion } = useTimelineStore();
+  const { loopEnabled, loopStart, loopEnd } = playback;
 
   // Colors from theme
   const textColor = theme.palette.text.secondary;
@@ -46,6 +97,36 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
   const minorTickColor = theme.palette.divider;
   const microTickColor = theme.palette.action.disabled;
   const bgColor = theme.palette.background.paper;
+
+  // Handle dragging loop markers
+  const handleLoopHandleMouseDown = useCallback(
+    (handle: "in" | "out") => (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = moveEvent.clientX - rect.left + scrollLeft;
+        const time = Math.max(0, Math.min(duration, pixelsToTime(x, pixelsPerSecond)));
+
+        if (handle === "in") {
+          setLoopRegion(time, loopEnd);
+        } else {
+          setLoopRegion(loopStart, time);
+        }
+      };
+
+      const handleMouseUp = () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [scrollLeft, pixelsPerSecond, duration, loopStart, loopEnd, setLoopRegion]
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -146,8 +227,14 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
     theme.palette.divider
   ]);
 
+  // Calculate loop region positions
+  const loopInPixels = timeToPixels(loopStart, pixelsPerSecond) - scrollLeft;
+  const loopOutPixels = timeToPixels(loopEnd, pixelsPerSecond) - scrollLeft;
+  const loopWidth = loopOutPixels - loopInPixels;
+  const showLoopRegion = loopEnabled && loopEnd > loopStart;
+
   return (
-    <Box css={styles(theme)} className="time-ruler">
+    <Box ref={containerRef} css={styles(theme)} className="time-ruler">
       <canvas
         ref={canvasRef}
         className="ruler-canvas"
@@ -156,6 +243,30 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
           height: "100%"
         }}
       />
+      {/* Loop region overlay and handles */}
+      {showLoopRegion && (
+        <>
+          <div
+            className="loop-region"
+            style={{
+              left: loopInPixels,
+              width: Math.max(0, loopWidth)
+            }}
+          />
+          <div
+            className="loop-handle loop-in"
+            style={{ left: loopInPixels }}
+            onMouseDown={handleLoopHandleMouseDown("in")}
+            title="Loop In"
+          />
+          <div
+            className="loop-handle loop-out"
+            style={{ left: loopOutPixels }}
+            onMouseDown={handleLoopHandleMouseDown("out")}
+            title="Loop Out"
+          />
+        </>
+      )}
     </Box>
   );
 };

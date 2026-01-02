@@ -23,6 +23,9 @@ import StopIcon from "@mui/icons-material/Stop";
 import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import RepeatIcon from "@mui/icons-material/Repeat";
+import FirstPageIcon from "@mui/icons-material/FirstPage";
+import LastPageIcon from "@mui/icons-material/LastPage";
+import ClearIcon from "@mui/icons-material/Clear";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
@@ -129,6 +132,8 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
     togglePlayback,
     stepFrame,
     toggleLoop,
+    setLoopRegion,
+    clearLoopRegion,
     setZoom,
     zoomIn,
     zoomOut,
@@ -252,6 +257,17 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
     navigate("/assets");
   }, [navigate]);
 
+  // Set loop in point at current playhead position
+  const handleSetLoopIn = useCallback(() => {
+    const currentEnd = playback.loopEnd > 0 ? playback.loopEnd : (project?.duration || 60);
+    setLoopRegion(playback.playheadPosition, currentEnd);
+  }, [playback.playheadPosition, playback.loopEnd, project?.duration, setLoopRegion]);
+
+  // Set loop out point at current playhead position
+  const handleSetLoopOut = useCallback(() => {
+    setLoopRegion(playback.loopStart, playback.playheadPosition);
+  }, [playback.playheadPosition, playback.loopStart, setLoopRegion]);
+
   const frameRate = project?.frameRate || 30;
 
   return (
@@ -301,6 +317,34 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
             <RepeatIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+
+        <Tooltip title="Set Loop In (I)" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton
+            size="small"
+            onClick={handleSetLoopIn}
+            color={playback.loopEnabled ? "primary" : "default"}
+          >
+            <FirstPageIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Set Loop Out (O)" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton
+            size="small"
+            onClick={handleSetLoopOut}
+            color={playback.loopEnabled ? "primary" : "default"}
+          >
+            <LastPageIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        {playback.loopEnabled && playback.loopEnd > playback.loopStart && (
+          <Tooltip title="Clear Loop Region" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <IconButton size="small" onClick={clearLoopRegion}>
+              <ClearIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
       </div>
 
       {/* Timecode display */}

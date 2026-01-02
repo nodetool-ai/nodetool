@@ -276,19 +276,26 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     [viewport.pixelsPerSecond, seek]
   );
 
-  // Handle zoom with mouse wheel
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Handle zoom with mouse wheel - using native event for proper preventDefault
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
       // Only zoom when Ctrl/Cmd is held
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
+        e.stopPropagation();
         const zoomDelta = e.deltaY > 0 ? -10 : 10;
         const newZoom = Math.max(10, Math.min(500, viewport.pixelsPerSecond + zoomDelta));
         setZoom(newZoom);
       }
-    },
-    [viewport.pixelsPerSecond, setZoom]
-  );
+    };
+
+    // Use passive: false to allow preventDefault
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, [viewport.pixelsPerSecond, setZoom]);
 
   // Calculate total timeline width based on project duration
   const timelineWidth = project
@@ -380,7 +387,6 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               onScroll={handleScroll}
               onClick={handleTimelineClick}
               onMouseDown={handleMouseDown}
-              onWheel={handleWheel}
             >
               <div
                 className="timeline-tracks-canvas"
