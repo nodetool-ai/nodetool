@@ -32,9 +32,6 @@ const styles = (theme: Theme) =>
       flex: 1,
       position: "relative",
       backgroundColor: "#000",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
       overflow: "hidden",
       minHeight: "150px" // Ensure canvas container has minimum height
     },
@@ -56,9 +53,47 @@ const styles = (theme: Theme) =>
     },
 
     ".preview-canvas": {
-      display: "block",
+      position: "absolute",
+      top: 0,
+      left: 0
+      // Width and height set via JavaScript based on container size
+    },
+
+    ".preview-image": {
+      position: "absolute",
+      top: 0,
+      left: 0,
       width: "100%",
-      height: "100%"
+      height: "100%",
+      objectFit: "contain",
+      backgroundColor: "#000"
+    },
+
+    ".preview-overlay": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      padding: theme.spacing(0.5, 1),
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      color: "rgba(255, 255, 255, 0.9)",
+      fontSize: "0.75rem",
+      zIndex: 1
+    },
+
+    ".preview-progress": {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: "4px",
+      backgroundColor: "rgba(255, 255, 255, 0.2)"
+    },
+
+    ".preview-progress-bar": {
+      height: "100%",
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      transition: "width 0.1s ease"
     },
 
     ".preview-controls": {
@@ -103,10 +138,8 @@ const PreviewWindow: React.FC = () => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const { project, playback, togglePlayback, getClipsAtTime } =
@@ -128,6 +161,13 @@ const PreviewWindow: React.FC = () => {
       return;
     }
 
+    const updateSize = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setCanvasSize({ width: rect.width, height: rect.height });
+      }
+    };
+
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
@@ -139,19 +179,27 @@ const PreviewWindow: React.FC = () => {
 
     resizeObserver.observe(container);
 
-    // Initial size
-    const rect = container.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      setCanvasSize({ width: rect.width, height: rect.height });
-    }
+    // Initial size check
+    updateSize();
 
-    return () => resizeObserver.disconnect();
+    // Fallback: check again after a short delay in case layout hasn't settled
+    const timeoutId = setTimeout(updateSize, 100);
+
+    return () => {
+      resizeObserver.disconnect();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   // Draw canvas content when size changes or clips change
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) {
+    if (!canvas) {
+      return;
+    }
+
+    // If size is 0, wait for resize
+    if (canvasSize.width === 0 || canvasSize.height === 0) {
       return;
     }
 
@@ -171,26 +219,25 @@ const PreviewWindow: React.FC = () => {
     canvas.style.height = `${height}px`;
     ctx.scale(dpr, dpr);
 
-    // Clear canvas
-    ctx.fillStyle = "#000";
+    // Clear canvas with dark background
+    ctx.fillStyle = "#1a1a1a";
     ctx.fillRect(0, 0, width, height);
 
     if (!project || !visualClip) {
-      // Draw placeholder
-      ctx.fillStyle = "#1a1a1a";
-      ctx.fillRect(0, 0, width, height);
-
-      ctx.fillStyle = "#555";
+      // Draw placeholder - background already filled with #1a1a1a above
+      ctx.fillStyle = "#666";
       ctx.font = "14px Inter, system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(
+
+      const message =
         currentClips.length > 0
-          ? "Audio only - no visual content"
-          : "Move playhead to a clip",
-        width / 2,
-        height / 2
-      );
+          ? "Audio only"
+          : project
+          ? "Move playhead to a clip"
+          : "No project loaded";
+
+      ctx.fillText(message, width / 2, height / 2);
 
       // Show audio indicator if there are audio clips
       if (audioClips.length > 0) {
@@ -207,49 +254,17 @@ const PreviewWindow: React.FC = () => {
       return;
     }
 
-    // Load and draw the actual image/video
+    // For images, we use an <img> element to avoid CORS issues
+    // Canvas is only used for video thumbnails and placeholders
+    if (visualClip.type === "image") {
+      // Image will be rendered via <img> element, not canvas
+      // Just clear the canvas (it will be hidden behind the image)
+      return;
+    }
+
+    // Handle video clips
     const sourceUrl = visualClip.sourceUrl;
-
-    if (visualClip.type === "image" && sourceUrl) {
-      // Load and draw image
-      if (loadedImageUrl !== sourceUrl) {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          imageRef.current = img;
-          setLoadedImageUrl(sourceUrl);
-        };
-        img.src = sourceUrl;
-      } else if (imageRef.current) {
-        // Draw the loaded image
-        const img = imageRef.current;
-        const scale = Math.min(width / img.width, height / img.height);
-        const drawWidth = img.width * scale;
-        const drawHeight = img.height * scale;
-        const drawX = (width - drawWidth) / 2;
-        const drawY = (height - drawHeight) / 2;
-
-        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-
-        // Draw clip name overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(0, 0, width, 28);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.font = "12px Inter, system-ui, sans-serif";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        ctx.fillText(visualClip.name, 8, 8);
-
-        // Draw progress bar
-        const clipProgress =
-          (playback.playheadPosition - visualClip.startTime) /
-          visualClip.duration;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.fillRect(0, height - 4, width, 4);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-        ctx.fillRect(0, height - 4, width * clipProgress, 4);
-      }
-    } else if (visualClip.type === "video" && sourceUrl) {
+    if (visualClip.type === "video" && sourceUrl) {
       // For video, show a thumbnail with a play indicator
       // In a real implementation, we'd use a <video> element
       ctx.fillStyle = "#222";
@@ -298,7 +313,6 @@ const PreviewWindow: React.FC = () => {
     playback.playheadPosition,
     visualClip,
     audioClips.length,
-    loadedImageUrl,
     currentClips.length,
     canvasSize
   ]);
@@ -329,11 +343,43 @@ const PreviewWindow: React.FC = () => {
     );
   }
 
+  // Calculate clip progress for overlay
+  const clipProgress = visualClip
+    ? (playback.playheadPosition - visualClip.startTime) / visualClip.duration
+    : 0;
+
   return (
     <Box css={styles(theme)} className="preview-window">
       {/* Video/Image preview area */}
       <div ref={containerRef} className="preview-video-container">
-        <canvas ref={canvasRef} className="preview-canvas" />
+        {/* Canvas for video/placeholder */}
+        <canvas
+          ref={canvasRef}
+          className="preview-canvas"
+          style={{
+            display: visualClip?.type === "image" ? "none" : "block"
+          }}
+        />
+
+        {/* Image element for image clips (avoids CORS issues) */}
+        {visualClip?.type === "image" && visualClip.sourceUrl && (
+          <>
+            <img
+              src={visualClip.sourceUrl}
+              alt={visualClip.name}
+              className="preview-image"
+            />
+            {/* Overlay with clip name */}
+            <div className="preview-overlay">{visualClip.name}</div>
+            {/* Progress bar */}
+            <div className="preview-progress">
+              <div
+                className="preview-progress-bar"
+                style={{ width: `${clipProgress * 100}%` }}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Controls */}
