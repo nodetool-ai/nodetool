@@ -1,11 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
+import { useState, useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
-import { Box, IconButton, Tooltip, Typography, Chip } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography, Chip, Popover } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import AddCommentIcon from '@mui/icons-material/AddComment';
+import ListIcon from '@mui/icons-material/List';
 import { useExtensionStore } from '../store';
+import ThreadList from '../../components/chat/thread/ThreadList';
 
 const headerStyles = css({
   display: 'flex',
@@ -24,7 +27,20 @@ const statusIndicatorStyles = (isConnected: boolean) => css({
 
 export function ChatHeader() {
   const theme = useTheme();
-  const { connectionStatus, setIsSettingsOpen, serverConfig, createNewThread } = useExtensionStore();
+  const { 
+    connectionStatus, 
+    setIsSettingsOpen, 
+    serverConfig, 
+    createNewThread,
+    threads,
+    messageCache,
+    currentThreadId,
+    setCurrentThreadId,
+    deleteThread
+  } = useExtensionStore();
+
+  const [threadListAnchorEl, setThreadListAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const isThreadListOpen = Boolean(threadListAnchorEl);
 
   const isConnected = connectionStatus === 'connected';
   const statusText = {
@@ -47,10 +63,27 @@ export function ChatHeader() {
     error: 'error'
   }[connectionStatus] as 'default' | 'warning' | 'success' | 'error';
 
-  const handleNewChat = () => {
-    const newThreadId = `thread-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    createNewThread(newThreadId);
-  };
+  const handleNewChat = useCallback(() => {
+    createNewThread();
+    setThreadListAnchorEl(null);
+  }, [createNewThread]);
+
+  const handleOpenThreadList = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setThreadListAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleCloseThreadList = useCallback(() => {
+    setThreadListAnchorEl(null);
+  }, []);
+
+  const handleSelectThread = useCallback((threadId: string) => {
+    setCurrentThreadId(threadId);
+    setThreadListAnchorEl(null);
+  }, [setCurrentThreadId]);
+
+  const handleDeleteThread = useCallback((threadId: string) => {
+    deleteThread(threadId);
+  }, [deleteThread]);
 
   return (
     <Box css={headerStyles} sx={{ borderColor: 'divider', bgcolor: 'background.paper' }}>
@@ -78,6 +111,48 @@ export function ChatHeader() {
             <AddCommentIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+
+        <Tooltip title="Chat History">
+          <IconButton
+            size="small"
+            onClick={handleOpenThreadList}
+            sx={{ color: 'text.secondary' }}
+          >
+            <ListIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        <Popover
+          open={isThreadListOpen}
+          anchorEl={threadListAnchorEl}
+          onClose={handleCloseThreadList}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right'
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'right'
+          }}
+          slotProps={{
+            paper: {
+              sx: {
+                width: 300,
+                maxHeight: '60vh',
+                borderRadius: 2,
+                overflow: 'hidden'
+              }
+            }
+          }}
+        >
+          <ThreadList
+            threads={threads}
+            messageCache={messageCache}
+            currentThreadId={currentThreadId}
+            onSelectThread={handleSelectThread}
+            onDeleteThread={handleDeleteThread}
+          />
+        </Popover>
 
         <Tooltip title={`${statusText} - ${serverConfig.url}`}>
           <Chip

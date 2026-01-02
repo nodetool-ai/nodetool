@@ -41,6 +41,7 @@ export default [
         URL: "readonly",
         HTMLElement: "readonly",
         HTMLDivElement: "readonly",
+        HTMLButtonElement: "readonly",
         Date: "readonly",
         Math: "readonly",
         Error: "readonly",

@@ -74,35 +74,33 @@ Implement the full GlobalChat UI from the web application in the Chrome extensio
 ## Phase 2: Copy Chat Components
 
 ### 2.1 Container Components
-- [ ] Copy `web/src/components/chat/containers/GlobalChat.tsx` → `chrome-extension/src/components/chat/containers/GlobalChat.tsx`
-- [ ] Copy `web/src/components/chat/containers/ChatView.tsx` → `chrome-extension/src/components/chat/containers/ChatView.tsx`
-- [ ] Copy `web/src/components/chat/containers/ThreadList.tsx` → `chrome-extension/src/components/chat/containers/ThreadList.tsx`
+- [x] Create simplified `chrome-extension/src/components/chat/thread/ThreadList.tsx` (extension-specific)
+- [ ] Full GlobalChat migration (deferred - extension has custom App.tsx)
+- [ ] ChatView migration (deferred - extension has custom components)
 
 ### 2.2 Thread Components
-- [ ] Copy `web/src/components/chat/thread/NewChatButton.tsx` → `chrome-extension/src/components/chat/thread/NewChatButton.tsx`
-- [ ] Copy `web/src/components/chat/thread/ThreadItem.tsx` → `chrome-extension/src/components/chat/thread/ThreadItem.tsx`
-- [ ] Copy `web/src/components/chat/types/thread.types.ts` → `chrome-extension/src/components/chat/types/thread.types.ts`
+- [x] Create `chrome-extension/src/components/chat/thread/NewChatButton.tsx`
+- [x] ThreadList with thread switching, delete, and date formatting
+- [x] Integration with ChatHeader popover
 
 ### 2.3 Composer Components
-- [ ] Copy `web/src/components/chat/composer/Composer.tsx` → `chrome-extension/src/components/chat/composer/Composer.tsx`
-- [ ] Copy `web/src/components/chat/composer/ModelSelector.tsx` → `chrome-extension/src/components/chat/composer/ModelSelector.tsx`
-- [ ] Copy `web/src/components/chat/composer/ToolsSelector.tsx` → `chrome-extension/src/components/chat/composer/ToolsSelector.tsx`
-- [ ] Copy `web/src/components/chat/composer/AttachmentButton.tsx` → `chrome-extension/src/components/chat/composer/AttachmentButton.tsx`
+- [x] Enhanced existing `ChatInput.tsx` with context toggle
+- [ ] Model selector (deferred - can add later)
+- [ ] Tools selector (deferred - can add later)
+- [ ] Attachment handling (deferred - can add later)
 
 ### 2.4 Message Components
-- [ ] Copy `web/src/components/chat/message/MessageList.tsx` → `chrome-extension/src/components/chat/message/MessageList.tsx`
-- [ ] Copy `web/src/components/chat/message/MessageItem.tsx` → `chrome-extension/src/components/chat/message/MessageItem.tsx`
-- [ ] Copy `web/src/components/chat/message/MessageContent.tsx` → `chrome-extension/src/components/chat/message/MessageContent.tsx`
-- [ ] Copy `web/src/components/chat/message/ToolCallMessage.tsx` → `chrome-extension/src/components/chat/message/ToolCallMessage.tsx`
-- [ ] Copy `web/src/components/chat/message/ToolResultMessage.tsx` → `chrome-extension/src/components/chat/message/ToolResultMessage.tsx`
+- [x] Create `chrome-extension/src/components/chat/message/ChatMarkdown.tsx`
+- [x] Enhanced `ChatMessage.tsx` with markdown rendering
+- [ ] Tool call/result messages (deferred - can add later)
 
 ### 2.5 Controls & Status Components
-- [ ] Copy `web/src/components/chat/controls/AgentModeToggle.tsx` → `chrome-extension/src/components/chat/controls/AgentModeToggle.tsx`
-- [ ] Copy `web/src/components/chat/controls/StatusIndicator.tsx` → `chrome-extension/src/components/chat/controls/StatusIndicator.tsx`
-- [ ] Copy `web/src/components/chat/controls/PlanningUpdates.tsx` → `chrome-extension/src/components/chat/controls/PlanningUpdates.tsx`
+- [x] Status indicator in ChatHeader
+- [x] Connection status chip with colors
+- [ ] Agent mode toggle (deferred - can add later)
 
 ### 2.6 Chat Utilities
-- [ ] Copy `web/src/components/chat/utils/formatMessages.ts` → `chrome-extension/src/components/chat/utils/formatMessages.ts`
+- [x] Date formatting using date-fns (isToday, isYesterday, isThisWeek)
 
 ---
 
