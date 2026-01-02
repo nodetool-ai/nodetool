@@ -2,6 +2,7 @@ import { components } from "../api";
 
 export type Node = components["schemas"]["Node-Input"];
 export type Edge = components["schemas"]["Edge"];
+export type Graph = components["schemas"]["Graph-Input"];
 export type Asset = Omit<components["schemas"]["Asset"], "size"> & {
   size?: number | null; // File size in bytes - added for size sorting
 };
