@@ -63,7 +63,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(function ToolbarButton(
   disabled,
   "aria-label": ariaLabel
 }) {
-  const title = shortcut ? `${tooltip} (${getShortcutTooltip(shortcut)})` : tooltip;
+  const title = shortcut ? getShortcutTooltip(shortcut) : tooltip;
 
   return (
     <Tooltip
