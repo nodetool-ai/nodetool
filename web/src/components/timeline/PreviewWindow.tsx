@@ -1,6 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback, useState, useMemo } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useCallback,
+  useState,
+  useMemo
+} from "react";
 import { Box, Typography, IconButton, Tooltip, Slider } from "@mui/material";
 import { useTheme, Theme } from "@mui/material/styles";
 
@@ -21,6 +27,7 @@ import {
   renderClipWithFades
 } from "../../utils/timeline/transitionRenderer";
 import { useMediaSources } from "../../hooks/timeline/useMediaSources";
+import { useAudioPlayback } from "../../hooks/timeline/useAudioPlayback";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const styles = (theme: Theme) =>
@@ -150,11 +157,17 @@ function findVisualClipsAtTime(
   currentTime: number
 ): { current: Clip | null; next: Clip | null; track: Track | null } {
   for (const track of tracks) {
-    if (track.type !== "video" && track.type !== "image") continue;
-    if (!track.visible || track.muted) continue;
+    if (track.type !== "video" && track.type !== "image") {
+      continue;
+    }
+    if (!track.visible || track.muted) {
+      continue;
+    }
 
     // Find clips at current time and the next clip
-    const sortedClips = [...track.clips].sort((a, b) => a.startTime - b.startTime);
+    const sortedClips = [...track.clips].sort(
+      (a, b) => a.startTime - b.startTime
+    );
 
     for (let i = 0; i < sortedClips.length; i++) {
       const clip = sortedClips[i];
@@ -193,26 +206,44 @@ const PreviewWindow: React.FC = () => {
 
   // Get all visual clips for media loading
   const allVisualClips = useMemo(() => {
-    if (!project) return [];
+    if (!project) {
+      return [];
+    }
     return project.tracks
       .filter((t) => t.type === "video" || t.type === "image")
       .flatMap((t) => t.clips);
   }, [project]);
 
   // Load media sources for clips
-  const { getSource, seekVideo } = useMediaSources({ clips: allVisualClips });
+  const { getSource, seekVideo: _seekVideo } = useMediaSources({
+    clips: allVisualClips
+  });
 
   // Find current visual clips (including transitions)
   const visualClipData = useMemo(() => {
-    if (!project) return { current: null, next: null, track: null };
+    if (!project) {
+      return { current: null, next: null, track: null };
+    }
     return findVisualClipsAtTime(project.tracks, playback.playheadPosition);
   }, [project, playback.playheadPosition]);
 
-  const { current: visualClip, next: nextClip, track: visualTrack } = visualClipData;
+  const {
+    current: visualClip,
+    next: nextClip,
+    track: _visualTrack
+  } = visualClipData;
 
-  // Get current clips at playhead for audio info
+  // Get current clips at playhead
   const currentClips = project ? getClipsAtTime(playback.playheadPosition) : [];
-  const audioClips = currentClips.filter(({ clip }) => clip.type === "audio");
+
+  // Audio playback - syncs audio with timeline playhead
+  const { activeAudioCount } = useAudioPlayback({
+    tracks: project?.tracks ?? [],
+    playheadPosition: playback.playheadPosition,
+    isPlaying: playback.isPlaying,
+    masterVolume: volume,
+    isMuted
+  });
 
   // Use ResizeObserver to track container size
   useEffect(() => {
@@ -300,13 +331,11 @@ const PreviewWindow: React.FC = () => {
       ctx.fillText(message, width / 2, height / 2);
 
       // Show audio indicator if there are audio clips
-      if (audioClips.length > 0) {
+      if (activeAudioCount > 0) {
         ctx.fillStyle = "rgba(100, 200, 100, 0.8)";
         ctx.font = "12px Inter, system-ui, sans-serif";
         ctx.fillText(
-          `♪ ${audioClips.length} audio track${
-            audioClips.length > 1 ? "s" : ""
-          }`,
+          `♪ ${activeAudioCount} audio track${activeAudioCount > 1 ? "s" : ""}`,
           width / 2,
           height / 2 + 25
         );
@@ -322,7 +351,10 @@ const PreviewWindow: React.FC = () => {
     const clipTime = playback.playheadPosition - visualClip.startTime;
 
     // Check if we're in a transition
-    if (nextClip && isInTransition(playback.playheadPosition, visualClip, nextClip)) {
+    if (
+      nextClip &&
+      isInTransition(playback.playheadPosition, visualClip, nextClip)
+    ) {
       // Render with transition effect
       renderWithTransition(
         ctx,
@@ -336,7 +368,14 @@ const PreviewWindow: React.FC = () => {
       );
     } else if (currentSource) {
       // Render single clip with fades
-      renderClipWithFades(ctx, width, height, visualClip, currentSource, clipTime);
+      renderClipWithFades(
+        ctx,
+        width,
+        height,
+        visualClip,
+        currentSource,
+        clipTime
+      );
     } else {
       // No source loaded yet - show loading placeholder
       ctx.fillStyle = "#222";
@@ -363,7 +402,11 @@ const PreviewWindow: React.FC = () => {
         ctx.fillStyle = "rgba(255, 193, 7, 0.8)";
         ctx.font = "10px Inter, system-ui, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(`Fade: ${Math.round(opacity * 100)}%`, width / 2, height - 20);
+        ctx.fillText(
+          `Fade: ${Math.round(opacity * 100)}%`,
+          width / 2,
+          height - 20
+        );
       }
     }
 
@@ -376,8 +419,12 @@ const PreviewWindow: React.FC = () => {
     ctx.textBaseline = "top";
 
     let clipLabel = visualClip.name;
-    if (nextClip && isInTransition(playback.playheadPosition, visualClip, nextClip)) {
-      const transition = visualClip.transitions?.out || nextClip.transitions?.in;
+    if (
+      nextClip &&
+      isInTransition(playback.playheadPosition, visualClip, nextClip)
+    ) {
+      const transition =
+        visualClip.transitions?.out || nextClip.transitions?.in;
       clipLabel += ` → ${nextClip.name} (${transition?.type || "transition"})`;
     }
     ctx.fillText(clipLabel, 8, 8);
@@ -390,19 +437,19 @@ const PreviewWindow: React.FC = () => {
     ctx.fillRect(0, height - 4, width * Math.min(1, clipProgress), 4);
 
     // Draw audio indicator if there are audio clips playing
-    if (audioClips.length > 0) {
+    if (activeAudioCount > 0) {
       ctx.fillStyle = "rgba(100, 200, 100, 0.9)";
       ctx.font = "10px Inter, system-ui, sans-serif";
       ctx.textAlign = "right";
       ctx.textBaseline = "top";
-      ctx.fillText(`♪ ${audioClips.length} audio`, width - 8, 8);
+      ctx.fillText(`♪ ${activeAudioCount} audio`, width - 8, 8);
     }
   }, [
     project,
     playback.playheadPosition,
     visualClip,
     nextClip,
-    audioClips.length,
+    activeAudioCount,
     currentClips.length,
     canvasSize,
     getSource
@@ -450,9 +497,9 @@ const PreviewWindow: React.FC = () => {
     : 1;
 
   // Check if we should use canvas for image (when in transition or has fades)
-  const useCanvasForImage = visualClip?.type === "image" && (
-    nextClip || isClipInFade(visualClip, clipTime)
-  );
+  const useCanvasForImage =
+    visualClip?.type === "image" &&
+    (nextClip || isClipInFade(visualClip, clipTime));
 
   return (
     <Box css={styles(theme)} className="preview-window">
@@ -463,30 +510,35 @@ const PreviewWindow: React.FC = () => {
           ref={canvasRef}
           className="preview-canvas"
           style={{
-            display: (visualClip?.type === "image" && !useCanvasForImage) ? "none" : "block"
+            display:
+              visualClip?.type === "image" && !useCanvasForImage
+                ? "none"
+                : "block"
           }}
         />
 
         {/* Image element for image clips without active fades (avoids CORS issues) */}
-        {visualClip?.type === "image" && visualClip.sourceUrl && !useCanvasForImage && (
-          <>
-            <img
-              src={visualClip.sourceUrl}
-              alt={visualClip.name}
-              className="preview-image"
-              style={{ opacity: imageOpacity }}
-            />
-            {/* Overlay with clip name */}
-            <div className="preview-overlay">{visualClip.name}</div>
-            {/* Progress bar */}
-            <div className="preview-progress">
-              <div
-                className="preview-progress-bar"
-                style={{ width: `${clipProgress * 100}%` }}
+        {visualClip?.type === "image" &&
+          visualClip.sourceUrl &&
+          !useCanvasForImage && (
+            <>
+              <img
+                src={visualClip.sourceUrl}
+                alt={visualClip.name}
+                className="preview-image"
+                style={{ opacity: imageOpacity }}
               />
-            </div>
-          </>
-        )}
+              {/* Overlay with clip name */}
+              <div className="preview-overlay">{visualClip.name}</div>
+              {/* Progress bar */}
+              <div className="preview-progress">
+                <div
+                  className="preview-progress-bar"
+                  style={{ width: `${clipProgress * 100}%` }}
+                />
+              </div>
+            </>
+          )}
       </div>
 
       {/* Controls */}

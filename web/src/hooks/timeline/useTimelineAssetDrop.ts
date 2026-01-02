@@ -12,10 +12,55 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 const DEFAULT_IMAGE_DURATION = 5;
 
 // Default duration when media duration can't be determined
-const DEFAULT_MEDIA_DURATION = 10;
+const DEFAULT_MEDIA_DURATION = 30;
 
-// Images can be extended indefinitely - use a very high source duration
-const IMAGE_MAX_DURATION = 3600; // 1 hour - effectively unlimited for most use cases
+// Media can be extended up to source duration - use high default when unknown
+const MAX_SOURCE_DURATION = 3600; // 1 hour - effectively unlimited for most use cases
+
+/**
+ * Gets the actual duration of an audio or video file
+ */
+export async function getMediaDuration(url: string, type: "audio" | "video"): Promise<number> {
+  return new Promise((resolve) => {
+    if (type === "audio") {
+      const audio = new Audio();
+      audio.preload = "metadata";
+      
+      audio.onloadedmetadata = () => {
+        const duration = audio.duration;
+        audio.src = ""; // Cleanup
+        resolve(isFinite(duration) ? duration : MAX_SOURCE_DURATION);
+      };
+      
+      audio.onerror = () => {
+        resolve(MAX_SOURCE_DURATION); // Fallback on error
+      };
+      
+      // Timeout fallback
+      setTimeout(() => resolve(MAX_SOURCE_DURATION), 5000);
+      
+      audio.src = url;
+    } else {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      
+      video.onloadedmetadata = () => {
+        const duration = video.duration;
+        video.src = ""; // Cleanup
+        resolve(isFinite(duration) ? duration : MAX_SOURCE_DURATION);
+      };
+      
+      video.onerror = () => {
+        resolve(MAX_SOURCE_DURATION); // Fallback on error
+      };
+      
+      // Timeout fallback
+      setTimeout(() => resolve(MAX_SOURCE_DURATION), 5000);
+      
+      video.src = url;
+    }
+  });
+}
 
 /**
  * Determines the clip type from an asset's content_type
@@ -50,16 +95,23 @@ export function createClipFromAsset(
   asset: Asset,
   clipType: ClipType,
   startTime: number = 0,
-  duration?: number
+  options?: {
+    duration?: number;
+    sourceDuration?: number;
+  }
 ): Omit<Clip, "id"> {
-  // Use provided duration, or estimate based on type
-  const clipDuration = duration ?? (clipType === "image" ? DEFAULT_IMAGE_DURATION : DEFAULT_MEDIA_DURATION);
+  const { duration, sourceDuration: providedSourceDuration } = options ?? {};
   
-  // For images, allow unlimited extension by setting a very high source duration
-  // For video/audio, source duration should match the actual media length
-  const sourceDuration = clipType === "image" 
-    ? IMAGE_MAX_DURATION 
-    : clipDuration;
+  // For images, use short default duration but allow unlimited source
+  // For audio/video, use the actual source duration if available
+  const isImage = clipType === "image";
+  const actualSourceDuration = providedSourceDuration ?? MAX_SOURCE_DURATION;
+  
+  // Clip duration: for images use default, for media use source duration or default
+  const clipDuration = duration ?? (isImage 
+    ? DEFAULT_IMAGE_DURATION 
+    : Math.min(actualSourceDuration, DEFAULT_MEDIA_DURATION)
+  );
   
   return {
     type: clipType,
@@ -70,7 +122,7 @@ export function createClipFromAsset(
     duration: clipDuration,
     inPoint: 0,
     outPoint: clipDuration,
-    sourceDuration,
+    sourceDuration: isImage ? MAX_SOURCE_DURATION : actualSourceDuration,
     speed: 1,
     volume: clipType === "audio" ? 1 : undefined,
     opacity: clipType === "video" || clipType === "image" ? 1 : undefined
@@ -104,7 +156,7 @@ export function useTimelineAssetDrop() {
    * Handles dropping an asset onto a specific track
    */
   const handleDropOnTrack = useCallback(
-    (e: React.DragEvent, trackId: string, dropTimePosition: number) => {
+    async (e: React.DragEvent, trackId: string, dropTimePosition: number) => {
       e.preventDefault();
       e.stopPropagation();
 
@@ -134,7 +186,16 @@ export function useTimelineAssetDrop() {
         return false;
       }
 
-      const clipData = createClipFromAsset(asset, clipType, dropTimePosition);
+      // Get actual media duration for audio/video
+      let sourceDuration: number | undefined;
+      if (clipType === "audio" || clipType === "video") {
+        const url = asset.get_url;
+        if (url) {
+          sourceDuration = await getMediaDuration(url, clipType);
+        }
+      }
+
+      const clipData = createClipFromAsset(asset, clipType, dropTimePosition, { sourceDuration });
       const clipId = addClip(trackId, clipData);
 
       if (clipId) {
@@ -160,7 +221,7 @@ export function useTimelineAssetDrop() {
    * Handles dropping an asset onto the timeline (creates track if needed)
    */
   const handleDropOnTimeline = useCallback(
-    (e: React.DragEvent, dropTimePosition: number = 0) => {
+    async (e: React.DragEvent, dropTimePosition: number = 0) => {
       e.preventDefault();
       e.stopPropagation();
 
@@ -199,7 +260,16 @@ export function useTimelineAssetDrop() {
         }
       }
 
-      const clipData = createClipFromAsset(asset, clipType, dropTimePosition);
+      // Get actual media duration for audio/video
+      let sourceDuration: number | undefined;
+      if (clipType === "audio" || clipType === "video") {
+        const url = asset.get_url;
+        if (url) {
+          sourceDuration = await getMediaDuration(url, clipType);
+        }
+      }
+
+      const clipData = createClipFromAsset(asset, clipType, dropTimePosition, { sourceDuration });
       const clipId = addClip(targetTrackId, clipData);
 
       if (clipId) {
