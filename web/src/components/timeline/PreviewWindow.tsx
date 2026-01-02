@@ -22,7 +22,8 @@ const styles = (theme: Theme) =>
     width: "100%",
     maxWidth: "400px",
     height: "100%",
-    backgroundColor: theme.vars?.palette?.background?.paper || theme.palette.background.paper,
+    backgroundColor:
+      theme.vars?.palette?.background?.paper || theme.palette.background.paper,
     borderRadius: theme.shape.borderRadius,
     overflow: "hidden",
 
@@ -47,7 +48,8 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      color: theme.vars?.palette?.text?.secondary || theme.palette.text.secondary,
+      color:
+        theme.vars?.palette?.text?.secondary || theme.palette.text.secondary,
       gap: theme.spacing(1)
     },
 
@@ -62,8 +64,12 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       padding: theme.spacing(0.5, 1),
       gap: theme.spacing(1),
-      backgroundColor: theme.vars?.palette?.background?.default || theme.palette.background.default,
-      borderTop: `1px solid ${theme.vars?.palette?.divider || theme.palette.divider}`
+      backgroundColor:
+        theme.vars?.palette?.background?.default ||
+        theme.palette.background.default,
+      borderTop: `1px solid ${
+        theme.vars?.palette?.divider || theme.palette.divider
+      }`
     },
 
     ".preview-time": {
@@ -95,31 +101,30 @@ const PreviewWindow: React.FC = () => {
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
 
-  const {
-    project,
-    playback,
-    togglePlayback,
-    getClipsAtTime
-  } = useTimelineStore();
+  const { project, playback, togglePlayback, getClipsAtTime } =
+    useTimelineStore();
 
   // Get current clips at playhead
   const currentClips = project ? getClipsAtTime(playback.playheadPosition) : [];
-  const hasContent = currentClips.length > 0;
 
-  // Draw preview canvas
+  // Find first visual clip (video or image)
+  const visualClip = currentClips.find(
+    ({ clip }) => clip.type === "video" || clip.type === "image"
+  )?.clip;
+  const audioClips = currentClips.filter(({ clip }) => clip.type === "audio");
+
+  // Load and display image/video content
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
+    if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
+    if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
@@ -133,67 +138,143 @@ const PreviewWindow: React.FC = () => {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, rect.width, rect.height);
 
-    if (!project || currentClips.length === 0) {
+    if (!project || !visualClip) {
       // Draw placeholder
-      ctx.fillStyle = "#333";
+      ctx.fillStyle = "#1a1a1a";
       ctx.fillRect(0, 0, rect.width, rect.height);
-      
-      ctx.fillStyle = "#666";
+
+      ctx.fillStyle = "#555";
       ctx.font = "14px Inter, system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("No content at playhead", rect.width / 2, rect.height / 2);
+      ctx.fillText(
+        currentClips.length > 0
+          ? "Audio only - no visual content"
+          : "Move playhead to a clip",
+        rect.width / 2,
+        rect.height / 2
+      );
+
+      // Show audio indicator if there are audio clips
+      if (audioClips.length > 0) {
+        ctx.fillStyle = "rgba(100, 200, 100, 0.8)";
+        ctx.font = "12px Inter, system-ui, sans-serif";
+        ctx.fillText(
+          `♪ ${audioClips.length} audio track${
+            audioClips.length > 1 ? "s" : ""
+          }`,
+          rect.width / 2,
+          rect.height / 2 + 25
+        );
+      }
       return;
     }
 
-    // Draw simple visualization of current clips
-    const videoClips = currentClips.filter(({ clip }) => clip.type === "video" || clip.type === "image");
-    const audioClips = currentClips.filter(({ clip }) => clip.type === "audio");
+    // Load and draw the actual image/video
+    const sourceUrl = visualClip.sourceUrl;
 
-    // Draw video/image clips as colored rectangles
-    if (videoClips.length > 0) {
-      const clip = videoClips[0].clip;
-      
-      // Draw a gradient background representing video content
-      const gradient = ctx.createLinearGradient(0, 0, rect.width, rect.height);
-      const hue = (playback.playheadPosition * 10) % 360;
-      gradient.addColorStop(0, `hsla(${hue}, 50%, 30%, 1)`);
-      gradient.addColorStop(1, `hsla(${(hue + 60) % 360}, 50%, 20%, 1)`);
-      ctx.fillStyle = gradient;
+    if (visualClip.type === "image" && sourceUrl) {
+      // Load and draw image
+      if (loadedImageUrl !== sourceUrl) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          imageRef.current = img;
+          setLoadedImageUrl(sourceUrl);
+        };
+        img.src = sourceUrl;
+      } else if (imageRef.current) {
+        // Draw the loaded image
+        const img = imageRef.current;
+        const scale = Math.min(
+          rect.width / img.width,
+          rect.height / img.height
+        );
+        const drawWidth = img.width * scale;
+        const drawHeight = img.height * scale;
+        const drawX = (rect.width - drawWidth) / 2;
+        const drawY = (rect.height - drawHeight) / 2;
+
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+        // Draw clip name overlay
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(0, 0, rect.width, 28);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.font = "12px Inter, system-ui, sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(visualClip.name, 8, 8);
+
+        // Draw progress bar
+        const clipProgress =
+          (playback.playheadPosition - visualClip.startTime) /
+          visualClip.duration;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.fillRect(0, rect.height - 4, rect.width, 4);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.fillRect(0, rect.height - 4, rect.width * clipProgress, 4);
+      }
+    } else if (visualClip.type === "video" && sourceUrl) {
+      // For video, show a thumbnail with a play indicator
+      // In a real implementation, we'd use a <video> element
+      ctx.fillStyle = "#222";
       ctx.fillRect(0, 0, rect.width, rect.height);
 
+      // Draw video icon
+      ctx.fillStyle = "#666";
+      ctx.beginPath();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      ctx.moveTo(centerX - 15, centerY - 20);
+      ctx.lineTo(centerX - 15, centerY + 20);
+      ctx.lineTo(centerX + 20, centerY);
+      ctx.closePath();
+      ctx.fill();
+
       // Draw clip name
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.fillRect(0, 0, rect.width, 28);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
       ctx.font = "12px Inter, system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(clip.name, 10, 10);
+      ctx.fillText(visualClip.name, 8, 8);
 
-      // Draw progress indicator
-      const clipProgress = (playback.playheadPosition - clip.startTime) / clip.duration;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      // Draw progress bar
+      const clipProgress =
+        (playback.playheadPosition - visualClip.startTime) /
+        visualClip.duration;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.fillRect(0, rect.height - 4, rect.width, 4);
+      ctx.fillStyle = "rgba(100, 150, 255, 0.8)";
       ctx.fillRect(0, rect.height - 4, rect.width * clipProgress, 4);
-    } else {
-      // No video content, just show a dark background
-      ctx.fillStyle = "#1a1a1a";
-      ctx.fillRect(0, 0, rect.width, rect.height);
     }
 
-    // Draw audio indicator
+    // Draw audio indicator if there are audio clips playing
     if (audioClips.length > 0) {
-      ctx.fillStyle = "rgba(100, 200, 100, 0.8)";
+      ctx.fillStyle = "rgba(100, 200, 100, 0.9)";
       ctx.font = "10px Inter, system-ui, sans-serif";
       ctx.textAlign = "right";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(`♪ ${audioClips.length} audio track${audioClips.length > 1 ? "s" : ""}`, rect.width - 10, rect.height - 10);
+      ctx.textBaseline = "top";
+      ctx.fillText(`♪ ${audioClips.length} audio`, rect.width - 8, 8);
     }
+  }, [
+    project,
+    playback.playheadPosition,
+    visualClip,
+    audioClips.length,
+    loadedImageUrl,
+    currentClips.length
+  ]);
 
-  }, [project, playback.playheadPosition, currentClips]);
-
-  const handleVolumeChange = useCallback((_event: Event, value: number | number[]) => {
-    setVolume(value as number);
-    setIsMuted(false);
-  }, []);
+  const handleVolumeChange = useCallback(
+    (_event: Event, value: number | number[]) => {
+      setVolume(value as number);
+      setIsMuted(false);
+    },
+    []
+  );
 
   const toggleMute = useCallback(() => {
     setIsMuted(!isMuted);
@@ -217,24 +298,29 @@ const PreviewWindow: React.FC = () => {
     <Box css={styles(theme)} className="preview-window">
       {/* Video/Image preview area */}
       <div className="preview-video-container">
-        <canvas
-          ref={canvasRef}
-          className="preview-canvas"
-        />
+        <canvas ref={canvasRef} className="preview-canvas" />
       </div>
 
       {/* Controls */}
       <div className="preview-controls">
         {/* Play/Pause */}
-        <Tooltip title={playback.isPlaying ? "Pause" : "Play"} enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip
+          title={playback.isPlaying ? "Pause" : "Play"}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
           <IconButton size="small" onClick={togglePlayback}>
-            {playback.isPlaying ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
+            {playback.isPlaying ? (
+              <PauseIcon fontSize="small" />
+            ) : (
+              <PlayArrowIcon fontSize="small" />
+            )}
           </IconButton>
         </Tooltip>
 
         {/* Time display */}
         <Typography className="preview-time">
-          {formatTimeShort(playback.playheadPosition)} / {formatTimeShort(project.duration)}
+          {formatTimeShort(playback.playheadPosition)} /{" "}
+          {formatTimeShort(project.duration)}
         </Typography>
 
         {/* Spacer */}
@@ -242,7 +328,10 @@ const PreviewWindow: React.FC = () => {
 
         {/* Volume control */}
         <div className="preview-volume">
-          <Tooltip title={isMuted ? "Unmute" : "Mute"} enterDelay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip
+            title={isMuted ? "Unmute" : "Mute"}
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
             <IconButton size="small" onClick={toggleMute}>
               {isMuted || volume === 0 ? (
                 <VolumeOffIcon fontSize="small" />

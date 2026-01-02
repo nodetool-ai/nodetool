@@ -138,12 +138,23 @@ const styles = (theme: Theme) =>
 
     ".timeline-bottom-panel": {
       display: "flex",
-      height: "250px",
+      height: "280px",
       borderTop: `1px solid ${
         theme.vars?.palette?.divider || theme.palette.divider
       }`,
       backgroundColor:
         theme.vars?.palette?.background?.paper || theme.palette.background.paper
+    },
+
+    ".timeline-asset-panel": {
+      width: "280px",
+      minWidth: "280px",
+      borderRight: `1px solid ${
+        theme.vars?.palette?.divider || theme.palette.divider
+      }`,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
     },
 
     ".timeline-preview-container": {
@@ -152,17 +163,6 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: theme.spacing(1)
-    },
-
-    ".timeline-asset-panel": {
-      width: "280px",
-      minWidth: "280px",
-      borderLeft: `1px solid ${
-        theme.vars?.palette?.divider || theme.palette.divider
-      }`,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden"
     }
   });
 
@@ -347,15 +347,6 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           </div>
         </div>
 
-        {/* Asset Browser Panel */}
-        {showAssetBrowser && (
-          <div className="timeline-asset-panel">
-            <TimelineAssetBrowser
-              onClose={() => setShowAssetBrowser(false)}
-            />
-          </div>
-        )}
-
         {/* Timeline content */}
         <div className="timeline-content">
           {/* Time ruler */}
@@ -428,14 +419,22 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         </div>
       </div>
 
-      {/* Bottom panel with preview */}
-      {showPreview && (
-        <div className="timeline-bottom-panel">
+      {/* Bottom panel with asset browser and preview */}
+      <div className="timeline-bottom-panel">
+        {/* Asset Browser on the left */}
+        {showAssetBrowser && (
+          <div className="timeline-asset-panel">
+            <TimelineAssetBrowser onClose={() => setShowAssetBrowser(false)} />
+          </div>
+        )}
+
+        {/* Preview on the right */}
+        {showPreview && (
           <div className="timeline-preview-container">
             <PreviewWindow />
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </Box>
   );
 };
