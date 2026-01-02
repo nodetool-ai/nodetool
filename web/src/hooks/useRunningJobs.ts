@@ -22,11 +22,18 @@ const fetchRunningJobs = async (): Promise<Job[]> => {
     throw createErrorMessage(error, "Failed to fetch running jobs");
   }
 
-  // Filter to only return jobs that are actually running or queued
-  const runningStatuses = new Set(["running", "queued", "starting"]);
+  // Filter to only return jobs that are active (need reconnection)
+  // Include suspended/paused since they may need UI state sync
+  const activeStatuses = new Set([
+    "running",
+    "queued",
+    "starting",
+    "suspended",
+    "paused"
+  ]);
   const jobs = (data as JobListResponse | undefined)?.jobs ?? [];
 
-  return (jobs as Job[]).filter((job) => runningStatuses.has(job.status));
+  return (jobs as Job[]).filter((job) => activeStatuses.has(job.status));
 };
 
 /**

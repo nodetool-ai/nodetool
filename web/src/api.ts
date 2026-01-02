@@ -4647,6 +4647,7 @@ export interface components {
             error?: string | null;
             /** Cost */
             cost?: number | null;
+            run_state?: components["schemas"]["RunStateResponse"] | null;
         };
         /** JobUpdate */
         JobUpdate: {
@@ -4672,6 +4673,7 @@ export interface components {
             error?: string | null;
             /** Traceback */
             traceback?: string | null;
+            run_state?: components["schemas"]["RunStateInfo"] | null;
         };
         /** LanguageModel */
         LanguageModel: {
@@ -5791,6 +5793,48 @@ export interface components {
              */
             explicit_types: boolean | null;
             resource_limits?: components["schemas"]["ResourceLimits"] | null;
+        };
+        /**
+         * RunStateInfo
+         * @description Run state info for WebSocket messages.
+         */
+        RunStateInfo: {
+            /** Status */
+            status: string;
+            /** Suspended Node Id */
+            suspended_node_id?: string | null;
+            /** Suspension Reason */
+            suspension_reason?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Execution Strategy */
+            execution_strategy?: string | null;
+            /**
+             * Is Resumable
+             * @default false
+             */
+            is_resumable: boolean;
+        };
+        /**
+         * RunStateResponse
+         * @description Subset of RunState for API responses.
+         */
+        RunStateResponse: {
+            /** Status */
+            status: string;
+            /** Suspended Node Id */
+            suspended_node_id?: string | null;
+            /** Suspension Reason */
+            suspension_reason?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Execution Strategy */
+            execution_strategy?: string | null;
+            /**
+             * Is Resumable
+             * @default false
+             */
+            is_resumable: boolean;
         };
         /** RunWorkflowRequest */
         RunWorkflowRequest: {

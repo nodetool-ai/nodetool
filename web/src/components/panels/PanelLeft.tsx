@@ -42,10 +42,12 @@ import {
 } from "@mui/material";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
 import { useWorkflowRunnerState } from "../../hooks/useWorkflowRunnerState";
 import { Job } from "../../stores/ApiTypes";
 import { useWorkflow } from "../../serverState/useWorkflow";
 import { queryClient } from "../../queryClient";
+import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -409,6 +411,12 @@ const JobItem = ({ job }: { job: Job }) => {
     navigate(`/editor/${job.workflow_id}`);
   };
 
+  const handleStop = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation
+    const runnerStore = getWorkflowRunnerStore(job.workflow_id);
+    runnerStore.getState().cancel();
+  };
+
   const getStatusIcon = () => {
     if (job.error) {
       return <ErrorOutlineIcon color="error" />;
@@ -466,6 +474,22 @@ const JobItem = ({ job }: { job: Job }) => {
           </Box>
         }
       />
+      {(job.status === "running" || job.status === "queued" || job.status === "starting") && (
+        <IconButton
+          size="small"
+          onClick={handleStop}
+          sx={{
+            ml: 1,
+            color: "error.main",
+            "&:hover": {
+              backgroundColor: "error.light",
+              color: "error.contrastText"
+            }
+          }}
+        >
+          <StopIcon fontSize="small" />
+        </IconButton>
+      )}
     </ListItem>
   );
 };

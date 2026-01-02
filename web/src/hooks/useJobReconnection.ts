@@ -53,11 +53,34 @@ export const useJobReconnection = () => {
           // Get the workflow runner store for this workflow
           const runnerStore = getWorkflowRunnerStore(job.workflow_id);
 
-          // Reconnect with workflow context
+          // Determine initial state from job's run_state
+          const runState = (job as any).run_state;
+          let initialState: "running" | "paused" | "suspended" | undefined;
+          if (runState?.status === "suspended") {
+            initialState = "suspended";
+          } else if (runState?.status === "paused") {
+            initialState = "paused";
+          } else {
+            initialState = "running";
+          }
+
+          // Reconnect with workflow context and initial state
           await runnerStore.getState().reconnectWithWorkflow(job.id, workflow);
 
+          // Set proper state after reconnection based on run_state
+          if (initialState && initialState !== "running") {
+            runnerStore.setState({
+              state: initialState,
+              statusMessage:
+                runState?.suspension_reason ||
+                (initialState === "suspended"
+                  ? "Workflow suspended"
+                  : "Workflow paused")
+            });
+          }
+
           log.info(
-            `Reconnected to job ${job.id} for workflow ${workflow.name}`
+            `Reconnected to job ${job.id} for workflow ${workflow.name} (state: ${initialState})`
           );
         } catch (error) {
           log.error(`Error reconnecting to job ${job.id}:`, error);
