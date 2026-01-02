@@ -398,9 +398,22 @@ const Clip: React.FC<ClipProps> = ({
   const fadeOutWidth = clip.fadeOut ? (clip.fadeOut / clip.duration) * 100 : 0;
 
   // Stop click from bubbling to track (which would clear selection)
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
+  // Also seek to the clicked position within the clip
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      // Calculate the clicked time position and seek there
+      if (clipRef.current) {
+        const rect = clipRef.current.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickRatio = clickX / rect.width;
+        const clickTime = clip.startTime + clip.duration * clickRatio;
+        useTimelineStore.getState().seek(Math.max(0, clickTime));
+      }
+    },
+    [clip.startTime, clip.duration]
+  );
 
   return (
     <Box

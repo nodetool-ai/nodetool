@@ -121,7 +121,8 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
     end: number;
   } | null>(null);
 
-  const { project, playback, setLoopRegion, seek, removeMarker } = useTimelineStore();
+  const { project, playback, setLoopRegion, seek, removeMarker } =
+    useTimelineStore();
   const { loopEnabled, loopStart, loopEnd } = playback;
   const markers = project?.markers ?? [];
 
@@ -158,17 +159,22 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
         if (!containerRef.current) {
           return;
         }
+        const currentScrollLeft =
+          useTimelineStore.getState().viewport.scrollLeft;
+        const currentLoopStart = useTimelineStore.getState().playback.loopStart;
+        const currentLoopEnd = useTimelineStore.getState().playback.loopEnd;
+
         const rect = containerRef.current.getBoundingClientRect();
-        const x = moveEvent.clientX - rect.left + scrollLeft;
+        const x = moveEvent.clientX - rect.left + currentScrollLeft;
         const time = Math.max(
           0,
           Math.min(duration, pixelsToTime(x, pixelsPerSecond))
         );
 
         if (handle === "in") {
-          setLoopRegion(time, loopEnd);
+          setLoopRegion(time, currentLoopEnd);
         } else {
-          setLoopRegion(loopStart, time);
+          setLoopRegion(currentLoopStart, time);
         }
       };
 
@@ -180,7 +186,7 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     },
-    [scrollLeft, pixelsPerSecond, duration, loopStart, loopEnd, setLoopRegion]
+    [pixelsPerSecond, duration, setLoopRegion]
   );
 
   // Handle drag on ruler to create loop region (Alt+drag or Shift+drag)
@@ -191,8 +197,11 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
         return;
       }
 
+      // Get the current scroll position directly from store for accuracy
+      const currentScrollLeft = useTimelineStore.getState().viewport.scrollLeft;
+
       const rect = containerRef.current.getBoundingClientRect();
-      const startX = e.clientX - rect.left + scrollLeft;
+      const startX = e.clientX - rect.left + currentScrollLeft;
       const startTime = Math.max(
         0,
         Math.min(duration, pixelsToTime(startX, pixelsPerSecond))
@@ -207,8 +216,11 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
           if (!containerRef.current) {
             return;
           }
+          const moveScrollLeft =
+            useTimelineStore.getState().viewport.scrollLeft;
           const currentRect = containerRef.current.getBoundingClientRect();
-          const currentX = moveEvent.clientX - currentRect.left + scrollLeft;
+          const currentX =
+            moveEvent.clientX - currentRect.left + moveScrollLeft;
           const currentTime = Math.max(
             0,
             Math.min(duration, pixelsToTime(currentX, pixelsPerSecond))
@@ -228,8 +240,9 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
             document.removeEventListener("mouseup", handleMouseUp);
             return;
           }
+          const upScrollLeft = useTimelineStore.getState().viewport.scrollLeft;
           const currentRect = containerRef.current.getBoundingClientRect();
-          const currentX = upEvent.clientX - currentRect.left + scrollLeft;
+          const currentX = upEvent.clientX - currentRect.left + upScrollLeft;
           const currentTime = Math.max(
             0,
             Math.min(duration, pixelsToTime(currentX, pixelsPerSecond))
@@ -255,7 +268,7 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
         seek(startTime);
       }
     },
-    [scrollLeft, pixelsPerSecond, duration, setLoopRegion, seek]
+    [pixelsPerSecond, duration, setLoopRegion, seek]
   );
 
   useEffect(() => {
@@ -426,7 +439,9 @@ const TimeRuler: React.FC<TimeRulerProps> = ({
             key={marker.id}
             className="marker"
             style={{ left: markerX }}
-            title={`${marker.name} (${formatTimeShort(marker.time)})\nClick to go to marker\nRight-click to delete`}
+            title={`${marker.name} (${formatTimeShort(
+              marker.time
+            )})\nClick to go to marker\nRight-click to delete`}
             onClick={(e) => handleMarkerClick(marker.id, marker.time, e)}
             onContextMenu={(e) => {
               e.preventDefault();
