@@ -45,6 +45,7 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import LightModeIcon from "@mui/icons-material/LightMode";
+import CloseIcon from "@mui/icons-material/Close";
 
 // Lighting presets (must match drei Environment preset types)
 type LightingPreset =
@@ -212,6 +213,17 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       padding: "1em",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       borderRadius: "8px"
+    },
+    ".fullscreen-close-button": {
+      position: "absolute",
+      top: "1em",
+      right: "1em",
+      zIndex: 200,
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      color: theme.vars.palette.grey[100],
+      "&:hover": {
+        backgroundColor: "rgba(0, 0, 0, 0.9)"
+      }
     }
   });
 
@@ -524,6 +536,27 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     };
   }, []);
 
+  // Exit fullscreen
+  const exitFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+      setIsFullscreen(false);
+    }
+  }, []);
+
+  // Handle Escape key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isFullscreen) {
+        exitFullscreen();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFullscreen, exitFullscreen]);
+
   // Reset camera
   const handleResetCamera = useCallback(() => {
     setResetCameraTrigger((prev) => prev + 1);
@@ -669,6 +702,20 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             </ModelErrorBoundary>
           </Canvas>
         </div>
+
+        {/* Fullscreen close button (only visible in fullscreen mode) */}
+        {isFullscreen && (
+          <Tooltip title="Exit Fullscreen (Esc)">
+            <IconButton
+              className="fullscreen-close-button"
+              onClick={exitFullscreen}
+              size="medium"
+              aria-label="Exit fullscreen"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        )}
 
         {/* Controls toolbar (only in non-compact mode) */}
         {!compact && (
