@@ -57,7 +57,9 @@ export default [
         Object: "readonly",
         Promise: "readonly",
         JSON: "readonly",
-        String: "readonly"
+        String: "readonly",
+        AbortSignal: "readonly",
+        AbortController: "readonly"
       }
     },
     settings: {

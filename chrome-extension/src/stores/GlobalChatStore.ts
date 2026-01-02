@@ -27,6 +27,7 @@ import {
 } from "../core/chat/chatProtocol";
 import { uuidv4 } from "./uuidv4";
 import { getChatUrl } from "./BASE_URL";
+import { BrowserToolRegistry } from "../lib/tools/browserTools";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -252,6 +253,18 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         wsManager.on("open", () => {
           set({ socket: wsManager.getWebSocket() });
+          
+          // Register browser tools with the server
+          const browserToolsManifest = BrowserToolRegistry.getManifest();
+          if (browserToolsManifest.length > 0) {
+            log.info(`Registering ${browserToolsManifest.length} browser tools with server`);
+            wsManager.send({
+              command: "register_client_tools",
+              data: {
+                tools: browserToolsManifest
+              }
+            });
+          }
         });
 
         wsManager.on("error", (error: unknown) => {

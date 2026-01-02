@@ -8,7 +8,10 @@
     "storage",
     "activeTab",
     "scripting",
-    "alarms"
+    "alarms",
+    "tabs",
+    "bookmarks",
+    "history"
   ],
   "host_permissions": [
     "http://localhost:*/*",

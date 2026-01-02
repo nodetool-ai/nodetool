@@ -2,6 +2,7 @@
  * Simplified chat protocol handler for the Chrome extension.
  * 
  * Handles WebSocket messages from the Nodetool server and updates the store.
+ * Includes browser tool execution via the BrowserToolRegistry.
  */
 import log from "loglevel";
 
@@ -17,6 +18,7 @@ import {
   MessageContent
 } from "../../stores/ApiTypes";
 import type { GlobalChatState } from "../../stores/GlobalChatStore";
+import { BrowserToolRegistry } from "../../lib/tools/browserTools";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -78,6 +80,15 @@ interface TypedError {
   message?: string;
 }
 
+// Tool call message from server requesting client-side tool execution
+interface ToolCallMessage {
+  type: "tool_call";
+  tool_call_id: string;
+  name: string;
+  args: Record<string, unknown>;
+  thread_id: string;
+}
+
 export type MsgpackData =
   | TypedJobUpdate
   | Chunk
@@ -89,6 +100,7 @@ export type MsgpackData =
   | WorkflowCreatedUpdate
   | WorkflowUpdatedUpdate
   | GenerationStoppedUpdate
+  | ToolCallMessage
   | TypedError;
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
@@ -488,6 +500,84 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyMessage, data as TypedMessage);
   } else if (data.type === "node_progress") {
     applyReducer(applyNodeProgress, data as TypedNodeProgress);
+  } else if (data.type === "tool_call") {
+    // Handle browser tool execution
+    const toolCallData = data as ToolCallMessage;
+    const { tool_call_id, name, args, thread_id } = toolCallData;
+
+    // Update UI immediately
+    set({
+      currentRunningToolCallId: tool_call_id,
+      currentToolMessage: `Executing ${name}`,
+      statusMessage: `Executing ${name}`
+    });
+
+    if (!BrowserToolRegistry.has(name)) {
+      log.warn(`Unknown browser tool: ${name}`);
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: false,
+        error: `Unsupported browser tool: ${name}`,
+        result: { error: `Unsupported browser tool: ${name}` }
+      });
+      return;
+    }
+
+    // Check if tool requires user consent
+    // Note: For now we log a warning but allow execution
+    // TODO: Implement user consent dialog for sensitive tools
+    if (BrowserToolRegistry.requiresConsent(name)) {
+      log.warn(`Tool ${name} requires user consent - executing without confirmation`);
+    }
+
+    const startTime = Date.now();
+    try {
+      const result = await BrowserToolRegistry.call(
+        name,
+        args,
+        tool_call_id,
+        {}
+      );
+
+      const elapsedMs = Date.now() - startTime;
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: true,
+        result,
+        elapsed_ms: elapsedMs
+      });
+
+      // Clear UI state after successful execution
+      set({
+        currentRunningToolCallId: null,
+        currentToolMessage: null,
+        statusMessage: null
+      });
+    } catch (error) {
+      const elapsedMs = Date.now() - startTime;
+      const message = error instanceof Error ? error.message : "Unknown error";
+      log.error(`Browser tool execution failed for ${name}:`, error);
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: false,
+        error: message,
+        result: { error: message },
+        elapsed_ms: elapsedMs
+      });
+
+      // Clear UI state after failed execution
+      set({
+        currentRunningToolCallId: null,
+        currentToolMessage: null,
+        statusMessage: null
+      });
+    }
   } else if (data.type === "generation_stopped") {
     applyReducer(
       () => applyGenerationStopped(),
