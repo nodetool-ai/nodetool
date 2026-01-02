@@ -93,7 +93,9 @@ const layoutComponents: ComponentDefinition[] = [
 ];
 
 /**
- * Typography components
+ * Typography components - Only headings are exposed in sidebar
+ * Other typographic elements (paragraph, span, link) are created
+ * through inline rich text editing within sections
  */
 const typographyComponents: ComponentDefinition[] = [
   {
@@ -147,6 +149,64 @@ const typographyComponents: ComponentDefinition[] = [
     defaultTextContent: "Heading 3",
     canHaveChildren: false
   },
+  {
+    id: "heading-4",
+    name: "Heading 4",
+    description: "Minor heading",
+    category: "typography",
+    icon: "Title",
+    tag: "h4",
+    type: "heading",
+    defaultAttributes: {},
+    defaultStyles: {
+      fontSize: "18px",
+      fontWeight: "bold",
+      marginBottom: "8px"
+    },
+    defaultTextContent: "Heading 4",
+    canHaveChildren: false
+  },
+  {
+    id: "heading-5",
+    name: "Heading 5",
+    description: "Small heading",
+    category: "typography",
+    icon: "Title",
+    tag: "h5",
+    type: "heading",
+    defaultAttributes: {},
+    defaultStyles: {
+      fontSize: "16px",
+      fontWeight: "bold",
+      marginBottom: "4px"
+    },
+    defaultTextContent: "Heading 5",
+    canHaveChildren: false
+  },
+  {
+    id: "heading-6",
+    name: "Heading 6",
+    description: "Smallest heading",
+    category: "typography",
+    icon: "Title",
+    tag: "h6",
+    type: "heading",
+    defaultAttributes: {},
+    defaultStyles: {
+      fontSize: "14px",
+      fontWeight: "bold",
+      marginBottom: "4px"
+    },
+    defaultTextContent: "Heading 6",
+    canHaveChildren: false
+  }
+];
+
+/**
+ * Internal-only text components - not shown in sidebar but can be
+ * created programmatically via rich text editing
+ */
+export const internalTextComponents: ComponentDefinition[] = [
   {
     id: "paragraph",
     name: "Paragraph",
