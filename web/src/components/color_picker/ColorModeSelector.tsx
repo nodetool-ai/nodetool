@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import React from "react";
 import { useTheme } from "@mui/material/styles";
 import { Tabs, Tab } from "@mui/material";
@@ -12,7 +11,7 @@ interface ColorModeSelectorProps {
 
 /**
  * ColorModeSelector
- * 
+ *
  * A tab selector for choosing color input modes (hex, rgb, hsl, etc.).
  * Uses semantic sx prop styling instead of CSS class selectors.
  */
