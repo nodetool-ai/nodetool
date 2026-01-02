@@ -9,6 +9,7 @@ import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 interface NodeItemProps {
   node: NodeMetadata;
   onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: () => void;
   onClick: () => void;
   showCheckbox?: boolean;
   isSelected?: boolean;
@@ -21,6 +22,7 @@ const NodeItem = memo(
       {
         node,
         onDragStart,
+        onDragEnd,
         onClick,
         showCheckbox = false,
         isSelected = false,
@@ -74,6 +76,7 @@ const NodeItem = memo(
               onDragStart(e);
             }
           }}
+          onDragEnd={onDragEnd}
         >
           <div
             className="node-button"
