@@ -5,7 +5,7 @@
  * inline text editing, and element reordering capabilities.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
@@ -72,6 +72,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
   const isMultiSelected = multiSelectedIds.includes(element.id);
   const isDragOver = dragOverId === element.id;
   const [isEditing, setIsEditing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handleClick = useCallback(
@@ -169,7 +170,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
           ? `2px dashed ${theme.vars.palette.primary.light}`
           : isDragOver
             ? `2px dashed ${theme.vars.palette.success.main}`
-            : "1px dashed transparent",
+            : isHovered
+              ? `1px solid ${theme.vars.palette.primary.light}`
+              : "1px dashed transparent",
       outlineOffset: "2px",
       transition: "outline 0.15s ease, background-color 0.15s ease",
       minHeight: element.children.length === 0 && !element.textContent ? "32px" : undefined,
@@ -180,7 +183,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     };
 
     return baseStyles;
-  }, [element.styles, element.children.length, element.textContent, isSelected, isMultiSelected, isDragOver, isEditing, theme.vars.palette]);
+  }, [element.styles, element.children.length, element.textContent, isSelected, isMultiSelected, isDragOver, isHovered, isEditing, theme.vars.palette]);
 
   // Render children
   const renderedChildren = useMemo(() => {
@@ -216,16 +219,56 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
   // Determine if element can have children
   const canHaveChildren = !isVoidElement && element.type === "container";
 
+  // Handle mouse enter/leave for hover state
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+  }, []);
+
   // Wrapper for drag handle and element
   return (
     <Box
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       sx={{
         position: "relative",
         "&:hover .drag-handle": {
           opacity: 1
+        },
+        "&:hover .element-label": {
+          opacity: 1
         }
       }}
     >
+      {/* Hover/Selection label showing element tag */}
+      {(isHovered || isSelected) && (
+        <Box
+          className="element-label"
+          sx={{
+            position: "absolute",
+            top: -20,
+            left: 0,
+            fontSize: "10px",
+            fontWeight: 500,
+            color: isSelected ? theme.vars.palette.primary.contrastText : theme.vars.palette.text.secondary,
+            backgroundColor: isSelected ? theme.vars.palette.primary.main : theme.vars.palette.background.paper,
+            padding: "2px 6px",
+            borderRadius: "3px",
+            zIndex: 11,
+            pointerEvents: "none",
+            opacity: isSelected ? 1 : 0.9,
+            transition: "opacity 0.15s ease",
+            border: `1px solid ${isSelected ? theme.vars.palette.primary.main : theme.vars.palette.divider}`,
+            whiteSpace: "nowrap"
+          }}
+        >
+          {element.displayName || element.tag}
+        </Box>
+      )}
+
       {/* Drag handle */}
       <Box
         className="drag-handle"
@@ -238,7 +281,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
           top: "50%",
           transform: "translateY(-50%)",
           cursor: "grab",
-          opacity: isSelected ? 1 : 0,
+          opacity: isSelected || isHovered ? 1 : 0,
           transition: "opacity 0.2s ease",
           zIndex: 10,
           display: "flex",
@@ -314,6 +357,53 @@ export const Canvas: React.FC<CanvasProps> = ({
   const updateElement = useHTMLBuilderStore((state) => state.updateElement);
   const moveElement = useHTMLBuilderStore((state) => state.moveElement);
   const reorderElement = useHTMLBuilderStore((state) => state.reorderElement);
+  const deleteElement = useHTMLBuilderStore((state) => state.deleteElement);
+  const copyElement = useHTMLBuilderStore((state) => state.copyElement);
+  const pasteElement = useHTMLBuilderStore((state) => state.pasteElement);
+  const duplicateElement = useHTMLBuilderStore((state) => state.duplicateElement);
+
+  // Keyboard shortcuts for delete, copy, paste, duplicate
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't handle if typing in an input or contentEditable
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Delete/Backspace - delete selected element
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedElementId) {
+        event.preventDefault();
+        deleteElement(selectedElementId);
+      }
+
+      // Ctrl/Cmd + C - copy
+      if ((event.ctrlKey || event.metaKey) && event.key === "c" && selectedElementId) {
+        event.preventDefault();
+        copyElement(selectedElementId);
+      }
+
+      // Ctrl/Cmd + V - paste
+      if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+        event.preventDefault();
+        const parentId = selectedElementId ? elements[selectedElementId]?.parentId : undefined;
+        pasteElement(parentId);
+      }
+
+      // Ctrl/Cmd + D - duplicate
+      if ((event.ctrlKey || event.metaKey) && event.key === "d" && selectedElementId) {
+        event.preventDefault();
+        duplicateElement(selectedElementId);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedElementId, elements, deleteElement, copyElement, pasteElement, duplicateElement]);
 
   // Handle element click
   const handleElementClick = useCallback(

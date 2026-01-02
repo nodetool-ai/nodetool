@@ -57,6 +57,8 @@ export interface HTMLBuilderState {
   isPreviewMode: boolean;
   /** Whether the builder is dirty (has unsaved changes) */
   isDirty: boolean;
+  /** Clipboard for copy/paste operations */
+  clipboard: BuilderElement | null;
 
   // Actions
   /** Add a new element */
@@ -118,6 +120,10 @@ export interface HTMLBuilderState {
   getChildren: (parentId?: string) => BuilderElement[];
   /** Mark as clean (after save) */
   markClean: () => void;
+  /** Copy selected element to clipboard */
+  copyElement: (id: string) => void;
+  /** Paste element from clipboard */
+  pasteElement: (parentId?: string) => string | null;
 }
 
 /**
@@ -333,6 +339,7 @@ export const useHTMLBuilderStore = create<HTMLBuilderState>()(
       currentBreakpoint: "desktop",
       isPreviewMode: false,
       isDirty: false,
+      clipboard: null,
 
       addElement: (element, parentId, index) => {
         const id = generateId();
@@ -903,6 +910,121 @@ ${bodyContent}  </body>
 
       markClean: () => {
         set({ isDirty: false });
+      },
+
+      copyElement: (id) => {
+        const state = get();
+        const element = state.elements[id];
+        if (!element) {
+          return;
+        }
+
+        // Deep clone the element structure for clipboard
+        const cloneForClipboard = (el: BuilderElement): BuilderElement => {
+          const clonedChildren: BuilderElement[] = [];
+          for (const childId of el.children) {
+            const child = state.elements[childId];
+            if (child) {
+              clonedChildren.push(cloneForClipboard(child));
+            }
+          }
+          return {
+            ...el,
+            children: clonedChildren.map((c) => c.id)
+          };
+        };
+
+        set({ clipboard: cloneForClipboard(element) });
+      },
+
+      pasteElement: (parentId) => {
+        const state = get();
+        if (!state.clipboard) {
+          return null;
+        }
+
+        // Deep clone with new IDs
+        const pasteWithNewIds = (
+          el: BuilderElement,
+          newParentId?: string
+        ): string => {
+          const newId = generateId();
+          const originalChildren = el.children;
+          const newChildren: string[] = [];
+
+          // Create the element first
+          const newElement: BuilderElement = {
+            ...el,
+            id: newId,
+            parentId: newParentId,
+            children: [],
+            displayName: el.displayName ? `${el.displayName} (pasted)` : undefined
+          };
+
+          // Add to store
+          set((s) => {
+            const newElements = { ...s.elements, [newId]: newElement };
+            let newRootIds = [...s.rootElementIds];
+
+            if (newParentId && s.elements[newParentId]) {
+              const parent = { ...s.elements[newParentId] };
+              parent.children = [...parent.children, newId];
+              newElements[newParentId] = parent;
+            } else {
+              newRootIds = [...newRootIds, newId];
+            }
+
+            return {
+              elements: newElements,
+              rootElementIds: newRootIds,
+              isDirty: true
+            };
+          });
+
+          // Recursively paste children
+          for (const childId of originalChildren) {
+            // Find the child in the original clipboard structure
+            const findChild = (
+              clipboardEl: BuilderElement,
+              searchId: string
+            ): BuilderElement | null => {
+              if (clipboardEl.id === searchId) {
+                return clipboardEl;
+              }
+              for (const cid of clipboardEl.children) {
+                const found = findChild(
+                  { ...clipboardEl, id: cid } as BuilderElement,
+                  searchId
+                );
+                if (found) {
+                  return found;
+                }
+              }
+              return null;
+            };
+
+            // For now, we'll use the stored elements since clipboard stores IDs
+            const childElement = state.elements[childId];
+            if (childElement) {
+              const newChildId = pasteWithNewIds(childElement, newId);
+              newChildren.push(newChildId);
+            }
+          }
+
+          // Update children array
+          if (newChildren.length > 0) {
+            set((s) => ({
+              elements: {
+                ...s.elements,
+                [newId]: { ...s.elements[newId], children: newChildren }
+              }
+            }));
+          }
+
+          return newId;
+        };
+
+        return pasteWithNewIds(state.clipboard, parentId);
       }
     }),
     {

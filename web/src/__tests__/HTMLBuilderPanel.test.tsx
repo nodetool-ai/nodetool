@@ -91,6 +91,9 @@ const createMockStoreState = (overrides = {}) => ({
   getElementById: jest.fn(),
   getChildren: jest.fn(() => []),
   markClean: jest.fn(),
+  clipboard: null,
+  copyElement: jest.fn(),
+  pasteElement: jest.fn(() => null),
   ...overrides
 });
 
