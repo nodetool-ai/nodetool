@@ -69,7 +69,9 @@ const searchResultStyles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
         letterSpacing: "0.5px",
-        marginTop: "2px"
+        "& .highlight": {
+          color: "var(--palette-primary-main)"
+        }
       },
       ".result-description": {
         fontSize: "0.8rem",
@@ -160,7 +162,7 @@ const SearchResultItem = memo(
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
       // Parse description and tags
-      const { description, tags } = formatNodeDocumentation(
+      const { description } = formatNodeDocumentation(
         node.description,
         searchTerm,
         node.searchInfo
@@ -188,24 +190,13 @@ const SearchResultItem = memo(
         node.searchInfo
       ).html;
 
-      // Check which tags matched
-      const matchedTags = new Set<string>();
-      if (node.searchInfo?.matches) {
-        node.searchInfo.matches
-          .filter((m) => m.key === "tags")
-          .forEach((match) => {
-            // Find which tag was matched
-            const tagsStr = tags.join(", ");
-            match.indices.forEach(([start, end]) => {
-              const matchedText = tagsStr.slice(start, end + 1).toLowerCase();
-              tags.forEach((tag) => {
-                if (tag.toLowerCase().includes(matchedText)) {
-                  matchedTags.add(tag);
-                }
-              });
-            });
-          });
-      }
+      // Highlight namespace
+      const highlightedNamespace = highlightTextUtil(
+        node.namespace,
+        "namespace",
+        searchTerm,
+        node.searchInfo
+      ).html;
 
       const [isExpanded, setIsExpanded] = useState(false);
 
@@ -249,16 +240,16 @@ const SearchResultItem = memo(
                   dangerouslySetInnerHTML={{ __html: highlightedTitle }}
                 />
               </div>
-              <Typography className="result-namespace" component="div">
-                {node.namespace}
-              </Typography>
             </div>
-            <div
-              className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
-              onClick={handleToggleExpand}
-              title={isExpanded ? "Collapse details" : "Show details"}
-            >
-              <ExpandMoreIcon />
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Typography className="result-namespace" component="div" dangerouslySetInnerHTML={{ __html: highlightedNamespace }} />
+              <div
+                className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
+                onClick={handleToggleExpand}
+                title={isExpanded ? "Collapse details" : "Show details"}
+              >
+                <ExpandMoreIcon />
+              </div>
             </div>
           </div>
 
@@ -268,17 +259,6 @@ const SearchResultItem = memo(
               component="div"
               dangerouslySetInnerHTML={{ __html: highlightedDescription }}
             />
-          )}
-
-          {/* Show matched tags only if any matched */}
-          {matchedTags.size > 0 && (
-            <Box className="result-tags">
-              {tags.filter((tag) => matchedTags.has(tag)).map((tag, idx) => (
-                <span key={idx} className="result-tag matched">
-                  {tag}
-                </span>
-              ))}
-            </Box>
           )}
 
           {/* Input/Output info - click to expand */}

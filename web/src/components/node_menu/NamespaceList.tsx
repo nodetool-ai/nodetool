@@ -244,13 +244,12 @@ const namespaceStyles = (theme: Theme) =>
     ".node": {
       display: "flex",
       alignItems: "center",
-      margin: "8px 0",
-      padding: "8px",
+      margin: "0",
+      padding: "4px",
       borderRadius: "8px",
       cursor: "pointer",
       transition: "all 0.2s ease",
       border: "1px solid transparent",
-      minHeight: "48px",
       ".node-button": {
         padding: "4px 8px",
         flexGrow: 1,
@@ -259,7 +258,7 @@ const namespaceStyles = (theme: Theme) =>
           backgroundColor: "transparent"
         },
         "& .MuiTypography-root": {
-          fontSize: "1rem",
+          fontSize: "0.9rem",
           fontWeight: 500,
           color: theme.vars.palette.text.primary
         }
@@ -325,7 +324,7 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item": {
       cursor: "pointer",
-      padding: ".75em 1em",
+      padding: ".5em 1em",
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily1,
       fontSize: "0.9rem",

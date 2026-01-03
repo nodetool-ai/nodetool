@@ -86,26 +86,10 @@ const treeStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       gap: "0.75em",
+      marginLeft: "-3px",
       ".search-input-container": {
-        minWidth: "200px",
+        minWidth: "100%",
         flexGrow: 1
-      }
-    },
-    ".close-button": {
-      position: "absolute",
-      top: "8px",
-      right: "8px",
-      zIndex: 150,
-      color: "text.secondary",
-      width: "32px",
-      height: "32px",
-      padding: "4px",
-      borderRadius: "50%",
-      transition: "all 0.2s ease",
-      "&:hover": {
-        backgroundColor: "action.selected",
-        color: "text.primary",
-        transform: "rotate(90deg)"
       }
     },
     "& .MuiPaper-root.MuiAccordion-root": {
@@ -266,21 +250,11 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     >
       <Box
         ref={nodeRef}
-        sx={{ minWidth: "800px", maxHeight: menuHeight }}
+        sx={{ minWidth: "900px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
       >
         <div className="draggable-header">
-          <IconButton
-            className="close-button"
-            edge="end"
-            size="small"
-            color="inherit"
-            onClick={closeNodeMenu}
-            aria-label="close"
-          >
-            <CloseIcon />
-          </IconButton>
         </div>
         <Box className="node-menu-container">
           <div className="main-content">

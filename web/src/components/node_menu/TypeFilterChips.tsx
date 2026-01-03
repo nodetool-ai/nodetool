@@ -30,7 +30,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       gap: "8px",
-      padding: "0 0.5em"
+      padding: "0.5em 0.5em 0 0"
     },
     ".filter-section": {
       display: "flex",
@@ -52,6 +52,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".type-chip": {
       height: "24px",
+      padding: "0 0.7em",
       fontSize: "0.7rem",
       borderRadius: "12px",
       backgroundColor: theme.vars.palette.action.hover,
