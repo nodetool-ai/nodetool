@@ -95,55 +95,18 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         fontWeight: 300
       }
     },
-    // run stop button
+    // action buttons container
     ".action-buttons": {
-      marginRight: ".5em",
+      marginRight: "0.5em",
       display: "flex",
       justifyContent: "flex-end",
       alignItems: "center",
       width: "auto",
-      height: "2em",
-      gap: ".5em"
-    },
-    ".action-buttons button": {
-      padding: 0,
-      margin: 0,
-      minWidth: "unset",
-      minHeight: "unset",
-      color: "white",
-      opacity: 0.6,
-      transition: "all 0.2s ease",
-      position: "relative",
-      overflow: "hidden"
-    },
-    ".action-buttons button.running": {
-      opacity: 1,
-      "&::after": {
-        content: '""',
-        position: "absolute",
-        inset: "0",
-        borderRadius: "inherit",
-        padding: "2px",
-        background: `conic-gradient(from 0deg, transparent 50%, ${theme.vars.palette.primary.main} 95%, ${theme.vars.palette.primary.main})`,
-        WebkitMask:
-          "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-        WebkitMaskComposite: "destination-out",
-        maskComposite: "exclude",
-        animation: "spin 2.5s linear infinite",
-        pointerEvents: "none",
-        zIndex: 1
+      height: "32px",
+      gap: "6px",
+      ".color-picker": {
+        marginRight: "2px"
       }
-    },
-    "@keyframes spin": {
-      "0%": { transform: "rotate(0deg)" },
-      "25%": { transform: "rotate(85deg)" },
-      "50%": { transform: "rotate(180deg)" },
-      "75%": { transform: "rotate(280deg)" },
-      "100%": { transform: "rotate(360deg)" }
-    },
-    ".action-buttons button:hover": {
-      opacity: 1,
-      background: "transparent"
     },
     // help text
     ".help-text": {
@@ -188,12 +151,14 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const { workflow, updateNodeData, updateNode, setBypass } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData,
-    updateNode: state.updateNode,
-    workflow: state.workflow,
-    setBypass: state.setBypass
-  }));
+  const { workflow, updateNodeData, updateNode, setBypass } = useNodes(
+    (state) => ({
+      updateNodeData: state.updateNodeData,
+      updateNode: state.updateNode,
+      workflow: state.workflow,
+      setBypass: state.setBypass
+    })
+  );
   const { nodes, edges } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges
@@ -232,7 +197,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Check if majority of child nodes are bypassed
   const childrenMajorityBypassed = useMemo(() => {
-    if (childNodes.length === 0) return false;
+    if (childNodes.length === 0) {
+      return false;
+    }
     const bypassedCount = childNodes.filter((n) => n.data.bypassed).length;
     return bypassedCount >= childNodes.length / 2;
   }, [childNodes]);
@@ -408,7 +375,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </div>
           <div className="action-buttons">
             <ColorPicker
-              buttonSize={20}
+              buttonSize={26}
               color={color || null}
               onColorChange={handleColorChange}
             />
