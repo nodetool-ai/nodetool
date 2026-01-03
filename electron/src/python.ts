@@ -111,7 +111,10 @@ function convertToPep440Version(npmVersion: string): string {
 /**
  * Update the Python environment packages using wheel-based package index
  */
-async function updateCondaEnvironment(packages: string[]): Promise<void> {
+async function updateCondaEnvironment(
+  packages: string[],
+  torchPlatformResult?: { platform: string; indexUrl: string | null; requiresDirectML: boolean }
+): Promise<void> {
   try {
     emitBootMessage(`Updating python packages...`);
 
@@ -167,9 +170,23 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
       ...allPackages,
     ];
 
-    if (process.platform !== "darwin") {
+    // Add PyTorch index URL based on detected platform
+    if (torchPlatformResult && torchPlatformResult.indexUrl) {
+      logMessage(`Using torch platform: ${torchPlatformResult.platform}`);
+      logMessage(`Adding PyTorch index: ${torchPlatformResult.indexUrl}`);
+      installCommand.push("--extra-index-url");
+      installCommand.push(torchPlatformResult.indexUrl);
+      
+      if (torchPlatformResult.requiresDirectML) {
+        logMessage("DirectML support enabled for AMD/Intel GPU");
+      }
+    } else if (process.platform !== "darwin") {
+      // Fallback to CUDA 12.9 for backward compatibility
+      logMessage("No torch platform detected, falling back to CUDA 12.9");
       installCommand.push("--extra-index-url");
       installCommand.push("https://download.pytorch.org/whl/cu129");
+    } else {
+      logMessage("Using default PyPI index (macOS)");
     }
 
     logMessage(`Running command: ${installCommand.join(" ")}`);
