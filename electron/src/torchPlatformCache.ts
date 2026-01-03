@@ -51,10 +51,10 @@ export function getTorchIndexUrl(): string | null {
     return saved.indexUrl;
   }
 
-  // Fallback to CUDA for non-macOS platforms for backward compatibility
+  // Fallback to CUDA 12.9 for non-macOS platforms for backward compatibility
   if (process.platform !== "darwin") {
-    logMessage("No saved torch platform, falling back to CUDA 12.6");
-    return "https://download.pytorch.org/whl/cu126";
+    logMessage("No saved torch platform, falling back to CUDA 12.9");
+    return "https://download.pytorch.org/whl/cu129";
   }
 
   // macOS uses default PyPI

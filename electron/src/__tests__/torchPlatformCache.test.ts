@@ -80,7 +80,7 @@ describe("torchPlatformCache", () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, "platform", { value: "linux" });
 
-      expect(getTorchIndexUrl()).toBe("https://download.pytorch.org/whl/cu126");
+      expect(getTorchIndexUrl()).toBe("https://download.pytorch.org/whl/cu129");
 
       Object.defineProperty(process, "platform", { value: originalPlatform });
     });
@@ -109,7 +109,7 @@ describe("torchPlatformCache", () => {
       Object.defineProperty(process, "platform", { value: "win32" });
 
       // Should fall back to default behavior since indexUrl is null
-      expect(getTorchIndexUrl()).toBe("https://download.pytorch.org/whl/cu126");
+      expect(getTorchIndexUrl()).toBe("https://download.pytorch.org/whl/cu129");
 
       Object.defineProperty(process, "platform", { value: originalPlatform });
     });
