@@ -172,7 +172,7 @@ const getNodeColors = (metadata: any): string[] => {
   const outputColors = [
     ...new Set(
       metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
-        []
+      []
     )
   ];
   const inputColors = [
@@ -263,14 +263,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     throw new Error("Metadata is not loaded for node type " + type);
   }
 
-  const parentColor = useNodes((_state) => {
-    if (!parentId) {
-      return "";
-    }
-    return isDarkMode
-      ? hexToRgba("#222", GROUP_COLOR_OPACITY)
-      : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
-  });
+  const parentColor = parentId ?
+    (isDarkMode ?
+      hexToRgba("#222", GROUP_COLOR_OPACITY)
+      : hexToRgba("#ccc", GROUP_COLOR_OPACITY)) : null;
 
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
@@ -401,8 +397,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             : selected
               ? "transparent !important"
               : // theme.vars.palette.c_node_bg
-                // : "#121212", // Darker background
-                theme.vars.palette.c_node_bg, // Darker background
+              // : "#121212", // Darker background
+              theme.vars.palette.c_node_bg, // Darker background
         backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         borderRadius: "var(--rounded-node)",
