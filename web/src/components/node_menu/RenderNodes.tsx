@@ -7,9 +7,8 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
 import SearchResultItem from "./SearchResultItem";
-import {
-  Typography
-} from "@mui/material";
+import SearchResultsPanel from "./SearchResultsPanel";
+import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
@@ -79,12 +78,21 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedPath: state.selectedPath.join(".")
   }));
 
+  const searchNodes = useMemo(() => {
+    if (searchTerm && groupedSearchResults.length > 0) {
+      return groupedSearchResults.flatMap((group) => group.nodes);
+    }
+    return null;
+  }, [searchTerm, groupedSearchResults]);
+
   const elements = useMemo(() => {
     // If we're searching, render flat ranked results with SearchResultItem
     if (searchTerm && groupedSearchResults.length > 0) {
       // Flatten all results from groups (now just one "Results" group)
-      const allSearchNodes = groupedSearchResults.flatMap((group) => group.nodes);
-      
+      const allSearchNodes = groupedSearchResults.flatMap(
+        (group) => group.nodes
+      );
+
       return allSearchNodes.map((node) => (
         <SearchResultItem
           key={node.node_type}
@@ -170,10 +178,16 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedNodeTypes
   ]);
 
+  const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};
+
   return (
-    <div className="nodes">
+    <div className="nodes" style={style}>
       {nodes.length > 0 ? (
-        elements
+        searchNodes ? (
+          <SearchResultsPanel searchNodes={searchNodes} />
+        ) : (
+          elements
+        )
       ) : (
         <div className="no-selection">
           <div className="explanation">
