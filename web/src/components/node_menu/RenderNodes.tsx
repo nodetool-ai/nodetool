@@ -7,16 +7,13 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
 import SearchResultItem from "./SearchResultItem";
-import {
-  Typography
-} from "@mui/material";
+import SearchResultsPanel from "./SearchResultsPanel";
+import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList as VirtualList, ListChildComponentProps } from "react-window";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -88,26 +85,14 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
-  const renderSearchRow = useCallback(({ index, style }: ListChildComponentProps) => {
-    const node = searchNodes![index];
-    return (
-      <div style={style}>
-        <SearchResultItem
-          node={node}
-          onDragStart={handleDragStart(node)}
-          onDragEnd={handleDragEnd}
-          onClick={() => handleCreateNode(node)}
-        />
-      </div>
-    );
-  }, [searchNodes, handleDragStart, handleDragEnd, handleCreateNode]);
-
   const elements = useMemo(() => {
     // If we're searching, render flat ranked results with SearchResultItem
     if (searchTerm && groupedSearchResults.length > 0) {
       // Flatten all results from groups (now just one "Results" group)
-      const allSearchNodes = groupedSearchResults.flatMap((group) => group.nodes);
-      
+      const allSearchNodes = groupedSearchResults.flatMap(
+        (group) => group.nodes
+      );
+
       return allSearchNodes.map((node) => (
         <SearchResultItem
           key={node.node_type}
@@ -190,26 +175,14 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     handleCreateNode,
     showCheckboxes,
     onToggleSelection,
-    selectedNodeTypes,
-    searchNodes
+    selectedNodeTypes
   ]);
 
   return (
-    <div className="nodes">
+    <div className="nodes" style={{ height: "100%", overflow: "hidden" }}>
       {nodes.length > 0 ? (
         searchNodes ? (
-          <AutoSizer>
-            {({ height, width }) => (
-              <VirtualList
-                height={height}
-                width={width}
-                itemCount={searchNodes.length}
-                itemSize={56}
-              >
-                {renderSearchRow}
-              </VirtualList>
-            )}
-          </AutoSizer>
+          <SearchResultsPanel searchNodes={searchNodes} />
         ) : (
           elements
         )
