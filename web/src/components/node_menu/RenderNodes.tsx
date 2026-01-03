@@ -7,17 +7,11 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
 import {
-  Typography,
-  Tooltip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
+  Typography
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { SearchResultGroup } from "../../utils/nodeSearch";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 
@@ -43,34 +37,6 @@ const getServiceFromNamespace = (namespace: string): string => {
   const parts = namespace.split(".");
   return parts[0];
 };
-
-const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
-  title
-}) {
-  const tooltips: Record<string, string> = {
-    Name: "Exact matches in node names",
-    Namespace: "Matches in node namespaces and tags",
-    Description: "Matches found in node descriptions. Better results on top."
-  };
-
-  return (
-    <Tooltip title={tooltips[title] || ""} placement="bottom" enterDelay={200}>
-      <Typography
-        variant="h6"
-        component="div"
-        sx={{
-          color: "#FFD700",
-          fontSize: "1.1em",
-          fontWeight: 600,
-          padding: "1em 0 0.5em 0",
-          letterSpacing: "0.5px"
-        }}
-      >
-        {title}
-      </Typography>
-    </Tooltip>
-  );
-});
 
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
@@ -112,84 +78,26 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedPath: state.selectedPath.join(".")
   }));
 
-  const renderGroup = useCallback(
-    (group: SearchResultGroup) => {
-      const groupedNodes = groupNodes(group.nodes);
-
-      return (
-        <Accordion
-          key={group.title}
-          defaultExpanded={true}
-          disableGutters
-          elevation={0}
-          sx={{
-            backgroundColor: "transparent",
-            "&:before": { display: "none" },
-            "& .MuiAccordionSummary-root": {
-              minHeight: "unset",
-              padding: "0.5em 0"
-            },
-            "& .MuiAccordionDetails-root": {
-              padding: "0"
-            }
-          }}
-        >
-          <AccordionSummary
-            expandIcon={
-              <ExpandMoreIcon sx={{ color: "var(--palette-grey-500)" }} />
-            }
-          >
-            <GroupTitle title={group.title} />
-          </AccordionSummary>
-          <AccordionDetails sx={{ padding: "0 0 1em 0" }}>
-            {Object.entries(groupedNodes).map(
-              ([namespace, nodesInNamespace]) => (
-                <div key={namespace}>
-                  <Typography
-                    variant="h5"
-                    component="div"
-                    className="namespace-text"
-                  >
-                    {selectedPath.length > 0
-                      ? namespace.replaceAll(selectedPath + ".", "")
-                      : namespace}
-                  </Typography>
-                  {nodesInNamespace.map((node) => (
-                    <div key={node.node_type}>
-                      <NodeItem
-                        key={node.node_type}
-                        node={node}
-                        onDragStart={handleDragStart(node)}
-                        onDragEnd={handleDragEnd}
-                        onClick={() => handleCreateNode(node)}
-                        showCheckbox={showCheckboxes}
-                        isSelected={selectedNodeTypes.includes(node.node_type)}
-                        onToggleSelection={onToggleSelection}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
-          </AccordionDetails>
-        </Accordion>
-      );
-    },
-    [
-      selectedPath,
-      handleDragStart,
-      handleDragEnd,
-      showCheckboxes,
-      selectedNodeTypes,
-      onToggleSelection,
-      handleCreateNode
-    ]
-  );
-
   const elements = useMemo(() => {
-    // If we're searching, use the grouped results
-    if (searchTerm) {
-      return groupedSearchResults.map(renderGroup);
+    // If we're searching, render flat ranked results without category headers
+    if (searchTerm && groupedSearchResults.length > 0) {
+      // Flatten all results from groups (now just one "Results" group)
+      const allSearchNodes = groupedSearchResults.flatMap((group) => group.nodes);
+      
+      return allSearchNodes.map((node) => (
+        <div key={node.node_type}>
+          <NodeItem
+            key={node.node_type}
+            node={node}
+            onDragStart={handleDragStart(node)}
+            onDragEnd={handleDragEnd}
+            onClick={() => handleCreateNode(node)}
+            showCheckbox={showCheckboxes}
+            isSelected={selectedNodeTypes.includes(node.node_type)}
+            onToggleSelection={onToggleSelection}
+          />
+        </div>
+      ));
     }
 
     // Otherwise use the original namespace-based grouping
@@ -257,11 +165,10 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     searchTerm,
     nodes,
     groupedSearchResults,
-    renderGroup,
     selectedPath,
     handleDragStart,
+    handleDragEnd,
     handleCreateNode,
-    // added to fix linting error:
     showCheckboxes,
     onToggleSelection,
     selectedNodeTypes

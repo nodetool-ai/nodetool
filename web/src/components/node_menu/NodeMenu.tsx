@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState } from "react";
 
 // mui
-import { IconButton, Box, Typography } from "@mui/material";
+import { IconButton, Box } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 // components
@@ -53,21 +53,12 @@ const treeStyles = (theme: Theme) =>
       borderRadius: "16px 16px 0 0",
       backgroundColor: "transparent", // Let glass effect show through
       width: "100%",
-      minHeight: "48px", // Slightly taller for elegance
+      minHeight: "12px", // Minimal drag handle
       cursor: "grab",
       userSelect: "none",
       display: "flex",
       alignItems: "center",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      h4: {
-        margin: "0",
-        padding: "0 0 0 1.25em",
-        fontSize: "1rem",
-        fontWeight: 500,
-        letterSpacing: "0.5px",
-        color: theme.vars.palette.text.primary,
-        textShadow: "0 1px 2px rgba(0,0,0,0.5)"
-      }
+      justifyContent: "flex-end"
     },
     ".draggable-header:active": {
       cursor: "grabbing"
@@ -283,10 +274,6 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         css={memoizedStyles}
       >
         <div className="draggable-header">
-          <Typography className="title" variant="h4">
-            Node Menu
-          </Typography>
-
           <IconButton
             className="close-button"
             edge="end"
