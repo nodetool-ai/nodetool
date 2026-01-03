@@ -321,10 +321,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const { handleOnConnect, onConnectStart, onConnectEnd } =
     useConnectionHandlers();
 
-  const proOptions = {
-    //https://reactflow.dev/docs/guides/remove-attribution/
-    hideAttribution: true
-  };
+  // Memoize proOptions to prevent recreation on every render
+  const proOptions = useMemo(
+    () => ({
+      //https://reactflow.dev/docs/guides/remove-attribution/
+      hideAttribution: true
+    }),
+    []
+  );
 
   const connecting = useConnectionStore((state) => state.connecting);
 
