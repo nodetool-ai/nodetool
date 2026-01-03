@@ -103,6 +103,9 @@ const styles = (theme: Theme) =>
 interface SearchInputProps {
   onSearchChange: (value: string) => void;
   onPressEscape?: () => void;
+  onPressArrowDown?: () => void;
+  onPressArrowUp?: () => void;
+  onPressEnter?: () => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   placeholder?: string;
@@ -116,6 +119,9 @@ interface SearchInputProps {
 const SearchInput: React.FC<SearchInputProps> = ({
   onSearchChange,
   onPressEscape,
+  onPressArrowDown,
+  onPressArrowUp,
+  onPressEnter,
   focusSearchInput = true,
   focusOnTyping = false,
   placeholder = "Search...",
@@ -194,6 +200,25 @@ const SearchInput: React.FC<SearchInputProps> = ({
         return;
       }
 
+      // Keyboard navigation for search results
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        onPressArrowDown?.();
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        onPressArrowUp?.();
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        onPressEnter?.();
+        return;
+      }
+
       if (focusOnTyping) {
         if (isControlOrMetaPressed) {return;}
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
@@ -213,6 +238,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
     focusOnTyping,
     isControlOrMetaPressed,
     onPressEscape,
+    onPressArrowDown,
+    onPressArrowUp,
+    onPressEnter,
     debouncedSetSearchTerm,
     clearSearch,
     searchResults

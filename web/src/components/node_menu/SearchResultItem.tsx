@@ -16,6 +16,7 @@ interface SearchResultItemProps {
   onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragEnd?: () => void;
   onClick: () => void;
+  isKeyboardSelected?: boolean;
 }
 
 const MAX_DESCRIPTION_LENGTH = 120;
@@ -39,6 +40,11 @@ const searchResultStyles = (theme: Theme) =>
       "&.expanded": {
         backgroundColor: theme.vars.palette.action.hover,
         border: `1px solid ${theme.vars.palette.divider}`
+      },
+      "&.keyboard-selected": {
+        backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
+        border: `1px solid rgba(var(--palette-primary-mainChannel) / 0.4)`,
+        boxShadow: "0 0 0 2px rgba(var(--palette-primary-mainChannel) / 0.1)"
       },
       ".result-header": {
         display: "flex",
@@ -157,7 +163,7 @@ const searchResultStyles = (theme: Theme) =>
 
 const SearchResultItem = memo(
   forwardRef<HTMLDivElement, SearchResultItemProps>(
-    ({ node, onDragStart, onDragEnd, onClick }, ref) => {
+    ({ node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false }, ref) => {
       const theme = useTheme();
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
@@ -198,7 +204,7 @@ const SearchResultItem = memo(
       return (
         <div
           ref={ref}
-          className={`search-result-item ${isExpanded ? "expanded" : ""}`}
+          className={`search-result-item ${isExpanded ? "expanded" : ""} ${isKeyboardSelected ? "keyboard-selected" : ""}`}
           css={searchResultStyles(theme)}
           draggable
           onClick={handleClick}
