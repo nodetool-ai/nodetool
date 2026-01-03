@@ -10,13 +10,10 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { playwrightDescribe } from "./testUtils";
 
-// Skip when run by Jest
-if (process.env.JEST_WORKER_ID) {
-  test.skip("skipped in jest runner", () => {});
-} else {
-  test.describe("ReactFlowWrapper Performance", () => {
-    test.setTimeout(180000); // 3 minutes for performance testing
+playwrightDescribe("ReactFlowWrapper Performance", () => {
+  test.setTimeout(180000); // 3 minutes for performance testing
 
     test("should load editor and measure performance with 100 nodes", async ({
       page
@@ -214,4 +211,4 @@ if (process.env.JEST_WORKER_ID) {
       }
     });
   });
-}
+});

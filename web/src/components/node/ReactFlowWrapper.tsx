@@ -126,78 +126,64 @@ const GhostNode = memo(function GhostNode({
   nodeType,
   theme
 }: GhostNodeProps) {
-  const containerStyle = useMemo(
+  // Combine all styles into a single memoization to reduce hook overhead
+  const styles = useMemo(
     () => ({
-      position: "fixed" as const,
-      top: position.y,
-      left: position.x,
-      transform: "translate(-50%, -60%)",
-      pointerEvents: "none" as const,
-      display: "flex",
-      flexDirection: "column" as const,
-      alignItems: "center",
-      gap: "6px",
-      zIndex: 4000,
-      color: theme.textColor,
-      textShadow: "0 6px 20px rgba(15, 23, 42, 0.35)"
+      container: {
+        position: "fixed" as const,
+        top: position.y,
+        left: position.x,
+        transform: "translate(-50%, -60%)",
+        pointerEvents: "none" as const,
+        display: "flex",
+        flexDirection: "column" as const,
+        alignItems: "center",
+        gap: "6px",
+        zIndex: 4000,
+        color: theme.textColor,
+        textShadow: "0 6px 20px rgba(15, 23, 42, 0.35)"
+      },
+      badge: {
+        width: "56px",
+        height: "56px",
+        borderRadius: "18px",
+        border: `1.6px solid ${theme.badgeBorder}`,
+        background: theme.badgeBackground,
+        boxShadow: theme.badgeShadow,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "1.5rem",
+        fontWeight: 500,
+        backdropFilter: "blur(10px)",
+        color: theme.accentColor
+      },
+      labelContainer: {
+        padding: "6px 12px",
+        borderRadius: "12px",
+        background: theme.labelBackground,
+        boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
+        fontSize: "0.75rem",
+        fontWeight: 600,
+        letterSpacing: "0.02em"
+      },
+      hint: {
+        fontSize: "0.7rem",
+        fontWeight: 500,
+        letterSpacing: "0.04em",
+        color: theme.hintColor
+      }
     }),
-    [position.x, position.y, theme.textColor]
-  );
-
-  const badgeStyle = useMemo(
-    () => ({
-      width: "56px",
-      height: "56px",
-      borderRadius: "18px",
-      border: `1.6px solid ${theme.badgeBorder}`,
-      background: theme.badgeBackground,
-      boxShadow: theme.badgeShadow,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: "1.5rem",
-      fontWeight: 500,
-      backdropFilter: "blur(10px)",
-      color: theme.accentColor
-    }),
-    [
-      theme.badgeBorder,
-      theme.badgeBackground,
-      theme.badgeShadow,
-      theme.accentColor
-    ]
-  );
-
-  const labelContainerStyle = useMemo(
-    () => ({
-      padding: "6px 12px",
-      borderRadius: "12px",
-      background: theme.labelBackground,
-      boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
-      fontSize: "0.75rem",
-      fontWeight: 600,
-      letterSpacing: "0.02em"
-    }),
-    [theme.labelBackground]
-  );
-
-  const hintStyle = useMemo(
-    () => ({
-      fontSize: "0.7rem",
-      fontWeight: 500,
-      letterSpacing: "0.04em",
-      color: theme.hintColor
-    }),
-    [theme.hintColor]
+    [position.x, position.y, theme]
   );
 
   return (
-    <div style={containerStyle}>
-      <div style={badgeStyle}>+</div>
-      <div style={labelContainerStyle}>
+    <div style={styles.container}>
+      <div style={styles.badge}>+</div>
+      <div style={styles.labelContainer}>
         {label ?? nodeType.split(".").pop()}
       </div>
-      <div style={hintStyle}>Click to place · Esc to cancel</div>
+      <div style={styles.hint}>Click to place · Esc to cancel</div>
     </div>
   );
 });
@@ -835,7 +821,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       props.selectionOnDrag = true;
     }
     return props;
-  }, [storedViewport, settings.panControls]);
+  }, [storedViewport, settings.panControls, fitViewOptions]);
 
   if (isLoading) {
     return (

@@ -11,13 +11,10 @@
 import { test, expect, chromium } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
+import { playwrightDescribe } from "./testUtils";
 
-// Skip when run by Jest
-if (process.env.JEST_WORKER_ID) {
-  test.skip("skipped in jest runner", () => {});
-} else {
-  test.describe("ReactFlowWrapper Advanced Profiling", () => {
-    test.setTimeout(300000); // 5 minutes
+playwrightDescribe("ReactFlowWrapper Advanced Profiling", () => {
+  test.setTimeout(300000); // 5 minutes
 
     test("should profile CPU and memory with 100 nodes", async () => {
       // Launch browser with profiling enabled
@@ -234,4 +231,4 @@ if (process.env.JEST_WORKER_ID) {
       await browser.close();
     });
   });
-}
+});
