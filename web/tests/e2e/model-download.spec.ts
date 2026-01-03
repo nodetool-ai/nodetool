@@ -1,8 +1,5 @@
 import { test, expect } from "@playwright/test";
-
-// Backend API URL - matches the nodetool server URL used in e2e tests
-const BACKEND_URL = "http://localhost:7777";
-const BACKEND_WS_URL = "ws://localhost:7777";
+import { BACKEND_URL, BACKEND_WS_URL } from "./support/backend";
 
 // Test timeouts
 const TEST_TIMEOUT_MS = 180000;  // 3 minutes for the overall test
