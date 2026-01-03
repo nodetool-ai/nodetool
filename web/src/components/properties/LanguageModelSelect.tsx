@@ -65,6 +65,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         className="language-model-button"
         active={!!value}
         label={currentSelectedModelDetails?.name || value || "Select Model"}
+        secondaryLabel={currentSelectedModelDetails?.provider ? `Provider: ${currentSelectedModelDetails.provider}` : undefined}
         subLabel="Select Model"
         onClick={handleClick}
       />
