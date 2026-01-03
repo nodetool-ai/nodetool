@@ -15,6 +15,8 @@ import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeList as VirtualList, ListChildComponentProps } from "react-window";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -78,6 +80,27 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
   }));
+
+  const searchNodes = useMemo(() => {
+    if (searchTerm && groupedSearchResults.length > 0) {
+      return groupedSearchResults.flatMap((group) => group.nodes);
+    }
+    return null;
+  }, [searchTerm, groupedSearchResults]);
+
+  const renderSearchRow = useCallback(({ index, style }: ListChildComponentProps) => {
+    const node = searchNodes![index];
+    return (
+      <div style={style}>
+        <SearchResultItem
+          node={node}
+          onDragStart={handleDragStart(node)}
+          onDragEnd={handleDragEnd}
+          onClick={() => handleCreateNode(node)}
+        />
+      </div>
+    );
+  }, [searchNodes, handleDragStart, handleDragEnd, handleCreateNode]);
 
   const elements = useMemo(() => {
     // If we're searching, render flat ranked results with SearchResultItem
@@ -167,13 +190,29 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     handleCreateNode,
     showCheckboxes,
     onToggleSelection,
-    selectedNodeTypes
+    selectedNodeTypes,
+    searchNodes
   ]);
 
   return (
     <div className="nodes">
       {nodes.length > 0 ? (
-        elements
+        searchNodes ? (
+          <AutoSizer>
+            {({ height, width }) => (
+              <VirtualList
+                height={height}
+                width={width}
+                itemCount={searchNodes.length}
+                itemSize={56}
+              >
+                {renderSearchRow}
+              </VirtualList>
+            )}
+          </AutoSizer>
+        ) : (
+          elements
+        )
       ) : (
         <div className="no-selection">
           <div className="explanation">
