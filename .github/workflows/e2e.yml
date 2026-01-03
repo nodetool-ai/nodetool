@@ -36,9 +36,7 @@ jobs:
       - name: Install nodetool-core and nodetool-base
         shell: bash -el {0}
         run: |
-          uv pip install \
-            git+https://github.com/nodetool-ai/nodetool-core \
-            git+https://github.com/nodetool-ai/nodetool-base
+          uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
       - name: Verify nodetool installation
         shell: bash -el {0}
@@ -63,68 +61,54 @@ jobs:
           cd web
           npx playwright install --with-deps chromium
 
-      - name: Download and setup llama-server
+      - name: Install Ollama
+        shell: bash -el {0}
         run: |
-          # Download llama-server binary for Ubuntu x64
-          # Note: Uses latest version for newest features and fixes.
-          # If stability issues occur, consider pinning to a specific version.
-          LLAMA_VERSION=$(curl -s \
-            https://api.github.com/repos/ggerganov/llama.cpp/releases/latest \
-            | jq -r .tag_name)
-          echo "Downloading llama.cpp ${LLAMA_VERSION}"
-          LLAMA_URL="https://github.com/ggerganov/llama.cpp/releases/download"
-          LLAMA_URL="${LLAMA_URL}/${LLAMA_VERSION}"
-          LLAMA_URL="${LLAMA_URL}/llama-${LLAMA_VERSION#b}-bin-ubuntu-x64.tar.gz"
-          curl -L -o /tmp/llama-bin.tar.gz "${LLAMA_URL}"
+          # Install ollama via conda
+          conda install -y -c conda-forge ollama
 
-          # Extract and make executable
-          cd /tmp
-          tar -xzf llama-bin.tar.gz
-          chmod +x llama-*/llama-server
-
-          # Find the llama-server binary
-          LLAMA_SERVER_PATH=$(find /tmp/llama-* \
-            -name "llama-server" -type f)
-          echo "Llama server path: ${LLAMA_SERVER_PATH}"
-          echo "LLAMA_SERVER_PATH=${LLAMA_SERVER_PATH}" >> $GITHUB_ENV
-
-      - name: Start llama-server
+      - name: Start Ollama server
+        shell: bash -el {0}
         run: |
-          # Start llama-server with a small model from HuggingFace
-          # Note: SmolLM-135M-Instruct is a tiny model (~90MB) suitable for
-          # testing. If the model becomes unavailable, consider using an
-          # alternative small model from HuggingFace or a locally stored model.
-          ${{ env.LLAMA_SERVER_PATH }} \
-            --hf-repo TheBloke/SmolLM-135M-Instruct-GGUF \
-            --hf-file smollm-135m-instruct.Q4_K_M.gguf \
-            --port 8080 \
-            --host 0.0.0.0 \
-            > /tmp/llama-server.log 2>&1 &
-          echo $! > /tmp/llama-server.pid
+          # Find ollama binary in conda environment
+          OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
+          echo "Ollama path: ${OLLAMA_PATH}"
 
-          # Wait for llama-server to be ready
-          echo "Waiting for llama-server to be ready..."
-          for i in {1..60}; do
-            if curl -s http://localhost:8080/health > /dev/null 2>&1; then
-              echo "Llama-server is ready"
+          # Start ollama serve in background
+          ${OLLAMA_PATH} serve > /tmp/ollama-server.log 2>&1 &
+          echo $! > /tmp/ollama-server.pid
+
+          # Wait for ollama to be ready
+          echo "Waiting for Ollama server to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+              echo "Ollama server is ready"
               break
             fi
-            if [ $i -eq 60 ]; then
-              echo "Llama-server failed to start"
-              cat /tmp/llama-server.log
+            if [ $i -eq 30 ]; then
+              echo "Ollama server failed to start"
+              cat /tmp/ollama-server.log
               exit 1
             fi
             sleep 2
           done
 
+      - name: Pull Ollama model
+        shell: bash -el {0}
+        run: |
+          # Find ollama binary
+          OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
+
+          # Pull the gemma3:270m model
+          echo "Pulling gemma3:270m model..."
+          ${OLLAMA_PATH} pull gemma3:270m
+
       - name: Start nodetool server
         shell: bash -el {0}
         run: |
-          LLAMA_CPP_URL=http://localhost:8080 \
-            nodetool serve --port 7777 \
-            > /tmp/nodetool-server.log 2>&1 &
+          nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
-
+          
       - name: Wait for nodetool server to be ready
         uses: jtalk/url-health-check-action@v4
         with:
@@ -147,8 +131,8 @@ jobs:
           if [ -f /tmp/nodetool-server.pid ]; then
             kill $(cat /tmp/nodetool-server.pid) || true
           fi
-          if [ -f /tmp/llama-server.pid ]; then
-            kill $(cat /tmp/llama-server.pid) || true
+          if [ -f /tmp/ollama-server.pid ]; then
+            kill $(cat /tmp/ollama-server.pid) || true
           fi
 
       - name: Upload nodetool server logs
@@ -159,12 +143,12 @@ jobs:
           path: /tmp/nodetool-server.log
           retention-days: 7
 
-      - name: Upload llama-server logs
+      - name: Upload Ollama server logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: llama-server-logs
-          path: /tmp/llama-server.log
+          name: ollama-server-logs
+          path: /tmp/ollama-server.log
           retention-days: 7
 
       - name: Upload Playwright report

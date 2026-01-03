@@ -20,8 +20,8 @@ const waitForChatInterface = async (page: any): Promise<boolean> => {
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
-  test.describe("GlobalChat with Llama.cpp", () => {
-    test("should send message and receive response from llama.cpp", async ({ page }) => {
+  test.describe("GlobalChat with Ollama", () => {
+    test("should send message and receive response from Ollama", async ({ page }) => {
       test.setTimeout(TEST_TIMEOUT_MS);
 
       // Navigate to chat page
@@ -94,7 +94,7 @@ if (process.env.JEST_WORKER_ID) {
       console.log("Message sent and response received successfully");
     });
 
-    test("should show llama.cpp provider in models list", async ({ page, request }) => {
+    test("should show ollama provider in models list", async ({ page, request }) => {
       // Navigate to models page or open model selector
       await page.goto("/chat");
       await page.waitForLoadState("networkidle");
@@ -130,59 +130,62 @@ if (process.env.JEST_WORKER_ID) {
       }
 
       if (modelSelectorFound) {
-        // Check if llama.cpp models are shown
+        // Check if ollama models are shown
         const pageContent = await page.content();
-        const hasLlamaCppProvider = pageContent.includes("llama") || pageContent.includes("Local");
+        const hasOllamaProvider = pageContent.includes("ollama") || pageContent.includes("gemma3:270m");
 
         // Log for debugging
-        console.log("Model selector opened, checking for llama.cpp models");
+        console.log("Model selector opened, checking for Ollama models");
 
-        // We expect to see some indication of local models or llama.cpp
-        expect(hasLlamaCppProvider).toBeTruthy();
+        // We expect to see some indication of ollama models
+        expect(hasOllamaProvider).toBeTruthy();
       } else {
         console.log("Model selector not found in UI, checking API directly");
       }
 
-      // Also verify via API that llama.cpp models are available
+      // Also verify via API that ollama models are available
       const response = await request.get(`${BACKEND_API_URL}/models/language`);
       expect(response.ok()).toBeTruthy();
       
       const models = await response.json();
       expect(Array.isArray(models)).toBeTruthy();
 
-      // Check if any model has llama_cpp provider
-      const llamaCppModels = models.filter((m: any) => 
-        m.provider === "llama_cpp" || 
-        (m.id && m.id.toLowerCase().includes("llama"))
+      // Check if any model has ollama provider or gemma3:270m
+      const ollamaModels = models.filter((m: any) => 
+        m.provider === "ollama" || 
+        (m.id && (m.id.includes("gemma3") || m.id.includes("ollama")))
       );
 
-      console.log(`Found ${llamaCppModels.length} llama.cpp models via API`);
+      console.log(`Found ${ollamaModels.length} Ollama models via API`);
       
-      // We should have at least one llama.cpp model available
-      expect(llamaCppModels.length).toBeGreaterThan(0);
+      // We should have at least one ollama model available
+      expect(ollamaModels.length).toBeGreaterThan(0);
 
       // Verify model structure includes provider field
-      if (llamaCppModels.length > 0) {
-        const firstModel = llamaCppModels[0];
+      if (ollamaModels.length > 0) {
+        const firstModel = ollamaModels[0];
         expect(firstModel).toHaveProperty("provider");
         expect(firstModel).toHaveProperty("id");
         expect(firstModel).toHaveProperty("name");
         
-        console.log("Sample llama.cpp model:", JSON.stringify(firstModel, null, 2));
+        console.log("Sample Ollama model:", JSON.stringify(firstModel, null, 2));
       }
     });
 
-    test("should verify llama-server is accessible", async ({ request }) => {
-      // Test that llama-server is running and accessible
-      // This assumes LLAMA_CPP_URL is set to http://localhost:8080
+    test("should verify ollama server is accessible", async ({ request }) => {
+      // Test that Ollama server is running and accessible on default port 11434
       
       try {
-        const response = await request.get("http://localhost:8080/health");
+        const response = await request.get("http://localhost:11434/api/tags");
         expect(response.ok()).toBeTruthy();
-        console.log("Llama-server health check passed");
+        console.log("Ollama server health check passed");
+        
+        // Parse response to check for gemma3:270m model
+        const data = await response.json();
+        console.log("Available models:", JSON.stringify(data, null, 2));
       } catch (_error) {
-        console.error("Llama-server not accessible");
-        // Don't fail the test if llama-server isn't running in this environment
+        console.error("Ollama server not accessible");
+        // Don't fail the test if ollama server isn't running in this environment
         // as it might only be available in CI
       }
     });
