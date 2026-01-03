@@ -29,7 +29,8 @@ import { subgraph } from "../../../core/graph";
 
 const mockUseNodes = useNodes as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
-const mockUseResultsStore = useResultsStore as jest.Mock;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
 
 describe("isAutoRunInputNode", () => {
