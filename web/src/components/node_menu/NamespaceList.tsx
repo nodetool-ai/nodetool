@@ -3,23 +3,17 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Box, List, Tooltip, Typography, Button } from "@mui/material";
+import { Box, List, Typography, Button } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY,
-  TOOLTIP_LEAVE_DELAY
-} from "../../config/constants";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
-import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
-import { usePanelStore } from "../../stores/PanelStore";
+import { AddCircleOutline } from "@mui/icons-material";
 
 type NamespaceTree = {
   [key: string]: {
@@ -551,7 +545,6 @@ const InfoBox = memo(function InfoBox({
   selectedPathString,
   searchResults,
   allSearchMatches,
-  metadata,
   totalNodes
 }: {
   searchTerm: string;
@@ -562,62 +555,27 @@ const InfoBox = memo(function InfoBox({
   metadata: NodeMetadata[];
   totalNodes: number;
 }) {
+  // Build contextual message
+  const buildContextMessage = () => {
+    if (searchTerm.length > minSearchTermLength) {
+      const matchCount = searchResults.length;
+      const totalMatches = allSearchMatches.length;
+      if (selectedPathString) {
+        return `${matchCount} results in ${selectedPathString} • ${totalMatches} total match '${searchTerm}'`;
+      }
+      return `${matchCount} results • Showing most relevant for '${searchTerm}'`;
+    }
+    if (selectedPathString) {
+      return `${searchResults.length} nodes in ${selectedPathString}`;
+    }
+    return `${totalNodes} nodes available`;
+  };
+
   return (
     <Box className="info-box">
-      <Tooltip
-        title={
-          <div style={{ color: "var(--palette-text-primary)", fontSize: "1.25em" }}>
-            {selectedPathString && (
-              <div>Current namespace: {searchResults?.length} nodes</div>
-            )}
-            {searchTerm.length > minSearchTermLength ? (
-              <>
-                <div>Total search matches: {allSearchMatches.length}</div>
-                <div
-                  style={{
-                    fontSize: "0.8em",
-                    color: "var(--palette-text-secondary)",
-                    marginTop: "0.5em"
-                  }}
-                ></div>
-              </>
-            ) : (
-              <>
-                <div>Total available: {totalNodes} nodes</div>
-                <div
-                  style={{
-                    fontSize: "0.8em",
-                    color: "var(--palette-text-secondary)",
-                    marginTop: "0.5em"
-                  }}
-                ></div>
-              </>
-            )}
-          </div>
-        }
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        leaveDelay={TOOLTIP_LEAVE_DELAY}
-        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-        placement="bottom"
-      >
-        <Typography className="result-info">
-          {searchTerm.length > minSearchTermLength ? (
-            <>
-              <span>{searchResults.length}</span> /{" "}
-              <span>
-                {searchTerm.length > minSearchTermLength
-                  ? allSearchMatches.length
-                  : metadata.length}
-              </span>
-            </>
-          ) : (
-            <span>
-              {selectedPathString ? searchResults.length : totalNodes}
-            </span>
-          )}
-          <span className="result-label">nodes</span>
-        </Typography>
-      </Tooltip>
+      <Typography className="result-info" sx={{ fontSize: "0.8rem" }}>
+        {buildContextMessage()}
+      </Typography>
     </Box>
   );
 });

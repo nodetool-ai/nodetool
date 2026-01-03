@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Typography, Box, Collapse } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
@@ -24,25 +25,38 @@ const searchResultStyles = (theme: Theme) =>
     "&.search-result-item": {
       display: "flex",
       flexDirection: "column",
-      padding: "12px 16px",
-      margin: "4px 0",
-      borderRadius: "8px",
+      padding: "10px 12px",
+      margin: "2px 0",
+      borderRadius: "6px",
       cursor: "pointer",
-      transition: "all 0.2s ease",
+      transition: "all 0.15s ease",
       border: "1px solid transparent",
       backgroundColor: "transparent",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         border: `1px solid ${theme.vars.palette.divider}`
       },
+      "&.expanded": {
+        backgroundColor: theme.vars.palette.action.hover,
+        border: `1px solid ${theme.vars.palette.divider}`
+      },
       ".result-header": {
         display: "flex",
-        flexDirection: "column",
-        gap: "2px",
-        marginBottom: "4px"
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: "8px"
+      },
+      ".result-main": {
+        flex: 1,
+        minWidth: 0
+      },
+      ".result-title-row": {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px"
       },
       ".result-title": {
-        fontSize: "1rem",
+        fontSize: "0.95rem",
         fontWeight: 600,
         color: theme.vars.palette.text.primary,
         lineHeight: 1.3,
@@ -51,18 +65,36 @@ const searchResultStyles = (theme: Theme) =>
         }
       },
       ".result-namespace": {
-        fontSize: "0.75rem",
+        fontSize: "0.7rem",
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
-        letterSpacing: "0.5px"
+        letterSpacing: "0.5px",
+        marginTop: "2px"
       },
       ".result-description": {
-        fontSize: "0.85rem",
+        fontSize: "0.8rem",
         color: theme.vars.palette.text.secondary,
         lineHeight: 1.4,
         marginTop: "4px",
         "& .highlight": {
           color: "var(--palette-primary-main)"
+        }
+      },
+      ".expand-indicator": {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "20px",
+        height: "20px",
+        borderRadius: "4px",
+        color: theme.vars.palette.text.secondary,
+        transition: "transform 0.2s ease, color 0.2s ease",
+        "&.expanded": {
+          transform: "rotate(180deg)",
+          color: "var(--palette-primary-main)"
+        },
+        "& svg": {
+          fontSize: "16px"
         }
       },
       ".result-tags": {
@@ -72,9 +104,9 @@ const searchResultStyles = (theme: Theme) =>
         marginTop: "6px"
       },
       ".result-tag": {
-        fontSize: "0.7rem",
-        padding: "2px 6px",
-        borderRadius: "4px",
+        fontSize: "0.65rem",
+        padding: "1px 5px",
+        borderRadius: "3px",
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
@@ -98,24 +130,24 @@ const searchResultStyles = (theme: Theme) =>
         display: "flex",
         alignItems: "center",
         gap: "8px",
-        fontSize: "0.75rem"
+        fontSize: "0.7rem"
       },
       ".io-label": {
         color: theme.vars.palette.text.secondary,
-        minWidth: "50px",
+        minWidth: "45px",
         textTransform: "uppercase",
         letterSpacing: "0.3px"
       },
       ".io-items": {
         display: "flex",
         flexWrap: "wrap",
-        gap: "4px"
+        gap: "3px"
       },
       ".io-item": {
-        padding: "2px 6px",
-        borderRadius: "4px",
-        fontSize: "0.7rem",
-        borderLeft: "3px solid",
+        padding: "1px 5px",
+        borderRadius: "3px",
+        fontSize: "0.65rem",
+        borderLeft: "2px solid",
         backgroundColor: theme.vars.palette.action.hover
       }
     }
@@ -126,7 +158,6 @@ const SearchResultItem = memo(
     ({ node, onDragStart, onDragEnd, onClick }, ref) => {
       const theme = useTheme();
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
-      const [isHovered, setIsHovered] = useState(false);
 
       // Parse description and tags
       const { description, tags } = formatNodeDocumentation(
@@ -176,24 +207,31 @@ const SearchResultItem = memo(
           });
       }
 
+      const [isExpanded, setIsExpanded] = useState(false);
+
       const handleClick = useCallback(() => {
           onClick();
         },
         [onClick]
       );
 
+      const handleToggleExpand = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsExpanded((prev) => !prev);
+      }, []);
+
       const handleMouseEnter = useCallback(() => {
-        setIsHovered(true);
+        // No longer auto-expand on hover
       }, []);
 
       const handleMouseLeave = useCallback(() => {
-        setIsHovered(false);
+        // No longer auto-collapse on leave
       }, []);
 
       return (
         <div
           ref={ref}
-          className="search-result-item"
+          className={`search-result-item ${isExpanded ? "expanded" : ""}`}
           css={searchResultStyles(theme)}
           draggable
           onClick={handleClick}
@@ -203,14 +241,25 @@ const SearchResultItem = memo(
           onDragEnd={onDragEnd}
         >
           <div className="result-header">
-            <Typography
-              className="result-title"
-              component="div"
-              dangerouslySetInnerHTML={{ __html: highlightedTitle }}
-            />
-            <Typography className="result-namespace" component="div">
-              {node.namespace}
-            </Typography>
+            <div className="result-main">
+              <div className="result-title-row">
+                <Typography
+                  className="result-title"
+                  component="div"
+                  dangerouslySetInnerHTML={{ __html: highlightedTitle }}
+                />
+              </div>
+              <Typography className="result-namespace" component="div">
+                {node.namespace}
+              </Typography>
+            </div>
+            <div
+              className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
+              onClick={handleToggleExpand}
+              title={isExpanded ? "Collapse details" : "Show details"}
+            >
+              <ExpandMoreIcon />
+            </div>
           </div>
 
           {truncatedDescription && (
@@ -221,28 +270,25 @@ const SearchResultItem = memo(
             />
           )}
 
-          {/* Show matched tags or all tags if any matched */}
-          {(matchedTags.size > 0 || tags.length > 0) && (
+          {/* Show matched tags only if any matched */}
+          {matchedTags.size > 0 && (
             <Box className="result-tags">
-              {tags.slice(0, 5).map((tag, idx) => (
-                <span
-                  key={idx}
-                  className={`result-tag ${matchedTags.has(tag) ? "matched" : ""}`}
-                >
+              {tags.filter((tag) => matchedTags.has(tag)).map((tag, idx) => (
+                <span key={idx} className="result-tag matched">
                   {tag}
                 </span>
               ))}
             </Box>
           )}
 
-          {/* Input/Output info on hover */}
-          <Collapse in={isHovered} timeout={150}>
+          {/* Input/Output info - click to expand */}
+          <Collapse in={isExpanded} timeout={150}>
             <Box className="io-info">
               {node.properties.length > 0 && (
                 <Box className="io-row">
                   <span className="io-label">Input:</span>
                   <Box className="io-items">
-                    {node.properties.slice(0, 4).map((prop) => (
+                    {node.properties.slice(0, 6).map((prop) => (
                       <span
                         key={prop.name}
                         className="io-item"
@@ -253,9 +299,9 @@ const SearchResultItem = memo(
                         {prop.name}
                       </span>
                     ))}
-                    {node.properties.length > 4 && (
+                    {node.properties.length > 6 && (
                       <span className="io-item" style={{ borderColor: "#666" }}>
-                        +{node.properties.length - 4}
+                        +{node.properties.length - 6}
                       </span>
                     )}
                   </Box>

@@ -9,7 +9,7 @@ import { IconButton, Box } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 // components
-import TypeFilter from "./TypeFilter";
+import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -73,25 +73,22 @@ const treeStyles = (theme: Theme) =>
     },
     ".search-toolbar": {
       display: "flex",
-      flexDirection: "row",
-      alignItems: "center", // Center vertically
-      gap: "0.75em",
-      minHeight: "48px",
+      flexDirection: "column",
+      gap: "8px",
       flexGrow: 0,
-      overflow: "visible", // Allow dropdowns to overflow if needed, though usually they are portals
+      overflow: "visible",
       width: "100%",
       margin: 0,
-      padding: "0 1em 0 0.5em",
+      padding: "0 1em 0 0.5em"
+    },
+    ".search-row": {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: "0.75em",
       ".search-input-container": {
-        minWidth: "200px" // Slightly wider
-      },
-      ".type-filter-container": {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: "0.5em",
-        flexGrow: 1,
-        marginTop: "2px" // Fine-tune vertical alignment with search input
+        minWidth: "200px",
+        flexGrow: 1
       }
     },
     ".close-button": {
@@ -288,20 +285,21 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         <Box className="node-menu-container">
           <div className="main-content">
             <Box className="search-toolbar">
-              <SearchInput
-                focusSearchInput={focusSearchInput}
-                focusOnTyping={true}
-                placeholder="Search for nodes..."
-                debounceTime={80}
-                width={390}
-                maxWidth={"400px"}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onPressEscape={closeNodeMenu}
-                searchResults={searchResults}
-              />
-
-              <TypeFilter
+              <Box className="search-row">
+                <SearchInput
+                  focusSearchInput={focusSearchInput}
+                  focusOnTyping={true}
+                  placeholder="Search for nodes..."
+                  debounceTime={80}
+                  width={500}
+                  maxWidth={"600px"}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  onPressEscape={closeNodeMenu}
+                  searchResults={searchResults}
+                />
+              </Box>
+              <TypeFilterChips
                 selectedInputType={selectedInputType}
                 selectedOutputType={selectedOutputType}
                 setSelectedInputType={setSelectedInputType}
