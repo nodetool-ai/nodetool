@@ -23,7 +23,8 @@ const appContainerStyles = css({
   flexDirection: 'column',
   height: '100vh',
   width: '100%',
-  overflow: 'hidden'
+  overflow: 'hidden',
+  backgroundColor: '#141414'
 });
 
 const chatContainerStyles = css({
@@ -36,13 +37,14 @@ const chatContainerStyles = css({
 const messagesContainerStyles = css({
   flex: 1,
   overflow: 'auto',
-  paddingTop: '16px'
+  paddingTop: '12px',
+  paddingBottom: '8px'
 });
 
 const toolbarContainerStyles = css({
-  padding: '8px 12px',
-  borderBottom: '1px solid',
-  borderColor: 'var(--palette-divider)'
+  padding: '8px 16px',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+  backgroundColor: '#1a1a1a'
 });
 
 function App() {
@@ -157,7 +159,7 @@ function App() {
   return (
     <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
       <CssBaseline />
-      <Box css={appContainerStyles} sx={{ bgcolor: 'background.default', color: 'text.primary' }}>
+      <Box css={appContainerStyles}>
         <ChatHeader />
 
         {/* ChatToolBar - Model selector, Agent mode */}

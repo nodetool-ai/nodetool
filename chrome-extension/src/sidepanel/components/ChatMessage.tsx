@@ -9,6 +9,41 @@ interface ChatMessageProps {
   isStreaming?: boolean;
 }
 
+const messageContainerStyles = (isUser: boolean) => css({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: isUser ? 'flex-end' : 'flex-start',
+  marginBottom: '12px',
+  padding: '0 16px'
+});
+
+const messageBubbleStyles = (isUser: boolean) => css({
+  maxWidth: '85%',
+  padding: isUser ? '10px 14px' : '12px 14px',
+  borderRadius: isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+  backgroundColor: isUser ? '#60A5FA' : 'rgba(255, 255, 255, 0.05)',
+  color: isUser ? '#fff' : 'rgba(255, 255, 255, 0.9)',
+  wordBreak: 'break-word',
+  border: isUser ? 'none' : '1px solid rgba(255, 255, 255, 0.06)'
+});
+
+const timestampStyles = css({
+  fontSize: '10px',
+  color: 'rgba(255, 255, 255, 0.3)',
+  marginTop: '4px'
+});
+
+const systemMessageStyles = css({
+  textAlign: 'center',
+  margin: '8px 16px',
+  padding: '6px 12px',
+  borderRadius: '8px',
+  backgroundColor: 'rgba(167, 139, 250, 0.1)',
+  border: '1px solid rgba(167, 139, 250, 0.2)',
+  fontSize: '12px',
+  color: '#A78BFA'
+});
+
 export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
   const getContent = (): string => {
     if (typeof message.content === 'string') {
@@ -33,80 +68,49 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
   };
 
   const content = getContent();
+  const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
   if (isSystem) {
     return (
-      <Box sx={{ textAlign: 'center', my: 1, px: 2 }}>
-        <Typography
-          variant="caption"
-          sx={{
-            color: '#FFB86C',
-            backgroundColor: 'rgba(255, 184, 108, 0.15)',
-            padding: '4px 12px',
-            borderRadius: '12px'
-          }}
-        >
-          {content}
-        </Typography>
+      <Box css={systemMessageStyles}>
+        {content}
       </Box>
     );
   }
 
   return (
-    <Box
-      css={css({
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: message.role === 'user' ? 'flex-end' : 'flex-start',
-        marginBottom: '16px',
-        padding: '0 16px'
-      })}
-    >
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: message.role === 'user' ? 'flex-end' : 'flex-start',
-          maxWidth: '90%'
-        }}
-      >
-        <Box
-          css={css({
-            maxWidth: '90%',
-            padding: '12px 16px',
-            borderRadius: message.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-            backgroundColor: message.role === 'user' ? 'var(--palette-primary-main)' : 'var(--palette-grey-800)',
-            color: message.role === 'user' ? '#fff' : 'inherit',
-            wordBreak: 'break-word'
-          })}
-        >
-          {message.role === 'user' ? (
-            <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
-              {content}
-            </Typography>
-          ) : (
-            <ChatMarkdown content={content} />
-          )}
-          {isStreaming && message.role === 'assistant' && (
-            <CircularProgress
-              size={12}
-              sx={{ ml: 1, verticalAlign: 'middle' }}
-            />
-          )}
-        </Box>
-
-        <Typography
-          variant="caption"
-          sx={{
-            color: 'text.disabled',
-            mt: 0.5,
-            fontSize: '0.7rem'
-          }}
-        >
-          {new Date(message.timestamp).toLocaleTimeString()}
-        </Typography>
+    <Box css={messageContainerStyles(isUser)}>
+      <Box css={messageBubbleStyles(isUser)}>
+        {isUser ? (
+          <Typography 
+            variant="body2" 
+            component="div" 
+            sx={{ 
+              whiteSpace: 'pre-wrap',
+              fontSize: '13px',
+              lineHeight: 1.5
+            }}
+          >
+            {content}
+          </Typography>
+        ) : (
+          <ChatMarkdown content={content} />
+        )}
+        {isStreaming && !isUser && (
+          <CircularProgress
+            size={10}
+            sx={{ ml: 1, verticalAlign: 'middle', color: '#60A5FA' }}
+          />
+        )}
       </Box>
+
+      <Typography css={timestampStyles}>
+        {new Date(message.timestamp).toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })}
+      </Typography>
     </Box>
   );
 }

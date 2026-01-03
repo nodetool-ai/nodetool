@@ -1,12 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 import { useState, useCallback } from 'react';
-import { useTheme } from '@mui/material/styles';
-import { Box, IconButton, Tooltip, Typography, Chip, Popover } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography, Popover } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import AddCommentIcon from '@mui/icons-material/AddComment';
-import ListIcon from '@mui/icons-material/List';
+import AddIcon from '@mui/icons-material/Add';
+import HistoryIcon from '@mui/icons-material/History';
 import { useExtensionStore } from '../store';
 import ThreadList from '../../components/chat/thread/ThreadList';
 
@@ -14,23 +12,67 @@ const headerStyles = css({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '8px 16px',
-  borderBottom: '1px solid',
-  minHeight: '48px'
+  padding: '12px 16px',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+  minHeight: '52px',
+  backgroundColor: '#1a1a1a'
 });
 
-const statusIndicatorStyles = (isConnected: boolean) => css({
-  color: isConnected ? 'var(--palette-success-main)' : 'var(--palette-error-main)',
-  fontSize: '10px',
-  marginRight: '4px'
+const logoStyles = css({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px'
+});
+
+const logoTextStyles = css({
+  fontSize: '15px',
+  fontWeight: 700,
+  letterSpacing: '0.5px',
+  color: '#fff'
+});
+
+const actionsStyles = css({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px'
+});
+
+const iconButtonStyles = {
+  padding: '6px',
+  color: 'rgba(255, 255, 255, 0.5)',
+  borderRadius: '6px',
+  '&:hover': {
+    color: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)'
+  }
+};
+
+const statusDotStyles = (isConnected: boolean) => css({
+  width: '8px',
+  height: '8px',
+  borderRadius: '50%',
+  backgroundColor: isConnected ? '#50FA7B' : '#FF5555',
+  boxShadow: isConnected 
+    ? '0 0 8px rgba(80, 250, 123, 0.5)' 
+    : '0 0 8px rgba(255, 85, 85, 0.5)'
+});
+
+const statusBadgeStyles = css({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '4px 10px',
+  borderRadius: '12px',
+  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  fontSize: '11px',
+  fontWeight: 500,
+  color: 'rgba(255, 255, 255, 0.6)'
 });
 
 export function ChatHeader() {
-  const theme = useTheme();
   const { 
     connectionStatus, 
     setIsSettingsOpen, 
-    serverConfig, 
     createNewThread,
     threads,
     messageCache,
@@ -43,25 +85,7 @@ export function ChatHeader() {
   const isThreadListOpen = Boolean(threadListAnchorEl);
 
   const isConnected = connectionStatus === 'connected';
-  const statusText = {
-    disconnected: 'Disconnected',
-    connecting: 'Connecting...',
-    connected: 'Connected',
-    reconnecting: 'Reconnecting...',
-    failed: 'Connection Failed',
-    streaming: 'Streaming',
-    error: 'Error'
-  }[connectionStatus];
-
-  const statusColor = {
-    disconnected: 'default',
-    connecting: 'warning',
-    connected: 'success',
-    reconnecting: 'warning',
-    failed: 'error',
-    streaming: 'success',
-    error: 'error'
-  }[connectionStatus] as 'default' | 'warning' | 'success' | 'error';
+  const statusText = isConnected ? 'Connected' : 'Disconnected';
 
   const handleNewChat = useCallback(() => {
     createNewThread();
@@ -86,39 +110,47 @@ export function ChatHeader() {
   }, [deleteThread]);
 
   return (
-    <Box css={headerStyles} sx={{ borderColor: 'divider', bgcolor: 'background.paper' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography
-          variant="h6"
+    <Box css={headerStyles}>
+      <Box css={logoStyles}>
+        <Box
           sx={{
-            fontSize: '1rem',
-            fontWeight: 600,
-            fontFamily: theme.fontFamily2,
-            color: 'primary.main'
+            width: 24,
+            height: 24,
+            borderRadius: '6px',
+            background: 'linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#fff'
           }}
         >
+          N
+        </Box>
+        <Typography css={logoTextStyles}>
           Nodetool
         </Typography>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        <Tooltip title="New Chat">
+      <Box css={actionsStyles}>
+        <Tooltip title="New Chat" arrow>
           <IconButton
             size="small"
             onClick={handleNewChat}
-            sx={{ color: 'primary.main' }}
+            sx={iconButtonStyles}
           >
-            <AddCommentIcon fontSize="small" />
+            <AddIcon fontSize="small" />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Chat History">
+        <Tooltip title="Chat History" arrow>
           <IconButton
             size="small"
             onClick={handleOpenThreadList}
-            sx={{ color: 'text.secondary' }}
+            sx={iconButtonStyles}
           >
-            <ListIcon fontSize="small" />
+            <HistoryIcon fontSize="small" />
           </IconButton>
         </Tooltip>
 
@@ -137,10 +169,14 @@ export function ChatHeader() {
           slotProps={{
             paper: {
               sx: {
-                width: 300,
-                maxHeight: '60vh',
-                borderRadius: 2,
-                overflow: 'hidden'
+                width: 280,
+                maxHeight: '50vh',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                bgcolor: '#1a1a1a',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                mt: 1
               }
             }
           }}
@@ -154,28 +190,16 @@ export function ChatHeader() {
           />
         </Popover>
 
-        <Tooltip title={`${statusText} - ${serverConfig.url}`}>
-          <Chip
-            icon={<FiberManualRecordIcon css={statusIndicatorStyles(isConnected)} />}
-            label={statusText}
-            size="small"
-            color={statusColor}
-            variant="outlined"
-            sx={{
-              height: '24px',
-              '& .MuiChip-label': {
-                fontSize: '0.7rem',
-                px: 0.5
-              }
-            }}
-          />
-        </Tooltip>
+        <Box css={statusBadgeStyles}>
+          <Box css={statusDotStyles(isConnected)} />
+          <span>{statusText}</span>
+        </Box>
 
-        <Tooltip title="Settings">
+        <Tooltip title="Settings" arrow>
           <IconButton
             size="small"
             onClick={() => setIsSettingsOpen(true)}
-            sx={{ color: 'text.secondary' }}
+            sx={iconButtonStyles}
           >
             <SettingsIcon fontSize="small" />
           </IconButton>

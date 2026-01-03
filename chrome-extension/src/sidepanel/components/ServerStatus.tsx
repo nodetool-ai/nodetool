@@ -2,6 +2,9 @@
 import { css } from '@emotion/react';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import ChatIcon from '@mui/icons-material/Chat';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
+import SyncIcon from '@mui/icons-material/Sync';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 const statusContainerStyles = css({
   display: 'flex',
@@ -9,8 +12,21 @@ const statusContainerStyles = css({
   alignItems: 'center',
   justifyContent: 'center',
   flex: 1,
-  padding: '32px',
-  textAlign: 'center'
+  padding: '40px 24px',
+  textAlign: 'center',
+  backgroundColor: '#141414'
+});
+
+const iconContainerStyles = (color: string) => css({
+  width: 64,
+  height: 64,
+  borderRadius: '16px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: '20px',
+  backgroundColor: `${color}15`,
+  border: `1px solid ${color}30`
 });
 
 interface ServerStatusProps {
@@ -25,12 +41,28 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
       case 'connecting':
         return (
           <>
-            <CircularProgress size={48} sx={{ mb: 2 }} />
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Connecting to Nodetool...
+            <Box css={iconContainerStyles('#60A5FA')}>
+              <CircularProgress size={28} sx={{ color: '#60A5FA' }} />
+            </Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mb: 1, 
+                fontSize: '16px', 
+                fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.9)'
+              }}
+            >
+              Connecting...
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Please wait while we establish a connection
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: '13px'
+              }}
+            >
+              Establishing connection to Nodetool server
             </Typography>
           </>
         );
@@ -38,11 +70,27 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
       case 'reconnecting':
         return (
           <>
-            <CircularProgress size={48} sx={{ mb: 2 }} />
-            <Typography variant="h6" sx={{ mb: 1 }}>
+            <Box css={iconContainerStyles('#FFB86C')}>
+              <SyncIcon sx={{ fontSize: 28, color: '#FFB86C' }} />
+            </Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mb: 1, 
+                fontSize: '16px', 
+                fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.9)'
+              }}
+            >
               Reconnecting...
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: '13px'
+              }}
+            >
               Connection lost. Attempting to reconnect...
             </Typography>
           </>
@@ -52,27 +100,38 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
       case 'error':
         return (
           <>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                bgcolor: 'rgba(255, 85, 85, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mb: 2
+            <Box css={iconContainerStyles('#FF5555')}>
+              <ErrorOutlineIcon sx={{ fontSize: 28, color: '#FF5555' }} />
+            </Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mb: 1, 
+                fontSize: '16px', 
+                fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.9)'
               }}
             >
-              <Typography fontSize={32}>❌</Typography>
-            </Box>
-            <Typography variant="h6" sx={{ mb: 1 }}>
               Connection Failed
             </Typography>
-            <Typography variant="body2" color="error" sx={{ mb: 2 }}>
-              {error || 'Unable to connect to the Nodetool server'}
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                mb: 2,
+                color: '#FF5555',
+                fontSize: '13px'
+              }}
+            >
+              {error || 'Unable to connect to Nodetool server'}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.4)',
+                fontSize: '12px',
+                maxWidth: 260
+              }}
+            >
               Check your server settings and make sure Nodetool is running
             </Typography>
           </>
@@ -82,24 +141,28 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
       default:
         return (
           <>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                bgcolor: 'rgba(255, 152, 0, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mb: 2
+            <Box css={iconContainerStyles('#FFB86C')}>
+              <CloudOffIcon sx={{ fontSize: 28, color: '#FFB86C' }} />
+            </Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mb: 1, 
+                fontSize: '16px', 
+                fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.9)'
               }}
             >
-              <Typography fontSize={32}>🔌</Typography>
-            </Box>
-            <Typography variant="h6" sx={{ mb: 1 }}>
               Not Connected
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: '13px',
+                maxWidth: 260
+              }}
+            >
               Open settings to configure your Nodetool server connection
             </Typography>
           </>
@@ -108,7 +171,7 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
   };
 
   return (
-    <Box css={statusContainerStyles} sx={{ bgcolor: 'var(--palette-background-default)' }}>
+    <Box css={statusContainerStyles}>
       {getStatusContent()}
     </Box>
   );
@@ -116,25 +179,30 @@ export function ServerStatus({ status, error }: ServerStatusProps) {
 
 export function EmptyChatState() {
   return (
-    <Box css={statusContainerStyles} sx={{ bgcolor: 'var(--palette-background-default)' }}>
-      <Box
-        sx={{
-          width: 80,
-          height: 80,
-          borderRadius: '50%',
-          bgcolor: 'rgba(96, 165, 250, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          mb: 3
+    <Box css={statusContainerStyles}>
+      <Box css={iconContainerStyles('#60A5FA')}>
+        <ChatIcon sx={{ fontSize: 28, color: '#60A5FA' }} />
+      </Box>
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          mb: 1, 
+          fontSize: '16px', 
+          fontWeight: 600,
+          color: 'rgba(255, 255, 255, 0.9)'
         }}
       >
-        <ChatIcon sx={{ fontSize: 40, color: '#60A5FA' }} />
-      </Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>
         Start a Conversation
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 280 }}>
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          color: 'rgba(255, 255, 255, 0.5)',
+          fontSize: '13px',
+          maxWidth: 260,
+          lineHeight: 1.5
+        }}
+      >
         Ask questions, get help with tasks, or chat with AI models from your Nodetool server
       </Typography>
     </Box>

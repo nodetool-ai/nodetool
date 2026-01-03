@@ -12,18 +12,15 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider,
-  Alert,
   Switch,
   FormControlLabel,
   InputAdornment
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { useExtensionStore } from '../store';
 import { useServerConnection } from '../hooks/useServerConnection';
 
@@ -38,22 +35,78 @@ const headerStyles = css({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '12px 16px',
-  borderBottom: '1px solid'
+  padding: '16px 20px',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
 });
 
 const contentStyles = css({
   flex: 1,
   overflow: 'auto',
-  padding: '16px'
+  padding: '20px'
 });
 
 const sectionStyles = css({
-  marginBottom: '24px'
+  marginBottom: '20px'
+});
+
+const sectionTitleStyles = css({
+  fontSize: '11px',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
+  marginBottom: '12px',
+  color: 'rgba(255, 255, 255, 0.5)'
+});
+
+const fieldStyles = {
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: '8px',
+    '& fieldset': {
+      borderColor: 'rgba(255, 255, 255, 0.08)'
+    },
+    '&:hover fieldset': {
+      borderColor: 'rgba(255, 255, 255, 0.15)'
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: '#60A5FA',
+      borderWidth: '1px'
+    }
+  },
+  '& .MuiInputLabel-root': {
+    fontSize: '13px'
+  },
+  '& .MuiInputBase-input': {
+    fontSize: '13px'
+  }
+};
+
+const switchLabelStyles = {
+  m: 0,
+  mb: 1.5,
+  display: 'flex',
+  justifyContent: 'space-between',
+  width: '100%',
+  '& .MuiFormControlLabel-label': {
+    fontSize: '13px',
+    color: 'rgba(255, 255, 255, 0.8)'
+  }
+};
+
+const statusBadgeStyles = (isSuccess: boolean) => css({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '10px 14px',
+  borderRadius: '8px',
+  marginTop: '12px',
+  backgroundColor: isSuccess ? 'rgba(80, 250, 123, 0.08)' : 'rgba(255, 85, 85, 0.08)',
+  border: `1px solid ${isSuccess ? 'rgba(80, 250, 123, 0.2)' : 'rgba(255, 85, 85, 0.2)'}`,
+  fontSize: '13px',
+  color: isSuccess ? '#50FA7B' : '#FF5555'
 });
 
 export function Settings() {
-  const theme = useTheme();
   const {
     isSettingsOpen,
     setIsSettingsOpen,
@@ -95,18 +148,36 @@ export function Settings() {
         sx: {
           width: '100%',
           maxWidth: '100%',
-          bgcolor: theme.vars.palette.background.default
+          bgcolor: '#1a1a1a',
+          backgroundImage: 'none'
         }
       }}
     >
       <Box css={drawerContentStyles}>
         {/* Header */}
-        <Box css={headerStyles} sx={{ borderColor: theme.vars.palette.divider }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Box css={headerStyles}>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              fontWeight: 600,
+              fontSize: '15px',
+              color: 'rgba(255, 255, 255, 0.9)'
+            }}
+          >
             Settings
           </Typography>
-          <IconButton onClick={() => setIsSettingsOpen(false)} size="small">
-            <CloseIcon />
+          <IconButton 
+            onClick={() => setIsSettingsOpen(false)} 
+            size="small"
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.5)',
+              '&:hover': { 
+                color: 'rgba(255, 255, 255, 0.8)',
+                bgcolor: 'rgba(255, 255, 255, 0.05)'
+              }
+            }}
+          >
+            <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
 
@@ -114,8 +185,8 @@ export function Settings() {
         <Box css={contentStyles}>
           {/* Server Configuration */}
           <Box css={sectionStyles}>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-              Server Configuration
+            <Typography css={sectionTitleStyles}>
+              Server
             </Typography>
 
             <TextField
@@ -123,36 +194,39 @@ export function Settings() {
               label="Server URL"
               value={serverConfig.url}
               onChange={(e) => setServerConfig({ url: e.target.value })}
-              placeholder="http://localhost:8000"
+              placeholder="http://localhost:7777"
               size="small"
-              sx={{ mb: 2 }}
+              sx={{ ...fieldStyles, mb: 1.5 }}
             />
 
             <TextField
               fullWidth
-              label="API Key (optional)"
+              label="API Key"
               type={showApiKey ? 'text' : 'password'}
               value={serverConfig.apiKey || ''}
               onChange={(e) => setServerConfig({ apiKey: e.target.value || undefined })}
-              placeholder="Enter API key"
+              placeholder="Optional"
               size="small"
-              sx={{ mb: 2 }}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      edge="end"
-                      size="small"
-                    >
-                      {showApiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                    </IconButton>
-                  </InputAdornment>
-                )
+              sx={{ ...fieldStyles, mb: 1.5 }}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        edge="end"
+                        size="small"
+                        sx={{ color: 'rgba(255, 255, 255, 0.4)' }}
+                      >
+                        {showApiKey ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }
               }}
             />
 
-            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <FormControl fullWidth size="small" sx={{ ...fieldStyles, mb: 1.5 }}>
               <InputLabel>Auth Provider</InputLabel>
               <Select
                 value={serverConfig.authProvider}
@@ -175,45 +249,69 @@ export function Settings() {
                   checked={serverConfig.autoConnect}
                   onChange={(e) => setServerConfig({ autoConnect: e.target.checked })}
                   size="small"
+                  sx={{
+                    '& .MuiSwitch-thumb': { bgcolor: '#fff' },
+                    '& .MuiSwitch-track': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
+                    '&.Mui-checked .MuiSwitch-track': { bgcolor: '#60A5FA' }
+                  }}
                 />
               }
               label="Auto-connect on startup"
-              sx={{ mb: 2, display: 'block' }}
+              labelPlacement="start"
+              sx={switchLabelStyles}
             />
 
             <Button
-              variant="outlined"
               fullWidth
               onClick={handleTestConnection}
               disabled={isTesting}
-              sx={{ mb: 1 }}
+              sx={{
+                mt: 0.5,
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontSize: '13px',
+                fontWeight: 500,
+                bgcolor: 'rgba(96, 165, 250, 0.1)',
+                color: '#60A5FA',
+                border: '1px solid rgba(96, 165, 250, 0.2)',
+                '&:hover': {
+                  bgcolor: 'rgba(96, 165, 250, 0.15)',
+                  border: '1px solid rgba(96, 165, 250, 0.3)'
+                },
+                '&.Mui-disabled': {
+                  bgcolor: 'rgba(255, 255, 255, 0.03)',
+                  color: 'rgba(255, 255, 255, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.05)'
+                }
+              }}
             >
               {isTesting ? 'Testing...' : 'Test Connection'}
             </Button>
 
             {testResult && (
-              <Alert
-                severity={testResult.success ? 'success' : 'error'}
-                icon={testResult.success ? <CheckCircleIcon /> : <ErrorIcon />}
-                sx={{ mt: 1 }}
-              >
-                {testResult.success ? 'Connection successful!' : testResult.error}
-              </Alert>
+              <Box css={statusBadgeStyles(testResult.success)}>
+                {testResult.success ? (
+                  <CheckCircleOutlineIcon fontSize="small" />
+                ) : (
+                  <ErrorOutlineIcon fontSize="small" />
+                )}
+                <span>{testResult.success ? 'Connected successfully' : testResult.error}</span>
+              </Box>
             )}
 
             {connectionStatus === 'connected' && !testResult && (
-              <Alert severity="success" sx={{ mt: 1 }}>
-                Currently connected
-              </Alert>
+              <Box css={statusBadgeStyles(true)}>
+                <CheckCircleOutlineIcon fontSize="small" />
+                <span>Connected</span>
+              </Box>
             )}
           </Box>
 
-          <Divider sx={{ my: 2 }} />
-
           {/* Chat Settings */}
-          <Box css={sectionStyles}>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-              Chat Settings
+          <Box css={sectionStyles} sx={{ pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <Typography css={sectionTitleStyles}>
+              Chat
             </Typography>
 
             <FormControlLabel
@@ -222,32 +320,53 @@ export function Settings() {
                   checked={autoIncludeContext}
                   onChange={(e) => setAutoIncludeContext(e.target.checked)}
                   size="small"
+                  sx={{
+                    '& .MuiSwitch-thumb': { bgcolor: '#fff' },
+                    '& .MuiSwitch-track': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
+                    '&.Mui-checked .MuiSwitch-track': { bgcolor: '#60A5FA' }
+                  }}
                 />
               }
               label="Auto-include page content"
-              sx={{ mb: 2, display: 'block' }}
+              labelPlacement="start"
+              sx={switchLabelStyles}
             />
 
             <Button
-              variant="outlined"
-              color="warning"
               fullWidth
               onClick={handleClearHistory}
               disabled={!currentThreadId || !messageCache[currentThreadId]?.length}
+              sx={{
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontSize: '13px',
+                fontWeight: 500,
+                bgcolor: 'rgba(255, 85, 85, 0.08)',
+                color: '#FF5555',
+                border: '1px solid rgba(255, 85, 85, 0.15)',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 85, 85, 0.12)',
+                  border: '1px solid rgba(255, 85, 85, 0.25)'
+                },
+                '&.Mui-disabled': {
+                  bgcolor: 'rgba(255, 255, 255, 0.02)',
+                  color: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.04)'
+                }
+              }}
             >
               Clear Chat History
             </Button>
           </Box>
 
-          <Divider sx={{ my: 2 }} />
-
           {/* Appearance */}
-          <Box css={sectionStyles}>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+          <Box css={sectionStyles} sx={{ pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <Typography css={sectionTitleStyles}>
               Appearance
             </Typography>
 
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={fieldStyles}>
               <InputLabel>Theme</InputLabel>
               <Select
                 value={appTheme}

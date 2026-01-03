@@ -6,11 +6,8 @@ import {
   TextField,
   IconButton,
   Tooltip,
-  Checkbox,
-  FormControlLabel,
   Typography
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
 import StopIcon from '@mui/icons-material/Stop';
 import LanguageIcon from '@mui/icons-material/Language';
@@ -20,15 +17,40 @@ import { useExtensionStore } from '../store';
 const inputContainerStyles = css({
   display: 'flex',
   flexDirection: 'column',
-  padding: '12px 16px',
-  borderTop: '1px solid',
+  padding: '12px 16px 16px',
+  borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+  gap: '10px',
+  backgroundColor: '#1a1a1a'
+});
+
+const contextRowStyles = css({
+  display: 'flex',
+  alignItems: 'center',
   gap: '8px'
+});
+
+const contextToggleStyles = (isActive: boolean) => css({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '4px 10px',
+  borderRadius: '6px',
+  fontSize: '12px',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  backgroundColor: isActive ? 'rgba(96, 165, 250, 0.1)' : 'transparent',
+  border: `1px solid ${isActive ? 'rgba(96, 165, 250, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
+  color: isActive ? '#60A5FA' : 'rgba(255, 255, 255, 0.5)',
+  '&:hover': {
+    backgroundColor: isActive ? 'rgba(96, 165, 250, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+    borderColor: isActive ? 'rgba(96, 165, 250, 0.4)' : 'rgba(255, 255, 255, 0.12)'
+  }
 });
 
 const inputRowStyles = css({
   display: 'flex',
   alignItems: 'flex-end',
-  gap: '8px'
+  gap: '10px'
 });
 
 interface ChatInputProps {
@@ -39,7 +61,6 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ onSendMessage, onStopGeneration, onRefreshContext, disabled }: ChatInputProps) {
-  const theme = useTheme();
   const [message, setMessage] = useState('');
   const {
     isStreaming,
@@ -76,49 +97,45 @@ export function ChatInput({ onSendMessage, onStopGeneration, onRefreshContext, d
   );
 
   return (
-    <Box
-      css={inputContainerStyles}
-      sx={{ borderColor: theme.vars.palette.divider, bgcolor: theme.vars.palette.background.paper }}
-    >
+    <Box css={inputContainerStyles}>
       {/* Context toggle */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <FormControlLabel
-          control={
-            <Checkbox
-              size="small"
-              checked={autoIncludeContext}
-              onChange={(e) => setAutoIncludeContext(e.target.checked)}
-              icon={<LanguageIcon sx={{ fontSize: 18, opacity: 0.5 }} />}
-              checkedIcon={<LanguageIcon sx={{ fontSize: 18 }} />}
-            />
-          }
-          label={
-            <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-              Include page content
-            </Typography>
-          }
-          sx={{ m: 0, gap: 0.5 }}
-        />
+      <Box css={contextRowStyles}>
+        <Box 
+          css={contextToggleStyles(autoIncludeContext)}
+          onClick={() => setAutoIncludeContext(!autoIncludeContext)}
+        >
+          <LanguageIcon sx={{ fontSize: 14 }} />
+          <span>Include page</span>
+        </Box>
+        
         {pageContext && autoIncludeContext && (
-          <Tooltip title={`${pageContext.title}\n${pageContext.url}`}>
-            <Typography
-              variant="caption"
-              sx={{
-                color: theme.palette.primary.main,
-                maxWidth: 120,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#60A5FA',
+              maxWidth: 150,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              fontSize: '11px'
+            }}
+          >
+            {pageContext.title}
+          </Typography>
+        )}
+        
+        {onRefreshContext && (
+          <Tooltip title="Refresh page context" arrow>
+            <IconButton 
+              size="small" 
+              onClick={onRefreshContext}
+              sx={{ 
+                padding: '4px',
+                color: 'rgba(255, 255, 255, 0.4)',
+                '&:hover': { color: 'rgba(255, 255, 255, 0.7)' }
               }}
             >
-              {pageContext.title}
-            </Typography>
-          </Tooltip>
-        )}
-        {onRefreshContext && (
-          <Tooltip title="Refresh page context">
-            <IconButton size="small" onClick={onRefreshContext}>
-              <RefreshIcon sx={{ fontSize: 16 }} />
+              <RefreshIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Tooltip>
         )}
@@ -138,52 +155,72 @@ export function ChatInput({ onSendMessage, onStopGeneration, onRefreshContext, d
           disabled={disabled}
           sx={{
             '& .MuiOutlinedInput-root': {
-              borderRadius: '24px',
-              backgroundColor: theme.vars.palette.background.default,
+              borderRadius: '12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.03)',
               '& fieldset': {
-                borderColor: theme.palette.divider
+                borderColor: 'rgba(255, 255, 255, 0.08)'
               },
               '&:hover fieldset': {
-                borderColor: theme.palette.primary.main
+                borderColor: 'rgba(255, 255, 255, 0.15)'
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: '#60A5FA',
+                borderWidth: '1px'
               }
             },
             '& .MuiInputBase-input': {
-              padding: '12px 16px'
+              padding: '12px 14px',
+              fontSize: '13px',
+              '&::placeholder': {
+                color: 'rgba(255, 255, 255, 0.3)',
+                opacity: 1
+              }
             }
           }}
         />
 
         {isStreaming ? (
-          <Tooltip title="Stop generation">
+          <Tooltip title="Stop generation" arrow>
             <IconButton
               onClick={onStopGeneration}
-              color="error"
               sx={{
-                bgcolor: 'rgba(244, 67, 54, 0.1)',
-                '&:hover': { bgcolor: 'rgba(244, 67, 54, 0.2)' }
+                width: 40,
+                height: 40,
+                borderRadius: '10px',
+                bgcolor: 'rgba(255, 85, 85, 0.1)',
+                border: '1px solid rgba(255, 85, 85, 0.2)',
+                color: '#FF5555',
+                '&:hover': { 
+                  bgcolor: 'rgba(255, 85, 85, 0.15)',
+                  border: '1px solid rgba(255, 85, 85, 0.3)'
+                }
               }}
             >
-              <StopIcon />
+              <StopIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         ) : (
-          <Tooltip title="Send message (Enter)">
+          <Tooltip title="Send (Enter)" arrow>
             <span>
               <IconButton
                 onClick={handleSend}
                 disabled={!message.trim() || disabled}
-                color="primary"
                 sx={{
-                  bgcolor: theme.palette.primary.main,
+                  width: 40,
+                  height: 40,
+                  borderRadius: '10px',
+                  bgcolor: '#60A5FA',
                   color: '#fff',
-                  '&:hover': { bgcolor: theme.palette.primary.dark },
+                  '&:hover': { 
+                    bgcolor: '#3B82F6'
+                  },
                   '&.Mui-disabled': {
-                    bgcolor: theme.palette.action.disabledBackground,
-                    color: theme.palette.action.disabled
+                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    color: 'rgba(255, 255, 255, 0.2)'
                   }
                 }}
               >
-                <SendIcon />
+                <SendIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
