@@ -190,7 +190,7 @@ describe("torchruntime", () => {
       expect(result.error).toBeDefined();
     });
 
-    it("should handle unknown platforms by falling back to CPU", async () => {
+    it("should reject unknown platforms", async () => {
       const mockProcess = {
         stdout: {
           on: jest.fn((event, handler) => {
@@ -213,8 +213,9 @@ describe("torchruntime", () => {
 
       const result = await detectTorchPlatform();
 
+      // Should fallback to CPU at the top level due to rejection
       expect(result.platform).toBe("cpu");
-      expect(result.indexUrl).toBe("https://download.pytorch.org/whl/cpu");
+      expect(result.error).toBeDefined();
     });
   });
 });

@@ -29,6 +29,7 @@ export interface TorchruntimeDetectionResult {
   platform: TorchPlatform;
   indexUrl: string | null;
   requiresDirectML: boolean;
+  detectedAt?: string;
   error?: string;
 }
 
@@ -101,10 +102,14 @@ async function installTorchruntime(): Promise<void> {
 
   const pythonPath = getPythonPath();
   
+  // Use version ~=2.0 to get latest 2.x with automatic updates
+  // This allows bug fixes and PCI database updates while avoiding breaking changes
+  const torchruntimeSpec = "torchruntime~=2.0";
+  
   return new Promise((resolve, reject) => {
     const installProcess = spawn(
       pythonPath,
-      ["-m", "pip", "install", "--quiet", "torchruntime~=2.0"],
+      ["-m", "pip", "install", "--quiet", torchruntimeSpec],
       {
         env: getProcessEnv(),
         stdio: "pipe",
@@ -146,16 +151,26 @@ async function installTorchruntime(): Promise<void> {
 async function detectPlatformWithTorchruntime(): Promise<TorchPlatform> {
   const pythonPath = getPythonPath();
   
+  // Wrap torchruntime API calls in try-catch to handle potential API changes
   const detectionScript = `
 import torchruntime
 import json
+import sys
 
 try:
+    # Check for required APIs
+    if not hasattr(torchruntime, 'device_db') or not hasattr(torchruntime, 'platform_detection'):
+        raise AttributeError("torchruntime API structure has changed")
+    
     gpus = torchruntime.device_db.get_gpus()
     platform = torchruntime.platform_detection.get_torch_platform(gpus)
     print(json.dumps({"platform": platform, "gpu_count": len(gpus)}))
+except AttributeError as e:
+    print(json.dumps({"error": f"torchruntime API error: {str(e)}"}), file=sys.stderr)
+    sys.exit(1)
 except Exception as e:
-    print(json.dumps({"error": str(e)}))
+    print(json.dumps({"error": str(e)}), file=sys.stderr)
+    sys.exit(1)
 `;
 
   return new Promise((resolve, reject) => {
@@ -206,12 +221,14 @@ except Exception as e:
           "directml", "xpu", "mps", "cpu"
         ];
         
-        if (validPlatforms.includes(platform)) {
-          resolve(platform);
-        } else {
-          logMessage(`Unknown platform '${platform}', falling back to CPU`, "warn");
-          resolve("cpu");
+        if (!validPlatforms.includes(platform)) {
+          const error = `Unknown platform '${platform}' detected by torchruntime`;
+          logMessage(error, "warn");
+          reject(new Error(error));
+          return;
         }
+        
+        resolve(platform);
       } catch (parseError) {
         logMessage(`Failed to parse torchruntime output: ${parseError}`, "error");
         reject(new Error(`Failed to parse detection result: ${stdout}`));
