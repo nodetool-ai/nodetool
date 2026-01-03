@@ -47,11 +47,11 @@ function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
 function shouldUsePrefixTree(term: string): boolean {
   // Use prefix tree for simple queries (no special search syntax)
   // Avoid for very short queries (< 2 chars) or complex patterns
-  if (term.length < 2) return false;
+  if (term.length < 2) {return false;}
   
   // Don't use prefix tree if the query has multiple words (better for fuzzy)
   const words = term.trim().split(/\s+/);
-  if (words.length > 2) return false;
+  if (words.length > 2) {return false;}
   
   return true;
 }

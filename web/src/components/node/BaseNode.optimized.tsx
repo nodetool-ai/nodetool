@@ -168,69 +168,79 @@ const getStyleProps = (
   };
 };
 
-const getNodeColors = (metadata: any): string[] => {
-  const outputColors = [
-    ...new Set(
-      metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
-      []
-    )
-  ];
-  const inputColors = [
-    ...new Set(
-      metadata?.properties?.map((input: any) =>
-        colorForType(input.type.type)
-      ) || []
-    )
-  ];
+// ============================================================================
+// OPTIMIZATION 1: Extract and memoize color computation
+// ============================================================================
+/**
+ * Computes node colors from metadata outputs and properties.
+ * OPTIMIZATION: This is now stable per metadata object, cached via useMemo in component
+ */
+const computeNodeColors = (metadata: NodeMetadata): string[] => {
+  const outputColors = new Set<string>();
+  metadata?.outputs?.forEach((output) => {
+    outputColors.add(colorForType(output.type.type));
+  });
+
+  const inputColors = new Set<string>();
+  metadata?.properties?.forEach((input) => {
+    inputColors.add(colorForType(input.type.type));
+  });
+
+  // Combine unique colors: all outputs, then unique inputs
   const allColors = [...outputColors];
-  for (const color of inputColors) {
+  inputColors.forEach((color) => {
     if (!allColors.includes(color)) {
       allColors.push(color);
     }
-  }
+  });
+
+  // Ensure we have exactly 5 colors for gradient
   while (allColors.length < 5) {
-    allColors.push(allColors[allColors.length - 1]);
+    allColors.push(allColors[allColors.length - 1] || "#666");
   }
-  return allColors.slice(0, 5) as string[];
+
+  return allColors.slice(0, 5);
 };
 
-const getHeaderColors = (
+/**
+ * Computes header colors based on node type and metadata.
+ * OPTIMIZATION: Now stable per (metadata, theme, nodeType) tuple
+ */
+const computeHeaderColors = (
   metadata: NodeMetadata,
   theme: Theme,
   nodeType: string
-) => {
+): { headerColor: string; baseColor: string } => {
   // Override colors for input and output nodes
   if (nodeType.startsWith("nodetool.input.")) {
     const baseColor = theme.vars.palette.success.main;
-    return {
-      headerColor: baseColor,
-      baseColor
-    };
+    return { headerColor: baseColor, baseColor };
   }
 
   if (nodeType.startsWith("nodetool.output.")) {
     const baseColor = theme.vars.palette.info.main;
-    return {
-      headerColor: baseColor,
-      baseColor
-    };
+    return { headerColor: baseColor, baseColor };
   }
 
-  const firstOutputType = metadata?.outputs?.[0]?.type?.type as
-    | string
-    | undefined;
+  const firstOutputType = metadata?.outputs?.[0]?.type?.type;
   if (!firstOutputType) {
     return { headerColor: "", baseColor: "" };
   }
 
   const baseColor = colorForType(firstOutputType);
-
-  return {
-    headerColor: baseColor,
-    baseColor
-  };
+  return { headerColor: baseColor, baseColor };
 };
 
+// ============================================================================
+// OPTIMIZATION 2: Helper function outside component to check empty results
+// ============================================================================
+const isEmptyResult = (obj: any): boolean => {
+  return obj && typeof obj === "object" && Object.keys(obj).length === 0;
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
@@ -239,6 +249,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
+
+  // ============================================================================
+  // OPTIMIZATION 3: Memoize node type flags
+  // ============================================================================
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -250,6 +264,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }),
     [type]
   );
+
   // Status
   const status = useStatusStore((state) => state.getStatus(workflow_id, id));
   const isLoading = useMemo(
@@ -263,11 +278,19 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     throw new Error("Metadata is not loaded for node type " + type);
   }
 
-  const parentColor = parentId ?
-    (isDarkMode ?
-      hexToRgba("#222", GROUP_COLOR_OPACITY)
-      : hexToRgba("#ccc", GROUP_COLOR_OPACITY)) : null;
+  // ============================================================================
+  // OPTIMIZATION 4: More efficient parentColor computation
+  // ============================================================================
+  const parentColor = useMemo(() => {
+    if (!parentId) {return "";}
+    return isDarkMode
+      ? hexToRgba("#222", GROUP_COLOR_OPACITY)
+      : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
+  }, [parentId, isDarkMode]);
 
+  // ============================================================================
+  // OPTIMIZATION 5: Stable reference for special namespaces
+  // ============================================================================
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
     []
@@ -325,7 +348,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, []);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
-  const isEmptyResult = (obj: any) => obj && typeof obj === "object" && Object.keys(obj).length === 0;
   const isOverlayVisible = nodeType.isOutputNode
     ? (result && !isEmptyResult(result))
     : (showResultOverlay && result && !isEmptyResult(result));
@@ -338,11 +360,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     state.getPlanningUpdate(workflow_id, id)
   );
 
-  // Node metadata and properties
-  const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
-
+  // ============================================================================
+  // OPTIMIZATION 6: Use optimized color computation functions
+  // ============================================================================
+  const nodeColors = useMemo(() => computeNodeColors(metadata), [metadata]);
   const { headerColor, baseColor } = useMemo(
-    () => getHeaderColors(metadata, theme, type),
+    () => computeHeaderColors(metadata, theme, type),
     [metadata, theme, type]
   );
 
@@ -364,47 +387,54 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           wordBreak: "break-word"
         }
       }),
-    [theme]
+    [theme.vars.palette.primary.mainChannel, theme.vars.palette.primary.light]
   );
-
-  if (!metadata) {
-    throw new Error("Metadata is not loaded for node " + id);
-  }
 
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
   }, [showAdvancedFields]);
 
+  // ============================================================================
+  // OPTIMIZATION 7: Memoize the large sx prop object
+  // ============================================================================
+  const containerSxStyles = useMemo(() => ({
+    display: "flex",
+    minHeight: styleProps.minHeight,
+    border: isLoading
+      ? "none"
+      : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
+    ...theme.applyStyles("dark", {
+      border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
+    }),
+    boxShadow: selected
+      ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
+      : `0 4px 20px rgba(0, 0, 0, 0.1)`,
+    backgroundColor:
+      hasParent && !isLoading
+        ? parentColor
+        : selected
+          ? "transparent !important"
+          : theme.vars.palette.c_node_bg,
+    backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+    WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+    borderRadius: "var(--rounded-node)",
+    // dynamic node color
+    "--node-primary-color": baseColor || "var(--palette-primary-main)"
+  }), [
+    styleProps.minHeight,
+    isLoading,
+    baseColor,
+    theme,
+    selected,
+    hasParent,
+    parentColor
+  ]);
+
   return (
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
-      sx={{
-        display: "flex",
-        minHeight: styleProps.minHeight,
-        border: isLoading
-          ? "none"
-          : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
-        ...theme.applyStyles("dark", {
-          border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
-        }),
-        boxShadow: selected
-          ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
-          : `0 4px 20px rgba(0, 0, 0, 0.1)`,
-        backgroundColor:
-          hasParent && !isLoading
-            ? parentColor
-            : selected
-              ? "transparent !important"
-              : // theme.vars.palette.c_node_bg
-              // : "#121212", // Darker background
-              theme.vars.palette.c_node_bg, // Darker background
-        backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-        WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-        borderRadius: "var(--rounded-node)",
-        // dynamic node color
-        "--node-primary-color": baseColor || "var(--palette-primary-main)"
-      }}
+      sx={containerSxStyles}
     >
       {selected && <Toolbar id={id} selected={selected} />}
       <NodeHeader
@@ -468,12 +498,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 };
 
+// ============================================================================
+// OPTIMIZATION 8: Optimized memo comparison
+// ============================================================================
 export default memo(BaseNode, (prevProps, nextProps) => {
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.type === nextProps.type &&
-    prevProps.selected === nextProps.selected &&
-    prevProps.parentId === nextProps.parentId &&
-    isEqual(prevProps.data, nextProps.data)
-  );
+  // Quick checks first (fastest to fail)
+  if (prevProps.id !== nextProps.id) {return false;}
+  if (prevProps.type !== nextProps.type) {return false;}
+  if (prevProps.selected !== nextProps.selected) {return false;}
+  if (prevProps.parentId !== nextProps.parentId) {return false;}
+
+  // Deep comparison last (most expensive)
+  return isEqual(prevProps.data, nextProps.data);
 });
