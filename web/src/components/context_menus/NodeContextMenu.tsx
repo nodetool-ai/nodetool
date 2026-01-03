@@ -89,74 +89,82 @@ const NodeContextMenu: React.FC = () => {
 
     // Get the downstream subgraph starting from this node
     const downstream = subgraph(edges, nodes, node as Node<NodeData>);
-
-    // Find incoming edges to the start node that connect from nodes outside the subgraph
     const subgraphNodeIds = new Set(downstream.nodes.map((n) => n.id));
-    const incomingEdges = edges.filter(
-      (edge) => edge.target === nodeId && !subgraphNodeIds.has(edge.source)
+
+    // Find ALL edges that come from outside the subgraph into ANY node in the subgraph
+    // This includes dependencies to all nodes, not just the start node
+    const externalInputEdges = edges.filter(
+      (edge) =>
+        subgraphNodeIds.has(edge.target) && !subgraphNodeIds.has(edge.source)
     );
 
-    // Build a map of property values from upstream results
-    const propertyOverrides: Record<string, any> = {};
-    for (const edge of incomingEdges) {
+    // Build a map of property overrides for each node that has external dependencies
+    // Map of nodeId -> { propertyName: value }
+    const nodePropertyOverrides = new Map<string, Record<string, any>>();
+
+    for (const edge of externalInputEdges) {
       const sourceNodeId = edge.source;
-      const sourceHandle = edge.sourceHandle; // The output handle name
-      const targetHandle = edge.targetHandle; // The property name on the start node
+      const sourceHandle = edge.sourceHandle;
+      const targetNodeId = edge.target;
+      const targetHandle = edge.targetHandle;
 
       if (!targetHandle) {
         continue;
       }
 
-      // Get the result from the upstream node
+      // Get the cached result from the upstream node
       const result = getResult(workflow.id, sourceNodeId);
       if (result !== undefined) {
         // If the result is an object with multiple outputs, get the specific output
-        // Otherwise use the whole result
         const value =
           sourceHandle && typeof result === "object" && result !== null
             ? result[sourceHandle] ?? result
             : result;
-        propertyOverrides[targetHandle] = value;
-        log.info(`Run from here: Setting property ${targetHandle} from upstream node ${sourceNodeId}`);
+
+        // Add to the overrides for this target node
+        const existing = nodePropertyOverrides.get(targetNodeId) || {};
+        existing[targetHandle] = value;
+        nodePropertyOverrides.set(targetNodeId, existing);
+
+        log.info(
+          `Run from here: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`
+        );
       }
     }
 
-    // Update the start node's properties with the upstream results
-    const startNode = downstream.nodes.find((n) => n.id === nodeId);
-    if (startNode && Object.keys(propertyOverrides).length > 0) {
-      // Clone the node and update its properties for the run
-      const updatedStartNode = {
-        ...startNode,
-        data: {
-          ...startNode.data,
-          properties: {
-            ...startNode.data.properties,
-            ...propertyOverrides
+    // Apply property overrides to all affected nodes in the subgraph
+    const nodesWithCachedValues = downstream.nodes.map((n) => {
+      const overrides = nodePropertyOverrides.get(n.id);
+      if (overrides && Object.keys(overrides).length > 0) {
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            properties: {
+              ...n.data.properties,
+              ...overrides
+            }
           }
-        }
-      };
-      // Replace the start node in the subgraph with the updated one
-      const subgraphNodesWithUpdates = downstream.nodes.map((n) =>
-        n.id === nodeId ? updatedStartNode : n
-      );
+        };
+      }
+      return n;
+    });
 
-      log.info("Running downstream subgraph from node", {
-        startNodeId: nodeId,
-        nodeCount: subgraphNodesWithUpdates.length,
-        edgeCount: downstream.edges.length,
-        propertyCount: Object.keys(propertyOverrides).length
-      });
+    // Count how many nodes had properties injected
+    const nodesWithOverrides = nodePropertyOverrides.size;
+    const totalPropertiesInjected = Array.from(
+      nodePropertyOverrides.values()
+    ).reduce((sum, props) => sum + Object.keys(props).length, 0);
 
-      run({}, workflow, subgraphNodesWithUpdates, downstream.edges);
-    } else {
-      log.info("Running downstream subgraph from node", {
-        startNodeId: nodeId,
-        nodeCount: downstream.nodes.length,
-        edgeCount: downstream.edges.length
-      });
+    log.info("Running downstream subgraph from node", {
+      startNodeId: nodeId,
+      nodeCount: nodesWithCachedValues.length,
+      edgeCount: downstream.edges.length,
+      nodesWithCachedDependencies: nodesWithOverrides,
+      totalCachedPropertiesInjected: totalPropertiesInjected
+    });
 
-      run({}, workflow, downstream.nodes, downstream.edges);
-    }
+    run({}, workflow, nodesWithCachedValues, downstream.edges);
 
     addNotification({
       type: "info",

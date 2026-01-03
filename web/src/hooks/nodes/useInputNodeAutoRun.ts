@@ -13,7 +13,7 @@ import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { subgraph } from "../../core/graph";
 import useResultsStore from "../../stores/ResultsStore";
 import { NodeData } from "../../stores/NodeData";
-import { Node } from "@xyflow/react";
+import { Node, Edge } from "@xyflow/react";
 import log from "loglevel";
 
 // Debounce delay for non-slider inputs (ms)
@@ -45,6 +45,90 @@ export const isAutoRunInputNode = (nodeType: string): boolean => {
   return nodeType.startsWith("nodetool.input.");
 };
 
+/**
+ * Finds all edges that cross the boundary into a subgraph (from outside to inside).
+ * These represent dependencies that need cached values injected.
+ */
+const findExternalInputEdges = (
+  allEdges: Edge[],
+  subgraphNodeIds: Set<string>
+): Edge[] => {
+  return allEdges.filter(
+    (edge) =>
+      subgraphNodeIds.has(edge.target) && !subgraphNodeIds.has(edge.source)
+  );
+};
+
+/**
+ * Collects cached results from upstream nodes and builds property overrides
+ * for all nodes in the subgraph that have external dependencies.
+ */
+const collectCachedValuesForSubgraph = (
+  externalEdges: Edge[],
+  workflowId: string,
+  getResult: (workflowId: string, nodeId: string) => any
+): Map<string, Record<string, any>> => {
+  // Map of nodeId -> { propertyName: value }
+  const nodePropertyOverrides = new Map<string, Record<string, any>>();
+
+  for (const edge of externalEdges) {
+    const sourceNodeId = edge.source;
+    const sourceHandle = edge.sourceHandle;
+    const targetNodeId = edge.target;
+    const targetHandle = edge.targetHandle;
+
+    if (!targetHandle) {
+      continue;
+    }
+
+    // Get the cached result from the upstream node
+    const result = getResult(workflowId, sourceNodeId);
+    if (result !== undefined) {
+      // If the result is an object with multiple outputs, get the specific output
+      const value =
+        sourceHandle && typeof result === "object" && result !== null
+          ? result[sourceHandle] ?? result
+          : result;
+
+      // Add to the overrides for this target node
+      const existing = nodePropertyOverrides.get(targetNodeId) || {};
+      existing[targetHandle] = value;
+      nodePropertyOverrides.set(targetNodeId, existing);
+
+      log.debug(
+        `Auto-run: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`
+      );
+    }
+  }
+
+  return nodePropertyOverrides;
+};
+
+/**
+ * Applies property overrides to nodes in the subgraph.
+ */
+const applyPropertyOverrides = (
+  subgraphNodes: Node<NodeData>[],
+  propertyOverrides: Map<string, Record<string, any>>
+): Node<NodeData>[] => {
+  return subgraphNodes.map((node) => {
+    const overrides = propertyOverrides.get(node.id);
+    if (overrides && Object.keys(overrides).length > 0) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          properties: {
+            ...node.data.properties,
+            ...overrides
+          }
+        }
+      };
+    }
+    return node;
+  });
+};
+
 export const useInputNodeAutoRun = (
   options: UseInputNodeAutoRunOptions
 ): UseInputNodeAutoRunReturn => {
@@ -66,7 +150,8 @@ export const useInputNodeAutoRun = (
 
   /**
    * Execute the downstream subgraph starting from this input node.
-   * Similar to "Run from here" feature in NodeContextMenu.
+   * Performs comprehensive dependency analysis to ensure all nodes in the
+   * subgraph have their external dependencies (cached results) injected.
    */
   const executeDownstreamSubgraph = useCallback(() => {
     // Only auto-run for input nodes
@@ -81,78 +166,41 @@ export const useInputNodeAutoRun = (
 
     // Get the downstream subgraph starting from this node
     const downstream = subgraph(edges, nodes, node as Node<NodeData>);
-
-    // Find incoming edges to the start node that connect from nodes outside the subgraph
     const subgraphNodeIds = new Set(downstream.nodes.map((n) => n.id));
-    const incomingEdges = edges.filter(
-      (edge) => edge.target === nodeId && !subgraphNodeIds.has(edge.source)
+
+    // Find ALL edges that come from outside the subgraph into the subgraph
+    // This includes edges to ANY node in the subgraph, not just the start node
+    const externalInputEdges = findExternalInputEdges(edges, subgraphNodeIds);
+
+    // Collect cached values for all external dependencies
+    const propertyOverrides = collectCachedValuesForSubgraph(
+      externalInputEdges,
+      workflow.id,
+      getResult
     );
 
-    // Build a map of property values from upstream results
-    const propertyOverrides: Record<string, any> = {};
-    for (const edge of incomingEdges) {
-      const sourceNodeId = edge.source;
-      const sourceHandle = edge.sourceHandle; // The output handle name
-      const targetHandle = edge.targetHandle; // The property name on the start node
+    // Apply property overrides to all affected nodes in the subgraph
+    const nodesWithCachedValues = applyPropertyOverrides(
+      downstream.nodes,
+      propertyOverrides
+    );
 
-      if (!targetHandle) {
-        continue;
-      }
+    // Count how many nodes had properties injected
+    const nodesWithOverrides = Array.from(propertyOverrides.keys()).length;
+    const totalPropertiesInjected = Array.from(
+      propertyOverrides.values()
+    ).reduce((sum, props) => sum + Object.keys(props).length, 0);
 
-      // Get the result from the upstream node
-      const result = getResult(workflow.id, sourceNodeId);
-      if (result !== undefined) {
-        // If the result is an object with multiple outputs, get the specific output
-        // Otherwise use the whole result
-        const value =
-          sourceHandle && typeof result === "object" && result !== null
-            ? result[sourceHandle] ?? result
-            : result;
-        propertyOverrides[targetHandle] = value;
-        log.debug(
-          `Input node auto-run: Setting property ${targetHandle} from upstream node ${sourceNodeId}`
-        );
-      }
-    }
+    log.info("Input node auto-run: Running downstream subgraph", {
+      startNodeId: nodeId,
+      nodeCount: nodesWithCachedValues.length,
+      edgeCount: downstream.edges.length,
+      nodesWithCachedDependencies: nodesWithOverrides,
+      totalCachedPropertiesInjected: totalPropertiesInjected,
+      changedProperty: propertyName
+    });
 
-    // Update the start node's properties with the upstream results
-    const startNode = downstream.nodes.find((n) => n.id === nodeId);
-    if (startNode && Object.keys(propertyOverrides).length > 0) {
-      // Clone the node and update its properties for the run
-      const updatedStartNode = {
-        ...startNode,
-        data: {
-          ...startNode.data,
-          properties: {
-            ...startNode.data.properties,
-            ...propertyOverrides
-          }
-        }
-      };
-      // Replace the start node in the subgraph with the updated one
-      const subgraphNodesWithUpdates = downstream.nodes.map((n) =>
-        n.id === nodeId ? updatedStartNode : n
-      );
-
-      log.info("Input node auto-run: Running downstream subgraph", {
-        startNodeId: nodeId,
-        nodeCount: subgraphNodesWithUpdates.length,
-        edgeCount: downstream.edges.length,
-        propertyCount: Object.keys(propertyOverrides).length,
-        changedProperty: propertyName
-      });
-
-      run({}, workflow, subgraphNodesWithUpdates, downstream.edges);
-    } else {
-      log.info("Input node auto-run: Running downstream subgraph", {
-        startNodeId: nodeId,
-        nodeCount: downstream.nodes.length,
-        edgeCount: downstream.edges.length,
-        changedProperty: propertyName
-      });
-
-      run({}, workflow, downstream.nodes, downstream.edges);
-    }
+    run({}, workflow, nodesWithCachedValues, downstream.edges);
   }, [
     nodeType,
     nodeId,
