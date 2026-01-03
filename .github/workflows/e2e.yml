@@ -36,7 +36,9 @@ jobs:
       - name: Install nodetool-core and nodetool-base
         shell: bash -el {0}
         run: |
-          uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+          uv pip install \
+            git+https://github.com/nodetool-ai/nodetool-core \
+            git+https://github.com/nodetool-ai/nodetool-base
 
       - name: Verify nodetool installation
         shell: bash -el {0}
@@ -64,17 +66,23 @@ jobs:
       - name: Download and setup llama-server
         run: |
           # Download llama-server binary for Ubuntu x64
-          LLAMA_VERSION=$(curl -s https://api.github.com/repos/ggerganov/llama.cpp/releases/latest | jq -r .tag_name)
+          LLAMA_VERSION=$(curl -s \
+            https://api.github.com/repos/ggerganov/llama.cpp/releases/latest \
+            | jq -r .tag_name)
           echo "Downloading llama.cpp ${LLAMA_VERSION}"
-          curl -L -o /tmp/llama-bin.tar.gz "https://github.com/ggerganov/llama.cpp/releases/download/${LLAMA_VERSION}/llama-${LLAMA_VERSION#b}-bin-ubuntu-x64.tar.gz"
-          
+          LLAMA_URL="https://github.com/ggerganov/llama.cpp/releases/download"
+          LLAMA_URL="${LLAMA_URL}/${LLAMA_VERSION}"
+          LLAMA_URL="${LLAMA_URL}/llama-${LLAMA_VERSION#b}-bin-ubuntu-x64.tar.gz"
+          curl -L -o /tmp/llama-bin.tar.gz "${LLAMA_URL}"
+
           # Extract and make executable
           cd /tmp
           tar -xzf llama-bin.tar.gz
           chmod +x llama-*/llama-server
-          
+
           # Find the llama-server binary
-          LLAMA_SERVER_PATH=$(find /tmp/llama-* -name "llama-server" -type f)
+          LLAMA_SERVER_PATH=$(find /tmp/llama-* \
+            -name "llama-server" -type f)
           echo "Llama server path: ${LLAMA_SERVER_PATH}"
           echo "LLAMA_SERVER_PATH=${LLAMA_SERVER_PATH}" >> $GITHUB_ENV
 
@@ -88,7 +96,7 @@ jobs:
             --host 0.0.0.0 \
             > /tmp/llama-server.log 2>&1 &
           echo $! > /tmp/llama-server.pid
-          
+
           # Wait for llama-server to be ready
           echo "Waiting for llama-server to be ready..."
           for i in {1..60}; do
@@ -107,9 +115,11 @@ jobs:
       - name: Start nodetool server
         shell: bash -el {0}
         run: |
-          LLAMA_CPP_URL=http://localhost:8080 nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
+          LLAMA_CPP_URL=http://localhost:8080 \
+            nodetool serve --port 7777 \
+            > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
-          
+
       - name: Wait for nodetool server to be ready
         uses: jtalk/url-health-check-action@v4
         with:
@@ -135,7 +145,7 @@ jobs:
           if [ -f /tmp/llama-server.pid ]; then
             kill $(cat /tmp/llama-server.pid) || true
           fi
-          
+
       - name: Upload nodetool server logs
         if: failure()
         uses: actions/upload-artifact@v4
