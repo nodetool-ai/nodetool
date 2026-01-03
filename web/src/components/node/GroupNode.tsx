@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
@@ -19,6 +19,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
+import BypassGroupButton from "./BypassGroupButton";
 import { Tooltip } from "@mui/material";
 // constants
 const MIN_WIDTH = 200;
@@ -187,10 +188,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const { workflow, updateNodeData, updateNode } = useNodes((state) => ({
+  const { workflow, updateNodeData, updateNode, setBypass } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode,
-    workflow: state.workflow
+    workflow: state.workflow,
+    setBypass: state.setBypass
   }));
   const { nodes, edges } = useNodes((state) => ({
     nodes: state.nodes,
@@ -222,6 +224,26 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
     run({}, workflow, groupNodes, groupEdges);
   }, [nodes, edges, run, workflow, props.id]);
+
+  // Get child nodes of this group
+  const childNodes = useMemo(() => {
+    return nodes.filter((node) => node.parentId === props.id);
+  }, [nodes, props.id]);
+
+  // Check if majority of child nodes are bypassed
+  const childrenMajorityBypassed = useMemo(() => {
+    if (childNodes.length === 0) return false;
+    const bypassedCount = childNodes.filter((n) => n.data.bypassed).length;
+    return bypassedCount >= childNodes.length / 2;
+  }, [childNodes]);
+
+  // Toggle bypass on all child nodes
+  const toggleBypassChildren = useCallback(() => {
+    const shouldBypass = !childrenMajorityBypassed;
+    childNodes.forEach((node) => {
+      setBypass(node.id, shouldBypass);
+    });
+  }, [childNodes, childrenMajorityBypassed, setBypass]);
 
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
@@ -390,6 +412,12 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               color={color || null}
               onColorChange={handleColorChange}
             />
+            {childNodes.length > 0 && (
+              <BypassGroupButton
+                isBypassed={childrenMajorityBypassed}
+                onClick={toggleBypassChildren}
+              />
+            )}
             <RunGroupButton
               isWorkflowRunning={isWorkflowRunning}
               state={state}
