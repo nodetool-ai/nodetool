@@ -61,10 +61,53 @@ jobs:
           cd web
           npx playwright install --with-deps chromium
 
+      - name: Download and setup llama-server
+        run: |
+          # Download llama-server binary for Ubuntu x64
+          LLAMA_VERSION=$(curl -s https://api.github.com/repos/ggerganov/llama.cpp/releases/latest | jq -r .tag_name)
+          echo "Downloading llama.cpp ${LLAMA_VERSION}"
+          curl -L -o /tmp/llama-bin.tar.gz "https://github.com/ggerganov/llama.cpp/releases/download/${LLAMA_VERSION}/llama-${LLAMA_VERSION#b}-bin-ubuntu-x64.tar.gz"
+          
+          # Extract and make executable
+          cd /tmp
+          tar -xzf llama-bin.tar.gz
+          chmod +x llama-*/llama-server
+          
+          # Find the llama-server binary
+          LLAMA_SERVER_PATH=$(find /tmp/llama-* -name "llama-server" -type f)
+          echo "Llama server path: ${LLAMA_SERVER_PATH}"
+          echo "LLAMA_SERVER_PATH=${LLAMA_SERVER_PATH}" >> $GITHUB_ENV
+
+      - name: Start llama-server
+        run: |
+          # Start llama-server with a small model from HuggingFace
+          ${{ env.LLAMA_SERVER_PATH }} \
+            --hf-repo TheBloke/SmolLM-135M-Instruct-GGUF \
+            --hf-file smollm-135m-instruct.Q4_K_M.gguf \
+            --port 8080 \
+            --host 0.0.0.0 \
+            > /tmp/llama-server.log 2>&1 &
+          echo $! > /tmp/llama-server.pid
+          
+          # Wait for llama-server to be ready
+          echo "Waiting for llama-server to be ready..."
+          for i in {1..60}; do
+            if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+              echo "Llama-server is ready"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "Llama-server failed to start"
+              cat /tmp/llama-server.log
+              exit 1
+            fi
+            sleep 2
+          done
+
       - name: Start nodetool server
         shell: bash -el {0}
         run: |
-          nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
+          LLAMA_CPP_URL=http://localhost:8080 nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
           
       - name: Wait for nodetool server to be ready
@@ -82,12 +125,15 @@ jobs:
         env:
           CI: true
 
-      - name: Stop nodetool server
+      - name: Stop servers
         if: always()
         shell: bash -el {0}
         run: |
           if [ -f /tmp/nodetool-server.pid ]; then
             kill $(cat /tmp/nodetool-server.pid) || true
+          fi
+          if [ -f /tmp/llama-server.pid ]; then
+            kill $(cat /tmp/llama-server.pid) || true
           fi
           
       - name: Upload nodetool server logs
@@ -96,6 +142,14 @@ jobs:
         with:
           name: nodetool-server-logs
           path: /tmp/nodetool-server.log
+          retention-days: 7
+
+      - name: Upload llama-server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: llama-server-logs
+          path: /tmp/llama-server.log
           retention-days: 7
 
       - name: Upload Playwright report
