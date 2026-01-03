@@ -171,9 +171,9 @@ describe('BaseNode Performance Optimizations', () => {
       // Optimized comparison
       const optimizedCompare = (prevProps: any, nextProps: any) => {
         // Fast checks first
-        if (prevProps.id !== nextProps.id) return false;
-        if (prevProps.type !== nextProps.type) return false;
-        if (prevProps.selected !== nextProps.selected) return false;
+        if (prevProps.id !== nextProps.id) {return false;}
+        if (prevProps.type !== nextProps.type) {return false;}
+        if (prevProps.selected !== nextProps.selected) {return false;}
 
         // Expensive check last
         return customIsEqual(prevProps.data, nextProps.data);
@@ -429,7 +429,7 @@ describe('NodeInputs Performance Optimizations', () => {
         basic?: boolean;
       }
 
-      let metrics = {
+      const metrics = {
         renders: 0,
         arrayBuilds: 0,
         dynamicResolutions: 0
@@ -458,8 +458,8 @@ describe('NodeInputs Performance Optimizations', () => {
           const b: Property[] = [];
           const a: Property[] = [];
           properties.forEach((prop) => {
-            if (prop.basic) b.push(prop);
-            else if (showAdvanced) a.push(prop);
+            if (prop.basic) {b.push(prop);}
+            else if (showAdvanced) {a.push(prop);}
           });
           return { basic: b, advanced: a };
         }, [properties, showAdvanced]);

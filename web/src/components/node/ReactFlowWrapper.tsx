@@ -715,8 +715,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   // Memoize ReactFlow CSS classes
   const reactFlowClasses = useMemo(() => {
     const classes = [];
-    if (zoom <= ZOOMED_OUT) classes.push("zoomed-out");
-    if (connecting) classes.push("is-connecting");
+    if (zoom <= ZOOMED_OUT) {classes.push("zoomed-out");}
+    if (connecting) {classes.push("is-connecting");}
     return classes.join(" ");
   }, [zoom, connecting]);
 

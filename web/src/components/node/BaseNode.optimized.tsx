@@ -282,7 +282,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // OPTIMIZATION 4: More efficient parentColor computation
   // ============================================================================
   const parentColor = useMemo(() => {
-    if (!parentId) return "";
+    if (!parentId) {return "";}
     return isDarkMode
       ? hexToRgba("#222", GROUP_COLOR_OPACITY)
       : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
@@ -503,10 +503,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 // ============================================================================
 export default memo(BaseNode, (prevProps, nextProps) => {
   // Quick checks first (fastest to fail)
-  if (prevProps.id !== nextProps.id) return false;
-  if (prevProps.type !== nextProps.type) return false;
-  if (prevProps.selected !== nextProps.selected) return false;
-  if (prevProps.parentId !== nextProps.parentId) return false;
+  if (prevProps.id !== nextProps.id) {return false;}
+  if (prevProps.type !== nextProps.type) {return false;}
+  if (prevProps.selected !== nextProps.selected) {return false;}
+  if (prevProps.parentId !== nextProps.parentId) {return false;}
 
   // Deep comparison last (most expensive)
   return isEqual(prevProps.data, nextProps.data);

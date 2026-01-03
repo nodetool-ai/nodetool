@@ -97,11 +97,11 @@ export class PrefixTreeSearch {
     nodes.forEach((node) => {
       this.fields.forEach((fieldConfig) => {
         const root = this.roots.get(fieldConfig.field);
-        if (!root) return;
+        if (!root) {return;}
 
         const values = this.getFieldValues(node, fieldConfig.field);
         values.forEach((value) => {
-          if (!value) return;
+          if (!value) {return;}
           this.insertWord(
             root,
             value,
@@ -124,10 +124,11 @@ export class PrefixTreeSearch {
     switch (field) {
       case "title":
         return [node.title];
-      case "namespace":
+      case "namespace": {
         // Index both full namespace and individual parts
         const parts = node.namespace.split(".");
         return [node.namespace, ...parts];
+      }
       case "description":
         // Split description into words for indexing
         return node.description
@@ -155,7 +156,7 @@ export class PrefixTreeSearch {
     field: string
   ): void {
     const normalized = word.toLowerCase().trim();
-    if (!normalized) return;
+    if (!normalized) {return;}
 
     let current = root;
 
@@ -200,7 +201,7 @@ export class PrefixTreeSearch {
     // Search in each specified field
     fields.forEach((field) => {
       const root = this.roots.get(field);
-      if (!root) return;
+      if (!root) {return;}
 
       // Find the node in the trie corresponding to the query prefix
       let current: TrieNode | null = root;
@@ -244,11 +245,11 @@ export class PrefixTreeSearch {
     minScore: number,
     maxResults: number
   ): void {
-    if (results.size >= maxResults) return;
+    if (results.size >= maxResults) {return;}
 
     // Add nodes at current position
     node.nodeRefs.forEach((ref, nodeKey) => {
-      if (ref.score < minScore) return;
+      if (ref.score < minScore) {return;}
 
       const existing = results.get(nodeKey);
       if (!existing || existing.score < ref.score) {
@@ -332,13 +333,13 @@ export class PrefixTreeSearch {
     minScore: number,
     maxResults: number
   ): void {
-    if (results.length >= maxResults) return;
+    if (results.length >= maxResults) {return;}
 
     // Check if current word contains the query
     if (currentWord.length >= query.length && currentWord.includes(query)) {
       node.nodeRefs.forEach((ref, nodeKey) => {
-        if (seen.has(nodeKey)) return;
-        if (ref.score < minScore) return;
+        if (seen.has(nodeKey)) {return;}
+        if (ref.score < minScore) {return;}
 
         // Bonus score if query is at the start
         const bonus = currentWord.startsWith(query) ? 0.2 : 0;

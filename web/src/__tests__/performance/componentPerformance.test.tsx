@@ -6,8 +6,7 @@
  */
 
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import { renderHook } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { create } from 'zustand';
 
 // Mock dependencies
@@ -89,7 +88,7 @@ describe('Performance Regression Tests', () => {
       let goodRenders = 0;
 
       const BadSelector = () => {
-        const { data } = useTestStore((state) => ({ data: state.data }));
+        const data = useTestStore((state) => ({ data: state.data }));
         badRenders++;
         return null;
       };
@@ -217,8 +216,9 @@ describe('Performance Regression Tests', () => {
         childRenders++;
         return <div>{value}</div>;
       });
+      Child.displayName = 'Child';
 
-      const Parent = ({ trigger }: { trigger: number }) => {
+      const Parent = ({ trigger: _trigger }: { trigger: number }) => {
         parentRenders++;
         const stableValue = 42; // This never changes
         return <Child value={stableValue} />;
@@ -257,12 +257,14 @@ describe('Performance Regression Tests', () => {
         bRenders++;
         return <ComponentC />;
       });
+      ComponentB.displayName = 'ComponentB';
 
       const ComponentC = React.memo(() => {
         const c = useStore((state) => state.c);
         cRenders++;
         return <div>C: {c}</div>;
       });
+      ComponentC.displayName = 'ComponentC';
 
       render(<ComponentA />);
 
@@ -293,7 +295,7 @@ describe('Performance Regression Tests', () => {
        */
       const useStore = create<{ root: number }>(() => ({ root: 1 }));
 
-      let renders = { A: 0, B: 0, C: 0, D: 0 };
+      const renders = { A: 0, B: 0, C: 0, D: 0 };
 
       const ComponentA = () => {
         const root = useStore((state) => state.root);
@@ -310,17 +312,20 @@ describe('Performance Regression Tests', () => {
         renders.B++;
         return <ComponentD source="B" value={value} />;
       });
+      ComponentB.displayName = 'ComponentB';
 
       const ComponentC = React.memo(({ value }: { value: number }) => {
         renders.C++;
         return <ComponentD source="C" value={value} />;
       });
+      ComponentC.displayName = 'ComponentC';
 
       // D receives same value from both B and C
       const ComponentD = React.memo(({ source, value }: { source: string; value: number }) => {
         renders.D++;
         return <div>{source}: {value}</div>;
       });
+      ComponentD.displayName = 'ComponentD';
 
       const { rerender } = render(<ComponentA />);
 
@@ -347,18 +352,22 @@ describe('Performance Regression Tests', () => {
         }, [value]);
         return <div>{computed}</div>;
       });
+      Level5.displayName = 'Level5';
 
       const Level4 = React.memo(({ value }: { value: number }) => {
         return <Level5 value={value} />;
       });
+      Level4.displayName = 'Level4';
 
       const Level3 = React.memo(({ value }: { value: number }) => {
         return <Level4 value={value} />;
       });
+      Level3.displayName = 'Level3';
 
       const Level2 = React.memo(({ value }: { value: number }) => {
         return <Level3 value={value} />;
       });
+      Level2.displayName = 'Level2';
 
       const Level1 = ({ value, trigger }: { value: number; trigger: number }) => {
         return <Level2 value={value} />;
@@ -382,11 +391,12 @@ describe('Performance Regression Tests', () => {
       const ExpensiveComponent = React.memo(({ data }: { data: number[] }) => {
         const result = React.useMemo(() => {
           expensiveComputations++;
-          return data.reduce((a, b) => a + b, 0);
+          return data.reduce((_a, b) => _a + b, 0);
         }, [data]);
 
         return <div>{result}</div>;
       });
+      ExpensiveComponent.displayName = 'ExpensiveComponent';
 
       const Parent = ({ show, data }: { show: boolean; data: number[] }) => {
         return <>{show && <ExpensiveComponent data={data} />}</>;
@@ -419,6 +429,7 @@ describe('Performance Regression Tests', () => {
         childRenders++;
         return <div>{config.value}</div>;
       });
+      Child.displayName = 'Child';
 
       // BAD: Inline object
       const BadParent = ({ trigger }: { trigger: number }) => {
@@ -448,7 +459,9 @@ describe('Performance Regression Tests', () => {
 
     it('should measure render time for large component trees', () => {
       const createLargeTree = (depth: number, breadth: number): React.ReactNode => {
-        if (depth === 0) return <div>Leaf</div>;
+        if (depth === 0) {
+          return <div>Leaf</div>;
+        }
 
         return (
           <>
@@ -482,6 +495,7 @@ describe('Performance Regression Tests', () => {
         memoizedRenders++;
         return <div>{value}</div>;
       });
+      MemoizedComponent.displayName = 'MemoizedComponent';
 
       const Parent = ({ trigger }: { trigger: number }) => {
         return (
@@ -530,7 +544,7 @@ describe('Performance Regression Tests', () => {
           }))
       }));
 
-      let renders = new Map<string, number>();
+      const renders = new Map<string, number>();
 
       const Node = React.memo(({ id }: { id: string }) => {
         const selected = useNodesStore(
@@ -539,6 +553,7 @@ describe('Performance Regression Tests', () => {
         renders.set(id, (renders.get(id) || 0) + 1);
         return <div className={selected ? 'selected' : ''}>{id}</div>;
       });
+      Node.displayName = 'Node';
 
       // Render 100 nodes
       render(
