@@ -5,11 +5,11 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState } from "react";
 
 // mui
-import { IconButton, Box, Typography } from "@mui/material";
+import { IconButton, Box } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 // components
-import TypeFilter from "./TypeFilter";
+import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -53,21 +53,12 @@ const treeStyles = (theme: Theme) =>
       borderRadius: "16px 16px 0 0",
       backgroundColor: "transparent", // Let glass effect show through
       width: "100%",
-      minHeight: "48px", // Slightly taller for elegance
+      minHeight: "12px", // Minimal drag handle
       cursor: "grab",
       userSelect: "none",
       display: "flex",
       alignItems: "center",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      h4: {
-        margin: "0",
-        padding: "0 0 0 1.25em",
-        fontSize: "1rem",
-        fontWeight: 500,
-        letterSpacing: "0.5px",
-        color: theme.vars.palette.text.primary,
-        textShadow: "0 1px 2px rgba(0,0,0,0.5)"
-      }
+      justifyContent: "flex-end"
     },
     ".draggable-header:active": {
       cursor: "grabbing"
@@ -82,42 +73,23 @@ const treeStyles = (theme: Theme) =>
     },
     ".search-toolbar": {
       display: "flex",
-      flexDirection: "row",
-      alignItems: "center", // Center vertically
-      gap: "0.75em",
-      minHeight: "48px",
+      flexDirection: "column",
+      gap: "8px",
       flexGrow: 0,
-      overflow: "visible", // Allow dropdowns to overflow if needed, though usually they are portals
+      overflow: "visible",
       width: "100%",
       margin: 0,
-      padding: "0 1em 0 0.5em",
-      ".search-input-container": {
-        minWidth: "200px" // Slightly wider
-      },
-      ".type-filter-container": {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: "0.5em",
-        flexGrow: 1,
-        marginTop: "2px" // Fine-tune vertical alignment with search input
-      }
+      padding: "0 1em 0 0.5em"
     },
-    ".close-button": {
-      position: "absolute",
-      top: "8px",
-      right: "8px",
-      zIndex: 150,
-      color: "text.secondary",
-      width: "32px",
-      height: "32px",
-      padding: "4px",
-      borderRadius: "50%",
-      transition: "all 0.2s ease",
-      "&:hover": {
-        backgroundColor: "action.selected",
-        color: "text.primary",
-        transform: "rotate(90deg)"
+    ".search-row": {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: "0.75em",
+      marginLeft: "-3px",
+      ".search-input-container": {
+        minWidth: "100%",
+        flexGrow: 1
       }
     },
     "& .MuiPaper-root.MuiAccordion-root": {
@@ -278,43 +250,30 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     >
       <Box
         ref={nodeRef}
-        sx={{ minWidth: "800px", maxHeight: menuHeight }}
+        sx={{ minWidth: "900px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
       >
         <div className="draggable-header">
-          <Typography className="title" variant="h4">
-            Node Menu
-          </Typography>
-
-          <IconButton
-            className="close-button"
-            edge="end"
-            size="small"
-            color="inherit"
-            onClick={closeNodeMenu}
-            aria-label="close"
-          >
-            <CloseIcon />
-          </IconButton>
         </div>
         <Box className="node-menu-container">
           <div className="main-content">
             <Box className="search-toolbar">
-              <SearchInput
-                focusSearchInput={focusSearchInput}
-                focusOnTyping={true}
-                placeholder="Search for nodes..."
-                debounceTime={80}
-                width={390}
-                maxWidth={"400px"}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onPressEscape={closeNodeMenu}
-                searchResults={searchResults}
-              />
-
-              <TypeFilter
+              <Box className="search-row">
+                <SearchInput
+                  focusSearchInput={focusSearchInput}
+                  focusOnTyping={true}
+                  placeholder="Search for nodes..."
+                  debounceTime={80}
+                  width={500}
+                  maxWidth={"600px"}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  onPressEscape={closeNodeMenu}
+                  searchResults={searchResults}
+                />
+              </Box>
+              <TypeFilterChips
                 selectedInputType={selectedInputType}
                 selectedOutputType={selectedOutputType}
                 setSelectedInputType={setSelectedInputType}

@@ -3,23 +3,17 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Box, List, Tooltip, Typography, Button } from "@mui/material";
+import { Box, List, Typography, Button } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY,
-  TOOLTIP_LEAVE_DELAY
-} from "../../config/constants";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
-import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
-import { usePanelStore } from "../../stores/PanelStore";
+import { AddCircleOutline } from "@mui/icons-material";
 
 type NamespaceTree = {
   [key: string]: {
@@ -122,12 +116,16 @@ const namespaceStyles = (theme: Theme) =>
       height: "100%",
       maxHeight: "750px",
       width: "320px",
-      flex: "0 1 auto",
+      flex: "1 1 auto",
       backgroundColor: "transparent",
       transition: "max-width 0.35s ease, width 0.35s ease",
       overflowX: "hidden",
       overflowY: "auto",
       padding: "0 0.5em"
+    },
+    ".node-list.expanded": {
+      width: "100%",
+      maxWidth: "700px"
     },
     ".node-list::-webkit-scrollbar": { width: "6px" },
     ".node-list::-webkit-scrollbar-track": { background: "transparent" },
@@ -246,21 +244,23 @@ const namespaceStyles = (theme: Theme) =>
     ".node": {
       display: "flex",
       alignItems: "center",
-      margin: "2px 0",
-      padding: "4px", // Increased padding
+      margin: "0",
+      padding: "4px",
       borderRadius: "8px",
       cursor: "pointer",
       transition: "all 0.2s ease",
       border: "1px solid transparent",
       ".node-button": {
-        padding: "0",
+        padding: "4px 8px",
         flexGrow: 1,
         borderRadius: "6px",
         "&:hover": {
           backgroundColor: "transparent"
         },
         "& .MuiTypography-root": {
-          fontSize: theme.fontSizeSmall
+          fontSize: "0.9rem",
+          fontWeight: 500,
+          color: theme.vars.palette.text.primary
         }
       },
       ".icon-bg": {
@@ -283,12 +283,12 @@ const namespaceStyles = (theme: Theme) =>
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     },
     ".namespace-text": {
-      color: theme.vars.palette.text.disabled,
+      color: theme.vars.palette.text.secondary,
       fontWeight: 600,
-      fontSize: "0.7rem",
-      padding: ".4em 0 0 0",
-      margin: "0.75em 0 .4em 0",
-      letterSpacing: "0.5px",
+      fontSize: "0.85rem",
+      padding: ".8em 0 .4em 0",
+      margin: "1.5em 0 .8em 0",
+      letterSpacing: "0.8px",
       wordBreak: "break-word",
       userSelect: "none",
       pointerEvents: "none",
@@ -324,15 +324,15 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item": {
       cursor: "pointer",
-      padding: ".5em .8em", // More padding
+      padding: ".5em 1em",
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmall,
+      fontSize: "0.9rem",
       fontWeight: 400,
       transition: "all 0.2s ease",
       overflow: "hidden",
-      margin: "0 2px 1px 2px", // Added bottom margin instead of gap
-      borderRadius: "6px",
+      margin: "2px",
+      borderRadius: "8px",
       borderLeft: "3px solid transparent"
     },
     ".namespaces .list-item.disabled": {
@@ -349,7 +349,8 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item:hover": {
       backgroundColor: theme.vars.palette.action.hover,
-      paddingLeft: "1em" // Slide effect
+      paddingLeft: "1.1em",
+      transform: "translateX(2px)"
     },
     ".namespaces .list-item.expanded": {
       opacity: 1
@@ -364,9 +365,10 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item.selected": {
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-      borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
+      borderLeft: "3px solid var(--palette-primary-main)",
       fontWeight: 600,
-      color: "var(--palette-primary-main)"
+      color: "var(--palette-primary-main)",
+      boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
     },
     ".namespaces .list-item.selected .namespace-item": {
       color: "var(--palette-primary-main)"
@@ -542,7 +544,6 @@ const InfoBox = memo(function InfoBox({
   selectedPathString,
   searchResults,
   allSearchMatches,
-  metadata,
   totalNodes
 }: {
   searchTerm: string;
@@ -553,62 +554,27 @@ const InfoBox = memo(function InfoBox({
   metadata: NodeMetadata[];
   totalNodes: number;
 }) {
+  // Build contextual message
+  const buildContextMessage = () => {
+    if (searchTerm.length > minSearchTermLength) {
+      const matchCount = searchResults.length;
+      const totalMatches = allSearchMatches.length;
+      if (selectedPathString) {
+        return `${matchCount} results in ${selectedPathString} • ${totalMatches} total match '${searchTerm}'`;
+      }
+      return `${matchCount} results • Showing most relevant for '${searchTerm}'`;
+    }
+    if (selectedPathString) {
+      return `${searchResults.length} nodes in ${selectedPathString}`;
+    }
+    return `${totalNodes} nodes available`;
+  };
+
   return (
     <Box className="info-box">
-      <Tooltip
-        title={
-          <div style={{ color: "var(--palette-text-primary)", fontSize: "1.25em" }}>
-            {selectedPathString && (
-              <div>Current namespace: {searchResults?.length} nodes</div>
-            )}
-            {searchTerm.length > minSearchTermLength ? (
-              <>
-                <div>Total search matches: {allSearchMatches.length}</div>
-                <div
-                  style={{
-                    fontSize: "0.8em",
-                    color: "var(--palette-text-secondary)",
-                    marginTop: "0.5em"
-                  }}
-                ></div>
-              </>
-            ) : (
-              <>
-                <div>Total available: {totalNodes} nodes</div>
-                <div
-                  style={{
-                    fontSize: "0.8em",
-                    color: "var(--palette-text-secondary)",
-                    marginTop: "0.5em"
-                  }}
-                ></div>
-              </>
-            )}
-          </div>
-        }
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        leaveDelay={TOOLTIP_LEAVE_DELAY}
-        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-        placement="bottom"
-      >
-        <Typography className="result-info">
-          {searchTerm.length > minSearchTermLength ? (
-            <>
-              <span>{searchResults.length}</span> /{" "}
-              <span>
-                {searchTerm.length > minSearchTermLength
-                  ? allSearchMatches.length
-                  : metadata.length}
-              </span>
-            </>
-          ) : (
-            <span>
-              {selectedPathString ? searchResults.length : totalNodes}
-            </span>
-          )}
-          <span className="result-label">nodes</span>
-        </Typography>
-      </Tooltip>
+      <Typography className="result-info" sx={{ fontSize: "0.8rem" }}>
+        {buildContextMessage()}
+      </Typography>
     </Box>
   );
 });
@@ -724,12 +690,15 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         selectedInputType ||
         selectedOutputType ? (
           <>
-            <List className="node-list">
+            <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
               <RenderNodes nodes={searchResults} />
             </List>
-            <div className="node-info-container">
-              {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}
-            </div>
+            {/* Only show NodeInfo when not searching */}
+            {!searchTerm && (
+              <div className="node-info-container">
+                {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}
+              </div>
+            )}
           </>
         ) : (
           <>
