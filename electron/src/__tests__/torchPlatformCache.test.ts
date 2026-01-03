@@ -1,10 +1,11 @@
-import { getSavedTorchPlatform, getTorchIndexUrl } from "../torchPlatformCache";
-import { readSettings } from "../settings";
+import { getSavedTorchPlatform, getTorchIndexUrl, saveTorchPlatform } from "../torchPlatformCache";
+import { readSettings, updateSetting } from "../settings";
 
 jest.mock("../settings");
 jest.mock("../logger");
 
 const mockReadSettings = readSettings as jest.MockedFunction<typeof readSettings>;
+const mockUpdateSetting = updateSetting as jest.MockedFunction<typeof updateSetting>;
 
 describe("torchPlatformCache", () => {
   beforeEach(() => {
@@ -22,7 +23,6 @@ describe("torchPlatformCache", () => {
         TORCH_PLATFORM_DETECTED: {
           platform: "cu129",
           indexUrl: "https://download.pytorch.org/whl/cu129",
-          requiresDirectML: false,
           detectedAt: "2024-01-01T00:00:00.000Z",
         },
       });
@@ -31,7 +31,6 @@ describe("torchPlatformCache", () => {
       expect(result).toMatchObject({
         platform: "cu129",
         indexUrl: "https://download.pytorch.org/whl/cu129",
-        requiresDirectML: false,
       });
     });
 
@@ -40,7 +39,6 @@ describe("torchPlatformCache", () => {
         TORCH_PLATFORM_DETECTED: {
           platform: 123, // Invalid type
           indexUrl: "https://download.pytorch.org/whl/cu129",
-          requiresDirectML: false,
         },
       });
 
@@ -62,7 +60,6 @@ describe("torchPlatformCache", () => {
         TORCH_PLATFORM_DETECTED: {
           platform: "rocm6.2",
           indexUrl: "https://download.pytorch.org/whl/rocm6.2",
-          requiresDirectML: false,
         },
       });
 
@@ -74,44 +71,61 @@ describe("torchPlatformCache", () => {
       Object.defineProperty(process, "platform", { value: originalPlatform });
     });
 
-    it("should fallback to CUDA on non-macOS when no saved data", () => {
+    it("should fallback to CPU when no saved data", () => {
       mockReadSettings.mockReturnValue({});
 
       const originalPlatform = process.platform;
       Object.defineProperty(process, "platform", { value: "linux" });
 
-      expect(getTorchIndexUrl()).toBe("https://download.pytorch.org/whl/cu129");
+      expect(getTorchIndexUrl()).toBe("https://download.pytorch.org/whl/cpu");
 
       Object.defineProperty(process, "platform", { value: originalPlatform });
     });
 
-    it("should return null for macOS when no saved data", () => {
+    it("should fallback to CPU on macOS when no saved data", () => {
       mockReadSettings.mockReturnValue({});
 
       const originalPlatform = process.platform;
       Object.defineProperty(process, "platform", { value: "darwin" });
 
-      expect(getTorchIndexUrl()).toBeNull();
+      expect(getTorchIndexUrl()).toBe("https://download.pytorch.org/whl/cpu");
 
       Object.defineProperty(process, "platform", { value: originalPlatform });
     });
+  });
 
-    it("should handle DirectML platform with null indexUrl", () => {
-      mockReadSettings.mockReturnValue({
-        TORCH_PLATFORM_DETECTED: {
-          platform: "directml",
-          indexUrl: null,
-          requiresDirectML: true,
-        },
+  describe("saveTorchPlatform", () => {
+    it("should save torch platform to settings", () => {
+      mockUpdateSetting.mockImplementation(() => {});
+
+      saveTorchPlatform({
+        platform: "cu129",
+        indexUrl: "https://download.pytorch.org/whl/cu129",
       });
 
-      const originalPlatform = process.platform;
-      Object.defineProperty(process, "platform", { value: "win32" });
+      expect(mockUpdateSetting).toHaveBeenCalledWith("TORCH_PLATFORM_DETECTED", {
+        platform: "cu129",
+        indexUrl: "https://download.pytorch.org/whl/cu129",
+        detectedAt: expect.any(String),
+        error: undefined,
+      });
+    });
 
-      // Should fall back to default behavior since indexUrl is null
-      expect(getTorchIndexUrl()).toBe("https://download.pytorch.org/whl/cu129");
+    it("should save error in platform result", () => {
+      mockUpdateSetting.mockImplementation(() => {});
 
-      Object.defineProperty(process, "platform", { value: originalPlatform });
+      saveTorchPlatform({
+        platform: "cpu",
+        indexUrl: "https://download.pytorch.org/whl/cpu",
+        error: "Detection failed",
+      });
+
+      expect(mockUpdateSetting).toHaveBeenCalledWith("TORCH_PLATFORM_DETECTED", {
+        platform: "cpu",
+        indexUrl: "https://download.pytorch.org/whl/cpu",
+        detectedAt: expect.any(String),
+        error: "Detection failed",
+      });
     });
   });
 });

@@ -19,8 +19,7 @@ import { getCondaLockFilePath, getPythonPath } from "./config";
 import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 import { detectTorchPlatform, type TorchruntimeDetectionResult } from "./torchruntime";
-
-const TORCH_PLATFORM_SETTING_KEY = "TORCH_PLATFORM_DETECTED";
+import { saveTorchPlatform } from "./torchPlatformCache";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
 const CPU_LLAMA_SPEC = "llama.cpp";
@@ -653,19 +652,13 @@ async function provisionPythonEnvironment(
     logMessage(`Torch platform detection result: ${JSON.stringify(torchPlatformResult)}`);
     
     // Save detected platform to settings for later use
-    updateSetting(TORCH_PLATFORM_SETTING_KEY, {
-      platform: torchPlatformResult.platform,
-      indexUrl: torchPlatformResult.indexUrl,
-      requiresDirectML: torchPlatformResult.requiresDirectML,
-      detectedAt: new Date().toISOString(),
-    });
+    saveTorchPlatform(torchPlatformResult);
   } catch (error: any) {
     logMessage(`Failed to detect torch platform: ${error.message}`, "error");
     // Fallback to CPU
     torchPlatformResult = {
       platform: "cpu",
       indexUrl: "https://download.pytorch.org/whl/cpu",
-      requiresDirectML: false,
       error: error.message,
     };
   }

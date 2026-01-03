@@ -1,4 +1,4 @@
-import { detectTorchPlatform, getDirectMLFlag, normalizePlatform } from "../torchruntime";
+import { detectTorchPlatform, normalizePlatform } from "../torchruntime";
 import { getPythonPath } from "../config";
 import { spawn } from "child_process";
 import type { ChildProcessWithoutNullStreams } from "child_process";
@@ -22,10 +22,8 @@ describe("torchruntime", () => {
       expect(normalizePlatform("cu129")).toBe("cu129");
       expect(normalizePlatform("CU129")).toBe("cu129");
       expect(normalizePlatform("  rocm6.2  ")).toBe("rocm6.2");
-      expect(normalizePlatform("directml")).toBe("directml");
       expect(normalizePlatform("cpu")).toBe("cpu");
       expect(normalizePlatform("mps")).toBe("mps");
-      expect(normalizePlatform("xpu")).toBe("xpu");
     });
 
     it("should return null for invalid platform strings", () => {
@@ -33,18 +31,10 @@ describe("torchruntime", () => {
       expect(normalizePlatform("")).toBeNull();
       expect(normalizePlatform(undefined)).toBeNull();
     });
-  });
 
-  describe("getDirectMLFlag", () => {
-    it("should return --directml for directml platform", () => {
-      expect(getDirectMLFlag("directml")).toBe("--directml");
-    });
-
-    it("should return null for non-directml platforms", () => {
-      expect(getDirectMLFlag("cu129")).toBeNull();
-      expect(getDirectMLFlag("rocm6.2")).toBeNull();
-      expect(getDirectMLFlag("cpu")).toBeNull();
-      expect(getDirectMLFlag("mps")).toBeNull();
+    it("should reject directml and xpu platforms", () => {
+      expect(normalizePlatform("directml")).toBeNull();
+      expect(normalizePlatform("xpu")).toBeNull();
     });
   });
 
@@ -74,36 +64,7 @@ describe("torchruntime", () => {
 
       expect(result.platform).toBe("cu129");
       expect(result.indexUrl).toBe("https://download.pytorch.org/whl/cu129");
-      expect(result.requiresDirectML).toBe(false);
       expect(result.error).toBeUndefined();
-    });
-
-    it("should detect DirectML platform for AMD on Windows", async () => {
-      const mockProcess = {
-        stdout: {
-          on: jest.fn((event, handler) => {
-            if (event === "data") {
-              handler(Buffer.from('{"platform": "directml", "gpu_count": 1}'));
-            }
-          }),
-        },
-        stderr: {
-          on: jest.fn(),
-        },
-        on: jest.fn((event, handler) => {
-          if (event === "exit") {
-            handler(0);
-          }
-        }),
-      } as unknown as ChildProcessWithoutNullStreams;
-
-      mockSpawn.mockReturnValue(mockProcess);
-
-      const result = await detectTorchPlatform();
-
-      expect(result.platform).toBe("directml");
-      expect(result.indexUrl).toBeNull();
-      expect(result.requiresDirectML).toBe(true);
     });
 
     it("should detect ROCm platform for AMD on Linux", async () => {
@@ -131,7 +92,6 @@ describe("torchruntime", () => {
 
       expect(result.platform).toBe("rocm6.2");
       expect(result.indexUrl).toBe("https://download.pytorch.org/whl/rocm6.2");
-      expect(result.requiresDirectML).toBe(false);
     });
 
     it("should fallback to CPU on detection error", async () => {
@@ -159,7 +119,6 @@ describe("torchruntime", () => {
 
       expect(result.platform).toBe("cpu");
       expect(result.indexUrl).toBe("https://download.pytorch.org/whl/cpu");
-      expect(result.requiresDirectML).toBe(false);
       expect(result.error).toBeDefined();
     });
 
@@ -186,7 +145,6 @@ describe("torchruntime", () => {
 
       expect(result.platform).toBe("cpu");
       expect(result.indexUrl).toBe("https://download.pytorch.org/whl/cpu");
-      expect(result.requiresDirectML).toBe(false);
       expect(result.error).toBeDefined();
     });
 

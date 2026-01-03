@@ -11,8 +11,7 @@ import { emitBootMessage } from "./events";
  * 
  * Torchruntime supports:
  * - NVIDIA GPUs (CUDA 11.8, 12.4, 12.8, 12.9)
- * - AMD GPUs (ROCm 5.2, 5.7, 6.2, 6.4, DirectML on Windows)
- * - Intel GPUs (XPU, DirectML on Windows)
+ * - AMD GPUs (ROCm 5.2, 5.7, 6.2, 6.4)
  * - Apple Silicon (MPS)
  * - CPU-only fallback
  */
@@ -20,15 +19,12 @@ import { emitBootMessage } from "./events";
 export type TorchPlatform = 
   | "cu118" | "cu124" | "cu128" | "cu129"  // NVIDIA CUDA
   | "rocm5.2" | "rocm5.7" | "rocm6.2" | "rocm6.4"  // AMD ROCm
-  | "directml"  // AMD/Intel on Windows
-  | "xpu"  // Intel Arc
   | "mps"  // Apple Silicon
   | "cpu";  // CPU fallback
 
 export interface TorchruntimeDetectionResult {
   platform: TorchPlatform;
   indexUrl: string | null;
-  requiresDirectML: boolean;
   detectedAt?: string;
   error?: string;
 }
@@ -48,8 +44,6 @@ function getPyTorchIndexUrl(platform: TorchPlatform): string | null {
     "rocm5.7": `${PYTORCH_INDEX_BASE}/rocm5.7`,
     "rocm6.2": `${PYTORCH_INDEX_BASE}/rocm6.2`,
     "rocm6.4": `${PYTORCH_INDEX_BASE}/rocm6.4`,
-    "directml": null,  // DirectML uses PyPI default
-    "xpu": null,  // Intel XPU uses PyPI default
     "mps": null,  // Apple MPS uses PyPI default
     "cpu": `${PYTORCH_INDEX_BASE}/cpu`,
   };
@@ -218,7 +212,7 @@ except Exception as e:
         const validPlatforms: TorchPlatform[] = [
           "cu118", "cu124", "cu128", "cu129",
           "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
-          "directml", "xpu", "mps", "cpu"
+          "mps", "cpu"
         ];
         
         if (!validPlatforms.includes(platform)) {
@@ -264,7 +258,6 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
     // Detect platform
     const platform = await detectPlatformWithTorchruntime();
     const indexUrl = getPyTorchIndexUrl(platform);
-    const requiresDirectML = platform === "directml";
 
     logMessage(`Platform detection complete: ${platform}`);
     if (indexUrl) {
@@ -272,15 +265,10 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
     } else {
       logMessage("Using default PyPI index (no extra index needed)");
     }
-    
-    if (requiresDirectML) {
-      logMessage("DirectML support required for this platform");
-    }
 
     return {
       platform,
       indexUrl,
-      requiresDirectML,
     };
   } catch (error: any) {
     const errorMsg = error?.message || String(error);
@@ -290,17 +278,9 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
     return {
       platform: "cpu",
       indexUrl: getPyTorchIndexUrl("cpu"),
-      requiresDirectML: false,
       error: errorMsg,
     };
   }
-}
-
-/**
- * Get the DirectML command line flag for ComfyUI if needed
- */
-export function getDirectMLFlag(platform: TorchPlatform): string | null {
-  return platform === "directml" ? "--directml" : null;
 }
 
 /**
@@ -315,7 +295,7 @@ export function normalizePlatform(platformStr: string | undefined): TorchPlatfor
   const validPlatforms: TorchPlatform[] = [
     "cu118", "cu124", "cu128", "cu129",
     "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
-    "directml", "xpu", "mps", "cpu"
+    "mps", "cpu"
   ];
 
   if (validPlatforms.includes(normalized as TorchPlatform)) {
