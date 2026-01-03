@@ -16,12 +16,10 @@ import {
   Viewport
 } from "@xyflow/react";
 
-// store
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useContextMenu from "../../stores/ContextMenuStore";
-// components
 import NodeContextMenu from "../context_menus/NodeContextMenu";
 import PaneContextMenu from "../context_menus/PaneContextMenu";
 import SelectionContextMenu from "../context_menus/SelectionContextMenu";
@@ -35,9 +33,6 @@ import PreviewNode from "../node/PreviewNode/PreviewNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
-//utils
-
-//hooks
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
@@ -46,7 +41,6 @@ import useSelect from "../../hooks/nodes/useSelect";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitView } from "../../hooks/useFitView";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
-// constants
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
 import isEqual from "lodash/isEqual";
@@ -73,8 +67,12 @@ import {
   getSelectionRect,
   getNodesWithinSelection
 } from "../../utils/selectionBounds";
+import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
+import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
+import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
+import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
+import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
 
-// FIT SCREEN
 const fitViewOptions = {
   maxZoom: MAX_ZOOM,
   minZoom: MIN_ZOOM,
@@ -86,7 +84,6 @@ interface ReactFlowWrapperProps {
   active: boolean;
 }
 
-// Create a new component for context menus
 const ContextMenus = memo(function ContextMenus() {
   const { openMenuType } = useContextMenu();
 
@@ -106,7 +103,6 @@ const ContextMenus = memo(function ContextMenus() {
 
 import GhostNode from "./GhostNode";
 
-// Create a new component for the ReactFlow background
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
   active
@@ -115,28 +111,21 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const theme = useTheme();
   const nodes = useNodes((state) => state.nodes);
   const edges = useNodes((state) => state.edges);
-  const onNodesChange = useNodes((state) => state.onNodesChange);
   const onEdgesChange = useNodes((state) => state.onEdgesChange);
   const onEdgeUpdate = useNodes((state) => state.onEdgeUpdate);
   const shouldFitToScreen = useNodes((state) => state.shouldFitToScreen);
   const setShouldFitToScreen = useNodes((state) => state.setShouldFitToScreen);
-  const findNode = useNodes((state) => state.findNode);
   const storedViewport = useNodes((state) => state.viewport);
   const setViewport = useNodes((state) => state.setViewport);
-  const createNode = useNodes((state) => state.createNode);
-  const addNode = useNodes((state) => state.addNode);
   const deleteEdge = useNodes((state) => state.deleteEdge);
   const setEdgeSelectionState = useNodes(
     (state) => state.setEdgeSelectionState
   );
-  const updateNode = useNodes((state) => state.updateNode);
 
   const [isVisible, setIsVisible] = useState(true);
   const [isSelecting, setIsSelecting] = useState(false);
 
   useEffect(() => {
-    // When the workflow changes, determine initial visibility.
-    // It's visible immediately if a viewport is already stored.
     setIsVisible(!!storedViewport || nodes.length === 0);
   }, [workflowId, storedViewport, nodes.length]);
 
@@ -174,7 +163,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     };
   }, [theme.palette.mode, theme.vars.palette.primary.main]);
 
-  // Memoize container style to prevent recreation on every render
   const containerStyle = useMemo(
     () => ({
       width: "100%",
@@ -191,7 +179,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [isVisible]
   );
 
-  // Memoize ReactFlow inner style
   const reactFlowStyle = useMemo(
     () => ({
       width: "100%",
@@ -201,7 +188,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     []
   );
 
-  // Memoize background style
   const backgroundStyle = useMemo(
     () => ({
       backgroundColor: theme.vars.palette.c_editor_bg_color
@@ -212,23 +198,15 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const fitView = useFitView();
   useFitNodeEvent();
 
-  // When the user stops moving the canvas, save the new viewport.
-  const handleMoveEnd = useCallback(
-    (event: any, viewport: Viewport) => {
-      setViewport(viewport);
-    },
-    [setViewport]
-  );
+  const { handleMoveEnd, handleOnMoveStart } = useReactFlowEvents();
 
   const { isLoading, error } = useWorkflow(workflowId);
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
     useConnectionHandlers();
 
-  // Memoize proOptions to prevent recreation on every render
   const proOptions = useMemo(
     () => ({
-      //https://reactflow.dev/docs/guides/remove-attribution/
       hideAttribution: true
     }),
     []
@@ -236,9 +214,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const connecting = useConnectionStore((state) => state.connecting);
 
-  /* REACTFLOW */
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
+
   useEffect(() => {
     const container = ref.current;
     if (!container) {
@@ -272,13 +250,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     };
   }, [deleteEdge]);
 
-  /* USE STORE */
   const { close: closeSelect } = useSelect();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
-  /* DEFINE NODE TYPES */
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
-  // Create a stable nodeTypes object to avoid mutations
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
@@ -292,13 +267,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [baseNodeTypes]
   );
 
-  /* SETTINGS */
   const settings = useSettingsStore((state) => state.settings);
 
-  /* ON DROP*/
   const { onDrop, onDragOver } = useDropHandler();
 
-  // OPEN NODE MENU
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
@@ -371,158 +343,23 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     };
   }, [pendingNodeType]);
 
-  const isConnectionValid = useCallback<IsValidConnection<Edge>>(
-    (connection) => {
-      const sourceId = connection.source ?? null;
-      const targetId = connection.target ?? null;
-      if (!sourceId || !targetId) {
-        return true;
-      }
-      return !wouldCreateCycle(edges, sourceId, targetId);
-    },
-    [edges]
-  );
+  const { isConnectionValid } = useConnectionEvents();
 
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      const clickedElement = e.target as HTMLElement;
-      if (clickedElement.classList.contains("react-flow__pane")) {
-        if (isMenuOpen) {
-          closeNodeMenu();
-        } else {
-          openNodeMenu({
-            x: e.clientX,
-            y: e.clientY
-          });
-        }
-      } else {
-        closeNodeMenu();
-      }
-    },
-    [closeNodeMenu, isMenuOpen, openNodeMenu]
-  );
+  const {
+    handleDoubleClick,
+    handlePaneClick,
+    handlePaneContextMenu
+  } = usePaneEvents({
+    pendingNodeType,
+    placementLabel,
+    reactFlowInstance
+  });
 
-  // CLOSE NODE MENU / PLACE PENDING NODE
-  const handlePaneClick = useCallback(
-    (event: ReactMouseEvent) => {
-      if (pendingNodeType) {
-        event.preventDefault();
-        event.stopPropagation();
-        const metadata = getMetadata(pendingNodeType);
-        if (!metadata) {
-          console.warn(
-            `Metadata not found while placing node type: ${pendingNodeType}`
-          );
-          cancelPlacement();
-          return;
-        }
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY
-        });
-        const newNode = createNode(metadata, position);
-        newNode.selected = true;
-        addNode(newNode);
-        cancelPlacement();
-        if (isMenuOpen) {
-          closeNodeMenu();
-        }
-        closeSelect();
-        return;
-      }
+  const {
+    handleNodeContextMenu,
+    handleNodesChange
+  } = useNodeEvents();
 
-      if (isMenuOpen) {
-        closeNodeMenu();
-      }
-      closeSelect();
-    },
-    [
-      pendingNodeType,
-      getMetadata,
-      reactFlowInstance,
-      createNode,
-      addNode,
-      cancelPlacement,
-      isMenuOpen,
-      closeNodeMenu,
-      closeSelect
-    ]
-  );
-
-  /* CONTEXT MENUS */
-  const { openContextMenu } = useContextMenu();
-  const handleNodeContextMenu = useCallback(
-    (event: React.MouseEvent, node: Node) => {
-      event.preventDefault();
-      event.stopPropagation();
-      openContextMenu(
-        "node-context-menu",
-        "",
-        event.clientX,
-        event.clientY,
-        "node-header"
-      );
-      closeSelect();
-    },
-    [openContextMenu, closeSelect]
-  );
-
-  const handlePaneContextMenu = useCallback(
-    (event: any) => {
-      event.preventDefault();
-      event.stopPropagation();
-      requestAnimationFrame(() => {
-        openContextMenu(
-          "pane-context-menu",
-          "",
-          event.clientX,
-          event.clientY,
-          "react-flow__pane"
-        );
-      });
-      closeSelect();
-    },
-    [openContextMenu, closeSelect]
-  );
-
-  const handleSelectionContextMenu = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      openContextMenu(
-        "selection-context-menu",
-        "",
-        event.clientX,
-        event.clientY,
-        "react-flow__nodesselection"
-      );
-      closeSelect();
-    },
-    [openContextMenu, closeSelect]
-  );
-
-  // ON MOVE START | DRAG PANE
-  const handleOnMoveStart = useCallback(
-    (event: any) => {
-      // Only close menu on pan events, not zoom events
-      if (event?.type === "pan") {
-        closeNodeMenu();
-      }
-    },
-    [closeNodeMenu]
-  );
-
-  // ON NODES CHANGE
-  const handleNodesChange = useCallback(
-    (changes: any[]) => {
-      onNodesChange(changes);
-      // Do not auto-close the Node Menu on node internals/position updates.
-      // Pane clicks, panning, or explicit actions will close it elsewhere.
-    },
-    [onNodesChange]
-  );
-
-  // EDGE HANDLER
   const {
     onEdgeMouseEnter,
     onEdgeMouseLeave,
@@ -532,7 +369,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onEdgeClick
   } = useEdgeHandlers();
 
-  // DRAG HANDLER
   const {
     onSelectionDragStart,
     onSelectionDrag,
@@ -545,86 +381,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionEnd
   } = useDragHandlers();
 
-  const projectMouseEventToFlow = useCallback(
-    (event?: { clientX?: number; clientY?: number } | null) => {
-      const fallback = getMousePosition();
-      const x = typeof event?.clientX === "number" ? event.clientX : fallback.x;
-      const y = typeof event?.clientY === "number" ? event.clientY : fallback.y;
-      return reactFlowInstance.screenToFlowPosition({ x, y });
-    },
-    [reactFlowInstance]
-  );
-
-  const handleSelectionDragStart = useCallback(
-    (event: any, nodes: any[]) => {
-      setIsSelecting(true);
-      onSelectionDragStart(event, nodes);
-    },
-    [onSelectionDragStart]
-  );
-
-  const handleSelectionDragStop = useCallback(
-    (event: any, nodes: any[]) => {
-      onSelectionDragStop(event, nodes);
-      setIsSelecting(false);
-    },
-    [onSelectionDragStop]
-  );
-
-  const resetSelectionTracking = useCallback(() => {
-    selectionStartRef.current = null;
-    selectionEndRef.current = null;
-  }, []);
-
-  const selectGroupsWithinSelection = useCallback(() => {
-    const selectionRect = getSelectionRect(
-      selectionStartRef.current,
-      selectionEndRef.current
-    );
-    if (!selectionRect) {
-      return;
-    }
-
-    const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
-    const intersectingGroups = getNodesWithinSelection(
-      reactFlowInstance,
-      selectionRect,
-      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
-    );
-
-    intersectingGroups.forEach((node) => {
-      if (!node.selected) {
-        updateNode(node.id, { selected: true });
-      }
-    });
-  }, [reactFlowInstance, updateNode]);
-
-  const handleSelectionEnd = useCallback(
-    (event: ReactMouseEvent) => {
-      onSelectionEnd(event);
-      selectionEndRef.current = projectMouseEventToFlow(event);
-      selectGroupsWithinSelection();
-      setIsSelecting(false);
-      resetSelectionTracking();
-    },
-    [
-      onSelectionEnd,
-      projectMouseEventToFlow,
-      selectGroupsWithinSelection,
-      resetSelectionTracking
-    ]
-  );
-
-  const handleSelectionStart = useCallback(
-    (event: ReactMouseEvent) => {
-      setIsSelecting(true);
-      const flowPoint = projectMouseEventToFlow(event);
-      selectionStartRef.current = flowPoint;
-      selectionEndRef.current = flowPoint;
-      onSelectionStart(event);
-    },
-    [onSelectionStart, projectMouseEventToFlow]
-  );
+  const selectionEvents = useSelectionEvents({
+    reactFlowInstance,
+    onSelectionStartBase: onSelectionStart,
+    onSelectionEndBase: onSelectionEnd,
+    onSelectionDragStartBase: onSelectionDragStart,
+    onSelectionDragStopBase: onSelectionDragStop
+  });
 
   const edgeStatuses = useResultsStore((state) => state.edges);
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
@@ -641,12 +404,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [activeGradientKeys]
   );
 
-  // Keep edge selection in sync with node selection in a single place.
-  // An edge is selected when either of its endpoint nodes is selected.
   useEffect(() => {
-    // During selection drag we keep the previous edge selection state
-    // and only recompute once the drag is finished. This avoids extra
-    // work on every small selection change.
     if (isSelecting) {
       return;
     }
@@ -684,35 +442,23 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     }
   }, [fitView, shouldFitToScreen, setShouldFitToScreen]);
 
-  /*
-   * Perform an automatic `fitView` on mount ONLY when the workflow does **not**
-   * have a stored viewport yet. This ensures that after the user has panned or
-   * zoomed a workflow, switching tabs will restore their last viewport instead
-   * of re-centring the canvas every time.
-   */
   useEffect(() => {
     if (storedViewport) {
-      // A viewport was already saved – respect it and make the canvas visible
-      // immediately without any additional fitting.
       return;
     }
 
-    // Without a saved viewport, fit the view once the nodes are rendered.
     if (nodes.length > 0) {
-      // Use requestAnimationFrame for smoother rendering
       requestAnimationFrame(() => {
         fitView({ padding: 0.8 });
       });
     }
   }, [nodes.length, fitView, storedViewport]);
 
-  // Memoize snapGrid array to prevent recreation on every render
   const snapGrid = useMemo(
     () => [settings.gridSnap, settings.gridSnap] as [number, number],
     [settings.gridSnap]
   );
 
-  // Memoize ReactFlow CSS classes
   const reactFlowClasses = useMemo(() => {
     const classes = [];
     if (zoom <= ZOOMED_OUT) classes.push("zoomed-out");
@@ -720,7 +466,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     return classes.join(" ");
   }, [zoom, connecting]);
 
-  // Memoize conditional props for ReactFlow
   const conditionalProps = useMemo(() => {
     const props: any = {};
     if (!storedViewport) {
@@ -760,7 +505,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         className={reactFlowClasses}
         colorMode={isDarkMode ? "dark" : "light"}
         style={reactFlowStyle}
-        onlyRenderVisibleElements={false} // if true, adds lag when panning
+        onlyRenderVisibleElements={false}
         ref={ref}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
@@ -783,19 +528,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         isValidConnection={isConnectionValid}
         attributionPosition="bottom-left"
         selectNodesOnDrag={settings.selectNodesOnDrag}
-        // onClick={handleClick}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDrag={onNodeDrag}
-        onSelectionDragStart={handleSelectionDragStart}
+        onSelectionDragStart={selectionEvents.handleSelectionDragStart}
         onSelectionDrag={onSelectionDrag}
-        onSelectionDragStop={handleSelectionDragStop}
-        onSelectionStart={handleSelectionStart}
-        onSelectionEnd={handleSelectionEnd}
-        onSelectionContextMenu={handleSelectionContextMenu}
+        onSelectionDragStop={selectionEvents.handleSelectionDragStop}
+        onSelectionStart={selectionEvents.handleSelectionStart}
+        onSelectionEnd={selectionEvents.handleSelectionEnd}
+        onSelectionContextMenu={selectionEvents.handleSelectionContextMenu}
         selectionMode={settings.selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
-        // onEdgeMouseLeave={onEdgeMouseLeave}
         onEdgeContextMenu={onEdgeContextMenu}
         onEdgeClick={onEdgeClick}
         connectionMode={ConnectionMode.Strict}
