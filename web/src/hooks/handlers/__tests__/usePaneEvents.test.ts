@@ -268,7 +268,7 @@ describe("usePaneEvents", () => {
       expect(mockCloseSelect).toHaveBeenCalled();
 
       await act(async () => {
-        await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
       });
 
       expect(mockOpenContextMenu).toHaveBeenCalledWith(
