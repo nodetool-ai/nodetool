@@ -38,7 +38,7 @@ export interface SearchField {
 export interface PrefixSearchOptions {
   maxResults?: number;
   minScore?: number;
-  fields?: SearchField[];
+  fields?: ("title" | "namespace" | "description" | "tags")[];
 }
 
 /**

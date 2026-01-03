@@ -51,11 +51,6 @@ function shouldUsePrefixTree(term: string): boolean {
   return true;
 }
 
-export type SearchResultGroup = {
-  title: string;
-  nodes: NodeMetadata[];
-};
-
 export function performGroupedSearch(
   entries: any[],
   term: string
