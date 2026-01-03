@@ -179,6 +179,7 @@ export const useInputNodeAutoRun = (
     // Clear any existing debounce timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
     }
 
     // Set a new debounce timer
