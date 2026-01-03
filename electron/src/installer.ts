@@ -9,7 +9,7 @@ import {
 
 import { logMessage } from "./logger";
 import path from "path";
-import { readSettings, updateSettings } from "./settings";
+import { readSettings, updateSettings, updateSetting } from "./settings";
 import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
 import os from "os";
 import { fileExists } from "./utils";
@@ -18,6 +18,8 @@ import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
 import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
+import { detectTorchPlatform, type TorchruntimeDetectionResult } from "./torchruntime";
+import { saveTorchPlatform } from "./torchPlatformCache";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
 const CPU_LLAMA_SPEC = "llama.cpp";
@@ -643,7 +645,25 @@ async function provisionPythonEnvironment(
     location
   );
 
-  await updateCondaEnvironment(packages);
+  // Detect torch platform before updating conda environment
+  let torchPlatformResult: TorchruntimeDetectionResult;
+  try {
+    torchPlatformResult = await detectTorchPlatform();
+    logMessage(`Torch platform detection result: ${JSON.stringify(torchPlatformResult)}`);
+    
+    // Save detected platform to settings for later use
+    saveTorchPlatform(torchPlatformResult);
+  } catch (error: any) {
+    logMessage(`Failed to detect torch platform: ${error.message}`, "error");
+    // Fallback to CPU
+    torchPlatformResult = {
+      platform: "cpu",
+      indexUrl: "https://download.pytorch.org/whl/cpu",
+      error: error.message,
+    };
+  }
+
+  await updateCondaEnvironment(packages, torchPlatformResult);
 
   const condaEnvPath = location;
   await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend, {

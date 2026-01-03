@@ -12,6 +12,7 @@ import {
   PackageUpdateInfo,
 } from "./types";
 import * as https from "https";
+import { getTorchIndexUrl } from "./torchPlatformCache";
 
 /**
  * Package Manager Module
@@ -641,9 +642,11 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       packageSpec,
     ];
 
-    // Add extra index URL for CUDA packages on non-macOS platforms
-    if (process.platform !== "darwin") {
-      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu126");
+    // Add PyTorch index URL based on detected platform
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      logMessage(`Adding PyTorch index for package installation: ${torchIndexUrl}`);
+      args.push("--extra-index-url", torchIndexUrl);
     }
 
     await runUvCommand(args);
@@ -731,9 +734,11 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       packageSpec,
     ];
 
-    // Add extra index URL for CUDA packages on non-macOS platforms
-    if (process.platform !== "darwin") {
-      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu126");
+    // Add PyTorch index URL based on detected platform
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      logMessage(`Adding PyTorch index for package update: ${torchIndexUrl}`);
+      args.push("--extra-index-url", torchIndexUrl);
     }
 
     await runUvCommand(args);

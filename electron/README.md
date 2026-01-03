@@ -95,3 +95,78 @@ The GitHub Actions workflow (`.github/workflows/electron-e2e.yml`):
 4. Runs e2e tests using the conda environment
 
 The tests inherit the activated conda environment via `CONDA_PREFIX`, which the Electron app automatically detects and uses.
+
+## GPU Detection and PyTorch Installation
+
+NodeTool uses [torchruntime](https://github.com/easydiffusion/torchruntime) to automatically detect GPU hardware and install the appropriate PyTorch variant. This enables broad GPU support beyond just NVIDIA:
+
+### Supported Hardware
+
+- **NVIDIA GPUs**: Automatic CUDA version selection (11.8, 12.4, 12.8, 12.9)
+  - 50xx, 40xx, 30xx, 20xx, 16xx, 10xx, and datacenter series
+- **AMD GPUs**: 
+  - Linux: ROCm 5.2, 5.7, 6.2, 6.4 (7xxx, 6xxx, 5xxx series and APUs)
+  - Windows: DirectML (all recent AMD GPUs)
+- **Intel GPUs**: 
+  - Arc series and integrated GPUs via XPU or DirectML
+- **Apple Silicon**: 
+  - M1/M2/M3/M4 with MPS backend
+- **CPU-only**: 
+  - Automatic fallback if no GPU detected
+
+### How It Works
+
+During environment provisioning, the installer:
+
+1. Creates the Python environment with micromamba
+2. Installs torchruntime from PyPI
+3. Runs GPU detection using torchruntime's PCI database
+4. Determines the appropriate PyTorch index URL
+5. Installs packages with the correct PyTorch variant
+6. Caches detection results for future package operations
+
+The detection results are saved to settings and reused when installing or updating packages to ensure PyTorch dependencies are resolved correctly.
+
+### Platform Detection Logs
+
+The installer logs GPU detection results for troubleshooting:
+
+```
+Detecting GPU hardware...
+Detected torch platform: rocm6.2 (GPUs: 1)
+PyTorch index URL: https://download.pytorch.org/whl/rocm6.2
+```
+
+If detection fails, the system falls back to CPU with clear error messages:
+
+```
+GPU detection failed: No GPUs found
+Falling back to CPU-only installation
+```
+
+### DirectML Support
+
+For AMD and Intel GPUs on Windows, torchruntime detects DirectML support. When DirectML is required, the installer logs:
+
+```
+DirectML support required for this platform
+```
+
+Note: ComfyUI nodes require the `--directml` command line flag when using DirectML, which is automatically configured by the integration.
+
+### Manual Override
+
+You can override automatic detection by setting the `TORCH_PLATFORM` environment variable before starting the app:
+
+```bash
+# Force CPU-only
+TORCH_PLATFORM=cpu npm start
+
+# Force CUDA 12.9
+TORCH_PLATFORM=cu129 npm start
+
+# Force ROCm 6.2
+TORCH_PLATFORM=rocm6.2 npm start
+```
+
+Valid values: `cu118`, `cu124`, `cu128`, `cu129`, `rocm5.2`, `rocm5.7`, `rocm6.2`, `rocm6.4`, `directml`, `xpu`, `mps`, `cpu`
