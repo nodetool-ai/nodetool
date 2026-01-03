@@ -104,6 +104,104 @@ const ContextMenus = memo(function ContextMenus() {
   );
 });
 
+// Create a memoized component for the ghost node placement indicator
+interface GhostNodeProps {
+  position: { x: number; y: number };
+  label: string | null;
+  nodeType: string;
+  theme: {
+    textColor: string;
+    accentColor: string;
+    badgeBackground: string;
+    badgeBorder: string;
+    badgeShadow: string;
+    labelBackground: string;
+    hintColor: string;
+  };
+}
+
+const GhostNode = memo(function GhostNode({
+  position,
+  label,
+  nodeType,
+  theme
+}: GhostNodeProps) {
+  const containerStyle = useMemo(
+    () => ({
+      position: "fixed" as const,
+      top: position.y,
+      left: position.x,
+      transform: "translate(-50%, -60%)",
+      pointerEvents: "none" as const,
+      display: "flex",
+      flexDirection: "column" as const,
+      alignItems: "center",
+      gap: "6px",
+      zIndex: 4000,
+      color: theme.textColor,
+      textShadow: "0 6px 20px rgba(15, 23, 42, 0.35)"
+    }),
+    [position.x, position.y, theme.textColor]
+  );
+
+  const badgeStyle = useMemo(
+    () => ({
+      width: "56px",
+      height: "56px",
+      borderRadius: "18px",
+      border: `1.6px solid ${theme.badgeBorder}`,
+      background: theme.badgeBackground,
+      boxShadow: theme.badgeShadow,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "1.5rem",
+      fontWeight: 500,
+      backdropFilter: "blur(10px)",
+      color: theme.accentColor
+    }),
+    [
+      theme.badgeBorder,
+      theme.badgeBackground,
+      theme.badgeShadow,
+      theme.accentColor
+    ]
+  );
+
+  const labelContainerStyle = useMemo(
+    () => ({
+      padding: "6px 12px",
+      borderRadius: "12px",
+      background: theme.labelBackground,
+      boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      letterSpacing: "0.02em"
+    }),
+    [theme.labelBackground]
+  );
+
+  const hintStyle = useMemo(
+    () => ({
+      fontSize: "0.7rem",
+      fontWeight: 500,
+      letterSpacing: "0.04em",
+      color: theme.hintColor
+    }),
+    [theme.hintColor]
+  );
+
+  return (
+    <div style={containerStyle}>
+      <div style={badgeStyle}>+</div>
+      <div style={labelContainerStyle}>
+        {label ?? nodeType.split(".").pop()}
+      </div>
+      <div style={hintStyle}>Click to place · Esc to cancel</div>
+    </div>
+  );
+});
+
 // Create a new component for the ReactFlow background
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -139,15 +237,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   }, [workflowId, storedViewport, nodes.length]);
 
   const reactFlowInstance = useReactFlow();
-  const { pendingNodeType, cancelPlacement, placementLabel } =
-    useNodePlacementStore(
-      (state) => ({
-        pendingNodeType: state.pendingNodeType,
-        cancelPlacement: state.cancelPlacement,
-        placementLabel: state.label
-      }),
-      shallow
-    );
+  const pendingNodeType = useNodePlacementStore((state) => state.pendingNodeType);
+  const cancelPlacement = useNodePlacementStore((state) => state.cancelPlacement);
+  const placementLabel = useNodePlacementStore((state) => state.label);
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
     y: number;
@@ -177,6 +269,41 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       hintColor: isDark ? "rgba(148, 163, 184, 0.9)" : "rgba(71, 85, 105, 0.9)"
     };
   }, [theme.palette.mode, theme.vars.palette.primary.main]);
+
+  // Memoize container style to prevent recreation on every render
+  const containerStyle = useMemo(
+    () => ({
+      width: "100%",
+      height: "100%",
+      position: "absolute" as const,
+      backgroundColor: "var(--c_editor_bg_color)",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      opacity: isVisible ? 1 : 0,
+      transition: "opacity 50ms 1s ease-out"
+    }),
+    [isVisible]
+  );
+
+  // Memoize ReactFlow inner style
+  const reactFlowStyle = useMemo(
+    () => ({
+      width: "100%",
+      height: "100%",
+      backgroundColor: "var(--c_editor_bg_color)"
+    }),
+    []
+  );
+
+  // Memoize background style
+  const backgroundStyle = useMemo(
+    () => ({
+      backgroundColor: theme.vars.palette.c_editor_bg_color
+    }),
+    [theme.vars.palette.c_editor_bg_color]
+  );
 
   const fitView = useFitView();
   useFitNodeEvent();
@@ -242,13 +369,20 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   /* DEFINE NODE TYPES */
-  const nodeTypes = useMetadataStore((state) => state.nodeTypes);
-  nodeTypes["nodetool.workflows.base_node.Group"] = GroupNode;
-  nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
-  nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
-  nodeTypes["nodetool.compare.CompareImages"] = CompareImagesNode;
-  nodeTypes["nodetool.control.Reroute"] = RerouteNode;
-  nodeTypes["default"] = PlaceholderNode;
+  const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
+  // Create a stable nodeTypes object to avoid mutations
+  const nodeTypes = useMemo(
+    () => ({
+      ...baseNodeTypes,
+      "nodetool.workflows.base_node.Group": GroupNode,
+      "nodetool.workflows.base_node.Comment": CommentNode,
+      "nodetool.workflows.base_node.Preview": PreviewNode,
+      "nodetool.compare.CompareImages": CompareImagesNode,
+      "nodetool.control.Reroute": RerouteNode,
+      default: PlaceholderNode
+    }),
+    [baseNodeTypes]
+  );
 
   /* SETTINGS */
   const settings = useSettingsStore((state) => state.settings);
@@ -257,18 +391,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const { onDrop, onDragOver } = useDropHandler();
 
   // OPEN NODE MENU
-  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
-    (state) => ({
-      openNodeMenu: state.openNodeMenu,
-      closeNodeMenu: state.closeNodeMenu,
-      isMenuOpen: state.isMenuOpen,
-      selectedNodeType: state.selectedNodeType,
-      documentationPosition: state.documentationPosition,
-      showDocumentation: state.showDocumentation,
-      closeDocumentation: state.closeDocumentation
-    }),
-    shallow
-  );
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
+  const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
   useEffect(() => {
     return () => {
@@ -681,6 +806,33 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     }
   }, [nodes.length, fitView, storedViewport]);
 
+  // Memoize snapGrid array to prevent recreation on every render
+  const snapGrid = useMemo(
+    () => [settings.gridSnap, settings.gridSnap] as [number, number],
+    [settings.gridSnap]
+  );
+
+  // Memoize ReactFlow CSS classes
+  const reactFlowClasses = useMemo(() => {
+    const classes = [];
+    if (zoom <= ZOOMED_OUT) classes.push("zoomed-out");
+    if (connecting) classes.push("is-connecting");
+    return classes.join(" ");
+  }, [zoom, connecting]);
+
+  // Memoize conditional props for ReactFlow
+  const conditionalProps = useMemo(() => {
+    const props: any = {};
+    if (!storedViewport) {
+      props.fitView = true;
+      props.fitViewOptions = fitViewOptions;
+    }
+    if (settings.panControls === "RMB") {
+      props.selectionOnDrag = true;
+    }
+    return props;
+  }, [storedViewport, settings.panControls]);
+
   if (isLoading) {
     return (
       <div className="loading-overlay">
@@ -702,36 +854,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     return null;
   }
 
-  const reactFlowClasses = [
-    zoom <= ZOOMED_OUT ? "zoomed-out" : "",
-    connecting ? "is-connecting" : ""
-  ]
-    .join(" ")
-    .trim();
-
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        position: "absolute",
-        backgroundColor: "var(--c_editor_bg_color)",
-        left: 0,
-        top: 0,
-        right: 0,
-        bottom: 0,
-        opacity: isVisible ? 1 : 0,
-        transition: "opacity 50ms 1s ease-out"
-      }}
-    >
+    <div style={containerStyle}>
       <ReactFlow
         className={reactFlowClasses}
         colorMode={isDarkMode ? "dark" : "light"}
-        style={{
-          width: "100%",
-          height: "100%",
-          backgroundColor: "var(--c_editor_bg_color)"
-        }}
+        style={reactFlowStyle}
         onlyRenderVisibleElements={false} // if true, adds lag when panning
         ref={ref}
         minZoom={MIN_ZOOM}
@@ -740,16 +868,15 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         autoPanOnNodeDrag={true}
         autoPanOnConnect={true}
         autoPanSpeed={50}
-        {...(!storedViewport ? { fitView: true, fitViewOptions } : {})}
+        {...conditionalProps}
         nodes={nodes}
         edges={processedEdges}
         nodeTypes={nodeTypes}
         snapToGrid={true}
-        snapGrid={[settings.gridSnap, settings.gridSnap]}
+        snapGrid={snapGrid}
         defaultViewport={storedViewport || undefined}
         onMoveEnd={handleMoveEnd}
         panOnDrag={panOnDrag}
-        {...(settings.panControls === "RMB" ? { selectionOnDrag: true } : {})}
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
         connectionRadius={settings.connectionSnap}
@@ -797,9 +924,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           size={8}
           color={theme.vars.palette.c_editor_grid_color}
           lineWidth={1}
-          style={{
-            backgroundColor: theme.vars.palette.c_editor_bg_color
-          }}
+          style={backgroundStyle}
           variant={BackgroundVariant.Cross}
         />
         <AxisMarker />
@@ -811,65 +936,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         />
       </ReactFlow>
       {pendingNodeType && ghostPosition && (
-        <div
-          style={{
-            position: "fixed",
-            top: ghostPosition.y,
-            left: ghostPosition.x,
-            transform: "translate(-50%, -60%)",
-            pointerEvents: "none",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "6px",
-            zIndex: 4000,
-            color: ghostTheme.textColor,
-            textShadow: "0 6px 20px rgba(15, 23, 42, 0.35)"
-          }}
-        >
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "18px",
-              border: `1.6px solid ${ghostTheme.badgeBorder}`,
-              background: ghostTheme.badgeBackground,
-              boxShadow: ghostTheme.badgeShadow,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.5rem",
-              fontWeight: 500,
-              backdropFilter: "blur(10px)",
-              color: ghostTheme.accentColor
-            }}
-          >
-            +
-          </div>
-          <div
-            style={{
-              padding: "6px 12px",
-              borderRadius: "12px",
-              background: ghostTheme.labelBackground,
-              boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              letterSpacing: "0.02em"
-            }}
-          >
-            {placementLabel ?? pendingNodeType.split(".").pop()}
-          </div>
-          <div
-            style={{
-              fontSize: "0.7rem",
-              fontWeight: 500,
-              letterSpacing: "0.04em",
-              color: ghostTheme.hintColor
-            }}
-          >
-            Click to place · Esc to cancel
-          </div>
-        </div>
+        <GhostNode
+          position={ghostPosition}
+          label={placementLabel}
+          nodeType={pendingNodeType}
+          theme={ghostTheme}
+        />
       )}
     </div>
   );
