@@ -1,14 +1,22 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-jest.mock("../../themes/ThemeNodetool", () => ({
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
+
+// Mock NodeSwitch to avoid Switch theme complexities
+jest.mock("../../editor_ui/NodeSwitch", () => ({
   __esModule: true,
-  default: {
-    palette: {},
-    fontSizeNormal: "",
-    fontFamily1: "",
-    fontSizeSmall: ""
-  }
+  NodeSwitch: ({ checked, onChange, id, inputProps }: any) => (
+    <input
+      type="checkbox"
+      id={id}
+      checked={checked}
+      onChange={onChange}
+      {...inputProps}
+    />
+  )
 }));
+
 jest.mock("../../../config/data_types", () => ({}));
 jest.mock("../../../stores/ApiClient", () => ({ client: { GET: jest.fn() } }));
 
@@ -28,14 +36,22 @@ const defaultProps = {
 
 describe("BoolProperty", () => {
   it("renders a switch and label", () => {
-    render(<BoolProperty {...defaultProps} />);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <BoolProperty {...defaultProps} />
+      </ThemeProvider>
+    );
     expect(screen.getByRole("checkbox")).toBeInTheDocument();
     expect(screen.getByText("Enabled")).toBeInTheDocument();
   });
 
   it("calls onChange when toggled", () => {
     const onChange = jest.fn();
-    render(<BoolProperty {...defaultProps} onChange={onChange} />);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <BoolProperty {...defaultProps} onChange={onChange} />
+      </ThemeProvider>
+    );
     fireEvent.click(screen.getByRole("checkbox"));
     expect(onChange).toHaveBeenCalledWith(true);
   });
