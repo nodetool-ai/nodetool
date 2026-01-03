@@ -64,32 +64,37 @@ const nodeInfoStyles = (theme: Theme) =>
       backgroundColor: "error.main"
     },
     ".node-description": {
-      fontWeight: "400",
-      fontSize: theme.fontSizeNormal,
+      fontWeight: 400,
+      fontSize: "0.95rem",
       color: theme.vars.palette.text.primary,
-      // wordBreak: "break-word",
       whiteSpace: "pre-wrap",
-      marginBottom: "0.5em",
+      marginBottom: "1em",
+      lineHeight: "1.6",
       display: "block",
       "& span": {
         display: "inline-block",
         position: "static",
         height: "auto",
         maxHeight: "none",
-        lineHeight: "1.2em"
+        lineHeight: "1.6em"
       }
     },
     ".node-tags span": {
-      fontWeight: "600",
-      fontSize: theme.fontSizeTiny,
-      color: theme.vars.palette.grey[1000],
-      backgroundColor: theme.vars.palette.grey[500],
-      borderRadius: "0.5em",
-      padding: "0.2em 0.5em",
+      fontWeight: 500,
+      fontSize: "0.75rem",
+      color: theme.vars.palette.text.secondary,
+      backgroundColor: theme.vars.palette.action.hover,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "4px",
+      padding: "4px 8px",
       textTransform: "uppercase",
       display: "inline-block",
       cursor: "pointer",
-      marginRight: ".5em"
+      marginRight: ".5em",
+      transition: "background-color 0.2s ease",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.selected
+      }
     },
     ".node-usecases h4": {
       fontSize: theme.fontSizeSmaller,
@@ -122,8 +127,11 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".inputs-outputs h4": {
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
-      lineHeight: "2em"
+      fontSize: "0.85rem",
+      lineHeight: "2em",
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
     },
     ".inputs, .outputs": {
       display: "flex",
@@ -300,7 +308,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )
       ) : null}
 
-      <Divider />
+      <Divider sx={{ opacity: 0.5, margin: "1em 0" }} />
 
       {showConnections && (
         <div className="inputs-outputs">

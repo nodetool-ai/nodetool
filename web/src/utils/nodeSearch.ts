@@ -52,65 +52,85 @@ export function performGroupedSearch(
     useExtendedSearch: true
   } as ExtendedFuseOptions<any>);
 
-  const titleResults = titleFuse.search(term).map((result) => ({
-    ...result.item.metadata,
-    searchInfo: {
-      score: result.score,
-      matches: result.matches
+  // Collect all results with their scores for ranking
+  const allResults: Array<{ node: any; score: number; source: string }> = [];
+
+  // Title matches (highest priority - score boost)
+  titleFuse.search(term).forEach((result) => {
+    allResults.push({
+      node: {
+        ...result.item.metadata,
+        searchInfo: {
+          score: result.score,
+          matches: result.matches
+        }
+      },
+      score: (result.score || 0) * 0.5, // Boost title matches
+      source: "title"
+    });
+  });
+
+  // Namespace + Tags matches
+  titleTagsFuse.search(term).forEach((result) => {
+    // Skip if already in results
+    if (allResults.some((r) => r.node.node_type === result.item.metadata.node_type)) {
+      return;
     }
-  }));
+    allResults.push({
+      node: {
+        ...result.item.metadata,
+        searchInfo: {
+          score: result.score,
+          matches: result.matches
+        }
+      },
+      score: (result.score || 0) * 0.7, // Slight boost for namespace/tags
+      source: "namespace"
+    });
+  });
 
-  const titleTagsResults = titleTagsFuse
-    .search(term)
-    .filter(
-      (result) =>
-        !titleResults.some(
-          (r) => r.node_type === result.item.metadata.node_type
-        )
-    )
-    .map((result) => ({
-      ...result.item.metadata,
-      searchInfo: {
-        score: result.score,
-        matches: result.matches
-      }
-    }));
-
+  // Description matches
   const termNoSpaces = term.replace(/\s+/g, "");
-  const results = new Map<string, any>();
+  const descResults = new Map<string, any>();
   [
     ...descriptionFuse.search(term),
     ...descriptionFuse.search(termNoSpaces)
   ].forEach((result) => {
     const nodeType = result.item.metadata.node_type;
-    if (!results.has(nodeType)) {
-      results.set(nodeType, result);
+    if (!descResults.has(nodeType)) {
+      descResults.set(nodeType, result);
     }
   });
 
-  const descriptionResults = Array.from(results.values())
-    .filter(
-      (result) =>
-        !titleResults.some(
-          (r) => r.node_type === result.item.metadata.node_type
-        ) &&
-        !titleTagsResults.some(
-          (r) => r.node_type === result.item.metadata.node_type
-        )
-    )
-    .map((result) => ({
-      ...result.item.metadata,
-      searchInfo: {
-        score: result.score,
-        matches: result.matches
-      }
-    }));
+  Array.from(descResults.values()).forEach((result) => {
+    // Skip if already in results
+    if (allResults.some((r) => r.node.node_type === result.item.metadata.node_type)) {
+      return;
+    }
+    allResults.push({
+      node: {
+        ...result.item.metadata,
+        searchInfo: {
+          score: result.score,
+          matches: result.matches
+        }
+      },
+      score: result.score || 0,
+      source: "description"
+    });
+  });
 
-  return [
-    { title: "Name", nodes: titleResults },
-    { title: "Namespace + Tags", nodes: titleTagsResults },
-    { title: "Description", nodes: descriptionResults }
-  ].filter((group) => group.nodes.length > 0);
+  // Sort by score (lower is better in Fuse.js)
+  allResults.sort((a, b) => a.score - b.score);
+
+  // Return as a single flat group for display
+  const rankedNodes = allResults.map((r) => r.node);
+  
+  if (rankedNodes.length === 0) {
+    return [];
+  }
+
+  return [{ title: "Results", nodes: rankedNodes }];
 }
 
 export function computeSearchResults(

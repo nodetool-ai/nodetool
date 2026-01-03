@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
     },
     ".search-icon": {
       position: "absolute",
-      left: "0.8em",
+      left: "0.4em",
       top: "50%",
       transform: "translateY(-50%)",
       color: theme.vars.palette.text.disabled,
