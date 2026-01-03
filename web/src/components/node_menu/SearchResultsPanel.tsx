@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import SearchResultItem from "./SearchResultItem";
@@ -18,8 +18,17 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 }) => {
   const handleCreateNode = useCreateNode();
   const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
+  const selectedIndex = useNodeMenuStore((state) => state.selectedIndex);
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
+  const listRef = useRef<VirtualList>(null);
+
+  // Scroll to the selected item when selectedIndex changes
+  useEffect(() => {
+    if (selectedIndex >= 0 && listRef.current) {
+      listRef.current.scrollToItem(selectedIndex, "smart");
+    }
+  }, [selectedIndex]);
 
   const handleDragStart = useCallback(
     (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
@@ -48,11 +57,12 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
             onDragStart={handleDragStart(node)}
             onDragEnd={handleDragEnd}
             onClick={() => handleCreateNode(node)}
+            isKeyboardSelected={index === selectedIndex}
           />
         </div>
       );
     },
-    [searchNodes, handleDragStart, handleDragEnd, handleCreateNode]
+    [searchNodes, handleDragStart, handleDragEnd, handleCreateNode, selectedIndex]
   );
 
   return (
@@ -62,6 +72,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
         const safeWidth = Math.max(width || 0, 280);
         return (
           <VirtualList
+            ref={listRef}
             height={safeHeight}
             width={safeWidth}
             itemCount={searchNodes.length}
