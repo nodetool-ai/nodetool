@@ -475,21 +475,45 @@ jobs:
           echo "APPIMAGE_CHECKSUM=${CHECKSUM}" >> $GITHUB_ENV
 
       - name: Update PKGBUILD version and checksums
+        env:
+          AUR_VERSION: ${{ steps.version.outputs.aur_version }}
         run: |
-          AUR_VERSION="${{ steps.version.outputs.aur_version }}"
-          VERSION="${{ steps.version.outputs.version }}"
-
           # Update pkgver in PKGBUILD
           sed -i "s/pkgver=.*/pkgver=${AUR_VERSION}/" aur/nodetool-bin/PKGBUILD
 
-          # Calculate checksums for local files
-          SH_CHECKSUM=$(sha256sum aur/nodetool-bin/nodetool.sh | awk '{print $1}')
-          DESKTOP_CHECKSUM=$(sha256sum aur/nodetool-bin/nodetool.desktop | awk '{print $1}')
+          # Calculate checksums and export as environment variables for Python
+          export SH_CHECKSUM=$(sha256sum aur/nodetool-bin/nodetool.sh | awk '{print $1}')
+          export DESKTOP_CHECKSUM=$(sha256sum aur/nodetool-bin/nodetool.desktop | awk '{print $1}')
 
-          # Update checksums
-          sed -i "s/sha256sums=(/sha256sums=(\n    '${SH_CHECKSUM}'\n    '${DESKTOP_CHECKSUM}'\n    '${APPIMAGE_CHECKSUM}'/" aur/nodetool-bin/PKGBUILD
-          # Remove the old SKIP placeholders and fix formatting
-          sed -i "/^    'SKIP'/d" aur/nodetool-bin/PKGBUILD
+          # Update checksums using Python for reliable multi-line replacement
+          python3 << 'EOF'
+          import os
+          import re
+
+          sh_checksum = os.environ['SH_CHECKSUM']
+          desktop_checksum = os.environ['DESKTOP_CHECKSUM']
+          appimage_checksum = os.environ['APPIMAGE_CHECKSUM']
+
+          with open('aur/nodetool-bin/PKGBUILD', 'r') as f:
+              content = f.read()
+
+          # Replace the sha256sums array (using 4-space indentation to match PKGBUILD style)
+          new_checksums = f"""sha256sums=(
+    '{sh_checksum}'
+    '{desktop_checksum}'
+    '{appimage_checksum}'
+)"""
+
+          content = re.sub(
+              r"sha256sums=\([^)]*\)",
+              new_checksums,
+              content,
+              flags=re.DOTALL
+          )
+
+          with open('aur/nodetool-bin/PKGBUILD', 'w') as f:
+              f.write(content)
+          EOF
 
       - name: Publish AUR package
         uses: KSXGitHub/github-actions-deploy-aur@v3.0.1
@@ -500,7 +524,7 @@ jobs:
           commit_email: hello@nodetool.ai
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           commit_message: "Update to version ${{ steps.version.outputs.version }}"
-          ssh_keyscan_types: ed25519
+          ssh_keyscan_types: rsa,ed25519
           allow_empty_commits: false
           assets: |
             aur/nodetool-bin/nodetool.sh

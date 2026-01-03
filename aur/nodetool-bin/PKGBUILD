@@ -3,6 +3,7 @@
 pkgname=nodetool-bin
 _pkgname=nodetool
 pkgver=0.6.2_rc.18
+_pkgver=${pkgver//_/-}
 pkgrel=1
 pkgdesc="Visual AI Workflow Builder - Build AI Workflows Visually, Run Them Anywhere"
 arch=('x86_64')
@@ -18,7 +19,7 @@ options=('!strip')
 source=(
     "${_pkgname}.sh"
     "${_pkgname}.desktop"
-    "${_pkgname}-${pkgver}-x86_64.AppImage::${url}/releases/download/v${pkgver//_/-}/Nodetool-${pkgver//_/-}-x86_64.AppImage"
+    "${_pkgname}-${pkgver}-x86_64.AppImage::${url}/releases/download/v${_pkgver}/Nodetool-${_pkgver}-x86_64.AppImage"
 )
 sha256sums=(
     'SKIP'
