@@ -22,7 +22,7 @@ interface NamespacePanelProps {
 const namespacePanelStyles = (theme: Theme) =>
   css({
     "&": {
-      width: "270px",
+      width: "200px",
       marginRight: "0.5em",
       marginLeft: "0.75em",
       position: "relative",
@@ -175,9 +175,9 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
 
   const minSearchTermLength =
     searchTerm.includes("+") ||
-    searchTerm.includes("-") ||
-    searchTerm.includes("*") ||
-    searchTerm.includes("/")
+      searchTerm.includes("-") ||
+      searchTerm.includes("*") ||
+      searchTerm.includes("/")
       ? 0
       : 1;
 

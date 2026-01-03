@@ -178,8 +178,10 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedNodeTypes
   ]);
 
+  const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};
+
   return (
-    <div className="nodes" style={{ height: "100%", overflow: "hidden" }}>
+    <div className="nodes" style={style}>
       {nodes.length > 0 ? (
         searchNodes ? (
           <SearchResultsPanel searchNodes={searchNodes} />

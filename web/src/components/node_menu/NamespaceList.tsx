@@ -72,7 +72,6 @@ const namespaceStyles = (theme: Theme) =>
     ".node-list": {
       height: "100%",
       maxHeight: "750px",
-      width: "320px",
       flex: "1 1 auto",
       backgroundColor: "transparent",
       transition: "max-width 0.35s ease, width 0.35s ease",
@@ -269,9 +268,9 @@ const namespaceStyles = (theme: Theme) =>
       margin: "0.5em 0"
     },
     "&.has-search-results .namespace-list-enabled .no-highlight .namespace-item":
-      {
-        color: theme.vars.palette.text.disabled
-      },
+    {
+      color: theme.vars.palette.text.disabled
+    },
     "&.has-search-results .no-highlight": {
       pointerEvents: "none"
     },
@@ -444,9 +443,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   const minSearchTermLength =
     searchTerm.includes("+") ||
-    searchTerm.includes("-") ||
-    searchTerm.includes("*") ||
-    searchTerm.includes("/")
+      searchTerm.includes("-") ||
+      searchTerm.includes("*") ||
+      searchTerm.includes("/")
       ? 0
       : 1;
 
@@ -461,7 +460,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         (searchTerm.length > minSearchTermLength ||
           selectedInputType ||
           selectedOutputType) &&
-        searchResults.length > 0
+          searchResults.length > 0
           ? "has-search-results"
           : "no-search-results"
       }
@@ -469,9 +468,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       <Box className="list-box">
         <NamespacePanel namespaceTree={namespaceTree} />
         {selectedPathString ||
-        searchTerm ||
-        selectedInputType ||
-        selectedOutputType ? (
+          searchTerm ||
+          selectedInputType ||
+          selectedOutputType ? (
           <>
             <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
               <RenderNodes nodes={searchResults} />
