@@ -100,9 +100,16 @@
     },
     "linux": {
         "target": [
-            "AppImage"
+            "AppImage",
+            "snap"
         ],
         "category": "Development"
+    },
+    "snap": {
+        "confinement": "classic",
+        "grade": "stable",
+        "summary": "Node-based AI development tool",
+        "description": "Nodetool is a visual AI workflow editor that allows you to build and run AI pipelines using a node-based interface."
     },
     "nsis": {
         "oneClick": false,

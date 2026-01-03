@@ -104,6 +104,7 @@ jobs:
         run: bash scripts/verify-env-locks.sh
 
       - name: Install Snapcraft
+        if: matrix.os == 'ubuntu-latest'
         uses: samuelmeuli/action-snapcraft@v3
 
       - name: Set up Node.js
@@ -448,4 +449,25 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: |
             electron/dist/*.AppImage
+            electron/dist/*.snap
             electron/dist/latest-linux.yml
+
+      - name: Publish snap to Snap Store
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Find the snap file using find command for safer handling
+          SNAP_FILE=$(find electron/dist -maxdepth 1 -name "*.snap" -type f | head -n 1)
+          if [ -z "$SNAP_FILE" ] || [ ! -f "$SNAP_FILE" ]; then
+            echo "Error: No snap file found to publish in electron/dist/"
+            ls -la electron/dist/ || true
+            exit 1
+          fi
+          echo "Publishing $SNAP_FILE to Snap Store..."
+          if snapcraft upload --release=stable "$SNAP_FILE"; then
+            echo "Successfully published $SNAP_FILE to the Snap Store"
+          else
+            echo "Error: Failed to publish snap to Snap Store"
+            exit 1
+          fi
