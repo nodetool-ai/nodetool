@@ -65,26 +65,30 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(function ToolbarButton(
 }) {
   const title = shortcut ? getShortcutTooltip(shortcut) : tooltip;
 
+  const fabElement = (
+    <Fab
+      className={cn(
+        "floating-action-button",
+        variant,
+        className,
+        disabled && "disabled"
+      )}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel || tooltip}
+      disableRipple
+    >
+      {icon}
+    </Fab>
+  );
+
   return (
     <Tooltip
       title={title}
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement="top"
     >
-      <Fab
-        className={cn(
-          "floating-action-button",
-          variant,
-          className,
-          disabled && "disabled"
-        )}
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={ariaLabel || tooltip}
-        disableRipple
-      >
-        {icon}
-      </Fab>
+      {disabled ? <span style={{ display: "inline-flex" }}>{fabElement}</span> : fabElement}
     </Tooltip>
   );
 });
