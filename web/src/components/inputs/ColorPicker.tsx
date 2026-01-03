@@ -14,17 +14,23 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
-      width: "100%",
-      height: "100%"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
     },
     ".open-colors-button": {
       borderRadius: "50%",
       backgroundColor: "transparent",
-      border: `2px solid ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.75)"}`,
+      border: `1px solid ${(theme as any).vars?.palette?.grey?.[600] || "rgba(100, 100, 100, 0.75)"}`,
       padding: 0,
       minWidth: "unset !important",
       minHeight: "unset !important",
-      outline: `1px solid ${(theme as any).vars?.palette?.grey?.[0] || "white"}`
+      boxShadow: `0 0 0 1px ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.5)"}`,
+      transition: "all 0.15s ease",
+      "&:hover": {
+        transform: "scale(1.1)",
+        boxShadow: `0 0 0 2px ${(theme as any).vars?.palette?.grey?.[800] || "rgba(0, 0, 0, 0.7)"}`
+      }
     }
   });
 
