@@ -25,6 +25,7 @@ import log from "loglevel";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { isDevelopment } from "../../stores/ApiClient";
 import { subgraph } from "../../core/graph";
+import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 //reactflow
 import { Node } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -53,8 +54,18 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
-  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes, toggleBypass, nodes, edges, workflow } =
-    useNodes((state) => ({
+  const {
+    updateNodeData,
+    updateNode,
+    selectNodesByType,
+    deleteNode,
+    selectedNodes,
+    toggleBypass,
+    nodes,
+    edges,
+    workflow,
+    findNode
+  } = useNodes((state) => ({
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
       selectNodesByType: state.selectNodesByType,
@@ -63,7 +74,8 @@ const NodeContextMenu: React.FC = () => {
       toggleBypass: state.toggleBypass,
       nodes: state.nodes,
       edges: state.edges,
-      workflow: state.workflow
+      workflow: state.workflow,
+      findNode: state.findNode
     }));
   const run = useWebsocketRunner((state) => state.run);
   const isWorkflowRunning = useWebsocketRunner(
@@ -112,24 +124,28 @@ const NodeContextMenu: React.FC = () => {
         continue;
       }
 
-      // Get the cached result from the upstream node
-      const result = getResult(workflow.id, sourceNodeId);
-      if (result !== undefined) {
-        // If the result is an object with multiple outputs, get the specific output
-        const value =
-          sourceHandle && typeof result === "object" && result !== null
-            ? result[sourceHandle] ?? result
-            : result;
-
-        // Add to the overrides for this target node
-        const existing = nodePropertyOverrides.get(targetNodeId) || {};
-        existing[targetHandle] = value;
-        nodePropertyOverrides.set(targetNodeId, existing);
-
-        log.info(
-          `Run from here: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`
-        );
+      const { value, hasValue, isFallback } = resolveExternalEdgeValue(
+        edge,
+        workflow.id,
+        getResult,
+        findNode
+      );
+      if (!hasValue) {
+        continue;
       }
+
+      // Add to the overrides for this target node
+      const existing = nodePropertyOverrides.get(targetNodeId) || {};
+      existing[targetHandle] = value;
+      nodePropertyOverrides.set(targetNodeId, existing);
+
+      log.info(
+        `Run from here: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
+        {
+          sourceHandle,
+          valueSource: isFallback ? "node" : "cached_result"
+        }
+      );
     }
 
     // Apply property overrides to all affected nodes in the subgraph
@@ -183,7 +199,8 @@ const NodeContextMenu: React.FC = () => {
     run,
     addNotification,
     metadata,
-    closeContextMenu
+    closeContextMenu,
+    findNode
   ]);
 
   const handleToggleBypass = useCallback(() => {

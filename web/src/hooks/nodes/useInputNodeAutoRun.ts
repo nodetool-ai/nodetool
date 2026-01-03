@@ -15,6 +15,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import { NodeData } from "../../stores/NodeData";
 import { Node, Edge } from "@xyflow/react";
 import log from "loglevel";
+import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 
 // Debounce delay for non-slider inputs (ms)
 const AUTO_RUN_DEBOUNCE_MS = 300;
@@ -66,7 +67,8 @@ const findExternalInputEdges = (
 const collectCachedValuesForSubgraph = (
   externalEdges: Edge[],
   workflowId: string,
-  getResult: (workflowId: string, nodeId: string) => any
+  getResult: (workflowId: string, nodeId: string) => any,
+  findNode: (nodeId: string) => Node<NodeData> | undefined
 ): Map<string, Record<string, any>> => {
   // Map of nodeId -> { propertyName: value }
   const nodePropertyOverrides = new Map<string, Record<string, any>>();
@@ -81,24 +83,28 @@ const collectCachedValuesForSubgraph = (
       continue;
     }
 
-    // Get the cached result from the upstream node
-    const result = getResult(workflowId, sourceNodeId);
-    if (result !== undefined) {
-      // If the result is an object with multiple outputs, get the specific output
-      const value =
-        sourceHandle && typeof result === "object" && result !== null
-          ? result[sourceHandle] ?? result
-          : result;
-
-      // Add to the overrides for this target node
-      const existing = nodePropertyOverrides.get(targetNodeId) || {};
-      existing[targetHandle] = value;
-      nodePropertyOverrides.set(targetNodeId, existing);
-
-      log.debug(
-        `Auto-run: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`
-      );
+    const { value, hasValue, isFallback } = resolveExternalEdgeValue(
+      edge,
+      workflowId,
+      getResult,
+      findNode
+    );
+    if (!hasValue) {
+      continue;
     }
+
+    // Add to the overrides for this target node
+    const existing = nodePropertyOverrides.get(targetNodeId) || {};
+    existing[targetHandle] = value;
+    nodePropertyOverrides.set(targetNodeId, existing);
+
+    log.debug(
+      `Auto-run: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
+      {
+        sourceHandle,
+        valueSource: isFallback ? "node" : "cached_result"
+      }
+    );
   }
 
   return nodePropertyOverrides;
@@ -176,7 +182,8 @@ export const useInputNodeAutoRun = (
     const propertyOverrides = collectCachedValuesForSubgraph(
       externalInputEdges,
       workflow.id,
-      getResult
+      getResult,
+      findNode
     );
 
     // Apply property overrides to all affected nodes in the subgraph

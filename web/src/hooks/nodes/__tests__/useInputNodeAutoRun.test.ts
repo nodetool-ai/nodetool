@@ -429,4 +429,72 @@ describe("useInputNodeAutoRun", () => {
     );
     expect(downstream2.data.properties.count).toBe(100);
   });
+
+  it("falls back to input/constant node values when cached results are missing", () => {
+    const nodesWithLiterals = [
+      {
+        id: "input-1",
+        type: "nodetool.input.StringInput",
+        data: { properties: { name: "Genre", value: "horror" } }
+      },
+      {
+        id: "input-2",
+        type: "nodetool.input.StringInput",
+        data: { properties: { name: "Character", value: "Reluctant Hero" } }
+      },
+      {
+        id: "template-1",
+        type: "nodetool.constant.String",
+        data: { properties: { value: "template text" } }
+      },
+      {
+        id: "format-1",
+        type: "nodetool.text.FormatText",
+        data: { properties: {} }
+      }
+    ];
+
+    const literalEdges = [
+      { source: "input-1", target: "format-1", sourceHandle: "output", targetHandle: "GENRE" },
+      { source: "input-2", target: "format-1", sourceHandle: "output", targetHandle: "CHARACTER" },
+      { source: "template-1", target: "format-1", sourceHandle: "output", targetHandle: "template" }
+    ];
+
+    mockUseNodes.mockReturnValue({
+      nodes: nodesWithLiterals,
+      edges: literalEdges,
+      workflow: defaultMockWorkflow,
+      findNode: (id: string) => nodesWithLiterals.find((n) => n.id === id)
+    });
+
+    mockFindNode.mockImplementation((id: string) =>
+      nodesWithLiterals.find((n) => n.id === id)
+    );
+
+    mockSubgraph.mockReturnValue({
+      nodes: [nodesWithLiterals[0], nodesWithLiterals[3]],
+      edges: [literalEdges[0]]
+    });
+
+    const { result } = renderHook(() =>
+      useInputNodeAutoRun({
+        nodeId: "input-1",
+        nodeType: "nodetool.input.StringInput",
+        propertyName: "value"
+      })
+    );
+
+    act(() => {
+      result.current.onPropertyChangeComplete();
+    });
+
+    const runCallArgs = mockRun.mock.calls[0];
+    const nodesPassedToRun = runCallArgs[2];
+    const formatNode = nodesPassedToRun.find(
+      (n: { id: string }) => n.id === "format-1"
+    );
+
+    expect(formatNode.data.properties.CHARACTER).toBe("Reluctant Hero");
+    expect(formatNode.data.properties.template).toBe("template text");
+  });
 });
