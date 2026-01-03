@@ -4,6 +4,18 @@ import { BACKEND_API_URL } from "./support/backend";
 // Test timeout - chat responses may take time
 const TEST_TIMEOUT_MS = 120000; // 2 minutes
 
+// Helper to wait for chat interface to initialize
+const waitForChatInterface = async (page: any): Promise<boolean> => {
+  try {
+    await page.waitForSelector('.global-chat-container, .chat-container', {
+      timeout: 10000
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
@@ -18,6 +30,10 @@ if (process.env.JEST_WORKER_ID) {
 
       // Verify we're on the chat page
       await expect(page).toHaveURL(/\/chat/);
+
+      // Wait for chat interface to initialize
+      const chatReady = await waitForChatInterface(page);
+      expect(chatReady).toBeTruthy();
 
       // Look for the input field - try multiple possible selectors
       const inputSelector = 'textarea[placeholder*="message" i], textarea[aria-label*="message" i], textarea';
@@ -82,6 +98,9 @@ if (process.env.JEST_WORKER_ID) {
       // Navigate to models page or open model selector
       await page.goto("/chat");
       await page.waitForLoadState("networkidle");
+
+      // Wait for chat interface to initialize
+      await waitForChatInterface(page);
 
       // Try to find and click the model selector button
       // Look for buttons that might open model selection
