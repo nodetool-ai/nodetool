@@ -2,6 +2,7 @@ import { Node } from "@xyflow/react";
 import { Workflow, Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
+import { isRegionNodeType, isContainerNodeType, CONTAINER_NODE_ZINDEX } from "../utils/nodeUtils";
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -10,6 +11,8 @@ export function graphNodeToReactFlowNode(
   const ui_properties = node.ui_properties as NodeUIProperties;
   const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
+  const isRegion = isRegionNodeType(node.type);
+  const isContainer = isContainerNodeType(node.type);
 
   // Debug: warn if node.data contains a stale workflow_id
   if (
@@ -41,6 +44,13 @@ export function graphNodeToReactFlowNode(
   if (isCompareImagesNode && !ui_properties?.height) {
     defaultHeight = 350;
   }
+  // Set default size for region nodes
+  if (isRegion && !ui_properties?.width) {
+    defaultWidth = 300;
+  }
+  if (isRegion && !ui_properties?.height) {
+    defaultHeight = 250;
+  }
 
   const isBypassed = ui_properties?.bypassed || false;
 
@@ -49,10 +59,10 @@ export function graphNodeToReactFlowNode(
     id: node.id,
     parentId: node.parent_id || undefined,
     dragHandle: ".node-drag-handle",
+    // Container nodes (groups, loops, regions) and comments should not expand parent
     expandParent: !(
-      node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      isContainer ||
+      node.type === "nodetool.workflows.base_node.Comment"
     ),
     selectable: ui_properties?.selectable,
     className: isBypassed ? "bypassed" : undefined,
@@ -74,10 +84,7 @@ export function graphNodeToReactFlowNode(
       width: defaultWidth,
       height: defaultHeight
     },
-    zIndex:
-      node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Group"
-        ? -10
-        : ui_properties?.zIndex
+    // Container nodes render behind their children
+    zIndex: isContainer ? CONTAINER_NODE_ZINDEX : ui_properties?.zIndex
   };
 }
