@@ -46,6 +46,18 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
 
   const shouldHighlightByFilter = hasEffectiveSearchTerm || hasActiveTypeFilter;
 
+  const matchingNamespaces = useMemo(() => {
+    const matching = new Set<string>();
+    allSearchMatches.forEach((result) => {
+      const resultPath = result.namespace.split(".");
+      const namespaceAtCurrentDepth = resultPath[currentPath.length];
+      if (namespaceAtCurrentDepth) {
+        matching.add(namespaceAtCurrentDepth);
+      }
+    });
+    return matching;
+  }, [allSearchMatches, currentPath.length]);
+
   const memoizedTree = useMemo(
     () =>
       Object.keys(tree).map((namespace) => {
@@ -58,24 +70,14 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
         const path = [...currentPath, namespace];
         const hasChildren = Object.keys(tree[namespace].children).length > 0;
 
-        const searchResultCount = allSearchMatches.filter((result) => {
-          const resultPath = result.namespace.split(".");
-          return (
-            resultPath.slice(0, currentPath.length + 1).join(".") ===
-            currentFullPath
-          );
-        }).length;
-
-        const highlightDueToActiveSearch =
-          shouldHighlightByFilter && searchResultCount > 0;
-
-        const finalIsHighlightedPropForChild = highlightDueToActiveSearch;
+        const isHighlighted =
+          shouldHighlightByFilter && matchingNamespaces.has(namespace);
 
         return {
           path,
           namespace,
           currentFullPath,
-          isHighlighted: finalIsHighlightedPropForChild,
+          isHighlighted,
           isExpanded,
           isSelected,
           hasChildren
@@ -85,7 +87,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
       tree,
       currentPath,
       selectedPath,
-      allSearchMatches,
+      matchingNamespaces,
       shouldHighlightByFilter
     ]
   );
