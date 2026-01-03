@@ -108,7 +108,7 @@ const styles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.grey[900],
     borderRadius: "16px",
     border: `1px solid ${theme.vars.palette.grey[700]}`,
-    boxShadow: `0 4px 20px rgba(0, 0, 0, 0.4)`,
+    boxShadow: `0 4px 20px rgba(0, 0, 0, 0.1)`,
 
     ".floating-action-button": {
       width: "44px",

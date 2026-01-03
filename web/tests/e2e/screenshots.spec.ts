@@ -14,8 +14,10 @@
 import { test, Page } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
+import { fileURLToPath } from 'url';
 
-const SCREENSHOT_DIR = path.join(__dirname, '../../../docs/assets/screenshots');
+const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SCREENSHOT_DIR = path.join(CURRENT_DIR, '../../../docs/assets/screenshots');
 
 // Ensure screenshot directory exists
 if (!fs.existsSync(SCREENSHOT_DIR)) {

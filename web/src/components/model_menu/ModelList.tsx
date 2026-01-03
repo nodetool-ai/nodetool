@@ -204,20 +204,18 @@ function ModelList<TModel extends ModelSelectorModel>({
                   </Box>
                 }
                 secondary={
-                  m.path ? (
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                  <Box
+                    sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                  >
+                    <div
+                      style={{
+                        fontSize: theme.vars.fontSizeTiny,
+                        color: theme.vars.palette.text.secondary
+                      }}
                     >
-                      <div
-                        style={{
-                          fontSize: theme.vars.fontSizeTiny,
-                          color: theme.vars.palette.text.secondary
-                        }}
-                      >
-                        {m.name}
-                      </div>
-                    </Box>
-                  ) : undefined
+                      {m.path ? m.name : m.provider ? `Provider: ${m.provider}` : ""}
+                    </div>
+                  </Box>
                 }
                 primaryTypographyProps={{
                   noWrap: true
