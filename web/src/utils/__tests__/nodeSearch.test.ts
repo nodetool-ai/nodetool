@@ -500,6 +500,10 @@ describe("nodeSearch", () => {
   });
 
   describe("Performance and Integration Tests", () => {
+    // NOTE: console.log statements in these tests are intentional
+    // They provide performance metrics that are useful for monitoring
+    // and debugging search performance over time
+    
     /**
      * Generate a large dataset for performance testing
      */

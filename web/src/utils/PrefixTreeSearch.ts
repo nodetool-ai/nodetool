@@ -252,11 +252,16 @@ export class PrefixTreeSearch {
 
       const existing = results.get(nodeKey);
       if (!existing || existing.score < ref.score) {
+        // Determine match type: exact if this is end of indexed word and matches query length
+        // Otherwise it's a prefix match
+        const matchType = node.isEndOfWord && 
+          ref.node.title.toLowerCase() === prefix ? "exact" : "prefix";
+        
         results.set(nodeKey, {
           node: ref.node,
           score: ref.score,
           matchedField: field,
-          matchType: node.isEndOfWord ? "exact" : "prefix",
+          matchType: matchType,
         });
       }
     });

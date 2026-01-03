@@ -14,15 +14,20 @@ export type SearchResultGroup = {
 };
 
 // Global prefix tree instance for fast prefix searches
+// Cache is keyed by the metadata array to enable proper reuse
 let globalPrefixTree: PrefixTreeSearch | null = null;
-let globalPrefixTreeNodes: NodeMetadata[] = [];
+let globalPrefixTreeNodesHash: string = "";
 
 /**
  * Initialize or update the global prefix tree with node metadata
+ * Uses a hash of node types to detect when re-indexing is needed
  */
 function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
+  // Create a hash of the nodes to detect changes
+  const nodesHash = nodes.map(n => n.node_type).sort().join(",");
+  
   // Check if we need to rebuild the tree
-  if (!globalPrefixTree || globalPrefixTreeNodes !== nodes) {
+  if (!globalPrefixTree || globalPrefixTreeNodesHash !== nodesHash) {
     const searchFields: SearchField[] = [
       { field: "title", weight: 1.0 },
       { field: "namespace", weight: 0.8 },
@@ -30,7 +35,7 @@ function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
     ];
     globalPrefixTree = new PrefixTreeSearch(searchFields);
     globalPrefixTree.indexNodes(nodes);
-    globalPrefixTreeNodes = nodes;
+    globalPrefixTreeNodesHash = nodesHash;
   }
   return globalPrefixTree;
 }
