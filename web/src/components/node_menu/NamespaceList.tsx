@@ -368,7 +368,7 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item.selected": {
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-      borderLeft: `3px solid var(--palette-primary-main)`,
+      borderLeft: "3px solid var(--palette-primary-main)",
       fontWeight: 600,
       color: "var(--palette-primary-main)",
       boxShadow: "0 2px 4px rgba(0,0,0,0.1)"

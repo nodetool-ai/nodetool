@@ -15,7 +15,6 @@ import {
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
-import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { SearchResultGroup } from "../../utils/nodeSearch";
@@ -79,7 +78,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   selectedNodeTypes = [],
   onToggleSelection
 }) => {
-  const theme = useTheme();
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
       setDragToCreate: state.setDragToCreate,
