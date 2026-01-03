@@ -44,6 +44,10 @@ import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
+import {
+  useInputNodeAutoRun,
+  isAutoRunInputNode
+} from "../../hooks/nodes/useInputNodeAutoRun";
 
 const propertyInputContainerStyles = (theme: Theme) =>
   css({
@@ -90,6 +94,11 @@ export type PropertyProps = {
   propertyIndex: string;
   isInspector?: boolean;
   onChange: (value: any) => void;
+  /**
+   * Called when the user finishes changing the value (e.g., on mouseup for sliders).
+   * Useful for triggering actions only when the user has committed their change.
+   */
+  onChangeComplete?: () => void;
   tabIndex?: number;
   isDynamicProperty?: boolean;
   /**
@@ -300,6 +309,13 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
   const metadata = useMetadataStore((state) => state.metadata);
 
+  // Auto-run hook for input nodes - triggers downstream workflow execution on property changes
+  const { onPropertyChange, onPropertyChangeComplete } = useInputNodeAutoRun({
+    nodeId: id,
+    nodeType,
+    propertyName: property.name
+  });
+
   const onChange = useCallback(
     (value: any) => {
       if (onValueChange) {
@@ -323,11 +339,18 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       } else {
         updateNodeProperties(id, { [property.name]: value });
       }
+
+      // Trigger auto-run for input nodes (debounced for non-slider inputs)
+      if (isAutoRunInputNode(nodeType)) {
+        onPropertyChange();
+      }
     },
     [
       findNode,
       id,
       isDynamicProperty,
+      nodeType,
+      onPropertyChange,
       onValueChange,
       property.name,
       updateNodeData,
@@ -338,6 +361,13 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   // Calculate changed state: value differs from default
   const isChanged = value !== property.default;
 
+  // Handle slider/number input change complete (for input nodes)
+  const handleChangeComplete = useCallback(() => {
+    if (isAutoRunInputNode(nodeType)) {
+      onPropertyChangeComplete();
+    }
+  }, [nodeType, onPropertyChangeComplete]);
+
   const propertyProps = {
     property: property,
     value: value,
@@ -345,6 +375,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     nodeType: nodeType,
     nodeId: id,
     onChange: onChange,
+    onChangeComplete: handleChangeComplete,
     tabIndex: tabIndex,
     isDynamicProperty: isDynamicProperty,
     isInspector: isInspector,
