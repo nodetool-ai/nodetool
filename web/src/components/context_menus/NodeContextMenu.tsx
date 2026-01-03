@@ -305,9 +305,14 @@ const NodeContextMenu: React.FC = () => {
         label={isBypassed ? "Enable Node" : "Bypass Node"}
         IconComponent={isBypassed ? <PlayArrowIcon /> : <BlockIcon />}
         tooltip={
-          isBypassed
-            ? "Enable this node to process normally"
-            : "Bypass this node to pass inputs through to outputs"
+          <div className="tooltip-span">
+            <div className="tooltip-title">
+              {isBypassed ? "Enable Node" : "Bypass Node"}
+            </div>
+            <div className="tooltip-key">
+              <kbd>B</kbd>
+            </div>
+          </div>
         }
       />
     ),

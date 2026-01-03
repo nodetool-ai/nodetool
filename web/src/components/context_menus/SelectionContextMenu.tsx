@@ -17,6 +17,7 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import BlockIcon from "@mui/icons-material/Block";
 import { useNodes } from "../../contexts/NodeContext";
 
 interface SelectionContextMenuProps {
@@ -26,8 +27,9 @@ interface SelectionContextMenuProps {
 
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
-  const { deleteNode } = useNodes((state) => ({
-    deleteNode: state.deleteNode
+  const { deleteNode, toggleBypassSelected } = useNodes((state) => ({
+    deleteNode: state.deleteNode,
+    toggleBypassSelected: state.toggleBypassSelected
   }));
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
@@ -45,6 +47,21 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const anyHasParent = useMemo(() => {
     return selectedNodes.some((node) => node.parentId);
   }, [selectedNodes]);
+
+  // Check if majority of selected nodes are bypassed
+  const majorityBypassed = useMemo(() => {
+    if (selectedNodes.length === 0) {
+      return false;
+    }
+    const bypassedCount = selectedNodes.filter((n) => n.data.bypassed).length;
+    return bypassedCount >= selectedNodes.length / 2;
+  }, [selectedNodes]);
+
+  // bypass
+  const handleToggleBypass = useCallback(() => {
+    toggleBypassSelected();
+    closeContextMenu();
+  }, [toggleBypassSelected, closeContextMenu]);
 
   //duplicate
   const handleDuplicateNodes = useCallback(() => {
@@ -111,7 +128,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
   // );
 
-  if (!menuPosition) {return null;}
+  if (!menuPosition) {
+    return null;
+  }
   return (
     <Menu
       className="context-menu selection-context-menu"
@@ -208,6 +227,22 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           }
         />
       )}
+
+      <ContextMenuItem
+        onClick={handleToggleBypass}
+        label={majorityBypassed ? "Enable All" : "Bypass All"}
+        IconComponent={<BlockIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">
+              {majorityBypassed ? "Enable Nodes" : "Bypass Nodes"}
+            </div>
+            <div className="tooltip-key">
+              <kbd>B</kbd>
+            </div>
+          </div>
+        }
+      />
 
       {!anyHasParent && (
         <ContextMenuItem
