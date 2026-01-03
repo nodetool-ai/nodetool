@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useRef, useEffect, useState } from "react";
+import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
 import { IconButton, Box } from "@mui/material";
@@ -22,6 +22,7 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
+import { useCreateNode } from "../../hooks/useCreateNode";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -155,7 +156,10 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setSelectedOutputType,
     searchTerm,
     setSearchTerm,
-    setMenuSize
+    setMenuSize,
+    moveSelectionUp,
+    moveSelectionDown,
+    getSelectedNode
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -169,7 +173,10 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setSelectedOutputType: state.setSelectedOutputType,
       searchTerm: state.searchTerm,
       setSearchTerm: state.setSearchTerm,
-      setMenuSize: state.setMenuSize
+      setMenuSize: state.setMenuSize,
+      moveSelectionUp: state.moveSelectionUp,
+      moveSelectionDown: state.moveSelectionDown,
+      getSelectedNode: state.getSelectedNode
     }),
     isEqual
   );
@@ -177,6 +184,25 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   const namespaceTree = useNamespaceTree();
   const theme = useTheme();
   const memoizedStyles = useMemo(() => treeStyles(theme), [theme]);
+
+  // Hook for creating nodes
+  const handleCreateNode = useCreateNode();
+
+  // Keyboard navigation handlers
+  const handleArrowDown = useCallback(() => {
+    moveSelectionDown();
+  }, [moveSelectionDown]);
+
+  const handleArrowUp = useCallback(() => {
+    moveSelectionUp();
+  }, [moveSelectionUp]);
+
+  const handleEnter = useCallback(() => {
+    const selectedNode = getSelectedNode();
+    if (selectedNode) {
+      handleCreateNode(selectedNode);
+    }
+  }, [getSelectedNode, handleCreateNode]);
 
   useCombo(["Escape"], closeNodeMenu);
 
@@ -270,6 +296,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
                   onPressEscape={closeNodeMenu}
+                  onPressArrowDown={handleArrowDown}
+                  onPressArrowUp={handleArrowUp}
+                  onPressEnter={handleEnter}
                   searchResults={searchResults}
                 />
               </Box>
