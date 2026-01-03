@@ -1,34 +1,45 @@
 import { renderHook } from "@testing-library/react";
 import { Viewport } from "@xyflow/react";
+import { useReactFlowEvents } from "../useReactFlowEvents";
+import { useNodes } from "../../../contexts/NodeContext";
+import useNodeMenuStore from "../../../stores/NodeMenuStore";
+
+jest.mock("../../../contexts/NodeContext");
+jest.mock("../../../stores/NodeMenuStore");
 
 describe("useReactFlowEvents", () => {
   const mockSetViewport = jest.fn();
   const mockCloseNodeMenu = jest.fn();
 
+  const mockedUseNodes = useNodes as unknown as jest.Mock;
+  const mockedUseNodeMenuStore = useNodeMenuStore as unknown as jest.Mock;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.doMock("../../../contexts/NodeContext", () => ({
-      useNodes: jest.fn(() => ({ setViewport: mockSetViewport }))
-    }));
-    jest.doMock("../../../stores/NodeMenuStore", () => ({
-      default: jest.fn(() => ({ closeNodeMenu: mockCloseNodeMenu }))
-    }));
+    mockedUseNodes.mockImplementation((selector) => {
+      const state = {
+        setViewport: mockSetViewport,
+        edges: [],
+        nodes: []
+      };
+      return selector(state);
+    });
+    mockedUseNodeMenuStore.mockImplementation((selector) => {
+      const state = {
+        closeNodeMenu: mockCloseNodeMenu
+      };
+      return selector(state);
+    });
   });
 
-  afterEach(() => {
-    jest.resetModules();
-  });
-
-  it("returns handleMoveEnd and handleOnMoveStart functions", async () => {
-    const { useReactFlowEvents } = await import("../useReactFlowEvents");
+  it("returns handleMoveEnd and handleOnMoveStart functions", () => {
     const { result } = renderHook(() => useReactFlowEvents());
     expect(result.current.handleMoveEnd).toBeDefined();
     expect(result.current.handleOnMoveStart).toBeDefined();
   });
 
   describe("handleMoveEnd", () => {
-    it("calls setViewport with the viewport", async () => {
-      const { useReactFlowEvents } = await import("../useReactFlowEvents");
+    it("calls setViewport with the viewport", () => {
       const { result } = renderHook(() => useReactFlowEvents());
       const viewport: Viewport = { x: 100, y: 200, zoom: 1.5 };
       const event = {} as any;
@@ -40,8 +51,7 @@ describe("useReactFlowEvents", () => {
   });
 
   describe("handleOnMoveStart", () => {
-    it("calls closeNodeMenu when event type is pan", async () => {
-      const { useReactFlowEvents } = await import("../useReactFlowEvents");
+    it("calls closeNodeMenu when event type is pan", () => {
       const { result } = renderHook(() => useReactFlowEvents());
       const event = { type: "pan" } as any;
 
@@ -50,8 +60,7 @@ describe("useReactFlowEvents", () => {
       expect(mockCloseNodeMenu).toHaveBeenCalled();
     });
 
-    it("does not call closeNodeMenu for non-pan events", async () => {
-      const { useReactFlowEvents } = await import("../useReactFlowEvents");
+    it("does not call closeNodeMenu for non-pan events", () => {
       const { result } = renderHook(() => useReactFlowEvents());
       const event = { type: "zoom" } as any;
 

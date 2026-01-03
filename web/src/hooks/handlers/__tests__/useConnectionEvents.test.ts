@@ -15,8 +15,12 @@ describe("useConnectionEvents", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseNodes.mockReturnValue({
-      edges: mockEdges
+    mockedUseNodes.mockImplementation((selector) => {
+      const state = {
+        edges: mockEdges,
+        nodes: []
+      };
+      return selector(state);
     });
   });
 
