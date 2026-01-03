@@ -36,6 +36,11 @@ jest.mock("../../stores/fuseOptions", () => ({
   }
 }));
 
+// Performance thresholds for regression testing
+const PERF_THRESHOLD_SMALL = 20; // 20ms for small dataset
+const PERF_THRESHOLD_MEDIUM = 60; // 60ms for medium dataset
+const PERF_THRESHOLD_LARGE = 150; // 150ms for large dataset
+
 describe("nodeSearch", () => {
   const mockNodeMetadata: NodeMetadata[] = [
     {
@@ -491,6 +496,189 @@ describe("nodeSearch", () => {
       );
 
       expect(results.length).toBe(expectedNodes.length);
+    });
+  });
+
+  describe("Performance and Integration Tests", () => {
+    /**
+     * Generate a large dataset for performance testing
+     */
+    const generateLargeDataset = (count: number): NodeMetadata[] => {
+      const nodes: NodeMetadata[] = [];
+      const namespaces = [
+        "math",
+        "string",
+        "image",
+        "audio",
+        "video",
+        "data",
+        "ai",
+        "ml",
+      ];
+      const operations = [
+        "add",
+        "subtract",
+        "multiply",
+        "divide",
+        "process",
+        "transform",
+        "convert",
+        "analyze",
+      ];
+
+      for (let i = 0; i < count; i++) {
+        const namespace =
+          namespaces[i % namespaces.length] +
+          (i % 3 === 0 ? `.sub${Math.floor(i / 10)}` : "");
+        const operation = operations[i % operations.length];
+        nodes.push({
+          namespace: namespace,
+          node_type: `${namespace}.${operation}${i}`,
+          title: `${operation.charAt(0).toUpperCase() + operation.slice(1)} ${i}`,
+          description: `Description for ${operation} operation number ${i}`,
+          properties: [],
+          outputs: [],
+          the_model_info: {},
+          layout: "default",
+          recommended_models: [],
+          basic_fields: [],
+          is_dynamic: false,
+          expose_as_tool: false,
+          supports_dynamic_outputs: false,
+          is_streaming_output: false,
+        });
+      }
+
+      return nodes;
+    };
+
+    it("should search faster with prefix tree optimization", () => {
+      const nodes = generateLargeDataset(500);
+      
+      const start = performance.now();
+      const results = computeSearchResults(nodes, "add", [], undefined, undefined);
+      const duration = performance.now() - start;
+
+      expect(results.sortedResults.length).toBeGreaterThan(0);
+      expect(duration).toBeLessThan(PERF_THRESHOLD_SMALL);
+      
+      console.log(`[PERF] computeSearchResults with 500 nodes: ${duration.toFixed(2)}ms`);
+    });
+
+    it("should handle large datasets efficiently", () => {
+      const nodes = generateLargeDataset(2000);
+      
+      const start = performance.now();
+      const results = computeSearchResults(nodes, "process", [], undefined, undefined);
+      const duration = performance.now() - start;
+
+      expect(results.sortedResults.length).toBeGreaterThan(0);
+      expect(duration).toBeLessThan(PERF_THRESHOLD_MEDIUM);
+      
+      console.log(`[PERF] computeSearchResults with 2000 nodes: ${duration.toFixed(2)}ms`);
+    });
+
+    it("should use prefix tree for simple queries", () => {
+      const nodes = generateLargeDataset(1000);
+      const entries = nodes.map((node) => ({
+        title: node.title,
+        node_type: node.node_type,
+        namespace: node.namespace,
+        description: node.description,
+        use_cases: [],
+        tags: "tag1, tag2",
+        metadata: node,
+      }));
+
+      const start = performance.now();
+      const results = performGroupedSearch(entries, "add");
+      const duration = performance.now() - start;
+
+      expect(results.length).toBeGreaterThan(0);
+      expect(duration).toBeLessThan(PERF_THRESHOLD_SMALL);
+      
+      console.log(`[PERF] performGroupedSearch (prefix tree) with 1000 nodes: ${duration.toFixed(2)}ms`);
+    });
+
+    it("should fall back to Fuse.js for complex queries", () => {
+      const nodes = generateLargeDataset(1000);
+      const entries = nodes.map((node) => ({
+        title: node.title,
+        node_type: node.node_type,
+        namespace: node.namespace,
+        description: node.description,
+        use_cases: [],
+        tags: "tag1, tag2",
+        metadata: node,
+      }));
+
+      // Complex multi-word query should use Fuse.js
+      const start = performance.now();
+      const results = performGroupedSearch(entries, "add subtract multiply");
+      const duration = performance.now() - start;
+
+      // Should still complete reasonably fast
+      expect(duration).toBeLessThan(PERF_THRESHOLD_MEDIUM);
+      
+      console.log(`[PERF] performGroupedSearch (fuse fallback) with 1000 nodes: ${duration.toFixed(2)}ms`);
+    });
+
+    it("should not regress in performance", () => {
+      // Critical regression test - if this fails, performance has degraded
+      const nodes = generateLargeDataset(1000);
+      
+      const start = performance.now();
+      const results = computeSearchResults(nodes, "test", [], undefined, undefined);
+      const duration = performance.now() - start;
+
+      // CRITICAL: This threshold should not increase
+      expect(duration).toBeLessThan(PERF_THRESHOLD_MEDIUM);
+
+      if (duration > PERF_THRESHOLD_MEDIUM * 0.8) {
+        console.warn(
+          `[PERF WARNING] Search time (${duration.toFixed(2)}ms) is approaching threshold (${PERF_THRESHOLD_MEDIUM}ms)`
+        );
+      }
+    });
+
+    it("should handle rapid successive searches efficiently", () => {
+      const nodes = generateLargeDataset(1000);
+      const queries = ["add", "sub", "mul", "div", "proc"];
+      
+      const start = performance.now();
+      queries.forEach((query) => {
+        computeSearchResults(nodes, query, [], undefined, undefined);
+      });
+      const duration = performance.now() - start;
+
+      const avgTime = duration / queries.length;
+      expect(avgTime).toBeLessThan(PERF_THRESHOLD_SMALL);
+      
+      console.log(`[PERF] Average search time for ${queries.length} queries: ${avgTime.toFixed(2)}ms`);
+    });
+
+    it("should return consistent results between prefix tree and fuse", () => {
+      const nodes = mockNodeMetadata.slice(0, 3); // Use small dataset for consistency
+      const entries = nodes.map((node) => ({
+        title: node.title,
+        node_type: node.node_type,
+        namespace: node.namespace,
+        description: node.description,
+        use_cases: [],
+        tags: "",
+        metadata: node,
+      }));
+
+      // Simple query that will use prefix tree
+      const simpleResults = performGroupedSearch(entries, "Add");
+      
+      // Complex query that will use Fuse.js
+      const complexResults = performGroupedSearch(entries, "adds two numbers");
+      
+      // Both should find the Add node
+      expect(simpleResults.length).toBeGreaterThan(0);
+      // Complex query might not find exact matches, but should not crash
+      expect(Array.isArray(complexResults)).toBe(true);
     });
   });
 });

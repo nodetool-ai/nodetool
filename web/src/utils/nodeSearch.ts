@@ -6,6 +6,50 @@ import {
 } from "../components/node_menu/typeFilterUtils";
 import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
 import { fuseOptions, ExtendedFuseOptions } from "../stores/fuseOptions";
+import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
+
+export type SearchResultGroup = {
+  title: string;
+  nodes: NodeMetadata[];
+};
+
+// Global prefix tree instance for fast prefix searches
+let globalPrefixTree: PrefixTreeSearch | null = null;
+let globalPrefixTreeNodes: NodeMetadata[] = [];
+
+/**
+ * Initialize or update the global prefix tree with node metadata
+ */
+function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
+  // Check if we need to rebuild the tree
+  if (!globalPrefixTree || globalPrefixTreeNodes !== nodes) {
+    const searchFields: SearchField[] = [
+      { field: "title", weight: 1.0 },
+      { field: "namespace", weight: 0.8 },
+      { field: "description", weight: 0.4 },
+    ];
+    globalPrefixTree = new PrefixTreeSearch(searchFields);
+    globalPrefixTree.indexNodes(nodes);
+    globalPrefixTreeNodes = nodes;
+  }
+  return globalPrefixTree;
+}
+
+/**
+ * Determine if a query is suitable for prefix tree search
+ * Prefix tree is best for simple prefix queries
+ */
+function shouldUsePrefixTree(term: string): boolean {
+  // Use prefix tree for simple queries (no special search syntax)
+  // Avoid for very short queries (< 2 chars) or complex patterns
+  if (term.length < 2) return false;
+  
+  // Don't use prefix tree if the query has multiple words (better for fuzzy)
+  const words = term.trim().split(/\s+/);
+  if (words.length > 2) return false;
+  
+  return true;
+}
 
 export type SearchResultGroup = {
   title: string;
@@ -16,6 +60,50 @@ export function performGroupedSearch(
   entries: any[],
   term: string
 ): SearchResultGroup[] {
+  // Extract node metadata from entries
+  const nodes: NodeMetadata[] = entries.map((e) => e.metadata);
+  
+  // Try prefix tree search first for suitable queries
+  if (shouldUsePrefixTree(term)) {
+    const prefixTree = ensurePrefixTree(nodes);
+    const prefixResults = prefixTree.search(term, { maxResults: 100 });
+    
+    // If we got good results from prefix tree, use them
+    if (prefixResults.length > 0) {
+      // Group results by match type
+      const titleMatches: NodeMetadata[] = [];
+      const namespaceMatches: NodeMetadata[] = [];
+      const descriptionMatches: NodeMetadata[] = [];
+      
+      prefixResults.forEach((result) => {
+        if (result.matchedField === "title") {
+          titleMatches.push(result.node);
+        } else if (result.matchedField === "namespace") {
+          namespaceMatches.push(result.node);
+        } else if (result.matchedField === "description") {
+          descriptionMatches.push(result.node);
+        }
+      });
+      
+      const groups: SearchResultGroup[] = [];
+      if (titleMatches.length > 0) {
+        groups.push({ title: "Name", nodes: titleMatches });
+      }
+      if (namespaceMatches.length > 0) {
+        groups.push({ title: "Namespace + Tags", nodes: namespaceMatches });
+      }
+      if (descriptionMatches.length > 0) {
+        groups.push({ title: "Description", nodes: descriptionMatches });
+      }
+      
+      // Return prefix tree results if we found anything
+      if (groups.length > 0) {
+        return groups;
+      }
+    }
+  }
+  
+  // Fall back to Fuse.js for complex searches or when prefix tree didn't find results
   const titleFuse = new Fuse(entries, {
     ...fuseOptions,
     threshold: 0.2,
