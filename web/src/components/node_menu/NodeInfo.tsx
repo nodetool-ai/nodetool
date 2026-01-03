@@ -11,8 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
-import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import { HighlightText } from "../ui_primitives/HighlightText";
 import isEqual from "lodash/isEqual";
 
 interface NodeInfoProps {
@@ -224,16 +224,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     [setSearchTerm]
   );
 
-  const { data: formattedDoc } = useQuery({
-    queryKey: ["formattedDoc", nodeMetadata.namespace, nodeMetadata.title],
-    queryFn: async () => {
-      return formatNodeDocumentation(
-        nodeMetadata?.description || "",
-        searchTerm,
-        nodeMetadata.searchInfo
-      );
-    }
-  });
   const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag, index) => (
       <span
@@ -247,13 +237,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       </span>
     ));
   };
-
-  const descHtml = highlightTextUtil(
-    description.description,
-    "description",
-    searchTerm,
-    nodeMetadata.searchInfo
-  ).html;
 
   const theme = useTheme();
   return (
@@ -274,10 +257,10 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </div>
       <div className="node-description">
-        <span
-          dangerouslySetInnerHTML={{
-            __html: descHtml
-          }}
+        <HighlightText 
+          text={description.description} 
+          query={searchTerm} 
+          matchStyle="primary"
         />
       </div>
       <Typography className="node-tags">
@@ -287,10 +270,11 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         {description.useCases.raw && (
           <>
             <h4>Use cases</h4>
-            <div
-              dangerouslySetInnerHTML={{
-                __html: description.useCases.html
-              }}
+            <HighlightText 
+              text={description.useCases.raw} 
+              query={searchTerm} 
+              matchStyle="primary"
+              isBulletList={true}
             />
           </>
         )}

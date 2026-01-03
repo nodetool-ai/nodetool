@@ -182,9 +182,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // Ensure search is performed after menu opens with a preset term
   useEffect(() => {
-    if (!isMenuOpen) {return;}
-    if (!searchTerm || searchTerm.trim() === "") {return;}
-    if (searchResults.length > 0) {return;}
+    if (!isMenuOpen) { return; }
+    if (!searchTerm || searchTerm.trim() === "") { return; }
+    if (searchResults.length > 0) { return; }
     try {
       const state: any = (useNodeMenuStore as any).getState?.();
       // Do not clear selectedPath here; just perform search with current path
@@ -217,12 +217,12 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // If initial position clips right/bottom, correct after mount using measured size
   useEffect(() => {
-    if (!isMenuOpen) {return;}
+    if (!isMenuOpen) { return; }
     const el = nodeRef.current;
-    if (!el) {return;}
+    if (!el) { return; }
     const width = el.offsetWidth;
     const height = el.offsetHeight;
-    if (!Number.isFinite(width) || !Number.isFinite(height)) {return;}
+    if (!Number.isFinite(width) || !Number.isFinite(height)) { return; }
     const maxX = Math.max(0, window.innerWidth - width - 10);
     const maxY = Math.max(
       0,
@@ -250,7 +250,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     >
       <Box
         ref={nodeRef}
-        sx={{ minWidth: "900px", maxHeight: menuHeight }}
+        sx={{ minWidth: "800px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
       >

@@ -380,8 +380,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                     "--quick-shadow": shadow,
                     "--quick-shadow-hover": hoverShadow ?? shadow,
                     "--quick-icon-color": iconColor,
-                    // Use a separate variable for the initial background so we can override it easily or use the class
-                    background: "rgba(18, 18, 20, 0.5)" 
+                    background: theme.vars.palette.action.hoverBackground 
                   } as CSSProperties
                 }
               >
