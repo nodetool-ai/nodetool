@@ -195,22 +195,22 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return nodes.filter((node) => node.parentId === props.id);
   }, [nodes, props.id]);
 
-  // Check if majority of child nodes are bypassed
-  const childrenMajorityBypassed = useMemo(() => {
+  // Check if some child nodes are bypassed (at least 1)
+  const someChildrenBypassed = useMemo(() => {
     if (childNodes.length === 0) {
       return false;
     }
     const bypassedCount = childNodes.filter((n) => n.data.bypassed).length;
-    return bypassedCount >= childNodes.length / 2;
+    return bypassedCount >= 1;
   }, [childNodes]);
 
   // Toggle bypass on all child nodes
   const toggleBypassChildren = useCallback(() => {
-    const shouldBypass = !childrenMajorityBypassed;
+    const shouldBypass = !someChildrenBypassed;
     childNodes.forEach((node) => {
       setBypass(node.id, shouldBypass);
     });
-  }, [childNodes, childrenMajorityBypassed, setBypass]);
+  }, [childNodes, someChildrenBypassed, setBypass]);
 
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
@@ -375,13 +375,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </div>
           <div className="action-buttons">
             <ColorPicker
-              buttonSize={26}
+              buttonSize={24}
               color={color || null}
               onColorChange={handleColorChange}
             />
             {childNodes.length > 0 && (
               <BypassGroupButton
-                isBypassed={childrenMajorityBypassed}
+                isBypassed={someChildrenBypassed}
                 onClick={toggleBypassChildren}
               />
             )}

@@ -14,8 +14,7 @@ const styles = (theme: Theme, isRunning: boolean) =>
       padding: 0,
       borderRadius: "50%",
       backgroundColor: theme.vars.palette.primary.main,
-      border: `1px solid ${theme.vars.palette.primary.light}`,
-      color: theme.vars.palette.common.white,
+      color: theme.vars.palette.common.black,
       transition: "all 0.15s ease",
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.light,
@@ -31,7 +30,7 @@ const styles = (theme: Theme, isRunning: boolean) =>
       "& .MuiCircularProgress-root": {
         width: "16px !important",
         height: "16px !important",
-        color: theme.vars.palette.common.white
+        color: theme.vars.palette.common.black
       }
     }
   });
