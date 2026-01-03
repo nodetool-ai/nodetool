@@ -88,7 +88,7 @@ const renderPropertyChange = (change: PropertyChange, index: number) => {
 };
 
 const NodeDiffItem: React.FC<{
-  node: Node;
+  node: { id: string; type?: string };
   type: "added" | "removed";
 }> = ({ node, type }) => (
   <ListItem
@@ -170,7 +170,7 @@ const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = ({
 );
 
 const EdgeDiffItem: React.FC<{
-  edge: Edge;
+  edge: { source?: string; target?: string };
   type: "added" | "removed";
 }> = ({ edge, type }) => (
   <ListItem

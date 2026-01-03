@@ -13,7 +13,8 @@ import {
   Tooltip,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction
+  ListItemSecondaryAction,
+  CircularProgress
 } from "@mui/material";
 import {
   Restore as RestoreIcon,
@@ -22,11 +23,12 @@ import {
   PushPinOutlined as PinOutlinedIcon,
   Compare as CompareIcon
 } from "@mui/icons-material";
-import { WorkflowVersion, SaveType } from "../../stores/VersionHistoryStore";
+import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow } from "date-fns";
+import { WorkflowVersion } from "../../stores/ApiTypes";
 
 interface VersionListItemProps {
-  version: WorkflowVersion;
+  version: WorkflowVersion & { save_type: SaveType; size_bytes: number; is_pinned?: boolean };
   isSelected: boolean;
   isCompareTarget: boolean;
   compareMode: boolean;
@@ -35,6 +37,7 @@ interface VersionListItemProps {
   onDelete: (versionId: string) => void;
   onPin: (versionId: string, pinned: boolean) => void;
   onCompare: (versionId: string) => void;
+  isRestoring?: boolean;
 }
 
 const getSaveTypeLabel = (saveType: SaveType): string => {
@@ -88,7 +91,8 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   onRestore,
   onDelete,
   onPin,
-  onCompare
+  onCompare,
+  isRestoring = false
 }) => {
   const handleClick = useCallback(() => {
     if (compareMode) {
@@ -150,14 +154,15 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
           bgcolor: "action.hover"
         },
         mb: 0.5,
-        borderRadius: 1
+        borderRadius: 1,
+        opacity: isRestoring ? 0.6 : 1
       }}
     >
       <ListItemText
         primary={
           <Box display="flex" alignItems="center" gap={1}>
             <Typography variant="body2" fontWeight="medium">
-              v{version.version_number}
+              v{version.version}
             </Typography>
             <Chip
               label={getSaveTypeLabel(version.save_type)}
@@ -201,6 +206,8 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
                 <CompareIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+          ) : isRestoring ? (
+            <CircularProgress size={20} />
           ) : (
             <>
               <Tooltip title="Restore this version">

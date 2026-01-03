@@ -31,12 +31,10 @@ import {
 } from "@mui/icons-material";
 import { VersionListItem } from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
-import {
-  useVersionHistoryStore,
-  WorkflowVersion,
-  SaveType
-} from "../../stores/VersionHistoryStore";
+import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
+import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
+import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -44,34 +42,56 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
+const getSaveTypeFromName = (name?: string): SaveType => {
+  if (!name) return "autosave";
+  const lower = name.toLowerCase();
+  if (lower.includes("manual")) return "manual";
+  if (lower.includes("checkpoint")) return "checkpoint";
+  if (lower.includes("restore")) return "restore";
+  return "autosave";
+};
+
 export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   workflowId,
   onRestore,
   onClose
 }) => {
   const {
-    getVersions,
     selectedVersionId,
     compareVersionId,
     isCompareMode,
     setSelectedVersion,
     setCompareVersion,
     setCompareMode,
-    deleteVersion,
-    pinVersion
+    setHistoryPanelOpen
   } = useVersionHistoryStore();
+
+  const {
+    data: apiVersions,
+    isLoading,
+    error,
+    restoreVersion,
+    isRestoringVersion
+  } = useWorkflowVersions(workflowId);
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [versionToDelete, setVersionToDelete] = useState<string | null>(null);
 
-  const versions = useMemo(() => {
-    const allVersions = getVersions(workflowId);
-    if (filterType === "all") {
-      return allVersions;
+  const versions: Array<WorkflowVersion & { save_type: SaveType; size_bytes: number }> = useMemo(() => {
+    if (!apiVersions?.versions) {
+      return [];
     }
-    return allVersions.filter((v) => v.save_type === filterType);
-  }, [workflowId, getVersions, filterType]);
+    let filtered = apiVersions.versions;
+    if (filterType !== "all") {
+      filtered = filtered.filter((v) => getSaveTypeFromName(v.name) === filterType);
+    }
+    return filtered.map((v) => ({
+      ...v,
+      save_type: getSaveTypeFromName(v.name),
+      size_bytes: new Blob([JSON.stringify(v.graph)]).size
+    }));
+  }, [apiVersions, filterType]);
 
   const selectedVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId),
@@ -83,18 +103,19 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     [versions, compareVersionId]
   );
 
-  // Compute diff between selected versions
   const diff: GraphDiff | null = useMemo(() => {
     if (!selectedVersion || !compareVersion) {
       return null;
     }
-    // Order by version number (older first)
     const [older, newer] =
-      selectedVersion.version_number < compareVersion.version_number
+      selectedVersion.version < compareVersion.version
         ? [selectedVersion, compareVersion]
         : [compareVersion, selectedVersion];
 
-    return computeGraphDiff(older.graph_snapshot, newer.graph_snapshot);
+    return computeGraphDiff(
+      older.graph as unknown as Graph,
+      newer.graph as unknown as Graph
+    );
   }, [selectedVersion, compareVersion]);
 
   const handleSelect = useCallback(
@@ -111,7 +132,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       if (!selectedVersionId) {
         setSelectedVersion(versionId);
       } else if (selectedVersionId === versionId) {
-        // Deselect if clicking the same version
         setSelectedVersion(null);
       } else {
         setCompareVersion(versionId);
@@ -127,7 +147,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
   const handleConfirmDelete = useCallback(() => {
     if (versionToDelete) {
-      deleteVersion(versionToDelete);
       if (selectedVersionId === versionToDelete) {
         setSelectedVersion(null);
       }
@@ -139,18 +158,26 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setVersionToDelete(null);
   }, [
     versionToDelete,
-    deleteVersion,
     selectedVersionId,
     compareVersionId,
     setSelectedVersion,
     setCompareVersion
   ]);
 
-  const handlePin = useCallback(
-    (versionId: string, pinned: boolean) => {
-      pinVersion(versionId, pinned);
+  const handlePin = useCallback((versionId: string, _pinned: boolean) => {
+  }, []);
+
+  const handleRestore = useCallback(
+    async (version: WorkflowVersion) => {
+      try {
+        await restoreVersion(version.version);
+        onRestore(version);
+        setHistoryPanelOpen(false);
+      } catch (error) {
+        console.error("Failed to restore version:", error);
+      }
     },
-    [pinVersion]
+    [restoreVersion, onRestore, setHistoryPanelOpen]
   );
 
   const handleFilterChange = useCallback(
@@ -178,6 +205,55 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareMode(false);
   }, [setSelectedVersion, setCompareVersion, setCompareMode]);
 
+  if (isLoading) {
+    return (
+      <Paper
+        elevation={3}
+        sx={{
+          width: 360,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 3
+        }}
+      >
+        <CircularProgress size={32} sx={{ mb: 2 }} />
+        <Typography color="text.secondary">Loading versions...</Typography>
+      </Paper>
+    );
+  }
+
+  if (error) {
+    return (
+      <Paper
+        elevation={3}
+        sx={{
+          width: 360,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          p: 3
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <HistoryIcon color="primary" />
+            <Typography variant="h6">Version History</Typography>
+          </Box>
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <Typography color="error">Failed to load versions</Typography>
+        <Typography variant="caption" color="text.secondary">
+          {String(error)}
+        </Typography>
+      </Paper>
+    );
+  }
+
   return (
     <Paper
       elevation={3}
@@ -189,7 +265,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         overflow: "hidden"
       }}
     >
-      {/* Header */}
       <Box
         sx={{
           p: 2,
@@ -209,7 +284,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </IconButton>
       </Box>
 
-      {/* Toolbar */}
       <Box sx={{ p: 1, borderBottom: 1, borderColor: "divider" }}>
         <Box
           sx={{
@@ -261,7 +335,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </Box>
       </Box>
 
-      {/* Compare Instructions */}
       {isCompareMode && !compareVersionId && (
         <Box
           sx={{
@@ -277,7 +350,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </Box>
       )}
 
-      {/* Diff View */}
       {diff && selectedVersion && compareVersion && (
         <Box
           sx={{
@@ -291,18 +363,17 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           <VersionDiff
             diff={diff}
             oldVersionNumber={Math.min(
-              selectedVersion.version_number,
-              compareVersion.version_number
+              selectedVersion.version,
+              compareVersion.version
             )}
             newVersionNumber={Math.max(
-              selectedVersion.version_number,
-              compareVersion.version_number
+              selectedVersion.version,
+              compareVersion.version
             )}
           />
         </Box>
       )}
 
-      {/* Version List */}
       <Box sx={{ flex: 1, overflow: "auto" }}>
         {versions.length === 0 ? (
           <Box sx={{ p: 3, textAlign: "center" }}>
@@ -323,17 +394,17 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 isCompareTarget={compareVersionId === version.id}
                 compareMode={isCompareMode}
                 onSelect={handleSelect}
-                onRestore={onRestore}
+                onRestore={handleRestore}
                 onDelete={handleDelete}
                 onPin={handlePin}
                 onCompare={handleCompare}
+                isRestoring={isRestoringVersion}
               />
             ))}
           </List>
         )}
       </Box>
 
-      {/* Footer */}
       <Box
         sx={{
           p: 1,
@@ -347,7 +418,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </Typography>
       </Box>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}

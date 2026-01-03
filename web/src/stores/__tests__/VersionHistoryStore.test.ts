@@ -1,265 +1,198 @@
+import { renderHook, act } from "@testing-library/react";
 import { useVersionHistoryStore } from "../VersionHistoryStore";
-import { Graph } from "../ApiTypes";
 
 describe("VersionHistoryStore", () => {
-  const initialState = useVersionHistoryStore.getState();
-
-  const mockGraph: Graph = {
-    nodes: [
-      {
-        id: "node-1",
-        type: "test.node",
-        sync_mode: "on_any",
-        data: { value: 1 }
-      },
-      {
-        id: "node-2",
-        type: "test.node",
-        sync_mode: "on_any",
-        data: { value: 2 }
-      }
-    ],
-    edges: [
-      {
-        source: "node-1",
-        sourceHandle: "output",
-        target: "node-2",
-        targetHandle: "input"
-      }
-    ]
-  };
-
   beforeEach(() => {
-    useVersionHistoryStore.setState(initialState, true);
-    localStorage.clear();
-  });
-
-  describe("saveVersion", () => {
-    it("should save a new version for a workflow", () => {
-      const { saveVersion, getVersions } = useVersionHistoryStore.getState();
-
-      const version = saveVersion("workflow-1", mockGraph, "manual", "Test save");
-
-      expect(version).toBeDefined();
-      expect(version.workflow_id).toBe("workflow-1");
-      expect(version.version_number).toBe(1);
-      expect(version.save_type).toBe("manual");
-      expect(version.description).toBe("Test save");
-      expect(version.graph_snapshot).toEqual(mockGraph);
-
-      const versions = getVersions("workflow-1");
-      expect(versions).toHaveLength(1);
-    });
-
-    it("should increment version numbers for each save", () => {
-      const { saveVersion, getVersions } = useVersionHistoryStore.getState();
-
-      saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-1", mockGraph, "autosave");
-      const v3 = saveVersion("workflow-1", mockGraph, "checkpoint");
-
-      expect(v3.version_number).toBe(3);
-
-      const versions = getVersions("workflow-1");
-      expect(versions).toHaveLength(3);
-      expect(versions[0].version_number).toBe(3); // Most recent first
-    });
-
-    it("should reset edit count after saving", () => {
-      const { saveVersion, incrementEditCount, getEditCount } =
-        useVersionHistoryStore.getState();
-
-      incrementEditCount("workflow-1");
-      incrementEditCount("workflow-1");
-      expect(getEditCount("workflow-1")).toBe(2);
-
-      saveVersion("workflow-1", mockGraph, "manual");
-      expect(getEditCount("workflow-1")).toBe(0);
+    useVersionHistoryStore.setState({
+      selectedVersionId: null,
+      compareVersionId: null,
+      isCompareMode: false,
+      isHistoryPanelOpen: false,
+      lastAutosaveTime: {},
+      editCountSinceLastSave: {}
     });
   });
 
-  describe("getVersions", () => {
-    it("should return versions sorted by version number descending", () => {
-      const { saveVersion, getVersions } = useVersionHistoryStore.getState();
+  describe("UI State", () => {
+    test("should manage selected version", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
 
-      saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-1", mockGraph, "autosave");
-      saveVersion("workflow-1", mockGraph, "manual");
+      act(() => {
+        result.current.setSelectedVersion("v1");
+      });
 
-      const versions = getVersions("workflow-1");
-      expect(versions[0].version_number).toBe(3);
-      expect(versions[1].version_number).toBe(2);
-      expect(versions[2].version_number).toBe(1);
+      expect(result.current.selectedVersionId).toBe("v1");
+
+      act(() => {
+        result.current.setSelectedVersion(null);
+      });
+
+      expect(result.current.selectedVersionId).toBe(null);
     });
 
-    it("should return empty array for unknown workflow", () => {
-      const { getVersions } = useVersionHistoryStore.getState();
-      const versions = getVersions("unknown-workflow");
-      expect(versions).toEqual([]);
+    test("should manage compare mode", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
+
+      act(() => {
+        result.current.setCompareMode(true);
+      });
+
+      expect(result.current.isCompareMode).toBe(true);
+      expect(result.current.compareVersionId).toBe(null);
+
+      act(() => {
+        result.current.setCompareVersion("v2");
+      });
+
+      expect(result.current.compareVersionId).toBe("v2");
+
+      act(() => {
+        result.current.setCompareMode(false);
+      });
+
+      expect(result.current.isCompareMode).toBe(false);
+      expect(result.current.compareVersionId).toBe(null);
     });
-  });
 
-  describe("getVersion", () => {
-    it("should return a specific version by id", () => {
-      const { saveVersion, getVersion } = useVersionHistoryStore.getState();
+    test("should manage history panel open state", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
 
-      const saved = saveVersion("workflow-1", mockGraph, "manual");
-      const retrieved = getVersion(saved.id);
+      act(() => {
+        result.current.setHistoryPanelOpen(true);
+      });
 
-      expect(retrieved).toBeDefined();
-      expect(retrieved?.id).toBe(saved.id);
-    });
+      expect(result.current.isHistoryPanelOpen).toBe(true);
 
-    it("should return undefined for unknown version id", () => {
-      const { getVersion } = useVersionHistoryStore.getState();
-      const version = getVersion("unknown-id");
-      expect(version).toBeUndefined();
-    });
-  });
+      act(() => {
+        result.current.setHistoryPanelOpen(false);
+      });
 
-  describe("deleteVersion", () => {
-    it("should remove a version by id", () => {
-      const { saveVersion, getVersions, deleteVersion } =
-        useVersionHistoryStore.getState();
-
-      const v1 = saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-1", mockGraph, "autosave");
-
-      deleteVersion(v1.id);
-
-      const versions = getVersions("workflow-1");
-      expect(versions).toHaveLength(1);
-      expect(versions[0].version_number).toBe(2);
-    });
-  });
-
-  describe("pinVersion", () => {
-    it("should toggle pin state of a version", () => {
-      const { saveVersion, getVersion, pinVersion } =
-        useVersionHistoryStore.getState();
-
-      const v = saveVersion("workflow-1", mockGraph, "manual");
-      expect(v.is_pinned).toBe(false);
-
-      pinVersion(v.id, true);
-      expect(getVersion(v.id)?.is_pinned).toBe(true);
-
-      pinVersion(v.id, false);
-      expect(getVersion(v.id)?.is_pinned).toBe(false);
+      expect(result.current.isHistoryPanelOpen).toBe(false);
     });
   });
 
-  describe("edit count tracking", () => {
-    it("should track edit counts per workflow", () => {
-      const { incrementEditCount, getEditCount, resetEditCount } =
-        useVersionHistoryStore.getState();
+  describe("Edit Count Tracking", () => {
+    test("should increment edit count", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
 
-      incrementEditCount("workflow-1");
-      incrementEditCount("workflow-1");
-      incrementEditCount("workflow-2");
+      expect(result.current.getEditCount("wf1")).toBe(0);
 
-      expect(getEditCount("workflow-1")).toBe(2);
-      expect(getEditCount("workflow-2")).toBe(1);
+      act(() => {
+        result.current.incrementEditCount("wf1");
+      });
 
-      resetEditCount("workflow-1");
-      expect(getEditCount("workflow-1")).toBe(0);
-      expect(getEditCount("workflow-2")).toBe(1);
+      expect(result.current.getEditCount("wf1")).toBe(1);
+
+      act(() => {
+        result.current.incrementEditCount("wf1");
+      });
+
+      expect(result.current.getEditCount("wf1")).toBe(2);
+    });
+
+    test("should reset edit count", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
+
+      act(() => {
+        result.current.incrementEditCount("wf1");
+        result.current.incrementEditCount("wf1");
+      });
+
+      expect(result.current.getEditCount("wf1")).toBe(2);
+
+      act(() => {
+        result.current.resetEditCount("wf1");
+      });
+
+      expect(result.current.getEditCount("wf1")).toBe(0);
+    });
+
+    test("should track edit counts per workflow", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
+
+      act(() => {
+        result.current.incrementEditCount("wf1");
+        result.current.incrementEditCount("wf1");
+        result.current.incrementEditCount("wf2");
+      });
+
+      expect(result.current.getEditCount("wf1")).toBe(2);
+      expect(result.current.getEditCount("wf2")).toBe(1);
+      expect(result.current.getEditCount("wf3")).toBe(0);
     });
   });
 
-  describe("compare mode", () => {
-    it("should manage comparison state", () => {
-      const {
-        setCompareMode,
-        setSelectedVersion,
-        setCompareVersion,
-        saveVersion
-      } = useVersionHistoryStore.getState();
+  describe("Autosave Time Tracking", () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
 
-      const v1 = saveVersion("workflow-1", mockGraph, "manual");
-      const v2 = saveVersion("workflow-1", mockGraph, "manual");
+    afterEach(() => {
+      jest.useRealTimers();
+    });
 
-      setSelectedVersion(v1.id);
-      setCompareMode(true);
-      setCompareVersion(v2.id);
+    test("should update last autosave time", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
 
-      const state = useVersionHistoryStore.getState();
-      expect(state.isCompareMode).toBe(true);
-      expect(state.selectedVersionId).toBe(v1.id);
-      expect(state.compareVersionId).toBe(v2.id);
+      const beforeTime = Date.now();
 
-      // Disabling compare mode should clear compare version
-      setCompareMode(false);
-      expect(useVersionHistoryStore.getState().compareVersionId).toBeNull();
+      act(() => {
+        result.current.updateLastAutosaveTime("wf1");
+      });
+
+      const afterTime = Date.now();
+      const savedTime = result.current.getLastAutosaveTime("wf1");
+
+      expect(savedTime).toBeGreaterThanOrEqual(beforeTime);
+      expect(savedTime).toBeLessThanOrEqual(afterTime);
+    });
+
+    test("should track autosave time per workflow", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
+
+      act(() => {
+        result.current.updateLastAutosaveTime("wf1");
+      });
+
+      const wf1Time = result.current.getLastAutosaveTime("wf1");
+
+      act(() => {
+        result.current.updateLastAutosaveTime("wf2");
+      });
+
+      expect(result.current.getLastAutosaveTime("wf1")).toBe(wf1Time);
+      expect(result.current.getLastAutosaveTime("wf2")).toBeGreaterThan(wf1Time);
     });
   });
 
-  describe("pruneOldVersions", () => {
-    it("should respect max versions limit", () => {
-      const { saveVersion, getVersions, pruneOldVersions } =
-        useVersionHistoryStore.getState();
+  describe("clearState", () => {
+    test("should clear all state", () => {
+      const { result } = renderHook(() => useVersionHistoryStore());
 
-      // Save 5 versions
-      for (let i = 0; i < 5; i++) {
-        saveVersion("workflow-1", mockGraph, "manual");
-      }
+      act(() => {
+        result.current.setSelectedVersion("v1");
+        result.current.setCompareVersion("v2");
+        result.current.setCompareMode(true);
+        result.current.setHistoryPanelOpen(true);
+        result.current.incrementEditCount("wf1");
+        result.current.updateLastAutosaveTime("wf1");
+      });
 
-      expect(getVersions("workflow-1")).toHaveLength(5);
+      expect(result.current.selectedVersionId).toBe("v1");
+      expect(result.current.compareVersionId).toBe("v2");
+      expect(result.current.isCompareMode).toBe(true);
+      expect(result.current.isHistoryPanelOpen).toBe(true);
+      expect(result.current.getEditCount("wf1")).toBe(1);
+      expect(result.current.getLastAutosaveTime("wf1")).toBeGreaterThan(0);
 
-      // Prune to max 3
-      pruneOldVersions("workflow-1", 3, 90, 7);
+      act(() => {
+        result.current.clearState();
+      });
 
-      expect(getVersions("workflow-1")).toHaveLength(3);
-    });
-
-    it("should preserve pinned versions", () => {
-      const { saveVersion, getVersions, pinVersion, pruneOldVersions } =
-        useVersionHistoryStore.getState();
-
-      const v1 = saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-1", mockGraph, "manual");
-
-      // Pin the first version
-      pinVersion(v1.id, true);
-
-      // Prune to max 2
-      pruneOldVersions("workflow-1", 2, 90, 7);
-
-      const versions = getVersions("workflow-1");
-      // Should have 2 versions: 1 pinned + 1 most recent
-      expect(versions.length).toBeLessThanOrEqual(3);
-      expect(versions.some((v) => v.id === v1.id)).toBe(true);
-    });
-  });
-
-  describe("clearVersions", () => {
-    it("should clear all versions for a workflow", () => {
-      const { saveVersion, getVersions, clearVersions } =
-        useVersionHistoryStore.getState();
-
-      saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-1", mockGraph, "manual");
-      saveVersion("workflow-2", mockGraph, "manual");
-
-      clearVersions("workflow-1");
-
-      expect(getVersions("workflow-1")).toHaveLength(0);
-      expect(getVersions("workflow-2")).toHaveLength(1);
-    });
-  });
-
-  describe("UI state", () => {
-    it("should manage history panel open state", () => {
-      const { setHistoryPanelOpen } = useVersionHistoryStore.getState();
-
-      setHistoryPanelOpen(true);
-      expect(useVersionHistoryStore.getState().isHistoryPanelOpen).toBe(true);
-
-      setHistoryPanelOpen(false);
-      expect(useVersionHistoryStore.getState().isHistoryPanelOpen).toBe(false);
+      expect(result.current.selectedVersionId).toBe(null);
+      expect(result.current.compareVersionId).toBe(null);
+      expect(result.current.isCompareMode).toBe(false);
+      expect(result.current.isHistoryPanelOpen).toBe(false);
     });
   });
 });

@@ -37,6 +37,40 @@ export type WorkflowList = components["schemas"]["WorkflowList"];
 export type WorkflowTool = components["schemas"]["WorkflowTool"];
 export type WorkflowToolList = components["schemas"]["WorkflowToolList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
+
+// Manual types for workflow versions (until backend generates them)
+export interface WorkflowVersion {
+  id: string;
+  workflow_id: string;
+  version: number;
+  created_at: string;
+  name?: string;
+  description?: string;
+  is_pinned?: boolean;
+  graph: {
+    nodes: Array<{
+      id: string;
+      type: string;
+      data?: Record<string, unknown>;
+    }>;
+    edges: Array<{
+      id: string;
+      source: string;
+      target: string;
+    }>;
+  };
+}
+
+export interface WorkflowVersionList {
+  versions: WorkflowVersion[];
+  next: string | null;
+}
+
+export interface CreateWorkflowVersionRequest {
+  name?: string;
+  description?: string;
+}
+
 export type Property = components["schemas"]["Property"];
 export type OutputSlot = components["schemas"]["OutputSlot"];
 export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];

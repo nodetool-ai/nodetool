@@ -276,11 +276,10 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       : undefined
   );
 
-  const { isHistoryPanelOpen, setHistoryPanelOpen, saveVersion, incrementEditCount } = useVersionHistoryStore(
+  const { isHistoryPanelOpen, setHistoryPanelOpen, incrementEditCount } = useVersionHistoryStore(
     (state) => ({
       isHistoryPanelOpen: state.isHistoryPanelOpen,
       setHistoryPanelOpen: state.setHistoryPanelOpen,
-      saveVersion: state.saveVersion,
       incrementEditCount: state.incrementEditCount
     })
   );
@@ -439,7 +438,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const theme = useTheme();
 
   // Handler to restore a workflow version
-  const handleRestoreVersion = (version: WorkflowVersion) => {
+  const handleRestoreVersion = async (version: WorkflowVersion) => {
     if (!activeNodeStore || !currentWorkflowId) {
       return;
     }
@@ -447,28 +446,38 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     const storeState = activeNodeStore.getState();
     const workflow = storeState.getWorkflow();
 
-    // Save current state as a "restore" version before applying the old one
-    if (workflow && workflow.graph) {
-      saveVersion(currentWorkflowId, workflow.graph, "restore", "Before restore");
-    }
-
     // Import the conversion functions dynamically to avoid circular deps
-    Promise.all([
+    const [{ graphNodeToReactFlowNode }, { graphEdgeToReactFlowEdge }] = await Promise.all([
       import("../../stores/graphNodeToReactFlowNode"),
       import("../../stores/graphEdgeToReactFlowEdge")
-    ]).then(([{ graphNodeToReactFlowNode }, { graphEdgeToReactFlowEdge }]) => {
-      const graph = version.graph_snapshot;
-      const newNodes = graph.nodes.map((n) =>
-        graphNodeToReactFlowNode({ ...workflow, graph } as Workflow, n)
-      );
-      const newEdges = graph.edges.map((e) => graphEdgeToReactFlowEdge(e));
+    ]);
 
-      storeState.setNodes(newNodes);
-      storeState.setEdges(newEdges);
-      storeState.setWorkflowDirty(true);
-    }).catch((error) => {
-      console.error("Failed to restore version:", error);
-    });
+    const graph = version.graph;
+    const newNodes = graph.nodes.map((n) =>
+      graphNodeToReactFlowNode(
+        { ...workflow, graph: graph as unknown as Workflow["graph"] } as Workflow,
+        {
+          ...n,
+          sync_mode: "on_any" as const,
+          ui_properties: null,
+          parent_id: null,
+          dynamic_properties: {},
+          dynamic_outputs: {}
+        }
+      )
+    );
+    const newEdges = graph.edges.map((e) =>
+      graphEdgeToReactFlowEdge({
+        ...e,
+        sourceHandle: "output",
+        targetHandle: "input",
+        ui_properties: null
+      })
+    );
+
+    storeState.setNodes(newNodes);
+    storeState.setEdges(newEdges);
+    storeState.setWorkflowDirty(true);
 
     setHistoryPanelOpen(false);
   };

@@ -12,7 +12,8 @@ import { useEffect, useRef, useCallback } from "react";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useVersionHistoryStore } from "../stores/VersionHistoryStore";
 import { useNotificationStore } from "../stores/NotificationStore";
-import { Workflow } from "../stores/ApiTypes";
+import { Workflow, Graph } from "../stores/ApiTypes";
+import { useWorkflowVersions } from "../serverState/useWorkflowVersions";
 
 export interface UseAutosaveOptions {
   workflowId: string | null;
@@ -31,6 +32,23 @@ export interface UseAutosaveReturn {
 
 const SIGNIFICANT_EDITS_THRESHOLD = 20;
 
+const convertSaveTypeToName = (
+  saveType: "manual" | "autosave" | "restore" | "checkpoint"
+): string => {
+  switch (saveType) {
+    case "manual":
+      return "Manual Save";
+    case "autosave":
+      return "Autosave";
+    case "checkpoint":
+      return "Checkpoint";
+    case "restore":
+      return "Restored";
+    default:
+      return saveType;
+  }
+};
+
 export const useAutosave = (
   options: UseAutosaveOptions
 ): UseAutosaveReturn => {
@@ -44,59 +62,33 @@ export const useAutosave = (
   );
 
   const {
-    saveVersion,
-    getEditCount,
+    incrementEditCount,
     resetEditCount,
     getLastAutosaveTime,
-    updateLastAutosaveTime,
-    pruneOldVersions
+    updateLastAutosaveTime
   } = useVersionHistoryStore((state) => ({
-    saveVersion: state.saveVersion,
-    getEditCount: state.getEditCount,
+    incrementEditCount: state.incrementEditCount,
     resetEditCount: state.resetEditCount,
     getLastAutosaveTime: state.getLastAutosaveTime,
-    updateLastAutosaveTime: state.updateLastAutosaveTime,
-    pruneOldVersions: state.pruneOldVersions
+    updateLastAutosaveTime: state.updateLastAutosaveTime
   }));
+
+  const {
+    createVersion,
+    isCreatingVersion
+  } = useWorkflowVersions(workflowId);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
 
-  // Get current values for the workflow
   const editCountSinceLastSave = workflowId ? getEditCount(workflowId) : 0;
   const lastAutosaveTime = workflowId ? getLastAutosaveTime(workflowId) : 0;
 
   /**
-   * Create a version snapshot
-   */
-  const createVersion = useCallback(
-    (
-      workflow: Workflow,
-      saveType: "manual" | "autosave" | "restore" | "checkpoint",
-      description?: string
-    ) => {
-      if (!workflow.id || !workflow.graph) {
-        return;
-      }
-
-      saveVersion(workflow.id, workflow.graph, saveType, description);
-
-      // Prune old versions after saving
-      pruneOldVersions(
-        workflow.id,
-        autosaveSettings.maxVersionsPerWorkflow,
-        autosaveSettings.keepManualVersionsDays,
-        autosaveSettings.keepAutosaveVersionsDays
-      );
-    },
-    [saveVersion, pruneOldVersions, autosaveSettings]
-  );
-
-  /**
-   * Perform autosave if conditions are met
-   */
+    * Perform autosave by creating a version via API
+    */
   const triggerAutosave = useCallback(async () => {
-    if (!autosaveSettings.enabled || !workflowId || isSavingRef.current) {
+    if (!autosaveSettings.enabled || !workflowId || isSavingRef.current || isCreatingVersion) {
       return;
     }
 
@@ -108,13 +100,10 @@ export const useAutosave = (
     isSavingRef.current = true;
 
     try {
-      // Create version snapshot
-      createVersion(workflow, "autosave");
-
-      // Also save to backend if handler provided
-      if (onSaveWorkflow) {
-        await onSaveWorkflow(workflow);
-      }
+      await createVersion({
+        name: convertSaveTypeToName("autosave"),
+        description: "Autosave"
+      });
 
       updateLastAutosaveTime(workflowId);
       resetEditCount(workflowId);
@@ -122,7 +111,7 @@ export const useAutosave = (
       addNotification({
         content: "Workflow autosaved",
         type: "info",
-        alert: false // Silent notification
+        alert: false
       });
     } catch (error) {
       console.error("Autosave failed:", error);
@@ -140,18 +129,18 @@ export const useAutosave = (
     getWorkflow,
     isDirty,
     createVersion,
-    onSaveWorkflow,
+    isCreatingVersion,
     updateLastAutosaveTime,
     resetEditCount,
     addNotification
   ]);
 
   /**
-   * Manual save with optional description
-   */
+    * Manual save with optional description
+    */
   const triggerManualSave = useCallback(
     async (description?: string) => {
-      if (!workflowId || isSavingRef.current) {
+      if (!workflowId || isSavingRef.current || isCreatingVersion) {
         return;
       }
 
@@ -163,10 +152,11 @@ export const useAutosave = (
       isSavingRef.current = true;
 
       try {
-        // Create version snapshot with manual type
-        createVersion(workflow, "manual", description);
+        await createVersion({
+          name: description || convertSaveTypeToName("manual"),
+          description: description || "Manual save"
+        });
 
-        // Save to backend if handler provided
         if (onSaveWorkflow) {
           await onSaveWorkflow(workflow);
         }
@@ -193,6 +183,7 @@ export const useAutosave = (
       workflowId,
       getWorkflow,
       createVersion,
+      isCreatingVersion,
       onSaveWorkflow,
       resetEditCount,
       addNotification
@@ -200,13 +191,14 @@ export const useAutosave = (
   );
 
   /**
-   * Save before running workflow
-   */
+    * Save before running workflow
+    */
   const saveBeforeRun = useCallback(async () => {
     if (
       !autosaveSettings.saveBeforeRun ||
       !workflowId ||
-      isSavingRef.current
+      isSavingRef.current ||
+      isCreatingVersion
     ) {
       return;
     }
@@ -219,10 +211,11 @@ export const useAutosave = (
     isSavingRef.current = true;
 
     try {
-      // Create checkpoint version
-      createVersion(workflow, "checkpoint", "Before execution");
+      await createVersion({
+        name: convertSaveTypeToName("checkpoint"),
+        description: "Before execution"
+      });
 
-      // Save to backend if handler provided
       if (onSaveWorkflow) {
         await onSaveWorkflow(workflow);
       }
@@ -239,9 +232,24 @@ export const useAutosave = (
     getWorkflow,
     isDirty,
     createVersion,
+    isCreatingVersion,
     onSaveWorkflow,
     resetEditCount
   ]);
+
+  /**
+    * Increment edit count when workflow changes
+    */
+  useEffect(() => {
+    if (workflowId && isDirty()) {
+      incrementEditCount(workflowId);
+    }
+  }, [workflowId, isDirty, incrementEditCount]);
+
+  /**
+    * Track edit count for significant edits autosave
+    */
+  const trackedEditCount = workflowId ? getEditCount(workflowId) : 0;
 
   // Set up interval-based autosave
   useEffect(() => {
@@ -277,17 +285,16 @@ export const useAutosave = (
     if (
       !autosaveSettings.enabled ||
       !workflowId ||
-      editCountSinceLastSave < SIGNIFICANT_EDITS_THRESHOLD
+      trackedEditCount < SIGNIFICANT_EDITS_THRESHOLD
     ) {
       return;
     }
 
-    // Trigger autosave when significant edits threshold is reached
     triggerAutosave();
   }, [
     autosaveSettings.enabled,
     workflowId,
-    editCountSinceLastSave,
+    trackedEditCount,
     triggerAutosave
   ]);
 
@@ -301,9 +308,10 @@ export const useAutosave = (
       if (workflowId && isDirty()) {
         const workflow = getWorkflow();
         if (workflow) {
-          // Use synchronous localStorage save for beforeunload
-          // The version store will handle this through its persist middleware
-          createVersion(workflow, "autosave", "Before close");
+          createVersion({
+            name: convertSaveTypeToName("autosave"),
+            description: "Before close"
+          });
         }
       }
     };
@@ -327,6 +335,10 @@ export const useAutosave = (
     triggerManualSave,
     saveBeforeRun,
     lastAutosaveTime,
-    editCountSinceLastSave
+    editCountSinceLastSave: trackedEditCount
   };
 };
+
+function getEditCount(workflowId: string): number {
+  return useVersionHistoryStore.getState().getEditCount(workflowId);
+}
