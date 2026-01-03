@@ -50,6 +50,7 @@ export default defineConfig({
   use: {
     baseURL: FRONTEND_URL,
     trace: 'on-first-retry',
+    tsconfig: './tsconfig.e2e.json',
   },
   projects: [
     {
