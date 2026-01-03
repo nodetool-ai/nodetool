@@ -48,7 +48,6 @@ const getServiceFromNamespace = (namespace: string): string => {
 const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   title
 }) {
-  const theme = useTheme();
   const tooltips: Record<string, string> = {
     Name: "Exact matches in node names",
     Namespace: "Matches in node namespaces and tags",
@@ -61,9 +60,11 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
         variant="h6"
         component="div"
         sx={{
-          color: "var(--palette-primary-main)",
-          fontSize: "0.9em",
-          padding: "0.5em 0 0"
+          color: "#FFD700",
+          fontSize: "1.1em",
+          fontWeight: 600,
+          padding: "1em 0 0.5em 0",
+          letterSpacing: "0.5px"
         }}
       >
         {title}
@@ -118,7 +119,23 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       const groupedNodes = groupNodes(group.nodes);
 
       return (
-        <Accordion key={group.title} defaultExpanded={true} disableGutters>
+        <Accordion
+          key={group.title}
+          defaultExpanded={true}
+          disableGutters
+          elevation={0}
+          sx={{
+            backgroundColor: "transparent",
+            "&:before": { display: "none" },
+            "& .MuiAccordionSummary-root": {
+              minHeight: "unset",
+              padding: "0.5em 0"
+            },
+            "& .MuiAccordionDetails-root": {
+              padding: "0"
+            }
+          }}
+        >
           <AccordionSummary
             expandIcon={
               <ExpandMoreIcon sx={{ color: "var(--palette-grey-500)" }} />

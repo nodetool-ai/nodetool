@@ -246,21 +246,24 @@ const namespaceStyles = (theme: Theme) =>
     ".node": {
       display: "flex",
       alignItems: "center",
-      margin: "2px 0",
-      padding: "4px", // Increased padding
+      margin: "8px 0",
+      padding: "8px",
       borderRadius: "8px",
       cursor: "pointer",
       transition: "all 0.2s ease",
       border: "1px solid transparent",
+      minHeight: "48px",
       ".node-button": {
-        padding: "0",
+        padding: "4px 8px",
         flexGrow: 1,
         borderRadius: "6px",
         "&:hover": {
           backgroundColor: "transparent"
         },
         "& .MuiTypography-root": {
-          fontSize: theme.fontSizeSmall
+          fontSize: "1rem",
+          fontWeight: 500,
+          color: theme.vars.palette.text.primary
         }
       },
       ".icon-bg": {
@@ -283,12 +286,12 @@ const namespaceStyles = (theme: Theme) =>
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     },
     ".namespace-text": {
-      color: theme.vars.palette.text.disabled,
+      color: theme.vars.palette.text.secondary,
       fontWeight: 600,
-      fontSize: "0.7rem",
-      padding: ".4em 0 0 0",
-      margin: "0.75em 0 .4em 0",
-      letterSpacing: "0.5px",
+      fontSize: "0.85rem",
+      padding: ".8em 0 .4em 0",
+      margin: "1.5em 0 .8em 0",
+      letterSpacing: "0.8px",
       wordBreak: "break-word",
       userSelect: "none",
       pointerEvents: "none",
@@ -324,15 +327,15 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item": {
       cursor: "pointer",
-      padding: ".5em .8em", // More padding
+      padding: ".75em 1em",
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmall,
+      fontSize: "0.9rem",
       fontWeight: 400,
       transition: "all 0.2s ease",
       overflow: "hidden",
-      margin: "0 2px 1px 2px", // Added bottom margin instead of gap
-      borderRadius: "6px",
+      margin: "2px",
+      borderRadius: "8px",
       borderLeft: "3px solid transparent"
     },
     ".namespaces .list-item.disabled": {
@@ -349,7 +352,8 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item:hover": {
       backgroundColor: theme.vars.palette.action.hover,
-      paddingLeft: "1em" // Slide effect
+      paddingLeft: "1.1em",
+      transform: "translateX(2px)"
     },
     ".namespaces .list-item.expanded": {
       opacity: 1
@@ -364,9 +368,10 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item.selected": {
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-      borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
+      borderLeft: `3px solid var(--palette-primary-main)`,
       fontWeight: 600,
-      color: "var(--palette-primary-main)"
+      color: "var(--palette-primary-main)",
+      boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
     },
     ".namespaces .list-item.selected .namespace-item": {
       color: "var(--palette-primary-main)"
