@@ -10,6 +10,40 @@ permissions:
   contents: write
 
 jobs:
+  generate-locks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.11"
+          activate-environment: lockgen
+          auto-activate-base: false
+          miniforge-version: latest
+
+      - name: Install conda-lock
+        shell: bash -l {0}
+        run: conda install -y -c conda-forge conda-lock
+
+      - name: Generate platform lock files
+        shell: bash -l {0}
+        run: bash lock.sh
+
+      - name: Validate conda lock resources
+        shell: bash
+        run: bash scripts/verify-env-locks.sh
+
+      - name: Upload conda lock resources
+        uses: actions/upload-artifact@v4
+        with:
+          name: conda-lock-resources
+          path: |
+            electron/resources/environment*.yml
+            electron/resources/environment.lock.yml
+          retention-days: 1
+
   #
   # No need for PyPI publishing at the moment
   #
@@ -42,6 +76,7 @@ jobs:
   #       uses: pypa/gh-action-pypi-publish@release/v1
 
   release-build:
+    needs: generate-locks
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
@@ -58,6 +93,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download conda lock resources
+        uses: actions/download-artifact@v4
+        with:
+          name: conda-lock-resources
+
+      - name: Validate conda lock resources
+        shell: bash
+        run: bash scripts/verify-env-locks.sh
 
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v3
