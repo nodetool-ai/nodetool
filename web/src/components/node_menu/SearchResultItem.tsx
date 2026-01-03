@@ -7,9 +7,9 @@ import { Typography, Box, Collapse } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { colorForType } from "../../config/data_types";
+import { HighlightText } from "../ui_primitives/HighlightText";
 
 interface SearchResultItemProps {
   node: NodeMetadata;
@@ -174,30 +174,6 @@ const SearchResultItem = memo(
           ? description.substring(0, MAX_DESCRIPTION_LENGTH) + "..."
           : description;
 
-      // Highlight title
-      const highlightedTitle = highlightTextUtil(
-        node.title,
-        "title",
-        searchTerm,
-        node.searchInfo
-      ).html;
-
-      // Highlight description
-      const highlightedDescription = highlightTextUtil(
-        truncatedDescription,
-        "description",
-        searchTerm,
-        node.searchInfo
-      ).html;
-
-      // Highlight namespace
-      const highlightedNamespace = highlightTextUtil(
-        node.namespace,
-        "namespace",
-        searchTerm,
-        node.searchInfo
-      ).html;
-
       const [isExpanded, setIsExpanded] = useState(false);
 
       const handleClick = useCallback(() => {
@@ -234,15 +210,23 @@ const SearchResultItem = memo(
           <div className="result-header">
             <div className="result-main">
               <div className="result-title-row">
-                <Typography
-                  className="result-title"
-                  component="div"
-                  dangerouslySetInnerHTML={{ __html: highlightedTitle }}
-                />
+                <Typography className="result-title" component="div">
+                  <HighlightText 
+                    text={node.title} 
+                    query={searchTerm} 
+                    matchStyle="primary"
+                  />
+                </Typography>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <Typography className="result-namespace" component="div" dangerouslySetInnerHTML={{ __html: highlightedNamespace }} />
+              <Typography className="result-namespace" component="div">
+                <HighlightText 
+                  text={node.namespace} 
+                  query={searchTerm} 
+                  matchStyle="primary"
+                />
+              </Typography>
               <div
                 className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
                 onClick={handleToggleExpand}
@@ -254,11 +238,13 @@ const SearchResultItem = memo(
           </div>
 
           {truncatedDescription && (
-            <Typography
-              className="result-description"
-              component="div"
-              dangerouslySetInnerHTML={{ __html: highlightedDescription }}
-            />
+            <Typography className="result-description" component="div">
+              <HighlightText 
+                text={truncatedDescription} 
+                query={searchTerm} 
+                matchStyle="primary"
+              />
+            </Typography>
           )}
 
           {/* Input/Output info - click to expand */}
