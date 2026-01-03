@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BACKEND_API_URL, BACKEND_URL } from "./support/backend";
+import { BACKEND_API_URL } from "./support/backend";
 
 // Test timeout - chat responses may take time
 const TEST_TIMEOUT_MS = 120000; // 2 minutes
@@ -102,7 +102,7 @@ if (process.env.JEST_WORKER_ID) {
             modelSelectorFound = true;
             break;
           }
-        } catch (e) {
+        } catch (_e) {
           // Try next selector
           continue;
         }
@@ -162,14 +162,14 @@ if (process.env.JEST_WORKER_ID) {
         const response = await request.get("http://localhost:8080/health");
         expect(response.ok()).toBeTruthy();
         console.log("Llama-server health check passed");
-      } catch (error) {
-        console.error("Llama-server not accessible:", error);
+      } catch (_error) {
+        console.error("Llama-server not accessible");
         // Don't fail the test if llama-server isn't running in this environment
         // as it might only be available in CI
       }
     });
 
-    test("should display model provider information", async ({ page, request }) => {
+    test("should display model provider information", async ({ request }) => {
       // Get available models from API
       const response = await request.get(`${BACKEND_API_URL}/models/language`);
       expect(response.ok()).toBeTruthy();
