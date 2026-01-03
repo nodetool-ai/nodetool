@@ -39,7 +39,7 @@ const treeStyles = (theme: Theme) =>
       // Glassmorphism container
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "16px",
-      boxShadow: "0 24px 48px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0,0,0,0.2)",
+      boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
       transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
