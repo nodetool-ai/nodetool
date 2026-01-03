@@ -155,8 +155,10 @@ describe("Auto-updater Module", () => {
         setupAutoUpdater();
       });
 
-      // Wait for async catch to execute
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for the rejected promise to be handled
+      // Using flushPromises pattern
+      await Promise.resolve();
+      await Promise.resolve();
 
       expect(mockLogMessage).toHaveBeenCalledWith(
         expect.stringContaining("app-update.yml not found"),
@@ -178,8 +180,10 @@ describe("Auto-updater Module", () => {
         setupAutoUpdater();
       });
 
-      // Wait for async catch to execute
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for the rejected promise to be handled
+      // Using flushPromises pattern
+      await Promise.resolve();
+      await Promise.resolve();
 
       expect(mockLogMessage).toHaveBeenCalledWith(
         "Failed to check for updates: Network error",

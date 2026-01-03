@@ -47,9 +47,7 @@ let updateAvailable: boolean = false;
 function isAppUpdateConfigPresent(): boolean {
   try {
     // In packaged apps, the app-update.yml is in the resources directory (next to app.asar)
-    // On Windows: C:\Users\<user>\AppData\Local\Programs\Nodetool\resources\app-update.yml
-    // On macOS: /Applications/Nodetool.app/Contents/Resources/app-update.yml
-    // On Linux: /opt/Nodetool/resources/app-update.yml
+    // The exact location varies by platform but is always at process.resourcesPath
     const resourcesPath = process.resourcesPath;
     const appUpdateYmlPath = path.join(resourcesPath, "app-update.yml");
     
@@ -71,6 +69,15 @@ function isAppUpdateConfigPresent(): boolean {
     );
     return false;
   }
+}
+
+/**
+ * Checks if an error is related to missing app-update.yml configuration file
+ * @param err - The error to check
+ * @returns true if the error indicates a missing app-update.yml file
+ */
+function isMissingAppUpdateConfigError(err: Error): boolean {
+  return err.message.includes("ENOENT") && err.message.includes("app-update.yml");
 }
 
 /**
@@ -108,7 +115,7 @@ function setupAutoUpdater(): void {
 
     autoUpdater.checkForUpdates().catch((err: Error) => {
       // Handle specific error for missing app-update.yml more gracefully
-      if (err.message.includes("ENOENT") && err.message.includes("app-update.yml")) {
+      if (isMissingAppUpdateConfigError(err)) {
         logMessage(
           "Auto-update check skipped: app-update.yml not found. " +
           "Please reinstall from GitHub releases to enable auto-updates.",
@@ -193,11 +200,7 @@ function setupAutoUpdaterEvents(): void {
 
   autoUpdater.on("error", (err: Error) => {
     // Handle missing app-update.yml error more gracefully
-    const isMissingConfigFile = 
-      err.message.includes("ENOENT") && 
-      err.message.includes("app-update.yml");
-    
-    if (isMissingConfigFile) {
+    if (isMissingAppUpdateConfigError(err)) {
       logMessage(
         "Auto-update error: app-update.yml not found. " +
         "This is expected on older installations. " +
