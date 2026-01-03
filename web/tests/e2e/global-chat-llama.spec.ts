@@ -19,9 +19,6 @@ if (process.env.JEST_WORKER_ID) {
       // Verify we're on the chat page
       await expect(page).toHaveURL(/\/chat/);
 
-      // Wait for chat interface to be ready
-      await page.waitForTimeout(2000);
-
       // Look for the input field - try multiple possible selectors
       const inputSelector = 'textarea[placeholder*="message" i], textarea[aria-label*="message" i], textarea';
       await page.waitForSelector(inputSelector, { timeout: 10000 });
@@ -33,44 +30,50 @@ if (process.env.JEST_WORKER_ID) {
       // Find and click the send button
       // Try multiple possible selectors for the send button
       const sendButtonSelector = 'button[aria-label*="send" i], button:has-text("Send"), button[type="submit"]';
-      
+
       // Wait for the send button to be enabled
       await page.waitForSelector(sendButtonSelector, { state: "visible", timeout: 10000 });
-      
+
       // Click send
       await page.click(sendButtonSelector);
 
       // Wait for the user message to appear in the chat
       await page.waitForSelector(`text=${testMessage}`, { timeout: 15000 });
 
-      // Wait for the assistant response
-      // Look for a response that indicates the model is generating or has generated a response
-      // We'll wait for any new text content that appears after our message
-      await page.waitForTimeout(5000);
+      // Wait for assistant response to appear
+      // Give the model time to generate a response (up to 60 seconds)
+      let responseFound = false;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        await page.waitForTimeout(2000);
 
-      // Check that some response was generated
-      // Look for assistant response indicators
-      const hasAssistantResponse = await page.evaluate(() => {
-        // Look for elements that might contain assistant messages
-        const messageElements = Array.from(document.querySelectorAll('[class*="message"], [class*="chat"], div'));
-        
-        // Look for content that suggests an assistant response
-        for (const el of messageElements) {
-          const text = el.textContent || "";
-          // Look for signs of a response (numbers, common words, etc.)
-          // but exclude the user's message
-          if (text.length > 20 && !text.includes("Hello, what is 2+2?")) {
-            // Check if it contains plausible response content
-            if (text.match(/\b(4|four|answer|result|equals|is|the)\b/i)) {
-              return true;
+        // Check if response has been generated
+        const hasAssistantResponse = await page.evaluate(() => {
+          // Look for elements that might contain assistant messages
+          const messageElements = Array.from(document.querySelectorAll('[class*="message"], [class*="chat"], div'));
+
+          // Look for content that suggests an assistant response
+          for (const el of messageElements) {
+            const text = el.textContent || "";
+            // Look for signs of a response (numbers, common words, etc.)
+            // but exclude the user's message
+            if (text.length > 20 && !text.includes("Hello, what is 2+2?")) {
+              // Check if it contains plausible response content
+              if (text.match(/\b(4|four|answer|result|equals|is|the)\b/i)) {
+                return true;
+              }
             }
           }
+          return false;
+        });
+
+        if (hasAssistantResponse) {
+          responseFound = true;
+          break;
         }
-        return false;
-      });
+      }
 
       // Verify we got some kind of response
-      expect(hasAssistantResponse).toBeTruthy();
+      expect(responseFound).toBeTruthy();
 
       console.log("Message sent and response received successfully");
     });
@@ -79,9 +82,6 @@ if (process.env.JEST_WORKER_ID) {
       // Navigate to models page or open model selector
       await page.goto("/chat");
       await page.waitForLoadState("networkidle");
-
-      // Wait for the page to load
-      await page.waitForTimeout(2000);
 
       // Try to find and click the model selector button
       // Look for buttons that might open model selection
@@ -100,6 +100,8 @@ if (process.env.JEST_WORKER_ID) {
           if (element) {
             await element.click();
             modelSelectorFound = true;
+            // Wait for model list dialog to appear
+            await page.waitForSelector('[role="dialog"], .model-menu__dialog', { timeout: 5000 });
             break;
           }
         } catch (_e) {
@@ -109,16 +111,13 @@ if (process.env.JEST_WORKER_ID) {
       }
 
       if (modelSelectorFound) {
-        // Wait for model list to appear
-        await page.waitForTimeout(1000);
-
         // Check if llama.cpp models are shown
         const pageContent = await page.content();
         const hasLlamaCppProvider = pageContent.includes("llama") || pageContent.includes("Local");
 
         // Log for debugging
         console.log("Model selector opened, checking for llama.cpp models");
-        
+
         // We expect to see some indication of local models or llama.cpp
         expect(hasLlamaCppProvider).toBeTruthy();
       } else {

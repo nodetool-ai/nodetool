@@ -66,6 +66,8 @@ jobs:
       - name: Download and setup llama-server
         run: |
           # Download llama-server binary for Ubuntu x64
+          # Note: Uses latest version for newest features and fixes.
+          # If stability issues occur, consider pinning to a specific version.
           LLAMA_VERSION=$(curl -s \
             https://api.github.com/repos/ggerganov/llama.cpp/releases/latest \
             | jq -r .tag_name)
@@ -89,6 +91,9 @@ jobs:
       - name: Start llama-server
         run: |
           # Start llama-server with a small model from HuggingFace
+          # Note: SmolLM-135M-Instruct is a tiny model (~90MB) suitable for
+          # testing. If the model becomes unavailable, consider using an
+          # alternative small model from HuggingFace or a locally stored model.
           ${{ env.LLAMA_SERVER_PATH }} \
             --hf-repo TheBloke/SmolLM-135M-Instruct-GGUF \
             --hf-file smollm-135m-instruct.Q4_K_M.gguf \
