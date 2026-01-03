@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { BACKEND_API_URL } from "./support/backend";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -115,7 +116,7 @@ if (process.env.JEST_WORKER_ID) {
 
       // Make API request for templates
       const response = await request.get(
-        "http://localhost:7777/api/workflows/examples"
+        `${BACKEND_API_URL}/workflows/examples`
       );
 
       // Verify response is successful
@@ -136,7 +137,7 @@ if (process.env.JEST_WORKER_ID) {
 
       // Make API request for templates search
       const response = await request.get(
-        "http://localhost:7777/api/workflows/examples/search?query=test"
+        `${BACKEND_API_URL}/workflows/examples/search?query=test`
       );
 
       // Verify response is successful
@@ -160,7 +161,7 @@ if (process.env.JEST_WORKER_ID) {
 
       // Fetch templates
       const response = await request.get(
-        "http://localhost:7777/api/workflows/examples"
+        `${BACKEND_API_URL}/workflows/examples`
       );
       expect(response.ok()).toBeTruthy();
 
@@ -217,7 +218,7 @@ if (process.env.JEST_WORKER_ID) {
 
       // Make API request with empty query
       const response = await request.get(
-        "http://localhost:7777/api/workflows/examples/search?query="
+        `${BACKEND_API_URL}/workflows/examples/search?query=`
       );
 
       // Verify response is successful (server should handle empty query gracefully)
