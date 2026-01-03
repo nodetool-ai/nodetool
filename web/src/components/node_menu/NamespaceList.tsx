@@ -122,12 +122,16 @@ const namespaceStyles = (theme: Theme) =>
       height: "100%",
       maxHeight: "750px",
       width: "320px",
-      flex: "0 1 auto",
+      flex: "1 1 auto",
       backgroundColor: "transparent",
       transition: "max-width 0.35s ease, width 0.35s ease",
       overflowX: "hidden",
       overflowY: "auto",
       padding: "0 0.5em"
+    },
+    ".node-list.expanded": {
+      width: "100%",
+      maxWidth: "700px"
     },
     ".node-list::-webkit-scrollbar": { width: "6px" },
     ".node-list::-webkit-scrollbar-track": { background: "transparent" },
@@ -729,12 +733,15 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         selectedInputType ||
         selectedOutputType ? (
           <>
-            <List className="node-list">
+            <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
               <RenderNodes nodes={searchResults} />
             </List>
-            <div className="node-info-container">
-              {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}
-            </div>
+            {/* Only show NodeInfo when not searching */}
+            {!searchTerm && (
+              <div className="node-info-container">
+                {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}
+              </div>
+            )}
           </>
         ) : (
           <>

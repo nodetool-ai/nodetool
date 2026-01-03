@@ -6,6 +6,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
+import SearchResultItem from "./SearchResultItem";
 import {
   Typography
 } from "@mui/material";
@@ -79,24 +80,19 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   }));
 
   const elements = useMemo(() => {
-    // If we're searching, render flat ranked results without category headers
+    // If we're searching, render flat ranked results with SearchResultItem
     if (searchTerm && groupedSearchResults.length > 0) {
       // Flatten all results from groups (now just one "Results" group)
       const allSearchNodes = groupedSearchResults.flatMap((group) => group.nodes);
       
       return allSearchNodes.map((node) => (
-        <div key={node.node_type}>
-          <NodeItem
-            key={node.node_type}
-            node={node}
-            onDragStart={handleDragStart(node)}
-            onDragEnd={handleDragEnd}
-            onClick={() => handleCreateNode(node)}
-            showCheckbox={showCheckboxes}
-            isSelected={selectedNodeTypes.includes(node.node_type)}
-            onToggleSelection={onToggleSelection}
-          />
-        </div>
+        <SearchResultItem
+          key={node.node_type}
+          node={node}
+          onDragStart={handleDragStart(node)}
+          onDragEnd={handleDragEnd}
+          onClick={() => handleCreateNode(node)}
+        />
       ));
     }
 
