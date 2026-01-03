@@ -533,21 +533,21 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       moveSelectionUp: () => {
         const { selectedIndex, groupedSearchResults } = get();
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
-        if (allNodes.length === 0) {return;}
+        if (allNodes.length === 0) { return; }
         const newIndex = selectedIndex <= 0 ? allNodes.length - 1 : selectedIndex - 1;
         set({ selectedIndex: newIndex });
       },
       moveSelectionDown: () => {
         const { selectedIndex, groupedSearchResults } = get();
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
-        if (allNodes.length === 0) {return;}
+        if (allNodes.length === 0) { return; }
         const newIndex = selectedIndex >= allNodes.length - 1 ? 0 : selectedIndex + 1;
         set({ selectedIndex: newIndex });
       },
       getSelectedNode: () => {
         const { selectedIndex, groupedSearchResults } = get();
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
-        if (selectedIndex < 0 || selectedIndex >= allNodes.length) {return null;}
+        if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
         return allNodes[selectedIndex];
       }
     };
