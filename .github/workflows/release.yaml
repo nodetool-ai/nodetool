@@ -449,3 +449,59 @@ jobs:
           files: |
             electron/dist/*.AppImage
             electron/dist/latest-linux.yml
+
+  aur-publish:
+    needs: release-build
+    runs-on: ubuntu-latest
+    # Only publish to AUR for non-prerelease tags (exclude -test, -rc, etc.)
+    if: ${{ !contains(github.ref_name, '-test') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Remove 'v' prefix and convert '-' to '_' for AUR version format
+          VERSION="${GITHUB_REF_NAME#v}"
+          AUR_VERSION="${VERSION//-/_}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "aur_version=${AUR_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download AppImage and calculate checksum
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          wget "https://github.com/nodetool-ai/nodetool/releases/download/v${VERSION}/Nodetool-${VERSION}-x86_64.AppImage" -O nodetool.AppImage
+          CHECKSUM=$(sha256sum nodetool.AppImage | awk '{print $1}')
+          echo "APPIMAGE_CHECKSUM=${CHECKSUM}" >> $GITHUB_ENV
+
+      - name: Update PKGBUILD version and checksums
+        run: |
+          AUR_VERSION="${{ steps.version.outputs.aur_version }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Update pkgver in PKGBUILD
+          sed -i "s/pkgver=.*/pkgver=${AUR_VERSION}/" aur/nodetool-bin/PKGBUILD
+
+          # Calculate checksums for local files
+          SH_CHECKSUM=$(sha256sum aur/nodetool-bin/nodetool.sh | awk '{print $1}')
+          DESKTOP_CHECKSUM=$(sha256sum aur/nodetool-bin/nodetool.desktop | awk '{print $1}')
+
+          # Update checksums
+          sed -i "s/sha256sums=(/sha256sums=(\n    '${SH_CHECKSUM}'\n    '${DESKTOP_CHECKSUM}'\n    '${APPIMAGE_CHECKSUM}'/" aur/nodetool-bin/PKGBUILD
+          # Remove the old SKIP placeholders and fix formatting
+          sed -i "/^    'SKIP'/d" aur/nodetool-bin/PKGBUILD
+
+      - name: Publish AUR package
+        uses: KSXGitHub/github-actions-deploy-aur@v3.0.1
+        with:
+          pkgname: nodetool-bin
+          pkgbuild: aur/nodetool-bin/PKGBUILD
+          commit_username: nodetool-ai
+          commit_email: hello@nodetool.ai
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to version ${{ steps.version.outputs.version }}"
+          ssh_keyscan_types: ed25519
+          allow_empty_commits: false
+          assets: |
+            aur/nodetool-bin/nodetool.sh
+            aur/nodetool-bin/nodetool.desktop
