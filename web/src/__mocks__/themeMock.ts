@@ -151,6 +151,14 @@ const mockTheme = createTheme({
   defaultColor: "#616161"
 };
 
+// Add Switch properties for MUI Switch component
+(mockTheme as any).vars.Switch = {
+  defaultColor: "#9e9e9e"
+};
+(mockTheme as any).Switch = {
+  defaultColor: "#9e9e9e"
+};
+
 // Ensure components overrides exist for MUI that reference theme.components
 (mockTheme as any).components = {
   ...((mockTheme as any).components || {}),
