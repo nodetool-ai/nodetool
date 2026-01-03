@@ -20,6 +20,7 @@ electron/dist/
 electron/dist-web/
 electron/dist-electron/
 electron/resources/micromamba
+chrome-extension/dist/
 # Temporary build files
 .tmp/
 __notebooks/

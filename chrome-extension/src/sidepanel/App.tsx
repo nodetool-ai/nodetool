@@ -1,0 +1,192 @@
+/** @jsxImportSource @emotion/react */
+import { css } from '@emotion/react';
+import { useEffect, useRef, useCallback } from 'react';
+import { Box, CssBaseline, ThemeProvider } from '@mui/material';
+import ThemeNodetool from '../themes/ThemeNodetool';
+import {
+  ChatHeader,
+  ChatMessage,
+  ChatInput,
+  Settings,
+  ServerStatus,
+  EmptyChatState
+} from './components';
+import { ChatToolBar } from '../components/chat/controls';
+import { useExtensionStore } from './store';
+import { useWebSocket } from './hooks/useWebSocket';
+import useGlobalChatStore from '../stores/GlobalChatStore';
+import type { PageContext } from '../types';
+import '../styles/index.css';
+
+const appContainerStyles = css({
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
+  width: '100%',
+  overflow: 'hidden',
+  backgroundColor: '#141414'
+});
+
+const chatContainerStyles = css({
+  flex: 1,
+  overflow: 'auto',
+  display: 'flex',
+  flexDirection: 'column'
+});
+
+const messagesContainerStyles = css({
+  flex: 1,
+  overflow: 'auto',
+  paddingTop: '12px',
+  paddingBottom: '8px'
+});
+
+const toolbarContainerStyles = css({
+  padding: '8px 16px',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+  backgroundColor: '#1a1a1a'
+});
+
+function App() {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const {
+    connectionStatus,
+    connectionError,
+    pageContext,
+    setPageContext
+  } = useExtensionStore();
+
+  const messages = useExtensionStore((state) => state.getCurrentMessages());
+  const isStreaming = useExtensionStore((state) => state.isStreaming);
+
+  // Global chat store state for toolbar
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
+  const agentMode = useGlobalChatStore((state) => state.agentMode);
+  const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
+
+  const { connect, sendMessage, stopGeneration, isConnected } = useWebSocket();
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Request page context from content script
+  const requestPageContext = useCallback(async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        console.log('[App] Requesting page context from tab:', tab.id, tab.url);
+        const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_CONTEXT' });
+        console.log('[App] Page context response:', response);
+        if (response?.context) {
+          setPageContext(response.context as PageContext);
+        }
+      }
+    } catch (error) {
+      console.log('[App] Failed to get page context:', error);
+      // Content script may not be loaded - this is expected on some pages
+      setPageContext(null);
+    }
+  }, [setPageContext]);
+
+  // Get page context when component mounts and when tab changes
+  useEffect(() => {
+    requestPageContext();
+
+    // Listen for tab updates
+    const handleTabUpdate = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+      if (changeInfo.status === 'complete') {
+        requestPageContext();
+      }
+    };
+
+    chrome.tabs.onUpdated.addListener(handleTabUpdate);
+    chrome.tabs.onActivated.addListener(() => requestPageContext());
+
+    return () => {
+      chrome.tabs.onUpdated.removeListener(handleTabUpdate);
+    };
+  }, [requestPageContext]);
+
+  // Handle sending message with optional page context
+  const handleSendMessage = useCallback(
+    async (message: string, includeContext: boolean) => {
+      const context = includeContext && pageContext
+        ? {
+            pageUrl: pageContext.url,
+            pageTitle: pageContext.title,
+            pageContent: pageContext.bodyText
+          }
+        : undefined;
+
+      await sendMessage(message, context, {
+        id: selectedModel?.id || '',
+        provider: selectedModel?.provider || ''
+      });
+    },
+    [sendMessage, pageContext, selectedModel]
+  );
+
+  // Determine what to show in the chat area
+  const renderChatContent = () => {
+    // Show status if not connected
+    if (!isConnected && connectionStatus !== 'connected') {
+      return <ServerStatus status={connectionStatus} error={connectionError} onRetry={connect} />;
+    }
+
+    // Show empty state if no messages
+    if (messages.length === 0) {
+      return <EmptyChatState />;
+    }
+
+    // Show messages
+    return (
+      <Box css={messagesContainerStyles}>
+        {messages.map((msg, index) => (
+          <ChatMessage
+            key={msg.id || index}
+            message={msg}
+            isStreaming={isStreaming && index === messages.length - 1 && msg.role === 'assistant'}
+          />
+        ))}
+        <div ref={messagesEndRef} />
+      </Box>
+    );
+  };
+
+  return (
+    <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
+      <CssBaseline />
+      <Box css={appContainerStyles}>
+        <ChatHeader />
+
+        {/* ChatToolBar - Model selector, Agent mode */}
+        <Box css={toolbarContainerStyles}>
+          <ChatToolBar
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            agentMode={agentMode}
+            onAgentModeToggle={setAgentMode}
+          />
+        </Box>
+
+        <Box css={chatContainerStyles}>
+          {renderChatContent()}
+        </Box>
+
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          onStopGeneration={stopGeneration}
+          onRefreshContext={requestPageContext}
+          disabled={!isConnected}
+        />
+
+        <Settings />
+      </Box>
+    </ThemeProvider>
+  );
+}
+
+export default App;
