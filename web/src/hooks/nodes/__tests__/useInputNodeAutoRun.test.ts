@@ -139,7 +139,13 @@ describe("useInputNodeAutoRun", () => {
     expect(mockRun).not.toHaveBeenCalled();
   });
 
-  it("debounces onPropertyChange calls for input nodes", () => {
+  it("debounces onPropertyChange calls for input nodes when instantUpdate is enabled", () => {
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     const { result } = renderHook(() =>
       useInputNodeAutoRun({
         nodeId: "input-1",
@@ -167,7 +173,13 @@ describe("useInputNodeAutoRun", () => {
     expect(mockRun).toHaveBeenCalledTimes(1);
   });
 
-  it("onPropertyChangeComplete triggers immediately without debounce", () => {
+  it("onPropertyChangeComplete triggers immediately without debounce when instantUpdate is enabled", () => {
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     const { result } = renderHook(() =>
       useInputNodeAutoRun({
         nodeId: "input-1",
@@ -184,7 +196,13 @@ describe("useInputNodeAutoRun", () => {
     expect(mockRun).toHaveBeenCalledTimes(1);
   });
 
-  it("onPropertyChangeComplete cancels pending debounced call", () => {
+  it("onPropertyChangeComplete cancels pending debounced call when instantUpdate is enabled", () => {
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     const { result } = renderHook(() =>
       useInputNodeAutoRun({
         nodeId: "input-1",
@@ -221,6 +239,12 @@ describe("useInputNodeAutoRun", () => {
       return selector(state);
     });
 
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     const { result } = renderHook(() =>
       useInputNodeAutoRun({
         nodeId: "input-1",
@@ -236,7 +260,13 @@ describe("useInputNodeAutoRun", () => {
     expect(mockRun).not.toHaveBeenCalled();
   });
 
-  it("calls subgraph to get downstream nodes", () => {
+  it("calls subgraph to get downstream nodes when instantUpdate is enabled", () => {
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     const { result } = renderHook(() =>
       useInputNodeAutoRun({
         nodeId: "input-1",
@@ -256,7 +286,13 @@ describe("useInputNodeAutoRun", () => {
     );
   });
 
-  it("injects cached values for all external dependencies in subgraph", () => {
+  it("injects cached values for all external dependencies in subgraph when instantUpdate is enabled", () => {
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     // Setup a more complex graph:
     // external-1 -> downstream-1 (not in subgraph but connected to downstream)
     // input-1 -> downstream-1
@@ -316,6 +352,12 @@ describe("useInputNodeAutoRun", () => {
       return undefined;
     });
 
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     const { result } = renderHook(() =>
       useInputNodeAutoRun({
         nodeId: "input-1",
@@ -344,7 +386,13 @@ describe("useInputNodeAutoRun", () => {
     expect(downstream1.data.properties.context).toBe("cached external value");
   });
 
-  it("handles multiple external dependencies to different nodes in subgraph", () => {
+  it("handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled", () => {
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     // Setup:
     // external-1 -> downstream-1 (context)
     // external-2 -> downstream-2 (input)
@@ -412,6 +460,12 @@ describe("useInputNodeAutoRun", () => {
       return undefined;
     });
 
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     const { result } = renderHook(() =>
       useInputNodeAutoRun({
         nodeId: "input-1",
@@ -442,7 +496,13 @@ describe("useInputNodeAutoRun", () => {
     expect(downstream2.data.properties.count).toBe(100);
   });
 
-  it("falls back to input/constant node values when cached results are missing", () => {
+  it("falls back to input/constant node values when cached results are missing and instantUpdate is enabled", () => {
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
+    });
+
     const nodesWithLiterals = [
       {
         id: "input-1",
@@ -486,6 +546,12 @@ describe("useInputNodeAutoRun", () => {
     mockSubgraph.mockReturnValue({
       nodes: [nodesWithLiterals[0], nodesWithLiterals[3]],
       edges: [literalEdges[0]]
+    });
+
+    // Enable instantUpdate
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: true } };
+      return selector(state);
     });
 
     const { result } = renderHook(() =>
@@ -535,7 +601,7 @@ describe("useInputNodeAutoRun", () => {
       expect(mockRun).toHaveBeenCalledTimes(1);
     });
 
-    it("does not trigger for non-input nodes when instantUpdate is disabled", () => {
+    it("does not trigger for any nodes when instantUpdate is disabled", () => {
       // Disable instantUpdate (default)
       mockUseSettingsStore.mockImplementation((selector) => {
         const state = { settings: { instantUpdate: false } };
@@ -555,11 +621,11 @@ describe("useInputNodeAutoRun", () => {
         result.current.onPropertyChangeComplete();
       });
 
-      // Should NOT trigger when instantUpdate is disabled and it's not an input node
+      // Should NOT trigger when instantUpdate is disabled
       expect(mockRun).not.toHaveBeenCalled();
     });
 
-    it("always triggers for input nodes regardless of instantUpdate setting", () => {
+    it("does not trigger for input nodes when instantUpdate is disabled", () => {
       // Disable instantUpdate
       mockUseSettingsStore.mockImplementation((selector) => {
         const state = { settings: { instantUpdate: false } };
@@ -579,7 +645,31 @@ describe("useInputNodeAutoRun", () => {
         result.current.onPropertyChangeComplete();
       });
 
-      // Input nodes should still trigger even with instantUpdate disabled
+      // Input nodes should NOT trigger when instantUpdate is disabled
+      expect(mockRun).not.toHaveBeenCalled();
+    });
+
+    it("triggers for input nodes when instantUpdate is enabled", () => {
+      // Enable instantUpdate
+      mockUseSettingsStore.mockImplementation((selector) => {
+        const state = { settings: { instantUpdate: true } };
+        return selector(state);
+      });
+
+      // Use an input node type
+      const { result } = renderHook(() =>
+        useInputNodeAutoRun({
+          nodeId: "input-1",
+          nodeType: "nodetool.input.StringInput", // Input node
+          propertyName: "value"
+        })
+      );
+
+      act(() => {
+        result.current.onPropertyChangeComplete();
+      });
+
+      // Input nodes should trigger when instantUpdate is enabled
       expect(mockRun).toHaveBeenCalledTimes(1);
     });
   });

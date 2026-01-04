@@ -6,7 +6,7 @@
  *
  * Behavior:
  * - When instantUpdate is enabled in settings: triggers for ALL node types
- * - When instantUpdate is disabled: only triggers for input nodes (nodetool.input.*)
+ * - When instantUpdate is disabled: NO nodes trigger auto-run (graph execution only on manual run)
  *
  * For slider/number inputs, waits for the user to finish dragging (via onChangeComplete)
  * instead of triggering on every intermediate value.
@@ -54,13 +54,13 @@ export const isAutoRunInputNode = (nodeType: string): boolean => {
 /**
  * Checks if auto-run should be enabled for a node based on settings and node type.
  * - If instantUpdate is enabled: returns true for ALL nodes
- * - If instantUpdate is disabled: returns true only for input nodes
+ * - If instantUpdate is disabled: returns false (no auto-run)
  */
 const shouldAutoRun = (nodeType: string, instantUpdate: boolean): boolean => {
   if (instantUpdate) {
     return true; // All nodes trigger auto-run when instantUpdate is enabled
   }
-  return isAutoRunInputNode(nodeType); // Only input nodes trigger when disabled
+  return false; // No auto-run when instantUpdate is disabled
 };
 
 /**
