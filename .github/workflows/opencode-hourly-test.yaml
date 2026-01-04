@@ -1,4 +1,4 @@
-name: Scheduled OpenCode Task
+name: Hourly OpenCode Test
 
 on:
   schedule:
