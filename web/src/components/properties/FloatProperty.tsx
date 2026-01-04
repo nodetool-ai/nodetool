@@ -11,9 +11,9 @@ const FloatProperty = (props: PropertyProps) => {
   const value = typeof props.value === "number" ? props.value : 0;
 
   const min =
-    typeof props.property.min === "number" ? props.property.min : undefined;
+    typeof props.property.min === "number" ? props.property.min : 0;
   const max =
-    typeof props.property.max === "number" ? props.property.max : undefined;
+    typeof props.property.max === "number" ? props.property.max : 100;
 
   return (
     <>

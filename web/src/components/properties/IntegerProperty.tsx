@@ -11,9 +11,9 @@ const IntegerProperty = (props: PropertyProps) => {
   const value = Number.isInteger(props.value) ? props.value : 0;
 
   const min =
-    typeof props.property.min === "number" ? props.property.min : undefined;
+    typeof props.property.min === "number" ? props.property.min : 0;
   const max =
-    typeof props.property.max === "number" ? props.property.max : undefined;
+    typeof props.property.max === "number" ? props.property.max : 100;
 
   return (
     <>
