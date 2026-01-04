@@ -16,6 +16,9 @@ on:
       - "electron/**"
       - ".github/workflows/e2e.yml"
 
+permissions:
+  contents: read
+
 jobs:
   web:
     name: Web Tests
