@@ -22,16 +22,22 @@ jest.mock("../../../core/graph", () => ({
   subgraph: jest.fn()
 }));
 
+jest.mock("../../../stores/SettingsStore", () => ({
+  useSettingsStore: jest.fn()
+}));
+
 import { useNodes } from "../../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
 import { subgraph } from "../../../core/graph";
+import { useSettingsStore } from "../../../stores/SettingsStore";
 
 const mockUseNodes = useNodes as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
+const mockUseSettingsStore = useSettingsStore as unknown as jest.Mock;
 
 describe("isAutoRunInputNode", () => {
   it("returns true for input node types", () => {
@@ -91,6 +97,12 @@ describe("useInputNodeAutoRun", () => {
     });
 
     mockUseResultsStore.mockReturnValue(mockGetResult);
+
+    // Default: instantUpdate is disabled
+    mockUseSettingsStore.mockImplementation((selector) => {
+      const state = { settings: { instantUpdate: false } };
+      return selector(state);
+    });
 
     mockFindNode.mockImplementation((id: string) =>
       defaultMockNodes.find((n) => n.id === id)
@@ -496,5 +508,79 @@ describe("useInputNodeAutoRun", () => {
 
     expect(formatNode.data.properties.CHARACTER).toBe("Reluctant Hero");
     expect(formatNode.data.properties.template).toBe("template text");
+  });
+
+  describe("instantUpdate setting", () => {
+    it("triggers auto-run for non-input nodes when instantUpdate is enabled", () => {
+      // Enable instantUpdate
+      mockUseSettingsStore.mockImplementation((selector) => {
+        const state = { settings: { instantUpdate: true } };
+        return selector(state);
+      });
+
+      // Use a non-input node type
+      const { result } = renderHook(() =>
+        useInputNodeAutoRun({
+          nodeId: "input-1",
+          nodeType: "nodetool.llm.Chat", // Non-input node
+          propertyName: "prompt"
+        })
+      );
+
+      act(() => {
+        result.current.onPropertyChangeComplete();
+      });
+
+      // Should trigger when instantUpdate is enabled
+      expect(mockRun).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not trigger for non-input nodes when instantUpdate is disabled", () => {
+      // Disable instantUpdate (default)
+      mockUseSettingsStore.mockImplementation((selector) => {
+        const state = { settings: { instantUpdate: false } };
+        return selector(state);
+      });
+
+      // Use a non-input node type
+      const { result } = renderHook(() =>
+        useInputNodeAutoRun({
+          nodeId: "input-1",
+          nodeType: "nodetool.llm.Chat", // Non-input node
+          propertyName: "prompt"
+        })
+      );
+
+      act(() => {
+        result.current.onPropertyChangeComplete();
+      });
+
+      // Should NOT trigger when instantUpdate is disabled and it's not an input node
+      expect(mockRun).not.toHaveBeenCalled();
+    });
+
+    it("always triggers for input nodes regardless of instantUpdate setting", () => {
+      // Disable instantUpdate
+      mockUseSettingsStore.mockImplementation((selector) => {
+        const state = { settings: { instantUpdate: false } };
+        return selector(state);
+      });
+
+      // Use an input node type
+      const { result } = renderHook(() =>
+        useInputNodeAutoRun({
+          nodeId: "input-1",
+          nodeType: "nodetool.input.StringInput", // Input node
+          propertyName: "value"
+        })
+      );
+
+      act(() => {
+        result.current.onPropertyChangeComplete();
+      });
+
+      // Input nodes should still trigger even with instantUpdate disabled
+      expect(mockRun).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -44,10 +44,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
-import {
-  useInputNodeAutoRun,
-  isAutoRunInputNode
-} from "../../hooks/nodes/useInputNodeAutoRun";
+import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
 
 const propertyInputContainerStyles = (theme: Theme) =>
   css({
@@ -340,16 +337,13 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         updateNodeProperties(id, { [property.name]: value });
       }
 
-      // Trigger auto-run for input nodes (debounced for non-slider inputs)
-      if (isAutoRunInputNode(nodeType)) {
-        onPropertyChange();
-      }
+      // Trigger auto-run (hook decides based on settings and node type)
+      onPropertyChange();
     },
     [
       findNode,
       id,
       isDynamicProperty,
-      nodeType,
       onPropertyChange,
       onValueChange,
       property.name,
@@ -361,12 +355,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   // Calculate changed state: value differs from default
   const isChanged = value !== property.default;
 
-  // Handle slider/number input change complete (for input nodes)
+  // Handle slider/number input change complete
   const handleChangeComplete = useCallback(() => {
-    if (isAutoRunInputNode(nodeType)) {
-      onPropertyChangeComplete();
-    }
-  }, [nodeType, onPropertyChangeComplete]);
+    onPropertyChangeComplete();
+  }, [onPropertyChangeComplete]);
 
   const propertyProps = {
     property: property,

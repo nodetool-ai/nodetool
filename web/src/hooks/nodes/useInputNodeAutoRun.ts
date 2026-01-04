@@ -1,8 +1,12 @@
 /**
- * useInputNodeAutoRun hook
+ * useNodeAutoRun hook
  *
- * Triggers automatic workflow execution when input node properties change.
- * Only executes the downstream subgraph from the input node, similar to "Run from here".
+ * Triggers automatic workflow execution when node properties change.
+ * Only executes the downstream subgraph from the node, similar to "Run from here".
+ *
+ * Behavior:
+ * - When instantUpdate is enabled in settings: triggers for ALL node types
+ * - When instantUpdate is disabled: only triggers for input nodes (nodetool.input.*)
  *
  * For slider/number inputs, waits for the user to finish dragging (via onChangeComplete)
  * instead of triggering on every intermediate value.
@@ -16,17 +20,18 @@ import { NodeData } from "../../stores/NodeData";
 import { Node, Edge } from "@xyflow/react";
 import log from "loglevel";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 // Debounce delay for non-slider inputs (ms)
 const AUTO_RUN_DEBOUNCE_MS = 300;
 
-interface UseInputNodeAutoRunOptions {
+interface UseNodeAutoRunOptions {
   nodeId: string;
   nodeType: string;
   propertyName: string;
 }
 
-interface UseInputNodeAutoRunReturn {
+interface UseNodeAutoRunReturn {
   /**
    * Call this when a property value changes.
    * For non-slider inputs, will debounce and trigger auto-run.
@@ -40,10 +45,22 @@ interface UseInputNodeAutoRunReturn {
 }
 
 /**
- * Checks if a node type is an input node that should trigger auto-run
+ * Checks if a node type is an input node (nodetool.input.*)
  */
 export const isAutoRunInputNode = (nodeType: string): boolean => {
   return nodeType.startsWith("nodetool.input.");
+};
+
+/**
+ * Checks if auto-run should be enabled for a node based on settings and node type.
+ * - If instantUpdate is enabled: returns true for ALL nodes
+ * - If instantUpdate is disabled: returns true only for input nodes
+ */
+const shouldAutoRun = (nodeType: string, instantUpdate: boolean): boolean => {
+  if (instantUpdate) {
+    return true; // All nodes trigger auto-run when instantUpdate is enabled
+  }
+  return isAutoRunInputNode(nodeType); // Only input nodes trigger when disabled
 };
 
 /**
@@ -150,9 +167,9 @@ const applyPropertyOverrides = (
   });
 };
 
-export const useInputNodeAutoRun = (
-  options: UseInputNodeAutoRunOptions
-): UseInputNodeAutoRunReturn => {
+export const useNodeAutoRun = (
+  options: UseNodeAutoRunOptions
+): UseNodeAutoRunReturn => {
   const { nodeId, nodeType, propertyName } = options;
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -168,6 +185,9 @@ export const useInputNodeAutoRun = (
     (state) => state.state === "running"
   );
   const getResult = useResultsStore((state) => state.getResult);
+  const instantUpdate = useSettingsStore(
+    (state) => state.settings.instantUpdate
+  );
 
   // Store the latest nodesState in a ref so debounce can access current state
   const nodesStateRef = useRef(nodesState);
@@ -175,14 +195,20 @@ export const useInputNodeAutoRun = (
     nodesStateRef.current = nodesState;
   }, [nodesState]);
 
+  // Store the latest instantUpdate in a ref for debounced callback
+  const instantUpdateRef = useRef(instantUpdate);
+  useEffect(() => {
+    instantUpdateRef.current = instantUpdate;
+  }, [instantUpdate]);
+
   /**
-   * Execute the downstream subgraph starting from this input node.
+   * Execute the downstream subgraph starting from this node.
    * Performs comprehensive dependency analysis to ensure all nodes in the
    * subgraph have their external dependencies (cached results) injected.
    */
   const executeDownstreamSubgraph = useCallback(() => {
-    // Only auto-run for input nodes
-    if (!isAutoRunInputNode(nodeType)) {
+    // Check if auto-run should be enabled based on settings and node type
+    if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
       return;
     }
 
@@ -220,13 +246,14 @@ export const useInputNodeAutoRun = (
       propertyOverrides.values()
     ).reduce((sum, props) => sum + Object.keys(props).length, 0);
 
-    log.info("Input node auto-run: Running downstream subgraph", {
+    log.info("Auto-run: Running downstream subgraph", {
       startNodeId: nodeId,
       nodeCount: nodesWithCachedValues.length,
       edgeCount: downstream.edges.length,
       nodesWithCachedDependencies: nodesWithOverrides,
       totalCachedPropertiesInjected: totalPropertiesInjected,
-      changedProperty: propertyName
+      changedProperty: propertyName,
+      instantUpdate: instantUpdateRef.current
     });
 
     run({}, workflow, nodesWithCachedValues, downstream.edges);
@@ -244,8 +271,8 @@ export const useInputNodeAutoRun = (
    * Debounces to avoid triggering too many runs.
    */
   const onPropertyChange = useCallback(() => {
-    // Only auto-run for input nodes
-    if (!isAutoRunInputNode(nodeType)) {
+    // Check if auto-run should be enabled based on settings and node type
+    if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
       return;
     }
 
@@ -266,8 +293,8 @@ export const useInputNodeAutoRun = (
    * Triggers auto-run immediately without additional debounce.
    */
   const onPropertyChangeComplete = useCallback(() => {
-    // Only auto-run for input nodes
-    if (!isAutoRunInputNode(nodeType)) {
+    // Check if auto-run should be enabled based on settings and node type
+    if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
       return;
     }
 
@@ -286,4 +313,7 @@ export const useInputNodeAutoRun = (
   };
 };
 
-export default useInputNodeAutoRun;
+// Export as both the new name and original name for backward compatibility
+export const useInputNodeAutoRun = useNodeAutoRun;
+
+export default useNodeAutoRun;

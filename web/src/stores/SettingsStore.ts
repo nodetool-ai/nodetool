@@ -21,6 +21,11 @@ export interface Settings {
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
   soundNotifications: boolean;
+  /**
+   * When enabled, changing any node property will trigger execution of
+   * the downstream subgraph automatically (like "Run from here").
+   */
+  instantUpdate: boolean;
 }
 
 interface SettingsStore {
@@ -42,6 +47,7 @@ interface SettingsStore {
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
+  setInstantUpdate: (value: boolean) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -56,7 +62,8 @@ export const defaultSettings: Settings = {
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
   showWelcomeOnStartup: true,
-  soundNotifications: true
+  soundNotifications: true,
+  instantUpdate: false
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -164,6 +171,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             soundNotifications: value
+          }
+        })),
+      setInstantUpdate: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            instantUpdate: value
           }
         }))
     }),
