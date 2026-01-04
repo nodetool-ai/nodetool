@@ -43,23 +43,37 @@ describe("usePaneEvents", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseNodeMenuStore.mockReturnValue({
-      openNodeMenu: mockOpenNodeMenu,
-      closeNodeMenu: mockCloseNodeMenu,
-      isMenuOpen: mockIsMenuOpen
+    mockedUseNodeMenuStore.mockImplementation((selector) => {
+      const state = {
+        openNodeMenu: mockOpenNodeMenu,
+        closeNodeMenu: mockCloseNodeMenu,
+        isMenuOpen: mockIsMenuOpen
+      };
+      return selector(state);
     });
-    mockedUseNodePlacementStore.mockReturnValue({
-      cancelPlacement: mockCancelPlacement
+    mockedUseNodePlacementStore.mockImplementation((selector) => {
+      const state = {
+        cancelPlacement: mockCancelPlacement
+      };
+      return selector(state);
     });
     mockedUseContextMenu.mockReturnValue({
       openContextMenu: mockOpenContextMenu
     });
-    mockedUseNodes.mockReturnValue({
-      createNode: mockCreateNode,
-      addNode: mockAddNode
+    mockedUseNodes.mockImplementation((selector) => {
+      const state = {
+        createNode: mockCreateNode,
+        addNode: mockAddNode,
+        edges: [],
+        nodes: []
+      };
+      return selector(state);
     });
-    mockedUseMetadataStore.mockReturnValue({
-      getMetadata: mockGetMetadata
+    mockedUseMetadataStore.mockImplementation((selector) => {
+      const state = {
+        getMetadata: mockGetMetadata
+      };
+      return selector(state);
     });
     mockedUseSelect.mockReturnValue({
       close: mockCloseSelect
@@ -82,10 +96,13 @@ describe("usePaneEvents", () => {
 
   describe("handleDoubleClick", () => {
     it("opens node menu on react-flow__pane when menu is closed", () => {
-      mockedUseNodeMenuStore.mockReturnValue({
-        openNodeMenu: mockOpenNodeMenu,
-        closeNodeMenu: mockCloseNodeMenu,
-        isMenuOpen: false
+      mockedUseNodeMenuStore.mockImplementation((selector) => {
+        const state = {
+          openNodeMenu: mockOpenNodeMenu,
+          closeNodeMenu: mockCloseNodeMenu,
+          isMenuOpen: false
+        };
+        return selector(state);
       });
       const { result } = renderHook(() =>
         usePaneEvents({
@@ -107,10 +124,13 @@ describe("usePaneEvents", () => {
     });
 
     it("closes node menu when menu is already open", () => {
-      mockedUseNodeMenuStore.mockReturnValue({
-        openNodeMenu: mockOpenNodeMenu,
-        closeNodeMenu: mockCloseNodeMenu,
-        isMenuOpen: true
+      mockedUseNodeMenuStore.mockImplementation((selector) => {
+        const state = {
+          openNodeMenu: mockOpenNodeMenu,
+          closeNodeMenu: mockCloseNodeMenu,
+          isMenuOpen: true
+        };
+        return selector(state);
       });
       const { result } = renderHook(() =>
         usePaneEvents({
@@ -132,10 +152,13 @@ describe("usePaneEvents", () => {
     });
 
     it("closes menu when clicking on non-pane element", () => {
-      mockedUseNodeMenuStore.mockReturnValue({
-        openNodeMenu: mockOpenNodeMenu,
-        closeNodeMenu: mockCloseNodeMenu,
-        isMenuOpen: true
+      mockedUseNodeMenuStore.mockImplementation((selector) => {
+        const state = {
+          openNodeMenu: mockOpenNodeMenu,
+          closeNodeMenu: mockCloseNodeMenu,
+          isMenuOpen: true
+        };
+        return selector(state);
       });
       const { result } = renderHook(() =>
         usePaneEvents({
@@ -159,6 +182,12 @@ describe("usePaneEvents", () => {
 
   describe("handlePaneClick", () => {
     it("creates and adds node when pendingNodeType is set", () => {
+      mockedUseMetadataStore.mockImplementation((selector) => {
+        const state = {
+          getMetadata: mockGetMetadata
+        };
+        return selector(state);
+      });
       mockGetMetadata.mockReturnValue({ type: "test-node" });
       const { result } = renderHook(() =>
         usePaneEvents({
@@ -185,6 +214,12 @@ describe("usePaneEvents", () => {
     });
 
     it("cancels placement and logs warning when metadata not found", () => {
+      mockedUseMetadataStore.mockImplementation((selector) => {
+        const state = {
+          getMetadata: mockGetMetadata
+        };
+        return selector(state);
+      });
       mockGetMetadata.mockReturnValue(null);
       const consoleWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
       const { result } = renderHook(() =>
@@ -236,6 +271,12 @@ describe("usePaneEvents", () => {
 
   describe("handlePaneContextMenu", () => {
     it("opens context menu at event coordinates", () => {
+      const originalRequestAnimationFrame = global.requestAnimationFrame;
+      global.requestAnimationFrame = jest.fn((cb: FrameRequestCallback) => {
+        cb(0);
+        return 1;
+      });
+
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
@@ -251,7 +292,9 @@ describe("usePaneEvents", () => {
         clientY: 400
       } as any;
 
-      result.current.handlePaneContextMenu(mockEvent);
+      act(() => {
+        result.current.handlePaneContextMenu(mockEvent);
+      });
 
       expect(mockEvent.preventDefault).toHaveBeenCalled();
       expect(mockEvent.stopPropagation).toHaveBeenCalled();
@@ -263,6 +306,8 @@ describe("usePaneEvents", () => {
         "react-flow__pane"
       );
       expect(mockCloseSelect).toHaveBeenCalled();
+
+      global.requestAnimationFrame = originalRequestAnimationFrame;
     });
   });
 });
