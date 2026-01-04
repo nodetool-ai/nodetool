@@ -9,7 +9,8 @@ import zip from "lodash/zip";
  *
  * - `topologicalSort` (Kahn) returns layered node ids for parallel-friendly
  *   processing and warns on cycles.
- * - `subgraph` collects nodes/edges reachable from a start node (optional stop).
+ * - `subgraph` collects nodes reachable from a start node (optional stop) and
+ *   returns all edges whose endpoints are in that reachable set.
  * - `autoLayout` runs ELK layered layout, filtering out comment nodes, grouping
  *   by parentId, and resizing group nodes to fit children with padding.
  */
@@ -87,10 +88,15 @@ type Result = { edges: Edge[]; nodes: Node<NodeData>[] };
 
 /**
  * Returns a subgraph of the given graph starting from the given start node.
+ *
+ * Examples:
+ * 1) Linear chain: A->B->C from A => nodes {A,B,C}, edges {A->B, B->C}
+ * 2) Diamond: A->B, A->C, B->D, C->D from A => nodes {A,B,C,D}, edges all four
+ * 3) Stop node: A->B->C->D from A, stop C => nodes {A,B,C}, edges {A->B, B->C}
  * @param edges - The edges of the graph.
  * @param nodes - The nodes of the graph.
  * @param startNode - The node to start the subgraph from.
- * @oaram stopNode - The node to stop the subgraph at.
+ * @param stopNode - The node to stop the subgraph at.
  * @returns The subgraph of the given graph.
  */
 export function subgraph(
@@ -118,11 +124,10 @@ export function subgraph(
       break;
     }
 
-    // Find and collect connected edges and nodes
+    // Find and collect connected nodes
     for (const edge of edges) {
       if (edge.source === currentNodeId) {
         if (!visited.has(edge.target)) {
-          result.edges.push(edge);
           stack.push(edge.target);
         }
       }
@@ -135,6 +140,11 @@ export function subgraph(
       result.nodes.push(node);
     }
   }
+
+  // Include all edges that stay within the visited node set.
+  result.edges = edges.filter(
+    (edge) => visited.has(edge.source) && visited.has(edge.target)
+  );
 
   return result;
 }

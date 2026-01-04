@@ -16,10 +16,12 @@ import {
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
+import BoltIcon from "@mui/icons-material/Bolt";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -213,6 +215,25 @@ const styles = (theme: Theme) =>
       }
     },
 
+    /* Instant update button: glowing effect when active */
+    ".floating-action-button.instant-update": {
+      backgroundColor: "transparent",
+      color: theme.vars.palette.grey[400],
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.grey[200]
+      },
+      "&.active": {
+        backgroundColor: theme.vars.palette.warning.main,
+        color: theme.vars.palette.warning.contrastText,
+        boxShadow: `0 0 12px ${theme.vars.palette.warning.main}`,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.warning.dark,
+          boxShadow: `0 0 16px ${theme.vars.palette.warning.main}`
+        }
+      }
+    },
+
     "@keyframes pulse-scale": {
       "0%": { transform: "scale(1)" },
       "50%": { transform: "scale(1.1)" },
@@ -244,6 +265,11 @@ const FloatingToolBar: React.FC<{
   const toggleBottomPanel = useBottomPanelStore(
     (state) => state.handleViewChange
   );
+
+  const { instantUpdate, setInstantUpdate } = useSettingsStore((state) => ({
+    instantUpdate: state.settings.instantUpdate,
+    setInstantUpdate: state.setInstantUpdate
+  }));
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
@@ -403,6 +429,10 @@ const FloatingToolBar: React.FC<{
     toggleBottomPanel("terminal");
   }, [toggleBottomPanel]);
 
+  const handleToggleInstantUpdate = useCallback(() => {
+    setInstantUpdate(!instantUpdate);
+  }, [instantUpdate, setInstantUpdate]);
+
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -465,6 +495,14 @@ const FloatingToolBar: React.FC<{
           variant="neutral"
           onClick={handleSave}
           aria-label="Save workflow"
+        />
+        <ToolbarButton
+          icon={<BoltIcon />}
+          tooltip={instantUpdate ? "Instant Update: ON - Property changes trigger execution" : "Instant Update: OFF - Click to enable"}
+          variant="neutral"
+          className={cn("instant-update", instantUpdate && "active")}
+          onClick={handleToggleInstantUpdate}
+          aria-label="Toggle instant update"
         />
         <ToolbarButton
           icon={<MoreVertIcon />}

@@ -1,25 +1,35 @@
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
 
 const IntegerProperty = (props: PropertyProps) => {
-  const id = `slider-${props.property.name}-${props.propertyIndex}`;
-  const name = props.property.name.replaceAll("_", " ");
-  const description = props.property.description || "No description available";
+  const { property, nodeId, value: propValue, hideLabel, tabIndex, changed, onChange, onChangeComplete } = props;
+  const id = `slider-${property.name}-${props.propertyIndex}`;
+  const name = property.name.replaceAll("_", " ");
+  const description = property.description || "No description available";
 
-  const value = Number.isInteger(props.value) ? props.value : 0;
+  const value = Number.isInteger(propValue) ? propValue : 0;
 
   const min =
-    typeof props.property.min === "number" ? props.property.min : undefined;
+    typeof property.min === "number" ? property.min : undefined;
   const max =
-    typeof props.property.max === "number" ? props.property.max : undefined;
+    typeof property.max === "number" ? property.max : undefined;
+
+  const handleChangeComplete = useCallback(
+    (_value: number) => {
+      if (onChangeComplete) {
+        onChangeComplete();
+      }
+    },
+    [onChangeComplete]
+  );
 
   return (
     <>
       <NumberInput
         id={id}
-        nodeId={props.nodeId}
+        nodeId={nodeId}
         name={name}
         description={description}
         value={value}
@@ -28,11 +38,12 @@ const IntegerProperty = (props: PropertyProps) => {
         size="small"
         color="secondary"
         inputType="int"
-        hideLabel={props.hideLabel}
-        tabIndex={props.tabIndex}
+        hideLabel={hideLabel}
+        tabIndex={tabIndex}
         zoomAffectsDragging={true}
-        changed={props.changed}
-        onChange={(_, value) => props.onChange(Number(value))}
+        changed={changed}
+        onChange={(_, newValue) => onChange(Number(newValue))}
+        onChangeComplete={handleChangeComplete}
       />
     </>
   );
