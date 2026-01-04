@@ -26,18 +26,21 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>) {
 }
 
 export function customEquality(
-  previous: PartializedNodeStore,
-  current: PartializedNodeStore
+  previous: PartializedNodeStore | undefined,
+  current: PartializedNodeStore | undefined
 ): boolean {
   /*
   customEquality:
   - results in a history item being created if the return value is false
   - omits some fields to prevent unnecessary history items being created
   */
-  if (previous.nodes.length !== current.nodes.length) {
+  if (!previous || !current) {
     return false;
   }
-  if (previous.edges.length !== current.edges.length) {
+  if (!previous.nodes || !current.nodes || previous.nodes.length !== current.nodes.length) {
+    return false;
+  }
+  if (!previous.edges || !current.edges || previous.edges.length !== current.edges.length) {
     return false;
   }
 

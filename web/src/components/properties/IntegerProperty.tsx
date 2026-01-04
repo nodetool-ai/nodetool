@@ -1,7 +1,8 @@
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
+import { useInputMinMax } from "../../hooks/useInputMinMax";
 
 const IntegerProperty = (props: PropertyProps) => {
   const { property, nodeId, value: propValue, hideLabel, tabIndex, changed, onChange, onChangeComplete } = props;
@@ -11,19 +12,13 @@ const IntegerProperty = (props: PropertyProps) => {
 
   const value = Number.isInteger(propValue) ? propValue : 0;
 
-  const min =
-    typeof property.min === "number" ? property.min : undefined;
-  const max =
-    typeof property.max === "number" ? property.max : undefined;
-
-  const handleChangeComplete = useCallback(
-    (_value: number) => {
-      if (onChangeComplete) {
-        onChangeComplete();
-      }
-    },
-    [onChangeComplete]
-  );
+  const { min, max } = useInputMinMax({
+    nodeType: props.nodeType,
+    nodeId: props.nodeId,
+    propertyName: props.property.name,
+    propertyMin: props.property.min,
+    propertyMax: props.property.max,
+  });
 
   return (
     <>
@@ -43,7 +38,7 @@ const IntegerProperty = (props: PropertyProps) => {
         zoomAffectsDragging={true}
         changed={changed}
         onChange={(_, newValue) => onChange(Number(newValue))}
-        onChangeComplete={handleChangeComplete}
+        onChangeComplete={onChangeComplete}
       />
     </>
   );

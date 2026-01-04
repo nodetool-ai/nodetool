@@ -157,6 +157,7 @@ describe("VersionHistoryStore", () => {
       const wf1Time = result.current.getLastAutosaveTime("wf1");
 
       act(() => {
+        jest.advanceTimersByTime(1);
         result.current.updateLastAutosaveTime("wf2");
       });
 
