@@ -52,6 +52,7 @@ Complete reference documentation for all 698 NodeTool nodes across 113 namespace
 
 ### lib
 
+- **[lib overview](lib/)** - Python standard library and packages (overview)
 - **[lib.base64](lib/base64/)** - 2 node(s)
 - **[lib.beautifulsoup](lib/beautifulsoup/)** - 8 node(s)
 - **[lib.browser](lib/browser/)** - 6 node(s)
@@ -85,7 +86,8 @@ Complete reference documentation for all 698 NodeTool nodes across 113 namespace
 - **[lib.os](lib/os/)** - 29 node(s)
 - **[lib.pandoc](lib/pandoc/)** - 2 node(s)
 - **[lib.pdfplumber](lib/pdfplumber/)** - 5 node(s)
-- **[lib.pillow.**init**](lib/pillow/__init__/)** - 2 node(s)
+- **[lib.pillow](lib/pillow/)** - Image processing with Pillow (overview)
+- **[lib.pillow.__init__](lib/pillow/__init__/)** - 2 node(s)
 - **[lib.pillow.draw](lib/pillow/draw/)** - 3 node(s)
 - **[lib.pillow.enhance](lib/pillow/enhance/)** - 12 node(s)
 - **[lib.pillow.filter](lib/pillow/filter/)** - 12 node(s)
@@ -113,6 +115,7 @@ Complete reference documentation for all 698 NodeTool nodes across 113 namespace
 
 ### nodetool
 
+- **[nodetool overview](nodetool/)** - NodeTool core nodes (overview)
 - **[nodetool.agents](nodetool/agents/)** - 5 node(s)
 - **[nodetool.audio](nodetool/audio/)** - 25 node(s)
 - **[nodetool.boolean](nodetool/boolean/)** - 8 node(s)
