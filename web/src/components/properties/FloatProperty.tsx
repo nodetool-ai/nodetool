@@ -2,7 +2,7 @@ import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
-import useMetadataStore from "../../stores/MetadataStore";
+import { useInputMinMax } from "../../hooks/useInputMinMax";
 
 const FloatProperty = (props: PropertyProps) => {
   const id = `slider-${props.property.name}-${props.propertyIndex}`;
@@ -11,27 +11,13 @@ const FloatProperty = (props: PropertyProps) => {
 
   const value = typeof props.value === "number" ? props.value : 0;
 
-  const nodeMetadata = useMetadataStore(
-    (state) =>
-      props.nodeType ? state.metadata[props.nodeType] : undefined
-  );
-
-  const nodeProperty = nodeMetadata?.properties?.find(
-    (p) => p.name === props.property.name
-  );
-
-  const min =
-    typeof nodeProperty?.min === "number"
-      ? nodeProperty.min
-      : typeof props.property.min === "number"
-        ? props.property.min
-        : 0;
-  const max =
-    typeof nodeProperty?.max === "number"
-      ? nodeProperty.max
-      : typeof props.property.max === "number"
-        ? props.property.max
-        : 100;
+  const { min, max } = useInputMinMax({
+    nodeType: props.nodeType,
+    nodeId: props.nodeId,
+    propertyName: props.property.name,
+    propertyMin: props.property.min,
+    propertyMax: props.property.max,
+  });
 
   return (
     <>
