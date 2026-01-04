@@ -41,6 +41,11 @@ export interface Settings {
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
   soundNotifications: boolean;
+  /**
+   * When enabled, changing any node property will trigger execution of
+   * the downstream subgraph automatically (like "Run from here").
+   */
+  instantUpdate: boolean;
   autosave: AutosaveSettings;
 }
 
@@ -63,6 +68,7 @@ interface SettingsStore {
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
+  setInstantUpdate: (value: boolean) => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
@@ -79,6 +85,7 @@ export const defaultSettings: Settings = {
   selectNodesOnDrag: false,
   showWelcomeOnStartup: true,
   soundNotifications: true,
+  instantUpdate: false,
   autosave: { ...defaultAutosaveSettings }
 };
 
@@ -189,6 +196,13 @@ export const useSettingsStore = create<SettingsStore>()(
             soundNotifications: value
           }
         })),
+      setInstantUpdate: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            instantUpdate: value
+          }
+        })),
       updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>
         set((state) => ({
           settings: {
@@ -200,7 +214,7 @@ export const useSettingsStore = create<SettingsStore>()(
     {
       name: "settings-storage",
       partialize: (state) => ({
-        settings: state.settings
+        settings: state.settings,
         // Don't persist menuAnchorEl state
       })
     }

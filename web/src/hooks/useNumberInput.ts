@@ -163,19 +163,25 @@ export const useDragHandling = (
 
   const handleMouseUp = useCallback(() => {
     if (dragStateRef.current.isDragging) {
+      const finalValue = dragStateRef.current.currentDragValue;
       dragStateRef.current.isDragging = false;
       // sync final value back to react state
       setState((prev) => ({
         ...prev,
         isDragging: false,
-        localValue: String(dragStateRef.current.currentDragValue)
+        localValue: String(finalValue)
       }));
 
       if (!dragStateRef.current.hasExceededDragThreshold) {
         setInputIsFocused(true);
+      } else {
+        // Call onChangeComplete when user finishes dragging (only if they actually dragged)
+        if (props.onChangeComplete) {
+          props.onChangeComplete(finalValue);
+        }
       }
     }
-  }, [setInputIsFocused, dragStateRef, setState]);
+  }, [setInputIsFocused, dragStateRef, setState, props]);
 
   return { handleMouseMove, handleMouseUp };
 };
