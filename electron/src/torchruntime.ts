@@ -3,19 +3,6 @@ import { logMessage } from "./logger";
 import { getPythonPath, getProcessEnv } from "./config";
 import { emitBootMessage } from "./events";
 
-/**
- * Torchruntime Integration Module
- * 
- * This module integrates torchruntime to automatically detect GPU hardware
- * and determine the appropriate PyTorch installation index URL.
- * 
- * Torchruntime supports:
- * - NVIDIA GPUs (CUDA 11.8, 12.4, 12.8, 12.9)
- * - AMD GPUs (ROCm 5.2, 5.7, 6.2, 6.4)
- * - Apple Silicon (MPS)
- * - CPU-only fallback
- */
-
 export type TorchPlatform = 
   | "cu118" | "cu124" | "cu128" | "cu129"  // NVIDIA CUDA
   | "rocm5.2" | "rocm5.7" | "rocm6.2" | "rocm6.4"  // AMD ROCm
@@ -31,9 +18,6 @@ export interface TorchruntimeDetectionResult {
 
 const PYTORCH_INDEX_BASE = "https://download.pytorch.org/whl";
 
-/**
- * Map torchruntime platform to PyTorch index URL
- */
 function getPyTorchIndexUrl(platform: TorchPlatform): string | null {
   const indexMap: Record<TorchPlatform, string | null> = {
     "cu118": `${PYTORCH_INDEX_BASE}/cu118`,
@@ -44,16 +28,13 @@ function getPyTorchIndexUrl(platform: TorchPlatform): string | null {
     "rocm5.7": `${PYTORCH_INDEX_BASE}/rocm5.7`,
     "rocm6.2": `${PYTORCH_INDEX_BASE}/rocm6.2`,
     "rocm6.4": `${PYTORCH_INDEX_BASE}/rocm6.4`,
-    "mps": null,  // Apple MPS uses PyPI default
+    "mps": null,
     "cpu": `${PYTORCH_INDEX_BASE}/cpu`,
   };
   
   return indexMap[platform];
 }
 
-/**
- * Check if torchruntime is installed
- */
 async function isTorchruntimeInstalled(): Promise<boolean> {
   try {
     const pythonPath = getPythonPath();
@@ -87,17 +68,11 @@ async function isTorchruntimeInstalled(): Promise<boolean> {
   }
 }
 
-/**
- * Install torchruntime package
- */
 async function installTorchruntime(): Promise<void> {
   emitBootMessage("Installing torchruntime for GPU detection...");
   logMessage("Installing torchruntime package");
 
   const pythonPath = getPythonPath();
-  
-  // Use version ~=2.0 to get latest 2.x with automatic updates
-  // This allows bug fixes and PCI database updates while avoiding breaking changes
   const torchruntimeSpec = "torchruntime~=2.0";
   
   return new Promise((resolve, reject) => {
@@ -139,20 +114,15 @@ async function installTorchruntime(): Promise<void> {
   });
 }
 
-/**
- * Detect GPU platform using torchruntime
- */
 async function detectPlatformWithTorchruntime(): Promise<TorchPlatform> {
   const pythonPath = getPythonPath();
   
-  // Wrap torchruntime API calls in try-catch to handle potential API changes
   const detectionScript = `
 import torchruntime
 import json
 import sys
 
 try:
-    # Check for required APIs
     if not hasattr(torchruntime, 'device_db') or not hasattr(torchruntime, 'platform_detection'):
         raise AttributeError("torchruntime API structure has changed")
     
@@ -208,7 +178,6 @@ except Exception as e:
         const platform = result.platform as TorchPlatform;
         logMessage(`Detected torch platform: ${platform} (GPUs: ${result.gpu_count})`);
         
-        // Validate platform
         const validPlatforms: TorchPlatform[] = [
           "cu118", "cu124", "cu128", "cu129",
           "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
@@ -237,16 +206,11 @@ except Exception as e:
   });
 }
 
-/**
- * Main function to detect GPU and determine PyTorch installation parameters
- * Returns the torch platform, index URL, and DirectML requirement
- */
 export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult> {
   try {
     emitBootMessage("Detecting GPU hardware...");
     logMessage("Starting GPU platform detection with torchruntime");
 
-    // Check if torchruntime is installed, install if needed
     const isInstalled = await isTorchruntimeInstalled();
     if (!isInstalled) {
       logMessage("Torchruntime not found, installing...");
@@ -255,7 +219,6 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
       logMessage("Torchruntime is already installed");
     }
 
-    // Detect platform
     const platform = await detectPlatformWithTorchruntime();
     const indexUrl = getPyTorchIndexUrl(platform);
 
@@ -283,9 +246,104 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
   }
 }
 
-/**
- * Validate and normalize platform string from environment variable
- */
+export async function installTorchWithUvs(): Promise<TorchruntimeDetectionResult> {
+  try {
+    emitBootMessage("Installing PyTorch with torchruntime...");
+    logMessage("Running torchruntime install --uv for automatic GPU detection and torch installation");
+
+    const pythonPath = getPythonPath();
+    
+    try {
+      const result = await new Promise<TorchruntimeDetectionResult>((resolve, reject) => {
+        const installProcess = spawn(
+          pythonPath,
+          ["-m", "torchruntime", "install", "--uv"],
+          {
+            env: getProcessEnv(),
+            stdio: "pipe",
+          }
+        );
+
+        let stdout = "";
+        let stderr = "";
+
+        installProcess.stdout?.on("data", (data: Buffer) => {
+          const output = data.toString();
+          stdout += output;
+          logMessage(`torchruntime: ${output.trim()}`);
+        });
+
+        installProcess.stderr?.on("data", (data: Buffer) => {
+          const output = data.toString();
+          stderr += output;
+          logMessage(`torchruntime: ${output.trim()}`);
+        });
+
+        installProcess.on("exit", (code) => {
+          if (code === 0) {
+            logMessage("PyTorch installation via torchruntime completed successfully");
+            
+            const platform = extractPlatformFromOutput(stdout) || "cpu";
+            const indexUrl = getPyTorchIndexUrl(platform);
+            
+            resolve({
+              platform,
+              indexUrl,
+            });
+          } else {
+            const errorMsg = `torchruntime install failed (exit code ${code}): ${stderr}`;
+            logMessage(errorMsg, "error");
+            reject(new Error(errorMsg));
+          }
+        });
+
+        installProcess.on("error", (error) => {
+          const errorMsg = `Failed to run torchruntime install: ${error.message}`;
+          logMessage(errorMsg, "error");
+          reject(new Error(errorMsg));
+        });
+      });
+
+      return result;
+    } catch (error: any) {
+      logMessage(`PyTorch installation process failed: ${error.message}`, "error");
+      logMessage("Falling back to CPU-only installation", "warn");
+      
+      return {
+        platform: "cpu",
+        indexUrl: getPyTorchIndexUrl("cpu"),
+        error: error.message,
+      };
+    }
+  } catch (error: any) {
+    const errorMsg = error?.message || String(error);
+    logMessage(`PyTorch installation failed: ${errorMsg}`, "error");
+    logMessage("Falling back to CPU-only installation", "warn");
+    
+    return {
+      platform: "cpu",
+      indexUrl: getPyTorchIndexUrl("cpu"),
+      error: errorMsg,
+    };
+  }
+}
+
+function extractPlatformFromOutput(output: string): TorchPlatform | null {
+  const platformMatch = output.match(/detected[^\n]*?(cu\d+|rocm[\d.]+|mps|cpu)/i);
+  if (platformMatch) {
+    const platform = platformMatch[1].toLowerCase();
+    const validPlatforms: TorchPlatform[] = [
+      "cu118", "cu124", "cu128", "cu129",
+      "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
+      "mps", "cpu"
+    ];
+    if (validPlatforms.includes(platform as TorchPlatform)) {
+      return platform as TorchPlatform;
+    }
+  }
+  return null;
+}
+
 export function normalizePlatform(platformStr: string | undefined): TorchPlatform | null {
   if (!platformStr) {
     return null;
