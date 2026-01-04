@@ -29,6 +29,11 @@ export interface InputProps {
   max?: number;
   value: number;
   onChange: (event: any, value: number) => void;
+  /**
+   * Called when the user finishes changing the value (on mouseup for drag, on blur for text input).
+   * Useful for triggering actions only when the user has committed their change.
+   */
+  onChangeComplete?: (value: number) => void;
   id: string;
   size?: "small" | "medium";
   color?: "primary" | "secondary";
@@ -157,6 +162,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }));
 
         props.onChange(null, finalValue);
+        // Call onChangeComplete when user finishes editing via text input
+        if (props.onChangeComplete) {
+          props.onChangeComplete(finalValue);
+        }
       } else {
         setState((prevState) => ({
           ...prevState,
