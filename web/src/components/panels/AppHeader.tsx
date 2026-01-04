@@ -12,6 +12,7 @@ import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import EditIcon from "@mui/icons-material/Edit";
 import DatasetIcon from "@mui/icons-material/Dataset";
 import DescriptionIcon from "@mui/icons-material/Description";
+import MovieIcon from "@mui/icons-material/Movie";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -19,7 +20,7 @@ import ModelsButton from "../hugging_face/ModelsButton";
 import { IconForType } from "../../config/data_types";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../stores/ApiClient";
+import { isProduction, isLocalhost } from "../../stores/ApiClient";
 
 const styles = (theme: Theme) =>
   css({
@@ -350,6 +351,36 @@ const CollectionsButton = memo(function CollectionsButton({
   );
 });
 
+const TimelineButton = memo(function TimelineButton({
+  isActive
+}: {
+  isActive: boolean;
+}) {
+  const navigate = useNavigate();
+
+  const handleClick = useCallback(() => {
+    navigate("/timeline");
+  }, [navigate]);
+
+  return (
+    <Tooltip
+      title="Timeline Editor"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="bottom"
+    >
+      <IconButton
+        className={`nav-button timeline-button ${isActive ? "active" : ""}`}
+        onClick={handleClick}
+        tabIndex={-1}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <MovieIcon />
+        <span className="nav-button-text">Timeline</span>
+      </IconButton>
+    </Tooltip>
+  );
+});
+
 const DocsButton = memo(function DocsButton() {
   const handleClick = useCallback(() => {
     window.open("https://docs.nodetool.ai", "_blank");
@@ -400,6 +431,9 @@ const AppHeader: React.FC = memo(function AppHeader() {
             {(getIsElectronDetails().isElectron || !isProduction) && <ModelsButton />}
             <TemplatesButton isActive={path.startsWith("/templates")} />
             <CollectionsButton isActive={path.startsWith("/collections")} />
+            {isLocalhost && (
+              <TimelineButton isActive={path.startsWith("/timeline")} />
+            )}
             <DashboardButton isActive={path.startsWith("/dashboard")} />
             <DocsButton />
           </div>
