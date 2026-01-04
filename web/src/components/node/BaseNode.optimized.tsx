@@ -36,7 +36,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
-import { useNodes } from "../../contexts/NodeContext";
+
 import { getIsElectronDetails } from "../../utils/browser";
 
 
@@ -282,7 +282,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // OPTIMIZATION 4: More efficient parentColor computation
   // ============================================================================
   const parentColor = useMemo(() => {
-    if (!parentId) {return "";}
+    if (!parentId) { return ""; }
     return isDarkMode
       ? hexToRgba("#222", GROUP_COLOR_OPACITY)
       : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
@@ -320,9 +320,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Results and rendering
   const result = useResultsStore((state) => {
-    const r = nodeType.isOutputNode
-      ? state.getOutputResult(workflow_id, id)
-      : state.getResult(workflow_id, id);
+    const r = state.getOutputResult(workflow_id, id) || state.getResult(workflow_id, id);
     return r;
   });
 
@@ -348,9 +346,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, []);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
-  const isOverlayVisible = nodeType.isOutputNode
-    ? (result && !isEmptyResult(result))
-    : (showResultOverlay && result && !isEmptyResult(result));
+  const isOverlayVisible = showResultOverlay && result && !isEmptyResult(result);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>
@@ -503,10 +499,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 // ============================================================================
 export default memo(BaseNode, (prevProps, nextProps) => {
   // Quick checks first (fastest to fail)
-  if (prevProps.id !== nextProps.id) {return false;}
-  if (prevProps.type !== nextProps.type) {return false;}
-  if (prevProps.selected !== nextProps.selected) {return false;}
-  if (prevProps.parentId !== nextProps.parentId) {return false;}
+  if (prevProps.id !== nextProps.id) { return false; }
+  if (prevProps.type !== nextProps.type) { return false; }
+  if (prevProps.selected !== nextProps.selected) { return false; }
+  if (prevProps.parentId !== nextProps.parentId) { return false; }
 
   // Deep comparison last (most expensive)
   return isEqual(prevProps.data, nextProps.data);

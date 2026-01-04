@@ -73,7 +73,9 @@ export const useRealtimeAudioStream = (
   }, []);
 
   useEffect(() => {
-    if (!isStreaming) {return;}
+    if (!isStreaming) {
+      return;
+    }
     let activeStream: MediaStream | null = null;
     const targetSampleRate = 22000; // 22 kHz per updated realtime session config
     navigator.mediaDevices
@@ -120,6 +122,7 @@ export const useRealtimeAudioStream = (
             binary += String.fromCharCode(bytes[i]);
           }
           const base64 = btoa(binary);
+          const duration_seconds = input.length / targetSampleRate;
           send(
             {
               type: "chunk",
@@ -128,8 +131,10 @@ export const useRealtimeAudioStream = (
               content_type: "audio",
               content_metadata: {
                 encoding: "pcm16le",
-                sample_rate_hz: targetSampleRate,
-                channels: 1
+                sample_rate: targetSampleRate,
+                channels: 1,
+                format: "pcm16le",
+                duration_seconds: duration_seconds
               }
             },
             "chunk"
