@@ -2,6 +2,7 @@ import { components } from "../api";
 
 export type Node = components["schemas"]["Node-Input"];
 export type Edge = components["schemas"]["Edge"];
+export type Graph = components["schemas"]["Graph-Input"];
 export type Asset = Omit<components["schemas"]["Asset"], "size"> & {
   size?: number | null; // File size in bytes - added for size sorting
 };
@@ -37,6 +38,30 @@ export type WorkflowList = components["schemas"]["WorkflowList"];
 export type WorkflowTool = components["schemas"]["WorkflowTool"];
 export type WorkflowToolList = components["schemas"]["WorkflowToolList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
+
+// Workflow version types using API schema types
+export interface WorkflowVersion {
+  id: string;
+  workflow_id: string;
+  version: number;
+  created_at: string;
+  name?: string;
+  description?: string;
+  is_pinned?: boolean;
+  save_type?: "manual" | "autosave" | "checkpoint" | "restore";
+  graph: Graph;
+}
+
+export interface WorkflowVersionList {
+  versions: WorkflowVersion[];
+  next: string | null;
+}
+
+export interface CreateWorkflowVersionRequest {
+  name?: string;
+  description?: string;
+}
+
 export type Property = components["schemas"]["Property"];
 export type OutputSlot = components["schemas"]["OutputSlot"];
 export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];

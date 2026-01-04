@@ -8,6 +8,26 @@ export interface UserLayout {
   layout: SerializedDockview;
 }
 
+export interface AutosaveSettings {
+  enabled: boolean;
+  intervalMinutes: number; // 1-60, default 10
+  saveBeforeRun: boolean;
+  saveOnClose: boolean;
+  maxVersionsPerWorkflow: number; // default 50
+  keepManualVersionsDays: number; // default 90
+  keepAutosaveVersionsDays: number; // default 7
+}
+
+export const defaultAutosaveSettings: AutosaveSettings = {
+  enabled: true,
+  intervalMinutes: 10,
+  saveBeforeRun: true,
+  saveOnClose: true,
+  maxVersionsPerWorkflow: 50,
+  keepManualVersionsDays: 90,
+  keepAutosaveVersionsDays: 7
+};
+
 export interface Settings {
   gridSnap: number;
   connectionSnap: number;
@@ -21,6 +41,7 @@ export interface Settings {
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
   soundNotifications: boolean;
+  autosave: AutosaveSettings;
 }
 
 interface SettingsStore {
@@ -42,6 +63,7 @@ interface SettingsStore {
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
+  updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -56,7 +78,8 @@ export const defaultSettings: Settings = {
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
   showWelcomeOnStartup: true,
-  soundNotifications: true
+  soundNotifications: true,
+  autosave: { ...defaultAutosaveSettings }
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -164,6 +187,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             soundNotifications: value
+          }
+        })),
+      updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            autosave: { ...state.settings.autosave, ...newSettings }
           }
         }))
     }),
