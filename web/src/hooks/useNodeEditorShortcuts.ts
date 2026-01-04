@@ -88,7 +88,8 @@ export const useNodeEditorShortcuts = (
     const mousePos = getMousePosition();
     openNodeMenu({
       x: mousePos.x,
-      y: mousePos.y
+      y: mousePos.y,
+      centerOnScreen: true
     });
   }, [openNodeMenu]);
 

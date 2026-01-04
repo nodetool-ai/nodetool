@@ -39,6 +39,7 @@ export interface OpenNodeMenuParams {
   connectDirection?: ConnectDirection;
   searchTerm?: string;
   selectedPath?: string[];
+  centerOnScreen?: boolean;
 }
 
 export type NodeMenuStore = {
@@ -454,9 +455,19 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const actualMenuHeight =
           menuHeight && menuHeight > 0 ? menuHeight : FALLBACK_MENU_HEIGHT;
 
-        // 1. Start with the desired visual position at the mouse cursor
-        let visualX = params.x;
-        let visualY = params.y - CURSOR_ANCHOR_OFFSET_Y;
+        // Calculate position based on whether we should center on screen
+        let visualX: number;
+        let visualY: number;
+
+        if (params.centerOnScreen) {
+          // Center the menu on the screen
+          visualX = (window.innerWidth - actualMenuWidth) / 2;
+          visualY = (window.innerHeight - actualMenuHeight) / 2;
+        } else {
+          // Start with the desired visual position at the mouse cursor
+          visualX = params.x;
+          visualY = params.y - CURSOR_ANCHOR_OFFSET_Y;
+        }
 
         // 2. Check if the menu overflows the window edges and adjust
         // Adjust X if it overflows the right edge
