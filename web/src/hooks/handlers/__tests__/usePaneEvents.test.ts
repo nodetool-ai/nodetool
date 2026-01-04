@@ -10,12 +10,39 @@ import useMetadataStore from "../../../stores/MetadataStore";
 import useSelect from "../../nodes/useSelect";
 
 jest.mock("@xyflow/react");
-jest.mock("../../../stores/NodeMenuStore");
 jest.mock("../../../stores/NodePlacementStore");
 jest.mock("../../../stores/ContextMenuStore");
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../nodes/useSelect");
+
+const mockOpenNodeMenu = jest.fn();
+const mockCloseNodeMenu = jest.fn();
+const mockCancelPlacement = jest.fn();
+const mockOpenContextMenu = jest.fn();
+const mockCloseSelect = jest.fn();
+const mockGetMetadata = jest.fn();
+const mockCreateNode = jest.fn().mockReturnValue({ id: "new-node", selected: false });
+const mockAddNode = jest.fn();
+
+let mockIsMenuOpen = false;
+
+jest.mock("../../../stores/NodeMenuStore", () => {
+  return {
+    __esModule: true,
+    default: jest.fn((selector) => {
+      const mockModule = {
+        openNodeMenu: mockOpenNodeMenu,
+        closeNodeMenu: mockCloseNodeMenu,
+        isMenuOpen: mockIsMenuOpen
+      };
+      if (typeof selector === 'function') {
+        return selector(mockModule);
+      }
+      return mockModule;
+    })
+  };
+});
 
 describe("usePaneEvents", () => {
   const mockScreenToFlowPosition = jest.fn().mockReturnValue({ x: 100, y: 200 });
@@ -23,17 +50,6 @@ describe("usePaneEvents", () => {
     screenToFlowPosition: mockScreenToFlowPosition
   };
 
-  const mockOpenNodeMenu = jest.fn();
-  const mockCloseNodeMenu = jest.fn();
-  const mockIsMenuOpen = false;
-  const mockCancelPlacement = jest.fn();
-  const mockOpenContextMenu = jest.fn();
-  const mockCloseSelect = jest.fn();
-  const mockGetMetadata = jest.fn();
-  const mockCreateNode = jest.fn().mockReturnValue({ id: "new-node", selected: false });
-  const mockAddNode = jest.fn();
-
-  const mockedUseNodeMenuStore = useNodeMenuStore as unknown as jest.Mock;
   const mockedUseNodePlacementStore = useNodePlacementStore as unknown as jest.Mock;
   const mockedUseContextMenu = useContextMenu as unknown as jest.Mock;
   const mockedUseNodes = useNodes as unknown as jest.Mock;
@@ -43,24 +59,30 @@ describe("usePaneEvents", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseNodeMenuStore.mockReturnValue({
-      openNodeMenu: mockOpenNodeMenu,
-      closeNodeMenu: mockCloseNodeMenu,
-      isMenuOpen: mockIsMenuOpen
-    });
-    mockedUseNodePlacementStore.mockReturnValue({
-      cancelPlacement: mockCancelPlacement
-    });
+    mockOpenNodeMenu.mockClear();
+    mockCloseNodeMenu.mockClear();
+    mockCancelPlacement.mockClear();
+    mockOpenContextMenu.mockClear();
+    mockCloseSelect.mockClear();
+    mockGetMetadata.mockClear();
+    mockCreateNode.mockReturnValue({ id: "new-node", selected: false });
+    mockAddNode.mockClear();
+    mockIsMenuOpen = false;
+
+    mockedUseNodePlacementStore.mockReturnValue(mockCancelPlacement);
     mockedUseContextMenu.mockReturnValue({
       openContextMenu: mockOpenContextMenu
     });
-    mockedUseNodes.mockReturnValue({
-      createNode: mockCreateNode,
-      addNode: mockAddNode
+    mockedUseNodes.mockImplementation((selector) => {
+      if (typeof selector === 'function') {
+        return selector({
+          createNode: mockCreateNode,
+          addNode: mockAddNode
+        });
+      }
+      return { createNode: mockCreateNode, addNode: mockAddNode };
     });
-    mockedUseMetadataStore.mockReturnValue({
-      getMetadata: mockGetMetadata
-    });
+    mockedUseMetadataStore.mockReturnValue(mockGetMetadata);
     mockedUseSelect.mockReturnValue({
       close: mockCloseSelect
     });
@@ -82,11 +104,7 @@ describe("usePaneEvents", () => {
 
   describe("handleDoubleClick", () => {
     it("opens node menu on react-flow__pane when menu is closed", () => {
-      mockedUseNodeMenuStore.mockReturnValue({
-        openNodeMenu: mockOpenNodeMenu,
-        closeNodeMenu: mockCloseNodeMenu,
-        isMenuOpen: false
-      });
+      mockIsMenuOpen = false;
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
@@ -107,11 +125,7 @@ describe("usePaneEvents", () => {
     });
 
     it("closes node menu when menu is already open", () => {
-      mockedUseNodeMenuStore.mockReturnValue({
-        openNodeMenu: mockOpenNodeMenu,
-        closeNodeMenu: mockCloseNodeMenu,
-        isMenuOpen: true
-      });
+      mockIsMenuOpen = true;
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
@@ -132,11 +146,7 @@ describe("usePaneEvents", () => {
     });
 
     it("closes menu when clicking on non-pane element", () => {
-      mockedUseNodeMenuStore.mockReturnValue({
-        openNodeMenu: mockOpenNodeMenu,
-        closeNodeMenu: mockCloseNodeMenu,
-        isMenuOpen: true
-      });
+      mockIsMenuOpen = true;
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
@@ -235,7 +245,7 @@ describe("usePaneEvents", () => {
   });
 
   describe("handlePaneContextMenu", () => {
-    it("opens context menu at event coordinates", () => {
+    it("opens context menu at event coordinates", async () => {
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
@@ -255,6 +265,12 @@ describe("usePaneEvents", () => {
 
       expect(mockEvent.preventDefault).toHaveBeenCalled();
       expect(mockEvent.stopPropagation).toHaveBeenCalled();
+      expect(mockCloseSelect).toHaveBeenCalled();
+
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+      });
+
       expect(mockOpenContextMenu).toHaveBeenCalledWith(
         "pane-context-menu",
         "",
@@ -262,7 +278,6 @@ describe("usePaneEvents", () => {
         400,
         "react-flow__pane"
       );
-      expect(mockCloseSelect).toHaveBeenCalled();
     });
   });
 });
