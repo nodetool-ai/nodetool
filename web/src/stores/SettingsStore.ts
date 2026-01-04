@@ -8,6 +8,26 @@ export interface UserLayout {
   layout: SerializedDockview;
 }
 
+export interface AutosaveSettings {
+  enabled: boolean;
+  intervalMinutes: number; // 1-60, default 10
+  saveBeforeRun: boolean;
+  saveOnClose: boolean;
+  maxVersionsPerWorkflow: number; // default 50
+  keepManualVersionsDays: number; // default 90
+  keepAutosaveVersionsDays: number; // default 7
+}
+
+export const defaultAutosaveSettings: AutosaveSettings = {
+  enabled: true,
+  intervalMinutes: 10,
+  saveBeforeRun: true,
+  saveOnClose: true,
+  maxVersionsPerWorkflow: 50,
+  keepManualVersionsDays: 90,
+  keepAutosaveVersionsDays: 7
+};
+
 export interface Settings {
   gridSnap: number;
   connectionSnap: number;
@@ -26,6 +46,7 @@ export interface Settings {
    * the downstream subgraph automatically (like "Run from here").
    */
   instantUpdate: boolean;
+  autosave: AutosaveSettings;
 }
 
 interface SettingsStore {
@@ -48,6 +69,7 @@ interface SettingsStore {
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
+  updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -64,6 +86,7 @@ export const defaultSettings: Settings = {
   showWelcomeOnStartup: true,
   soundNotifications: true,
   instantUpdate: false
+  autosave: { ...defaultAutosaveSettings }
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -178,6 +201,11 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             instantUpdate: value
+      updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            autosave: { ...state.settings.autosave, ...newSettings }
           }
         }))
     }),

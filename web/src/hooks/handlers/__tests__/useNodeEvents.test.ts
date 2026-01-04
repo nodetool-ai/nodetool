@@ -24,8 +24,13 @@ describe("useNodeEvents", () => {
     mockedUseContextMenu.mockReturnValue({
       openContextMenu: mockOpenContextMenu
     });
-    mockedUseNodes.mockReturnValue({
-      onNodesChange: mockOnNodesChange
+    mockedUseNodes.mockImplementation((selector) => {
+      if (typeof selector === 'function') {
+        return selector({
+          onNodesChange: mockOnNodesChange
+        });
+      }
+      return { onNodesChange: mockOnNodesChange };
     });
     mockedUseSelect.mockReturnValue({
       close: mockCloseSelect
