@@ -2,6 +2,7 @@ import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
+import useMetadataStore from "../../stores/MetadataStore";
 
 const IntegerProperty = (props: PropertyProps) => {
   const id = `slider-${props.property.name}-${props.propertyIndex}`;
@@ -10,10 +11,27 @@ const IntegerProperty = (props: PropertyProps) => {
 
   const value = Number.isInteger(props.value) ? props.value : 0;
 
+  const nodeMetadata = useMetadataStore(
+    (state) =>
+      props.nodeType ? state.metadata[props.nodeType] : undefined
+  );
+
+  const nodeProperty = nodeMetadata?.properties?.find(
+    (p) => p.name === props.property.name
+  );
+
   const min =
-    typeof props.property.min === "number" ? props.property.min : 0;
+    typeof nodeProperty?.min === "number"
+      ? nodeProperty.min
+      : typeof props.property.min === "number"
+        ? props.property.min
+        : 0;
   const max =
-    typeof props.property.max === "number" ? props.property.max : 100;
+    typeof nodeProperty?.max === "number"
+      ? nodeProperty.max
+      : typeof props.property.max === "number"
+        ? props.property.max
+        : 100;
 
   return (
     <>
