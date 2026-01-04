@@ -87,9 +87,9 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         <OutputRenderer
           value={
             typeof result === "object" &&
-            result !== null &&
-            "output" in result &&
-            result.output !== undefined
+              result !== null &&
+              "output" in result &&
+              result.output !== undefined
               ? result.output
               : result
           }

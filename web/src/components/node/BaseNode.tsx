@@ -36,7 +36,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
-import { useNodes } from "../../contexts/NodeContext";
+
 import { getIsElectronDetails } from "../../utils/browser";
 
 
@@ -297,9 +297,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Results and rendering
   const result = useResultsStore((state) => {
-    const r = nodeType.isOutputNode
-      ? state.getOutputResult(workflow_id, id)
-      : state.getResult(workflow_id, id);
+    const r = state.getOutputResult(workflow_id, id) || state.getResult(workflow_id, id);
     return r;
   });
 
@@ -326,9 +324,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
   const isEmptyResult = (obj: any) => obj && typeof obj === "object" && Object.keys(obj).length === 0;
-  const isOverlayVisible = nodeType.isOutputNode
-    ? (result && !isEmptyResult(result))
-    : (showResultOverlay && result && !isEmptyResult(result));
+  const isOverlayVisible = showResultOverlay && result && !isEmptyResult(result);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>

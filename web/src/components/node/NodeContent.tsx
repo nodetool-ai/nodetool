@@ -59,15 +59,28 @@ const NodeContent: React.FC<NodeContentProps> = ({
   };
 
   // For output nodes, always show overlay when result is available
-  const shouldShowOverlay = isOutputNode 
+  const shouldShowOverlay = isOutputNode
     ? (result && !isEmptyObject(result))
     : (showResultOverlay && result && !isEmptyObject(result));
 
   if (shouldShowOverlay) {
     return (
-      <>
-        {/* Keep inputs and outputs in DOM for handles but hide visually */}
-        <Box sx={{ visibility: "hidden", position: "absolute", pointerEvents: "none" }}>
+      <Box
+        sx={{
+          display: "grid",
+          position: "relative",
+          gridTemplateColumns: "1fr",
+          gridTemplateRows: "1fr"
+        }}
+      >
+        {/* Keep inputs and outputs in DOM for handles and to set size, but hide visually */}
+        <Box
+          sx={{
+            visibility: "hidden",
+            pointerEvents: "none",
+            gridArea: "1 / 1 / 2 / 2"
+          }}
+        >
           <NodeInputs
             id={id}
             nodeMetadata={nodeMetadata}
@@ -81,10 +94,25 @@ const NodeContent: React.FC<NodeContentProps> = ({
             basicFields={basicFields}
             onToggleAdvancedFields={onToggleAdvancedFields}
           />
-          {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
+          {!isOutputNode && (
+            <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+          )}
         </Box>
-        <ResultOverlay result={result} onShowInputs={isOutputNode ? undefined : onShowInputs} />
-      </>
+        <Box
+          sx={{
+            gridArea: "1 / 1 / 2 / 2",
+            width: "100%",
+            minHeight: "100%",
+            maxHeight: "800px",
+            overflow: "auto"
+          }}
+        >
+          <ResultOverlay
+            result={result}
+            onShowInputs={isOutputNode ? undefined : onShowInputs}
+          />
+        </Box>
+      </Box>
     );
   }
 
