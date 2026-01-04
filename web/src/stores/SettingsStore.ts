@@ -85,7 +85,7 @@ export const defaultSettings: Settings = {
   selectNodesOnDrag: false,
   showWelcomeOnStartup: true,
   soundNotifications: true,
-  instantUpdate: false
+  instantUpdate: false,
   autosave: { ...defaultAutosaveSettings }
 };
 
@@ -201,6 +201,8 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             instantUpdate: value
+          }
+        })),
       updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>
         set((state) => ({
           settings: {
@@ -212,7 +214,7 @@ export const useSettingsStore = create<SettingsStore>()(
     {
       name: "settings-storage",
       partialize: (state) => ({
-        settings: state.settings
+        settings: state.settings,
         // Don't persist menuAnchorEl state
       })
     }
