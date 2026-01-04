@@ -29,6 +29,14 @@ const resolveNodePropertyValue = (
   node: Node<NodeData>,
   sourceHandle?: string
 ) => {
+  const dynamicProps = node.data?.dynamic_properties || {};
+  if (sourceHandle && dynamicProps[sourceHandle] !== undefined) {
+    return dynamicProps[sourceHandle];
+  }
+  if (dynamicProps.value !== undefined) {
+    return dynamicProps.value;
+  }
+
   const props = node.data?.properties || {};
   if (sourceHandle && props[sourceHandle] !== undefined) {
     return props[sourceHandle];

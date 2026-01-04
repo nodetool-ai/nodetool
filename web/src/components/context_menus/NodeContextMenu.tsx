@@ -1,10 +1,7 @@
-import React, { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
-//mui
+import React from "react";
 import { Menu, Divider } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
-//icons
-import DataArrayIcon from "@mui/icons-material/DataArray";
+import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
@@ -13,298 +10,24 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-//store
-import useContextMenuStore from "../../stores/ContextMenuStore";
-import { NodeData } from "../../stores/NodeData";
-import { useNotificationStore } from "../../stores/NotificationStore";
-import useResultsStore from "../../stores/ResultsStore";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-//utils
-import { useClipboard } from "../../hooks/browser/useClipboard";
-import log from "loglevel";
-import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
-import { isDevelopment } from "../../stores/ApiClient";
-import { subgraph } from "../../core/graph";
-import { resolveExternalEdgeValue } from "../../utils/edgeValue";
-//reactflow
+import DataArrayIcon from "@mui/icons-material/DataArray";
 import { Node } from "@xyflow/react";
-import useMetadataStore from "../../stores/MetadataStore";
-import { useNavigate } from "react-router-dom";
-import { useNodes } from "../../contexts/NodeContext";
-import {
-  constantToInputType,
-  inputToConstantType
-} from "../../utils/NodeTypeMapping";
+import { NodeData } from "../../stores/NodeData";
+import { isDevelopment } from "../../stores/ApiClient";
+import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 
 const NodeContextMenu: React.FC = () => {
-  const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const closeContextMenu = useContextMenuStore(
-    (state) => state.closeContextMenu
-  );
-  const nodeId = useContextMenuStore((state) => state.nodeId);
-  const { getNode } = useReactFlow();
-  const node = nodeId ? getNode(nodeId) : null;
-  const nodeData = node?.data as NodeData;
-  const removeFromGroup = useRemoveFromGroup();
-  const metadata = useMetadataStore((state) =>
-    state.getMetadata(node?.type ?? "")
-  );
-  const { writeClipboard } = useClipboard();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const navigate = useNavigate();
   const {
-    updateNodeData,
-    updateNode,
-    selectNodesByType,
-    deleteNode,
-    selectedNodes,
-    toggleBypass,
-    nodes,
-    edges,
-    workflow,
-    findNode
-  } = useNodes((state) => ({
-      updateNodeData: state.updateNodeData,
-      updateNode: state.updateNode,
-      selectNodesByType: state.selectNodesByType,
-      deleteNode: state.deleteNode,
-      selectedNodes: state.getSelectedNodes(),
-      toggleBypass: state.toggleBypass,
-      nodes: state.nodes,
-      edges: state.edges,
-      workflow: state.workflow,
-      findNode: state.findNode
-    }));
-  const run = useWebsocketRunner((state) => state.run);
-  const isWorkflowRunning = useWebsocketRunner(
-    (state) => state.state === "running"
-  );
-  const getResult = useResultsStore((state) => state.getResult);
-  const hasCommentTitle = Boolean(nodeData?.title?.trim());
-  const isBypassed = Boolean(nodeData?.bypassed);
-
-  const handleToggleComment = useCallback(() => {
-    if (!nodeId) {
-      return;
-    }
-    updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
-    closeContextMenu();
-  }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
-
-  // Run workflow from the selected node (downstream subgraph)
-  const handleRunFromHere = useCallback(() => {
-    if (!node || !nodeId || isWorkflowRunning) {
-      return;
-    }
-
-    // Get the downstream subgraph starting from this node
-    const downstream = subgraph(edges, nodes, node as Node<NodeData>);
-    const subgraphNodeIds = new Set(downstream.nodes.map((n) => n.id));
-
-    // Find ALL edges that come from outside the subgraph into ANY node in the subgraph
-    // This includes dependencies to all nodes, not just the start node
-    const externalInputEdges = edges.filter(
-      (edge) =>
-        subgraphNodeIds.has(edge.target) && !subgraphNodeIds.has(edge.source)
-    );
-
-    // Build a map of property overrides for each node that has external dependencies
-    // Map of nodeId -> { propertyName: value }
-    const nodePropertyOverrides = new Map<string, Record<string, any>>();
-
-    for (const edge of externalInputEdges) {
-      const sourceNodeId = edge.source;
-      const sourceHandle = edge.sourceHandle;
-      const targetNodeId = edge.target;
-      const targetHandle = edge.targetHandle;
-
-      if (!targetHandle) {
-        continue;
-      }
-
-      const { value, hasValue, isFallback } = resolveExternalEdgeValue(
-        edge,
-        workflow.id,
-        getResult,
-        findNode
-      );
-      if (!hasValue) {
-        continue;
-      }
-
-      // Add to the overrides for this target node
-      const existing = nodePropertyOverrides.get(targetNodeId) || {};
-      existing[targetHandle] = value;
-      nodePropertyOverrides.set(targetNodeId, existing);
-
-      log.info(
-        `Run from here: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
-        {
-          sourceHandle,
-          valueSource: isFallback ? "node" : "cached_result"
-        }
-      );
-    }
-
-    // Apply property overrides to all affected nodes in the subgraph
-    const nodesWithCachedValues = downstream.nodes.map((n) => {
-      const overrides = nodePropertyOverrides.get(n.id);
-      if (overrides && Object.keys(overrides).length > 0) {
-        return {
-          ...n,
-          data: {
-            ...n.data,
-            properties: {
-              ...n.data.properties,
-              ...overrides
-            }
-          }
-        };
-      }
-      return n;
-    });
-
-    // Count how many nodes had properties injected
-    const nodesWithOverrides = nodePropertyOverrides.size;
-    const totalPropertiesInjected = Array.from(
-      nodePropertyOverrides.values()
-    ).reduce((sum, props) => sum + Object.keys(props).length, 0);
-
-    log.info("Running downstream subgraph from node", {
-      startNodeId: nodeId,
-      nodeCount: nodesWithCachedValues.length,
-      edgeCount: downstream.edges.length,
-      nodesWithCachedDependencies: nodesWithOverrides,
-      totalCachedPropertiesInjected: totalPropertiesInjected
-    });
-
-    run({}, workflow, nodesWithCachedValues, downstream.edges);
-
-    addNotification({
-      type: "info",
-      alert: false,
-      content: `Running workflow from ${metadata?.title || node?.type || "node"}`
-    });
-    closeContextMenu();
-  }, [
-    node,
-    nodeId,
-    isWorkflowRunning,
-    edges,
-    nodes,
-    workflow,
-    getResult,
-    run,
-    addNotification,
-    metadata,
+    menuPosition,
     closeContextMenu,
-    findNode
-  ]);
-
-  const handleToggleBypass = useCallback(() => {
-    if (!nodeId) {
-      return;
-    }
-    toggleBypass(nodeId);
-    closeContextMenu();
-  }, [closeContextMenu, nodeId, toggleBypass]);
-
-  //copy metadata to clipboard
-  const handleCopyMetadataToClipboard = useCallback(() => {
-    if (nodeId && nodeData) {
-      log.info("Copying node data to clipboard", nodeData);
-      addNotification({
-        type: "info",
-        alert: true,
-        content: "Copied Node Data to Clipboard!"
-      });
-      writeClipboard(JSON.stringify(nodeData, null, 2), true, true);
-      closeContextMenu();
-    }
-  }, [
-    nodeId,
-    nodeData,
-    addNotification,
-    writeClipboard,
-    closeContextMenu
-  ]);
-
-  const handleFindTemplates = () => {
-    const nodeType = node?.type || "";
-    // Navigate to templates with the node type as a search parameter
-    navigate(`/templates?node=${encodeURIComponent(nodeType)}`);
-    closeContextMenu();
-  };
-
-  const handleSelectAllSameType = () => {
-    if (node?.type) {
-      selectNodesByType(node.type);
-      closeContextMenu();
-    }
-  };
-
-  const handleDeleteNode = useCallback(() => {
-    if (selectedNodes.length > 1) {
-      selectedNodes.forEach((selected) => {
-        deleteNode(selected.id);
-      });
-    } else if (nodeId) {
-      deleteNode(nodeId);
-    }
-    closeContextMenu();
-  }, [closeContextMenu, deleteNode, nodeId, selectedNodes]);
-
-  const handleConvertToInput = useCallback(() => {
-    if (!node || !nodeId) {
-      return;
-    }
-    const targetType = constantToInputType(node?.type ?? "");
-    if (targetType) {
-      const match = targetType.match(/nodetool\.input\.(\w+)Input$/);
-      const name = match ? match[1].toLowerCase() : "input";
-      updateNodeData(nodeId, { properties: { ...nodeData?.properties, name } });
-      updateNode(nodeId, { type: targetType });
-      log.info("Converted constant node to input node", {
-        from: node.type,
-        to: targetType
-      });
-      addNotification({
-        type: "info",
-        alert: false,
-        content: `Converted to ${targetType.split(".").pop()}`
-      });
-    }
-    closeContextMenu();
-  }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
-
-  const handleConvertToConstant = useCallback(() => {
-    if (!node || !nodeId) {
-      return;
-    }
-    const targetType = inputToConstantType(node?.type ?? "");
-    if (targetType) {
-      updateNodeData(nodeId, { properties: { ...nodeData?.properties } });
-      updateNode(nodeId, { type: targetType });
-      log.info("Converted input node to constant node", {
-        from: node.type,
-        to: targetType
-      });
-      addNotification({
-        type: "info",
-        alert: false,
-        content: `Converted to ${targetType.split(".").pop()}`
-      });
-    }
-    closeContextMenu();
-  }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
-
-  const canConvertToInput = nodeId && constantToInputType(node?.type ?? "");
-  const canConvertToConstant = nodeId && inputToConstantType(node?.type ?? "");
+    node,
+    handlers,
+    conditions
+  } = useNodeContextMenu();
+  const removeFromGroup = useRemoveFromGroup();
 
   const menuItems = [
-    node?.parentId && (
+    conditions.isInGroup && (
       <ContextMenuItem
         key="remove-from-group"
         onClick={() => removeFromGroup([node as Node<NodeData>])}
@@ -313,60 +36,54 @@ const NodeContextMenu: React.FC = () => {
         tooltip="Remove this node from the group"
       />
     ),
-    nodeId && (
-      <ContextMenuItem
-        key="run-from-here"
-        onClick={handleRunFromHere}
-        label={isWorkflowRunning ? "Running..." : "Run From Here"}
-        IconComponent={<PlayArrowIcon />}
-        tooltip="Run the workflow from this node onwards, using previous results as inputs"
-        addButtonClassName={isWorkflowRunning ? "disabled" : ""}
-      />
-    ),
-    nodeId && (
-      <ContextMenuItem
-        key="toggle-bypass"
-        onClick={handleToggleBypass}
-        label={isBypassed ? "Enable Node" : "Bypass Node"}
-        IconComponent={isBypassed ? <PlayArrowIcon /> : <BlockIcon />}
-        tooltip={
-          <div className="tooltip-span">
-            <div className="tooltip-title">
-              {isBypassed ? "Enable Node" : "Bypass Node"}
-            </div>
-            <div className="tooltip-key">
-              <kbd>B</kbd>
-            </div>
+    <ContextMenuItem
+      key="run-from-here"
+      onClick={handlers.handleRunFromHere}
+      label={conditions.isWorkflowRunning ? "Running..." : "Run From Here"}
+      IconComponent={<PlayArrowIcon />}
+      tooltip="Run the workflow from this node onwards, using previous results as inputs"
+      addButtonClassName={conditions.isWorkflowRunning ? "disabled" : ""}
+    />,
+    <ContextMenuItem
+      key="toggle-bypass"
+      onClick={handlers.handleToggleBypass}
+      label={conditions.isBypassed ? "Enable Node" : "Bypass Node"}
+      IconComponent={conditions.isBypassed ? <PlayArrowIcon /> : <BlockIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">
+            {conditions.isBypassed ? "Enable Node" : "Bypass Node"}
           </div>
-        }
-      />
-    ),
-    nodeId && (
-      <ContextMenuItem
-        key="toggle-comment"
-        onClick={handleToggleComment}
-        label={hasCommentTitle ? "Remove Comment" : "Add Comment"}
-        IconComponent={<EditIcon />}
-        tooltip={
-          hasCommentTitle
-            ? "Remove the comment from this node"
-            : "Add a comment to this node"
-        }
-      />
-    ),
-    canConvertToInput && (
+          <div className="tooltip-key">
+            <kbd>B</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
+      key="toggle-comment"
+      onClick={handlers.handleToggleComment}
+      label={conditions.hasCommentTitle ? "Remove Comment" : "Add Comment"}
+      IconComponent={<EditIcon />}
+      tooltip={
+        conditions.hasCommentTitle
+          ? "Remove the comment from this node"
+          : "Add a comment to this node"
+      }
+    />,
+    conditions.canConvertToInput && (
       <ContextMenuItem
         key="convert-to-input"
-        onClick={handleConvertToInput}
+        onClick={handlers.handleConvertToInput}
         label="Convert to Input Node"
         IconComponent={<SwapHorizIcon />}
         tooltip="Convert this constant node to an input node"
       />
     ),
-    canConvertToConstant && (
+    conditions.canConvertToConstant && (
       <ContextMenuItem
         key="convert-to-constant"
-        onClick={handleConvertToConstant}
+        onClick={handlers.handleConvertToConstant}
         label="Convert to Constant Node"
         IconComponent={<SwapHorizIcon />}
         tooltip="Convert this input node to a constant node"
@@ -374,21 +91,21 @@ const NodeContextMenu: React.FC = () => {
     ),
     <ContextMenuItem
       key="show-templates"
-      onClick={handleFindTemplates}
+      onClick={handlers.handleFindTemplates}
       label="Show Templates"
       IconComponent={<SearchIcon />}
       tooltip="Find Templates using this node"
     />,
     <ContextMenuItem
       key="select-all"
-      onClick={handleSelectAllSameType}
-      label={`Select all ${metadata?.title || node?.type || ""} nodes`}
+      onClick={handlers.handleSelectAllSameType}
+      label={`Select all ${""} nodes`}
       IconComponent={<FilterListIcon />}
       tooltip="Select all nodes of the same type"
     />,
     <ContextMenuItem
       key="delete-node"
-      onClick={handleDeleteNode}
+      onClick={handlers.handleDeleteNode}
       label="Delete Node"
       IconComponent={<DeleteIcon />}
       tooltip="Delete this node"
@@ -397,7 +114,7 @@ const NodeContextMenu: React.FC = () => {
       <React.Fragment key="dev">
         <Divider />
         <ContextMenuItem
-          onClick={handleCopyMetadataToClipboard}
+          onClick={handlers.handleCopyMetadataToClipboard}
           label="Copy NodeData"
           IconComponent={<DataArrayIcon />}
           tooltip="Copy node data to the clipboard"

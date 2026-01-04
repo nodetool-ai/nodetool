@@ -7,7 +7,7 @@
  * For slider/number inputs, waits for the user to finish dragging (via onChangeComplete)
  * instead of triggering on every intermediate value.
  */
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { subgraph } from "../../core/graph";
@@ -120,13 +120,28 @@ const applyPropertyOverrides = (
   return subgraphNodes.map((node) => {
     const overrides = propertyOverrides.get(node.id);
     if (overrides && Object.keys(overrides).length > 0) {
+      const dynamicProps = node.data?.dynamic_properties || {};
+      const staticProps = node.data?.properties || {};
+      const updatedDynamicProps = { ...dynamicProps };
+      const updatedStaticProps = { ...staticProps };
+
+      for (const [key, value] of Object.entries(overrides)) {
+        if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
+          updatedDynamicProps[key] = value;
+        } else {
+          updatedStaticProps[key] = value;
+        }
+      }
+
       return {
         ...node,
         data: {
           ...node.data,
           properties: {
-            ...node.data.properties,
-            ...overrides
+            ...updatedStaticProps
+          },
+          dynamic_properties: {
+            ...updatedDynamicProps
           }
         }
       };
@@ -141,7 +156,7 @@ export const useInputNodeAutoRun = (
   const { nodeId, nodeType, propertyName } = options;
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { nodes, edges, workflow, findNode } = useNodes((state) => ({
+  const nodesState = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
     workflow: state.workflow,
@@ -154,6 +169,12 @@ export const useInputNodeAutoRun = (
   );
   const getResult = useResultsStore((state) => state.getResult);
 
+  // Store the latest nodesState in a ref so debounce can access current state
+  const nodesStateRef = useRef(nodesState);
+  useEffect(() => {
+    nodesStateRef.current = nodesState;
+  }, [nodesState]);
+
   /**
    * Execute the downstream subgraph starting from this input node.
    * Performs comprehensive dependency analysis to ensure all nodes in the
@@ -165,6 +186,7 @@ export const useInputNodeAutoRun = (
       return;
     }
 
+    const { nodes, edges, workflow, findNode } = nodesStateRef.current;
     const node = findNode(nodeId);
     if (!node || isWorkflowRunning) {
       return;
@@ -211,11 +233,7 @@ export const useInputNodeAutoRun = (
   }, [
     nodeType,
     nodeId,
-    findNode,
     isWorkflowRunning,
-    edges,
-    nodes,
-    workflow,
     getResult,
     run,
     propertyName
