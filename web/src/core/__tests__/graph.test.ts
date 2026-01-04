@@ -133,12 +133,8 @@ describe("graph utilities", () => {
 
       expect(result.nodes).toHaveLength(4);
       expect(result.nodes.map((n) => n.id).sort()).toEqual(["A", "B", "C", "D"]);
-      // Note: Due to DFS, edges are collected before target is marked visited,
-      // but when target is already visited, the edge is not added.
-      // In a diamond pattern, only 3 edges are captured because the second
-      // path to D (either B->D or C->D depending on traversal order) is skipped.
-      // This is intentional as we only need connectivity, not all edges.
-      expect(result.edges).toHaveLength(3);
+      // Diamond patterns include both merge edges since all visited nodes are kept.
+      expect(result.edges).toHaveLength(4);
     });
 
     it("excludes nodes that are not downstream", () => {
@@ -179,7 +175,7 @@ describe("graph utilities", () => {
 
       // Should include A and B, but stop before processing C's outgoing edges
       expect(result.nodes.map((n) => n.id).sort()).toEqual(["A", "B", "C"]);
-      // Edge A->B should be included
+      // Edges A->B and B->C should be included
       expect(result.edges).toHaveLength(2);
     });
   });

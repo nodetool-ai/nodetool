@@ -243,16 +243,94 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      /**
-       * Creates a new workflow via API call.
-       * @returns {Promise<Workflow>} The newly created workflow
-       */
-      createNew: async () => {
-        return await get().create(get().newWorkflow());
-      },
+       /**
+        * Saves the workflow and creates a version entry.
+        * @param {Workflow} workflow - The workflow to save
+        * @returns {Promise<void>}
+        * @throws {Error} If the save operation fails
+        */
+       saveWorkflow: async (workflow: Workflow) => {
+         // Debug: log what we're about to save
+         console.log("[saveWorkflow] Saving workflow:", {
+           id: workflow.id,
+           name: workflow.name,
+           graphNodesCount: workflow.graph?.nodes?.length ?? 0,
+           graphEdgesCount: workflow.graph?.edges?.length ?? 0,
+           firstNode: workflow.graph?.nodes?.[0] ? {
+             id: workflow.graph.nodes[0].id,
+             type: workflow.graph.nodes[0].type,
+             ui_properties: workflow.graph.nodes[0].ui_properties,
+             parent_id: workflow.graph.nodes[0].parent_id,
+             dynamic_properties: workflow.graph.nodes[0].dynamic_properties
+           } : null,
+           firstEdge: workflow.graph?.edges?.[0] || null
+         });
 
-      /**
-       * Creates a workflow based on the provided request object.
+         const { data, error } = await client.PUT("/api/workflows/{id}", {
+           params: { path: { id: workflow.id } },
+           body: workflow
+         });
+         if (error) {
+           throw createErrorMessage(error, "Failed to save workflow");
+         }
+
+         // Create a version entry for this save
+         try {
+           const autosaveResponse = await fetch(`/api/workflows/${workflow.id}/autosave`, {
+             method: "POST",
+             headers: { "Content-Type": "application/json" },
+             body: JSON.stringify({
+               save_type: "manual",
+               description: "Manual save",
+               force: true
+             })
+           });
+           const autosaveResult = await autosaveResponse.json();
+           console.log("[saveWorkflow] Version created:", autosaveResult);
+         } catch (versionError) {
+           console.error("Failed to create version:", versionError);
+         }
+
+         if (window.api) {
+           window.api.onUpdateWorkflow(data);
+         }
+
+         // Update node store and openWorkflows with the new data.
+         set((state) => {
+           const nodeStore = state.nodeStores[workflow.id];
+           if (nodeStore) {
+             nodeStore.setState({
+               workflow: data
+             });
+             nodeStore.getState().setWorkflowDirty(false);
+           }
+
+           return {
+             openWorkflows: state.openWorkflows.map((w) =>
+               w.id === workflow.id ? omit(data, ["graph"]) : w
+             )
+           };
+         });
+
+         // Invalidate cache for the workflows list and the specific workflow.
+         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+         get().queryClient?.invalidateQueries({
+           queryKey: ["workflow", workflow.id]
+         });
+          // Invalidate workflow tools reactively
+          get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
+        },
+
+       /**
+        * Creates a new workflow via API call.
+        * @returns {Promise<Workflow>} The newly created workflow
+        */
+       createNew: async () => {
+         return await get().create(get().newWorkflow());
+       },
+
+       /**
+        * Creates a workflow based on the provided request object.
        * @param {WorkflowRequest} workflow The workflow request data
        * @param {string} [fromExamplePackage] The package name for creating from example
        * @param {string} [fromExampleName] The example name for creating from example
@@ -538,54 +616,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         } else {
           localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKFLOW);
         }
-      },
+       },
 
-      /**
-       * Saves workflow changes to the API and updates local state.
-       * @param {Workflow} workflow The workflow to save
-       * @returns {Promise<void>}
-       * @throws {Error} If the save operation fails
-       */
-      saveWorkflow: async (workflow: Workflow) => {
-        const { data, error } = await client.PUT("/api/workflows/{id}", {
-          params: { path: { id: workflow.id } },
-          body: workflow
-        });
-        if (error) {
-          throw createErrorMessage(error, "Failed to save workflow");
-        }
-
-        if (window.api) {
-          window.api.onUpdateWorkflow(data);
-        }
-
-        // Update node store and openWorkflows with the new data.
-        set((state) => {
-          const nodeStore = state.nodeStores[workflow.id];
-          if (nodeStore) {
-            nodeStore.setState({
-              workflow: data
-            });
-            nodeStore.getState().setWorkflowDirty(false);
-          }
-
-          return {
-            openWorkflows: state.openWorkflows.map((w) =>
-              w.id === workflow.id ? omit(data, ["graph"]) : w
-            )
-          };
-        });
-
-        // Invalidate cache for the workflows list and the specific workflow.
-        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-        get().queryClient?.invalidateQueries({
-          queryKey: ["workflow", workflow.id]
-        });
-        // Invalidate workflow tools reactively
-        get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
-      },
-
-      // Returns the node store for a given workflow Id.
+       // Returns the node store for a given workflow Id.
       getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
 
       // ---------------------------------------------------------------------------------
