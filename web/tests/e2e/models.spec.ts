@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { BACKEND_API_URL } from "./support/backend";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -53,7 +54,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Make API request for Hugging Face models
-      const response = await request.get("http://localhost:7777/api/models/huggingface");
+      const response = await request.get(`${BACKEND_API_URL}/models/huggingface`);
       
       // Verify response is successful
       expect(response.ok()).toBeTruthy();
@@ -71,7 +72,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Make API request for recommended models
-      const response = await request.get("http://localhost:7777/api/models/recommended");
+      const response = await request.get(`${BACKEND_API_URL}/models/recommended`);
       
       // Verify response is successful
       expect(response.ok()).toBeTruthy();
@@ -89,7 +90,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Make API request for providers
-      const response = await request.get("http://localhost:7777/api/models/providers");
+      const response = await request.get(`${BACKEND_API_URL}/models/providers`);
       
       // Verify response is successful
       expect(response.ok()).toBeTruthy();
@@ -107,7 +108,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Make API request for recommended language models
-      const response = await request.get("http://localhost:7777/api/models/recommended/language");
+      const response = await request.get(`${BACKEND_API_URL}/models/recommended/language`);
       
       // Verify response is successful
       expect(response.ok()).toBeTruthy();
@@ -125,7 +126,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Make API request for recommended image models
-      const response = await request.get("http://localhost:7777/api/models/recommended/image");
+      const response = await request.get(`${BACKEND_API_URL}/models/recommended/image`);
       
       // Verify response is successful
       expect(response.ok()).toBeTruthy();
@@ -143,7 +144,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Try to fetch from a non-existent endpoint
-      const response = await request.get("http://localhost:7777/api/models/nonexistent");
+      const response = await request.get(`${BACKEND_API_URL}/models/nonexistent`);
       
       // Verify error response
       expect(response.status()).toBeGreaterThanOrEqual(400);
@@ -159,7 +160,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.waitForLoadState("networkidle");
 
       // Fetch Hugging Face models
-      const response = await request.get("http://localhost:7777/api/models/huggingface");
+      const response = await request.get(`${BACKEND_API_URL}/models/huggingface`);
       expect(response.ok()).toBeTruthy();
       
       const models = await response.json();

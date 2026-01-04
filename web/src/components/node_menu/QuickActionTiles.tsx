@@ -17,6 +17,8 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
+import { serializeDragData } from "../../lib/dragdrop";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 
 export type QuickActionDefinition = {
   key: string;
@@ -264,6 +266,8 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
+  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   const handleCreateNode = useCreateNode();
 
@@ -276,15 +280,23 @@ const QuickActionTiles = memo(function QuickActionTiles() {
         return;
       }
       setDragToCreate(true);
-      event.dataTransfer.setData("create-node", JSON.stringify(metadata));
+      // Use unified drag serialization
+      serializeDragData(
+        { type: "create-node", payload: metadata },
+        event.dataTransfer
+      );
       event.dataTransfer.effectAllowed = "copyMove";
+
+      // Update global drag state
+      setActiveDrag({ type: "create-node", payload: metadata });
     },
-    [getMetadata, setDragToCreate]
+    [getMetadata, setDragToCreate, setActiveDrag]
   );
   
   const handleDragEnd = useCallback(() => {
     setDragToCreate(false);
-  }, [setDragToCreate]);
+    clearDrag();
+  }, [setDragToCreate, clearDrag]);
 
   const onTileClick = useCallback(
     (action: QuickActionDefinition) => {
@@ -368,8 +380,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                     "--quick-shadow": shadow,
                     "--quick-shadow-hover": hoverShadow ?? shadow,
                     "--quick-icon-color": iconColor,
-                    // Use a separate variable for the initial background so we can override it easily or use the class
-                    background: "rgba(18, 18, 20, 0.5)" 
+                    background: theme.vars.palette.action.hoverBackground 
                   } as CSSProperties
                 }
               >

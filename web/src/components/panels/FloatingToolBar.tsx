@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
@@ -22,7 +23,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
-import ControlPointIcon from "@mui/icons-material/ControlPoint";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -39,6 +40,60 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVersionHistoryStore } from "../../stores/VersionHistoryStore";
+import { cn } from "../editor_ui/editorUtils";
+
+interface ToolbarButtonProps {
+  icon: React.ReactNode;
+  label?: string;
+  tooltip: string;
+  shortcut?: string;
+  variant?: "primary" | "secondary" | "neutral" | "stop";
+  className?: string;
+  onClick?: (e: React.MouseEvent<HTMLElement>) => void;
+  disabled?: boolean;
+  "aria-label"?: string;
+}
+
+const ToolbarButton: React.FC<ToolbarButtonProps> = memo(function ToolbarButton({
+  icon,
+  label,
+  tooltip,
+  shortcut,
+  variant = "neutral",
+  className,
+  onClick,
+  disabled,
+  "aria-label": ariaLabel
+}) {
+  const title = shortcut ? getShortcutTooltip(shortcut) : tooltip;
+
+  const fabElement = (
+    <Fab
+      className={cn(
+        "floating-action-button",
+        variant,
+        className,
+        disabled && "disabled"
+      )}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel || tooltip}
+      disableRipple
+    >
+      {icon}
+    </Fab>
+  );
+
+  return (
+    <Tooltip
+      title={title}
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="top"
+    >
+      {disabled ? <span style={{ display: "inline-flex" }}>{fabElement}</span> : fabElement}
+    </Tooltip>
+  );
+});
 
 const styles = (theme: Theme) =>
   css({
@@ -49,157 +104,88 @@ const styles = (theme: Theme) =>
     zIndex: theme.zIndex.drawer,
     display: "flex",
     flexDirection: "row",
-    gap: "12px",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 12px",
+    backgroundColor: theme.vars.palette.grey[900],
+    borderRadius: "16px",
+    border: `1px solid ${theme.vars.palette.grey[700]}`,
+    boxShadow: `0 4px 20px rgba(0, 0, 0, 0.1)`,
 
     ".floating-action-button": {
-      width: "56px",
-      height: "56px",
+      width: "44px",
+      height: "44px",
       position: "relative",
-      overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
-      color: theme.vars.palette.grey[200],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
-      backdropFilter: "blur(2px)",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      borderRadius: "16px",
+      border: "none",
+      boxShadow: "none",
+      transition: "all 0.15s ease-out",
+
+      "& svg": {
+        fontSize: "22px"
+      },
 
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800],
-        borderColor: theme.vars.palette.grey[600],
-        transform: "scale(1.05)",
-        boxShadow: `0 4px 12px rgba(0, 0, 0, 0.35)`,
-        color: theme.vars.palette.grey[0]
+        transform: "scale(1.05)"
       },
 
       "&:active": {
         transform: "scale(0.95)"
-      },
+      }
+    },
 
-      "& svg": {
-        fontSize: "28px",
-        position: "relative",
-        zIndex: 1
+    ".floating-action-button.primary": {
+      backgroundColor: theme.vars.palette.primary.main,
+      color: "#0B1220",
+      borderRadius: "16px",
+      boxShadow: `0 4px 12px rgba(59, 130, 246, 0.3)`,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.primary.light,
+        boxShadow: `0 6px 16px rgba(59, 130, 246, 0.4)`
       },
-
-      // subtle glass shine (top highlight) — keep colors intact
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: "55%",
-        background:
-          "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
-        pointerEvents: "none",
-        zIndex: 0
-      },
-      // inner hairline highlight
-      "&::after": {
-        content: '""',
-        position: "absolute",
-        inset: 0,
-        borderRadius: "inherit",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
-        pointerEvents: "none"
-      },
-
       "&.running": {
-        borderColor: "var(--palette-primary-main)",
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.grey[200],
+        boxShadow: "none",
         "& svg": {
           animation: "pulse-scale 1s ease-in-out infinite"
         }
-      },
-
-      "&.disabled": {
-        opacity: 0.5,
-        pointerEvents: "none"
       }
     },
 
-    ".floating-action-button.run-workflow": {
-      position: "relative",
-      overflow: "hidden",
-      backgroundColor: "var(--palette-primary-main)",
-      color: "#0B1220",
-      borderColor: "var(--palette-primary-main)",
-      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px var(--palette-primary-main)20`,
-      filter: "saturate(1.1)",
+    ".floating-action-button.secondary": {
+      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[300],
       "&:hover": {
-        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px var(--palette-primary-main)30`,
-        transform: "scale(1.06)"
-      },
-      "&.running": {
-        backgroundColor: theme.vars.palette.grey[900],
-        color: theme.vars.palette.grey[0],
-        borderColor: theme.vars.palette.grey[700],
-        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
-        "&::before": {
-          display: "none"
-        },
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: "0",
-          borderRadius: "inherit",
-          padding: "3px",
-          background: `conic-gradient(from 0deg, transparent 50%, ${"var(--palette-primary-main)"} 95%, ${"var(--palette-primary-main)"})`,
-          WebkitMask:
-            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "destination-out",
-          maskComposite: "exclude",
-          animation: "spin 2.5s linear infinite",
-          pointerEvents: "none",
-          zIndex: 1
-        },
-        "& .MuiSvgIcon-root": {
-          filter: "none",
-          animation: "pulse-scale 1s ease-in-out infinite"
-        }
+        backgroundColor: theme.vars.palette.grey[700],
+        color: theme.vars.palette.grey[100]
       }
     },
 
-    ".floating-action-button.save-workflow": {
-      position: "relative",
-      overflow: "hidden",
-      backgroundColor: "var(--palette-grey-700)",
-      color: "var(--palette-grey-200)",
-      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px var(--palette-grey-700)25`,
-      filter: "saturate(1.1)",
-      "&:hover": {
-        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px var(--palette-success-main)35`,
-        transform: "scale(1.06)"
-      },
-      "&::before": {},
-      "&.disabled": {
-        opacity: 0.6,
-        pointerEvents: "none"
-      }
-    },
-    // Ensure disabled state doesn't dim the running run-workflow button
-    ".floating-action-button.run-workflow.Mui-disabled.running": {
-      opacity: 1
-    },
-
-    /* Subtle buttons (secondary actions) */
-    ".floating-action-button.subtle": {
-      backgroundColor: theme.vars.palette.grey[900],
+    ".floating-action-button.neutral": {
+      backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      borderColor: theme.vars.palette.grey[800],
-      boxShadow: "0 1px 4px rgba(0,0,0,.25)",
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[200]
-      },
-      "&.stop-running": {
+      }
+    },
+
+    ".floating-action-button.disabled": {
+      opacity: 0.4,
+      pointerEvents: "none"
+    },
+
+    ".floating-action-button.stop": {
+      backgroundColor: theme.vars.palette.grey[700],
+      color: theme.vars.palette.grey[400],
+      "&:hover": {
         backgroundColor: theme.vars.palette.warning.main,
-        color: theme.vars.palette.warning.contrastText,
-        borderColor: theme.vars.palette.warning.main,
-        boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px ${theme.vars.palette.warning.main}40`,
-        "&:hover": {
-          backgroundColor: theme.vars.palette.warning.dark,
-          boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px ${theme.vars.palette.warning.main}50`
-        }
+        color: theme.vars.palette.warning.contrastText
+      },
+      "&.active": {
+        backgroundColor: theme.vars.palette.warning.main,
+        color: theme.vars.palette.warning.contrastText
       }
     },
 
@@ -226,21 +212,13 @@ const styles = (theme: Theme) =>
         borderColor: "info.dark",
         boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)`,
         transform: "scale(1.06)"
-      },
-      "&::before": {}
+      }
     },
 
     "@keyframes pulse-scale": {
       "0%": { transform: "scale(1)" },
-      "50%": { transform: "scale(1.15)" },
+      "50%": { transform: "scale(1.1)" },
       "100%": { transform: "scale(1)" }
-    },
-    "@keyframes spin": {
-      "0%": { transform: "rotate(0deg)" },
-      "25%": { transform: "rotate(85deg)" },
-      "50%": { transform: "rotate(180deg)" },
-      "75%": { transform: "rotate(280deg)" },
-      "100%": { transform: "rotate(360deg)" }
     }
   });
 
@@ -287,12 +265,15 @@ const FloatingToolBar: React.FC<{
   );
   const getCurrentWorkflow = useNodes((state) => state.getWorkflow);
 
-  const { run, state, isWorkflowRunning, cancel } = useWebsocketRunner(
+  const { run, isWorkflowRunning, isPaused, isSuspended, cancel, pause, resume } = useWebsocketRunner(
     (state) => ({
       run: state.run,
-      state: state.state,
       isWorkflowRunning: state.state === "running",
-      cancel: state.cancel
+      isPaused: state.state === "paused",
+      isSuspended: state.state === "suspended",
+      cancel: state.cancel,
+      pause: state.pause,
+      resume: state.resume
     })
   );
 
@@ -321,17 +302,23 @@ const FloatingToolBar: React.FC<{
     edges,
     getWorkflowById,
     saveWorkflow
-    // Note: resource limits UI removed; using defaults
   ]);
 
   const handleStop = useCallback(() => {
     cancel();
   }, [cancel]);
 
-  // Keyboard shortcuts for run (Ctrl+Enter / Cmd+Enter) and stop (ESC)
+  const handlePause = useCallback(() => {
+    pause();
+  }, [pause]);
+
+  const handleResume = useCallback(() => {
+    resume();
+  }, [resume]);
+
   useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
   useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
-  useCombo(["escape"], handleStop, true, isWorkflowRunning);
+  useCombo(["escape"], handleStop, true, isWorkflowRunning || isPaused || isSuspended);
 
   const handleSave = useCallback(() => {
     if (!workflow) {
@@ -381,7 +368,6 @@ const FloatingToolBar: React.FC<{
     setWorkflowToEdit(getCurrentWorkflow());
   }, [getCurrentWorkflow, setWorkflowToEdit]);
 
-  // Node menu open/close for mobile
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
       openNodeMenu: state.openNodeMenu,
@@ -394,10 +380,9 @@ const FloatingToolBar: React.FC<{
     if (isMenuOpen) {
       closeNodeMenu();
     } else {
-      // Open centered in the viewport
       const FALLBACK_MENU_WIDTH = 950;
       const FALLBACK_MENU_HEIGHT = 900;
-      const CURSOR_ANCHOR_OFFSET_Y = 40; // compensate for store's anchor shift
+      const CURSOR_ANCHOR_OFFSET_Y = 40;
       const x = Math.floor(window.innerWidth / 2 - FALLBACK_MENU_WIDTH / 2);
       const y = Math.floor(
         window.innerHeight / 2 -
@@ -431,7 +416,6 @@ const FloatingToolBar: React.FC<{
     toggleBottomPanel("terminal");
   }, [toggleBottomPanel]);
 
-  // Only show in editor view
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -463,117 +447,85 @@ const FloatingToolBar: React.FC<{
         }}
       >
         {isMobile && (
-          <Tooltip
-            title="Open canvas menu"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            placement="top"
-          >
-            <Fab
-              className={`floating-action-button subtle`}
-              onClick={handleOpenPaneMenu}
-              aria-label="Open canvas menu"
-            >
-              <MoreHorizIcon />
-            </Fab>
-          </Tooltip>
+          <ToolbarButton
+            icon={<MoreHorizIcon />}
+            tooltip="Menu"
+            variant="neutral"
+            onClick={handleOpenPaneMenu}
+            aria-label="Open canvas menu"
+          />
         )}
 
-        <Tooltip
-          title={getShortcutTooltip("openNodeMenu")}
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button node-menu`}
-            onClick={handleToggleNodeMenu}
-            aria-label="Open node menu"
-          >
-            <ControlPointIcon />
-          </Fab>
-        </Tooltip>
-        <Tooltip
-          title="Auto layout nodes"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button subtle`}
-            onClick={handleAutoLayout}
-            aria-label="Auto layout nodes"
-          >
-            <LayoutIcon />
-          </Fab>
-        </Tooltip>
+        <ToolbarButton
+          icon={<AddCircleIcon />}
+          tooltip="Add Node"
+          shortcut="openNodeMenu"
+          variant="secondary"
+          onClick={handleToggleNodeMenu}
+          aria-label="Add node"
+        />
+        <ToolbarButton
+          icon={<LayoutIcon />}
+          tooltip="Auto Layout"
+          variant="neutral"
+          onClick={handleAutoLayout}
+          aria-label="Auto layout nodes"
+        />
+        <ToolbarButton
+          icon={<SaveIcon />}
+          tooltip="Save"
+          shortcut="saveWorkflow"
+          variant="neutral"
+          onClick={handleSave}
+          aria-label="Save workflow"
+        />
+        <ToolbarButton
+          icon={<MoreVertIcon />}
+          tooltip="More"
+          variant="neutral"
+          onClick={handleOpenActionsMenu}
+          aria-label="More actions"
+        />
 
-        <Tooltip
-          title="More actions"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button subtle`}
-            onClick={handleOpenActionsMenu}
-            aria-label="More actions"
-          >
-            <MoreVertIcon />
-          </Fab>
-        </Tooltip>
-        <Tooltip
-          title={getShortcutTooltip("saveWorkflow")}
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button save-workflow`}
-            onClick={handleSave}
-            aria-label="Save workflow"
-          >
-            <SaveIcon />
-          </Fab>
-        </Tooltip>
-        <Tooltip
-          title={
-            isWorkflowRunning
-              ? "Workflow is currently running..."
-              : getShortcutTooltip("runWorkflow")
-          }
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <span
-            style={{ backgroundColor: "transparent", display: "inline-block" }}
-          >
-            <Fab
-              className={`floating-action-button run-workflow ${
-                isWorkflowRunning ? "running" : ""
-              }`}
-              onClick={handleRun}
-              disabled={isWorkflowRunning}
-              aria-label="Run workflow"
-            >
-              <PlayArrow />
-            </Fab>
-          </span>
-        </Tooltip>
+        {(isPaused || isSuspended) && (
+          <ToolbarButton
+            icon={<PlayCircleIcon />}
+            tooltip="Resume"
+            variant="secondary"
+            onClick={handleResume}
+            aria-label="Resume workflow"
+          />
+        )}
 
-        <Tooltip
-          title={getShortcutTooltip("stopWorkflow")}
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <span>
-            <Fab
-              className={`floating-action-button subtle ${
-                !isWorkflowRunning ? "disabled" : "stop-running"
-              }`}
-              onClick={handleStop}
-              disabled={!isWorkflowRunning}
-              aria-label="Stop workflow"
-            >
-              <StopIcon />
-            </Fab>
-          </span>
-        </Tooltip>
+        <Box
+          css={css({
+            width: "1px",
+            height: "24px",
+            backgroundColor: theme.vars.palette.grey[700],
+            margin: "0 4px"
+          })}
+        />
+
+        <ToolbarButton
+          icon={<StopIcon />}
+          tooltip="Stop (interrupt execution)"
+          shortcut="stopWorkflow"
+          variant="stop"
+          className={isWorkflowRunning ? "active" : undefined}
+          disabled={!(isWorkflowRunning || isPaused || isSuspended)}
+          onClick={handleStop}
+          aria-label="Stop workflow"
+        />
+
+        <ToolbarButton
+          icon={<PlayArrow />}
+          tooltip={isWorkflowRunning ? "Running..." : "Run"}
+          shortcut="runWorkflow"
+          variant="primary"
+          onClick={handleRun}
+          disabled={isWorkflowRunning}
+          aria-label="Run workflow"
+        />
       </Box>
 
       <Menu
@@ -584,7 +536,7 @@ const FloatingToolBar: React.FC<{
         transformOrigin={{ vertical: "bottom", horizontal: "center" }}
         slotProps={{
           paper: {
-            sx: { minWidth: "240px", maxWidth: "320px" }
+            sx: { minWidth: "200px", maxWidth: "280px" }
           }
         }}
       >
@@ -598,7 +550,7 @@ const FloatingToolBar: React.FC<{
             <TerminalIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText
-            primary={bottomPanelVisible ? "Hide terminal" : "Show terminal"}
+            primary={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
           />
         </MenuItem>
         <MenuItem
@@ -610,7 +562,7 @@ const FloatingToolBar: React.FC<{
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Edit workflow settings" />
+          <ListItemText primary="Workflow Settings" />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -632,7 +584,7 @@ const FloatingToolBar: React.FC<{
           <ListItemIcon>
             <RocketLaunchIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Run as standalone app" />
+          <ListItemText primary="Run as App" />
         </MenuItem>
         <MenuItem
           onClick={() => {

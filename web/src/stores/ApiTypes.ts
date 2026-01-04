@@ -28,6 +28,7 @@ export type DataframeRef = components["schemas"]["DataframeRef"];
 export type ColumnDef = components["schemas"]["ColumnDef"];
 export type AudioRef = components["schemas"]["AudioRef"];
 export type VideoRef = components["schemas"]["VideoRef"];
+export type Model3DRef = components["schemas"]["Model3DRef"];
 export type NPArray = components["schemas"]["NPArray"];
 export type TextRef = components["schemas"]["TextRef"];
 export type WorkflowRef = components["schemas"]["WorkflowRef"];

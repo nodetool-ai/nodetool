@@ -7,6 +7,8 @@ title: "Configuration Guide"
 
 NodeTool reads configuration from layered sources so local development, automated deployments, and production can share defaults with minimal duplication. The configuration helpers live in `src/nodetool/config/settings.py` and `src/nodetool/config/environment.py`.
 
+![Settings Dialog](assets/screenshots/settings-dialog.png)
+
 ## Configuration Layers
 
 `Environment.load_settings()` merges values in this order (last wins):
@@ -123,6 +125,8 @@ Security notes:
 - Public buckets make `get_url()` links directly accessible. For private buckets, add a signing step.
 
 ## Environment Variables Index
+
+![API Settings](assets/screenshots/settings-api-keys.png)
 
 | Variable | Purpose | Secret | Notes |
 |----------|---------|--------|-------|

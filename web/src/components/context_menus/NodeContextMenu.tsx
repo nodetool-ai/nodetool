@@ -11,15 +11,20 @@ import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import BlockIcon from "@mui/icons-material/Block";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useResultsStore from "../../stores/ResultsStore";
+import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 //utils
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import log from "loglevel";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { isDevelopment } from "../../stores/ApiClient";
+import { subgraph } from "../../core/graph";
 //reactflow
 import { Node } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -48,15 +53,26 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
-  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes } =
+  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes, toggleBypass, nodes, edges, workflow } =
     useNodes((state) => ({
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
       selectNodesByType: state.selectNodesByType,
       deleteNode: state.deleteNode,
-      selectedNodes: state.getSelectedNodes()
+      selectedNodes: state.getSelectedNodes(),
+      toggleBypass: state.toggleBypass,
+      nodes: state.nodes,
+      edges: state.edges,
+      workflow: state.workflow
     }));
+  const run = useWebsocketRunner((state) => state.run);
+  const isWorkflowRunning = useWebsocketRunner(
+    (state) => state.state === "running"
+  );
+  const getResult = useResultsStore((state) => state.getResult);
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const isBypassed = Boolean(nodeData?.bypassed);
+
   const handleToggleComment = useCallback(() => {
     if (!nodeId) {
       return;
@@ -65,25 +81,126 @@ const NodeContextMenu: React.FC = () => {
     closeContextMenu();
   }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
 
+  // Run workflow from the selected node (downstream subgraph)
+  const handleRunFromHere = useCallback(() => {
+    if (!node || !nodeId || isWorkflowRunning) {
+      return;
+    }
+
+    // Get the downstream subgraph starting from this node
+    const downstream = subgraph(edges, nodes, node as Node<NodeData>);
+
+    // Find incoming edges to the start node that connect from nodes outside the subgraph
+    const subgraphNodeIds = new Set(downstream.nodes.map((n) => n.id));
+    const incomingEdges = edges.filter(
+      (edge) => edge.target === nodeId && !subgraphNodeIds.has(edge.source)
+    );
+
+    // Build a map of property values from upstream results
+    const propertyOverrides: Record<string, any> = {};
+    for (const edge of incomingEdges) {
+      const sourceNodeId = edge.source;
+      const sourceHandle = edge.sourceHandle; // The output handle name
+      const targetHandle = edge.targetHandle; // The property name on the start node
+
+      if (!targetHandle) {
+        continue;
+      }
+
+      // Get the result from the upstream node
+      const result = getResult(workflow.id, sourceNodeId);
+      if (result !== undefined) {
+        // If the result is an object with multiple outputs, get the specific output
+        // Otherwise use the whole result
+        const value =
+          sourceHandle && typeof result === "object" && result !== null
+            ? result[sourceHandle] ?? result
+            : result;
+        propertyOverrides[targetHandle] = value;
+        log.info(`Run from here: Setting property ${targetHandle} from upstream node ${sourceNodeId}`);
+      }
+    }
+
+    // Update the start node's properties with the upstream results
+    const startNode = downstream.nodes.find((n) => n.id === nodeId);
+    if (startNode && Object.keys(propertyOverrides).length > 0) {
+      // Clone the node and update its properties for the run
+      const updatedStartNode = {
+        ...startNode,
+        data: {
+          ...startNode.data,
+          properties: {
+            ...startNode.data.properties,
+            ...propertyOverrides
+          }
+        }
+      };
+      // Replace the start node in the subgraph with the updated one
+      const subgraphNodesWithUpdates = downstream.nodes.map((n) =>
+        n.id === nodeId ? updatedStartNode : n
+      );
+
+      log.info("Running downstream subgraph from node", {
+        startNodeId: nodeId,
+        nodeCount: subgraphNodesWithUpdates.length,
+        edgeCount: downstream.edges.length,
+        propertyCount: Object.keys(propertyOverrides).length
+      });
+
+      run({}, workflow, subgraphNodesWithUpdates, downstream.edges);
+    } else {
+      log.info("Running downstream subgraph from node", {
+        startNodeId: nodeId,
+        nodeCount: downstream.nodes.length,
+        edgeCount: downstream.edges.length
+      });
+
+      run({}, workflow, downstream.nodes, downstream.edges);
+    }
+
+    addNotification({
+      type: "info",
+      alert: false,
+      content: `Running workflow from ${metadata?.title || node?.type || "node"}`
+    });
+    closeContextMenu();
+  }, [
+    node,
+    nodeId,
+    isWorkflowRunning,
+    edges,
+    nodes,
+    workflow,
+    getResult,
+    run,
+    addNotification,
+    metadata,
+    closeContextMenu
+  ]);
+
+  const handleToggleBypass = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    toggleBypass(nodeId);
+    closeContextMenu();
+  }, [closeContextMenu, nodeId, toggleBypass]);
+
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
     if (nodeId && nodeData) {
-      const metadataToCopy = {
-        NodeData: metadata
-      };
-      log.info("Copying metadata to clipboard", metadataToCopy);
+      log.info("Copying node data to clipboard", nodeData);
       addNotification({
         type: "info",
         alert: true,
-        content: "Copied NodeData to Clipboard!"
+        content: "Copied Node Data to Clipboard!"
       });
-      writeClipboard(JSON.stringify(metadataToCopy), true, true);
+      writeClipboard(JSON.stringify(nodeData, null, 2), true, true);
       closeContextMenu();
     }
   }, [
     nodeId,
     nodeData,
-    metadata,
     addNotification,
     writeClipboard,
     closeContextMenu
@@ -173,6 +290,34 @@ const NodeContextMenu: React.FC = () => {
     ),
     nodeId && (
       <ContextMenuItem
+        key="run-from-here"
+        onClick={handleRunFromHere}
+        label={isWorkflowRunning ? "Running..." : "Run From Here"}
+        IconComponent={<PlayArrowIcon />}
+        tooltip="Run the workflow from this node onwards, using previous results as inputs"
+        addButtonClassName={isWorkflowRunning ? "disabled" : ""}
+      />
+    ),
+    nodeId && (
+      <ContextMenuItem
+        key="toggle-bypass"
+        onClick={handleToggleBypass}
+        label={isBypassed ? "Enable Node" : "Bypass Node"}
+        IconComponent={isBypassed ? <PlayArrowIcon /> : <BlockIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">
+              {isBypassed ? "Enable Node" : "Bypass Node"}
+            </div>
+            <div className="tooltip-key">
+              <kbd>B</kbd>
+            </div>
+          </div>
+        }
+      />
+    ),
+    nodeId && (
+      <ContextMenuItem
         key="toggle-comment"
         onClick={handleToggleComment}
         label={hasCommentTitle ? "Remove Comment" : "Add Comment"}
@@ -230,7 +375,7 @@ const NodeContextMenu: React.FC = () => {
           onClick={handleCopyMetadataToClipboard}
           label="Copy NodeData"
           IconComponent={<DataArrayIcon />}
-          tooltip="Copy node metadata to the clipboard"
+          tooltip="Copy node data to the clipboard"
         />
       </React.Fragment>
     )

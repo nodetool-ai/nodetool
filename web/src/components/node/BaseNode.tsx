@@ -172,7 +172,7 @@ const getNodeColors = (metadata: any): string[] => {
   const outputColors = [
     ...new Set(
       metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
-        []
+      []
     )
   ];
   const inputColors = [
@@ -263,14 +263,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     throw new Error("Metadata is not loaded for node type " + type);
   }
 
-  const parentColor = useNodes((_state) => {
-    if (!parentId) {
-      return "";
-    }
-    return isDarkMode
-      ? hexToRgba("#222", GROUP_COLOR_OPACITY)
-      : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
-  });
+  const parentColor = parentId ?
+    (isDarkMode ?
+      hexToRgba("#222", GROUP_COLOR_OPACITY)
+      : hexToRgba("#ccc", GROUP_COLOR_OPACITY)) : null;
 
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
@@ -354,6 +350,22 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Use useMemo to cache the styles based on nodeColors
   const styles = useMemo(() => getNodeStyles(nodeColors), [nodeColors]);
+  const toolCallStyles = useMemo(
+    () =>
+      css({
+        ".tool-call-container": {
+          margin: "0.5em 1em",
+          padding: "0.5em",
+          background: "rgba(33, 150, 243, 0.1)",
+          borderRadius: "4px",
+          border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`,
+          fontSize: "0.75em",
+          color: theme.vars.palette.primary.light,
+          wordBreak: "break-word"
+        }
+      }),
+    [theme]
+  );
 
   if (!metadata) {
     throw new Error("Metadata is not loaded for node " + id);
@@ -365,34 +377,32 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      css={isLoading ? styles : undefined}
+      css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
       sx={{
         display: "flex",
         minHeight: styleProps.minHeight,
         border: isLoading
           ? "none"
-          : `1px solid ${hexToRgba(baseColor || "#666", 0.8)}`,
+          : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
         ...theme.applyStyles("dark", {
           border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
-          // boxShadow: selected
-          //   ? `0 0 0 1px ${
-          //       baseColor || "#666"
-          //     }, 0 10px 30px -10px rgba(0,0,0,0.8)`
-          //   : "0 4px 20px rgba(0,0,0,0.4)"
         }),
+        boxShadow: selected
+          ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
+          : `0 4px 20px rgba(0, 0, 0, 0.1)`,
         backgroundColor:
           hasParent && !isLoading
             ? parentColor
             : selected
               ? "transparent !important"
               : // theme.vars.palette.c_node_bg
-                // : "#121212", // Darker background
-                theme.vars.palette.c_node_bg, // Darker background
+              // : "#121212", // Darker background
+              theme.vars.palette.c_node_bg, // Darker background
         backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         borderRadius: "var(--rounded-node)",
-        // Set custom CSS property for dynamic selection color
+        // dynamic node color
         "--node-primary-color": baseColor || "var(--palette-primary-main)"
       }}
     >

@@ -151,7 +151,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
   }, [uri]);
 
   const togglePlayback = async () => {
-    if (!sound) return;
+    if (!sound) {return;}
     
     if (isPlaying) {
       await sound.pauseAsync();
@@ -209,7 +209,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
 function getMediaUri(
   media: { uri?: string; data?: any; type?: string } | undefined
 ): string | undefined {
-  if (!media) return undefined;
+  if (!media) {return undefined;}
   
   // If URI exists and is not empty, use it
   if (media.uri && media.uri !== '') {

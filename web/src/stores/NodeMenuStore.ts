@@ -105,6 +105,13 @@ export type NodeMenuStore = {
   >;
   // Guard to prevent immediate close right after open
   closeBlockUntil: number;
+
+  // Keyboard navigation for search results
+  selectedIndex: number;
+  setSelectedIndex: (index: number) => void;
+  moveSelectionUp: () => void;
+  moveSelectionDown: () => void;
+  getSelectedNode: () => NodeMetadata | null;
 };
 
 type NodeMenuStoreOptions = {
@@ -199,7 +206,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         // Don't clear hoveredNode here as it causes extra re-renders
         const currentTerm = get().searchTerm;
         if (currentTerm !== term) {
-          set({ searchTerm: term });
+          // Reset keyboard selection when search term changes
+          set({ searchTerm: term, selectedIndex: -1 });
         }
         // Run debounced search with the provided term
         scheduleSearch(term);
@@ -419,7 +427,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             selectedInputType: "",
             selectedOutputType: "",
             showDocumentation: false,
-            selectedNodeType: null
+            selectedNodeType: null,
+            selectedIndex: -1
           });
         }
       },
@@ -516,7 +525,31 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         }
       },
       isLoading: false,
-      searchResultsCache: {}
+      searchResultsCache: {},
+
+      // Keyboard navigation for search results
+      selectedIndex: -1,
+      setSelectedIndex: (index: number) => set({ selectedIndex: index }),
+      moveSelectionUp: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (allNodes.length === 0) { return; }
+        const newIndex = selectedIndex <= 0 ? allNodes.length - 1 : selectedIndex - 1;
+        set({ selectedIndex: newIndex });
+      },
+      moveSelectionDown: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (allNodes.length === 0) { return; }
+        const newIndex = selectedIndex >= allNodes.length - 1 ? 0 : selectedIndex + 1;
+        set({ selectedIndex: newIndex });
+      },
+      getSelectedNode: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
+        return allNodes[selectedIndex];
+      }
     };
   });
 

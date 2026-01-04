@@ -341,10 +341,23 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
+              onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)}
             />
           ));
         } else {
-          return <ImageView source={value?.uri ? value?.uri : value?.data} />;
+          let imageSource: string | Uint8Array;
+          if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
+            imageSource = value.uri;
+          } else if (value?.data instanceof Uint8Array) {
+            imageSource = value.data;
+          } else if (Array.isArray(value?.data)) {
+            imageSource = new Uint8Array(value.data);
+          } else if (typeof value?.data === "string") {
+            imageSource = value.data;
+          } else {
+            imageSource = "";
+          }
+          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)} />;
         }
       case "audio": {
         // Handle different audio data formats

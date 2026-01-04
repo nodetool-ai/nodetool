@@ -334,9 +334,9 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                 "& .MuiOutlinedInput-root": {
                     backgroundColor: "action.disabledBackground",
                     borderRadius: "8px",
-                    "& fieldset": { borderColor: "action.selected" },
-                    "&:hover fieldset": { borderColor: "action.focus" },
-                    "&.Mui-focused fieldset": { borderColor: theme.vars.palette.primary.main },
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "action.selected" },
+                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "action.focus" },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: theme.vars.palette.primary.main },
                 }
             }}
             slotProps={{
@@ -398,7 +398,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                   sx={{ padding: "0" }}
                   slotProps={{
                     popper: {
-                      sx: { zIndex: theme.zIndex.tooltip + 2 },
+                      sx: { zIndex: theme.zIndex.tooltip + 2, maxWidth: 320 },
                       modifiers: [
                         { name: "offset", options: { offset: [0, 8] } },
                         { name: "preventOverflow", options: { padding: 8 } },
@@ -413,6 +413,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                     <NodeInfo
                       nodeMetadata={nodeMetadata}
                       showConnections={false}
+                      menuWidth={240}
                     />
                   }
                 >

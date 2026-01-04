@@ -199,7 +199,7 @@ export const paletteDark: PaletteOptions = {
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",
   c_provider_hf: "#C4B5FD",
-  c_app_header: "#1E1E1E",
+  c_app_header: "#111111",
   c_tabs_header: "#1E1E1E",
 
   primary: {
@@ -215,7 +215,7 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#fff"
   },
   background: {
-    default: "#141414",
+    default: "#2e2d2d",
     paper: "rgba(20, 20, 20, 0.75)"
   },
   text: {

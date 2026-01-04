@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, { memo, useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import isEqual from "lodash/isEqual";
@@ -27,7 +29,21 @@ export const ProcessTimer = ({ status }: { status: string }) => {
   }, [status]);
 
   return (
-    <div className={"process-timer"}>
+    <div
+      className="process-timer"
+      css={css({
+        pointerEvents: "none",
+        fontSize: "9px",
+        fontFamily: "var(--fontFamily2)",
+        lineHeight: "1em",
+        width: "fit-content",
+        textAlign: "center",
+        color: "var(--palette-grey-500)",
+        margin: "auto",
+        padding: "2px 4px",
+        transition: "opacity 1s 1s"
+      })}
+    >
       {status === "starting" && (
         <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>
       )}

@@ -4,13 +4,14 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Button, TextField, Tooltip } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
+import { NodeTextField } from "../ui_primitives";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -77,33 +78,29 @@ const PropertyDropzone = ({
         }
       },
       ".url-input": {
-        height: "1em",
         width: "calc(100% - 24px)",
         maxWidth: "120px",
         zIndex: 1,
         bottom: "0em",
-        borderRadius: "0",
-        backgroundColor: theme.vars.palette.grey[600],
-        margin: "0 0 .5em 0",
-        padding: ".2em .5em .1em .5em"
-      },
-      ".url-input input": {
-        margin: 0,
-        maxWidth: "230px",
-        fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeTiny,
-        padding: "0"
-      },
-      ".url-input fieldset": {
-        border: "0"
+        margin: "0 0 .5em 0"
       },
       ".dropzone": {
+        position: "relative",
         minHeight: "30px",
         width: showUrlInput ? "100%" : "100%",
         border: "0",
         maxWidth: "none",
         textAlign: "left",
         transition: "all 0.2s ease",
+        outline: `1px dashed ${theme.vars.palette.grey[600]}`,
+        margin: "5px 0",
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        borderRadius: "6px",
+
+        "&:hover": {
+          outline: `1px dashed ${theme.vars.palette.grey[400]}`,
+          backgroundColor: "rgba(0, 0, 0, 0.3)"
+        },
         "&.drag-over": {
           backgroundColor: theme.vars.palette.grey[600],
           outline: `2px dashed ${theme.vars.palette.grey[100]}`,
@@ -113,10 +110,35 @@ const PropertyDropzone = ({
       ".dropzone.dropped": {
         width: "100%",
         border: "0",
-        maxWidth: "none"
+        maxWidth: "none",
+        outline: `1px solid ${theme.vars.palette.grey[700]}`,
+        backgroundColor: "transparent",
+        padding: "4px"
       },
       ".dropzone p": {
         textAlign: "left"
+      },
+      ".dropzone p.centered": {
+        margin: "auto",
+        textAlign: "left",
+        padding: "1em",
+        minWidth: "60px",
+        minHeight: "14px",
+        lineHeight: "1.1em",
+        fontFamily: theme.fontFamily2,
+        textTransform: "uppercase",
+        letterSpacing: "1px",
+        fontSize: "10px",
+        color: theme.vars.palette.grey[500]
+      },
+      ".dropzone img": {
+        height: "auto",
+        maxWidth: "100%",
+        maxHeight: "300px",
+        margin: "0 auto",
+        display: "block",
+        width: "auto !important",
+        borderRadius: "4px"
       },
       ".prop-drop": {
         fontSize: theme.fontSizeTiny,
@@ -255,17 +277,27 @@ const PropertyDropzone = ({
     <div css={styles(theme)}>
       <div className="drop-container">
         {showUrlInput && (
-          <TextField
-            className="url-input nowheel nodrag"
+          <NodeTextField
+            className="url-input"
             value={uri || ""}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
             onChange={(e) =>
               onChange({ uri: e.target.value, type: contentType })
             }
             placeholder={`Enter ${contentType.split("/")[0]} URL`}
+            sx={{
+              backgroundColor: theme.vars.palette.grey[600],
+              "& .MuiOutlinedInput-root": {
+                height: "1.8em"
+              },
+              "& .MuiOutlinedInput-input": {
+                padding: ".2em .5em",
+                fontFamily: theme.fontFamily1,
+                fontSize: theme.fontSizeTiny
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                border: "0"
+              }
+            }}
           />
         )}
 

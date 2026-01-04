@@ -4,11 +4,12 @@ import { Typography, Checkbox } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { IconForType } from "../../config/data_types";
-import { highlightText as highlightTextUtil } from "../../utils/highlightText";
+import { HighlightText } from "../ui_primitives/HighlightText";
 
 interface NodeItemProps {
   node: NodeMetadata;
   onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: () => void;
   onClick: () => void;
   showCheckbox?: boolean;
   isSelected?: boolean;
@@ -21,6 +22,7 @@ const NodeItem = memo(
       {
         node,
         onDragStart,
+        onDragEnd,
         onClick,
         showCheckbox = false,
         isSelected = false,
@@ -40,14 +42,6 @@ const NodeItem = memo(
       const onMouseEnter = useCallback(() => {
         setHoveredNode(node);
       }, [node, setHoveredNode]);
-
-      const highlightNodeTitle = useCallback(
-        (title: string): string => {
-          return highlightTextUtil(title, "title", searchTerm, node.searchInfo)
-            .html;
-        },
-        [searchTerm, node.searchInfo]
-      );
 
       const handleClick = useCallback(
         (e: React.MouseEvent) => {
@@ -74,6 +68,7 @@ const NodeItem = memo(
               onDragStart(e);
             }
           }}
+          onDragEnd={onDragEnd}
         >
           <div
             className="node-button"
@@ -123,15 +118,11 @@ const NodeItem = memo(
               }}
             />
             <Typography fontSize="small">
-              {searchTerm ? (
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: highlightNodeTitle(node.title)
-                  }}
-                />
-              ) : (
-                node.title
-              )}
+              <HighlightText 
+                text={node.title} 
+                query={searchTerm} 
+                matchStyle="primary"
+              />
             </Typography>
           </div>
         </div>

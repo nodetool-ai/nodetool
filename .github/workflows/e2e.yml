@@ -6,17 +6,22 @@ on:
       - main
     paths:
       - "web/**"
+      - "electron/**"
       - ".github/workflows/e2e.yml"
   pull_request:
     branches:
       - main
     paths:
       - "web/**"
+      - "electron/**"
       - ".github/workflows/e2e.yml"
 
+permissions:
+  contents: read
+
 jobs:
-  e2e:
-    name: End-to-End Tests
+  web:
+    name: Web Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -34,12 +39,12 @@ jobs:
           miniforge-version: latest
 
       - name: Install nodetool-core and nodetool-base
-        shell: bash -el {0}
+        shell: bash
         run: |
           uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
       - name: Verify nodetool installation
-        shell: bash -el {0}
+        shell: bash
         run: |
           which nodetool
           nodetool --help
@@ -61,8 +66,50 @@ jobs:
           cd web
           npx playwright install --with-deps chromium
 
+      - name: Install Ollama
+        shell: bash
+        run: |
+          # Install ollama via conda
+          conda install -y -c conda-forge ollama
+
+      - name: Start Ollama server
+        shell: bash
+        run: |
+          # Find ollama binary in conda environment
+          OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
+          echo "Ollama path: ${OLLAMA_PATH}"
+
+          # Start ollama serve in background
+          ${OLLAMA_PATH} serve > /tmp/ollama-server.log 2>&1 &
+          echo $! > /tmp/ollama-server.pid
+
+          # Wait for ollama to be ready
+          echo "Waiting for Ollama server to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+              echo "Ollama server is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Ollama server failed to start"
+              cat /tmp/ollama-server.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Pull Ollama model
+        shell: bash
+        run: |
+          # Find ollama binary
+          OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
+
+          # Pull the gemma3:270m model
+          echo "Pulling gemma3:270m model..."
+          ${OLLAMA_PATH} pull gemma3:270m
+
       - name: Start nodetool server
-        shell: bash -el {0}
+        shell: bash
         run: |
           nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
@@ -75,27 +122,38 @@ jobs:
           retry-delay: 2s
 
       - name: Run E2E tests
-        shell: bash -el {0}
+        shell: bash
         run: |
           cd web
           npx playwright test
         env:
           CI: true
 
-      - name: Stop nodetool server
+      - name: Stop servers
         if: always()
-        shell: bash -el {0}
+        shell: bash
         run: |
           if [ -f /tmp/nodetool-server.pid ]; then
             kill $(cat /tmp/nodetool-server.pid) || true
           fi
-          
+          if [ -f /tmp/ollama-server.pid ]; then
+            kill $(cat /tmp/ollama-server.pid) || true
+          fi
+
       - name: Upload nodetool server logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: nodetool-server-logs
           path: /tmp/nodetool-server.log
+          retention-days: 7
+
+      - name: Upload Ollama server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ollama-server-logs
+          path: /tmp/ollama-server.log
           retention-days: 7
 
       - name: Upload Playwright report
@@ -112,4 +170,97 @@ jobs:
         with:
           name: test-results
           path: web/test-results/
+          retention-days: 7
+
+  electron:
+    name: Electron End-to-End Tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.11"
+          environment-file: environment.yml
+          activate-environment: nodetool
+          auto-activate-base: false
+          miniforge-version: latest
+
+      - name: Install nodetool-core and nodetool-base
+        shell: bash
+        run: |
+          uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+
+      - name: Verify nodetool installation
+        shell: bash
+        run: |
+          which nodetool
+          nodetool --help
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Install Electron dependencies
+        run: |
+          cd electron
+          npm ci
+
+      - name: Install Playwright browsers
+        run: |
+          cd electron
+          npx playwright install --with-deps chromium
+
+      - name: Build Electron app
+        run: |
+          cd electron
+          npm run vite:build
+          npx tsc
+        env:
+          NODE_ENV: production
+
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cd electron
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test
+        env:
+          CI: true
+
+      - name: Run tests (macOS/Windows)
+        if: runner.os != 'Linux'
+        shell: bash
+        run: |
+          cd electron
+          npx playwright test
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: electron/playwright-report/
+          retention-days: 7
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: electron/test-results/
           retention-days: 7

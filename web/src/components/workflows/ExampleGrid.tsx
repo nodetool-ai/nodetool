@@ -328,13 +328,13 @@ const styles = (theme: Theme) =>
       "& .MuiOutlinedInput-root": {
         background: theme.vars.palette.action.hover,
         borderRadius: "12px",
-        "& fieldset": {
+        "& .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.divider
         },
-        "&:hover fieldset": {
+        "&:hover .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.action.focus
         },
-        "&.Mui-focused fieldset": {
+        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
           borderColor: "var(--palette-primary-main)",
           boxShadow: `0 0 0 2px ${"var(--palette-primary-main)"}20`
         }
