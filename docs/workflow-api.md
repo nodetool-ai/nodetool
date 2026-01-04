@@ -169,7 +169,7 @@ socket.send(msgpack.encode({ command: "get_status" }));
 
 ## API Demo
 
-- Download the [HTML file](../api-demo.html)
+- Download the [HTML file](../../api-demo.html)
 - Open it in a browser locally.
 - Select the endpoint (local or `api.nodetool.ai` for alpha users).
 - Enter an API token from the NodeTool settings dialog.

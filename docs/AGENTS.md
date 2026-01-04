@@ -954,7 +954,7 @@ bundle exec jekyll build
 ### File Locations
 
 - User guides: Root `/docs` directory
-- API docs: `/docs/api-reference.md`
+- API docs: `api-reference.md`
 - Node docs: `/docs/nodes/<category>/`
 - Tutorials: `/docs/cookbook/`
 - Dev guides: `/docs/developer/`
