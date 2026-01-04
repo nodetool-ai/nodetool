@@ -18,7 +18,7 @@ import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
 import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
-import { detectTorchPlatform, type TorchruntimeDetectionResult } from "./torchruntime";
+import { detectTorchPlatform, installTorchWithUvs, type TorchruntimeDetectionResult } from "./torchruntime";
 import { saveTorchPlatform } from "./torchPlatformCache";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
@@ -69,13 +69,10 @@ function normalizeModelBackend(backend: unknown): ModelBackend {
 }
 
 function normalizeInstallLocation(location: unknown): string {
-  if (typeof location === "string") {
-    const trimmed = location.trim();
-    if (trimmed.length > 0) {
-      return trimmed;
-    }
+  if (location == null || typeof location !== "string" || location.trim().length === 0) {
+    return getDefaultInstallLocation();
   }
-  return getDefaultInstallLocation();
+  return location.trim();
 }
 
 function persistInstallationPreferences(
@@ -645,25 +642,25 @@ async function provisionPythonEnvironment(
     location
   );
 
-  // Detect torch platform before updating conda environment
-  let torchPlatformResult: TorchruntimeDetectionResult;
-  try {
-    torchPlatformResult = await detectTorchPlatform();
-    logMessage(`Torch platform detection result: ${JSON.stringify(torchPlatformResult)}`);
-    
-    // Save detected platform to settings for later use
-    saveTorchPlatform(torchPlatformResult);
-  } catch (error: any) {
-    logMessage(`Failed to detect torch platform: ${error.message}`, "error");
-    // Fallback to CPU
-    torchPlatformResult = {
-      platform: "cpu",
-      indexUrl: "https://download.pytorch.org/whl/cpu",
-      error: error.message,
-    };
-  }
+  // Install PyTorch with torchruntime (handles detection and installation)
+    let torchPlatformResult: TorchruntimeDetectionResult;
+    try {
+      torchPlatformResult = await installTorchWithUvs();
+      logMessage(`Torch installation result: ${JSON.stringify(torchPlatformResult)}`);
+      
+      // Save detected platform to settings for later use
+      saveTorchPlatform(torchPlatformResult);
+    } catch (error: any) {
+      logMessage(`Failed to install PyTorch with torchruntime: ${error.message}`, "error");
+      // Fallback to CPU
+      torchPlatformResult = {
+        platform: "cpu",
+        indexUrl: "https://download.pytorch.org/whl/cpu",
+        error: error.message,
+      };
+    }
 
-  await updateCondaEnvironment(packages, torchPlatformResult);
+    await updateCondaEnvironment(packages);
 
   const condaEnvPath = location;
   await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend, {
@@ -696,8 +693,9 @@ async function provisionPythonEnvironment(
  * Installation Process:
  * 1. `promptForInstallLocation()` prompts the user for an installation directory
  * 2. `createEnvironmentWithMicromamba()` builds the environment from `environment.lock.yml`
- * 3. `installCondaPackages()` and `ensureLlamaCppInstalled()` ensure native binaries are present
- * 4. `updateCondaEnvironment()` installs/upgrades required Python packages via uv pip
+   * 3. `installCondaPackages()` and `ensureLlamaCppInstalled()` ensure native binaries are present
+   * 4. `installTorchWithUvs()` installs PyTorch with automatic GPU detection
+   * 5. `updateCondaEnvironment()` installs/upgrades required Python packages via uv pip
  *
  * Update Process:
  * - Checks for package updates using pip
