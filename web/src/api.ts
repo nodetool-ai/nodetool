@@ -1580,7 +1580,13 @@ export interface paths {
         };
         /** Get Workflow */
         get: operations["get_workflow_api_workflows__id__get"];
-        /** Update Workflow */
+        /**
+         * Update Workflow
+         * @description Update an existing workflow.
+         *
+         *     Note: This endpoint does NOT create a version. Use POST /versions for manual
+         *     version creation, or POST /autosave for automatic version saving.
+         */
         put: operations["update_workflow_api_workflows__id__put"];
         post?: never;
         /** Delete Workflow */
@@ -1727,6 +1733,39 @@ export interface paths {
          *     The current state is NOT automatically saved as a new version before restoring.
          */
         post: operations["restore_version_api_workflows__id__versions__version__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{id}/autosave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Autosave Workflow
+         * @description Create an autosave version of a workflow.
+         *
+         *     The backend decides whether to create a version based on:
+         *     - Rate limiting (minimum interval between saves)
+         *     - Max versions per workflow limit
+         *
+         *     Args:
+         *         id: Workflow ID
+         *         autosave_request: Autosave request with save_type, description, force flag
+         *         background_tasks: Background tasks for cleanup operations
+         *         user: Current authenticated user
+         *
+         *     Returns:
+         *         AutosaveResponse with version info or skipped status
+         */
+        post: operations["autosave_workflow_api_workflows__id__autosave_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2633,6 +2672,43 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * AutosaveResponse
+         * @description Response from an autosave request.
+         */
+        AutosaveResponse: {
+            version?: components["schemas"]["WorkflowVersion"] | null;
+            /** Message */
+            message: string;
+            /**
+             * Skipped
+             * @default false
+             */
+            skipped: boolean;
+        };
+        /**
+         * AutosaveWorkflowRequest
+         * @description Request to autosave a workflow version.
+         */
+        AutosaveWorkflowRequest: {
+            /**
+             * Save Type
+             * @default autosave
+             */
+            save_type: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Force
+             * @default false
+             */
+            force: boolean;
+            /** Client Id */
+            client_id?: string | null;
         };
         /** BackgroundJobResponse */
         BackgroundJobResponse: {
@@ -6708,6 +6784,18 @@ export interface components {
              */
             description: string;
             graph: components["schemas"]["Graph-Output"];
+            /**
+             * Save Type
+             * @default manual
+             */
+            save_type: string;
+            /**
+             * Autosave Metadata
+             * @default {}
+             */
+            autosave_metadata: {
+                [key: string]: unknown;
+            };
         };
         /**
          * WorkflowVersionList
@@ -9368,6 +9456,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    autosave_workflow_api_workflows__id__autosave_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutosaveWorkflowRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutosaveResponse"];
                 };
             };
             /** @description Validation Error */
