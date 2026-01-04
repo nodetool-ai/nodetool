@@ -1,4 +1,9 @@
-import { useNodes } from "../contexts/NodeContext";
+import { useContext } from "react";
+import { NodeContext } from "../contexts/NodeContext";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import { shallow } from "zustand/shallow";
+import { Node } from "@xyflow/react";
+import { NodeData } from "../stores/NodeData";
 
 interface UseInputMinMaxOptions {
   nodeType?: string;
@@ -21,14 +26,25 @@ export const useInputMinMax = ({
       nodeType === "nodetool.input.IntegerInput") &&
     propertyName === "value";
 
-  const nodes = useNodes((state) => state.nodes);
-  const node = nodes.find((n) => n.id === nodeId);
+  const context = useContext(NodeContext);
 
-  const nodeMin = shouldLookupBounds ? (node?.data?.properties as Record<string, unknown>)?.min as number | undefined : undefined;
-  const nodeMax = shouldLookupBounds ? (node?.data?.properties as Record<string, unknown>)?.max as number | undefined : undefined;
+  const nodes: Node<NodeData>[] = useStoreWithEqualityFn(
+    context ?? { subscribe: () => {}, getState: () => ({ nodes: [] }) } as any,
+    (state: any) => state?.nodes ?? [],
+    shallow
+  );
 
-  if (shouldLookupBounds) {
-    console.log("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
+  let nodeMin: number | undefined;
+  let nodeMax: number | undefined;
+
+  if (shouldLookupBounds && context && nodes.length > 0) {
+    const node = nodes.find((n) => n.id === nodeId);
+    nodeMin = (node?.data?.properties as Record<string, unknown>)?.min as number | undefined;
+    nodeMax = (node?.data?.properties as Record<string, unknown>)?.max as number | undefined;
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
+    }
   }
 
   const min =
@@ -44,9 +60,5 @@ export const useInputMinMax = ({
         ? propertyMax
         : 100;
 
-  if (shouldLookupBounds) {
-    return { min, max };
-  }
-
-  return { min: undefined, max: undefined };
+  return { min, max };
 };

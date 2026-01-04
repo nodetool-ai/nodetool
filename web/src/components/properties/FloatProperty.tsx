@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
@@ -20,8 +20,6 @@ const FloatProperty = (props: PropertyProps) => {
     propertyMax: props.property.max,
   });
 
-  const handleChangeComplete = useCallback(
-
   return (
     <>
       <NumberInput
@@ -40,7 +38,7 @@ const FloatProperty = (props: PropertyProps) => {
         zoomAffectsDragging={true}
         changed={changed}
         onChange={(_, newValue) => onChange(Number(newValue))}
-        onChangeComplete={handleChangeComplete}
+        onChangeComplete={onChangeComplete}
       />
     </>
   );
