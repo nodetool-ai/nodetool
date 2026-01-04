@@ -88,7 +88,7 @@ export const useAutosave = (
     * Perform autosave by creating a version via API
     */
   const triggerAutosave = useCallback(async () => {
-    if (!autosaveSettings.enabled || !workflowId || isSavingRef.current || isCreatingVersion) {
+    if (!autosaveSettings?.enabled || !workflowId || isSavingRef.current || isCreatingVersion) {
       return;
     }
 
@@ -124,7 +124,7 @@ export const useAutosave = (
       isSavingRef.current = false;
     }
   }, [
-    autosaveSettings.enabled,
+    autosaveSettings?.enabled,
     workflowId,
     getWorkflow,
     isDirty,
@@ -195,7 +195,7 @@ export const useAutosave = (
     */
   const saveBeforeRun = useCallback(async () => {
     if (
-      !autosaveSettings.saveBeforeRun ||
+      !autosaveSettings?.saveBeforeRun ||
       !workflowId ||
       isSavingRef.current ||
       isCreatingVersion
@@ -227,7 +227,7 @@ export const useAutosave = (
       isSavingRef.current = false;
     }
   }, [
-    autosaveSettings.saveBeforeRun,
+    autosaveSettings?.saveBeforeRun,
     workflowId,
     getWorkflow,
     isDirty,
@@ -253,7 +253,7 @@ export const useAutosave = (
 
   // Set up interval-based autosave
   useEffect(() => {
-    if (!autosaveSettings.enabled || !workflowId) {
+    if (!autosaveSettings?.enabled || !workflowId) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -261,7 +261,7 @@ export const useAutosave = (
       return;
     }
 
-    const intervalMs = autosaveSettings.intervalMinutes * 60 * 1000;
+    const intervalMs = (autosaveSettings?.intervalMinutes ?? 10) * 60 * 1000;
 
     intervalRef.current = setInterval(() => {
       triggerAutosave();
@@ -274,8 +274,8 @@ export const useAutosave = (
       }
     };
   }, [
-    autosaveSettings.enabled,
-    autosaveSettings.intervalMinutes,
+    autosaveSettings?.enabled,
+    autosaveSettings?.intervalMinutes,
     workflowId,
     triggerAutosave
   ]);
@@ -283,7 +283,7 @@ export const useAutosave = (
   // Set up significant edits autosave
   useEffect(() => {
     if (
-      !autosaveSettings.enabled ||
+      !autosaveSettings?.enabled ||
       !workflowId ||
       trackedEditCount < SIGNIFICANT_EDITS_THRESHOLD
     ) {
@@ -292,7 +292,7 @@ export const useAutosave = (
 
     triggerAutosave();
   }, [
-    autosaveSettings.enabled,
+    autosaveSettings?.enabled,
     workflowId,
     trackedEditCount,
     triggerAutosave
@@ -300,7 +300,7 @@ export const useAutosave = (
 
   // Set up save on window/tab close
   useEffect(() => {
-    if (!autosaveSettings.enabled || !autosaveSettings.saveOnClose) {
+    if (!autosaveSettings?.enabled || !autosaveSettings?.saveOnClose) {
       return;
     }
 
@@ -322,8 +322,8 @@ export const useAutosave = (
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [
-    autosaveSettings.enabled,
-    autosaveSettings.saveOnClose,
+    autosaveSettings?.enabled,
+    autosaveSettings?.saveOnClose,
     workflowId,
     isDirty,
     getWorkflow,

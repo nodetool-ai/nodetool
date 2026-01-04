@@ -597,7 +597,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             Enable Autosave
                           </InputLabel>
                           <Switch
-                            checked={settings.autosave.enabled}
+                            checked={settings.autosave?.enabled ?? true}
                             onChange={(e) =>
                               updateAutosaveSettings({ enabled: e.target.checked })
                             }
@@ -616,14 +616,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </InputLabel>
                           <Select
                             id="autosave-interval"
-                            value={settings.autosave.intervalMinutes}
+                            value={settings.autosave?.intervalMinutes ?? 10}
                             variant="standard"
                             onChange={(e) =>
                               updateAutosaveSettings({
                                 intervalMinutes: Number(e.target.value)
                               })
                             }
-                            disabled={!settings.autosave.enabled}
+                            disabled={!settings.autosave?.enabled}
                           >
                             <MenuItem value={1}>1 minute</MenuItem>
                             <MenuItem value={5}>5 minutes</MenuItem>
@@ -644,7 +644,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             Save Before Running
                           </InputLabel>
                           <Switch
-                            checked={settings.autosave.saveBeforeRun}
+                            checked={settings.autosave?.saveBeforeRun ?? true}
                             onChange={(e) =>
                               updateAutosaveSettings({
                                 saveBeforeRun: e.target.checked
@@ -664,7 +664,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             Save on Window Close
                           </InputLabel>
                           <Switch
-                            checked={settings.autosave.saveOnClose}
+                            checked={settings.autosave?.saveOnClose ?? true}
                             onChange={(e) =>
                               updateAutosaveSettings({
                                 saveOnClose: e.target.checked
@@ -685,7 +685,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </InputLabel>
                           <Select
                             id="max-versions"
-                            value={settings.autosave.maxVersionsPerWorkflow}
+                            value={settings.autosave?.maxVersionsPerWorkflow ?? 50}
                             variant="standard"
                             onChange={(e) =>
                               updateAutosaveSettings({

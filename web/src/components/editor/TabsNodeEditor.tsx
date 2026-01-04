@@ -19,10 +19,8 @@ import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { VersionHistoryPanel } from "../version";
 import { useVersionHistoryStore, WorkflowVersion } from "../../stores/VersionHistoryStore";
 import { useAutosave } from "../../hooks/useAutosave";
-import { Drawer } from "@mui/material";
 // import { getIsElectronDetails } from "../../utils/browser";
 
 const styles = (theme: Theme) =>
@@ -559,29 +557,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
           </div>
         )}
       </div>
-
-      {/* Version History Drawer */}
-      <Drawer
-        anchor="right"
-        open={isHistoryPanelOpen && !!currentWorkflowId}
-        onClose={() => setHistoryPanelOpen(false)}
-        variant="persistent"
-        sx={{
-          "& .MuiDrawer-paper": {
-            width: 360,
-            top: hideContent ? 0 : 40,
-            height: hideContent ? "100%" : "calc(100% - 40px)"
-          }
-        }}
-      >
-        {currentWorkflowId && (
-          <VersionHistoryPanel
-            workflowId={currentWorkflowId}
-            onRestore={handleRestoreVersion}
-            onClose={() => setHistoryPanelOpen(false)}
-          />
-        )}
-      </Drawer>
     </>
   );
 };

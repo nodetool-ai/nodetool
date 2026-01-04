@@ -33,13 +33,11 @@ import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import HistoryIcon from "@mui/icons-material/History";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { Workflow } from "../../stores/ApiTypes";
-import { useVersionHistoryStore } from "../../stores/VersionHistoryStore";
 import { cn } from "../editor_ui/editorUtils";
 
 interface ToolbarButtonProps {
@@ -247,13 +245,6 @@ const FloatingToolBar: React.FC<{
     (state) => state.handleViewChange
   );
 
-  const { isHistoryPanelOpen, setHistoryPanelOpen } = useVersionHistoryStore(
-    (state) => ({
-      isHistoryPanelOpen: state.isHistoryPanelOpen,
-      setHistoryPanelOpen: state.setHistoryPanelOpen
-    })
-  );
-
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
       workflow: state.workflow,
@@ -329,10 +320,6 @@ const FloatingToolBar: React.FC<{
       saveWorkflow(w);
     }
   }, [getWorkflowById, saveWorkflow, workflow]);
-
-  const handleToggleHistory = useCallback(() => {
-    setHistoryPanelOpen(!isHistoryPanelOpen);
-  }, [isHistoryPanelOpen, setHistoryPanelOpen]);
 
   const handleDownload = useCallback(() => {
     if (!workflow) {
@@ -585,19 +572,6 @@ const FloatingToolBar: React.FC<{
             <RocketLaunchIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Run as App" />
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleToggleHistory();
-            handleCloseActionsMenu();
-          }}
-        >
-          <ListItemIcon>
-            <HistoryIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary={isHistoryPanelOpen ? "Hide version history" : "Version history"}
-          />
         </MenuItem>
       </Menu>
 

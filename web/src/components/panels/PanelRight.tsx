@@ -13,16 +13,19 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
+import { Workflow, WorkflowVersion } from "../../stores/ApiTypes";
 
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
+import HistoryIcon from "@mui/icons-material/History";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
 import PanelResizeButton from "./PanelResizeButton";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
+import { VersionHistoryPanel } from "../version";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -113,6 +116,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleAssistantToggle,
   handleLogsToggle,
   handleWorkspaceToggle,
+  handleVersionsToggle,
   activeView,
   panelVisible
 }: {
@@ -120,7 +124,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleAssistantToggle: () => void;
   handleLogsToggle: () => void;
   handleWorkspaceToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace";
+  handleVersionsToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions";
   panelVisible: boolean;
 }) {
   return (
@@ -222,6 +227,25 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <FolderIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Versions Button */}
+      <Tooltip
+        title="Version History"
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleVersionsToggle}
+          className={
+            activeView === "versions" && panelVisible
+              ? "versions active"
+              : "versions"
+          }
+        >
+          <HistoryIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -244,6 +268,48 @@ const PanelRight: React.FC = () => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+
+  const handleRestoreVersion = async (version: WorkflowVersion) => {
+    if (!activeNodeStore || !currentWorkflowId) {
+      return;
+    }
+
+    const storeState = activeNodeStore.getState();
+    const workflow = storeState.getWorkflow();
+
+    const [{ graphNodeToReactFlowNode }, { graphEdgeToReactFlowEdge }] = await Promise.all([
+      import("../../stores/graphNodeToReactFlowNode"),
+      import("../../stores/graphEdgeToReactFlowEdge")
+    ]);
+
+    const graph = version.graph;
+    const newNodes = graph.nodes.map((n) =>
+      graphNodeToReactFlowNode(
+        { ...workflow, graph: graph as unknown as Workflow["graph"] } as Workflow,
+        {
+          ...n,
+          sync_mode: "on_any" as const,
+          ui_properties: null,
+          parent_id: null,
+          dynamic_properties: {},
+          dynamic_outputs: {}
+        }
+      )
+    );
+    const newEdges = graph.edges.map((e) =>
+      graphEdgeToReactFlowEdge({
+        ...e,
+        sourceHandle: "output",
+        targetHandle: "input",
+        ui_properties: null
+      })
+    );
+
+    storeState.setNodes(newNodes);
+    storeState.setEdges(newEdges);
+    storeState.setWorkflowDirty(true);
+  };
 
   return (
     <div
@@ -264,7 +330,7 @@ const PanelRight: React.FC = () => {
           className: `panel panel-right ${isDragging ? "dragging" : ""}`,
           style: {
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
-            height: isVisible ? "calc(100vh - 80px)" : "150px",
+            height: isVisible ? "calc(100vh - 80px)" : "220px",
             backgroundColor: isVisible ? undefined : "transparent",
             border: "none",
             borderLeft: isVisible
@@ -283,6 +349,7 @@ const PanelRight: React.FC = () => {
             handleAssistantToggle={() => handlePanelToggle("assistant")}
             handleLogsToggle={() => handlePanelToggle("logs")}
             handleWorkspaceToggle={() => handlePanelToggle("workspace")}
+            handleVersionsToggle={() => handlePanelToggle("versions")}
             activeView={activeView}
             panelVisible={isVisible}
           />
@@ -301,6 +368,14 @@ const PanelRight: React.FC = () => {
                   >
                     <WorkspaceTree />
                   </Box>
+                ) : activeView === "versions" ? (
+                  currentWorkflowId ? (
+                    <VersionHistoryPanel
+                      workflowId={currentWorkflowId}
+                      onRestore={handleRestoreVersion}
+                      onClose={() => handlePanelToggle("versions")}
+                    />
+                  ) : null
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
