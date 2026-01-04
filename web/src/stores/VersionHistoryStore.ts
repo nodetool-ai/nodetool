@@ -31,6 +31,7 @@ export interface WorkflowVersion {
       target: string;
     }>;
   };
+  save_type?: SaveType;
 }
 
 interface VersionHistoryState {

@@ -35,6 +35,7 @@ import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistorySto
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
+import { NodeUIProperties } from "../../stores/NodeStore";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -42,9 +43,12 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
-const getSaveTypeFromName = (name?: string): SaveType => {
-  if (!name) return "autosave";
-  const lower = name.toLowerCase();
+const getSaveType = (version: WorkflowVersion): SaveType => {
+  if (version.save_type && ["manual", "autosave", "checkpoint", "restore"].includes(version.save_type)) {
+    return version.save_type;
+  }
+  if (!version.name) return "autosave";
+  const lower = version.name.toLowerCase();
   if (lower.includes("manual")) return "manual";
   if (lower.includes("checkpoint")) return "checkpoint";
   if (lower.includes("restore")) return "restore";
@@ -84,11 +88,11 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     }
     let filtered = apiVersions.versions;
     if (filterType !== "all") {
-      filtered = filtered.filter((v) => getSaveTypeFromName(v.name) === filterType);
+      filtered = filtered.filter((v) => getSaveType(v) === filterType);
     }
     return filtered.map((v) => ({
       ...v,
-      save_type: getSaveTypeFromName(v.name),
+      save_type: getSaveType(v),
       size_bytes: new Blob([JSON.stringify(v.graph)]).size
     }));
   }, [apiVersions, filterType]);
@@ -169,6 +173,23 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
+      console.log("[handleRestore] Version to restore:", {
+        id: version.id,
+        version: version.version,
+        name: version.name,
+        saveType: version.save_type,
+        graphNodesCount: version.graph?.nodes?.length ?? 0,
+        graphEdgesCount: version.graph?.edges?.length ?? 0,
+        hasInputSchema: !!(version as any).input_schema,
+        hasOutputSchema: !!(version as any).output_schema,
+        firstNode: version.graph?.nodes?.[0] ? {
+          id: version.graph.nodes[0].id,
+          type: version.graph.nodes[0].type,
+          ui_properties: version.graph.nodes[0].ui_properties,
+          position: (version.graph.nodes[0].ui_properties as NodeUIProperties | undefined)?.position
+        } : null,
+        firstEdge: version.graph?.edges?.[0] || null
+      });
       try {
         await restoreVersion(version.version);
         onRestore(version);
@@ -210,7 +231,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       <Paper
         elevation={3}
         sx={{
-          width: 360,
+          width: "100%",
           height: "100%",
           display: "flex",
           flexDirection: "column",
@@ -230,7 +251,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       <Paper
         elevation={3}
         sx={{
-          width: 360,
+          width: "100%",
           height: "100%",
           display: "flex",
           flexDirection: "column",
@@ -258,7 +279,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     <Paper
       elevation={3}
       sx={{
-        width: 360,
+        width: "100%",
         height: "100%",
         display: "flex",
         flexDirection: "column",

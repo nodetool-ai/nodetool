@@ -13,7 +13,7 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
-import { Workflow, WorkflowVersion } from "../../stores/ApiTypes";
+import { Workflow, WorkflowVersion, Node as GraphNode, Edge as GraphEdge } from "../../stores/ApiTypes";
 
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -287,23 +287,11 @@ const PanelRight: React.FC = () => {
     const newNodes = graph.nodes.map((n) =>
       graphNodeToReactFlowNode(
         { ...workflow, graph: graph as unknown as Workflow["graph"] } as Workflow,
-        {
-          ...n,
-          sync_mode: "on_any" as const,
-          ui_properties: null,
-          parent_id: null,
-          dynamic_properties: {},
-          dynamic_outputs: {}
-        }
+        n as GraphNode
       )
     );
     const newEdges = graph.edges.map((e) =>
-      graphEdgeToReactFlowEdge({
-        ...e,
-        sourceHandle: "output",
-        targetHandle: "input",
-        ui_properties: null
-      })
+      graphEdgeToReactFlowEdge(e as GraphEdge)
     );
 
     storeState.setNodes(newNodes);
