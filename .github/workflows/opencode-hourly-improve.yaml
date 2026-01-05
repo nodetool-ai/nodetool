@@ -20,7 +20,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
-          MODEL: MiniMax-M2.1
+          MODEL: "MiniMax-M2.1"
         with:
           prompt: |
             Scan the codebase for bad practices.

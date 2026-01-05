@@ -139,16 +139,28 @@ export const createWorkflowRunnerStore = (
     ensureConnection: async () => {
       set({ state: "connecting" });
       try {
-        await globalWebSocketManager.ensureConnection();
+        // Get auth token for non-localhost
+        let authToken: string | null = null;
+        if (!isLocalhost) {
+          const {
+            data: { session }
+          } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            authToken = session.access_token;
+          }
+        }
+        
+        await globalWebSocketManager.ensureConnection({ token: authToken });
         set({ state: "connected" });
 
-        // Subscribe to messages for this workflow
+        // Subscribe to messages for this workflow using the new channel-based API
         const currentUnsubscribe = get().unsubscribe;
         if (currentUnsubscribe) {
           currentUnsubscribe();
         }
 
         const unsubscribe = globalWebSocketManager.subscribe(
+          "workflow",
           workflowId,
           (message: any) => {
             log.debug(
@@ -203,8 +215,9 @@ export const createWorkflowRunnerStore = (
         }
       });
 
-      // Also subscribe to job_id for messages
+      // Also subscribe to job_id for messages using the channel-based API
       const jobUnsubscribe = globalWebSocketManager.subscribe(
+        "workflow",
         jobId,
         (message: any) => {
           const workflow = get().workflow;
@@ -254,8 +267,9 @@ export const createWorkflowRunnerStore = (
         }
       });
 
-      // Also subscribe to job_id for messages
+      // Also subscribe to job_id for messages using the channel-based API
       const jobUnsubscribe = globalWebSocketManager.subscribe(
+        "workflow",
         jobId,
         (message: any) => {
           const workflow = get().workflow;

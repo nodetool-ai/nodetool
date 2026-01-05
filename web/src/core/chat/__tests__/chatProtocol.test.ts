@@ -8,7 +8,20 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
   }
 }));
 
+// Mock globalWebSocketManager
+const mockSend = jest.fn();
+jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: {
+    send: (...args: any[]) => mockSend(...args),
+    isConnected: true
+  }
+}));
+
 describe("chatProtocol", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("ignores non-critical messages while stopping", async () => {
     const set = jest.fn();
     const get = () =>
@@ -23,12 +36,11 @@ describe("chatProtocol", () => {
 
   it("returns tool errors for unknown client tools", async () => {
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
-    const send = jest.fn();
     const set = jest.fn();
     const get = () =>
       ({
         status: "connected",
-        wsManager: { send },
+        wsManager: null,
         frontendToolState: {},
         currentThreadId: null,
         threads: {},
@@ -49,7 +61,7 @@ describe("chatProtocol", () => {
       get
     );
 
-    expect(send).toHaveBeenCalledWith(
+    expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "tool_result",
         ok: false
@@ -61,12 +73,11 @@ describe("chatProtocol", () => {
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(true);
     (FrontendToolRegistry.call as jest.Mock).mockRejectedValue(new Error("nope"));
 
-    const send = jest.fn();
     const set = jest.fn();
     const get = () =>
       ({
         status: "connected",
-        wsManager: { send },
+        wsManager: null,
         workflowId: null,
         threadWorkflowId: {},
         frontendToolState: { fetchWorkflow: jest.fn().mockResolvedValue(undefined) },
@@ -89,7 +100,7 @@ describe("chatProtocol", () => {
       get
     );
 
-    expect(send).toHaveBeenCalledWith(
+    expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "tool_result",
         tool_call_id: "tc_fail",
