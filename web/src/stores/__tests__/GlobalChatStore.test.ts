@@ -5,24 +5,8 @@ import { TextEncoder, TextDecoder } from "util";
 
 jest.mock("../BASE_URL", () => ({
   BASE_URL: "http://localhost:8000",
-  CHAT_URL: "ws://test/ws", // Unified WebSocket endpoint
   UNIFIED_WS_URL: "ws://test/ws"
 }));
-
-import { encode, decode } from "@msgpack/msgpack";
-import { Server } from "mock-socket";
-import useGlobalChatStore from "../GlobalChatStore";
-import {
-  Message,
-  JobUpdate,
-  NodeUpdate,
-  Chunk,
-  OutputUpdate,
-  ToolCallUpdate,
-  NodeProgress
-} from "../ApiTypes";
-import log from "loglevel";
-import { supabase } from "../../lib/supabaseClient";
 
 jest.mock("../ApiClient", () => ({
   CHAT_URL: "ws://test/chat",
@@ -44,6 +28,22 @@ jest.mock("../../lib/supabaseClient", () => ({
   }
 }));
 
+import { encode, decode } from "@msgpack/msgpack";
+import { Server } from "mock-socket";
+import useGlobalChatStore from "../GlobalChatStore";
+import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import {
+  Message,
+  JobUpdate,
+  NodeUpdate,
+  Chunk,
+  OutputUpdate,
+  ToolCallUpdate,
+  NodeProgress
+} from "../ApiTypes";
+import log from "loglevel";
+import { supabase } from "../../lib/supabaseClient";
+
 jest.mock("loglevel", () => ({
   __esModule: true,
   default: {
@@ -58,8 +58,18 @@ let uuidCounter = 0;
 jest.mock("../uuidv4", () => ({ uuidv4: () => `id-${uuidCounter++}` }));
 
 // Helper function to simulate server sending a message with proper data format
-const simulateServerMessage = (mockServer: Server, data: any) => {
-  const encoded = encode(data);
+const simulateServerMessage = (
+  mockServer: Server,
+  data: Record<string, any>,
+  threadId?: string
+) => {
+  const resolvedThreadId =
+    threadId ?? useGlobalChatStore.getState().currentThreadId;
+  const payload =
+    resolvedThreadId && !("thread_id" in data)
+      ? { ...data, thread_id: resolvedThreadId }
+      : data;
+  const encoded = encode(payload);
 
   // Create a Blob which has arrayBuffer() method
   const blob = new Blob([encoded]);
@@ -96,10 +106,8 @@ describe("GlobalChatStore", () => {
     if (currentSocket) {
       currentSocket.close();
     }
-    const currentManager = (store.getState() as any).wsManager;
-    if (currentManager) {
-      currentManager.destroy();
-    }
+    globalWebSocketManager.disconnect();
+    store.getState().disconnect();
 
     store.setState({
       ...defaultState,
@@ -223,7 +231,7 @@ describe("GlobalChatStore", () => {
       expect(state.error).toBeNull();
     });
 
-    it("connect closes existing socket before creating new one", async () => {
+    it("connect reuses the shared socket when already connected", async () => {
       // First connect
       await store.getState().connect();
       const firstSocket = (store.getState() as any).socket;
@@ -232,7 +240,7 @@ describe("GlobalChatStore", () => {
       await store.getState().connect();
       const secondSocket = (store.getState() as any).socket;
 
-      expect(firstSocket).not.toBe(secondSocket);
+      expect(firstSocket).toBe(secondSocket);
       expect(store.getState().status).toBe("connected");
     });
 
@@ -322,7 +330,7 @@ describe("GlobalChatStore", () => {
       const threadId = store.getState().currentThreadId!;
       const messages = store.getState().messageCache[threadId];
       expect(messages).toHaveLength(1);
-      expect(messages[0]).toEqual(message);
+      expect(messages[0]).toEqual({ ...message, thread_id: threadId });
       expect(store.getState().status).toBe("connected");
     });
 

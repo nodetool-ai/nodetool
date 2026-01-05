@@ -16,7 +16,7 @@ jest.mock("../stores/ApiClient", () => ({
 }));
 jest.mock("../stores/BASE_URL", () => ({
   BASE_URL: "http://localhost:8000",
-  CHAT_URL: "ws://localhost:1234"
+  UNIFIED_WS_URL: "ws://localhost:1234"
 }));
 
 jest.mock("../lib/supabaseClient", () => ({
@@ -32,7 +32,7 @@ jest.mock(
   "../stores/BASE_URL.js",
   () => ({
     BASE_URL: "http://localhost:8000",
-    CHAT_URL: "ws://localhost:1234"
+    UNIFIED_WS_URL: "ws://localhost:1234"
   }),
   { virtual: true }
 );
@@ -40,7 +40,7 @@ jest.mock(
   "../stores/BASE_URL",
   () => ({
     BASE_URL: "http://localhost:8000",
-    CHAT_URL: "ws://localhost:1234"
+    UNIFIED_WS_URL: "ws://localhost:1234"
   }),
   { virtual: true }
 );

@@ -772,14 +772,18 @@ export async function handleChatWebSocketMessage(
 
     if (!FrontendToolRegistry.has(name)) {
       log.warn(`Unknown tool: ${name}`);
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: false,
-        error: `Unsupported tool: ${name}`,
-        result: { error: `Unsupported tool: ${name}` }
-      });
+      try {
+        await currentState.wsManager?.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: false,
+          error: `Unsupported tool: ${name}`,
+          result: { error: `Unsupported tool: ${name}` }
+        });
+      } catch (error) {
+        log.error("Failed to send tool_result for unknown tool:", error);
+      }
       return;
     }
 
@@ -819,28 +823,36 @@ export async function handleChatWebSocketMessage(
       );
 
       const elapsedMs = Date.now() - startTime;
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: true,
-        result,
-        elapsed_ms: elapsedMs
-      });
+      try {
+        await currentState.wsManager?.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: true,
+          result,
+          elapsed_ms: elapsedMs
+        });
+      } catch (error) {
+        log.error("Failed to send tool_result:", error);
+      }
     } catch (error) {
       const elapsedMs = Date.now() - startTime;
       const message =
         error instanceof Error ? error.message : "Unknown error";
       log.error(`Tool execution failed for ${name}:`, error);
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: false,
-        error: message,
-        result: { error: message },
-        elapsed_ms: elapsedMs
-      });
+      try {
+        await currentState.wsManager?.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: false,
+          error: message,
+          result: { error: message },
+          elapsed_ms: elapsedMs
+        });
+      } catch (sendError) {
+        log.error("Failed to send tool_result after error:", sendError);
+      }
     }
   } else if (data.type === "generation_stopped") {
     applyReducer(

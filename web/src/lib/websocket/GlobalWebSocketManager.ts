@@ -1,18 +1,28 @@
+import { EventEmitter } from "events";
 import { WebSocketManager } from "./WebSocketManager";
-import { WORKER_URL } from "../../stores/BASE_URL";
+import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
+import { isLocalhost } from "../../stores/ApiClient";
 import log from "loglevel";
 
 type MessageHandler = (message: any) => void;
+type GlobalWebSocketEvent =
+  | "open"
+  | "close"
+  | "error"
+  | "message"
+  | "reconnecting"
+  | "stateChange";
 
 /**
  * Global WebSocket Manager - Singleton pattern.
  *
- * Establishes a single shared WebSocket to the worker backend (WORKER_URL) and
- * multiplexes messages by `workflow_id` or `job_id`. Consumers subscribe with
- * a routing key and receive only their messages. Built-in reconnect with up to
- * 5 attempts/1s backoff; `ensureConnection` blocks until connected.
+ * Establishes a single shared WebSocket to the unified backend and
+ * multiplexes messages by job_id or thread_id. Consumers subscribe with a
+ * routing key and receive only their messages. Built-in reconnect with up to
+ * 5 attempts/1s backoff; `ensureConnection` blocks until connected and reuses
+ * Supabase auth when available.
  */
-class GlobalWebSocketManager {
+class GlobalWebSocketManager extends EventEmitter {
   private static instance: GlobalWebSocketManager | null = null;
   private wsManager: WebSocketManager | null = null;
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
@@ -20,7 +30,7 @@ class GlobalWebSocketManager {
   private isConnected = false;
 
   private constructor() {
-    // Private constructor for singleton
+    super();
   }
 
   static getInstance(): GlobalWebSocketManager {
@@ -53,10 +63,11 @@ class GlobalWebSocketManager {
     this.isConnecting = true;
 
     try {
+      const wsUrl = await this.buildAuthenticatedUrl();
       log.info("GlobalWebSocketManager: Establishing connection");
 
       this.wsManager = new WebSocketManager({
-        url: WORKER_URL,
+        url: wsUrl,
         binaryType: "arraybuffer",
         reconnect: true,
         reconnectInterval: 1000,
@@ -67,20 +78,24 @@ class GlobalWebSocketManager {
         log.info("GlobalWebSocketManager: Connected");
         this.isConnected = true;
         this.isConnecting = false;
+        this.emit("open");
       });
 
       this.wsManager.on("message", (data: any) => {
         this.routeMessage(data);
+        this.emit("message", data);
       });
 
       this.wsManager.on("error", (error: Error) => {
         log.error("GlobalWebSocketManager: Error:", error);
+        this.emit("error", error);
       });
 
-      this.wsManager.on("close", () => {
+      this.wsManager.on("close", (code?: number, reason?: string) => {
         log.info("GlobalWebSocketManager: Disconnected");
         this.isConnected = false;
         this.isConnecting = false;
+        this.emit("close", code, reason);
       });
 
       this.wsManager.on(
@@ -90,8 +105,13 @@ class GlobalWebSocketManager {
             `GlobalWebSocketManager: Reconnecting ${attempt}/${maxAttempts}`
           );
           this.isConnecting = true;
+          this.emit("reconnecting", attempt, maxAttempts);
         }
       );
+
+      this.wsManager.on("stateChange", (state, previous) => {
+        this.emit("stateChange", state, previous);
+      });
 
       await this.wsManager.connect();
     } catch (error) {
@@ -107,32 +127,41 @@ class GlobalWebSocketManager {
   private routeMessage(message: any): void {
     log.debug("GlobalWebSocketManager: Routing message", message);
 
-    // Route by workflow_id or job_id
-    const routingKey = message.workflow_id || message.job_id;
+    const routingKeys = new Set<string>();
 
-    if (!routingKey) {
-      log.warn(
-        "GlobalWebSocketManager: Message without workflow_id or job_id",
+    if (message.thread_id) {
+      routingKeys.add(message.thread_id);
+    }
+
+    if (message.job_id) {
+      routingKeys.add(message.job_id);
+    }
+
+    if (routingKeys.size === 0) {
+      log.debug(
+        "GlobalWebSocketManager: Message without job_id or thread_id",
         message
       );
       return;
     }
 
-    const handlers = this.messageHandlers.get(routingKey);
-    if (handlers && handlers.size > 0) {
-      handlers.forEach((handler) => {
-        try {
-          handler(message);
-        } catch (error) {
-          log.error("GlobalWebSocketManager: Handler error:", error);
-        }
-      });
-    } else {
-      log.debug(
-        `GlobalWebSocketManager: No handlers for ${routingKey}`,
-        message
-      );
-    }
+    routingKeys.forEach((routingKey) => {
+      const handlers = this.messageHandlers.get(routingKey);
+      if (handlers && handlers.size > 0) {
+        handlers.forEach((handler) => {
+          try {
+            handler(message);
+          } catch (error) {
+            log.error("GlobalWebSocketManager: Handler error:", error);
+          }
+        });
+      } else {
+        log.debug(
+          `GlobalWebSocketManager: No handlers for ${routingKey}`,
+          message
+        );
+      }
+    });
   }
 
   /**
@@ -197,6 +226,44 @@ class GlobalWebSocketManager {
       isConnected: this.isConnected,
       isConnecting: this.isConnecting
     };
+  }
+
+  isConnectionOpen(): boolean {
+    return this.wsManager?.isConnected() ?? false;
+  }
+
+  getWebSocket(): WebSocket | null {
+    return this.wsManager?.getWebSocket() ?? null;
+  }
+
+  subscribeEvent(
+    event: GlobalWebSocketEvent,
+    listener: (...args: any[]) => void
+  ): () => void {
+    this.addListener(event, listener);
+    return () => {
+      this.removeListener(event, listener);
+    };
+  }
+
+  private async buildAuthenticatedUrl(): Promise<string> {
+    if (isLocalhost) {
+      return UNIFIED_WS_URL;
+    }
+
+    try {
+      const { supabase } = await import("../supabaseClient");
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        return `${UNIFIED_WS_URL}?api_key=${session.access_token}`;
+      }
+    } catch (error) {
+      log.error("GlobalWebSocketManager: Failed to resolve auth token", error);
+    }
+
+    return UNIFIED_WS_URL;
   }
 }
 

@@ -26,15 +26,13 @@ import {
   LanguageModel
 } from "./ApiTypes";
 import { isLocalhost } from "./ApiClient";
-import { CHAT_URL } from "./BASE_URL";
 import { client } from "./ApiClient";
 import log from "loglevel";
-import { supabase } from "../lib/supabaseClient";
 import { DEFAULT_MODEL } from "../config/constants";
 import {
-  WebSocketManager,
   ConnectionState
 } from "../lib/websocket/WebSocketManager";
+import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import {
   FrontendToolRegistry,
   FrontendToolState
@@ -82,8 +80,10 @@ export interface GlobalChatState {
   currentToolMessage: string | null;
 
   // WebSocket manager
-  wsManager: WebSocketManager | null;
+  wsManager: typeof globalWebSocketManager | null;
   socket: WebSocket | null;
+  wsEventUnsubscribes: Array<() => void>;
+  wsThreadSubscriptions: Record<string, () => void>;
 
   // Thread management
   threads: Record<string, Thread>;
@@ -190,6 +190,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
       threadWorkflowId: {},
       wsManager: null,
       socket: null,
+      wsEventUnsubscribes: [],
+      wsThreadSubscriptions: {},
       currentRunningToolCallId: null,
       currentToolMessage: null,
 
@@ -270,54 +272,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         const state = get();
 
-        // Clean up existing connection
-        if (state.wsManager) {
-          state.wsManager.destroy();
-        }
+        state.wsEventUnsubscribes.forEach((unsubscribe) => unsubscribe());
+        Object.values(state.wsThreadSubscriptions).forEach((unsubscribe) =>
+          unsubscribe()
+        );
 
         // Load threads if not already loaded
         if (!state.threadsLoaded) {
           await get().fetchThreads();
         }
 
-        // Get authentication URL
-        let wsUrl = CHAT_URL;
-        if (!isLocalhost) {
-          try {
-            const {
-              data: { session }
-            } = await supabase.auth.getSession();
-            if (session?.access_token) {
-              wsUrl = `${CHAT_URL}?api_key=${session.access_token}`;
-              log.debug("Adding authentication to WebSocket connection");
-            } else {
-              log.warn(
-                "No Supabase session found, connecting without authentication"
-              );
-            }
-          } catch (error) {
-            log.error("Error getting Supabase session:", error);
-            set({
-              status: "failed",
-              error: "Authentication failed. Please log in again."
-            });
-            throw error;
-          }
-        }
+        const wsManager = globalWebSocketManager;
+        const eventUnsubscribes: Array<() => void> = [];
 
-        // Create WebSocket manager
-        const wsManager = new WebSocketManager({
-          url: wsUrl,
-          reconnect: true,
-          reconnectInterval: 1000,
-          reconnectDecay: 1.5,
-          reconnectAttempts: 10,
-          timeoutInterval: 30000,
-          binaryType: "arraybuffer"
-        });
-
-        // Set up event handlers
-        wsManager.on("stateChange", (newState: ConnectionState) => {
+        // Set up event handlers on the shared connection
+        eventUnsubscribes.push(
+          wsManager.subscribeEvent("stateChange", (newState: ConnectionState) => {
           // Don't override loading status when WebSocket connects
           const currentState = get();
           if (newState === "connected" && currentState.status === "loading") {
@@ -336,19 +306,32 @@ const useGlobalChatStore = create<GlobalChatState>()(
               });
             }
           }
-        });
+        })
+        );
 
-        wsManager.on("reconnecting", (attempt: number, maxAttempts: number) => {
+        eventUnsubscribes.push(
+          wsManager.subscribeEvent(
+            "reconnecting",
+            (attempt: number, maxAttempts: number) => {
           set({
             statusMessage: `Reconnecting... (attempt ${attempt}/${maxAttempts})`
           });
+        })
+        );
+
+        const threadSubscriptions: Record<string, () => void> = {};
+        const stateThreads = Object.keys(get().threads);
+        stateThreads.forEach((threadId) => {
+          threadSubscriptions[threadId] = wsManager.subscribe(
+            threadId,
+            (data: MsgpackData) => {
+              handleChatWebSocketMessage(data, set, get);
+            }
+          );
         });
 
-        wsManager.on("message", (data: MsgpackData) => {
-          handleChatWebSocketMessage(data, set, get);
-        });
-
-        wsManager.on("open", () => {
+        eventUnsubscribes.push(
+          wsManager.subscribeEvent("open", () => {
           set({ socket: wsManager.getWebSocket() });
           // Send client tools manifest after connection opens
           const manifest = FrontendToolRegistry.getManifest();
@@ -358,9 +341,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
               tools: manifest
             });
           }
-        });
+        })
+        );
 
-        wsManager.on("error", (error: Error) => {
+        eventUnsubscribes.push(
+          wsManager.subscribeEvent("error", (error: Error) => {
           log.error("WebSocket error:", error);
           let errorMessage = error.message;
 
@@ -371,9 +356,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
           set({
             error: errorMessage
           });
-        });
+        })
+        );
 
-        wsManager.on("close", (code: number, reason: string) => {
+        eventUnsubscribes.push(
+          wsManager.subscribeEvent("close", (code?: number, _reason?: string) => {
           set({ socket: null });
           if (code === 1008 || code === 4001 || code === 4003) {
             // Authentication errors
@@ -381,16 +368,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
               error: "Authentication failed. Please log in again."
             });
           }
-        });
+        })
+        );
 
         // Store the manager and connect
         set({
           wsManager,
-          error: null
+          error: null,
+          wsEventUnsubscribes: eventUnsubscribes,
+          wsThreadSubscriptions: threadSubscriptions
         });
 
         try {
-          await wsManager.connect();
+          await wsManager.ensureConnection();
+          if (wsManager.isConnectionOpen()) {
+            set({ socket: wsManager.getWebSocket() });
+          }
           log.info("Successfully connected to global chat");
         } catch (error) {
           log.error("Failed to connect to global chat:", error);
@@ -399,16 +392,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       disconnect: () => {
-        const { wsManager } = get();
-
-        if (wsManager) {
-          wsManager.disconnect();
-          wsManager.destroy();
-        }
+        const { wsEventUnsubscribes, wsThreadSubscriptions } = get();
+        wsEventUnsubscribes.forEach((unsubscribe) => unsubscribe());
+        Object.values(wsThreadSubscriptions).forEach((unsubscribe) =>
+          unsubscribe()
+        );
 
         set({
           wsManager: null,
           socket: null,
+          wsEventUnsubscribes: [],
+          wsThreadSubscriptions: {},
           status: "disconnected",
           error: null,
           statusMessage: null
@@ -422,7 +416,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         console.log("sendMessage", message);
 
-        if (!wsManager || !wsManager.isConnected()) {
+        if (!wsManager || !wsManager.isConnectionOpen()) {
           set({ error: "Not connected to chat service" });
           return;
         }
@@ -511,7 +505,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set({ status: "loading" }); // Waiting for response
 
         try {
-          wsManager.send(commandMessage);
+          await wsManager.send(commandMessage);
 
           // Safety timeout - reset status if no response after 60 seconds
           setTimeout(() => {
@@ -628,7 +622,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
           messageCache: {
             ...state.messageCache,
             [id]: []
-          }
+          },
+          wsThreadSubscriptions: state.wsManager
+            ? {
+                ...state.wsThreadSubscriptions,
+                [id]: state.wsManager.subscribe(id, (data: MsgpackData) => {
+                  handleChatWebSocketMessage(data, set, get);
+                })
+              }
+            : state.wsThreadSubscriptions
         }));
 
         return id;
@@ -665,11 +667,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
               state.messageCache;
             const { [threadId]: deletedCursor, ...remainingCursors } =
               state.messageCursors;
+            const { [threadId]: threadUnsubscribe, ...remainingSubscriptions } =
+              state.wsThreadSubscriptions;
+            threadUnsubscribe?.();
 
             const newState: Partial<GlobalChatState> = {
               threads: remainingThreads,
               messageCache: remainingCache,
-              messageCursors: remainingCursors
+              messageCursors: remainingCursors,
+              wsThreadSubscriptions: remainingSubscriptions
             };
 
             // If deleting current thread, switch to another or create new
@@ -919,7 +925,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Debug logging
         console.log("stopGeneration called:", {
           hasWsManager: !!wsManager,
-          isConnected: wsManager?.isConnected(),
+          isConnected: wsManager?.isConnectionOpen(),
           currentThreadId,
           status
         });
@@ -932,7 +938,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           return;
         }
 
-        if (!wsManager.isConnected()) {
+        if (!wsManager.isConnectionOpen()) {
           console.log("WebSocket is not connected");
           return;
         }
@@ -947,10 +953,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         try {
           // Use command wrapper as per unified WebSocket API
-          wsManager.send({
-            command: "stop",
-            data: { thread_id: currentThreadId }
-          });
+          void wsManager
+            .send({
+              command: "stop",
+              data: { thread_id: currentThreadId }
+            })
+            .catch((error) => {
+              log.error("Failed to send stop signal:", error);
+            });
 
           set({
             status: "connected",
