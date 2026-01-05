@@ -39,12 +39,12 @@ jobs:
           miniforge-version: latest
 
       - name: Install nodetool-core and nodetool-base
-        shell: bash
+        shell: bash -l {0}
         run: |
           uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
       - name: Verify nodetool installation
-        shell: bash
+        shell: bash -l {0}
         run: |
           which nodetool
           nodetool --help
@@ -67,13 +67,13 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Install Ollama
-        shell: bash
+        shell: bash -l {0}
         run: |
           # Install ollama via conda
           conda install -y -c conda-forge ollama
 
       - name: Start Ollama server
-        shell: bash
+        shell: bash -l {0}
         run: |
           # Find ollama binary in conda environment
           OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
@@ -99,7 +99,7 @@ jobs:
           done
 
       - name: Pull Ollama model
-        shell: bash
+        shell: bash -l {0}
         run: |
           # Find ollama binary
           OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
@@ -109,7 +109,7 @@ jobs:
           ${OLLAMA_PATH} pull gemma3:270m
 
       - name: Start nodetool server
-        shell: bash
+        shell: bash -l {0}
         run: |
           nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
@@ -196,12 +196,12 @@ jobs:
           miniforge-version: latest
 
       - name: Install nodetool-core and nodetool-base
-        shell: bash
+        shell: bash -l {0}
         run: |
           uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
       - name: Verify nodetool installation
-        shell: bash
+        shell: bash -l {0}
         run: |
           which nodetool
           nodetool --help
