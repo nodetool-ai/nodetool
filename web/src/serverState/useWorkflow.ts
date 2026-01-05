@@ -68,7 +68,7 @@ export const useWorkflowMeta = (id: string | null | undefined) => {
 export const useWorkflowFromCache = (id: string | null | undefined): Workflow | undefined => {
   const queryClient = useQueryClient();
 
-  if (!id) return undefined;
+  if (!id) {return undefined;}
 
   return queryClient.getQueryData(workflowQueryKey(id));
 };
