@@ -33,6 +33,7 @@ import {
 import type { GlobalChatState, StepToolCall } from "../../stores/GlobalChatStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
+import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -772,7 +773,7 @@ export async function handleChatWebSocketMessage(
 
     if (!FrontendToolRegistry.has(name)) {
       log.warn(`Unknown tool: ${name}`);
-      currentState.wsManager?.send({
+      globalWebSocketManager.send({
         type: "tool_result",
         tool_call_id,
         thread_id,
@@ -819,7 +820,7 @@ export async function handleChatWebSocketMessage(
       );
 
       const elapsedMs = Date.now() - startTime;
-      currentState.wsManager?.send({
+      globalWebSocketManager.send({
         type: "tool_result",
         tool_call_id,
         thread_id,
@@ -832,7 +833,7 @@ export async function handleChatWebSocketMessage(
       const message =
         error instanceof Error ? error.message : "Unknown error";
       log.error(`Tool execution failed for ${name}:`, error);
-      currentState.wsManager?.send({
+      globalWebSocketManager.send({
         type: "tool_result",
         tool_call_id,
         thread_id,
