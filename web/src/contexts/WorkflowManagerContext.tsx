@@ -220,11 +220,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       /**
        * Creates a new workflow with default properties.
+       * Uses a local ID (with "local-" prefix) to avoid immediate database save.
+       * The workflow is only saved when saveWorkflow() is called for the first time.
        * @returns {Workflow} A new workflow object with default values
        */
       newWorkflow: () => {
         const data: Workflow = {
-          id: "",
+          id: `local-${uuidv4()}`,
           name: "New Workflow",
           description: "",
           access: "private",
@@ -243,90 +245,154 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
+        /**
+         * Saves the workflow and creates a version entry.
+         * If the workflow has a local ID (starts with "local-"), it will be created
+         * in the database first, then updated with the real ID.
+         * @param {Workflow} workflow - The workflow to save
+         * @returns {Promise<void>}
+         * @throws {Error} If the save operation fails
+         */
+        saveWorkflow: async (workflow: Workflow) => {
+          // Debug: log what we're about to save
+          console.log("[saveWorkflow] Saving workflow:", {
+            id: workflow.id,
+            name: workflow.name,
+            graphNodesCount: workflow.graph?.nodes?.length ?? 0,
+            graphEdgesCount: workflow.graph?.edges?.length ?? 0,
+            firstNode: workflow.graph?.nodes?.[0] ? {
+              id: workflow.graph.nodes[0].id,
+              type: workflow.graph.nodes[0].type,
+              ui_properties: workflow.graph.nodes[0].ui_properties,
+              parent_id: workflow.graph.nodes[0].parent_id,
+              dynamic_properties: workflow.graph.nodes[0].dynamic_properties
+            } : null,
+            firstEdge: workflow.graph?.edges?.[0] || null
+          });
+
+          let data = workflow;
+
+          // If this is a local-only workflow, create it in the database first
+          if (workflow.id.startsWith("local-")) {
+            console.log("[saveWorkflow] Creating local workflow in database...");
+            const { data: createdWorkflow, error } = await client.POST("/api/workflows/", {
+              body: workflow,
+              params: { query: {} }
+            });
+            if (error) {
+              throw createErrorMessage(error, "Failed to create workflow");
+            }
+            data = createdWorkflow;
+
+            // Update node stores with the new ID
+            set((state) => {
+              const oldId = workflow.id;
+              const nodeStore = state.nodeStores[oldId];
+              if (nodeStore) {
+                const newStores = { ...state.nodeStores };
+                delete newStores[oldId];
+                newStores[data.id] = nodeStore;
+                nodeStore.setState({
+                  workflow: data
+                });
+                nodeStore.getState().setWorkflowDirty(false);
+
+                return {
+                  nodeStores: newStores,
+                  openWorkflows: state.openWorkflows.map((w) =>
+                    w.id === oldId ? omit(data, ["graph"]) : w
+                  ),
+                  currentWorkflowId: state.currentWorkflowId === oldId ? data.id : state.currentWorkflowId
+                };
+              }
+              return {
+                openWorkflows: state.openWorkflows.map((w) =>
+                  w.id === oldId ? omit(data, ["graph"]) : w
+                )
+              };
+            });
+
+            // Update localStorage
+            const newOpenWorkflows = get().openWorkflows;
+            storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
+            if (get().currentWorkflowId === workflow.id) {
+              storage.setCurrentWorkflow(data.id);
+            }
+
+            // Invalidate cache for the workflows list
+            get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+            get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
+
+            console.log("[saveWorkflow] Workflow created with new ID:", data.id);
+          } else {
+            // Regular save for existing workflows
+            const { data: updatedData, error } = await client.PUT("/api/workflows/{id}", {
+              params: { path: { id: workflow.id } },
+              body: workflow
+            });
+            if (error) {
+              throw createErrorMessage(error, "Failed to save workflow");
+            }
+            data = updatedData;
+
+            // Create a version entry for this save
+            try {
+              const autosaveResponse = await fetch(`/api/workflows/${workflow.id}/autosave`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  save_type: "manual",
+                  description: "Manual save",
+                  force: true
+                })
+              });
+              const autosaveResult = await autosaveResponse.json();
+              console.log("[saveWorkflow] Version created:", autosaveResult);
+            } catch (versionError) {
+              console.error("Failed to create version:", versionError);
+            }
+          }
+
+          if (window.api) {
+            window.api.onUpdateWorkflow(data);
+          }
+
+          // Update node store and openWorkflows with the new data.
+          set((state) => {
+            const nodeStore = state.nodeStores[data.id];
+            if (nodeStore) {
+              nodeStore.setState({
+                workflow: data
+              });
+              nodeStore.getState().setWorkflowDirty(false);
+            }
+
+            return {
+              openWorkflows: state.openWorkflows.map((w) =>
+                w.id === data.id ? omit(data, ["graph"]) : w
+              )
+            };
+          });
+
+          // Invalidate cache for the workflows list and the specific workflow.
+          get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+          get().queryClient?.invalidateQueries({
+            queryKey: ["workflow", data.id]
+          });
+           // Invalidate workflow tools reactively
+           get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
+         },
+
        /**
-        * Saves the workflow and creates a version entry.
-        * @param {Workflow} workflow - The workflow to save
-        * @returns {Promise<void>}
-        * @throws {Error} If the save operation fails
-        */
-       saveWorkflow: async (workflow: Workflow) => {
-         // Debug: log what we're about to save
-         console.log("[saveWorkflow] Saving workflow:", {
-           id: workflow.id,
-           name: workflow.name,
-           graphNodesCount: workflow.graph?.nodes?.length ?? 0,
-           graphEdgesCount: workflow.graph?.edges?.length ?? 0,
-           firstNode: workflow.graph?.nodes?.[0] ? {
-             id: workflow.graph.nodes[0].id,
-             type: workflow.graph.nodes[0].type,
-             ui_properties: workflow.graph.nodes[0].ui_properties,
-             parent_id: workflow.graph.nodes[0].parent_id,
-             dynamic_properties: workflow.graph.nodes[0].dynamic_properties
-           } : null,
-           firstEdge: workflow.graph?.edges?.[0] || null
-         });
-
-         const { data, error } = await client.PUT("/api/workflows/{id}", {
-           params: { path: { id: workflow.id } },
-           body: workflow
-         });
-         if (error) {
-           throw createErrorMessage(error, "Failed to save workflow");
-         }
-
-         // Create a version entry for this save
-         try {
-           const autosaveResponse = await fetch(`/api/workflows/${workflow.id}/autosave`, {
-             method: "POST",
-             headers: { "Content-Type": "application/json" },
-             body: JSON.stringify({
-               save_type: "manual",
-               description: "Manual save",
-               force: true
-             })
-           });
-           const autosaveResult = await autosaveResponse.json();
-           console.log("[saveWorkflow] Version created:", autosaveResult);
-         } catch (versionError) {
-           console.error("Failed to create version:", versionError);
-         }
-
-         if (window.api) {
-           window.api.onUpdateWorkflow(data);
-         }
-
-         // Update node store and openWorkflows with the new data.
-         set((state) => {
-           const nodeStore = state.nodeStores[workflow.id];
-           if (nodeStore) {
-             nodeStore.setState({
-               workflow: data
-             });
-             nodeStore.getState().setWorkflowDirty(false);
-           }
-
-           return {
-             openWorkflows: state.openWorkflows.map((w) =>
-               w.id === workflow.id ? omit(data, ["graph"]) : w
-             )
-           };
-         });
-
-         // Invalidate cache for the workflows list and the specific workflow.
-         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-         get().queryClient?.invalidateQueries({
-           queryKey: ["workflow", workflow.id]
-         });
-          // Invalidate workflow tools reactively
-          get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
-        },
-
-       /**
-        * Creates a new workflow via API call.
-        * @returns {Promise<Workflow>} The newly created workflow
+        * Creates a new workflow locally with instant response.
+        * Does NOT save to database - only saves when saveWorkflow() is called.
+        * @returns {Promise<Workflow>} The newly created local workflow
         */
        createNew: async () => {
-         return await get().create(get().newWorkflow());
+         const workflow = get().newWorkflow();
+         get().addWorkflow(workflow);
+         get().setCurrentWorkflowId(workflow.id);
+         return workflow;
        },
 
        /**
@@ -665,6 +731,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Fetches the workflow data by its ID, using QueryClient cache and adds the workflow store.
       fetchWorkflow: async (workflowId: string) => {
+        // Skip API calls for local-only workflow IDs
+        if (workflowId.startsWith("local-")) {
+          return;
+        }
+
         // If already have a NodeStore, just set current and ensure query cache is populated.
         const existing = get().getWorkflow(workflowId);
         if (existing) {
