@@ -75,6 +75,7 @@ declare global {
         onUpdatesAvailable: (
           callback: (packages: PackageUpdateInfo[]) => void
         ) => () => void;
+        checkVersion: () => Promise<PackageVersionCheckResult[]>;
       };
 
       // Window controls
@@ -415,6 +416,7 @@ export enum IpcChannels {
   PACKAGE_OPEN_EXTERNAL = "package-open-external",
   PACKAGE_SEARCH_NODES = "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE = "package-updates-available",
+  PACKAGE_VERSION_CHECK = "package-version-check",
   // Log viewer channels
   GET_LOGS = "get-logs",
   CLEAR_LOGS = "clear-logs",
@@ -509,6 +511,7 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_UPDATE]: string; // repo_id
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: string; // url
   [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
+  [IpcChannels.PACKAGE_VERSION_CHECK]: void;
   // Log viewer
   [IpcChannels.GET_LOGS]: void;
   [IpcChannels.CLEAR_LOGS]: void;
@@ -586,6 +589,7 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_UPDATE]: PackageResponse;
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: void;
   [IpcChannels.PACKAGE_SEARCH_NODES]: PackageNode[];
+  [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
   // Log viewer
   [IpcChannels.GET_LOGS]: string[];
   [IpcChannels.CLEAR_LOGS]: void;
@@ -678,6 +682,12 @@ export interface PackageUpdateInfo {
   repo_id: string;
   installedVersion: string;
   latestVersion: string;
+}
+
+export interface PackageVersionCheckResult {
+  packageName: string;
+  currentVersion?: string;
+  expectedVersion: string | null;
 }
 
 export interface InstalledPackageListResponse {

@@ -74,7 +74,7 @@ async function installTorchruntime(): Promise<void> {
 
   const pythonPath = getPythonPath();
   const torchruntimeSpec = "torchruntime~=2.0";
-  
+
   return new Promise((resolve, reject) => {
     const installProcess = spawn(
       pythonPath,
@@ -252,7 +252,16 @@ export async function installTorchWithUvs(): Promise<TorchruntimeDetectionResult
     logMessage("Running torchruntime install --uv for automatic GPU detection and torch installation");
 
     const pythonPath = getPythonPath();
-    
+
+    // First install torchruntime if not already installed
+    logMessage("Ensuring torchruntime is installed...");
+    const isInstalled = await isTorchruntimeInstalled();
+    if (!isInstalled) {
+      await installTorchruntime();
+    } else {
+      logMessage("Torchruntime already installed");
+    }
+
     try {
       const result = await new Promise<TorchruntimeDetectionResult>((resolve, reject) => {
         const installProcess = spawn(
@@ -282,10 +291,10 @@ export async function installTorchWithUvs(): Promise<TorchruntimeDetectionResult
         installProcess.on("exit", (code) => {
           if (code === 0) {
             logMessage("PyTorch installation via torchruntime completed successfully");
-            
+
             const platform = extractPlatformFromOutput(stdout) || "cpu";
             const indexUrl = getPyTorchIndexUrl(platform);
-            
+
             resolve({
               platform,
               indexUrl,
@@ -308,7 +317,7 @@ export async function installTorchWithUvs(): Promise<TorchruntimeDetectionResult
     } catch (error: any) {
       logMessage(`PyTorch installation process failed: ${error.message}`, "error");
       logMessage("Falling back to CPU-only installation", "warn");
-      
+
       return {
         platform: "cpu",
         indexUrl: getPyTorchIndexUrl("cpu"),
@@ -319,7 +328,7 @@ export async function installTorchWithUvs(): Promise<TorchruntimeDetectionResult
     const errorMsg = error?.message || String(error);
     logMessage(`PyTorch installation failed: ${errorMsg}`, "error");
     logMessage("Falling back to CPU-only installation", "warn");
-    
+
     return {
       platform: "cpu",
       indexUrl: getPyTorchIndexUrl("cpu"),

@@ -25,6 +25,8 @@ const PackageManager: React.FC = () => {
   const [nodeResults, setNodeResults] = useState<any[]>([]);
   const [nodeSearching, setNodeSearching] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<"all" | "installed" | "available" | "updates">("all");
+
   useEffect(() => {
     initialize();
   }, []);
@@ -40,7 +42,7 @@ const PackageManager: React.FC = () => {
 
   useEffect(() => {
     filterPackages();
-  }, [searchTerm, availablePackages]);
+  }, [searchTerm, availablePackages, installedPackages, activeTab]);
 
   const initialize = async () => {
     try {
@@ -94,7 +96,18 @@ const PackageManager: React.FC = () => {
 
   const filterPackages = () => {
     const term = searchTerm.toLowerCase();
-    const filtered = availablePackages.filter(
+
+    let baseList = availablePackages;
+
+    if (activeTab === "installed") {
+      baseList = availablePackages.filter(p => isPackageInstalled(p.repo_id));
+    } else if (activeTab === "available") {
+      baseList = availablePackages.filter(p => !isPackageInstalled(p.repo_id));
+    } else if (activeTab === "updates") {
+      baseList = availablePackages.filter(p => hasUpdate(p.repo_id));
+    }
+
+    const filtered = baseList.filter(
       (pkg) =>
         pkg.name.toLowerCase().includes(term) ||
         pkg.description.toLowerCase().includes(term) ||
@@ -161,8 +174,7 @@ const PackageManager: React.FC = () => {
     } catch (error: any) {
       console.error("Package action failed:", error);
       alert(
-        `Failed to ${isInstalled ? "uninstall" : "install"} package: ${
-          error.message
+        `Failed to ${isInstalled ? "uninstall" : "install"} package: ${error.message
         }`
       );
     } finally {
@@ -266,25 +278,54 @@ const PackageManager: React.FC = () => {
   }
 
   return (
-    <>
-      <h1>Package Manager</h1>
+    <div className="app-wrapper">
+      <div className="header-region">
+        <h1>Package Manager</h1>
+        <div className="tabs">
+          <button
+            className={`tab ${activeTab === 'all' ? 'active' : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
+            All Packages
+          </button>
+          <button
+            className={`tab ${activeTab === 'installed' ? 'active' : ''}`}
+            onClick={() => setActiveTab('installed')}
+          >
+            Installed
+          </button>
+          <button
+            className={`tab ${activeTab === 'available' ? 'active' : ''}`}
+            onClick={() => setActiveTab('available')}
+          >
+            Available
+          </button>
+          <button
+            className={`tab ${activeTab === 'updates' ? 'active' : ''}`}
+            onClick={() => setActiveTab('updates')}
+          >
+            Updates
+          </button>
+        </div>
+      </div>
+
       <div className="container">
-        <div className="search-container">
-          <div style={{ position: "relative" }}>
+        <div className="search-section">
+          <div className="search-input-wrapper">
             <input
               type="text"
-              className="search-input"
+              className="search-input main-search"
               placeholder="Search packages..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               disabled={isProcessing}
             />
           </div>
-          <div style={{ position: "relative", marginTop: 8 }}>
+          <div className="search-input-wrapper">
             <input
               type="text"
-              className="search-input"
-              placeholder="Search nodes (title, description, type)..."
+              className="search-input node-search"
+              placeholder="Search specific nodes..."
               value={nodeQuery}
               onChange={(e) => handleNodeSearch(e.target.value)}
               disabled={isProcessing}
@@ -293,48 +334,42 @@ const PackageManager: React.FC = () => {
         </div>
 
         {nodeQuery && (
-          <div className="package-list" style={{ marginTop: 8 }}>
+          <div className="section-block">
             <div className="node-results-card">
               <div className="node-results-header">
                 Node results{" "}
                 {nodeSearching ? "(searching...)" : `(${nodeResults.length})`}
               </div>
               {nodeResults.length === 0 && !nodeSearching ? (
-                <div className="empty-state">
-                  <div>No nodes found</div>
+                <div className="empty-state-small">
+                  <div>No nodes found matching "{nodeQuery}"</div>
                 </div>
               ) : (
                 nodeResults.slice(0, 20).map((n, idx) => (
                   <div
                     key={`${n.node_type}-${idx}`}
                     className="node-result-row"
-                    style={{ borderTop: idx === 0 ? "none" : undefined }}
+                    data-package={n.package}
                   >
                     <div className="node-result-meta">
                       <div className="node-title">{n.title || n.node_type}</div>
                       <div className="node-desc">{n.description}</div>
-                      <div className="node-pkg">
-                        Package:{" "}
-                        <span style={{ fontFamily: "monospace" }}>
-                          {n.package}
-                        </span>
+                      <div className="node-pkg-badge">
+                        {n.package}
                       </div>
                     </div>
-                    <div style={{ marginLeft: 16 }}>
+                    <div className="node-action">
                       {!isPackageInstalled(n.package) ? (
                         <button
-                          className="btn btn-primary"
+                          className="btn btn-sm btn-primary"
                           onClick={() => handlePackageAction(n.package, false)}
                           disabled={isProcessing}
                         >
-                          Install {n.package}
+                          Install
                         </button>
                       ) : (
-                        <span
-                          className="installed-badge"
-                          title="Package already installed"
-                        >
-                          ✓ Installed
+                        <span className="status-text installed">
+                          Installed
                         </span>
                       )}
                     </div>
@@ -345,10 +380,12 @@ const PackageManager: React.FC = () => {
           </div>
         )}
 
-        <div className="package-list">
+        <div className="package-grid">
           {filteredPackages.length === 0 ? (
             <div className="empty-state">
-              <div>No packages found</div>
+              <div className="empty-icon">📦</div>
+              <h3>No packages found</h3>
+              <p>Try adjusting your search filters</p>
             </div>
           ) : (
             filteredPackages.map((pkg) => {
@@ -360,19 +397,20 @@ const PackageManager: React.FC = () => {
               return (
                 <div
                   key={pkg.repo_id}
-                  className={`package-item ${isActive ? "processing" : ""}`}
-                  title={pkg.description}
+                  className={`package-card ${isActive ? "processing" : ""} ${installed ? "installed" : ""}`}
                 >
-                  <div className="package-info">
-                    <div className="package-name">
-                      {pkg.name}
+                  <div className="package-card-header">
+                    <div className="package-title-row">
+                      <div className="package-name" title={pkg.name}>
+                        {pkg.name}
+                      </div>
                       {installed && (
-                        <span className="installed-badge" title="Installed">
-                          ✓
-                        </span>
+                        <div className="badges">
+                          <span className="badge badge-installed">Installed</span>
+                        </div>
                       )}
                     </div>
-                    <div className="package-repo">
+                    <div className="package-repo-link">
                       <a
                         href="#"
                         onClick={(e) => {
@@ -382,70 +420,59 @@ const PackageManager: React.FC = () => {
                       >
                         {pkg.repo_id}
                       </a>
+                    </div>
+                  </div>
+
+                  <div className="package-card-body">
+                    <p className="package-description" title={pkg.description}>
+                      {pkg.description || "No description available."}
+                    </p>
+
+                    <div className="package-meta">
                       {installed && installedPkg ? (
-                        <div style={{ marginTop: 4 }}>
-                          <div
-                            className="package-version"
-                            style={{ display: "inline-block" }}
-                          >
-                            Installed: v{installedPkg.version}
+                        <>
+                          <div className="version-info">
+                            <span className="label">Ver:</span> {installedPkg.version}
                           </div>
                           {updateAvailable && installedPkg.latestVersion && (
-                            <div
-                              style={{
-                                color: "var(--c_warning, #ffb86c)",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                marginTop: 2,
-                              }}
-                            >
-                              Update available: v{installedPkg.latestVersion}
+                            <div className="update-alert">
+                              Update: v{installedPkg.latestVersion}
                             </div>
                           )}
-                        </div>
+                        </>
                       ) : (
-                        <div className="package-version">{pkg.version}</div>
+                        <div className="version-info">
+                          <span className="label">Latest:</span> {pkg.version}
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="package-action">
+
+                  <div className="package-card-footer">
                     {updateAvailable && (
                       <button
-                        className="btn"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, var(--c_warning), var(--c_warning_dark))",
-                          color: "var(--c_text_primary)",
-                          marginRight: "8px",
-                        }}
+                        className="btn btn-warning full-width"
                         onClick={() => handleUpdatePackage(pkg.repo_id)}
                         disabled={isProcessing}
                       >
-                        {isActive && (
-                          <span className="spinner spinner-small"></span>
-                        )}
-                        {isActive ? "Updating..." : "Update"}
+                        {isActive ? "Updating..." : "Update v" + installedPkg?.latestVersion}
                       </button>
                     )}
                     <button
-                      className={`btn ${
-                        installed ? "btn-secondary" : "btn-primary"
-                      }`}
+                      className={`btn full-width ${installed ? "btn-outline-danger" : "btn-primary"
+                        }`}
                       onClick={() =>
                         handlePackageAction(pkg.repo_id, installed)
                       }
                       disabled={isProcessing}
                     >
-                      {isActive && !updateAvailable && (
-                        <span className="spinner spinner-small"></span>
-                      )}
                       {isActive && !updateAvailable
                         ? installed
                           ? "Uninstalling..."
                           : "Installing..."
                         : installed
-                        ? "Uninstall"
-                        : "Install"}
+                          ? "Uninstall"
+                          : "Install"}
                     </button>
                   </div>
                 </div>
@@ -456,12 +483,12 @@ const PackageManager: React.FC = () => {
 
         {showOverlay && (
           <div className="overlay">
-            <div className="spinner"></div>
+            <div className="spinner-large"></div>
             <div className="overlay-text">{overlayText}</div>
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 
