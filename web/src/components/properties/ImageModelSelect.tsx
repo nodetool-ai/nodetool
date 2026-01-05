@@ -115,7 +115,6 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
     <>
       <ModelSelectButton
         ref={buttonRef}
-        className="image-model-button"
         active={!!value}
         label={displayInfo.label}
         secondaryLabel={displayInfo.secondaryLabel}

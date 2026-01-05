@@ -71,7 +71,6 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
     <>
       <ModelSelectButton
         ref={buttonRef}
-        className="asr-model-button"
         active={!!value}
         label={currentSelectedModelDetails?.name || value || "Select Model"}
         subLabel="Select ASR Model"

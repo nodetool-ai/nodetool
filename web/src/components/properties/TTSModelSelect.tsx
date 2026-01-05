@@ -119,7 +119,6 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
       <ModelSelectButton
         ref={buttonRef}
-        className="tts-model-button"
         active={!!modelId}
         label={
           currentSelectedModelDetails?.name || modelId || "Select TTS Model"

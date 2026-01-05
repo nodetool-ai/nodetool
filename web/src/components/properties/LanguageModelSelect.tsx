@@ -27,7 +27,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   });
 
   const currentSelectedModelDetails = useMemo(() => {
-    if (!fetchedModels || !value) {return null;}
+    if (!fetchedModels || !value) { return null; }
     return fetchedModels.find((m) => m.id === value);
   }, [fetchedModels, value]);
 
@@ -62,7 +62,6 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     <>
       <ModelSelectButton
         ref={buttonRef}
-        className="language-model-button"
         active={!!value}
         label={currentSelectedModelDetails?.name || value || "Select Model"}
         secondaryLabel={currentSelectedModelDetails?.provider ? `Provider: ${currentSelectedModelDetails.provider}` : undefined}
