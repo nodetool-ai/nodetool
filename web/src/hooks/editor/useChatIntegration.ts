@@ -28,8 +28,6 @@ export function useChatIntegration(params: {
   } = params;
 
   const {
-    connect,
-    status,
     sendMessage: sendMessageFn,
     progress,
     statusMessage,
@@ -63,10 +61,7 @@ export function useChatIntegration(params: {
     [sendMessageFn, currentText]
   );
 
-  // Ensure chat is connected
-  useEffect(() => {
-    connect().catch(() => undefined);
-  }, [connect]);
+  // Connection is now handled automatically by GlobalWebSocketManager
 
   const improvePendingRef = useRef<{
     active: boolean;

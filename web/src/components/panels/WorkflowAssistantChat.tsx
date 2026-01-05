@@ -303,10 +303,9 @@ const WorkflowAssistantChat: React.FC = () => {
     [threads, messageCache]
   );
 
-  // Ensure chat connection while assistant chat is visible (with nodeStore)
-  useEnsureChatConnected({ nodeStore: nodeStore || null });
+  // Connection is now handled automatically by GlobalWebSocketManager
 
-  // Ensure a thread exists after connection
+  // Ensure a thread exists
   useEffect(() => {
     if (!currentThreadId && status === "connected") {
       createNewThread()
