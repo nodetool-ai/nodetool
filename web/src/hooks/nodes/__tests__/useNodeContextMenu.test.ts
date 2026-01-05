@@ -570,7 +570,7 @@ describe("useNodeContextMenu", () => {
 
       mockedUseReactFlow.mockImplementation(() => ({
         getNode: jest.fn((id) => {
-          if (id === "node-1") return groupedNode;
+          if (id === "node-1") {return groupedNode;}
           return null;
         }),
         getNodes: jest.fn(() => [groupedNode, ...mockNodes.slice(1)]),
@@ -606,7 +606,7 @@ describe("useNodeContextMenu", () => {
 
       mockedUseReactFlow.mockImplementation(() => ({
         getNode: jest.fn((id) => {
-          if (id === "node-1") return bypassedNode;
+          if (id === "node-1") {return bypassedNode;}
           return null;
         }),
         getNodes: jest.fn(() => [bypassedNode, ...mockNodes.slice(1)]),
