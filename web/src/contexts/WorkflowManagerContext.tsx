@@ -277,6 +277,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             throw createErrorMessage(error, "Failed to save workflow");
           }
 
+          const versionResponse = await client.POST("/api/workflows/{id}/versions", {
+            params: { path: { id: workflow.id } },
+            body: {
+              name: workflow.name,
+              description: `Manual save: ${new Date().toISOString()}`
+            }
+          });
+          if (versionResponse.error) {
+            console.warn("[saveWorkflow] Failed to create version:", versionResponse.error);
+          }
+
           if (window.api) {
             window.api.onUpdateWorkflow(data);
           }
@@ -302,6 +313,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             queryKey: ["workflow", data.id]
           });
           get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
+          get().queryClient?.invalidateQueries({
+            queryKey: ["workflow", data.id, "versions"]
+          });
         },
 
        /**
