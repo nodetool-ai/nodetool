@@ -35,11 +35,11 @@ jobs:
           miniforge-version: latest
 
       - name: Install conda-lock
-        shell: bash
+        shell: bash -l {0}
         run: conda install -y -c conda-forge conda-lock
 
       - name: Generate platform lock files
-        shell: bash
+        shell: bash -l {0}
         run: bash lock.sh
 
       - name: Validate conda lock resources
