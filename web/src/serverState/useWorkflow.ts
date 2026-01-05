@@ -14,7 +14,7 @@ export const fetchWorkflowById = async (id: string): Promise<Workflow> => {
   return data as Workflow;
 };
 
-type WorkflowQueryOptions<T = Workflow> = Omit<UseQueryOptions<Workflow, Error, T>, "queryKey" | "queryFn" | "enabled">;
+type WorkflowQueryOptions<T = Workflow> = Omit<UseQueryOptions<Workflow, Error, T>, "queryKey" | "queryFn">;
 
 export const useWorkflow = <T = Workflow>(id: string | null | undefined, options?: WorkflowQueryOptions<T>) => {
   const queryClient = useQueryClient();
