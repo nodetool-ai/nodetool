@@ -1,5 +1,5 @@
 import React, { forwardRef } from "react";
-import { Button, Typography, Tooltip } from "@mui/material";
+import { Button, Typography, Tooltip, SxProps, Theme } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -13,19 +13,20 @@ interface ModelSelectButtonProps {
   active?: boolean;
   className?: string;
   tooltipTitle?: React.ReactNode;
+  sx?: SxProps<Theme>;
 }
 
 const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
-  (
-    {
-      label,
-      secondaryLabel,
-      subLabel,
-      onClick,
-      active,
-      className,
-      tooltipTitle
-    },
+  ({
+    label,
+    secondaryLabel,
+    subLabel,
+    onClick,
+    active,
+    className,
+    tooltipTitle,
+    sx, // Add sx prop
+  },
     ref
   ) => {
     const theme = useTheme();
@@ -46,7 +47,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
                 <Typography
                   variant="caption"
                   sx={{
-                    color: "var(--palette-grey-400)",
+                    color: "text.secondary",
                     fontSize: "var(--fontSizeSmaller)"
                   }}
                   display="block"
@@ -69,18 +70,17 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
       >
         <Button
           ref={ref}
-          className={`select-model-button ${className || ""} ${
-            active ? "active" : ""
-          }`}
+          className={`select-model-button ${className || ""} ${active ? "active" : ""
+            }`}
           sx={{
             border: active
-              ? "1px solid var(--palette-divider)"
-              : "1px solid var(--palette-warning-main)",
+              ? "1px solid var(--palette-secondary-main)"
+              : "1px solid var(--palette-divider)", // Changed from warning-main
             backgroundColor: active
-              ? "var(--palette-primary-main) !important"
-              : "var(--palette-warning-main) !important",
-            borderRadius: "4px",
-            color: "var(--palette-text-primary)",
+              ? "var(--palette-secondary-main)"
+              : "var(--palette-background-paper)", // Changed from warning-main
+            borderRadius: "var(--rounded-buttonSmall, 4px)", // Use theme var
+            color: active ? "var(--palette-secondary-contrastText)" : "var(--palette-text-primary)",
             textTransform: "none",
             display: "inline-flex",
             alignItems: "center",
@@ -88,13 +88,18 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             lineHeight: 1.2,
             minHeight: "28px",
             height: "auto",
-            padding: "4px 8px !important",
+            padding: "4px 8px",
             width: "100%",
-            // backgroundColor: "var(--palette-background-default)",
+            transition: "all 0.2s ease-in-out",
             "&:hover": {
-              backgroundColor: "var(--palette-action-hover)",
-              borderColor: "var(--palette-primary-main)"
-            }
+              backgroundColor: active
+                ? "var(--palette-secondary-dark)"
+                : "var(--palette-action-hover)",
+              borderColor: active
+                ? "var(--palette-secondary-dark)"
+                : "var(--palette-secondary-main)"
+            },
+            ...sx
           }}
           onClick={onClick}
           size="small"
@@ -113,7 +118,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
               component="div"
               variant="body2"
               sx={{
-                color: "var(--palette-common-black)",
+                color: "inherit", // Inherit from button color
                 fontSize:
                   scope === "inspector"
                     ? theme.fontSizeSmall
@@ -124,7 +129,8 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
                 WebkitBoxOrient: "vertical",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "normal"
+                whiteSpace: "normal",
+                fontWeight: active ? 500 : 400
               }}
             >
               {label}
@@ -135,7 +141,8 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
                 component="div"
                 variant="body2"
                 sx={{
-                  color: "var(--palette-common-white)",
+                  color: "inherit", // Inherit
+                  opacity: 0.8,
                   lineHeight: "1.1em",
                   display: "block",
                   fontSize:
@@ -154,12 +161,12 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
           </div>
           <ExpandMoreIcon
             sx={{
-              fontSize: 12,
-              color: "var(--palette-grey-800)",
+              fontSize: 14, // Slightly larger
+              color: "inherit",
+              opacity: 0.7,
               flexShrink: 0,
               ml: 0,
-              mr: "-6px",
-              opacity: 0.7
+              mr: "-4px"
             }}
           />
         </Button>

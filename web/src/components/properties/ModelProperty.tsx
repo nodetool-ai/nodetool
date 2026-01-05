@@ -19,25 +19,35 @@ import type { Theme } from "@mui/material/styles";
 const styles = (theme: Theme) =>
   css({
     // Model selects that use the custom `Select` component need slightly tighter density.
-    // This is intentionally co-located with ModelProperty rather than global CSS.
     "& .select-container .options-list": {
-      padding: "2px 0"
+      padding: "2px 0",
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: theme.rounded.buttonSmall,
     },
     "& .select-container .option": {
       fontSize: theme.fontSizeSmaller,
-      borderTop: `1px solid ${theme.vars.palette.grey[600]}`
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      color: theme.vars.palette.text.primary,
+      padding: "4px 8px"
     },
     "& .select-container .option:first-of-type": {
       borderTop: "none"
     },
     "& .select-container .option:hover": {
-      backgroundColor: `${theme.vars.palette.grey[500]} !important`
+      backgroundColor: theme.vars.palette.action.hover,
+      cursor: "pointer"
     },
     "& .select-container .select-header-text": {
-      fontSize: `${theme.fontSizeSmaller} !important`
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.primary
     },
     "& .select-container .select-header": {
-      padding: "0 4px !important"
+      padding: "0 4px",
+      minHeight: "28px",
+      borderRadius: theme.rounded.buttonSmall,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.paper
     }
   });
 
@@ -65,14 +75,14 @@ const ModelProperty = (props: PropertyProps) => {
       props.nodeType === "nodetool.image.TextToImage"
         ? ("text_to_image" as const)
         : props.nodeType === "nodetool.image.ImageToImage"
-        ? ("image_to_image" as const)
-        : undefined;
+          ? ("image_to_image" as const)
+          : undefined;
     const videoTask =
       props.nodeType === "nodetool.video.TextToVideo"
         ? ("text_to_video" as const)
         : props.nodeType === "nodetool.video.ImageToVideo"
-        ? ("image_to_video" as const)
-        : undefined;
+          ? ("image_to_video" as const)
+          : undefined;
     if (modelType.startsWith("comfy.")) {
       if (props.nodeType.startsWith("comfy.loaders.")) {
         return (

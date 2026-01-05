@@ -209,9 +209,9 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#fff"
   },
   secondary: {
-    main: "#A78BFA",
-    light: "#C4B5FD",
-    dark: "#6D28D9",
+    main: "#8B5CF6", // More vibrant Violet
+    light: "#A78BFA",
+    dark: "#7C3AED",
     contrastText: "#fff"
   },
   background: {
