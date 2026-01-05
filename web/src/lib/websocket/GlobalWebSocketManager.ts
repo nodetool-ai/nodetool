@@ -115,7 +115,7 @@ class GlobalWebSocketManager {
    */
   private async establishConnection(wsUrl: string): Promise<void> {
     try {
-      log.info("GlobalWebSocketManager: Establishing connection to", wsUrl.replace(/api_key=[^&]+/, "api_key=***"));
+      log.info("GlobalWebSocketManager: Establishing connection to", wsUrl.replace(/api_key=[^&]*/, "api_key=***"));
 
       this.wsManager = new WebSocketManager({
         url: wsUrl,
@@ -235,6 +235,7 @@ class GlobalWebSocketManager {
       if (channel === "workflow") {
         const legacyHandlers = this.messageHandlers.get(routingKey);
         if (legacyHandlers && legacyHandlers.size > 0) {
+          log.debug(`GlobalWebSocketManager: Using backward-compatible routing for key: ${routingKey}`);
           legacyHandlers.forEach((handler) => {
             try {
               handler(message);
@@ -250,6 +251,7 @@ class GlobalWebSocketManager {
           const jobCompositeKey = this.makeCompositeKey(channel, message.job_id);
           const jobHandlers = this.messageHandlers.get(jobCompositeKey);
           if (jobHandlers && jobHandlers.size > 0) {
+            log.debug(`GlobalWebSocketManager: Using job_id fallback routing for key: ${message.job_id}`);
             jobHandlers.forEach((handler) => {
               try {
                 handler(message);
