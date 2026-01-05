@@ -47,11 +47,11 @@ const getSaveType = (version: WorkflowVersion): SaveType => {
   if (version.save_type && ["manual", "autosave", "checkpoint", "restore"].includes(version.save_type)) {
     return version.save_type;
   }
-  if (!version.name) return "autosave";
+  if (!version.name) {return "autosave";}
   const lower = version.name.toLowerCase();
-  if (lower.includes("manual")) return "manual";
-  if (lower.includes("checkpoint")) return "checkpoint";
-  if (lower.includes("restore")) return "restore";
+  if (lower.includes("manual")) {return "manual";}
+  if (lower.includes("checkpoint")) {return "checkpoint";}
+  if (lower.includes("restore")) {return "restore";}
   return "autosave";
 };
 
