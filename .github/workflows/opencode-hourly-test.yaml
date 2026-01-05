@@ -20,8 +20,8 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MODEL: MiniMax-M2.1
         with:
-          model: MiniMax-M2.1
           prompt: |
             Run make lint, make test and make typecheck.
             If you find issues worth addressing, open a PR to fix them.
