@@ -34,7 +34,7 @@ import { useSettingsStore } from "../../../stores/SettingsStore";
 
 const mockUseNodes = useNodes as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
 const mockUseSettingsStore = useSettingsStore as unknown as jest.Mock;
