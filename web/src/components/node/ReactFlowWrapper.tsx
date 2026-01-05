@@ -200,7 +200,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const { handleMoveEnd, handleOnMoveStart } = useReactFlowEvents();
 
-  const { isLoading, error } = useWorkflow(workflowId);
+  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
+  const workflowExistsLocally = workflowId ? !!getNodeStore(workflowId) : false;
+
+  const { isLoading, error } = useWorkflow(workflowId, {
+    enabled: !workflowExistsLocally
+  });
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
     useConnectionHandlers();
