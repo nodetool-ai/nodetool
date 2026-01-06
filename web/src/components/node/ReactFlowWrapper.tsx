@@ -102,7 +102,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const shouldFitToScreen = useNodes((state) => state.shouldFitToScreen);
   const setShouldFitToScreen = useNodes((state) => state.setShouldFitToScreen);
   const storedViewport = useNodes((state) => state.viewport);
-  const setViewport = useNodes((state) => state.setViewport);
   const deleteEdge = useNodes((state) => state.deleteEdge);
   const setEdgeSelectionState = useNodes(
     (state) => state.setEdgeSelectionState
@@ -124,8 +123,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     y: number;
   } | null>(null);
   const ghostRafRef = useRef<number | null>(null);
-  const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
-  const selectionEndRef = useRef<{ x: number; y: number } | null>(null);
   const ghostTheme = useMemo(() => {
     const isDark = theme.palette.mode === "dark";
     return {
@@ -241,7 +238,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     };
   }, [deleteEdge]);
 
-  const { close: closeSelect } = useSelect();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
@@ -261,10 +257,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const settings = useSettingsStore((state) => state.settings);
 
   const { onDrop, onDragOver } = useDropHandler();
-
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
-  const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
   useEffect(() => {
     return () => {
@@ -352,8 +344,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   } = useNodeEvents();
 
   const {
-    onEdgeMouseEnter,
-    onEdgeMouseLeave,
     onEdgeContextMenu,
     onEdgeUpdateEnd,
     onEdgeUpdateStart,

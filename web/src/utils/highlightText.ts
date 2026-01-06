@@ -1,9 +1,8 @@
 import { NodeMetadata } from "../stores/ApiTypes";
+import { sanitizeText } from "./sanitize";
 
 export const escapeHtml = (text: string): string => {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+  return sanitizeText(text);
 };
 
 // Convert hex color to RGB values

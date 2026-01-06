@@ -35,6 +35,7 @@ import {
   fetchWorkflowById,
   workflowQueryKey
 } from "../serverState/useWorkflow";
+import log from "loglevel";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -271,7 +272,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             }
           });
           if (versionResponse.error) {
-            console.warn("[saveWorkflow] Failed to create version:", versionResponse.error);
+            log.warn("[saveWorkflow] Failed to create version:", versionResponse.error);
           }
 
           if (window.api) {
@@ -451,7 +452,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           thumbnail_url: workflow.thumbnail_url,
           tags: workflow.tags,
           access: "private",
-          graph: JSON.parse(JSON.stringify(workflow.graph)), // Deep copy graph
+          graph: structuredClone(workflow.graph), // Deep copy graph
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           settings: workflow.settings
