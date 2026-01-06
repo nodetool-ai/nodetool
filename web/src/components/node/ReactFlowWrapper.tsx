@@ -457,7 +457,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       props.selectionOnDrag = true;
     }
     return props;
-  }, [storedViewport, settings.panControls, fitViewOptions]);
+  }, [storedViewport, settings.panControls]);
 
   if (isLoading) {
     return (

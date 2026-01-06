@@ -11,7 +11,6 @@
 
 import React, { forwardRef } from "react";
 import { Switch, SwitchProps } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";
 import { editorClassNames, cn } from "./editorUtils";
@@ -44,7 +43,6 @@ export interface NodeSwitchProps extends Omit<SwitchProps, "size"> {
  */
 export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
   ({ className, sx, changed, ...props }, ref) => {
-    const theme = useTheme();
     const scope = useEditorScope();
     const scopeClass =
       scope === "inspector"

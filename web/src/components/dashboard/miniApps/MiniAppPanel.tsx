@@ -125,8 +125,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
       return;
     }
 
-    setSubmitError(null);
-
     try {
       resetWorkflowState(workflow.id);
 
@@ -161,9 +159,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
       console.error("Failed to run workflow", error);
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to run workflow"
-      );
     }
   }, [
     inputDefinitions,
@@ -268,7 +263,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 onInputChange={updateInputValue}
                 isSubmitDisabled={isSubmitDisabled}
                 onSubmit={handleSubmit}
-                onError={setSubmitError}
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
                 {statusMessage && (

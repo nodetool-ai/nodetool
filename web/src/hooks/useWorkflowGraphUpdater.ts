@@ -24,6 +24,7 @@ export const useWorkflowGraphUpdater = () => {
   const lastProcessedUpdate = useRef<any>(null);
 
   useEffect(() => {
+    let layoutTimeout: ReturnType<typeof setTimeout> | null = null;
     // Subscribe to the GlobalChatStore for workflow graph updates
     const unsubscribe = useGlobalChatStore.subscribe((state, prevState) => {
       const update = state.lastWorkflowGraphUpdate;
@@ -66,7 +67,7 @@ export const useWorkflowGraphUpdater = () => {
         nodeStore.getState().setNodes(reactFlowNodes);
         nodeStore.getState().setEdges(reactFlowEdges);
 
-        setTimeout(() => {
+        layoutTimeout = setTimeout(() => {
           nodeStore.getState().autoLayout();
         }, 100);
 
@@ -78,7 +79,12 @@ export const useWorkflowGraphUpdater = () => {
       }
     });
 
-    // Cleanup subscription on unmount
-    return unsubscribe;
+// Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+      if (layoutTimeout) {
+        clearTimeout(layoutTimeout);
+      }
+    };
   }, [getCurrentWorkflow, getNodeStore]);
 };
