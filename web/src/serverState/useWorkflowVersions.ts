@@ -29,24 +29,6 @@ export const fetchWorkflowVersions = async (
   );
   await handleApiError(response);
   const result = await response.json();
-  console.log("[fetchWorkflowVersions] API response:", {
-    workflowId,
-    versionsCount: result.versions?.length ?? 0,
-    firstVersion: result.versions?.[0] ? {
-      id: result.versions[0].id,
-      version: result.versions[0].version,
-      name: result.versions[0].name,
-      graphNodesCount: result.versions[0].graph?.nodes?.length ?? 0,
-      graphEdgesCount: result.versions[0].graph?.edges?.length ?? 0,
-      hasInputSchema: !!result.versions[0].input_schema,
-      hasOutputSchema: !!result.versions[0].output_schema,
-      firstNode: result.versions[0].graph?.nodes?.[0] ? {
-        id: result.versions[0].graph.nodes[0].id,
-        type: result.versions[0].graph.nodes[0].type,
-        ui_properties: result.versions[0].graph.nodes[0].ui_properties
-      } : null
-    } : null
-  });
   return result as Promise<WorkflowVersionList>;
 };
 
@@ -59,21 +41,6 @@ export const fetchWorkflowVersion = async (
   );
   await handleApiError(response);
   const result = await response.json();
-  console.log("[fetchWorkflowVersion] API response:", {
-    workflowId,
-    version,
-    id: result.id,
-    name: result.name,
-    graphNodesCount: result.graph?.nodes?.length ?? 0,
-    graphEdgesCount: result.graph?.edges?.length ?? 0,
-    hasInputSchema: !!result.input_schema,
-    hasOutputSchema: !!result.output_schema,
-    firstNode: result.graph?.nodes?.[0] ? {
-      id: result.graph.nodes[0].id,
-      type: result.graph.nodes[0].type,
-      ui_properties: result.graph.nodes[0].ui_properties
-    } : null
-  });
   return result as Promise<WorkflowVersion>;
 };
 
