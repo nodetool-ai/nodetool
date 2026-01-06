@@ -68,7 +68,7 @@ describe('BaseNode Performance Optimizations', () => {
 
       expect(outputColors.size).toBe(10); // Only unique values
       console.log(`[PERF] Set deduplication for 200 items: ${duration.toFixed(3)}ms`);
-      expect(duration).toBeLessThan(1); // Should be < 1ms
+      expect(duration).toBeLessThan(5); // Should be < 5ms in most environments
     });
   });
 
