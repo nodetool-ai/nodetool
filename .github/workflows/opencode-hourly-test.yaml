@@ -2,7 +2,7 @@ name: Hourly OpenCode Test
 
 on:
   schedule:
-    - cron: "0 * * * *" # Every hour
+    - cron: "0 */6 * * *" # Every hour
 
 jobs:
   opencode:
