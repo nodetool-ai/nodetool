@@ -16,7 +16,7 @@
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "es6"],
-    "types": ["react", "react-dom", "node"]
+    "types": ["node"]
   },
   "include": [
     "src/**/*",
