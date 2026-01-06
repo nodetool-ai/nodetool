@@ -29,14 +29,6 @@ export const downloadPreviewAssets = async ({
   rawResult
 }: DownloadOptions) => {
   const payload = getDownloadPayload({ previewValue, rawResult });
-  console.log("[downloadPreviewAssets] payload summary", {
-    nodeId,
-    hasPreview: previewValue !== undefined,
-    hasRawResult: rawResult !== undefined,
-    payloadType: typeof payload,
-    payloadKeys:
-      payload && typeof payload === "object" ? Object.keys(payload) : undefined
-  });
   let assetFiles: Awaited<ReturnType<typeof createAssetFile>>;
   try {
     assetFiles = await createAssetFile(payload, nodeId);
@@ -61,14 +53,6 @@ export const downloadPreviewAssets = async ({
     }
     throw error;
   }
-  console.log("[downloadPreviewAssets] generated files", {
-    count: assetFiles.length,
-    files: assetFiles.map((entry) => ({
-      name: entry.filename,
-      type: entry.type,
-      size: entry.file.size
-    }))
-  });
   const electronApi = (window as any)?.electron || (window as any)?.api;
 
   if (!assetFiles.length) {

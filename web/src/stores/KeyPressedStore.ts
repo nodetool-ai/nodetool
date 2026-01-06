@@ -185,7 +185,7 @@ const useKeyPressedStore = create<KeyPressedState>()((set, get) => ({
           newPressedKeys.add(normalizedKey);
           lastPressedKey = normalizedKey;
           newKeyPressCount[normalizedKey] =
-            (newKeyPressCount[normalizedKey] || 0) + 1;
+            (newKeyPressCount[normalizedKey] ?? 0) + 1;
         } else {
           newPressedKeys.delete(normalizedKey);
         }
