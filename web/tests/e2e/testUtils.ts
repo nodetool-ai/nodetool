@@ -8,22 +8,6 @@
 import { test } from "@playwright/test";
 
 /**
- * Wraps a Playwright test to skip it when run by Jest
- * @param name - Test name
- * @param testFn - Test function to run
- */
-export function playwrightTest(
-  name: string,
-  testFn: Parameters<typeof test>[1]
-): void {
-  if (process.env.JEST_WORKER_ID) {
-    test.skip(`${name} (skipped in jest runner)`, () => {});
-  } else {
-    test(name, testFn);
-  }
-}
-
-/**
  * Wraps a Playwright test describe block to skip it when run by Jest
  * @param name - Describe block name
  * @param describeFn - Function containing tests
@@ -33,11 +17,26 @@ export function playwrightDescribe(
   describeFn: () => void
 ): void {
   if (process.env.JEST_WORKER_ID) {
-    test.skip(`${name} (skipped in jest runner)`, () => {});
+    // In Jest context, skip the describe block
+    return;
   } else {
     test.describe(name, describeFn);
   }
 }
+
+/**
+ * Skip wrapper for playwrightDescribe - use like: playwrightDescribe.skip(...)
+ */
+playwrightDescribe.skip = (name: string, describeFn: () => void) => {
+  test.describe.skip(name, describeFn);
+};
+
+/**
+ * Only wrapper for playwrightDescribe - use like: playwrightDescribe.only(...)
+ */
+playwrightDescribe.only = (name: string, describeFn: () => void) => {
+  test.describe.only(name, describeFn);
+};
 
 /**
  * Returns true if currently running in Playwright context (not Jest)
