@@ -20,7 +20,6 @@ describe('State', () => {
       expect(serverState.ollamaPort).toBe(11435);
       expect(serverState.ollamaExternalManaged).toBe(false);
       expect(serverState.postgresPort).toBe(7778);
-      expect(serverState.postgresExternalManaged).toBe(false);
     });
 
     it('should be mutable', () => {

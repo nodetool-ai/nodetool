@@ -316,9 +316,7 @@ async function updateTrayMenu(): Promise<void> {
       : "🔴 Llama.cpp: stopped";
   const postgresLabel = postgresRunning
     ? `🟢 PostgreSQL: ${state.postgresPort ?? "unknown"}`
-    : state.postgresExternalManaged
-      ? `🟢 PostgreSQL (external): ${state.postgresPort ?? "unknown"}`
-      : "🔴 PostgreSQL: stopped";
+    : "🔴 PostgreSQL: stopped";
 
   // Fetch workflows if connected
   let workflows: Workflow[] = [];

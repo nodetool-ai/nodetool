@@ -546,7 +546,7 @@ async function startServer(): Promise<void> {
   };
 
   // Add PostgreSQL connection URL if PostgreSQL is running
-  if (isPostgresRunning() || serverState.postgresExternalManaged) {
+  if (isPostgresRunning()) {
     serverEnv.DATABASE_URL = getPostgresConnectionUrl();
     logMessage(`Set DATABASE_URL to ${serverEnv.DATABASE_URL}`);
   }

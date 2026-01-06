@@ -362,34 +362,9 @@ async function enablePgVector(port: number): Promise<void> {
  * Starts the PostgreSQL server using Watchdog
  */
 export async function startPostgresServer(): Promise<void> {
-  const existingPort = DEFAULT_POSTGRES_PORT;
-
-  // Check if an external PostgreSQL is already running
-  if (await isPostgresResponsive(existingPort)) {
-    serverState.postgresPort = existingPort;
-    serverState.postgresExternalManaged = true;
-    logMessage(`Detected running PostgreSQL instance on port ${existingPort}`);
-    return;
-  }
-
-  // Check standard PostgreSQL port as well
-  if (await isPostgresResponsive(5432)) {
-    serverState.postgresPort = 5432;
-    serverState.postgresExternalManaged = true;
-    logMessage("Detected running PostgreSQL instance on default port 5432");
-    return;
-  }
-
-  // Initialize data directory if needed
-  if (!(await isDataDirectoryInitialized())) {
-    logMessage("PostgreSQL data directory not initialized, initializing...");
-    await initializeDataDirectory();
-  }
-
   const basePort = serverState.postgresPort ?? DEFAULT_POSTGRES_PORT;
   const selectedPort = await findAvailablePort(basePort);
   serverState.postgresPort = selectedPort;
-  serverState.postgresExternalManaged = false;
 
   const postgresPath = getPostgresPath();
   const dataPath = getPostgresDataPath();
@@ -403,6 +378,12 @@ export async function startPostgresServer(): Promise<void> {
       "warn"
     );
     return;
+  }
+
+  // Initialize data directory if needed
+  if (!(await isDataDirectoryInitialized())) {
+    logMessage("PostgreSQL data directory not initialized, initializing...");
+    await initializeDataDirectory();
   }
 
   const args = [

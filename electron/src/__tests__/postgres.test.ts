@@ -30,7 +30,6 @@ jest.mock('../events', () => ({
 jest.mock('../state', () => ({
   serverState: {
     postgresPort: 7778,
-    postgresExternalManaged: false,
   },
 }));
 
