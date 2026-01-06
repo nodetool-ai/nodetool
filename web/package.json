@@ -159,6 +159,7 @@
     "@types/papaparse": "^5.3.15",
     "@types/react-window": "^1.8.8",
     "@types/tabulator-tables": "^6.2.3",
+    "@types/testing-library__jest-dom": "^5.14.9",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
     "eslint": "^9.16.0",
