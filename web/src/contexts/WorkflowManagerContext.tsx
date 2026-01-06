@@ -255,6 +255,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          * @throws {Error} If the save operation fails
          */
         saveWorkflow: async (workflow: Workflow) => {
+
           const { data, error } = await client.PUT("/api/workflows/{id}", {
             params: { path: { id: workflow.id } },
             body: workflow

@@ -45,7 +45,7 @@ const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-const isProduction = process.env.NODE_ENV === "production";
+import { isProduction } from "../../stores/ApiClient";
 
 const resizer = (
   <div className="node-resizer">

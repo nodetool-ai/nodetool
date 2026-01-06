@@ -24,7 +24,7 @@ interface MiniAppInputsFormProps {
   onInputChange: (name: string, value: unknown) => void;
   isSubmitDisabled: boolean;
   onSubmit: () => void | Promise<void>;
-  onError: (message: string | null) => void;
+  onError?: (message: string | null) => void;
 }
 
 const KIND_TO_PROPERTY_TYPE: Record<
@@ -200,7 +200,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
 
               const handleChange = (nextValue: unknown) => {
-                onError(null);
+                onError?.(null);
                 onInputChange(definition.data.name, nextValue);
               };
 

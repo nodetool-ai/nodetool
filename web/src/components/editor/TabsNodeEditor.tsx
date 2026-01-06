@@ -7,7 +7,7 @@ import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
-import { Workflow, WorkflowAttributes, Node, Edge } from "../../stores/ApiTypes";
+import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 
@@ -272,8 +272,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
-
-  const closeRightPanel = useRightPanelStore((state) => state.closePanel);
 
   // Autosave hook integration
   const getWorkflowForAutosave = useCallback(() => {

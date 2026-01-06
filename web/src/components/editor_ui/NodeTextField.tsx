@@ -38,10 +38,6 @@ export interface NodeTextFieldProps
    * Validation failed — shows error state
    */
   invalid?: boolean;
-  /**
-   * Density variant
-   */
-  density?: "compact" | "normal";
 }
 
 /**
@@ -67,7 +63,6 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
       sx,
       changed,
       invalid,
-      density = "compact",
       ...props
     },
     ref

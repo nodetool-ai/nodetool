@@ -444,7 +444,7 @@ export default function FileBrowserDialog({
         // Try to list as directory first
         await fetchFileList(path);
         handleNavigate(path);
-      } catch (e) {
+      } catch {
         // If listing fails, assume it's a file path
         // Try to navigate to parent and select the file
         const parts = path.split(/[/\\]/);
