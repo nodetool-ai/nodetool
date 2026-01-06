@@ -31,7 +31,7 @@ type CommandMenuProps = {
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
 };
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     ".MuiDialog-paper": {
       maxWidth: "800px",
@@ -47,14 +47,12 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     nodes,
     edges,
     currentWorkflow,
-    getWorkflow,
     workflowJSON,
     autoLayout
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
     currentWorkflow: state.workflow,
-    getWorkflow: state.getWorkflow,
     workflowJSON: state.workflowJSON,
     autoLayout: state.autoLayout
   }));
@@ -272,7 +270,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   redo,
   reactFlowWrapper
 }) => {
-  const theme = useTheme();
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const input = useRef<HTMLInputElement>(null);
 
@@ -313,7 +310,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       open={open}
       onClose={() => setOpen(false)}
       className="command-menu-dialog"
-      css={styles(theme)}
+      css={styles()}
     >
       <Command label="Command Menu" className="command-menu">
         <CommandInput ref={input} />
