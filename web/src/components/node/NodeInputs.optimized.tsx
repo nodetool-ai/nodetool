@@ -163,9 +163,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     });
   }, [properties]);
 
-  const dynamicProperties: { [key: string]: Property } =
-    data?.dynamic_properties || {};
-
   // ============================================================================
   // OPTIMIZATION 5: Memoize isConnected callback
   // ============================================================================
@@ -235,6 +232,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   // OPTIMIZATION 7: Memoize dynamic input elements computation
   // ============================================================================
   const dynamicInputElements = useMemo(() => {
+    const dynamicProperties: { [key: string]: Property } =
+      data?.dynamic_properties || {};
     return Object.entries(dynamicProperties).map(([name], index) => {
       // Determine type from incoming edge's source handle
       const incoming = edges.find(
@@ -281,7 +280,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         />
       );
     });
-  }, [dynamicProperties, edges, id, findNode, getMetadata, nodeType, layout, data]);
+  }, [edges, id, findNode, getMetadata, nodeType, layout, data]);
 
   // ============================================================================
   // OPTIMIZATION 8: Memoize expand button sx styles
