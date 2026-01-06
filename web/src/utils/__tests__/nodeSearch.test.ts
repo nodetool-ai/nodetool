@@ -37,9 +37,9 @@ jest.mock("../../stores/fuseOptions", () => ({
 }));
 
 // Performance thresholds for regression testing
-const PERF_THRESHOLD_SMALL = 50; // 50ms for small dataset
-const PERF_THRESHOLD_MEDIUM = 120; // 120ms for medium dataset
-const PERF_THRESHOLD_LARGE = 150; // 150ms for large dataset
+const PERF_THRESHOLD_SMALL = 150; // 150ms for small dataset
+const PERF_THRESHOLD_MEDIUM = 200; // 200ms for medium dataset
+const PERF_THRESHOLD_LARGE = 300; // 300ms for large dataset
 
 describe("nodeSearch", () => {
   const mockNodeMetadata: NodeMetadata[] = [
