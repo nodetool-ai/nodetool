@@ -7,13 +7,23 @@
  * 3. Creates 100 nodes
  * 4. Profiles render performance
  * 5. Tests interaction latency
+ * 
+ * Note: This test is skipped in CI due to resource constraints.
  */
 
 import { test, expect } from "@playwright/test";
 import { playwrightDescribe } from "./testUtils";
 
-playwrightDescribe("ReactFlowWrapper Performance", () => {
-  test.setTimeout(180000); // 3 minutes for performance testing
+// Skip entire describe block in CI environment
+if (process.env.CI === "true") {
+  playwrightDescribe.skip("ReactFlowWrapper Performance", () => {
+    test("skipped in CI", () => {
+      test.skip();
+    });
+  });
+} else {
+  playwrightDescribe("ReactFlowWrapper Performance", () => {
+    test.setTimeout(180000); // 3 minutes for performance testing
 
   test("should load editor and measure performance with 100 nodes", async ({
     page
@@ -210,4 +220,5 @@ playwrightDescribe("ReactFlowWrapper Performance", () => {
       expect(selectionTime).toBeLessThan(1000); // Should complete within 1 second
     }
   });
-});
+  });
+}

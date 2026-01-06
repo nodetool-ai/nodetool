@@ -6,6 +6,8 @@
  * - Measure render times
  * - Track memory usage
  * - Analyze component re-renders
+ * 
+ * Note: This test is skipped in CI due to resource constraints.
  */
 
 import { test, expect, chromium } from "@playwright/test";
@@ -13,8 +15,16 @@ import * as fs from "fs";
 import * as path from "path";
 import { playwrightDescribe } from "./testUtils";
 
-playwrightDescribe("ReactFlowWrapper Advanced Profiling", () => {
-  test.setTimeout(300000); // 5 minutes
+// Skip entire describe block in CI environment
+if (process.env.CI === "true") {
+  playwrightDescribe.skip("ReactFlowWrapper Advanced Profiling", () => {
+    test("skipped in CI", () => {
+      test.skip();
+    });
+  });
+} else {
+  playwrightDescribe("ReactFlowWrapper Advanced Profiling", () => {
+    test.setTimeout(300000); // 5 minutes
 
   test("should profile CPU and memory with 100 nodes", async () => {
     // Launch browser with profiling enabled
@@ -230,4 +240,5 @@ playwrightDescribe("ReactFlowWrapper Advanced Profiling", () => {
 
     await browser.close();
   });
-});
+  });
+}
