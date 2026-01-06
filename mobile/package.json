@@ -12,7 +12,8 @@
     "lint": "eslint src --ext .tsx,.ts,.js,.jsx",
     "lint:fix": "eslint src --ext .tsx,.ts,.js,.jsx --fix",
     "test": "jest",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
