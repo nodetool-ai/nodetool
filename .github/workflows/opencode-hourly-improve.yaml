@@ -2,7 +2,7 @@ name: Hourly OpenCode Improve
 
 on:
   schedule:
-    - cron: "30 * * * *" # Every hour
+    - cron: "30 */6 * * *" # Every 6 hours
 
 jobs:
   opencode:
