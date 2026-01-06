@@ -163,8 +163,10 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     });
   }, [properties]);
 
-  const dynamicProperties: { [key: string]: Property } =
-    data?.dynamic_properties || {};
+  const dynamicProperties: { [key: string]: Property } = useMemo(
+    () => data?.dynamic_properties || {},
+    [data?.dynamic_properties]
+  );
 
   // ============================================================================
   // OPTIMIZATION 5: Memoize isConnected callback

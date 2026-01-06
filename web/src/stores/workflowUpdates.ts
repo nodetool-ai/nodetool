@@ -120,8 +120,6 @@ export const handleUpdate = (
   const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
 
-  console.log("handleUpdate", data);
-
   if (window.__UPDATES__ === undefined) {
     window.__UPDATES__ = [];
   }
@@ -191,12 +189,6 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
-    console.log("workflowUpdates output_update:", {
-      workflowId: workflow.id,
-      nodeId: update.node_id,
-      value: update.value,
-      valueType: typeof update.value
-    });
     setOutputResult(workflow.id, update.node_id, update.value, true);
     appendLog({
       workflowId: workflow.id,
@@ -250,11 +242,6 @@ export const handleUpdate = (
       newState = "error";
     }
 
-    console.log(
-      `Job update: ${job.status} -> setting state to ${newState || "no change"}`,
-      runState ? `(run_state: ${runState.status}, resumable: ${runState.is_resumable})` : ""
-    );
-
     if (newState) {
       runnerStore.setState({ state: newState });
     }
@@ -277,7 +264,6 @@ export const handleUpdate = (
       job.status === "suspended" ||
       job.status === "paused"
     ) {
-      console.log("INVALIDATING JOBS QUERY - status:", job.status);
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     }
     

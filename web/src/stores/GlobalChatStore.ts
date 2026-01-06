@@ -398,9 +398,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         set({ error: null });
 
-        console.log("sendMessage", message);
-
-        // Always allow sending - messages are queued by globalWebSocketManager if disconnected
+        if (!wsManager || !wsManager.isConnected()) {
+          set({ error: "Not connected to chat service" });
+          return;
+        }
 
         // Ensure we have a thread
         let threadId = currentThreadId;
@@ -440,8 +441,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
           command: "chat_message",
           data: chatMessageData
         };
-
-        console.log("sendMessage (chat_message command)", commandMessage);
 
         // Check if this is the first user message BEFORE adding to cache
         const existingMessages = get().messageCache[threadId] || [];
@@ -740,7 +739,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
               }
             }
           });
-          console.log("loadMessages", data);
 
           if (error) {
             throw new Error(
@@ -824,7 +822,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         model: string,
         content: string
       ) => {
-        console.log("summarizeThread called:", { threadId, provider, model });
         const request: ThreadSummarizeRequest = {
           provider,
           model,
@@ -845,8 +842,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
               error.detail?.[0]?.msg || "Failed to summarize thread"
             );
           }
-
-          console.log("Thread summarized, new title:", data.title);
 
           // Update the thread in local state if title was changed
           set((state) => {
@@ -869,7 +864,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
           log.info(`Thread ${threadId} summarized successfully`);
         } catch (error) {
           log.error("Failed to summarize thread:", error);
-          console.error("Failed to summarize thread:", error);
           // Don't throw error - summarization is not critical
         }
       },
@@ -902,22 +896,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
       stopGeneration: () => {
         const { currentThreadId, status } = get();
 
-        // Debug logging
-        console.log("stopGeneration called:", {
-          currentThreadId,
-          status
-        });
-
         // Abort any active frontend tools
         FrontendToolRegistry.abortAll();
 
+        if (!wsManager) {
+          return;
+        }
+
+        if (!wsManager.isConnected()) {
+          return;
+        }
+
         if (!currentThreadId) {
-          console.log("No current thread ID");
           return;
         }
 
         log.info("Sending stop signal to workflow");
-        console.log("Sending stop signal with thread_id:", currentThreadId);
 
         try {
           // Use command wrapper as per unified WebSocket API
@@ -1086,8 +1080,6 @@ export const useThreadsQuery = () => {
   // Handle success and error states using useEffect
   React.useEffect(() => {
     if (query.isSuccess && query.data) {
-      // Update the store with fetched threads
-      console.log("Threads fetched:", query.data);
       const threadsRecord: Record<string, Thread> = {};
       query.data.threads.forEach((thread) => {
         threadsRecord[thread.id] = thread;

@@ -7,7 +7,7 @@ import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
-import { Workflow, WorkflowAttributes, Node, Edge } from "../../stores/ApiTypes";
+import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 
@@ -19,10 +19,8 @@ import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useVersionHistoryStore, WorkflowVersion } from "../../stores/VersionHistoryStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useAutosave } from "../../hooks/useAutosave";
-// import { getIsElectronDetails } from "../../utils/browser";
 
 const styles = (theme: Theme) =>
   css({
@@ -275,8 +273,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       : undefined
   );
 
-  const closeRightPanel = useRightPanelStore((state) => state.closePanel);
-
   // Autosave hook integration
   const getWorkflowForAutosave = useCallback(() => {
     if (!activeNodeStore) {
@@ -401,106 +397,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   }, [idsForTabs, openMap, queryResults]);
 
   const theme = useTheme();
-
-  // Handler to restore a workflow version
-  const handleRestoreVersion = async (version: WorkflowVersion) => {
-    if (!activeNodeStore || !currentWorkflowId) {
-      return;
-    }
-
-    const versionNodes = version.graph.nodes as Array<{
-      id: string;
-      type: string;
-      data?: Record<string, unknown>;
-      parent_id?: string | null;
-      ui_properties?: {
-        position?: { x: number; y: number };
-        width?: number;
-        height?: number;
-        zIndex?: number;
-        title?: string;
-        color?: string;
-        selectable?: boolean;
-        bypassed?: boolean;
-        selected?: boolean;
-      };
-      dynamic_properties?: Record<string, unknown>;
-      dynamic_outputs?: Record<string, { type: string; optional: boolean }>;
-      sync_mode?: string;
-    }>;
-    const versionEdges = version.graph.edges as Array<{
-      id: string;
-      source: string;
-      sourceHandle?: string;
-      target: string;
-      targetHandle?: string;
-    }>;
-
-    console.log("[handleRestoreVersion] Version data received:", {
-      versionId: version.id,
-      versionNumber: version.version,
-      name: version.name,
-      saveType: version.save_type,
-      graphNodesCount: version.graph?.nodes?.length ?? 0,
-      graphEdgesCount: version.graph?.edges?.length ?? 0,
-      firstNode: versionNodes[0] ? {
-        id: versionNodes[0].id,
-        type: versionNodes[0].type,
-        ui_properties: versionNodes[0].ui_properties,
-        position: versionNodes[0].ui_properties?.position,
-        parent_id: versionNodes[0].parent_id,
-        dynamic_properties: versionNodes[0].dynamic_properties
-      } : null,
-      firstEdge: versionEdges[0] || null
-    });
-
-    const storeState = activeNodeStore.getState();
-    const workflow = storeState.getWorkflow();
-
-    // Import the conversion functions dynamically to avoid circular deps
-    const [{ graphNodeToReactFlowNode }, { graphEdgeToReactFlowEdge }] = await Promise.all([
-      import("../../stores/graphNodeToReactFlowNode"),
-      import("../../stores/graphEdgeToReactFlowEdge")
-    ]);
-
-    console.log("[handleRestoreVersion] Source nodes:", versionNodes.slice(0, 2).map((n) => ({
-      id: n.id,
-      type: n.type,
-      ui_properties: n.ui_properties,
-      parent_id: n.parent_id,
-      dynamic_properties: n.dynamic_properties
-    })));
-
-    const newNodes = versionNodes.map((n) =>
-      graphNodeToReactFlowNode(
-        { ...workflow, graph: version.graph as unknown as Workflow["graph"] } as Workflow,
-        n as Node
-      )
-    );
-    const newEdges = versionEdges.map((e) =>
-      graphEdgeToReactFlowEdge(e as Edge)
-    );
-
-    console.log("[handleRestoreVersion] Restored nodes:", newNodes.slice(0, 2).map((n) => ({
-      id: n.id,
-      type: n.type,
-      position: n.position,
-      data_keys: Object.keys(n.data.dynamic_properties || {})
-    })));
-    console.log("[handleRestoreVersion] Restored edges:", newEdges.slice(0, 2).map((e) => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      sourceHandle: e.sourceHandle,
-      targetHandle: e.targetHandle
-    })));
-
-    storeState.setNodes(newNodes);
-    storeState.setEdges(newEdges);
-    storeState.setWorkflowDirty(true);
-
-    closeRightPanel();
-  };
 
   return (
     <>

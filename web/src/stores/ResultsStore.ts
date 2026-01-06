@@ -434,7 +434,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         });
       }
     }
-    console.log("setOutputResult after:", get().outputResults[key]);
   },
 
   /**
