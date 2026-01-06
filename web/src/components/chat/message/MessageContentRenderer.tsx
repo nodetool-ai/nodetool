@@ -2,7 +2,11 @@ import React, { useCallback, useRef, useEffect } from "react";
 import { MessageContent } from "../../../stores/ApiTypes";
 import ImageView from "../../node/ImageView";
 import AudioPlayer from "../../audio/AudioPlayer";
-import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
+import {
+  parseHarmonyContent,
+  hasHarmonyTokens,
+  getDisplayContent
+} from "../utils/harmonyUtils";
 
 interface MessageContentRendererProps {
   content: MessageContent;
@@ -18,9 +22,16 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
   const objectUrlRef = useRef<string | null>(null);
 
   const createObjectUrl = useCallback(
-    (source: string | Uint8Array | undefined, type: string): string | undefined => {
-      if (!source) {return undefined;}
-      if (typeof source === "string") {return source;}
+    (
+      source: string | Uint8Array | undefined,
+      type: string
+    ): string | undefined => {
+      if (!source) {
+        return undefined;
+      }
+      if (typeof source === "string") {
+        return source;
+      }
 
       // Revoke previous object URL if it exists
       if (objectUrlRef.current) {
@@ -51,11 +62,11 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
   switch (content.type) {
     case "text": {
       const textContent = content.text ?? "";
-      
+
       // Check if the text content contains Harmony format tokens
       if (hasHarmonyTokens(textContent)) {
         const { messages, rawText } = parseHarmonyContent(textContent);
-        
+
         // If we have parsed Harmony messages, render them
         if (messages.length > 0) {
           return (
@@ -70,15 +81,28 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
           );
         }
       }
-      
+
       // If no Harmony tokens or parsing failed, render as regular text
       return renderTextContent(textContent, index);
     }
     case "image_url": {
       // Handle image content in Harmony format
-      const imageSource = content.image?.uri && content.image.uri !== "" 
-        ? content.image.uri 
-        : createObjectUrl(content.image?.data as Uint8Array, "image/png");
+      console.log("Image content:", content.image);
+
+      let imageSource: string | Uint8Array | undefined;
+
+      if (content.image?.data) {
+        console.log("Passing raw image data to ImageView");
+        imageSource = content.image.data as Uint8Array;
+      } else if (content.image?.uri) {
+        console.log("Using image URI:", content.image.uri);
+        imageSource = content.image.uri;
+      } else {
+        console.error("No image data or URI found");
+        return <div>Error: No image source available</div>;
+      }
+
+      console.log("Final image source:", imageSource);
       return <ImageView source={imageSource} />;
     }
     case "audio":
