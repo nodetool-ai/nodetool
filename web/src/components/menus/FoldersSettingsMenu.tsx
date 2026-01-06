@@ -1,15 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { css, SerializedStyles } from "@emotion/react";
 import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
-import WarningIcon from "@mui/icons-material/Warning";
 import { useMemo, useState, useCallback } from "react";
-import { Button, TextField, Typography, Box, Divider, IconButton, Tooltip } from "@mui/material";
+import { Button, TextField, Typography, Box, IconButton, Tooltip } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import {
   isFileExplorerAvailable,
@@ -41,35 +38,6 @@ const FolderButton = ({ label, onClick }: FolderButtonProps) => (
     }}
   >
     {label}
-  </Button>
-);
-
-const ExternalLinkButton = ({
-  href,
-  children
-}: {
-  href: string;
-  children: React.ReactNode;
-}) => (
-  <Button
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    sx={{
-      padding: ".1em 1em !important",
-      textDecoration: "none",
-      fontSize: "var(--fontSizeSmall) !important",
-      color: "var(--palette-grey-1000) !important",
-      backgroundColor: "var(--palette-primary-main) !important",
-
-      "&:hover": {
-        color: "primary.light",
-        textDecoration: "underline",
-        filter: "brightness(1.15)"
-      }
-    }}
-  >
-    &rarr; {children}
   </Button>
 );
 
