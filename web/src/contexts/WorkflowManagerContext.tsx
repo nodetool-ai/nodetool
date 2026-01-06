@@ -35,7 +35,8 @@ import {
   fetchWorkflowById,
   workflowQueryKey
 } from "../serverState/useWorkflow";
-import log from "loglevel";
+import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "../stores/workflowUpdates";
+import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -569,14 +570,19 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           openWorkflows: newOpenWorkflows
         }));
         storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
+
+        const runnerStore = getWorkflowRunnerStore(workflow.id);
+        subscribeToWorkflowUpdates(workflow.id, workflow, runnerStore);
       },
 
-      /**
-       * Removes a workflow from state and localStorage.
-       * @param {string} workflowId The ID of the workflow to remove
-       */
-      removeWorkflow: (workflowId: string) => {
-        const { nodeStores, openWorkflows, currentWorkflowId } = get();
+       /**
+        * Removes a workflow from state and localStorage.
+        * @param {string} workflowId The ID of the workflow to remove
+        */
+       removeWorkflow: (workflowId: string) => {
+         unsubscribeFromWorkflowUpdates(workflowId);
+         
+         const { nodeStores, openWorkflows, currentWorkflowId } = get();
 
         const newOpenWorkflows = openWorkflows.filter(
           (w) => w.id !== workflowId

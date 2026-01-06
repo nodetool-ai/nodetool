@@ -16,7 +16,7 @@ import useGlobalChatStore, {
 } from "../../../stores/GlobalChatStore";
 import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
-import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
 /**
  * StandaloneChat is a version of GlobalChat without app chrome (no AppHeader, no PanelRight).
@@ -25,6 +25,22 @@ import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
 const StandaloneChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
+  
+  // Get connection state from WebSocket manager directly
+  const [connectionState, setConnectionState] = React.useState(
+    globalWebSocketManager.getConnectionState()
+  );
+
+  useEffect(() => {
+    const unsubscribe = globalWebSocketManager.subscribeEvent(
+      "stateChange",
+      () => {
+        setConnectionState(globalWebSocketManager.getConnectionState());
+      }
+    );
+    return unsubscribe;
+  }, []);
+
   const {
     status,
     sendMessage,
@@ -96,9 +112,6 @@ const StandaloneChat: React.FC = () => {
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread
   ]);
-
-  // Ensure chat connection while StandaloneChat is visible (do not disconnect on unmount)
-  useEnsureChatConnected();
 
   // Handle thread switching when URL changes
   useEffect(() => {
@@ -325,16 +338,13 @@ const StandaloneChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error ||
-            status === "reconnecting" ||
-            status === "disconnected" ||
-            status === "failed") && (
+          (error || !connectionState.isConnected) && (
             <Alert
               className="standalone-chat-status-alert"
               severity={
-                status === "reconnecting"
+                connectionState.isConnecting
                   ? "info"
-                  : status === "disconnected"
+                  : !connectionState.isConnected
                   ? "warning"
                   : "error"
               }
@@ -350,12 +360,10 @@ const StandaloneChat: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              {status === "reconnecting"
-                ? statusMessage || "Reconnecting to chat service..."
-                : status === "disconnected"
-                ? "Connection lost. Reconnecting automatically..."
-                : status === "failed"
-                ? "Connection failed. Retrying automatically..."
+              {connectionState.isConnecting
+                ? statusMessage || "Connecting to chat service..."
+                : !connectionState.isConnected
+                ? "Connecting to chat service..."
                 : error}
             </Alert>
           )}
