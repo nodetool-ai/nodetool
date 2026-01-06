@@ -21,7 +21,7 @@ jobs:
         env:
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
         with:
-          model: MiniMax-M2.1
+          model: MiniMax/M2.1
           prompt: |
             Run make lint, make test and make typecheck.
             If you find issues worth addressing, open a PR to fix them.
