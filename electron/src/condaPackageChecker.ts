@@ -45,6 +45,40 @@ const MICROMAMBA_EXECUTABLE_NAME =
   process.platform === "win32" ? "micromamba.exe" : "micromamba";
 const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
 
+// Pattern for detecting version constraints like >=, <=, >, <, !=
+const VERSION_CONSTRAINT_PATTERN = /[<>!]/;
+// Pattern for matching package names
+const PACKAGE_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
+// Pattern for matching conda package specs with version constraints
+const PACKAGE_WITH_CONSTRAINT_PATTERN = /^([a-zA-Z0-9_-]+)([><=!].*)$/;
+// Pattern for detecting pip section markers
+const PIP_SECTION_PATTERN = /^-\s*pip:?$/;
+
+/**
+ * Check if a line marks the end of the dependencies section
+ */
+function isEndOfDependenciesSection(line: string, trimmed: string, inDependencies: boolean): boolean {
+  if (!inDependencies) return false;
+  if (trimmed.length === 0) return false;
+  if (line.startsWith(" ") || line.startsWith("\t")) return false;
+  if (trimmed.startsWith("-")) return false;
+  return true;
+}
+
+/**
+ * Check if a line is a pip section marker
+ */
+function isPipSectionMarker(trimmed: string): boolean {
+  return PIP_SECTION_PATTERN.test(trimmed);
+}
+
+/**
+ * Extract base version without build metadata (e.g., "1.2.3+build" -> "1.2.3")
+ */
+function getBaseVersion(version: string): string {
+  return version.split("+")[0];
+}
+
 /**
  * Get candidate directories for finding bundled micromamba
  */
@@ -154,12 +188,12 @@ export async function parseCondaLockFile(
     }
 
     // Exit dependencies section when we hit a non-indented line that's not empty
-    if (inDependencies && !line.startsWith(" ") && !line.startsWith("\t") && trimmed.length > 0 && !trimmed.startsWith("-")) {
+    if (isEndOfDependenciesSection(line, trimmed, inDependencies)) {
       break;
     }
 
     // Check if we're entering pip section
-    if (inDependencies && (trimmed === "- pip:" || trimmed === "- pip")) {
+    if (inDependencies && isPipSectionMarker(trimmed)) {
       inPipSection = true;
       pipSectionIndent = indent;
       continue;
@@ -209,7 +243,7 @@ function parsePackageSpec(spec: string): CondaPackageSpec | null {
   // Handle exact version specs like name=version=buildstring or name=version first
   // (this is the most common format in lock files)
   const eqParts = spec.split("=");
-  if (eqParts.length >= 2 && eqParts[0] && !eqParts[0].match(/[<>!]/)) {
+  if (eqParts.length >= 2 && eqParts[0] && !VERSION_CONSTRAINT_PATTERN.test(eqParts[0])) {
     return {
       name: eqParts[0],
       version: eqParts[1] || undefined,
@@ -218,7 +252,7 @@ function parsePackageSpec(spec: string): CondaPackageSpec | null {
   }
 
   // Handle version constraints like >=6,<7
-  const constraintMatch = spec.match(/^([a-zA-Z0-9_-]+)([><=!].*)$/);
+  const constraintMatch = spec.match(PACKAGE_WITH_CONSTRAINT_PATTERN);
   if (constraintMatch) {
     return {
       name: constraintMatch[1],
@@ -368,10 +402,10 @@ export async function checkCondaPackages(): Promise<CondaPackageCheckResult> {
     } else if (expected.version && installed.version) {
       // Only compare versions if both have exact versions (not constraints)
       const expectedVersion = expected.version.replace(/^=/, "");
-      if (!expectedVersion.match(/[<>!]/) && installed.version !== expectedVersion) {
+      if (!VERSION_CONSTRAINT_PATTERN.test(expectedVersion) && installed.version !== expectedVersion) {
         // Check if the version is actually different (handling build strings)
-        const installedBase = installed.version.split("+")[0];
-        const expectedBase = expectedVersion.split("+")[0];
+        const installedBase = getBaseVersion(installed.version);
+        const expectedBase = getBaseVersion(expectedVersion);
         if (installedBase !== expectedBase) {
           outdatedPackages.push({
             name: expected.name,
@@ -516,7 +550,13 @@ export async function checkAndUpdateCondaPackages(): Promise<void> {
 
     logMessage("=== Conda Package Check Complete ===");
   } catch (error: any) {
-    logMessage(`Conda package check failed: ${error.message}`, "error");
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    logMessage(`Conda package check failed: ${errorMessage}`, "error");
+    if (errorStack) {
+      logMessage(`Stack trace: ${errorStack}`, "error");
+    }
     // Don't throw - allow startup to continue even if package check fails
   }
 }
