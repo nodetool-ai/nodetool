@@ -3,7 +3,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  Button,
   CircularProgress,
   Typography,
   Select,
@@ -15,7 +14,6 @@ import {
   IconButton
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -94,7 +92,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     runWorkflow,
     runnerState,
     statusMessage,
-    notifications,
     results,
     progress,
     resetWorkflowState
@@ -127,8 +124,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     if (!workflow) {
       return;
     }
-
-    setSubmitError(null);
 
     try {
       resetWorkflowState(workflow.id);
@@ -164,9 +159,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
       console.error("Failed to run workflow", error);
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to run workflow"
-      );
     }
   }, [
     inputDefinitions,
@@ -271,7 +263,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 onInputChange={updateInputValue}
                 isSubmitDisabled={isSubmitDisabled}
                 onSubmit={handleSubmit}
-                onError={setSubmitError}
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
                 {statusMessage && (

@@ -254,20 +254,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          * @throws {Error} If the save operation fails
          */
         saveWorkflow: async (workflow: Workflow) => {
-          console.log("[saveWorkflow] Saving workflow:", {
-            id: workflow.id,
-            name: workflow.name,
-            graphNodesCount: workflow.graph?.nodes?.length ?? 0,
-            graphEdgesCount: workflow.graph?.edges?.length ?? 0,
-            firstNode: workflow.graph?.nodes?.[0] ? {
-              id: workflow.graph.nodes[0].id,
-              type: workflow.graph.nodes[0].type,
-              ui_properties: workflow.graph.nodes[0].ui_properties,
-              parent_id: workflow.graph.nodes[0].parent_id,
-              dynamic_properties: workflow.graph.nodes[0].dynamic_properties
-            } : null,
-            firstEdge: workflow.graph?.edges?.[0] || null
-          });
 
           const { data, error } = await client.PUT("/api/workflows/{id}", {
             params: { path: { id: workflow.id } },

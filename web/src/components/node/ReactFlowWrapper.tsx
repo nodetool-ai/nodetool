@@ -1,19 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useRef, useEffect, useMemo, memo, useState } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import { useRef, useEffect, useMemo, memo, useState } from "react";
 import {
   useReactFlow,
-  Node,
   Background,
   BackgroundVariant,
   ReactFlow,
   SelectionMode,
   ConnectionMode,
   useViewport,
-  Connection,
-  Edge,
-  IsValidConnection,
-  Viewport
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -44,9 +38,7 @@ import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
 import isEqual from "lodash/isEqual";
-import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
 import EdgeGradientDefinitions from "../node_editor/EdgeGradientDefinitions";
@@ -61,12 +53,6 @@ import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
-import { getMousePosition } from "../../utils/MousePosition";
-import { wouldCreateCycle } from "../../utils/graphCycle";
-import {
-  getSelectionRect,
-  getNodesWithinSelection
-} from "../../utils/selectionBounds";
 import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
 import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
@@ -481,7 +467,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       props.selectionOnDrag = true;
     }
     return props;
-  }, [storedViewport, settings.panControls, fitViewOptions]);
+  }, [storedViewport, settings.panControls]);
 
   if (isLoading) {
     return (
