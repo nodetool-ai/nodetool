@@ -317,6 +317,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   }, [
     audioUrl,
     prevUrl,
+    mimeType,
     minimapId,
     waveColor,
     progressColor,
@@ -326,7 +327,8 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     otherProps,
     onPlay,
     onPause,
-    checkWaveformFit
+    checkWaveformFit,
+    mimeType
   ]);
 
   useEffect(() => {
