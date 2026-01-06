@@ -47,11 +47,6 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
           favorites.add(preferenceKey);
         }
         set({ favorites });
-        console.log("[ModelMenu] toggleFavorite", {
-          provider,
-          id,
-          isFavorite: favorites.has(preferenceKey)
-        });
       },
       isFavorite: (provider: string, id: string) => {
         return get().favorites.has(keyFor(provider, id));
@@ -67,8 +62,6 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
           .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
           .slice(0, MAX_RECENTS);
         set({ recents: next });
-
-        console.log("[ModelMenu] addRecent", { provider, id, name });
       },
       getRecent: () => get().recents,
       setOnlyAvailable: (only: boolean) => set({ onlyAvailable: only }),
@@ -81,7 +74,6 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         const prev = get().enabledProviders || {};
         const next = { ...prev, [provider]: enabled };
         set({ enabledProviders: next });
-        console.log("[ModelMenu] setProviderEnabled", { provider, enabled });
       }
     }),
     {

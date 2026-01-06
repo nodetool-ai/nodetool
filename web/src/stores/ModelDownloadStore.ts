@@ -3,6 +3,7 @@ import { DOWNLOAD_URL } from "./BASE_URL";
 import { BASE_URL } from "./BASE_URL";
 import { QueryClient } from "@tanstack/react-query";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
+import log from "loglevel";
 
 interface SpeedDataPoint {
   bytes: number;
@@ -123,9 +124,6 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
 
     const delay = RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempts);
-    console.log(
-      `[ModelDownloadStore] Reconnecting in ${delay}ms (attempt ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`
-    );
 
     set({ reconnectAttempts: reconnectAttempts + 1 });
 
@@ -133,11 +131,9 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       get()
         .connectWebSocket()
         .then(() => {
-          console.log("[ModelDownloadStore] Reconnected successfully");
           set({ reconnectAttempts: 0 });
         })
         .catch((err) => {
-          console.error("[ModelDownloadStore] Reconnection failed:", err);
           get().reconnectWebSocket();
         });
     }, delay);
@@ -213,9 +209,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
               download?.modelType === "llama_cpp_model" &&
               window.api?.restartLlamaServer
             ) {
-              console.log("Restarting llama-server after model download");
               window.api.restartLlamaServer().catch((e: unknown) => {
-                console.error("Failed to restart llama-server:", e);
+                log.error("Failed to restart llama-server:", e);
               });
             }
           }
