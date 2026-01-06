@@ -86,7 +86,8 @@ const ChatInputSection = ({
   showToolbar = true,
   allowedProviders
 }: ChatInputSectionProps) => {
-  const isDisconnected = status === "disconnected" || status === "connecting";
+  const isLoading = status === "loading";
+  const isStreaming = status === "streaming";
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   return (
@@ -122,11 +123,11 @@ const ChatInputSection = ({
       )}
       <div className="chat-composer-wrapper">
         <ChatComposer
-          status={status}
+          isLoading={isLoading}
+          isStreaming={isStreaming}
           onSendMessage={onSendMessage}
           onStop={onStop}
           onNewChat={onNewChat}
-          disabled={isDisconnected}
           agentMode={agentMode}
         />
       </div>

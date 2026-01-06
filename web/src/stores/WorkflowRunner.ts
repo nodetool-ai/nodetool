@@ -2,15 +2,13 @@
  * Workflow runner WebSocket bridge.
  *
  * Expects the backend runner protocol to accept `run_job` and `reconnect_job`
- * commands via `globalWebSocketManager`, keyed by workflow_id and job_id. The
+ * commands via `globalWebSocketManager`, keyed by workflow_id. The
  * server streams JobUpdate/Prediction/NodeProgress/NodeUpdate/TaskUpdate and
  * PlanningUpdate messages in order, and acknowledges a reconnect by replaying
  * in-flight updates for the given job_id.
  *
  * State machine: idle → connecting → connected → running → (cancelled|error).
- * `ensureConnection` subscribes to workflow_id topics, while reconnects also
- * subscribe to job_id channels so the UI continues receiving status after a
- * reload or tab switch.
+ * Subscription setup is handled by WorkflowManagerContext when workflows are loaded.
  */
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeData } from "./NodeData";
@@ -141,32 +139,6 @@ export const createWorkflowRunnerStore = (
       try {
         await globalWebSocketManager.ensureConnection();
         set({ state: "connected" });
-
-        // Subscribe to messages for this workflow
-        const currentUnsubscribe = get().unsubscribe;
-        if (currentUnsubscribe) {
-          currentUnsubscribe();
-        }
-
-        const unsubscribe = globalWebSocketManager.subscribe(
-          workflowId,
-          (message: any) => {
-            log.debug(
-              `WorkflowRunner[${workflowId}]: Received message`,
-              message
-            );
-            const workflow = get().workflow;
-            if (workflow) {
-              // Capture job_id from responses if present
-              if (message.job_id && !get().job_id) {
-                set({ job_id: message.job_id });
-              }
-              get().messageHandler(workflow, message);
-            }
-          }
-        );
-
-        set({ unsubscribe });
       } catch (error) {
         log.error(`WorkflowRunner[${workflowId}]: Connection failed:`, error);
         set({ state: "error" });
@@ -202,26 +174,6 @@ export const createWorkflowRunnerStore = (
           workflow_id: workflowId
         }
       });
-
-      // Also subscribe to job_id for messages
-      const jobUnsubscribe = globalWebSocketManager.subscribe(
-        jobId,
-        (message: any) => {
-          const workflow = get().workflow;
-          if (workflow) {
-            get().messageHandler(workflow, message);
-          }
-        }
-      );
-
-      // Combine unsubscribers
-      const existingUnsubscribe = get().unsubscribe;
-      set({
-        unsubscribe: () => {
-          existingUnsubscribe?.();
-          jobUnsubscribe();
-        }
-      });
     },
 
     /**
@@ -251,26 +203,6 @@ export const createWorkflowRunnerStore = (
         data: {
           job_id: jobId,
           workflow_id: workflow.id
-        }
-      });
-
-      // Also subscribe to job_id for messages
-      const jobUnsubscribe = globalWebSocketManager.subscribe(
-        jobId,
-        (message: any) => {
-          const workflow = get().workflow;
-          if (workflow) {
-            get().messageHandler(workflow, message);
-          }
-        }
-      );
-
-      // Combine unsubscribers
-      const existingUnsubscribe = get().unsubscribe;
-      set({
-        unsubscribe: () => {
-          existingUnsubscribe?.();
-          jobUnsubscribe();
         }
       });
     },
@@ -331,6 +263,9 @@ export const createWorkflowRunnerStore = (
       await get().ensureConnection();
 
       set({ workflow, nodes, edges });
+
+      const jobId = uuidv4();
+      set({ job_id: jobId });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearErrors = useErrorStore.getState().clearErrors;
@@ -412,7 +347,10 @@ export const createWorkflowRunnerStore = (
       await globalWebSocketManager.send({
         type: "run_job",
         command: "run_job",
-        data: req
+        data: {
+          ...(req as RunJobRequest & { job_id: string }),
+          job_id: jobId
+        }
       });
 
       // Invalidate running jobs query to refresh the list

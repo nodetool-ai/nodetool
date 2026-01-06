@@ -24,6 +24,51 @@ import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
 import { queryClient } from "../queryClient";
+import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
+
+type WorkflowSubscription = {
+  workflowId: string;
+  unsubscribe: () => void;
+};
+
+const workflowSubscriptions = new Map<string, WorkflowSubscription>();
+
+export const subscribeToWorkflowUpdates = (
+  workflowId: string,
+  workflow: WorkflowAttributes,
+  runnerStore: WorkflowRunnerStore
+): (() => void) => {
+  const existing = workflowSubscriptions.get(workflowId);
+  if (existing) {
+    existing.unsubscribe();
+  }
+
+  const unsubscribe = globalWebSocketManager.subscribe(
+    workflowId,
+    (message: any) => {
+      console.log("workflowUpdates: Received message", message);
+      handleUpdate(workflow, message, runnerStore);
+    }
+  );
+
+  workflowSubscriptions.set(workflowId, {
+    workflowId,
+    unsubscribe: () => {
+      unsubscribe();
+      workflowSubscriptions.delete(workflowId);
+    }
+  });
+
+  return workflowSubscriptions.get(workflowId)!.unsubscribe;
+};
+
+export const unsubscribeFromWorkflowUpdates = (workflowId: string): void => {
+  const sub = workflowSubscriptions.get(workflowId);
+  if (sub) {
+    sub.unsubscribe();
+    workflowSubscriptions.delete(workflowId);
+  }
+};
 
 /**
  * Central reducer for WorkflowRunner WebSocket updates.

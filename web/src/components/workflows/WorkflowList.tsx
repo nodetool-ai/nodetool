@@ -143,7 +143,7 @@ const WorkflowList = () => {
   );
 
   const workflows = useMemo(() => {
-    if (filterValue === "") {return data?.workflows || [];}
+    if (filterValue === "") { return data?.workflows || []; }
     // Optimization: Convert filter value to lowercase once instead of for each workflow
     const filterValueLower = filterValue.toLowerCase();
     return (data?.workflows || []).filter((workflow) =>
@@ -187,7 +187,7 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyPressed || shiftKeyPressed) {return;}
+      if (controlKeyPressed || shiftKeyPressed) { return; }
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -255,7 +255,7 @@ const WorkflowList = () => {
   );
 
   const finalWorkflows = useMemo(() => {
-    if (!selectedTag) {return workflows;}
+    if (!selectedTag) { return workflows; }
     return workflows.filter((wf) => wf.tags?.includes(selectedTag));
   }, [workflows, selectedTag]);
 
@@ -296,29 +296,29 @@ const WorkflowList = () => {
               position: "relative",
               overflow: "hidden",
               borderRadius: "16px",
-              color: (theme as any).vars.palette.primary.contrastText,
-              background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.main}, ${(theme as any).vars.palette.primary.dark})`,
-              boxShadow: `0 4px 20px ${(theme as any).vars.palette.primary.main}40`,
+              color: (theme as any).vars.palette.common.white,
+              background: (theme as any).vars.palette.grey[800],
+              boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
               textTransform: "none",
               fontWeight: 600,
               fontSize: "0.95rem",
               letterSpacing: "0.02em",
               justifyContent: "center",
-              border: `1px solid ${(theme as any).vars.palette.divider}`,
+              border: `1px solid ${(theme as any).vars.palette.grey[700]}`,
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              
+
               "&:hover": {
-                background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.light}, ${(theme as any).vars.palette.primary.main})`,
-                boxShadow: `0 8px 30px ${(theme as any).vars.palette.primary.main}60`,
+                background: (theme as any).vars.palette.grey[700],
+                boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
                 transform: "translateY(-2px)",
-                border: `1px solid ${(theme as any).vars.palette.action.focus}`,
+                border: `1px solid ${(theme as any).vars.palette.grey[600]}`,
               },
               "&:active": {
                 transform: "scale(0.98) translateY(0)",
-                boxShadow: `0 2px 10px ${(theme as any).vars.palette.primary.main}40`,
+                boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
               },
               "& svg": {
-                 fontSize: "1.3rem",
+                fontSize: "1.3rem",
               }
             }}
           >

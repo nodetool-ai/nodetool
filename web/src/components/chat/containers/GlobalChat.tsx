@@ -20,7 +20,7 @@ import ThreadList from "../thread/ThreadList";
 import type { ThreadInfo } from "../types/thread.types";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
-import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import ListIcon from "@mui/icons-material/List";
 
 const GlobalChat: React.FC = () => {
@@ -51,6 +51,21 @@ const GlobalChat: React.FC = () => {
     deleteThread,
     messageCache
   } = useGlobalChatStore();
+
+  // Get connection state from WebSocket manager directly
+  const [connectionState, setConnectionState] = React.useState(
+    globalWebSocketManager.getConnectionState()
+  );
+
+  useEffect(() => {
+    const unsubscribe = globalWebSocketManager.subscribeEvent(
+      "stateChange",
+      (state: string) => {
+        setConnectionState(globalWebSocketManager.getConnectionState());
+      }
+    );
+    return unsubscribe;
+  }, []);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
   );
@@ -106,9 +121,6 @@ const GlobalChat: React.FC = () => {
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread
   ]);
-
-  // Ensure chat connection while GlobalChat is visible (do not disconnect on unmount)
-  useEnsureChatConnected();
 
   // Handle thread switching when URL changes
   useEffect(() => {
@@ -437,16 +449,13 @@ const GlobalChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error ||
-            status === "reconnecting" ||
-            status === "disconnected" ||
-            status === "failed") && (
+          (error || !connectionState.isConnected) && (
             <Alert
               className="global-chat-status-alert"
               severity={
-                status === "reconnecting"
+                connectionState.isConnecting
                   ? "info"
-                  : status === "disconnected"
+                  : !connectionState.isConnected
                   ? "warning"
                   : "error"
               }
@@ -462,12 +471,10 @@ const GlobalChat: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              {status === "reconnecting"
-                ? statusMessage || "Reconnecting to chat service..."
-                : status === "disconnected"
-                ? "Connection lost. Reconnecting automatically..."
-                : status === "failed"
-                ? "Connection failed. Retrying automatically..."
+              {connectionState.isConnecting
+                ? statusMessage || "Connecting to chat service..."
+                : !connectionState.isConnected
+                ? "Connecting to chat service..."
                 : error}
             </Alert>
           )}

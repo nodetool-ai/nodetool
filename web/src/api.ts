@@ -2840,6 +2840,8 @@ export interface components {
             type: "chunk";
             /** Node Id */
             node_id?: string | null;
+            /** Thread Id */
+            thread_id?: string | null;
             /**
              * Content Type
              * @default text
@@ -3175,8 +3177,8 @@ export interface components {
              * @constant
              */
             type: "error";
-            /** Error */
-            error: string;
+            /** Message */
+            message: string;
         };
         /**
          * ExecutionStrategy
@@ -5811,6 +5813,7 @@ export interface components {
          *
          *     Attributes:
          *         type: The type of request, always "run_job_request".
+         *         job_id: Optional client-provided job ID for tracking the workflow execution.
          *         job_type: The type of job to run, defaults to "workflow".
          *         execution_strategy: Strategy for executing the job (threaded, subprocess, docker).
          *         params: Optional parameters for the job.
@@ -5830,6 +5833,8 @@ export interface components {
              * @constant
              */
             type: "run_job_request";
+            /** Job Id */
+            job_id?: string | null;
             /**
              * Job Type
              * @default workflow
