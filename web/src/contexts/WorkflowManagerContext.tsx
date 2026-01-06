@@ -451,7 +451,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           thumbnail_url: workflow.thumbnail_url,
           tags: workflow.tags,
           access: "private",
-          graph: JSON.parse(JSON.stringify(workflow.graph)), // Deep copy graph
+          graph: structuredClone(workflow.graph), // Deep copy graph
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           settings: workflow.settings

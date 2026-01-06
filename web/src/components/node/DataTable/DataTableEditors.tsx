@@ -79,6 +79,8 @@ export const floatEditor: Editor = (
   return editor;
 };
 
+const datePickerRoots = new Map<HTMLElement, { root: import("react-dom/client").Root }>();
+
 export const datetimeEditor: Editor = (
   cell: CellComponent,
   onRendered: EmptyCallback,
@@ -101,12 +103,21 @@ export const datetimeEditor: Editor = (
 
   onRendered(() => {
     const root = createRoot(editor);
+    datePickerRoots.set(editor, { root });
     root.render(
       <CustomDatePicker
         value={cell.getValue() as string}
         onChange={handleDateChange}
       />
     );
+
+    return () => {
+      const entry = datePickerRoots.get(editor);
+      if (entry) {
+        entry.root.unmount();
+        datePickerRoots.delete(editor);
+      }
+    };
   });
 
   editor.addEventListener("blur", () => cancel(null));

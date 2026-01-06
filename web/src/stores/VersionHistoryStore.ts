@@ -97,7 +97,7 @@ export const useVersionHistoryStore = create<VersionHistoryState>()(
         set((state) => ({
           editCountSinceLastSave: {
             ...state.editCountSinceLastSave,
-            [workflowId]: (state.editCountSinceLastSave[workflowId] || 0) + 1
+            [workflowId]: (state.editCountSinceLastSave[workflowId] ?? 0) + 1
           }
         }));
       },
@@ -112,7 +112,7 @@ export const useVersionHistoryStore = create<VersionHistoryState>()(
       },
 
       getEditCount: (workflowId: string): number => {
-        return get().editCountSinceLastSave[workflowId] || 0;
+        return get().editCountSinceLastSave[workflowId] ?? 0;
       },
 
       updateLastAutosaveTime: (workflowId: string): void => {

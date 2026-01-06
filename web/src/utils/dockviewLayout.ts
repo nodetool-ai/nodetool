@@ -18,7 +18,7 @@ type BranchNode = {
 };
 
 function deepClone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value));
+  return structuredClone(value);
 }
 
 export function migrateDockviewLayout(

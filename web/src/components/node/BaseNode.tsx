@@ -163,7 +163,7 @@ const getStyleProps = (
       .replace(/\s+/g, " ")
       .trim(),
     minHeight: metadata
-      ? BASE_HEIGHT + (metadata.outputs?.length || 0) * INCREMENT_PER_OUTPUT
+      ? BASE_HEIGHT + (metadata.outputs?.length ?? 0) * INCREMENT_PER_OUTPUT
       : BASE_HEIGHT
   };
 };
@@ -278,8 +278,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       nodeNamespace: metadata.namespace || "",
       nodeBasicFields: metadata.basic_fields || [],
       hasAdvancedFields:
-        (metadata.properties?.length || 0) >
-        (metadata.basic_fields?.length || 0),
+        (metadata.properties?.length ?? 0) >
+        (metadata.basic_fields?.length ?? 0),
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
   }, [
