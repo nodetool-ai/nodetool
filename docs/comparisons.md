@@ -15,7 +15,7 @@ This guide compares NodeTool with n8n and ComfyUI to help you choose the right t
 | **Visual editing** | ✅ Full canvas | ✅ Yes | ✅ Node-based |
 | **Agentic workflows** | ✅ Built-in planning & execution | ❌ Limited | ❌ No |
 | **Real-time streaming** | ✅ Token-by-token, live updates | ❌ Limited | ❌ Queue-based |
-| **Long-running workflows** | ✅ Resumable with state persistence | ❌ No | ❌ No |
+| **Long-running workflows** | ✅ Resumable with state persistence | ✅ Via webhooks/wait nodes | ❌ No |
 | **Strategic pipelines** | ✅ Multi-step campaigns, end-to-end | ⚠️ Simple automation | ⚠️ Image-focused |
 | **Local-first execution** | ✅ Core principle | ❌ Cloud-based | ✅ Local only |
 | **Deployment portability** | ✅ One workflow → many targets | ❌ Locked to platform | ❌ Self-host only |
@@ -45,9 +45,10 @@ This guide compares NodeTool with n8n and ComfyUI to help you choose the right t
 - You primarily need **SaaS integrations** (Gmail, Slack, Salesforce, CRMs)
 - You prefer **cloud-hosted** solutions with minimal infrastructure
 - Your workflows are **simple automation** (triggers, webhooks, notifications)
+- You need **long-running workflows** via webhooks and wait nodes for external callbacks
 - You don't need **local model execution**
 - You're comfortable with **vendor lock-in** for ease of use
-- Your workflows complete in **seconds or minutes** (not hours or days)
+- Your workflows complete in **seconds or minutes** (or use webhooks for longer)
 
 ### Key Difference
 n8n is a general-purpose automation platform for SaaS integration and simple "if this, then that" logic. NodeTool is AI-focused, designed for building complex, multi-step AI workflows with agents, local models, and strategic orchestration. n8n excels at connecting services; NodeTool excels at orchestrating AI reasoning and content generation.
@@ -56,7 +57,7 @@ n8n is a general-purpose automation platform for SaaS integration and simple "if
 
 **Real-time visibility:** NodeTool streams every token, every image generation step, and every intermediate result as it happens. See your AI thinking in real-time.
 
-**Resumable execution:** For workflows that take hours or days (video generation, large dataset processing, multi-stage campaigns), NodeTool can save state and resume from checkpoints.
+**Resumable execution:** For workflows that take hours or days (video generation, large dataset processing, multi-stage campaigns), NodeTool can save state and resume from checkpoints. n8n supports long-running workflows via webhooks and wait nodes, but without state persistence for checkpoint resume.
 
 **Cost consideration:** NodeTool's local execution can reduce API fees for high-volume AI workloads. n8n charges per workflow execution and requires cloud services for AI capabilities.
 
@@ -269,7 +270,7 @@ Coming from ComfyUI, you gain:
 - Need simple SaaS automation without AI (use n8n)
 - Only build image generation workflows and need maximum low-level control (use ComfyUI)
 - Need managed SaaS with uptime SLAs (NodeTool is self-hosted/open-source)
-- Have workflows that complete in seconds without needing resumability (simpler tools may suffice)
+- Have workflows that complete in seconds without needing resumable checkpoints (simpler tools may suffice)
 
 ---
 
