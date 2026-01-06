@@ -13,6 +13,7 @@ import log from "loglevel";
 import {
   Chunk,
   EdgeUpdate,
+  ErrorMessage,
   JobUpdate,
   Message,
   MessageContent,
@@ -26,6 +27,7 @@ import {
   TaskUpdate,
   ToolCallUpdate
 } from "../../stores/ApiTypes";
+import type { components } from "../../api";
 import {
   FrontendToolRegistry,
   FrontendToolState
@@ -75,7 +77,8 @@ export type MsgpackData =
   | WorkflowCreatedUpdate
   | GenerationStoppedUpdate
   | ToolCallMessage
-  | ToolResultMessage;
+  | ToolResultMessage
+  | ErrorMessage;
 
 export interface ToolResultMessage {
   type: "tool_result";
@@ -150,7 +153,7 @@ const applyJobUpdate = (
       }
     };
   }
-  if (update.status === "failed") {
+  if (update.status === "failed" || update.status === "error") {
     return {
       update: {
         status: "error",
@@ -721,6 +724,7 @@ export async function handleChatWebSocketMessage(
   get: ChatStateGetter
 ) {
   const currentState = get();
+  console.log("handleChatWebSocketMessage:", data);
 
   if (currentState.status === "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
@@ -744,6 +748,7 @@ export async function handleChatWebSocketMessage(
   };
 
   if (data.type === "job_update") {
+    console.log("Job update received:", data);
     applyReducer(applyJobUpdate, data as JobUpdate);
   } else if (data.type === "node_update") {
     applyReducer(applyNodeUpdate, data as NodeUpdate);
@@ -861,11 +866,12 @@ export async function handleChatWebSocketMessage(
     );
     const stoppedData = data as GenerationStoppedUpdate;
     log.info("Generation stopped:", stoppedData.message);
-  } else if ((data as any).type === "error") {
-    const errorData = data as any;
+  } else if (data.type === "error") {
+    const errorData = data as ErrorMessage;
+    console.log("Error message received:", errorData);
     applyReducer(
       (_state) => applyError(errorData.message),
-      errorData as { message?: string }
+      errorData
     );
   }
 }

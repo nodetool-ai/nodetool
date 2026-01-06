@@ -320,6 +320,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
             threadId,
             (data: MsgpackData) => {
+              console.log("WebSocket message received:", data);
               handleChatWebSocketMessage(data, set, get);
             }
           );
@@ -603,12 +604,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ...state.messageCache,
             [id]: []
           },
-          wsThreadSubscriptions: {
-            ...state.wsThreadSubscriptions,
-            [id]: globalWebSocketManager.subscribe(id, (data: MsgpackData) => {
-              handleChatWebSocketMessage(data, set, get);
-            })
-          }
+           wsThreadSubscriptions: {
+             ...state.wsThreadSubscriptions,
+             [id]: globalWebSocketManager.subscribe(id, (data: MsgpackData) => {
+               console.log("WebSocket message received:", data);
+               handleChatWebSocketMessage(data, set, get);
+             })
+           }
         }));
 
         return id;

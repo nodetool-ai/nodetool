@@ -2,15 +2,13 @@
  * Workflow runner WebSocket bridge.
  *
  * Expects the backend runner protocol to accept `run_job` and `reconnect_job`
- * commands via `globalWebSocketManager`, keyed by job_id. The
+ * commands via `globalWebSocketManager`, keyed by workflow_id. The
  * server streams JobUpdate/Prediction/NodeProgress/NodeUpdate/TaskUpdate and
  * PlanningUpdate messages in order, and acknowledges a reconnect by replaying
  * in-flight updates for the given job_id.
  *
  * State machine: idle → connecting → connected → running → (cancelled|error).
- * `ensureConnection` subscribes to job updates so the UI continues receiving
- * status after a
- * reload or tab switch.
+ * Subscription setup is handled by WorkflowManagerContext when workflows are loaded.
  */
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeData } from "./NodeData";
@@ -141,31 +139,6 @@ export const createWorkflowRunnerStore = (
       try {
         await globalWebSocketManager.ensureConnection();
         set({ state: "connected" });
-
-        // Subscribe to messages for this workflow
-        const currentUnsubscribe = get().unsubscribe;
-        if (currentUnsubscribe) {
-          currentUnsubscribe();
-        }
-
-        const jobId = get().job_id;
-        if (jobId) {
-          const unsubscribe = globalWebSocketManager.subscribe(
-            jobId,
-            (message: any) => {
-              log.debug(
-                `WorkflowRunner[${workflowId}]: Received message`,
-                message
-              );
-              const workflow = get().workflow;
-              if (workflow) {
-                get().messageHandler(workflow, message);
-              }
-            }
-          );
-
-          set({ unsubscribe });
-        }
       } catch (error) {
         log.error(`WorkflowRunner[${workflowId}]: Connection failed:`, error);
         set({ state: "error" });
@@ -201,26 +174,6 @@ export const createWorkflowRunnerStore = (
           workflow_id: workflowId
         }
       });
-
-      // Also subscribe to job_id for messages
-      const jobUnsubscribe = globalWebSocketManager.subscribe(
-        jobId,
-        (message: any) => {
-          const workflow = get().workflow;
-          if (workflow) {
-            get().messageHandler(workflow, message);
-          }
-        }
-      );
-
-      // Combine unsubscribers
-      const existingUnsubscribe = get().unsubscribe;
-      set({
-        unsubscribe: () => {
-          existingUnsubscribe?.();
-          jobUnsubscribe();
-        }
-      });
     },
 
     /**
@@ -250,26 +203,6 @@ export const createWorkflowRunnerStore = (
         data: {
           job_id: jobId,
           workflow_id: workflow.id
-        }
-      });
-
-      // Also subscribe to job_id for messages
-      const jobUnsubscribe = globalWebSocketManager.subscribe(
-        jobId,
-        (message: any) => {
-          const workflow = get().workflow;
-          if (workflow) {
-            get().messageHandler(workflow, message);
-          }
-        }
-      );
-
-      // Combine unsubscribers
-      const existingUnsubscribe = get().unsubscribe;
-      set({
-        unsubscribe: () => {
-          existingUnsubscribe?.();
-          jobUnsubscribe();
         }
       });
     },
@@ -333,27 +266,6 @@ export const createWorkflowRunnerStore = (
 
       const jobId = uuidv4();
       set({ job_id: jobId });
-
-      const currentUnsubscribe = get().unsubscribe;
-      if (currentUnsubscribe) {
-        currentUnsubscribe();
-      }
-
-      const unsubscribe = globalWebSocketManager.subscribe(
-        jobId,
-        (message: any) => {
-          log.debug(
-            `WorkflowRunner[${workflowId}]: Received message`,
-            message
-          );
-          const workflowState = get().workflow;
-          if (workflowState) {
-            get().messageHandler(workflowState, message);
-          }
-        }
-      );
-
-      set({ unsubscribe });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearErrors = useErrorStore.getState().clearErrors;

@@ -156,6 +156,7 @@ export type ThreadList = components["schemas"]["ThreadList"];
 export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
 export type Notification = components["schemas"]["Notification"];
 export type LogUpdate = components["schemas"]["LogUpdate"];
+export type ErrorMessage = components["schemas"]["Error"];
 export type SecretResponse = components["schemas"]["SecretResponse"];
 export type JobResponse = components["schemas"]["JobResponse"];
 export type JobListResponse = components["schemas"]["JobListResponse"];

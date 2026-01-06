@@ -3177,8 +3177,8 @@ export interface components {
              * @constant
              */
             type: "error";
-            /** Error */
-            error: string;
+            /** Message */
+            message: string;
         };
         /**
          * ExecutionStrategy

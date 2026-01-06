@@ -125,7 +125,7 @@ class GlobalWebSocketManager extends EventEmitter {
    * Route incoming message to registered handlers
    */
   private routeMessage(message: any): void {
-    log.debug("GlobalWebSocketManager: Routing message", message);
+    console.log("GlobalWebSocketManager: Received message", message);
 
     const routingKeys = new Set<string>();
 
@@ -133,8 +133,8 @@ class GlobalWebSocketManager extends EventEmitter {
       routingKeys.add(message.thread_id);
     }
 
-    if (message.job_id) {
-      routingKeys.add(message.job_id);
+    if (message.workflow_id) {
+      routingKeys.add(message.workflow_id);
     }
 
     if (routingKeys.size === 0) {

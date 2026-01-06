@@ -574,15 +574,17 @@ const WorkflowAssistantChat: React.FC = () => {
         <div
           className="error-message"
           style={{
-            position: "absolute",
-            top: "140px",
+            position: "fixed",
+            top: "60px",
             left: "50%",
-            width: "100%",
-            height: "fit-content",
-            minWidth: "200px",
-            minHeight: "30px",
-            transform: "translate(-50%, -50%)",
-            zIndex: 99
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            backgroundColor: "var(--palette-error-dark)",
+            color: "#fff",
+            padding: "8px 16px",
+            borderRadius: "4px",
+            maxWidth: "90%",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
           }}
         >
           {error}
