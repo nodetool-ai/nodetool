@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback } from "react";
 import {
@@ -10,15 +9,13 @@ import {
   ListItemText,
   ListItemIcon,
   Tooltip,
-  Typography
+  Typography,
+  useTheme
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { ImageModel, LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import {
-  toTitleCase,
-  formatGenericProviderName,
   isLocalProvider,
   isCloudProvider,
   isHuggingFaceInferenceProvider

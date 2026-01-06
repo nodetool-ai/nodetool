@@ -3,7 +3,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  Button,
   CircularProgress,
   Typography,
   Select,
@@ -15,7 +14,6 @@ import {
   IconButton
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -94,7 +92,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     runWorkflow,
     runnerState,
     statusMessage,
-    notifications,
     results,
     progress,
     resetWorkflowState

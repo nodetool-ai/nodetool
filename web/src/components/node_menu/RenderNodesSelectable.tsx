@@ -405,7 +405,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       ...selectedSection,
       ...Object.entries(groupNodes(unselectedNodes)).flatMap(
         ([namespace, nodesInNamespace], namespaceIndex) => {
-          const elements: JSX.Element[] = [];
+          const _elements: JSX.Element[] = [];
 
           let textForNamespaceHeader = namespace; // Default to full namespace string
 

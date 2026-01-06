@@ -1,11 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { IconButton, Box } from "@mui/material";
+import { IconButton, Box, Theme, useTheme } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 // components

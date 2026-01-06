@@ -96,7 +96,7 @@ describe('Performance Regression Tests', () => {
       };
 
       const GoodSelector = () => {
-        const data = useTestStore((state) => state.data);
+        const _data = useTestStore((state) => state.data);
         goodRenders++;
         return null;
       };
@@ -379,7 +379,7 @@ describe('Performance Regression Tests', () => {
       });
       Level2.displayName = 'Level2';
 
-      const Level1 = ({ value, trigger }: { value: number; trigger: number }) => {
+      const Level1 = ({ value, trigger: _trigger }: { value: number; trigger: number }) => {
         return <Level2 value={value} />;
       };
 
@@ -442,7 +442,7 @@ describe('Performance Regression Tests', () => {
       Child.displayName = 'Child';
 
       // BAD: Inline object
-      const BadParent = ({ trigger }: { trigger: number }) => {
+      const BadParent = ({ trigger: _trigger }: { trigger: number }) => {
         return <Child config={{ value: 42 }} />; // New object every render!
       };
 
@@ -456,7 +456,7 @@ describe('Performance Regression Tests', () => {
 
       // GOOD: Stable object
       const stableConfig = { value: 42 };
-      const GoodParent = ({ trigger }: { trigger: number }) => {
+      const GoodParent = ({ trigger: _trigger }: { trigger: number }) => {
         return <Child config={stableConfig} />;
       };
 
@@ -507,7 +507,7 @@ describe('Performance Regression Tests', () => {
       });
       MemoizedComponent.displayName = 'MemoizedComponent';
 
-      const Parent = ({ trigger }: { trigger: number }) => {
+      const Parent = ({ trigger: _trigger }: { trigger: number }) => {
         return (
           <>
             <UnmemoizedComponent value={42} />

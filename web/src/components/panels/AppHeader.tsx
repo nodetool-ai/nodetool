@@ -179,7 +179,7 @@ const TemplatesButton = memo(function TemplatesButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
+  const _theme = useTheme();
 
   const handleClick = useCallback(() => {
     navigate("/templates");
@@ -224,7 +224,7 @@ const ChatButton = memo(function ChatButton({
         switchThread(newThreadId);
         navigate(`/chat/${newThreadId}`);
       }
-    } catch (e) {
+    } catch (_e) {
       navigate(`/chat`);
     }
   }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
@@ -298,7 +298,7 @@ const AssetsButton = memo(function AssetsButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
+  const _theme = useTheme();
 
   const handleClick = useCallback(() => {
     navigate("/assets");
@@ -325,7 +325,7 @@ const CollectionsButton = memo(function CollectionsButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
+  const _theme = useTheme();
 
   const handleClick = useCallback(() => {
     navigate("/collections");

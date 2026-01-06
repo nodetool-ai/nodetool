@@ -1,19 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useRef, useEffect, useMemo, memo, useState } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import { useRef, useEffect, useMemo, memo, useState } from "react";
 import {
   useReactFlow,
-  Node,
   Background,
   BackgroundVariant,
   ReactFlow,
   SelectionMode,
   ConnectionMode,
-  useViewport,
-  Connection,
-  Edge,
-  IsValidConnection,
-  Viewport
+  useViewport
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -44,7 +38,6 @@ import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
 import isEqual from "lodash/isEqual";
-import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
@@ -61,8 +54,6 @@ import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
-import { getMousePosition } from "../../utils/MousePosition";
-import { wouldCreateCycle } from "../../utils/graphCycle";
 import {
   getSelectionRect,
   getNodesWithinSelection
@@ -116,7 +107,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const shouldFitToScreen = useNodes((state) => state.shouldFitToScreen);
   const setShouldFitToScreen = useNodes((state) => state.setShouldFitToScreen);
   const storedViewport = useNodes((state) => state.viewport);
-  const setViewport = useNodes((state) => state.setViewport);
+  const _setViewport = useNodes((state) => state.setViewport);
   const deleteEdge = useNodes((state) => state.deleteEdge);
   const setEdgeSelectionState = useNodes(
     (state) => state.setEdgeSelectionState
@@ -138,8 +129,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     y: number;
   } | null>(null);
   const ghostRafRef = useRef<number | null>(null);
-  const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
-  const selectionEndRef = useRef<{ x: number; y: number } | null>(null);
+  const _selectionStartRef = useRef<{ x: number; y: number } | null>(null);
+  const _selectionEndRef = useRef<{ x: number; y: number } | null>(null);
   const ghostTheme = useMemo(() => {
     const isDark = theme.palette.mode === "dark";
     return {
@@ -255,7 +246,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     };
   }, [deleteEdge]);
 
-  const { close: closeSelect } = useSelect();
+  const { close: _closeSelect } = useSelect();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
@@ -276,9 +267,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const { onDrop, onDragOver } = useDropHandler();
 
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
-  const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
+  const _openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const _closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
+  const _isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
   useEffect(() => {
     return () => {
@@ -366,8 +357,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   } = useNodeEvents();
 
   const {
-    onEdgeMouseEnter,
-    onEdgeMouseLeave,
     onEdgeContextMenu,
     onEdgeUpdateEnd,
     onEdgeUpdateStart,

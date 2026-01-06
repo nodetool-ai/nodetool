@@ -31,7 +31,7 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   return typeMap[type] || "info";
 };
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     position: "fixed",
     top: "60px",
@@ -196,7 +196,7 @@ const Alert: React.FC = () => {
   //   await writeClipboard(content, true);
   // };
   return (
-    <TransitionGroup component="ul" css={styles(theme)} className="alert-list">
+    <TransitionGroup component="ul" css={styles()} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
           nodeRefs.current[notification.id] = createRef<HTMLLIElement>();

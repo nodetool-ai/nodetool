@@ -1,15 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import { css, SerializedStyles } from "@emotion/react";
+import { css } from "@emotion/react";
 import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
-import WarningIcon from "@mui/icons-material/Warning";
 import { useMemo, useState, useCallback } from "react";
-import { Button, TextField, Typography, Box, Divider, IconButton, Tooltip } from "@mui/material";
+import { Button, TextField, Typography, Box, IconButton, Tooltip } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import {
   isFileExplorerAvailable,
@@ -44,7 +42,7 @@ const FolderButton = ({ label, onClick }: FolderButtonProps) => (
   </Button>
 );
 
-const ExternalLinkButton = ({
+const _ExternalLinkButton = ({
   href,
   children
 }: {

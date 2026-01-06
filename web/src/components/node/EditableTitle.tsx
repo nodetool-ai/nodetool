@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useState } from "react";
+import { Box, IconButton, useTheme } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 interface EditableTitleProps {
   nodeId: string;

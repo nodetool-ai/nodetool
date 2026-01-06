@@ -14,7 +14,7 @@ export const integerEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("input");
   editor.setAttribute("type", "text");
@@ -49,7 +49,7 @@ export const floatEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("input");
   editor.setAttribute("type", "text");
@@ -84,7 +84,7 @@ export const datetimeEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("div");
   editor.style.width = "100%";

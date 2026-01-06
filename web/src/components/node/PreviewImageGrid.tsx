@@ -1,9 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { Box, Button, IconButton, Checkbox, Tooltip, Dialog } from "@mui/material";
+import { Box, Button, IconButton, Checkbox, Tooltip, Dialog, Theme, useTheme } from "@mui/material";
 import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -153,7 +151,7 @@ const styles = (theme: Theme, gap: number) =>
   });
 
 // Helper to safely revoke previous blob URLs
-function revokeAll(urls: string[]) {
+function _revokeAll(urls: string[]) {
   urls.forEach((u) => {
     try {
       if (u && u.startsWith("blob:")) {URL.revokeObjectURL(u);}
@@ -240,7 +238,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
   // Map each ImageSource to a persistent URL. Strings map to themselves.
   const urlMapRef = useRef<Map<ImageSource, string>>(new Map());
-  const [version, setVersion] = useState(0); // force rerender when map changes
+  const [_version, setVersion] = useState(0); // force rerender when map changes
 
   // Build URLs for current images and cleanup URLs for removed ones
   useEffect(() => {

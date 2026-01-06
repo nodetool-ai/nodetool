@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
+import React from "react";
 import { css } from "@emotion/react";
-import { Typography } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useTheme } from "@mui/material";
 
 interface SidebarItem {
   id: string;

@@ -383,7 +383,7 @@ export default function FileBrowserDialog({
               updateTreeItem(node.id, folders.length > 0 ? folders : []);
               // Break after one update, effect will re-run
               return;
-            } catch (e) {
+      } catch (e) {
               console.error("Failed to load tree node for sync", e);
               updateTreeItem(node.id, []);
               return;

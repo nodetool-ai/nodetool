@@ -1,10 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useContext, useMemo } from "react";
-import type { CSSProperties, MouseEvent, DragEvent as ReactDragEvent, ReactNode } from "react";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { memo, useCallback, useMemo } from "react";
+import type { CSSProperties, DragEvent as ReactDragEvent, ReactNode } from "react";
+import { Box, Tooltip, Typography, Theme, useTheme } from "@mui/material";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ImageIcon from "@mui/icons-material/Image";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";

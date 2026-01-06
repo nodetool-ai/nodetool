@@ -269,7 +269,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // const handleHeaderClick = () => {
   //   updateNode(props.id, { selected: true });
   // };
-  const handleHeaderDoubleClick = (e: React.MouseEvent) => {
+  const handleHeaderDoubleClick = () => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();
     // e.preventDefault();

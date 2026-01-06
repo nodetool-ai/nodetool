@@ -44,7 +44,7 @@ export interface NodeSwitchProps extends Omit<SwitchProps, "size"> {
  */
 export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
   ({ className, sx, changed, ...props }, ref) => {
-    const theme = useTheme();
+    const _theme = useTheme();
     const scope = useEditorScope();
     const scopeClass =
       scope === "inspector"

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useTheme } from "@mui/material";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
@@ -14,8 +15,6 @@ import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
 import TableActions from "./TableActions";
 import { tableStyles } from "../../../styles/TableStyles";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 export type DictDataType = "int" | "string" | "datetime" | "float";
 export type DictTableProps = {
   data: Record<string, any>;

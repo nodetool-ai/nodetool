@@ -4,14 +4,10 @@ import { Toolbar, IconButton, Tooltip } from "@mui/material";
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
-import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
-import HelpIcon from "@mui/icons-material/Help";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
-import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { NodeData } from "../../stores/NodeData";
-import { Node } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import isEqual from "lodash/isEqual";
@@ -27,7 +23,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
   const deleteNode = useNodes((state) => state.deleteNode);
   const node = nodeId !== null ? getNode(nodeId) : null;
-  const removeFromGroup = useRemoveFromGroup();
   const { handleCopy } = useCopyPaste();
   const duplicateNodes = useDuplicateNodes();
   const openDocumentation = useNodeMenuStore(
@@ -51,7 +46,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     }
   }, [nodeId, getNode, duplicateNodes]);
 
-  const handleOpenDocumentation = useCallback(() => {
+  const _handleOpenDocumentation = useCallback(() => {
     const mousePosition = getMousePosition();
     openDocumentation(node?.type || "", {
       x: mousePosition.x,

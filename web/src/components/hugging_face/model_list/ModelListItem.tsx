@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, memo, useCallback } from "react";
-import { Typography, Tooltip, Chip, Box, Link, Button } from "@mui/material";
+import { Typography, Tooltip, Chip, Box, Link } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -54,8 +53,8 @@ const ModelListItem: React.FC<
       total: compatibility.recommended.length + compatibility.compatible.length
     };
   }, [compatibility]);
-  
-  const handleDialogOpen = useCallback(() => {
+
+  const _handleDialogOpen = useCallback(() => {
     setDialogOpen(true);
   }, []);
   

@@ -67,7 +67,6 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
       sx,
       changed,
       invalid,
-      density = "compact",
       ...props
     },
     ref

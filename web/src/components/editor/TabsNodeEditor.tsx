@@ -7,7 +7,7 @@ import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
-import { Workflow, WorkflowAttributes, Node, Edge } from "../../stores/ApiTypes";
+import { Workflow, WorkflowAttributes, WorkflowVersion, Node, Edge } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 
@@ -19,7 +19,7 @@ import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useVersionHistoryStore, WorkflowVersion } from "../../stores/VersionHistoryStore";
+import { useVersionHistoryStore } from "../../stores/VersionHistoryStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useAutosave } from "../../hooks/useAutosave";
 // import { getIsElectronDetails } from "../../utils/browser";
@@ -403,7 +403,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const theme = useTheme();
 
   // Handler to restore a workflow version
-  const handleRestoreVersion = async (version: WorkflowVersion) => {
+  const _handleRestoreVersion = async (version: WorkflowVersion) => {
     if (!activeNodeStore || !currentWorkflowId) {
       return;
     }

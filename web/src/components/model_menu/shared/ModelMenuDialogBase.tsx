@@ -80,7 +80,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const activeSidebarTab = storeHook((s) => s.activeSidebarTab);
   const setActiveSidebarTab = storeHook((s) => s.setActiveSidebarTab);
 
-  const [selectedModel, setSelectedModel] = useState<TModel | null>(null);
+  const [_selectedModel, setSelectedModel] = useState<TModel | null>(null);
 
   const {
     providers,
@@ -88,7 +88,6 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     favoriteModels,
     recentModels,
     totalCount,
-    filteredCount,
     totalActiveCount
   } = useModelMenuData<TModel>(models || [], storeHook);
 
@@ -96,8 +95,8 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
   const sizeBucket = useModelFiltersStore((s) => s.sizeBucket);
   const families = useModelFiltersStore((s) => s.families);
-  const search = storeHook((s) => s.search);
-  const selectedProvider = storeHook((s) => s.selectedProvider);
+  const _search = storeHook((s) => s.search);
+  const _selectedProvider = storeHook((s) => s.selectedProvider);
 
   const { familiesList } = useMemo(() => {
     const idx = buildMetaIndex(filteredModels.length ? filteredModels : []);
