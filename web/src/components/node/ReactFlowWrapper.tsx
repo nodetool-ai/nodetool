@@ -88,6 +88,7 @@ const ContextMenus = memo(function ContextMenus() {
 });
 
 import GhostNode from "./GhostNode";
+import MiniMapNavigator from "./MiniMapNavigator";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -567,6 +568,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           theme={ghostTheme}
         />
       )}
+      <MiniMapNavigator />
     </div>
   );
 };

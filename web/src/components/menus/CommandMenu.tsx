@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { Command, CommandInput } from "cmdk";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
@@ -22,6 +20,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
+import { useMiniMapStore } from "../../stores/MiniMapStore";
 
 type CommandMenuProps = {
   open: boolean;
@@ -151,6 +150,21 @@ const LayoutCommands = memo(function LayoutCommands() {
       >
         Align Nodes with Spacing
       </Command.Item>
+      </Command.Group>
+  );
+});
+
+const ViewCommands = memo(function ViewCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const { visible, toggleVisible } = useMiniMapStore();
+
+  return (
+    <Command.Group heading="View">
+      <Command.Item
+        onSelect={() => executeAndClose(toggleVisible)}
+      >
+        {visible ? "Hide Mini Map" : "Show Mini Map"}
+      </Command.Item>
     </Command.Group>
   );
 });
@@ -258,7 +272,7 @@ const ExampleCommands = memo(function ExampleCommands() {
 const useCommandMenu = create<{
   executeAndClose: (action: () => void) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
-}>((set) => ({
+}>((_set) => ({
   executeAndClose: () => {},
   reactFlowWrapper: { current: null }
 }));
@@ -319,6 +333,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
           <WorkflowCommands />
           <UndoCommands undo={undo} redo={redo} />
           <LayoutCommands />
+          <ViewCommands />
           <NodeCommands />
           <ExampleCommands />
         </Command.List>
