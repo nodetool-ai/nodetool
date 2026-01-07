@@ -1,12 +1,11 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import isEqual from "lodash/isEqual";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { TTSModel } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
 import Select from "../inputs/Select";
-import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import { useTTSModelsByProvider } from "../../hooks/useModelsByProvider";
 
 interface TTSModelSelectProps {
   onChange: (value: any) => void;
@@ -17,23 +16,9 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
-  const loadTTSModels = useCallback(async () => {
-    const { data, error } = await client.GET(
-      "/api/models/{model_type}" as any,
-      {
-        params: { path: { model_type: "tts" } }
-      }
-    );
-    if (error) {
-      throw error;
-    }
-    return data as unknown as TTSModel[];
-  }, []);
+  const getDefaultModel = useModelPreferencesStore((s) => s.getDefaultModel);
 
-  const { data: models } = useQuery({
-    queryKey: ["tts-models"],
-    queryFn: async () => await loadTTSModels()
-  });
+  const { models, isLoading } = useTTSModelsByProvider();
 
   // Extract model ID from value (can be string or TTSModel object)
   const modelId = useMemo(() => {
@@ -49,6 +34,40 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
     }
     return models.find((m) => m.id === modelId);
   }, [models, modelId]);
+
+  // Automatically fall back to default model if current model is not found
+  useEffect(() => {
+    // Only check once models are loaded and we have a value set
+    if (isLoading || !models || models.length === 0) {
+      return;
+    }
+    
+    // If no value is set or model exists, don't do anything
+    if (!modelId || currentSelectedModelDetails) {
+      return;
+    }
+
+    // Model not found in the list, try to fall back to default
+    const defaultModel = getDefaultModel("tts_model");
+    if (defaultModel) {
+      // Check if the default model exists in the available models
+      const defaultModelDetails = models.find((m) => m.id === defaultModel.id);
+      if (defaultModelDetails) {
+        const modelToPass = {
+          type: "tts_model" as const,
+          id: defaultModel.id,
+          provider: defaultModel.provider,
+          name: defaultModel.name,
+          voices: defaultModelDetails.voices || [],
+          selected_voice:
+            defaultModelDetails.voices && defaultModelDetails.voices.length > 0
+              ? defaultModelDetails.voices[0]
+              : ""
+        };
+        onChange(modelToPass);
+      }
+    }
+  }, [modelId, models, isLoading, currentSelectedModelDetails, getDefaultModel, onChange]);
 
   // Get selected voice from value object
   const selectedVoice = useMemo(() => {

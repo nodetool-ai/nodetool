@@ -27,6 +27,7 @@ export default function ASRModelMenuDialog({
       title="Select ASR Model"
       searchPlaceholder="Search speech-to-text models..."
       storeHook={useASRModelMenuStore}
+      modelType="asr_model"
     />
   );
 }

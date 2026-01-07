@@ -27,6 +27,7 @@ export default function LanguageModelMenuDialog({
       title="Select Language Model"
       searchPlaceholder="Search language models..."
       storeHook={useLanguageModelMenuStore}
+      modelType="language_model"
     />
   );
 }

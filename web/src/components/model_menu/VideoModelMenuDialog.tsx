@@ -29,6 +29,7 @@ export default function VideoModelMenuDialog({
       title="Select Video Model"
       searchPlaceholder="Search text-to-video models..."
       storeHook={useVideoModelMenuStore}
+      modelType="video_model"
     />
   );
 }

@@ -33,6 +33,7 @@ import {
   ModelMenuStoreHook,
   useModelMenuData
 } from "../../../stores/ModelMenuStore";
+import type { DefaultModelType } from "../../../stores/ModelPreferencesStore";
 
 const containerStyles = css({
   display: "grid",
@@ -60,6 +61,11 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   title?: string;
   searchPlaceholder?: string;
   storeHook: ModelMenuStoreHook<TModel>;
+  /**
+   * The model type for default model preferences.
+   * When provided, enables "Set as Default" functionality in the model list.
+   */
+  modelType?: DefaultModelType;
 }
 
 export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
@@ -69,7 +75,8 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   onModelChange,
   title = "Select Model",
   searchPlaceholder = "Search models...",
-  storeHook
+  storeHook,
+  modelType
 }: ModelMenuBaseProps<TModel>) {
   const { models, isLoading, error: fetchedError } = modelData;
 
@@ -243,6 +250,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             <ModelList<TModel>
               models={filteredModelsAdvanced}
               onSelect={handleSelectModel}
+              modelType={modelType}
             />
           </Box>
           <Box
