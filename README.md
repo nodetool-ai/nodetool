@@ -1,10 +1,5 @@
 # NodeTool: Visual AI Workflow Builder
 
-![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
-[![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
-[![E2E Tests](https://github.com/nodetool-ai/nodetool/actions/workflows/e2e.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/e2e.yml)
-![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
-
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
 [![Latest Release](https://img.shields.io/github/v/release/nodetool-ai/nodetool?display_name=tag&sort=semver)](https://github.com/nodetool-ai/nodetool/releases/latest)
