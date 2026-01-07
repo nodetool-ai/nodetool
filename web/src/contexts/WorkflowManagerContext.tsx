@@ -37,6 +37,7 @@ import {
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "../stores/workflowUpdates";
 import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
+import log from "loglevel";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
