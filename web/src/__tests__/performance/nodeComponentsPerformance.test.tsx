@@ -568,7 +568,9 @@ describe('Performance Benchmarks', () => {
       const _basic = node.properties.filter((p) => p.basic);
       const _advanced = node.properties.filter((p) => !p.basic);
       // Use variables to avoid unused variable warning
-      if (_basic.length === 0 && _advanced.length === 0) console.log(node);
+      if (_basic.length === 0 && _advanced.length === 0) {
+        console.log(node);
+      }
     });
 
     const duration = performance.now() - start;
