@@ -35,8 +35,6 @@ import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import SpaceBetweenIcon from "@mui/icons-material/SpaceBetweenVertically";
-import SpaceBarIcon from "@mui/icons-material/SpaceBar";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import useDistributeNodes from "../../hooks/useDistributeNodes";
@@ -300,6 +298,8 @@ const FloatingToolBar: React.FC<{
     })
   );
 
+  const distributeNodes = useDistributeNodes();
+
   const { getWorkflow: getWorkflowById, saveWorkflow } = useWorkflowManager(
     (state) => ({
       getWorkflow: state.getWorkflow,
@@ -501,24 +501,6 @@ const FloatingToolBar: React.FC<{
           variant="neutral"
           onClick={handleAutoLayout}
           aria-label="Auto layout nodes"
-        />
-        <ToolbarButton
-          icon={<SpaceBarIcon />}
-          tooltip="Distribute Horizontally"
-          shortcut="distributeHorizontal"
-          variant="neutral"
-          onClick={handleDistributeHorizontal}
-          disabled={selectedNodesCount < 3}
-          aria-label="Distribute nodes horizontally"
-        />
-        <ToolbarButton
-          icon={<SpaceBetweenIcon />}
-          tooltip="Distribute Vertically"
-          shortcut="distributeVertical"
-          variant="neutral"
-          onClick={handleDistributeVertical}
-          disabled={selectedNodesCount < 3}
-          aria-label="Distribute nodes vertically"
         />
         <ToolbarButton
           icon={<SaveIcon />}

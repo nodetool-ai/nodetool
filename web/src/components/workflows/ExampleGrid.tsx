@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
       borderRadius: "16px",
       background: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[800]}`,
-      transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+      transition: "all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)",
       boxShadow: `0 4px 6px ${theme.vars.palette.grey[900]}1a`,
       "&:hover": {
         transform: "translateY(-4px) scale(1.02)",
@@ -97,7 +97,7 @@ const styles = (theme: Theme) =>
         outline: `1px solid ${"var(--palette-primary-main)"}80`,
         outlineOffset: "2px",
         zIndex: 10,
-        animation: "sciFiGlow 2s ease-in-out infinite"
+        animation: "sciFiGlow 3s ease-in-out infinite"
       },
       "@keyframes sciFiGlow": {
         "0%, 100%": {
@@ -182,7 +182,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       letterSpacing: "0.5px",
       opacity: 0,
-      transition: "opacity 0.2s ease"
+      transition: "opacity 0.4s ease"
     },
     ".workflow:hover .package-name": {
       opacity: 1
@@ -223,10 +223,9 @@ const styles = (theme: Theme) =>
       position: "relative",
       borderTopLeftRadius: "16px",
       borderTopRightRadius: "16px",
-      background: `linear-gradient(0deg, ${"var(--palette-primary-main)"}20, ${
-        theme.vars.palette.grey[800]
-      }22)`,
-      transition: "height 0.3s ease"
+      background: `linear-gradient(0deg, ${"var(--palette-primary-main)"}20, ${theme.vars.palette.grey[800]
+        }22)`,
+      transition: "height 0.5s ease"
     },
     ".workflow:hover .image-wrapper": {
       height: "200px"
@@ -472,11 +471,11 @@ const TemplateGrid = () => {
   }, [inputValue]);
 
   const groupedWorkflows = useMemo(() => {
-    if (!data) {return {};}
+    if (!data) { return {}; }
     return data.workflows.reduce(
       (acc: Record<string, Workflow[]>, workflow: Workflow) => {
         workflow.tags?.forEach((tag: string) => {
-          if (!acc[tag]) {acc[tag] = [];}
+          if (!acc[tag]) { acc[tag] = []; }
           acc[tag].push(workflow);
         });
         return acc;
@@ -587,7 +586,7 @@ const TemplateGrid = () => {
 
   const onClickWorkflow = useCallback(
     async (workflow: Workflow) => {
-      if (loadingWorkflowId) {return;} // Prevent multiple clicks
+      if (loadingWorkflowId) { return; } // Prevent multiple clicks
 
       setLoadingWorkflowId(workflow.id);
       try {
@@ -637,7 +636,7 @@ const TemplateGrid = () => {
 
   // Calculate grid dimensions based on container width
   const calculateColumns = useCallback((width: number) => {
-    if (width <= 0) {return 1;}
+    if (width <= 0) { return 1; }
     return Math.max(1, Math.floor((width + GAP) / (CARD_WIDTH + GAP)));
   }, []);
 
@@ -671,7 +670,7 @@ const TemplateGrid = () => {
       const index = rowIndex * data.columns + columnIndex;
       const workflow = data.filteredWorkflows[index];
 
-      if (!workflow) {return null;}
+      if (!workflow) { return null; }
 
       const searchResult = data.searchResults.find(
         (r: FrontendSearchResult) => r.workflow.id === workflow.id
