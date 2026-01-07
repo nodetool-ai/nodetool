@@ -3,7 +3,7 @@
  * Tests the NodeMenuStore state management for keyboard navigation.
  */
 
-import { createNodeMenuStore, NodeMenuStore } from "../../../stores/NodeMenuStore";
+import { createNodeMenuStore } from "../../../stores/NodeMenuStore";
 
 // Mock MetadataStore
 jest.mock("../../../stores/MetadataStore", () => ({
