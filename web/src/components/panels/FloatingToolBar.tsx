@@ -35,8 +35,11 @@ import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import SpaceBetweenIcon from "@mui/icons-material/SpaceBetweenVertically";
+import SpaceBarIcon from "@mui/icons-material/SpaceBar";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
+import useDistributeNodes from "../../hooks/useDistributeNodes";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { Workflow } from "../../stores/ApiTypes";
@@ -271,16 +274,19 @@ const FloatingToolBar: React.FC<{
     setInstantUpdate: state.setInstantUpdate
   }));
 
-  const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
+  const { workflow, nodes, edges, autoLayout, workflowJSON, getSelectedNodes } = useNodes(
     (state) => ({
       workflow: state.workflow,
       nodes: state.nodes,
       edges: state.edges,
       autoLayout: state.autoLayout,
-      workflowJSON: state.workflowJSON
+      workflowJSON: state.workflowJSON,
+      getSelectedNodes: state.getSelectedNodes
     })
   );
   const getCurrentWorkflow = useNodes((state) => state.getWorkflow);
+
+  const selectedNodesCount = getSelectedNodes().length;
 
   const { run, isWorkflowRunning, isPaused, isSuspended, cancel, pause, resume } = useWebsocketRunner(
     (state) => ({
@@ -362,6 +368,14 @@ const FloatingToolBar: React.FC<{
   const handleAutoLayout = useCallback(() => {
     autoLayout();
   }, [autoLayout]);
+
+  const handleDistributeHorizontal = useCallback(() => {
+    distributeNodes({ direction: "horizontal" });
+  }, [distributeNodes]);
+
+  const handleDistributeVertical = useCallback(() => {
+    distributeNodes({ direction: "vertical" });
+  }, [distributeNodes]);
 
   const handleOpenInMiniApp = useCallback(() => {
     if (!workflow?.id) {
@@ -487,6 +501,24 @@ const FloatingToolBar: React.FC<{
           variant="neutral"
           onClick={handleAutoLayout}
           aria-label="Auto layout nodes"
+        />
+        <ToolbarButton
+          icon={<SpaceBarIcon />}
+          tooltip="Distribute Horizontally"
+          shortcut="distributeHorizontal"
+          variant="neutral"
+          onClick={handleDistributeHorizontal}
+          disabled={selectedNodesCount < 3}
+          aria-label="Distribute nodes horizontally"
+        />
+        <ToolbarButton
+          icon={<SpaceBetweenIcon />}
+          tooltip="Distribute Vertically"
+          shortcut="distributeVertical"
+          variant="neutral"
+          onClick={handleDistributeVertical}
+          disabled={selectedNodesCount < 3}
+          aria-label="Distribute nodes vertically"
         />
         <ToolbarButton
           icon={<SaveIcon />}
