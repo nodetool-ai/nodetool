@@ -29,6 +29,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
+import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -36,6 +37,7 @@ import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
@@ -215,7 +217,7 @@ const styles = (theme: Theme) =>
       }
     },
 
-    /* Instant update button: glowing effect when active */
+/* Instant update button: glowing effect when active */
     ".floating-action-button.instant-update": {
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
@@ -228,8 +230,26 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.warning.contrastText,
         boxShadow: `0 0 12px ${theme.vars.palette.warning.main}`,
         "&:hover": {
-          backgroundColor: theme.vars.palette.warning.dark,
+          backgroundColor: "warning.dark",
           boxShadow: `0 0 16px ${theme.vars.palette.warning.main}`
+        }
+      }
+    },
+
+    /* MiniMap button: active state */
+    ".floating-action-button.minimap-toggle": {
+      backgroundColor: "transparent",
+      color: theme.vars.palette.grey[400],
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.grey[200]
+      },
+      "&.active": {
+        backgroundColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.primary.contrastText,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.primary.light,
+          color: theme.vars.palette.primary.contrastText
         }
       }
     },
@@ -270,6 +290,13 @@ const FloatingToolBar: React.FC<{
     instantUpdate: state.settings.instantUpdate,
     setInstantUpdate: state.setInstantUpdate
   }));
+
+  const { visible: isMiniMapVisible, toggleVisible: toggleMiniMap } = useMiniMapStore(
+    (state) => ({
+      visible: state.visible,
+      toggleVisible: state.toggleVisible
+    })
+  );
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
@@ -433,6 +460,10 @@ const FloatingToolBar: React.FC<{
     setInstantUpdate(!instantUpdate);
   }, [instantUpdate, setInstantUpdate]);
 
+  const handleToggleMiniMap = useCallback(() => {
+    toggleMiniMap();
+  }, [toggleMiniMap]);
+
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -487,6 +518,14 @@ const FloatingToolBar: React.FC<{
           variant="neutral"
           onClick={handleAutoLayout}
           aria-label="Auto layout nodes"
+        />
+        <ToolbarButton
+          icon={<MapIcon />}
+          tooltip="Toggle Mini Map"
+          variant="neutral"
+          className={cn("minimap-toggle", isMiniMapVisible && "active")}
+          onClick={handleToggleMiniMap}
+          aria-label="Toggle minimap"
         />
         <ToolbarButton
           icon={<SaveIcon />}

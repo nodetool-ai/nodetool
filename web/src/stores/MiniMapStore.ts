@@ -7,7 +7,7 @@ interface MiniMapState {
 }
 
 export const useMiniMapStore = create<MiniMapState>((set) => ({
-  visible: true,
+  visible: false,
   setVisible: (visible: boolean) => set({ visible }),
   toggleVisible: () => set((state) => ({ visible: !state.visible }))
 }));
