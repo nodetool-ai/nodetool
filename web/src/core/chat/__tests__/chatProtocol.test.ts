@@ -33,6 +33,7 @@ describe("chatProtocol", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
+
     const set = jest.fn();
     const get = () =>
       ({
