@@ -97,6 +97,19 @@ jest.mock("../../../../stores/RightPanelStore", () => ({
   }))
 }));
 
+// Mock global WebSocket manager
+jest.mock("../../../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: {
+    getConnectionState: jest.fn().mockReturnValue({
+      isConnected: true,
+      isConnecting: false,
+      error: null
+    }),
+    subscribeEvent: jest.fn().mockReturnValue(() => {}),
+    isConnectionOpen: jest.fn().mockReturnValue(true)
+  }
+}));
+
 // Mock complex components to avoid dependency issues
 jest.mock("../../../../components/chat/containers/ChatView", () => ({
   __esModule: true,
@@ -218,9 +231,7 @@ describe("GlobalChat", () => {
 
       renderWithProviders(<GlobalChat />);
 
-      expect(
-        screen.getByText("Connection failed. Retrying automatically...")
-      ).toBeInTheDocument();
+      expect(screen.getByText("Connection failed")).toBeInTheDocument();
     });
 
     it("shows reconnecting alert when status is reconnecting", async () => {
@@ -259,6 +270,14 @@ describe("GlobalChat", () => {
         currentToolMessage: null
       });
       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
+
+      // Mock the connection state to be connecting
+      const { globalWebSocketManager } = require("../../../../lib/websocket/GlobalWebSocketManager");
+      globalWebSocketManager.getConnectionState.mockReturnValue({
+        isConnected: false,
+        isConnecting: true,
+        error: null
+      });
 
       renderWithProviders(<GlobalChat />);
 

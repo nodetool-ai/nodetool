@@ -8,6 +8,12 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
   }
 }));
 
+jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: {
+    send: jest.fn().mockResolvedValue(undefined)
+  }
+}));
+
 describe("chatProtocol", () => {
   it("ignores non-critical messages while stopping", async () => {
     const set = jest.fn();
@@ -22,13 +28,14 @@ describe("chatProtocol", () => {
   });
 
   it("returns tool errors for unknown client tools", async () => {
+    const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
     const send = jest.fn();
+    globalWebSocketManager.send = send;
     const set = jest.fn();
     const get = () =>
       ({
         status: "connected",
-        wsManager: { send },
         frontendToolState: {},
         currentThreadId: null,
         threads: {},
@@ -58,15 +65,15 @@ describe("chatProtocol", () => {
   });
 
   it("returns structured tool_result on tool failure", async () => {
+    const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(true);
     (FrontendToolRegistry.call as jest.Mock).mockRejectedValue(new Error("nope"));
-
     const send = jest.fn();
+    globalWebSocketManager.send = send;
     const set = jest.fn();
     const get = () =>
       ({
         status: "connected",
-        wsManager: { send },
         workflowId: null,
         threadWorkflowId: {},
         frontendToolState: { fetchWorkflow: jest.fn().mockResolvedValue(undefined) },

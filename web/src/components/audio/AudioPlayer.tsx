@@ -327,8 +327,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     otherProps,
     onPlay,
     onPause,
-    checkWaveformFit,
-    mimeType
+    checkWaveformFit
   ]);
 
   useEffect(() => {
