@@ -12,6 +12,7 @@ import { PanelProps } from "./panelConfig";
 import ActivityPanel from "./ActivityPanel";
 import TemplatesPanel from "./TemplatesPanel";
 import MiniAppPanel from "./miniApps/MiniAppPanel";
+import WorkflowMiniDashboard from "./WorkflowMiniDashboard";
 
 export const createPanelComponents = () => ({
   "getting-started": (props: IDockviewPanelProps<PanelProps>) => (
@@ -131,5 +132,14 @@ export const createPanelComponents = () => ({
         }
       }}
     />
+  ),
+  "workflow-dashboard": (props: IDockviewPanelProps<PanelProps>) => (
+    <Box sx={{ overflow: "auto", height: "100%" }}>
+      <WorkflowMiniDashboard
+        onOpenWorkflow={props.params?.onOpenWorkflow || (() => {})}
+        onCreateWorkflow={props.params?.onCreateWorkflow || (() => {})}
+        onOpenTemplate={props.params?.onOpenTemplate || (() => {})}
+      />
+    </Box>
   )
 });

@@ -8,7 +8,8 @@ export const PANEL_CONFIG = {
   welcome: { title: "Welcome" },
   setup: { title: "Setup" }, // Kept for backward compatibility
   providers: { title: "AI Providers" },
-  "mini-app": { title: "Mini App" }
+  "mini-app": { title: "Mini App" },
+  "workflow-dashboard": { title: "Workflow Dashboard" }
 } as const;
 
 export type PanelType = keyof typeof PANEL_CONFIG;
