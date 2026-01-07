@@ -19,6 +19,8 @@ import { useRightPanelStore } from "../../stores/RightPanelStore";
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
+import { useNodeExplorerContextMenu } from "../../hooks/nodes/useNodeExplorerContextMenu";
+import NodeExplorerContextMenu from "./NodeExplorerContextMenu";
 
 type ExplorerEntry = {
   node: Node<NodeData>;
@@ -135,6 +137,7 @@ const NodeExplorer: React.FC = () => {
   const setActiveView = useRightPanelStore((state) => state.setActiveView);
   const setPanelVisible = useRightPanelStore((state) => state.setVisibility);
   const [filter, setFilter] = useState("");
+  const { openContextMenu } = useNodeExplorerContextMenu();
 
   const entries = useMemo<ExplorerEntry[]>(() => {
     const normalizedFilter = filter.trim().toLowerCase();
@@ -273,9 +276,9 @@ const NodeExplorer: React.FC = () => {
                 className="node-body"
                 onClick={() => handleNodeFocus(entry.node.id)}
                 onContextMenu={(event) => {
-                  //TODO: open node context menu
                   event.preventDefault();
                   event.stopPropagation();
+                  openContextMenu(entry.node.id, event.clientX, event.clientY);
                 }}
               >
                 <div className="node-text">
@@ -303,9 +306,10 @@ const NodeExplorer: React.FC = () => {
             </ListItem>
           ))}
         </List>
-      )}
+)}
+      <NodeExplorerContextMenu />
     </Box>
   );
-};
+}
 
 export default NodeExplorer;
