@@ -70,13 +70,12 @@ describe("GlobalChatStore tool_call handling", () => {
   beforeEach(() => {
     fakeWsManager.sent = [];
     // Mock the globalWebSocketManager to use our fake
-    jest.spyOn(globalWebSocketManager, 'send').mockImplementation((msg: any) => {
+    jest.spyOn(globalWebSocketManager, 'send').mockImplementation(async (msg: any) => {
       fakeWsManager.sent.push(msg);
     });
     jest.spyOn(globalWebSocketManager, 'getConnectionState').mockReturnValue({
       isConnected: true,
-      isConnecting: false,
-      connectionError: null
+      isConnecting: false
     });
   });
 
