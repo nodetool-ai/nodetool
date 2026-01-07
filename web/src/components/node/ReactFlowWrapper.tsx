@@ -8,6 +8,7 @@ import {
   SelectionMode,
   ConnectionMode,
   useViewport,
+  MiniMap,
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -49,7 +50,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
-import { DATA_TYPES } from "../../config/data_types";
+import { DATA_TYPES, colorForType } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
@@ -554,10 +555,60 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         <AxisMarker />
         <ContextMenus />
         <ConnectableNodes />
-        <EdgeGradientDefinitions
+          <EdgeGradientDefinitions
           dataTypes={DATA_TYPES}
           activeGradientKeys={activeGradientKeysArray}
         />
+        {settings.showMiniMap && (
+          <MiniMap
+            nodeColor={(node) => {
+              const nodeType = node.type;
+              const colorForTypeFunc = colorForType as (type: string) => string;
+              if (nodeType === "group") {
+                return isDarkMode
+                  ? "rgba(59, 130, 246, 0.6)"
+                  : "rgba(59, 130, 246, 0.4)";
+              }
+              if (node.selected) {
+                return isDarkMode
+                  ? "rgba(147, 51, 234, 0.9)"
+                  : "rgba(147, 51, 234, 0.8)";
+              }
+              if (nodeType && colorForTypeFunc) {
+                try {
+                  const color = colorForTypeFunc(nodeType);
+                  return color;
+                } catch {
+                  return isDarkMode
+                    ? "rgba(100, 116, 139, 0.8)"
+                    : "rgba(100, 116, 139, 0.6)";
+                }
+              }
+              return isDarkMode
+                ? "rgba(100, 116, 139, 0.8)"
+                : "rgba(100, 116, 139, 0.6)";
+            }}
+            maskColor={
+              isDarkMode
+                ? "rgba(0, 0, 0, 0.3)"
+                : "rgba(255, 255, 255, 0.4)"
+            }
+            nodeStrokeWidth={3}
+            nodeStrokeColor={(node) => {
+              if (node.selected) {
+                return isDarkMode
+                  ? "rgba(168, 85, 247, 1)"
+                  : "rgba(147, 51, 234, 1)";
+              }
+              return isDarkMode
+                ? "rgba(148, 163, 184, 1)"
+                : "rgba(71, 85, 105, 1)";
+            }}
+            pannable
+            zoomable
+            position="bottom-right"
+          />
+        )}
       </ReactFlow>
       {pendingNodeType && ghostPosition && (
         <GhostNode

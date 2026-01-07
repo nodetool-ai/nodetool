@@ -46,6 +46,10 @@ export interface Settings {
    * the downstream subgraph automatically (like "Run from here").
    */
   instantUpdate: boolean;
+  /**
+   * When enabled, shows the MiniMap for navigating large workflows.
+   */
+  showMiniMap: boolean;
   autosave: AutosaveSettings;
 }
 
@@ -69,6 +73,7 @@ interface SettingsStore {
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
+  setShowMiniMap: (value: boolean) => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
@@ -86,6 +91,7 @@ export const defaultSettings: Settings = {
   showWelcomeOnStartup: true,
   soundNotifications: true,
   instantUpdate: false,
+  showMiniMap: true,
   autosave: { ...defaultAutosaveSettings }
 };
 
@@ -201,6 +207,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             instantUpdate: value
+          }
+        })),
+      setShowMiniMap: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            showMiniMap: value
           }
         })),
       updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>

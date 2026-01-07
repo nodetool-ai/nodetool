@@ -416,6 +416,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   //   description: "Show Keyboard Shortcuts",
   //   registerCombo: true
   // },
+  {
+    title: "Toggle MiniMap",
+    slug: "toggleMiniMap",
+    keyCombo: ["M"],
+    category: "panel",
+    description: "Show or hide the MiniMap",
+    registerCombo: true
+  },
 
   // ---------- WORKFLOW ----------------------------------------------------
   {

@@ -23,6 +23,7 @@ import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
+import { useSettingsStore } from "../stores/SettingsStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -346,6 +347,11 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleToggleMiniMap = useCallback(() => {
+    const currentValue = useSettingsStore.getState().settings.showMiniMap;
+    useSettingsStore.getState().setShowMiniMap(!currentValue);
+  }, []);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -395,7 +401,8 @@ export const useNodeEditorShortcuts = (
       moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
       moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
-      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 }
+      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 },
+      toggleMiniMap: { callback: handleToggleMiniMap }
     };
 
     // Switch-to-tab (1-9)
