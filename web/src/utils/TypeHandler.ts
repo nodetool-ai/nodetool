@@ -234,15 +234,20 @@ export const isConnectable = (
     return true;
   }
 
-  // Check if source can be "collected" into a target list[T]
-  // This allows connecting T -> list[T]
-  if (
+  // COLLECT HANDLE LOGIC: Allow connecting T -> list[T]
+  // This enables "collect" handles where multiple outputs of type T can connect
+  // to a single input of type list[T].
+  // Note: We exclude list sources here because list -> list connections
+  // are handled separately in the switch statement below with proper element
+  // type compatibility checking.
+  const isTargetListWithElement =
     target.type === "list" &&
     target.type_args &&
     target.type_args.length === 1 &&
-    target.type_args[0] &&
-    source.type !== "list" // Don't apply collect logic to list -> list
-  ) {
+    target.type_args[0];
+  const isSourceNotAList = source.type !== "list";
+
+  if (isTargetListWithElement && isSourceNotAList) {
     const targetElementType = target.type_args[0];
     if (isConnectable(source, targetElementType, allowAny)) {
       return true;
@@ -365,13 +370,17 @@ export const canCollect = (
     return false;
   }
 
-  // Safety check
+  // Safety check for source
   if (!source || !source.type) {
     return false;
   }
 
   // Get the element type of the target list
-  const targetElementType = target.type_args[0];
+  // isCollectType already validates that type_args[0] exists, but add defensive check
+  const targetElementType = target.type_args?.[0];
+  if (!targetElementType) {
+    return false;
+  }
 
   // Check if the source type is connectable to the element type
   return isConnectable(source, targetElementType, true);
