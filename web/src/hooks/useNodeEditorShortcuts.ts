@@ -58,7 +58,9 @@ export const useNodeEditorShortcuts = (
 
   const nodeMenuStore = useNodeMenuStore(
     (state) => ({
-      openNodeMenu: state.openNodeMenu
+      openNodeMenu: state.openNodeMenu,
+      toggleFavoritesMode: state.toggleFavoritesMode,
+      isMenuOpen: state.isMenuOpen
     }),
     shallow
   );
@@ -81,7 +83,7 @@ export const useNodeEditorShortcuts = (
     saveWorkflow
   } = workflowManager;
   const { handleCopy, handlePaste, handleCut } = copyPaste;
-  const { openNodeMenu } = nodeMenuStore;
+  const { openNodeMenu, toggleFavoritesMode, isMenuOpen } = nodeMenuStore;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
@@ -346,6 +348,18 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleShowFavorites = useCallback(() => {
+    const mousePos = getMousePosition();
+    if (!isMenuOpen) {
+      openNodeMenu({
+        x: mousePos.x,
+        y: mousePos.y,
+        centerOnScreen: true
+      });
+    }
+    toggleFavoritesMode();
+  }, [isMenuOpen, openNodeMenu, toggleFavoritesMode]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -395,7 +409,8 @@ export const useNodeEditorShortcuts = (
       moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
       moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
-      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 }
+      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 },
+      showFavorites: { callback: handleShowFavorites }
     };
 
     // Switch-to-tab (1-9)
@@ -431,7 +446,8 @@ export const useNodeEditorShortcuts = (
     handleSwitchTab,
     handleMoveNodes,
     handleSwitchToTab,
-    handleBypassSelected
+    handleBypassSelected,
+    handleShowFavorites
   ]);
 
   // useEffect for shortcut registration

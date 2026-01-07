@@ -5,8 +5,9 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { IconButton, Box } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { IconButton, Box, Tooltip } from "@mui/material";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
@@ -159,7 +160,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setMenuSize,
     moveSelectionUp,
     moveSelectionDown,
-    getSelectedNode
+    getSelectedNode,
+    favoritesMode,
+    toggleFavoritesMode
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -176,7 +179,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setMenuSize: state.setMenuSize,
       moveSelectionUp: state.moveSelectionUp,
       moveSelectionDown: state.moveSelectionDown,
-      getSelectedNode: state.getSelectedNode
+      getSelectedNode: state.getSelectedNode,
+      favoritesMode: state.favoritesMode,
+      toggleFavoritesMode: state.toggleFavoritesMode
     }),
     isEqual
   );
@@ -301,13 +306,29 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   onPressEnter={handleEnter}
                   searchResults={searchResults}
                 />
+                <Tooltip title="Show favorites (Alt+F)">
+                  <IconButton
+                    onClick={toggleFavoritesMode}
+                    color={favoritesMode ? "warning" : "default"}
+                    size="small"
+                    sx={{
+                      ml: 1,
+                      opacity: favoritesMode ? 1 : 0.6,
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    {favoritesMode ? <StarIcon /> : <StarBorderIcon />}
+                  </IconButton>
+                </Tooltip>
               </Box>
-              <TypeFilterChips
-                selectedInputType={selectedInputType}
-                selectedOutputType={selectedOutputType}
-                setSelectedInputType={setSelectedInputType}
-                setSelectedOutputType={setSelectedOutputType}
-              />
+              {!favoritesMode && (
+                <TypeFilterChips
+                  selectedInputType={selectedInputType}
+                  selectedOutputType={selectedOutputType}
+                  setSelectedInputType={setSelectedInputType}
+                  setSelectedOutputType={setSelectedOutputType}
+                />
+              )}
             </Box>
             <NamespaceList
               namespaceTree={namespaceTree}

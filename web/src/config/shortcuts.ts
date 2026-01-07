@@ -492,16 +492,26 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Activate next workflow tab",
     registerCombo: true
   },
-  // Direct tab switching (Ctrl/Cmd 1-9)
-  ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
-    title: `Switch to Tab ${n}`,
-    slug: `switchToTab${n}`,
-    keyCombo: ["Control", `${n}`],
-    category: "workflow" as const,
-    description: `Activate workflow tab ${n}`,
-    registerCombo: true
-  }))
-] as Shortcut[];
+   // Direct tab switching (Ctrl/Cmd 1-9)
+   ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
+     title: `Switch to Tab ${n}`,
+     slug: `switchToTab${n}`,
+     keyCombo: ["Control", `${n}`],
+     category: "workflow" as const,
+     description: `Activate workflow tab ${n}`,
+     registerCombo: true
+   })),
+
+   // ---------- FAVORITES ----------------------------------------------------
+   {
+     title: "Show Favorites",
+     slug: "showFavorites",
+     keyCombo: ["Alt", "F"],
+     category: "panel" as const,
+     description: "Show favorite nodes for quick access",
+     registerCombo: true
+   }
+ ] as Shortcut[];
 
 /**
  * A mapping of shortcut categories to their human-readable display names.

@@ -9,6 +9,7 @@
  * - Path/namespace navigation
  * - Node documentation display
  * - Connection direction for node linking
+ * - Favorites integration for quick access
  *
  * The store uses Zustand for state management and Fuse.js for fuzzy searching.
  */
@@ -17,6 +18,7 @@ import { create } from "zustand";
 import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
 import useMetadataStore from "./MetadataStore";
+import useFavoriteNodesStore from "./FavoriteNodesStore";
 import {
   computeSearchResults,
   filterNodesUtil,
@@ -113,6 +115,11 @@ export type NodeMenuStore = {
   moveSelectionUp: () => void;
   moveSelectionDown: () => void;
   getSelectedNode: () => NodeMetadata | null;
+
+  // Favorites mode for showing only favorites
+  favoritesMode: boolean;
+  setFavoritesMode: (enabled: boolean) => void;
+  toggleFavoritesMode: () => void;
 };
 
 type NodeMenuStoreOptions = {
@@ -429,7 +436,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             selectedOutputType: "",
             showDocumentation: false,
             selectedNodeType: null,
-            selectedIndex: -1
+            selectedIndex: -1,
+            favoritesMode: false
           });
         }
       },
@@ -560,6 +568,40 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
         if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
         return allNodes[selectedIndex];
+      },
+
+      // Favorites mode for showing only favorites
+      favoritesMode: false,
+      setFavoritesMode: (enabled: boolean) => {
+        set({ favoritesMode: enabled });
+        if (enabled) {
+          // When enabling favorites mode, show favorites
+          const favoriteNodeTypes = useFavoriteNodesStore.getState().getFavorites();
+          const metadata = getFilteredMetadata();
+          const favoriteNodes = metadata.filter((node) =>
+            favoriteNodeTypes.includes(node.node_type)
+          );
+          const sortedResults = favoriteNodes.sort((a, b) =>
+            a.title.localeCompare(b.title)
+          );
+          set({
+            searchResults: sortedResults,
+            groupedSearchResults: [
+              { title: "Favorites", nodes: sortedResults }
+            ],
+            allSearchMatches: sortedResults,
+            searchTerm: "",
+            selectedPath: [],
+            selectedInputType: "",
+            selectedOutputType: ""
+          });
+        } else {
+          // When disabling, re-run search with empty term
+          scheduleSearch("");
+        }
+      },
+      toggleFavoritesMode: () => {
+        get().setFavoritesMode(!get().favoritesMode);
       }
     };
   });
