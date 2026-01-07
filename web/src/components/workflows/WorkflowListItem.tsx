@@ -10,6 +10,8 @@ import { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import isEqual from "lodash/isEqual";
 import { escapeHtml } from "../../utils/highlightText";
+import { useFavoriteWorkflowsStore } from "../../stores/FavoriteWorkflowsStore";
+import { useTheme } from "@mui/material/styles";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -37,8 +39,18 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   onDelete,
   onEdit
 }: WorkflowListItemProps) => {
+  const theme = useTheme();
+  const { favoriteWorkflowIds, toggleFavorite } = useFavoriteWorkflowsStore();
+  const isFavorite = favoriteWorkflowIds.has(workflow.id);
+
   const addBreaks = (text: string) => {
     return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
+  };
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(workflow.id);
   };
 
   return (
@@ -70,6 +82,34 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           }}
         />
       )}
+      <Button
+        size="small"
+        className="favorite-button"
+        onClick={handleFavoriteClick}
+        data-microtip-position="bottom"
+        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        role="tooltip"
+        sx={{
+          minWidth: "32px",
+          padding: "4px",
+          "&:hover": {
+            backgroundColor: "transparent"
+          }
+        }}
+      >
+        <Box
+          component="span"
+          sx={{
+            color: isFavorite
+              ? "var(--palette-primary-main)"
+              : theme.vars.palette.grey[500],
+            fontSize: "1.1rem",
+            transition: "color 0.2s ease-in-out"
+          }}
+        >
+          {isFavorite ? "★" : "☆"}
+        </Box>
+      </Button>
       <div
         className="name"
         dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
@@ -103,6 +143,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           className="duplicate-button"
           onClick={(event) => {
             event.preventDefault();
+            event.stopPropagation();
             onDuplicateWorkflow(event, workflow);
           }}
           data-microtip-position="bottom"

@@ -24,6 +24,7 @@ import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useFavoriteWorkflowsStore } from "../../stores/FavoriteWorkflowsStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -121,6 +122,7 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("Shift"),
@@ -255,9 +257,16 @@ const WorkflowList = () => {
   );
 
   const finalWorkflows = useMemo(() => {
-    if (!selectedTag) { return workflows; }
-    return workflows.filter((wf) => wf.tags?.includes(selectedTag));
-  }, [workflows, selectedTag]);
+    let filtered = workflows;
+    if (selectedTag) {
+      filtered = filtered.filter((wf) => wf.tags?.includes(selectedTag));
+    }
+    if (showFavoritesOnly) {
+      const favoriteIds = useFavoriteWorkflowsStore.getState().favoriteWorkflowIds;
+      filtered = filtered.filter((wf) => favoriteIds.has(wf.id));
+    }
+    return filtered;
+  }, [workflows, selectedTag, showFavoritesOnly]);
 
   const handleEdit = useCallback((workflow: Workflow) => {
     setWorkflowToEdit(workflow);
@@ -339,6 +348,8 @@ const WorkflowList = () => {
             setFilterValue={setFilterValue}
             selectedTag={selectedTag}
             setSelectedTag={setSelectedTag}
+            showFavoritesOnly={showFavoritesOnly}
+            setShowFavoritesOnly={setShowFavoritesOnly}
             showCheckboxes={showCheckboxes}
             toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
             selectedWorkflowsCount={selectedWorkflows.length}

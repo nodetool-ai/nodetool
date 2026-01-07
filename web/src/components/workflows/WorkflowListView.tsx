@@ -72,6 +72,18 @@ const listStyles = (theme: Theme) =>
       height: "100%",
       objectFit: "cover"
     },
+    ".favorite-button": {
+      minWidth: "28px !important",
+      width: "28px",
+      height: "28px",
+      margin: "2px 4px 2px 0",
+      padding: "0 !important",
+      opacity: 0,
+      transition: "opacity 0.18s ease"
+    },
+    ".workflow:hover .favorite-button": {
+      opacity: 1
+    },
     ".name": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,

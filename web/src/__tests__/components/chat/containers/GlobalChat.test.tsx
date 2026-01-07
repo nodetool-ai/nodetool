@@ -110,6 +110,10 @@ jest.mock("../../../../lib/websocket/GlobalWebSocketManager", () => ({
   }
 }));
 
+// Import the mocked globalWebSocketManager for use in tests
+// Cast to jest.Mock when mocking methods
+import { globalWebSocketManager } from "../../../../lib/websocket/GlobalWebSocketManager";
+
 // Mock complex components to avoid dependency issues
 jest.mock("../../../../components/chat/containers/ChatView", () => ({
   __esModule: true,
@@ -272,8 +276,7 @@ describe("GlobalChat", () => {
       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
       // Mock the connection state to be connecting
-      const { globalWebSocketManager } = require("../../../../lib/websocket/GlobalWebSocketManager");
-      globalWebSocketManager.getConnectionState.mockReturnValue({
+      (globalWebSocketManager.getConnectionState as jest.Mock).mockReturnValue({
         isConnected: false,
         isConnecting: true,
         error: null

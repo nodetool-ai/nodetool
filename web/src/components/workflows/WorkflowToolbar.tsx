@@ -18,6 +18,8 @@ interface WorkflowToolbarProps {
   setFilterValue: (value: string) => void;
   selectedTag: string;
   setSelectedTag: (tag: string) => void;
+  showFavoritesOnly: boolean;
+  setShowFavoritesOnly: (value: boolean) => void;
   showCheckboxes: boolean;
   toggleCheckboxes: () => void;
   selectedWorkflowsCount: number;
@@ -73,6 +75,8 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   selectedTag,
   setSelectedTag,
   setFilterValue,
+  showFavoritesOnly,
+  setShowFavoritesOnly,
   showCheckboxes,
   toggleCheckboxes,
   selectedWorkflowsCount,
@@ -146,6 +150,36 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               </MenuItem>
             ))}
           </Select>
+        </Tooltip>
+
+        <Tooltip
+          title={`${showFavoritesOnly ? "Show all workflows" : "Show only favorites"}`}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <Button
+            className="icon-button"
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            sx={{
+              borderColor: showFavoritesOnly
+                ? "var(--palette-primary-main)"
+                : `${"var(--palette-primary-main)"}33`,
+              "&:hover": {
+                borderColor: "var(--palette-primary-main)"
+              }
+            }}
+          >
+            <Box
+              component="span"
+              sx={{
+                color: showFavoritesOnly
+                  ? "var(--palette-primary-main)"
+                  : theme.vars.palette.grey[400],
+                fontSize: "1.2rem"
+              }}
+            >
+              ★
+            </Box>
+          </Button>
         </Tooltip>
 
         {selectedWorkflowsCount > 0 && (
