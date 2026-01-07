@@ -23,6 +23,7 @@ import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
+import { useCanvasSearch } from "./useCanvasSearch";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -346,6 +347,11 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const canvasSearch = useCanvasSearch();
+  const handleSearchCanvas = useCallback(() => {
+    canvasSearch.openSearch();
+  }, [canvasSearch]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -395,7 +401,8 @@ export const useNodeEditorShortcuts = (
       moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
       moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
-      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 }
+      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 },
+      searchCanvas: { callback: handleSearchCanvas }
     };
 
     // Switch-to-tab (1-9)
@@ -431,7 +438,8 @@ export const useNodeEditorShortcuts = (
     handleSwitchTab,
     handleMoveNodes,
     handleSwitchToTab,
-    handleBypassSelected
+    handleBypassSelected,
+    handleSearchCanvas
   ]);
 
   // useEffect for shortcut registration

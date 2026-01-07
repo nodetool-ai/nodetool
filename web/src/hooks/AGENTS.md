@@ -133,6 +133,13 @@ The hooks directory contains reusable React hooks organized by functionality. Ho
   - Logs component re-render causes
   - Helps identify performance issues
 
+- **`useCanvasSearch.ts`**: Canvas node search functionality
+  - Searches nodes by title, type, id, or properties
+  - Highlights matching nodes on the canvas
+  - Navigates through search results with keyboard
+  - Zooms to selected nodes
+  - Integrates with Command Menu (Ctrl/Cmd+K)
+
 ### 5. Browser & Hardware Hooks
 
 **Location**: `/browser` subdirectory
@@ -445,10 +452,11 @@ const handleSend = useCallback(async (text: string) => {
 3. `useQuery` - Data fetching (TanStack Query)
 4. `useNodeEditorShortcuts` - Keyboard shortcuts
 5. `useAssetUpload` - File uploads
+6. `useCanvasSearch` - Canvas node search
 
 ### Hook Categories by Use Case
 - **Building UI**: `useNumberInput`, `useDelayedHover`, `useRenderLogger`
-- **Node Operations**: `useCreateNode`, `useAlignNodes`, `useDuplicate`, `useFocusPan`
+- **Node Operations**: `useCreateNode`, `useAlignNodes`, `useDuplicate`, `useFocusPan`, `useCanvasSearch`
 - **Data Fetching**: `useHuggingFaceModels`, `useAssets`, `useWorkflow`
 - **File Handling**: `useFileDrop`, `useAssetUpload`, `useDropHandler`
 - **Execution**: `useWorkflowRunner`, `useRunningJobs`, `useJobReconnection`

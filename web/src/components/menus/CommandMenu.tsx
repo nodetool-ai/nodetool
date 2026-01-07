@@ -1,10 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { Command, CommandInput } from "cmdk";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
-import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
+import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { Dialog, Tooltip } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
@@ -22,6 +20,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
+import CanvasSearchResults from "./CanvasSearchResults";
 
 type CommandMenuProps = {
   open: boolean;
@@ -255,10 +254,10 @@ const ExampleCommands = memo(function ExampleCommands() {
 });
 
 // Create a context/store for command menu state
-const useCommandMenu = create<{
+export const useCommandMenu = create<{
   executeAndClose: (action: () => void) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
-}>((set) => ({
+}>((_set) => ({
   executeAndClose: () => {},
   reactFlowWrapper: { current: null }
 }));
@@ -271,7 +270,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   reactFlowWrapper
 }) => {
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
-  const input = useRef<HTMLInputElement>(null);
 
   const executeAndClose = useCallback(
     (action: () => void) => {
@@ -305,6 +303,10 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     }
   }, [open, pastePosition]);
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const isSearchTermEmpty = searchTerm.trim() === "";
+
   return (
     <Dialog
       open={open}
@@ -312,15 +314,26 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       className="command-menu-dialog"
       css={styles()}
     >
-      <Command label="Command Menu" className="command-menu">
-        <CommandInput ref={input} />
+      <Command label="Command Menu" className="command-menu" shouldFilter={!isSearchTermEmpty}>
+        <CommandInput
+          placeholder="Type to search commands, nodes, or canvas..."
+          value={searchTerm}
+          onValueChange={setSearchTerm}
+        />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
-          <WorkflowCommands />
-          <UndoCommands undo={undo} redo={redo} />
-          <LayoutCommands />
-          <NodeCommands />
-          <ExampleCommands />
+          {!isSearchTermEmpty && (
+            <CanvasSearchResults searchTerm={searchTerm} onClose={() => setOpen(false)} />
+          )}
+          {isSearchTermEmpty && (
+            <>
+              <WorkflowCommands />
+              <UndoCommands undo={undo} redo={redo} />
+              <LayoutCommands />
+              <NodeCommands />
+              <ExampleCommands />
+            </>
+          )}
         </Command.List>
       </Command>
     </Dialog>

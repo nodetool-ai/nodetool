@@ -42,6 +42,7 @@ This guide helps AI agents understand the state management stores in NodeTool's 
 - `NodeStore.ts`: Central store for node graph state
 - `NodeData.ts`: Data structures for node types and properties
 - `NodeMenuStore.ts`: Controls node selection menu state
+- `CanvasSearchStore.ts`: Manages canvas search functionality
 - `ConnectableNodesStore.ts`: Manages node connection possibilities
 - `ConnectionStore.ts`: Handles node connections and edges
 - `ResultsStore.ts`: Stores node execution results

@@ -417,6 +417,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   //   registerCombo: true
   // },
 
+  // ---------- SEARCH ----------------------------------------------------
+  {
+    title: "Search Canvas",
+    slug: "searchCanvas",
+    keyCombo: ["Control", "Shift", "F"],
+    category: "panel",
+    description: "Search for nodes on the canvas",
+    registerCombo: true
+  },
+
   // ---------- WORKFLOW ----------------------------------------------------
   {
     title: "Run Workflow",
