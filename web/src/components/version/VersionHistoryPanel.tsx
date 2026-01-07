@@ -2,6 +2,8 @@
  * VersionHistoryPanel Component
  *
  * Side panel for browsing and managing workflow version history.
+ * Supports both list view and timeline view of versions.
+ * Includes branch creation and management.
  */
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -21,18 +23,24 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
-  CircularProgress
+  CircularProgress,
+  Chip
 } from "@mui/material";
 import {
   Close as CloseIcon,
   Compare as CompareIcon,
   History as HistoryIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  ViewList as ListViewIcon,
+  Timeline as TimelineIcon,
+  Add as AddIcon
 } from "@mui/icons-material";
 import { VersionListItem } from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
+import { VersionTimeline } from "./VersionTimeline";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
+import { useWorkflowBranches } from "../../serverState/useWorkflowBranches";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import { NodeUIProperties } from "../../stores/NodeStore";
@@ -64,10 +72,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     selectedVersionId,
     compareVersionId,
     isCompareMode,
+    viewMode,
     setSelectedVersion,
     setCompareVersion,
     setCompareMode,
-    setHistoryPanelOpen
+    setHistoryPanelOpen,
+    setViewMode
   } = useVersionHistoryStore();
 
   const {
@@ -77,6 +87,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     restoreVersion,
     isRestoringVersion
   } = useWorkflowVersions(workflowId);
+
+  const {
+    data: branches,
+    createBranch,
+    isCreatingBranch
+  } = useWorkflowBranches(workflowId);
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -226,6 +242,15 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareMode(false);
   }, [setSelectedVersion, setCompareVersion, setCompareMode]);
 
+  const handleViewModeChange = useCallback(
+    (_event: React.MouseEvent<HTMLElement>, newMode: "list" | "timeline" | null) => {
+      if (newMode !== null) {
+        setViewMode(newMode);
+      }
+    },
+    [setViewMode]
+  );
+
   if (isLoading) {
     return (
       <Paper
@@ -299,6 +324,14 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <HistoryIcon color="primary" />
           <Typography variant="h6">Version History</Typography>
+          {branches && branches.length > 0 && (
+            <Chip
+              label={`${branches.length} branch${branches.length > 1 ? "es" : ""}`}
+              size="small"
+              color="secondary"
+              sx={{ height: 20, fontSize: "0.65rem" }}
+            />
+          )}
         </Box>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
@@ -314,28 +347,48 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             mb: 1
           }}
         >
-          <Tooltip title="Compare versions">
-            <ToggleButton
-              value="compare"
-              selected={isCompareMode}
-              onChange={handleToggleCompareMode}
-              size="small"
-              sx={{ px: 1 }}
-            >
-              <CompareIcon fontSize="small" sx={{ mr: 0.5 }} />
-              Compare
-            </ToggleButton>
-          </Tooltip>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Tooltip title="Compare versions">
+              <ToggleButton
+                value="compare"
+                selected={isCompareMode}
+                onChange={handleToggleCompareMode}
+                size="small"
+                sx={{ px: 1 }}
+              >
+                <CompareIcon fontSize="small" sx={{ mr: 0.5 }} />
+                Compare
+              </ToggleButton>
+            </Tooltip>
 
-          {isCompareMode && (selectedVersionId || compareVersionId) && (
-            <Button size="small" onClick={handleClearComparison}>
-              Clear
-            </Button>
-          )}
+            <Tooltip title="View mode">
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={handleViewModeChange}
+                size="small"
+                sx={{ ml: 1 }}
+              >
+                <ToggleButton value="list" aria-label="list view">
+                  <ListViewIcon fontSize="small" />
+                </ToggleButton>
+                <ToggleButton value="timeline" aria-label="timeline view">
+                  <TimelineIcon fontSize="small" />
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Tooltip>
+
+            {isCompareMode && (selectedVersionId || compareVersionId) && (
+              <Button size="small" onClick={handleClearComparison}>
+                Clear
+              </Button>
+            )}
+          </Box>
+
+          <FilterIcon fontSize="small" color="action" />
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <FilterIcon fontSize="small" color="action" />
           <ToggleButtonGroup
             value={filterType}
             exclusive
@@ -351,6 +404,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             </ToggleButton>
             <ToggleButton value="autosave" aria-label="autosave">
               Auto
+            </ToggleButton>
+            <ToggleButton value="checkpoint" aria-label="checkpoint">
+              Checkpoint
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
@@ -395,36 +451,50 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </Box>
       )}
 
-      <Box sx={{ flex: 1, overflow: "auto" }}>
-        {versions.length === 0 ? (
-          <Box sx={{ p: 3, textAlign: "center" }}>
-            <Typography color="text.secondary">
-              No versions saved yet
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Save your workflow to create a version
-            </Typography>
-          </Box>
-        ) : (
-          <List dense sx={{ py: 1 }}>
-            {versions.map((version) => (
-              <VersionListItem
-                key={version.id}
-                version={version}
-                isSelected={selectedVersionId === version.id}
-                isCompareTarget={compareVersionId === version.id}
-                compareMode={isCompareMode}
-                onSelect={handleSelect}
-                onRestore={handleRestore}
-                onDelete={handleDelete}
-                onPin={handlePin}
-                onCompare={handleCompare}
-                isRestoring={isRestoringVersion}
-              />
-            ))}
-          </List>
-        )}
-      </Box>
+      {viewMode === "timeline" ? (
+        <VersionTimeline
+          workflowId={workflowId}
+          versions={versions}
+          onRestore={handleRestore}
+          onSelect={handleSelect}
+          onCompare={handleCompare}
+          isSelected={(id) => selectedVersionId === id}
+          isCompareTarget={(id) => compareVersionId === id}
+          compareMode={isCompareMode}
+          isRestoring={isRestoringVersion}
+        />
+      ) : (
+        <Box sx={{ flex: 1, overflow: "auto" }}>
+          {versions.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: "center" }}>
+              <Typography color="text.secondary">
+                No versions saved yet
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Save your workflow to create a version
+              </Typography>
+            </Box>
+          ) : (
+            <List dense sx={{ py: 1 }}>
+              {versions.map((version) => (
+                <VersionListItem
+                  key={version.id}
+                  version={version}
+                  isSelected={selectedVersionId === version.id}
+                  isCompareTarget={compareVersionId === version.id}
+                  compareMode={isCompareMode}
+                  onSelect={handleSelect}
+                  onRestore={handleRestore}
+                  onDelete={handleDelete}
+                  onPin={handlePin}
+                  onCompare={handleCompare}
+                  isRestoring={isRestoringVersion}
+                />
+              ))}
+            </List>
+          )}
+        </Box>
+      )}
 
       <Box
         sx={{
@@ -436,6 +506,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       >
         <Typography variant="caption" color="text.secondary">
           {versions.length} version(s) saved
+          {branches && branches.length > 0 && ` · ${branches.length} branch(es)`}
         </Typography>
       </Box>
 
