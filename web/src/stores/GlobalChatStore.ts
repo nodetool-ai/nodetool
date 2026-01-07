@@ -398,7 +398,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         set({ error: null });
 
-        if (!wsManager || !wsManager.isConnected()) {
+        const connectionState = globalWebSocketManager.getConnectionState();
+        if (!connectionState.isConnected) {
           set({ error: "Not connected to chat service" });
           return;
         }
@@ -899,11 +900,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Abort any active frontend tools
         FrontendToolRegistry.abortAll();
 
-        if (!wsManager) {
-          return;
-        }
-
-        if (!wsManager.isConnected()) {
+        const connectionState = globalWebSocketManager.getConnectionState();
+        if (!connectionState.isConnected) {
           return;
         }
 

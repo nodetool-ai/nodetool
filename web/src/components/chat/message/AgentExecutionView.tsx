@@ -440,12 +440,8 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
   messages
 }) => {
   const theme = useTheme();
-  
-  if (!messages || messages.length === 0) {
-    return null;
-  }
 
-  const agentExecutionId = messages.find(m => m.agent_execution_id)?.agent_execution_id;
+  const agentExecutionId = messages?.find(m => m.agent_execution_id)?.agent_execution_id;
 
   const toolCallsByStep = useGlobalChatStore((state) =>
     agentExecutionId ? state.agentExecutionToolCalls[agentExecutionId] : undefined
@@ -457,6 +453,10 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
       stepResults: new Map(),
       status: "planning"
     };
+
+    if (!messages || messages.length === 0) {
+      return result;
+    }
 
     const seenPlanningPhases = new Set<string>();
     const seenTasks = new Map<string, number>();
@@ -517,6 +517,10 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
 
     return result;
   }, [messages]);
+
+  if (!messages || messages.length === 0) {
+    return null;
+  }
 
   const renderTimelineItem = (item: TimelineItem) => {
     switch (item.type) {

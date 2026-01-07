@@ -54,6 +54,22 @@ jest.mock("loglevel", () => ({
   }
 }));
 
+// Track connection state for mocking
+let mockConnectionState = { isConnected: true, isConnecting: false };
+
+jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: {
+    disconnect: jest.fn(() => {
+      mockConnectionState = { isConnected: false, isConnecting: false };
+    }),
+    subscribeEvent: jest.fn(() => jest.fn()),
+    subscribe: jest.fn(() => jest.fn()),
+    send: jest.fn(),
+    getConnectionState: jest.fn(() => mockConnectionState),
+    isConnectionOpen: jest.fn(() => mockConnectionState.isConnected)
+  }
+}));
+
 let uuidCounter = 0;
 jest.mock("../uuidv4", () => ({ uuidv4: () => `id-${uuidCounter++}` }));
 
@@ -100,6 +116,9 @@ describe("GlobalChatStore", () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: null }
     });
+
+    // Reset mock connection state
+    mockConnectionState = { isConnected: true, isConnecting: false };
 
     // Ensure any existing connections are cleaned up
     const currentSocket = (store.getState() as any).socket;
@@ -691,6 +710,10 @@ describe("GlobalChatStore", () => {
         });
       });
 
+      // Reset mock connection state
+      mockConnectionState = { isConnected: true, isConnecting: false };
+      (globalWebSocketManager.send as jest.Mock).mockClear();
+
       await store.getState().connect();
       socket = (store.getState() as any).socket;
     });
@@ -756,9 +779,11 @@ describe("GlobalChatStore", () => {
     });
 
     it("sendMessage does nothing when socket is not connected", async () => {
+      (globalWebSocketManager.getConnectionState as jest.Mock).mockReturnValue({
+        isConnected: false,
+        isConnecting: false
+      });
       store.setState({
-        socket: null,
-        wsManager: null,
         currentThreadId: null,
         threads: {}
       } as any);
@@ -783,23 +808,18 @@ describe("GlobalChatStore", () => {
 
       await store.getState().sendMessage(message);
 
-      // Wait a bit for the message to be sent
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
       // Expect chat_message command wrapper per unified WebSocket API
-      // Note: msgpack encodes undefined as null
-      expect(sentData).toEqual({
+      expect((globalWebSocketManager.send as jest.Mock).mock.calls[0][0]).toEqual({
         command: "chat_message",
-        data: {
-          ...message,
-          workflow_id: "test-workflow",
+        data: expect.objectContaining({
+          content: "hello",
+          role: "user",
           thread_id: threadId,
+          workflow_id: "test-workflow",
           agent_mode: false,
           model: "gpt-oss:20b",
-          provider: "empty",
-          tools: null,
-          collections: null
-        }
+          provider: "empty"
+        })
       });
     });
   });
@@ -821,6 +841,10 @@ describe("GlobalChatStore", () => {
         });
       });
 
+      // Reset mock connection state
+      mockConnectionState = { isConnected: true, isConnecting: false };
+      (globalWebSocketManager.send as jest.Mock).mockClear();
+
       await store.getState().connect();
       await store.getState().createNewThread();
     });
@@ -838,11 +862,8 @@ describe("GlobalChatStore", () => {
 
       store.getState().stopGeneration();
 
-      // Wait a bit for the message to be sent
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
       // Expect stop command wrapper per unified WebSocket API
-      expect(sentData).toEqual({
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith({
         command: "stop",
         data: {
           thread_id: store.getState().currentThreadId
@@ -855,8 +876,8 @@ describe("GlobalChatStore", () => {
     });
 
     it("does nothing when socket is not connected", async () => {
-      // Disconnect first to ensure socket is null
-      store.getState().disconnect();
+      // Set connection state to disconnected
+      mockConnectionState = { isConnected: false, isConnecting: false };
 
       store.getState().stopGeneration();
 
