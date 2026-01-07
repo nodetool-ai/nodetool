@@ -1,8 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { Command, CommandInput } from "cmdk";
+import { Command, CommandInput, CommandSeparator } from "cmdk";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
 import { Dialog, Tooltip } from "@mui/material";
@@ -22,6 +20,11 @@ import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
+import { useRecentActionsStore } from "../../stores/RecentActionsStore";
+import StarIcon from "@mui/icons-material/Star";
+import HistoryIcon from "@mui/icons-material/History";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import { IconButton } from "@mui/material";
 
 type CommandMenuProps = {
   open: boolean;
@@ -40,6 +43,194 @@ const styles = () =>
       boxShadow: "none"
     }
   });
+
+const FavoritesSection = memo(function FavoritesSection() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const { favorites, toggleFavorite, trackAction, isFavorited } = useRecentActionsStore();
+  const navigate = useNavigate();
+  const { loadTemplates, copy } = useWorkflowManager((state) => ({
+    loadTemplates: state.loadTemplates,
+    copy: state.copy
+  }));
+
+  const { data: examples } = useQuery<WorkflowList>({
+    queryKey: ["templates"],
+    queryFn: loadTemplates
+  });
+
+  const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
+    () => ({ width: 800, height: 600 }),
+    []
+  );
+
+  const handleCreateNode = useCreateNode({
+    x: reactFlowWidth / 2,
+    y: reactFlowHeight / 2
+  });
+
+  const groupedByCategory = useMemo(() => {
+    const metadata = useMetadataStore.getState().metadata;
+    return Object.values(metadata).reduce<Record<string, NodeMetadata[]>>(
+      (acc, curr) => {
+        (acc[curr.namespace] = acc[curr.namespace] || []).push(curr);
+        return acc;
+      },
+      {}
+    );
+  }, []);
+
+  const handleFavoriteClick = useCallback((item: { id: string; type: string; name: string; action: () => void }) => {
+    trackAction({ id: item.id, type: item.type as any, name: item.name });
+    executeAndClose(item.action);
+  }, [trackAction, executeAndClose]);
+
+  if (favorites.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <Command.Group heading={<><StarIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "middle" }} />Favorites</>}>
+        {favorites.map((favorite) => {
+          let onSelect: (() => void) | undefined;
+          let label = favorite.name;
+
+          if (favorite.type === "template" && examples) {
+            const example = examples.workflows.find(w => w.id === favorite.id);
+            if (example) {
+              onSelect = () => handleFavoriteClick({
+                id: favorite.id,
+                type: favorite.type,
+                name: favorite.name,
+                action: () => copy(example).then(w => navigate("/editor/" + w.id))
+              });
+              label = example.name;
+            } else {
+              return null;
+            }
+          } else if (favorite.type === "node" && groupedByCategory) {
+            for (const category of Object.values(groupedByCategory)) {
+              const node = category.find(n => n.node_type === favorite.id);
+              if (node) {
+                onSelect = () => handleFavoriteClick({
+                  id: favorite.id,
+                  type: favorite.type,
+                  name: favorite.name,
+                  action: () => handleCreateNode(node)
+                });
+                label = node.title;
+                break;
+              }
+            }
+            if (!onSelect) {
+              return null;
+            }
+          } else {
+            return null;
+          }
+
+          return (
+            <Command.Item key={favorite.id} onSelect={onSelect}>
+              <span style={{ flex: 1 }}>{label}</span>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite({ id: favorite.id, type: favorite.type as any, name: favorite.name });
+                }}
+              >
+                <StarIcon sx={{ fontSize: 14, color: "#ffc107" }} />
+              </IconButton>
+            </Command.Item>
+          );
+        })}
+      </Command.Group>
+      <CommandSeparator />
+    </>
+  );
+});
+
+const RecentSection = memo(function RecentSection() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const recentActions = useRecentActionsStore((state) => state.getRecentActions());
+  const navigate = useNavigate();
+  const { loadTemplates, copy } = useWorkflowManager((state) => ({
+    loadTemplates: state.loadTemplates,
+    copy: state.copy
+  }));
+
+  const { data: examples } = useQuery<WorkflowList>({
+    queryKey: ["templates"],
+    queryFn: loadTemplates
+  });
+
+  const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
+    () => ({ width: 800, height: 600 }),
+    []
+  );
+
+  const handleCreateNode = useCreateNode({
+    x: reactFlowWidth / 2,
+    y: reactFlowHeight / 2
+  });
+
+  const groupedByCategory = useMemo(() => {
+    const metadata = useMetadataStore.getState().metadata;
+    return Object.values(metadata).reduce<Record<string, NodeMetadata[]>>(
+      (acc, curr) => {
+        (acc[curr.namespace] = acc[curr.namespace] || []).push(curr);
+        return acc;
+      },
+      {}
+    );
+  }, []);
+
+  if (recentActions.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <Command.Group heading={<><HistoryIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "middle" }} />Recent</>}>
+        {recentActions.map((action) => {
+          let onSelect: (() => void) | undefined;
+          let label = action.name;
+
+          if (action.type === "template" && examples) {
+            const example = examples.workflows.find(w => w.id === action.id);
+            if (example) {
+              onSelect = () => executeAndClose(() => copy(example).then(w => navigate("/editor/" + w.id)));
+              label = example.name;
+            } else {
+              return null;
+            }
+          } else if (action.type === "node" && groupedByCategory) {
+            for (const category of Object.values(groupedByCategory)) {
+              const node = category.find(n => n.node_type === action.id);
+              if (node) {
+                onSelect = () => executeAndClose(() => handleCreateNode(node));
+                label = node.title;
+                break;
+              }
+            }
+            if (!onSelect) {
+              return null;
+            }
+          } else {
+            return null;
+          }
+
+          return (
+            <Command.Item key={action.id} onSelect={onSelect}>
+              {label}
+            </Command.Item>
+          );
+        })}
+      </Command.Group>
+      <CommandSeparator />
+    </>
+  );
+});
 
 const WorkflowCommands = memo(function WorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
@@ -173,6 +364,8 @@ const NodeCommands = memo(function NodeCommands() {
     y: reactFlowHeight / 2
   });
 
+  const { trackAction, toggleFavorite, isFavorited } = useRecentActionsStore();
+
   const groupedByCategory = useMemo(() => {
     const metadata = useMetadataStore.getState().metadata;
     return Object.values(metadata).reduce<Record<string, NodeMetadata[]>>(
@@ -184,32 +377,47 @@ const NodeCommands = memo(function NodeCommands() {
     );
   }, []);
 
+  const handleNodeSelect = useCallback((meta: NodeMetadata) => {
+    trackAction({ id: meta.node_type, type: "node", name: meta.title });
+    handleCreateNode(meta);
+  }, [trackAction, handleCreateNode]);
+
   return (
     <>
       {Object.entries(groupedByCategory).map(([category, metadata], idx) => (
         <Command.Group key={idx} heading={category}>
-          {metadata.map((meta, idx) => (
-            <Tooltip
-              key={idx}
-              title={<NodeInfo nodeMetadata={meta} />}
-              placement="right"
-              enterDelay={0}
-              leaveDelay={0}
-              TransitionProps={{ timeout: 0 }}
-              // open={hoveredItem === meta.title}
-            >
-              <Command.Item
+          {metadata.map((meta, idx) => {
+            const favorited = isFavorited(meta.node_type, "node");
+            return (
+              <Tooltip
                 key={idx}
-                onSelect={() => executeAndClose(() => handleCreateNode(meta))}
-                // onMouseEnter={() => setHoveredItem(meta.title)}
-                // onMouseLeave={() => setHoveredItem(null)}
-                // onFocus={() => setHoveredItem(meta.title)}
-                // onBlur={() => setHoveredItem(null)}
+                title={<NodeInfo nodeMetadata={meta} />}
+                placement="right"
+                enterDelay={0}
+                leaveDelay={0}
+                TransitionProps={{ timeout: 0 }}
               >
-                {meta.title}
-              </Command.Item>
-            </Tooltip>
-          ))}
+                <Command.Item
+                  onSelect={() => executeAndClose(() => handleNodeSelect(meta))}
+                >
+                  <span style={{ flex: 1 }}>{meta.title}</span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite({ id: meta.node_type, type: "node", name: meta.title });
+                    }}
+                  >
+                    {favorited ? (
+                      <StarIcon sx={{ fontSize: 14, color: "#ffc107" }} />
+                    ) : (
+                      <StarBorderIcon sx={{ fontSize: 14, opacity: 0.5 }} />
+                    )}
+                  </IconButton>
+                </Command.Item>
+              </Tooltip>
+            );
+          })}
         </Command.Group>
       ))}
     </>
@@ -223,6 +431,7 @@ const ExampleCommands = memo(function ExampleCommands() {
     loadTemplates: state.loadTemplates,
     copy: state.copy
   }));
+  const { trackAction, toggleFavorite, isFavorited } = useRecentActionsStore();
 
   const { data: examples } = useQuery<WorkflowList>({
     queryKey: ["templates"],
@@ -231,25 +440,42 @@ const ExampleCommands = memo(function ExampleCommands() {
 
   const loadExample = useCallback(
     (workflow: Workflow) => {
+      trackAction({ id: workflow.id, type: "template", name: workflow.name });
       copy(workflow).then((workflow) => {
         navigate("/editor/" + workflow.id);
       });
     },
-    [copy, navigate]
+    [copy, navigate, trackAction]
   );
 
   if (!examples) {return null;}
 
   return (
     <Command.Group heading="Templates">
-      {examples.workflows.map((example, idx) => (
-        <Command.Item
-          key={idx}
-          onSelect={() => executeAndClose(() => loadExample(example))}
-        >
-          {example.name}
-        </Command.Item>
-      ))}
+      {examples.workflows.map((example, idx) => {
+        const favorited = isFavorited(example.id, "template");
+        return (
+          <Command.Item
+            key={idx}
+            onSelect={() => executeAndClose(() => loadExample(example))}
+          >
+            <span style={{ flex: 1 }}>{example.name}</span>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite({ id: example.id, type: "template", name: example.name });
+              }}
+            >
+              {favorited ? (
+                <StarIcon sx={{ fontSize: 14, color: "#ffc107" }} />
+              ) : (
+                <StarBorderIcon sx={{ fontSize: 14, opacity: 0.5 }} />
+              )}
+            </IconButton>
+          </Command.Item>
+        );
+      })}
     </Command.Group>
   );
 });
@@ -316,6 +542,8 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
         <CommandInput ref={input} />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
+          <FavoritesSection />
+          <RecentSection />
           <WorkflowCommands />
           <UndoCommands undo={undo} redo={redo} />
           <LayoutCommands />
