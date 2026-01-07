@@ -60,7 +60,9 @@ const PropertyContextMenu: React.FC = () => {
   // Check if this property is a model type and get its model type
   const modelTypeInfo = useMemo(() => {
     const typeStr = propertyType?.type;
-    if (!typeStr) {return null;}
+    if (!typeStr) {
+      return null;
+    }
     
     const modelTypes: DefaultModelType[] = [
       "language_model",
@@ -78,9 +80,13 @@ const PropertyContextMenu: React.FC = () => {
 
   // Get current model value and check if it's the default
   const currentModelValue = useMemo(() => {
-    if (!nodeId || !handleId || !modelTypeInfo) {return null;}
+    if (!nodeId || !handleId || !modelTypeInfo) {
+      return null;
+    }
     const node = findNode(nodeId);
-    if (!node) {return null;}
+    if (!node) {
+      return null;
+    }
     
     const value = isDynamicProperty
       ? node.data.dynamic_properties?.[handleId]
@@ -90,7 +96,9 @@ const PropertyContextMenu: React.FC = () => {
   }, [nodeId, handleId, modelTypeInfo, findNode, isDynamicProperty]);
 
   const isCurrentModelDefault = useMemo(() => {
-    if (!modelTypeInfo || !currentModelValue) {return false;}
+    if (!modelTypeInfo || !currentModelValue) {
+      return false;
+    }
     const defaultModel = getDefaultModel(modelTypeInfo);
     return defaultModel?.id === currentModelValue?.id;
   }, [modelTypeInfo, currentModelValue, getDefaultModel]);

@@ -45,6 +45,10 @@ const listStyles = css({
   maxHeight: 600
 });
 
+// Icon width constants for the model list items
+const ICON_WIDTH_WITH_DEFAULT = 50;
+const ICON_WIDTH_DEFAULT = 30;
+
 export interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
   onSelect: (m: TModel) => void;
@@ -95,7 +99,7 @@ function ModelList<TModel extends ModelSelectorModel>({
               aria-disabled={!available}
               onClick={() => available && onSelect(m)}
             >
-              <ListItemIcon sx={{ minWidth: modelType ? 50 : 30 }}>
+              <ListItemIcon sx={{ minWidth: modelType ? ICON_WIDTH_WITH_DEFAULT : ICON_WIDTH_DEFAULT }}>
                 <FavoriteStar provider={m.provider} id={m.id} size="small" />
                 {modelType && (
                   <DefaultModelStar
