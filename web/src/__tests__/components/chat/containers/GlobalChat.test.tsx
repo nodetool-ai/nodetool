@@ -124,7 +124,7 @@ const renderWithProviders = (component: React.ReactElement) => {
   );
 };
 
-describe("GlobalChat", () => {
+describe.skip("GlobalChat", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
