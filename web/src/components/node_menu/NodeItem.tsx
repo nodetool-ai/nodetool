@@ -1,10 +1,15 @@
 import { memo, useCallback, forwardRef } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Typography, Checkbox } from "@mui/material";
+import { Typography, Checkbox, IconButton, Tooltip } from "@mui/material";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
+import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface NodeItemProps {
   node: NodeMetadata;
@@ -14,6 +19,7 @@ interface NodeItemProps {
   showCheckbox?: boolean;
   isSelected?: boolean;
   onToggleSelection?: (nodeType: string) => void;
+  showFavoriteButton?: boolean;
 }
 
 const NodeItem = memo(
@@ -26,7 +32,8 @@ const NodeItem = memo(
         onClick,
         showCheckbox = false,
         isSelected = false,
-        onToggleSelection
+        onToggleSelection,
+        showFavoriteButton = true
       },
       ref
     ) => {
@@ -39,6 +46,16 @@ const NodeItem = memo(
         setHoveredNode: state.setHoveredNode
       }));
       const isHovered = hoveredNode?.node_type === node.node_type;
+      const isFavorite = useFavoriteNodesStore((state) =>
+        state.isFavorite(node.node_type)
+      );
+      const toggleFavorite = useFavoriteNodesStore(
+        (state) => state.toggleFavorite
+      );
+      const addNotification = useNotificationStore(
+        (state) => state.addNotification
+      );
+
       const onMouseEnter = useCallback(() => {
         setHoveredNode(node);
       }, [node, setHoveredNode]);
@@ -53,6 +70,22 @@ const NodeItem = memo(
           }
         },
         [showCheckbox, onToggleSelection, node.node_type, onClick]
+      );
+
+      const handleFavoriteClick = useCallback(
+        (e: React.MouseEvent) => {
+          e.stopPropagation();
+          const wasAdded = !isFavorite;
+          toggleFavorite(node.node_type);
+          addNotification({
+            type: "info",
+            content: wasAdded
+              ? "Node added to favorites"
+              : "Node removed from favorites",
+            timeout: 2000
+          });
+        },
+        [node.node_type, isFavorite, toggleFavorite, addNotification]
       );
 
       return (
@@ -118,15 +151,47 @@ const NodeItem = memo(
               }}
             />
             <Typography fontSize="small">
-              <HighlightText 
-                text={node.title} 
-                query={searchTerm} 
+              <HighlightText
+                text={node.title}
+                query={searchTerm}
                 matchStyle="primary"
               />
             </Typography>
+            {showFavoriteButton && (
+              <Tooltip
+                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                placement="top"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+              >
+                <IconButton
+                  size="small"
+                  onClick={handleFavoriteClick}
+                  sx={{
+                    padding: "2px",
+                    marginLeft: "auto",
+                    opacity: isFavorite ? 1 : 0.5,
+                    color: isFavorite ? "warning.main" : "text.secondary",
+                    "&:hover": {
+                      backgroundColor: "action.hover",
+                      opacity: 1
+                    }
+                  }}
+                  aria-label={
+                    isFavorite
+                      ? `Remove ${node.title} from favorites`
+                      : `Add ${node.title} to favorites`
+                  }
+                >
+                  {isFavorite ? (
+                    <StarIcon fontSize="small" />
+                  ) : (
+                    <StarBorderIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </Tooltip>
+            )}
           </div>
         </div>
-        // </Tooltip>
       );
     }
   )
