@@ -17,9 +17,11 @@ import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
+import UndoIcon from "@mui/icons-material/Undo";
+import RedoIcon from "@mui/icons-material/Redo";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
@@ -363,6 +365,23 @@ const FloatingToolBar: React.FC<{
     autoLayout();
   }, [autoLayout]);
 
+  const nodeHistory = useTemporalNodes((state) => state);
+  const { pastStates, futureStates } = useTemporalNodes((state) => ({
+    pastStates: state.pastStates,
+    futureStates: state.futureStates
+  }));
+
+  const handleUndo = useCallback(() => {
+    nodeHistory.undo();
+  }, [nodeHistory]);
+
+  const handleRedo = useCallback(() => {
+    nodeHistory.redo();
+  }, [nodeHistory]);
+
+  const canUndo = pastStates && pastStates.length > 0;
+  const canRedo = futureStates && futureStates.length > 0;
+
   const handleOpenInMiniApp = useCallback(() => {
     if (!workflow?.id) {
       return;
@@ -495,6 +514,24 @@ const FloatingToolBar: React.FC<{
           variant="neutral"
           onClick={handleSave}
           aria-label="Save workflow"
+        />
+        <ToolbarButton
+          icon={<UndoIcon />}
+          tooltip="Undo"
+          shortcut="undo"
+          variant="neutral"
+          onClick={handleUndo}
+          disabled={!canUndo}
+          aria-label="Undo last action"
+        />
+        <ToolbarButton
+          icon={<RedoIcon />}
+          tooltip="Redo"
+          shortcut="redo"
+          variant="neutral"
+          onClick={handleRedo}
+          disabled={!canRedo}
+          aria-label="Redo last undone action"
         />
         <ToolbarButton
           icon={<BoltIcon />}
