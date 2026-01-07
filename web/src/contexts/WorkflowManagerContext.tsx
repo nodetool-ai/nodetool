@@ -37,6 +37,8 @@ import {
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "../stores/workflowUpdates";
 import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
+import { sanitizeGraph } from "../core/workflow/graphMapping";
+import useMetadataStore from "../stores/MetadataStore";
 import log from "loglevel";
 
 // -----------------------------------------------------------------
@@ -697,7 +699,46 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       validateAllEdges: () => {
-        // Edge validation functionality removed - will be implemented in separate branch
+        const { nodeStores } = get();
+        const metadata = useMetadataStore.getState().metadata;
+        const metadataLoaded = Object.keys(metadata).length > 0;
+
+        if (!metadataLoaded) {
+          log.warn("[validateAllEdges] Metadata not loaded yet, skipping validation");
+          return;
+        }
+
+        let totalValidated = 0;
+        let totalRemoved = 0;
+
+        Object.entries(nodeStores).forEach(([workflowId, store]) => {
+          const state = store.getState();
+          const nodes = state.nodes;
+          const edges = state.edges;
+
+          if (edges.length === 0) {
+            return;
+          }
+
+          const { edges: sanitizedEdges } = sanitizeGraph(nodes, edges, metadata);
+          const removedCount = edges.length - sanitizedEdges.length;
+
+          if (removedCount > 0) {
+            state.setEdges(sanitizedEdges);
+            log.info(
+              `[validateAllEdges] Removed ${removedCount} invalid edge(s) from workflow ${workflowId}`
+            );
+          }
+
+          totalValidated += edges.length;
+          totalRemoved += removedCount;
+        });
+
+        if (totalValidated > 0) {
+          log.info(
+            `[validateAllEdges] Completed: validated ${totalValidated} edge(s), removed ${totalRemoved} invalid edge(s) across ${Object.keys(nodeStores).length} workflow(s)`
+          );
+        }
       }
 
       /**
