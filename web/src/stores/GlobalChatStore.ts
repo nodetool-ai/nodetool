@@ -127,6 +127,9 @@ export interface GlobalChatState {
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
 
+  // Safety timeout tracking for sendMessage
+  sendMessageTimeoutId: ReturnType<typeof setTimeout> | null;
+
   // Frontend tool state
   frontendToolState: FrontendToolState;
   setFrontendToolState: (state: FrontendToolState) => void;
@@ -263,6 +266,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
 
+      // Safety timeout tracking for sendMessage
+      sendMessageTimeoutId: null,
+
       connect: async () => {
         log.info("Connecting to global chat");
 
@@ -378,23 +384,35 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       disconnect: () => {
-        const { wsEventUnsubscribes, wsThreadSubscriptions } = get();
+        const { wsEventUnsubscribes, wsThreadSubscriptions, sendMessageTimeoutId } = get();
         wsEventUnsubscribes.forEach((unsubscribe) => unsubscribe());
         Object.values(wsThreadSubscriptions).forEach((unsubscribe) =>
           unsubscribe()
         );
+
+        // Clear any pending sendMessage timeout
+        if (sendMessageTimeoutId !== null) {
+          clearTimeout(sendMessageTimeoutId);
+        }
 
         set({
           wsEventUnsubscribes: [],
           wsThreadSubscriptions: {},
           status: "disconnected",
           error: null,
-          statusMessage: null
+          statusMessage: null,
+          sendMessageTimeoutId: null
         });
       },
 
       sendMessage: async (message: Message) => {
-        const { currentThreadId, workflowId, agentMode, selectedModel, selectedTools, selectedCollections } = get();
+        const { currentThreadId, workflowId, agentMode, selectedModel, selectedTools, selectedCollections, sendMessageTimeoutId } = get();
+
+        // Clear any existing safety timeout
+        if (sendMessageTimeoutId !== null) {
+          clearTimeout(sendMessageTimeoutId);
+          set({ sendMessageTimeoutId: null });
+        }
 
         set({ error: null });
 
@@ -488,7 +506,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           await globalWebSocketManager.send(commandMessage);
 
           // Safety timeout - reset status if no response after 60 seconds
-          setTimeout(() => {
+          const timeoutId = setTimeout(() => {
             const currentState = get();
               if (
                 currentState.status === "loading" ||
@@ -501,11 +519,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   statusMessage: null,
                   currentPlanningUpdate: null,
                   currentTaskUpdate: null,
-                  currentTaskUpdateThreadId: null
+                  currentTaskUpdateThreadId: null,
+                  sendMessageTimeoutId: null
                 });
               }
             }, 60000);
+          set({ sendMessageTimeoutId: timeoutId });
         } catch (error) {
+          // Clear timeout on error
+          const currentTimeoutId = get().sendMessageTimeoutId;
+          if (currentTimeoutId !== null) {
+            clearTimeout(currentTimeoutId);
+            set({ sendMessageTimeoutId: null });
+          }
           log.error("Failed to send message:", error);
           set({
             error:
@@ -894,20 +920,28 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       stopGeneration: () => {
-        const { currentThreadId, status } = get();
+        const { currentThreadId, status, sendMessageTimeoutId } = get();
+
+        // Clear any pending sendMessage timeout
+        if (sendMessageTimeoutId !== null) {
+          clearTimeout(sendMessageTimeoutId);
+        }
 
         // Abort any active frontend tools
         FrontendToolRegistry.abortAll();
 
         if (!globalWebSocketManager) {
+          set({ sendMessageTimeoutId: null });
           return;
         }
 
         if (!globalWebSocketManager.isConnectionOpen()) {
+          set({ sendMessageTimeoutId: null });
           return;
         }
 
         if (!currentThreadId) {
+          set({ sendMessageTimeoutId: null });
           return;
         }
 
@@ -930,7 +964,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             statusMessage: null,
             currentPlanningUpdate: null,
             currentTaskUpdate: null,
-            currentTaskUpdateThreadId: null
+            currentTaskUpdateThreadId: null,
+            sendMessageTimeoutId: null
           });
         } catch (error) {
           log.error("Failed to send stop signal:", error);
@@ -938,7 +973,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           set({
             error: "Failed to stop generation",
             status: "error",
-            statusMessage: null
+            statusMessage: null,
+            sendMessageTimeoutId: null
           });
         }
       },

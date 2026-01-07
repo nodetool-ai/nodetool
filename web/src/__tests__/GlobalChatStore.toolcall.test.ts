@@ -45,7 +45,6 @@ jest.mock(
   { virtual: true }
 );
 
-import useGlobalChatStore from "../stores/GlobalChatStore";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 
