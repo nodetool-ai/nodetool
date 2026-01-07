@@ -25,7 +25,9 @@ const ALLOWED_TEXTAREA_COMBOS: Array<{
   altKey?: boolean;
   metaKey?: boolean;
 }> = [
-  { key: "Enter", shiftKey: true }
+  { key: "Enter", shiftKey: true },
+  { key: "Enter", ctrlKey: true },
+  { key: "Enter", metaKey: true }
   // Add other allowed combinations here if needed
 ];
 
@@ -76,9 +78,14 @@ const executeComboCallbacks = (
   if (isInputFocused) {
     // --- Input Focus Handling ---
 
-    // 1. Always allow "shift+enter" to proceed to execution.
+    // 1. Always allow "shift+enter", "control+enter", and "meta+enter" to proceed to execution.
+    //    These are commonly used for multiline input and running actions.
     //    (Add other universally allowed input combos here if needed)
-    if (pressedKeysString === "shift+enter") {
+    if (
+      pressedKeysString === "shift+enter" ||
+      pressedKeysString === "control+enter" ||
+      pressedKeysString === "enter+meta"
+    ) {
       // This combo is allowed, so we don't return early.
       // It will be handled by the execution logic below.
     } else {
@@ -112,8 +119,8 @@ const executeComboCallbacks = (
         return; // Suppress other global combos in focused inputs.
       }
     }
-    // If we reach here while isInputFocused is true, it means the combo is "shift+enter"
-    // (or another combo explicitly designated to run in inputs).
+    // If we reach here while isInputFocused is true, it means the combo is "shift+enter",
+    // "control+enter", "meta+enter" (or another combo explicitly designated to run in inputs).
   }
 
   // --- Execute The Combo ---
