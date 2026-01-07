@@ -13,8 +13,11 @@ import {
   Typography
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
+import DefaultModelStar from "./DefaultModelStar";
 import type { ImageModel, LanguageModel } from "../../stores/ApiTypes";
-import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
+import useModelPreferencesStore, {
+  DefaultModelType
+} from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import {
   toTitleCase,
@@ -45,11 +48,17 @@ const listStyles = css({
 export interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
   onSelect: (m: TModel) => void;
+  /**
+   * The model type for default model preferences.
+   * When provided, enables "Set as Default" functionality.
+   */
+  modelType?: DefaultModelType;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
   models,
-  onSelect
+  onSelect,
+  modelType
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
@@ -86,8 +95,18 @@ function ModelList<TModel extends ModelSelectorModel>({
               aria-disabled={!available}
               onClick={() => available && onSelect(m)}
             >
-              <ListItemIcon sx={{ minWidth: 30 }}>
+              <ListItemIcon sx={{ minWidth: modelType ? 50 : 30 }}>
                 <FavoriteStar provider={m.provider} id={m.id} size="small" />
+                {modelType && (
+                  <DefaultModelStar
+                    modelType={modelType}
+                    provider={m.provider || ""}
+                    id={m.id || ""}
+                    name={m.name || ""}
+                    path={m.path || undefined}
+                    size="small"
+                  />
+                )}
               </ListItemIcon>
               <ListItemText
                 primary={
@@ -232,6 +251,7 @@ function ModelList<TModel extends ModelSelectorModel>({
       enabledProviders,
       isApiKeySet,
       onSelect,
+      modelType,
       theme.vars.fontSizeTiny,
       theme.vars.palette.c_provider_local,
       theme.vars.palette.c_provider_api,
@@ -292,6 +312,9 @@ function ModelList<TModel extends ModelSelectorModel>({
                       color: theme.vars.palette.text.disabled
                     },
                   "& .MuiListItemButton-root:hover .favorite-star": {
+                    opacity: 1
+                  },
+                  "& .MuiListItemButton-root:hover .default-model-star": {
                     opacity: 1
                   }
                 }}

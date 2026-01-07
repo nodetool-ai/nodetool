@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import isEqual from "lodash/isEqual";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { VideoModel } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { useQuery } from "@tanstack/react-query";
+import { useVideoModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface VideoModelSelectProps {
@@ -21,24 +20,9 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const getDefaultModel = useModelPreferencesStore((s) => s.getDefaultModel);
 
-  const loadVideoModels = useCallback(async () => {
-    const { data, error } = await client.GET(
-      "/api/models/{model_type}" as any,
-      {
-        params: { path: { model_type: "video" } }
-      }
-    );
-    if (error) {
-      throw error;
-    }
-    return data as unknown as VideoModel[];
-  }, []);
-
-  const { data: models } = useQuery({
-    queryKey: ["video-models"],
-    queryFn: async () => await loadVideoModels()
-  });
+  const { models, isLoading } = useVideoModelsByProvider({ task });
 
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !value) {
@@ -46,6 +30,35 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
     }
     return models.find((m) => m.id === value);
   }, [models, value]);
+
+  // Automatically fall back to default model if current model is not found
+  useEffect(() => {
+    // Only check once models are loaded and we have a value set
+    if (isLoading || !models || models.length === 0) {
+      return;
+    }
+    
+    // If no value is set or model exists, don't do anything
+    if (!value || currentSelectedModelDetails) {
+      return;
+    }
+
+    // Model not found in the list, try to fall back to default
+    const defaultModel = getDefaultModel("video_model");
+    if (defaultModel) {
+      // Check if the default model exists in the available models
+      const defaultExists = models.some((m) => m.id === defaultModel.id);
+      if (defaultExists) {
+        const modelToPass = {
+          type: "video_model" as const,
+          id: defaultModel.id,
+          provider: defaultModel.provider,
+          name: defaultModel.name
+        };
+        onChange(modelToPass);
+      }
+    }
+  }, [value, models, isLoading, currentSelectedModelDetails, getDefaultModel, onChange]);
 
   const handleClick = useCallback(() => {
     setDialogOpen(true);

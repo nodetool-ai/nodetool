@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import isEqual from "lodash/isEqual";
 import ASRModelMenuDialog from "../model_menu/ASRModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ASRModel } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import { useASRModelsByProvider } from "../../hooks/useModelsByProvider";
+
 interface ASRModelSelectProps {
   onChange: (value: any) => void;
   value: string;
@@ -15,23 +15,9 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
-  const loadASRModels = useCallback(async () => {
-    const { data, error } = await client.GET(
-      "/api/models/{model_type}" as any,
-      {
-        params: { path: { model_type: "asr" } }
-      }
-    );
-    if (error) {
-      throw error;
-    }
-    return data as unknown as ASRModel[];
-  }, []);
+  const getDefaultModel = useModelPreferencesStore((s) => s.getDefaultModel);
 
-  const { data: models } = useQuery({
-    queryKey: ["asr-models"],
-    queryFn: async () => await loadASRModels()
-  });
+  const { models, isLoading } = useASRModelsByProvider();
 
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !value) {
@@ -39,6 +25,35 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
     }
     return models.find((m) => m.id === value);
   }, [models, value]);
+
+  // Automatically fall back to default model if current model is not found
+  useEffect(() => {
+    // Only check once models are loaded and we have a value set
+    if (isLoading || !models || models.length === 0) {
+      return;
+    }
+    
+    // If no value is set or model exists, don't do anything
+    if (!value || currentSelectedModelDetails) {
+      return;
+    }
+
+    // Model not found in the list, try to fall back to default
+    const defaultModel = getDefaultModel("asr_model");
+    if (defaultModel) {
+      // Check if the default model exists in the available models
+      const defaultExists = models.some((m) => m.id === defaultModel.id);
+      if (defaultExists) {
+        const modelToPass = {
+          type: "asr_model" as const,
+          id: defaultModel.id,
+          provider: defaultModel.provider,
+          name: defaultModel.name
+        };
+        onChange(modelToPass);
+      }
+    }
+  }, [value, models, isLoading, currentSelectedModelDetails, getDefaultModel, onChange]);
 
   const handleClick = useCallback(() => {
     setDialogOpen(true);
