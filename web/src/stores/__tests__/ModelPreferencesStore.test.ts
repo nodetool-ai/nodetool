@@ -8,7 +8,8 @@ describe("ModelPreferencesStore", () => {
       favorites: new Set<string>(),
       recents: [],
       onlyAvailable: false,
-      enabledProviders: {}
+      enabledProviders: {},
+      defaultModels: {}
     });
     // Clear console.log mock calls
     jest.clearAllMocks();
@@ -33,6 +34,11 @@ describe("ModelPreferencesStore", () => {
     it("has empty enabledProviders", () => {
       const { enabledProviders } = useModelPreferencesStore.getState();
       expect(enabledProviders).toEqual({});
+    });
+
+    it("has empty defaultModels", () => {
+      const { defaultModels } = useModelPreferencesStore.getState();
+      expect(defaultModels).toEqual({});
     });
   });
 
@@ -355,6 +361,168 @@ describe("ModelPreferencesStore", () => {
       expect(favorites.has("openai:gpt-4")).toBe(false);
       expect(recents).toHaveLength(1);
       expect(recents[0].id).toBe("gpt-4");
+    });
+  });
+
+  describe("setDefaultModel", () => {
+    it("sets a default model for a model type", () => {
+      act(() => {
+        useModelPreferencesStore.getState().setDefaultModel("language_model", {
+          provider: "openai",
+          id: "gpt-4",
+          name: "GPT-4"
+        });
+      });
+
+      const { defaultModels } = useModelPreferencesStore.getState();
+      expect(defaultModels.language_model).toBeDefined();
+      expect(defaultModels.language_model?.id).toBe("gpt-4");
+      expect(defaultModels.language_model?.provider).toBe("openai");
+      expect(defaultModels.language_model?.name).toBe("GPT-4");
+      expect(defaultModels.language_model?.type).toBe("language_model");
+    });
+
+    it("sets a default model with path", () => {
+      act(() => {
+        useModelPreferencesStore.getState().setDefaultModel("image_model", {
+          provider: "huggingface",
+          id: "stable-diffusion",
+          name: "Stable Diffusion",
+          path: "stabilityai/stable-diffusion-xl-base-1.0"
+        });
+      });
+
+      const { defaultModels } = useModelPreferencesStore.getState();
+      expect(defaultModels.image_model?.path).toBe("stabilityai/stable-diffusion-xl-base-1.0");
+    });
+
+    it("overwrites an existing default model", () => {
+      act(() => {
+        useModelPreferencesStore.getState().setDefaultModel("language_model", {
+          provider: "openai",
+          id: "gpt-4",
+          name: "GPT-4"
+        });
+        useModelPreferencesStore.getState().setDefaultModel("language_model", {
+          provider: "anthropic",
+          id: "claude-3",
+          name: "Claude 3"
+        });
+      });
+
+      const { defaultModels } = useModelPreferencesStore.getState();
+      expect(defaultModels.language_model?.id).toBe("claude-3");
+      expect(defaultModels.language_model?.provider).toBe("anthropic");
+    });
+
+    it("handles multiple model types independently", () => {
+      act(() => {
+        useModelPreferencesStore.getState().setDefaultModel("language_model", {
+          provider: "openai",
+          id: "gpt-4",
+          name: "GPT-4"
+        });
+        useModelPreferencesStore.getState().setDefaultModel("image_model", {
+          provider: "huggingface",
+          id: "stable-diffusion",
+          name: "Stable Diffusion"
+        });
+        useModelPreferencesStore.getState().setDefaultModel("tts_model", {
+          provider: "openai",
+          id: "tts-1",
+          name: "TTS-1"
+        });
+      });
+
+      const { defaultModels } = useModelPreferencesStore.getState();
+      expect(defaultModels.language_model?.id).toBe("gpt-4");
+      expect(defaultModels.image_model?.id).toBe("stable-diffusion");
+      expect(defaultModels.tts_model?.id).toBe("tts-1");
+    });
+  });
+
+  describe("getDefaultModel", () => {
+    it("returns undefined when no default is set", () => {
+      const result = useModelPreferencesStore.getState().getDefaultModel("language_model");
+      expect(result).toBeUndefined();
+    });
+
+    it("returns the default model when set", () => {
+      act(() => {
+        useModelPreferencesStore.getState().setDefaultModel("language_model", {
+          provider: "openai",
+          id: "gpt-4",
+          name: "GPT-4"
+        });
+      });
+
+      const result = useModelPreferencesStore.getState().getDefaultModel("language_model");
+      expect(result).toBeDefined();
+      expect(result?.id).toBe("gpt-4");
+    });
+
+    it("returns undefined for unset model types while others are set", () => {
+      act(() => {
+        useModelPreferencesStore.getState().setDefaultModel("language_model", {
+          provider: "openai",
+          id: "gpt-4",
+          name: "GPT-4"
+        });
+      });
+
+      const langResult = useModelPreferencesStore.getState().getDefaultModel("language_model");
+      const imageResult = useModelPreferencesStore.getState().getDefaultModel("image_model");
+      
+      expect(langResult).toBeDefined();
+      expect(imageResult).toBeUndefined();
+    });
+  });
+
+  describe("clearDefaultModel", () => {
+    it("clears a set default model", () => {
+      act(() => {
+        useModelPreferencesStore.getState().setDefaultModel("language_model", {
+          provider: "openai",
+          id: "gpt-4",
+          name: "GPT-4"
+        });
+        useModelPreferencesStore.getState().clearDefaultModel("language_model");
+      });
+
+      const result = useModelPreferencesStore.getState().getDefaultModel("language_model");
+      expect(result).toBeUndefined();
+    });
+
+    it("does not affect other model types when clearing", () => {
+      act(() => {
+        useModelPreferencesStore.getState().setDefaultModel("language_model", {
+          provider: "openai",
+          id: "gpt-4",
+          name: "GPT-4"
+        });
+        useModelPreferencesStore.getState().setDefaultModel("image_model", {
+          provider: "huggingface",
+          id: "stable-diffusion",
+          name: "Stable Diffusion"
+        });
+        useModelPreferencesStore.getState().clearDefaultModel("language_model");
+      });
+
+      const langResult = useModelPreferencesStore.getState().getDefaultModel("language_model");
+      const imageResult = useModelPreferencesStore.getState().getDefaultModel("image_model");
+      
+      expect(langResult).toBeUndefined();
+      expect(imageResult).toBeDefined();
+      expect(imageResult?.id).toBe("stable-diffusion");
+    });
+
+    it("handles clearing an unset model type gracefully", () => {
+      act(() => {
+        useModelPreferencesStore.getState().clearDefaultModel("language_model");
+      });
+
+      const result = useModelPreferencesStore.getState().getDefaultModel("language_model");
+      expect(result).toBeUndefined();
     });
   });
 });

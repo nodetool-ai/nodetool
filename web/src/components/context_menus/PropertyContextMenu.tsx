@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -7,6 +7,8 @@ import ContextMenuItem from "./ContextMenuItem";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Property } from "../../stores/ApiTypes";
@@ -14,6 +16,9 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { serializeValue } from "../../utils/serializeValue";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useModelPreferencesStore, {
+  DefaultModelType
+} from "../../stores/ModelPreferencesStore";
 
 const PropertyContextMenu: React.FC = () => {
   const theme = useTheme();
@@ -27,7 +32,8 @@ const PropertyContextMenu: React.FC = () => {
     nodeId,
     handleId,
     description,
-    isDynamicProperty
+    isDynamicProperty,
+    type: propertyType
   } = useContextMenuStore((state) => {
     return {
       menuPosition: state.menuPosition,
@@ -35,7 +41,8 @@ const PropertyContextMenu: React.FC = () => {
       description: state.description,
       nodeId: state.nodeId,
       handleId: state.handleId,
-      isDynamicProperty: state.isDynamicProperty
+      isDynamicProperty: state.isDynamicProperty,
+      type: state.type
     };
   });
   const { findNode, updateNodeData, updateNodeProperties } = useNodes(
@@ -46,6 +53,47 @@ const PropertyContextMenu: React.FC = () => {
     })
   );
   const metadata = useMetadataStore((state) => state.metadata);
+  const setDefaultModel = useModelPreferencesStore((s) => s.setDefaultModel);
+  const getDefaultModel = useModelPreferencesStore((s) => s.getDefaultModel);
+  const clearDefaultModel = useModelPreferencesStore((s) => s.clearDefaultModel);
+
+  // Check if this property is a model type and get its model type
+  const modelTypeInfo = useMemo(() => {
+    const typeStr = propertyType?.type;
+    if (!typeStr) {return null;}
+    
+    const modelTypes: DefaultModelType[] = [
+      "language_model",
+      "image_model",
+      "video_model",
+      "tts_model",
+      "asr_model"
+    ];
+    
+    if (modelTypes.includes(typeStr as DefaultModelType)) {
+      return typeStr as DefaultModelType;
+    }
+    return null;
+  }, [propertyType?.type]);
+
+  // Get current model value and check if it's the default
+  const currentModelValue = useMemo(() => {
+    if (!nodeId || !handleId || !modelTypeInfo) {return null;}
+    const node = findNode(nodeId);
+    if (!node) {return null;}
+    
+    const value = isDynamicProperty
+      ? node.data.dynamic_properties?.[handleId]
+      : node.data.properties?.[handleId];
+    
+    return value;
+  }, [nodeId, handleId, modelTypeInfo, findNode, isDynamicProperty]);
+
+  const isCurrentModelDefault = useMemo(() => {
+    if (!modelTypeInfo || !currentModelValue) {return false;}
+    const defaultModel = getDefaultModel(modelTypeInfo);
+    return defaultModel?.id === currentModelValue?.id;
+  }, [modelTypeInfo, currentModelValue, getDefaultModel]);
 
   if (!menuPosition) {
     return null;
@@ -155,6 +203,35 @@ const PropertyContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
+  const handleToggleDefault = (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (modelTypeInfo && currentModelValue) {
+      if (isCurrentModelDefault) {
+        clearDefaultModel(modelTypeInfo);
+        addNotification({
+          type: "success",
+          content: "Default model cleared"
+        });
+      } else {
+        setDefaultModel(modelTypeInfo, {
+          provider: currentModelValue.provider || "",
+          id: currentModelValue.id || "",
+          name: currentModelValue.name || "",
+          path: currentModelValue.path
+        });
+        addNotification({
+          type: "success",
+          content: `Set ${currentModelValue.name || currentModelValue.id} as default ${modelTypeInfo.replace("_", " ")}`
+        });
+      }
+    }
+    closeContextMenu();
+  };
+
   return (
     <Menu
       className="context-menu property-context-menu"
@@ -207,6 +284,23 @@ const PropertyContextMenu: React.FC = () => {
         IconComponent={<SettingsBackupRestoreIcon />}
         tooltip={getShortcutTooltip("reset-default")}
       />
+
+      {modelTypeInfo && currentModelValue && (
+        <>
+          <Divider />
+          <ContextMenuItem
+            onClick={handleToggleDefault}
+            label={isCurrentModelDefault ? "Clear as Default Model" : "Set as Default Model"}
+            addButtonClassName="set-default-model"
+            IconComponent={isCurrentModelDefault ? <CheckCircleIcon /> : <CheckCircleOutlineIcon />}
+            tooltip={
+              isCurrentModelDefault
+                ? "Clear this model as the default for this model type"
+                : "Set this model as the default for workflows that don't have this model available"
+            }
+          />
+        </>
+      )}
 
       {isDynamicProperty && (
         <>
