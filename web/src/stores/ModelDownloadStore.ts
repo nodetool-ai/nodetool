@@ -374,7 +374,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     if (modelType === "llama_model") {
       try {
         const response = await fetch(
-          BASE_URL + "/api/models/pull_ollama_model?model_name=" + id,
+          `${BASE_URL}/api/models/pull_ollama_model?model_name=${encodeURIComponent(id)}`,
           {
             method: "POST",
             headers: {

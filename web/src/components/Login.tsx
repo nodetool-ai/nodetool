@@ -77,7 +77,7 @@ function Login() {
     { name: "StabilityAI", url: "https://stability.ai/" }
   ];
   const handleClick = (url: string) => {
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
