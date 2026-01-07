@@ -17,7 +17,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   value,
   task
 }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
@@ -83,12 +83,12 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
     return { label: "Select Image Model", secondaryLabel: undefined };
   }, [currentSelectedModelDetails, value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -106,7 +106,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         id: model.id || "",
         name: model.name || ""
       });
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent]
   );
@@ -122,7 +122,8 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         onClick={handleClick}
       />
       <ImageModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         task={task}
