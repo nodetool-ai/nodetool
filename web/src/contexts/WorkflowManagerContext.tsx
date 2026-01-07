@@ -721,12 +721,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 export const FetchCurrentWorkflow: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const { setCurrentWorkflowId, getNodeStore, fetchWorkflow, createNew } =
+  const { setCurrentWorkflowId, getNodeStore, fetchWorkflow, addWorkflow } =
     useWorkflowManager((state) => ({
       setCurrentWorkflowId: state.setCurrentWorkflowId,
       getNodeStore: state.getNodeStore,
       fetchWorkflow: state.fetchWorkflow,
-      createNew: state.createNew
+      addWorkflow: state.addWorkflow
     }));
   // Extract workflow id from the route.
   const { workflow: workflowId } = useParams();
@@ -738,11 +738,27 @@ export const FetchCurrentWorkflow: React.FC<{
     }
     if (workflowId && !isWorkflowLoaded) {
       fetchWorkflow(workflowId).catch(async () => {
-        const newWorkflow = await createNew();
-        window.location.replace(`/editor/${newWorkflow.id}`);
+        const workflow: Workflow = {
+          id: workflowId,
+          name: "New Workflow",
+          description: "",
+          access: "private",
+          thumbnail: "",
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          graph: {
+            nodes: [],
+            edges: []
+          },
+          settings: {
+            hide_ui: false
+          },
+          run_mode: "workflow"
+        };
+        addWorkflow(workflow);
       });
     }
-  }, [workflowId, fetchWorkflow, isWorkflowLoaded, setCurrentWorkflowId, createNew]);
+  }, [workflowId, fetchWorkflow, isWorkflowLoaded, setCurrentWorkflowId, addWorkflow]);
 
   return children;
 };
