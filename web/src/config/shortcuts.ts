@@ -492,15 +492,49 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Activate next workflow tab",
     registerCombo: true
   },
-  // Direct tab switching (Ctrl/Cmd 1-9)
-  ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
-    title: `Switch to Tab ${n}`,
-    slug: `switchToTab${n}`,
-    keyCombo: ["Control", `${n}`],
-    category: "workflow" as const,
-    description: `Activate workflow tab ${n}`,
-    registerCombo: true
-  }))
+   // Direct tab switching (Ctrl/Cmd 1-9)
+   ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
+     title: `Switch to Tab ${n}`,
+     slug: `switchToTab${n}`,
+     keyCombo: ["Control", `${n}`],
+     category: "workflow" as const,
+     description: `Activate workflow tab ${n}`,
+     registerCombo: true
+   })),
+
+   // ---------- DEBUGGING ----------------------------------------------------
+   {
+     title: "Toggle Debug Mode",
+     slug: "toggleDebugMode",
+     keyCombo: ["Control", "\\"],
+     category: "workflow" as const,
+     description: "Enable or disable workflow debugging mode",
+     registerCombo: false
+   },
+   {
+     title: "Pause/Resume",
+     slug: "pauseResume",
+     keyCombo: ["F5"],
+     category: "workflow" as const,
+     description: "Pause or resume workflow execution",
+     registerCombo: false
+   },
+   {
+     title: "Step Over",
+     slug: "stepOver",
+     keyCombo: ["F10"],
+     category: "workflow" as const,
+     description: "Step over the current node (skip into)",
+     registerCombo: false
+   },
+   {
+     title: "Step Into",
+     slug: "stepInto",
+     keyCombo: ["F11"],
+     category: "workflow" as const,
+     description: "Step into the current node",
+     registerCombo: false
+   }
 ] as Shortcut[];
 
 /**

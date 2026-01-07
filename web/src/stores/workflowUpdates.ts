@@ -224,6 +224,7 @@ export const handleUpdate = (
       | "running"
       | "paused"
       | "suspended"
+      | "debugging"
       | "error"
       | "cancelled"
       | undefined;
@@ -240,6 +241,8 @@ export const handleUpdate = (
       newState = "cancelled";
     } else if (job.status === "failed" || job.status === "timed_out") {
       newState = "error";
+    } else if (job.status === "debugging") {
+      newState = "debugging";
     }
 
     if (newState) {
@@ -370,6 +373,11 @@ export const handleUpdate = (
       return;
     }
 
+    // Track current node for debugging
+    if (currentState === "debugging" || currentState === "paused") {
+      runnerStore.setState({ currentNodeId: update.node_id });
+    }
+
     if (update.error) {
       log.error("WorkflowRunner update error", update.error);
       runner.addNotification({
@@ -423,5 +431,23 @@ export const handleUpdate = (
     //     });
     //   }
     // }
+  }
+
+  if (data.type === "node_progress") {
+    const progress = data as NodeProgress;
+    const currentState = runnerStore.getState().state;
+    // Track current node for debugging
+    if (currentState === "debugging" || currentState === "paused") {
+      runnerStore.setState({ currentNodeId: progress.node_id });
+    }
+    // Don't update progress if workflow is cancelled
+    if (currentState !== "cancelled") {
+      setProgress(
+        workflow.id,
+        progress.node_id,
+        progress.progress,
+        progress.total
+      );
+    }
   }
 };

@@ -26,6 +26,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import DebugPanel from "./DebugPanel";
 // import { isMac } from "../../utils/platform";
 
 // Icons
@@ -713,6 +714,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <DownloadWorkflowButton />
             <AutoLayoutButton autoLayout={autoLayout} />
             <WorkflowModeSelect />
+            <DebugPanel />
             <RunWorkflowButton />
             <StopWorkflowButton />
             {isLocalhost && workflow?.run_mode === "app" && <RunAsAppButton />}

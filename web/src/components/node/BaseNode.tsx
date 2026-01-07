@@ -36,6 +36,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
+import BreakpointIndicator from "./BreakpointIndicator";
 
 import { getIsElectronDetails } from "../../utils/browser";
 
@@ -440,6 +441,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       />
 
       {selected && resizer}
+      <BreakpointIndicator nodeId={id} />
       {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}

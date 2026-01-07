@@ -70,9 +70,12 @@ export type WorkflowRunner = {
     | "running"
     | "paused"
     | "suspended"
+    | "debugging"
     | "error"
     | "cancelled";
   statusMessage: string | null;
+  currentNodeId: string | null;
+  breakpoints: Set<string>;
   setStatusMessage: (message: string | null) => void;
   notifications: Notification[];
   messageHandler: MessageHandler;
@@ -83,6 +86,11 @@ export type WorkflowRunner = {
   cancel: () => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
+  toggleBreakpoint: (nodeId: string) => void;
+  clearBreakpoints: () => void;
+  stepOver: () => Promise<void>;
+  stepInto: () => Promise<void>;
+  setDebugMode: (enabled: boolean) => Promise<void>;
   run: (
     params: any,
     workflow: WorkflowAttributes,
@@ -123,7 +131,9 @@ export const createWorkflowRunnerStore = (
     unsubscribe: null,
     state: "idle",
     statusMessage: null,
-    messageHandler: (workflow: WorkflowAttributes, data: MsgpackData) => {
+    currentNodeId: null,
+    breakpoints: new Set<string>(),
+    messageHandler: (_workflow: WorkflowAttributes, _data: MsgpackData) => {
       console.warn("No message handler set");
     },
     setMessageHandler: (handler: MessageHandler) => {
@@ -470,6 +480,126 @@ export const createWorkflowRunnerStore = (
       });
 
       set({ state: "running", statusMessage: "Workflow resumed" });
+    },
+
+    /**
+     * Toggle a breakpoint on a node.
+     */
+    toggleBreakpoint: (nodeId: string) => {
+      const breakpoints = new Set(get().breakpoints);
+      if (breakpoints.has(nodeId)) {
+        breakpoints.delete(nodeId);
+      } else {
+        breakpoints.add(nodeId);
+      }
+      set({ breakpoints });
+    },
+
+    /**
+     * Clear all breakpoints.
+     */
+    clearBreakpoints: () => {
+      set({ breakpoints: new Set<string>() });
+    },
+
+    /**
+     * Step over the current node.
+     */
+    stepOver: async () => {
+      const { job_id, state } = get();
+      log.info(`WorkflowRunner[${workflowId}]: Stepping over`, { job_id });
+
+      if (state !== "paused" && state !== "debugging") {
+        log.warn(
+          `WorkflowRunner[${workflowId}]: Cannot step over - not paused or debugging (state: ${state})`
+        );
+        return;
+      }
+
+      if (!job_id) {
+        log.warn(`WorkflowRunner[${workflowId}]: Cannot step over - no job_id`);
+        return;
+      }
+
+      await globalWebSocketManager.send({
+        type: "step_over",
+        command: "step_over",
+        data: {
+          job_id,
+          workflow_id: workflowId
+        }
+      });
+
+      set({ state: "running", statusMessage: "Stepping over..." });
+    },
+
+    /**
+     * Step into the current node.
+     */
+    stepInto: async () => {
+      const { job_id, state } = get();
+      log.info(`WorkflowRunner[${workflowId}]: Stepping into`, { job_id });
+
+      if (state !== "paused" && state !== "debugging") {
+        log.warn(
+          `WorkflowRunner[${workflowId}]: Cannot step into - not paused or debugging (state: ${state})`
+        );
+        return;
+      }
+
+      if (!job_id) {
+        log.warn(`WorkflowRunner[${workflowId}]: Cannot step into - no job_id`);
+        return;
+      }
+
+      await globalWebSocketManager.send({
+        type: "step_into",
+        command: "step_into",
+        data: {
+          job_id,
+          workflow_id: workflowId
+        }
+      });
+
+      set({ state: "running", statusMessage: "Stepping into..." });
+    },
+
+    /**
+     * Enable or disable debug mode.
+     */
+    setDebugMode: async (enabled: boolean) => {
+      const { job_id } = get();
+      log.info(`WorkflowRunner[${workflowId}]: Setting debug mode`, {
+        enabled,
+        job_id
+      });
+
+      if (!job_id) {
+        log.warn(`WorkflowRunner[${workflowId}]: Cannot set debug mode - no job_id`);
+        return;
+      }
+
+      if (enabled) {
+        await globalWebSocketManager.send({
+          type: "enable_debug",
+          command: "enable_debug",
+          data: {
+            job_id,
+            workflow_id: workflowId
+          }
+        });
+        set({ state: "debugging", statusMessage: "Debug mode enabled" });
+      } else {
+        await globalWebSocketManager.send({
+          type: "disable_debug",
+          command: "disable_debug",
+          data: {
+            job_id,
+            workflow_id: workflowId
+          }
+        });
+        set({ state: "running", statusMessage: "Debug mode disabled" });
+      }
     }
   }));
 
