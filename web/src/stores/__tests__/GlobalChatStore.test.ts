@@ -28,10 +28,31 @@ jest.mock("../../lib/supabaseClient", () => ({
   }
 }));
 
+const mockGlobalWebSocketManager = {
+  send: jest.fn().mockResolvedValue(undefined),
+  ensureConnection: jest.fn().mockResolvedValue(undefined),
+  disconnect: jest.fn(),
+  subscribe: jest.fn().mockReturnValue(() => {}),
+  subscribeEvent: jest.fn().mockReturnValue(() => {}),
+  isConnected: true,
+  isConnecting: false,
+  isConnectionOpen: jest.fn().mockReturnValue(true),
+  getWebSocket: jest.fn().mockReturnValue(null),
+  getConnectionState: jest.fn().mockReturnValue({ isConnected: true, isConnecting: false }),
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+  emit: jest.fn()
+};
+
+jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: mockGlobalWebSocketManager
+}));
+
 import { encode, decode } from "@msgpack/msgpack";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
-import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import {
   Message,
   JobUpdate,
@@ -43,16 +64,6 @@ import {
 } from "../ApiTypes";
 import log from "loglevel";
 import { supabase } from "../../lib/supabaseClient";
-
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-    debug: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn()
-  }
-}));
 
 let uuidCounter = 0;
 jest.mock("../uuidv4", () => ({ uuidv4: () => `id-${uuidCounter++}` }));
@@ -106,7 +117,7 @@ describe("GlobalChatStore", () => {
     if (currentSocket) {
       currentSocket.close();
     }
-    globalWebSocketManager.disconnect();
+    mockGlobalWebSocketManager.disconnect();
     store.getState().disconnect();
 
     store.setState({
