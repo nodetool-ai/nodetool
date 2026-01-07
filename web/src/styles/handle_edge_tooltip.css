@@ -219,6 +219,32 @@
   pointer-events: none;
 }
 
+/* COLLECT HANDLE - list[T] inputs that can accept multiple connections */
+/* Uses a distinctive double-line pattern to signify "collect" behavior */
+.react-flow__node .react-flow__handle-left.collect-handle {
+  /* Wider handle to signify multiple inputs */
+  height: calc(var(--handle_height) * 1.6);
+  border-radius: 3px 0 0 3px;
+  /* Double border effect for visual distinction */
+  border-left-width: 3px;
+  border-left-style: double;
+  /* Subtle glow to make it more noticeable */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.react-flow__node .react-flow__handle-left.collect-handle:hover {
+  height: calc(var(--handle_height) * 1.8);
+  transform: translate(0, -50%) scale(1.3, 1);
+}
+
+/* Enhance visibility during connection */
+.react-flow.is-connecting .react-flow__node .react-flow__handle-left.collect-handle.is-connectable {
+  height: calc(var(--handle_height) * 2);
+  transform: translate(0, -50%) scale(1.15, 1);
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 /* DYNAMIC OUTPUTS */
 .multi-outputs .react-flow__handle-right {
   top: 6px;

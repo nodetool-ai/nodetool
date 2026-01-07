@@ -234,6 +234,21 @@ export const isConnectable = (
     return true;
   }
 
+  // Check if source can be "collected" into a target list[T]
+  // This allows connecting T -> list[T]
+  if (
+    target.type === "list" &&
+    target.type_args &&
+    target.type_args.length === 1 &&
+    target.type_args[0] &&
+    source.type !== "list" // Don't apply collect logic to list -> list
+  ) {
+    const targetElementType = target.type_args[0];
+    if (isConnectable(source, targetElementType, allowAny)) {
+      return true;
+    }
+  }
+
   if (source.type === "union") {
     // this is not 100% safe but we want to be able to connect
     // if the union is a subset of the target
@@ -304,4 +319,60 @@ export const isConnectable = (
       return source.type === target.type;
   }
   return false;
+};
+
+/**
+ * Checks if a target type is a "collect" handle - a list type that can accept
+ * multiple connections of its element type T.
+ *
+ * A collect handle is defined as:
+ * - A list type with exactly one type argument (list[T])
+ * - Does NOT have type argument "any" (list[any] is not a collect handle)
+ *
+ * @param type The type to check.
+ * @returns True if the type is a collect handle.
+ */
+export const isCollectType = (type: TypeMetadata): boolean => {
+  if (!type || type.type !== "list") {
+    return false;
+  }
+  // Must have exactly one type argument
+  if (!type.type_args || type.type_args.length !== 1) {
+    return false;
+  }
+  // The element type must not be "any"
+  const elementType = type.type_args[0];
+  if (!elementType || elementType.type === "any") {
+    return false;
+  }
+  return true;
+};
+
+/**
+ * Checks if a source type can be "collected" into a target list type.
+ * This allows connecting an output of type T to an input of type list[T].
+ *
+ * @param source The source type (e.g., "image").
+ * @param target The target type (e.g., "list[image]").
+ * @returns True if the source type can be collected into the target type.
+ */
+export const canCollect = (
+  source: TypeMetadata,
+  target: TypeMetadata
+): boolean => {
+  // Target must be a collect type (list[T] where T is not "any")
+  if (!isCollectType(target)) {
+    return false;
+  }
+
+  // Safety check
+  if (!source || !source.type) {
+    return false;
+  }
+
+  // Get the element type of the target list
+  const targetElementType = target.type_args[0];
+
+  // Check if the source type is connectable to the element type
+  return isConnectable(source, targetElementType, true);
 };
