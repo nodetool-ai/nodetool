@@ -400,6 +400,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Search Graph",
+    slug: "searchGraph",
+    keyCombo: ["Control", "F"],
+    category: "panel" as const,
+    description: "Search for nodes in the current workflow",
+    registerCombo: false
+  },
+  {
     title: "Operator",
     slug: "toggleOperator",
     keyCombo: ["O"],

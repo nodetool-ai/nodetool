@@ -20,12 +20,14 @@ import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
+import SearchIcon from "@mui/icons-material/Search";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
 import PanelResizeButton from "./PanelResizeButton";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
+import GraphSearchPanel from "./GraphSearchPanel";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -117,6 +119,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle,
   handleWorkspaceToggle,
   handleVersionsToggle,
+  handleSearchToggle,
   activeView,
   panelVisible
 }: {
@@ -125,7 +128,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle: () => void;
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions";
+  handleSearchToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "search";
   panelVisible: boolean;
 }) {
   return (
@@ -225,6 +229,30 @@ const VerticalToolbar = memo(function VerticalToolbar({
           }
         >
           <FolderIcon />
+        </IconButton>
+      </Tooltip>
+
+      {/* Search Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Search Graph</div>
+            <div className="tooltip-key">
+              <kbd>CTRL</kbd>+<kbd>F</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleSearchToggle}
+          className={
+            activeView === "search" && panelVisible ? "search active" : "search"
+          }
+        >
+          <SearchIcon />
         </IconButton>
       </Tooltip>
 
@@ -338,6 +366,7 @@ const PanelRight: React.FC = () => {
             handleLogsToggle={() => handlePanelToggle("logs")}
             handleWorkspaceToggle={() => handlePanelToggle("workspace")}
             handleVersionsToggle={() => handlePanelToggle("versions")}
+            handleSearchToggle={() => handlePanelToggle("search")}
             activeView={activeView}
             panelVisible={isVisible}
           />
@@ -364,6 +393,8 @@ const PanelRight: React.FC = () => {
                       onClose={() => handlePanelToggle("versions")}
                     />
                   ) : null
+                ) : activeView === "search" ? (
+                  <GraphSearchPanel />
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
