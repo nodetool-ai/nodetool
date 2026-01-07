@@ -31,6 +31,7 @@ import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
+import QuickFavoritesMenu from "../node_menu/QuickFavoritesMenu";
 import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
@@ -59,6 +60,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const { isUploading } = useAssetUpload();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [favoritesMenuOpen, setFavoritesMenuOpen] = useState(false);
+  const [favoritesMenuPosition, setFavoritesMenuPosition] = useState({ x: 0, y: 0 });
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -78,6 +81,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active) {
         setCommandMenuOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Quick Favorites (Alt+F)
+  useCombo(
+    ["alt", "f"],
+    () => {
+      if (active) {
+        // Open favorites menu at center of viewport
+        setFavoritesMenuPosition({
+          x: window.innerWidth / 2 - 140,
+          y: window.innerHeight / 2 - 150
+        });
+        setFavoritesMenuOpen(true);
       }
     },
     true,
@@ -140,6 +160,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             <>
               <RunAsAppFab workflowId={workflowId} />
               <NodeMenu focusSearchInput={true} />
+              <QuickFavoritesMenu
+                open={favoritesMenuOpen}
+                onClose={() => setFavoritesMenuOpen(false)}
+                position={favoritesMenuPosition}
+              />
               <CommandMenu
                 open={commandMenuOpen}
                 setOpen={setCommandMenuOpen}

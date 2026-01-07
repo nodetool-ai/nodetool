@@ -1,10 +1,13 @@
 import { memo, useCallback, forwardRef } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Typography, Checkbox } from "@mui/material";
+import { Typography, Checkbox, IconButton, Tooltip } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useFavoritesStore from "../../stores/FavoritesStore";
 import { IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 interface NodeItemProps {
   node: NodeMetadata;
@@ -39,6 +42,10 @@ const NodeItem = memo(
         setHoveredNode: state.setHoveredNode
       }));
       const isHovered = hoveredNode?.node_type === node.node_type;
+      const isFavorite = useFavoritesStore((state) =>
+        state.favorites.some((f) => f.nodeType === node.node_type)
+      );
+      const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
       const onMouseEnter = useCallback(() => {
         setHoveredNode(node);
       }, [node, setHoveredNode]);
@@ -124,7 +131,36 @@ const NodeItem = memo(
                 matchStyle="primary"
               />
             </Typography>
+            <Tooltip title={isFavorite ? "Remove from favorites" : "Add to favorites"}>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(node.node_type);
+                }}
+                sx={{
+                  opacity: isFavorite ? 1 : 0,
+                  transition: "opacity 0.15s ease",
+                  color: isFavorite ? "#ffc107" : "inherit"
+                }}
+                className="favorite-button"
+              >
+                {isFavorite ? (
+                  <StarIcon fontSize="small" />
+                ) : (
+                  <StarBorderIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
           </div>
+          <style>{`
+            .node:hover .favorite-button {
+              opacity: 0.6;
+            }
+            .node:hover .favorite-button:hover {
+              opacity: 1;
+            }
+          `}</style>
         </div>
         // </Tooltip>
       );

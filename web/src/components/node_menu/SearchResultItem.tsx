@@ -3,10 +3,13 @@ import { memo, useCallback, forwardRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Box, Collapse } from "@mui/material";
+import { Typography, Box, Collapse, IconButton, Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useFavoritesStore from "../../stores/FavoritesStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { colorForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
@@ -201,6 +204,11 @@ const SearchResultItem = memo(
         // No longer auto-collapse on leave
       }, []);
 
+      const isFavorite = useFavoritesStore((state) =>
+        state.favorites.some((f) => f.nodeType === node.node_type)
+      );
+      const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
+
       return (
         <div
           ref={ref}
@@ -216,6 +224,26 @@ const SearchResultItem = memo(
           <div className="result-header">
             <div className="result-main">
               <div className="result-title-row">
+                <Tooltip title={isFavorite ? "Remove from favorites" : "Add to favorites"}>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(node.node_type);
+                    }}
+                    sx={{
+                      color: isFavorite ? "#ffc107" : "inherit",
+                      opacity: 0.7,
+                      "&:hover": { opacity: 1 }
+                    }}
+                  >
+                    {isFavorite ? (
+                      <StarIcon fontSize="small" />
+                    ) : (
+                      <StarBorderIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
                 <Typography className="result-title" component="div">
                   <HighlightText 
                     text={node.title} 

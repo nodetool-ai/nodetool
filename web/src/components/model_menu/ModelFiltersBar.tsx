@@ -48,7 +48,7 @@ interface ModelFiltersBarProps {
   quantList?: string[];
 }
 
-const ModelFiltersBar: React.FC<ModelFiltersBarProps> = ({ }) => {
+const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
   const {
     selectedTypes,
     sizeBucket,
