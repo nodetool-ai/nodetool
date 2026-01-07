@@ -10,17 +10,20 @@ export interface TTSModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: TTSModel) => void;
+  anchorEl?: HTMLElement | null;
 }
 
 export default function TTSModelMenuDialog({
   open,
   onClose,
-  onModelChange
+  onModelChange,
+  anchorEl
 }: TTSModelMenuDialogProps) {
   const modelData = useTTSModelsByProvider();
   return (
     <ModelMenuDialogBase<TTSModel>
       open={open}
+      anchorEl={anchorEl}
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}

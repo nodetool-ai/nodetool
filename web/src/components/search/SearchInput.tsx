@@ -113,7 +113,7 @@ interface SearchInputProps {
   maxWidth?: string;
   searchTerm?: string;
   searchResults?: NodeMetadata[];
-  width?: number;
+  width?: number | string;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -184,7 +184,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         (focusOnTyping &&
           !document.activeElement?.classList.contains("search-input"));
 
-      if (!shouldHandleEvent) {return;}
+      if (!shouldHandleEvent) { return; }
 
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
@@ -220,7 +220,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       }
 
       if (focusOnTyping) {
-        if (isControlOrMetaPressed) {return;}
+        if (isControlOrMetaPressed) { return; }
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
           if (document.activeElement !== inputRef.current) {
             event.preventDefault();
@@ -254,7 +254,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     <div
       className="search-input-container"
       css={styles(theme)}
-      style={{ maxWidth: maxWidth, width: `${width}px` }}
+      style={{ maxWidth: maxWidth, width: typeof width === 'number' ? `${width}px` : width }}
     >
       <SearchIcon className="search-icon" />
       <input
@@ -289,9 +289,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
         }
       >
         <button
-          className={`clear-search-btn ${
-            localSearchTerm.trim() === "" ? "disabled" : ""
-          }`}
+          className={`clear-search-btn ${localSearchTerm.trim() === "" ? "disabled" : ""
+            }`}
           tabIndex={-1}
           aria-label="Clear search"
           onClick={clearSearch}

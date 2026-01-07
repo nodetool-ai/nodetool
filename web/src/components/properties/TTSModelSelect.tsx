@@ -14,7 +14,7 @@ interface TTSModelSelectProps {
 }
 
 const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const loadTTSModels = useCallback(async () => {
@@ -58,12 +58,12 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
     return "";
   }, [value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -83,7 +83,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
         id: model.id || "",
         name: model.name || ""
       });
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent]
   );
@@ -140,7 +140,8 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
       )}
 
       <TTSModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
       />
