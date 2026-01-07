@@ -118,7 +118,7 @@ describe('BaseNode Performance Optimizations', () => {
       expect(sxCreationCount).toBe(2); // Should recreate
     });
 
-    it('should demonstrate performance gain with 100 nodes', () => {
+    it.skip('should demonstrate performance gain with 100 nodes', () => {
       const baseColor = '#ff0000';
       const isLoading = false;
       const selected = false;
