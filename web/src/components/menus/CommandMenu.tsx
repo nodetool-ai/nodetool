@@ -1,8 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { Command, CommandInput } from "cmdk";
+import { Command, CommandInput, CommandSeparator } from "cmdk";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
 import { Dialog, Tooltip } from "@mui/material";
@@ -22,6 +20,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
+import { useWorkflowSearch } from "../../hooks/useWorkflowSearch";
 
 type CommandMenuProps = {
   open: boolean;
@@ -258,10 +257,257 @@ const ExampleCommands = memo(function ExampleCommands() {
 const useCommandMenu = create<{
   executeAndClose: (action: () => void) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
-}>((set) => ({
+}>((_set) => ({
   executeAndClose: () => {},
   reactFlowWrapper: { current: null }
 }));
+
+interface NodeSearchResult {
+  id: string;
+  label: string;
+  type: string;
+  position: { x: number; y: number };
+}
+
+const NodeSearchCommands = memo(function NodeSearchCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { searchNodes, focusNode, addToRecent } = useWorkflowSearch();
+  const nodes = useNodes((state) => state.nodes);
+
+  const results = useMemo<NodeSearchResult[]>(() => {
+    return searchNodes(searchQuery);
+  }, [searchNodes, searchQuery]);
+
+  const handleSelectNode = useCallback(
+    (node: NodeSearchResult) => {
+      executeAndClose(() => {
+        focusNode(node.id);
+        addToRecent({ id: node.id, type: "node", name: node.label });
+      });
+    },
+    [executeAndClose, focusNode, addToRecent]
+  );
+
+  if (nodes.length === 0) {
+    return null;
+  }
+
+  return (
+    <Command.Group heading="Search Nodes">
+      <Command.Input
+        value={searchQuery}
+        onValueChange={setSearchQuery}
+        placeholder="Search nodes in current workflow..."
+        css={css({
+          width: "100%",
+          padding: "8px 12px",
+          marginBottom: "8px",
+          borderRadius: "4px",
+          border: "1px solid rgba(255,255,255,0.1)",
+          background: "rgba(0,0,0,0.2)",
+          color: "inherit",
+          fontSize: "14px",
+          "&::placeholder": {
+            color: "rgba(255,255,255,0.5)"
+          },
+          "&:focus": {
+            outline: "none",
+            borderColor: "rgba(255,255,255,0.3)"
+          }
+        })}
+      />
+      {results.length > 0 && (
+        <>
+          {results.slice(0, 10).map((node) => (
+            <Command.Item
+              key={node.id}
+              onSelect={() => handleSelectNode(node)}
+              css={css({
+                padding: "8px 12px",
+                cursor: "pointer",
+                borderRadius: "4px",
+                "&[data-selected]": {
+                  backgroundColor: "rgba(255,255,255,0.1)"
+                }
+              })}
+            >
+              <span css={css({ fontWeight: 500 })}>{node.label}</span>
+              <span
+                css={css({
+                  fontSize: "12px",
+                  opacity: 0.6,
+                  marginLeft: "8px"
+                })}
+              >
+                {node.type}
+              </span>
+            </Command.Item>
+          ))}
+        </>
+      )}
+      {searchQuery && results.length === 0 && (
+        <Command.Empty css={css({ padding: "8px", opacity: 0.6 })}>
+          No nodes found
+        </Command.Empty>
+      )}
+    </Command.Group>
+  );
+});
+
+const WorkflowNavigationCommands = memo(function WorkflowNavigationCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+  const { searchWorkflows, addToRecent } = useWorkflowSearch();
+  const { openWorkflows } = useWorkflowManager((state) => ({
+    openWorkflows: state.openWorkflows
+  }));
+
+  const results = useMemo(() => {
+    return searchWorkflows(searchQuery);
+  }, [searchWorkflows, searchQuery]);
+
+  const handleSelectWorkflow = useCallback(
+    (workflow: { id: string; name: string }) => {
+      executeAndClose(() => {
+        navigate("/editor/" + workflow.id);
+        addToRecent({ id: workflow.id, type: "workflow", name: workflow.name });
+      });
+    },
+    [executeAndClose, navigate, addToRecent]
+  );
+
+  return (
+    <Command.Group heading="Go to Workflow">
+      <Command.Input
+        value={searchQuery}
+        onValueChange={setSearchQuery}
+        placeholder="Search workflows..."
+        css={css({
+          width: "100%",
+          padding: "8px 12px",
+          marginBottom: "8px",
+          borderRadius: "4px",
+          border: "1px solid rgba(255,255,255,0.1)",
+          background: "rgba(0,0,0,0.2)",
+          color: "inherit",
+          fontSize: "14px",
+          "&::placeholder": {
+            color: "rgba(255,255,255,0.5)"
+          },
+          "&:focus": {
+            outline: "none",
+            borderColor: "rgba(255,255,255,0.3)"
+          }
+        })}
+      />
+      {results.length > 0 && (
+        <>
+          {results.slice(0, 10).map((workflow) => {
+            const isOpen = openWorkflows.some((w) => w.id === workflow.id);
+            return (
+              <Command.Item
+                key={workflow.id}
+                onSelect={() => handleSelectWorkflow(workflow)}
+                css={css({
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  "&[data-selected]": {
+                    backgroundColor: "rgba(255,255,255,0.1)"
+                  }
+                })}
+              >
+                <span css={css({ fontWeight: 500 })}>{workflow.name}</span>
+                {isOpen && (
+                  <span
+                    css={css({
+                      fontSize: "10px",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      backgroundColor: "rgba(76, 175, 80, 0.3)"
+                    })}
+                  >
+                    OPEN
+                  </span>
+                )}
+              </Command.Item>
+            );
+          })}
+        </>
+      )}
+      {searchQuery && results.length === 0 && (
+        <Command.Empty css={css({ padding: "8px", opacity: 0.6 })}>
+          No workflows found
+        </Command.Empty>
+      )}
+    </Command.Group>
+  );
+});
+
+const RecentCommands = memo(function RecentCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const { recentItems, focusNode } = useWorkflowSearch();
+  const navigate = useNavigate();
+
+  const handleSelectRecent = useCallback(
+    (item: { id: string; type: "node" | "workflow"; name: string }) => {
+      executeAndClose(() => {
+        if (item.type === "node") {
+          focusNode(item.id);
+        } else {
+          navigate("/editor/" + item.id);
+        }
+      });
+    },
+    [executeAndClose, focusNode, navigate]
+  );
+
+  if (recentItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <Command.Group heading="Recent">
+      {recentItems.slice(0, 5).map((item) => (
+        <Command.Item
+          key={`${item.type}-${item.id}`}
+          onSelect={() => handleSelectRecent(item)}
+          css={css({
+            padding: "8px 12px",
+            cursor: "pointer",
+            borderRadius: "4px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            "&[data-selected]": {
+              backgroundColor: "rgba(255,255,255,0.1)"
+            }
+          })}
+        >
+          <span css={css({ fontWeight: 500 })}>{item.name}</span>
+          <span
+            css={css({
+              fontSize: "10px",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              backgroundColor:
+                item.type === "node"
+                  ? "rgba(33, 150, 243, 0.3)"
+                  : "rgba(156, 39, 176, 0.3)"
+            })}
+          >
+            {item.type.toUpperCase()}
+          </span>
+        </Command.Item>
+      ))}
+    </Command.Group>
+  );
+});
 
 const CommandMenu: React.FC<CommandMenuProps> = ({
   open,
@@ -316,6 +562,12 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
         <CommandInput ref={input} />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
+          <RecentCommands />
+          <CommandSeparator />
+          <WorkflowNavigationCommands />
+          <CommandSeparator />
+          <NodeSearchCommands />
+          <CommandSeparator />
           <WorkflowCommands />
           <UndoCommands undo={undo} redo={redo} />
           <LayoutCommands />
