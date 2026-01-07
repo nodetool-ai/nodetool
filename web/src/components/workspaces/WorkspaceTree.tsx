@@ -260,7 +260,7 @@ const WorkspaceTree: React.FC = () => {
 
     try {
       const url = `/api/files/workspaces/${workspaceId}/download/${selectedFilePath}`;
-      window.open(url, "_blank");
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch (error) {
       log.error("Failed to download file:", error);
     }

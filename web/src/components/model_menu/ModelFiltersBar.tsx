@@ -48,7 +48,7 @@ interface ModelFiltersBarProps {
   quantList?: string[];
 }
 
-const ModelFiltersBar: React.FC<ModelFiltersBarProps> = ({ }) => {
+const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
   const {
     selectedTypes,
     sizeBucket,
@@ -65,7 +65,6 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = ({ }) => {
 
   return (
     <Box css={barStyles} className="model-menu__filters-bar">
-      {/* Type dropdown (multi) */}
       {/* Type dropdown (multi) */}
       <Tooltip title={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by Type"}>
         <IconButton
@@ -96,7 +95,6 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = ({ }) => {
         ))}
       </Menu>
 
-      {/* Size dropdown (single) */}
       {/* Size dropdown (single) */}
       <Tooltip title={sizeBucket ? `Size: ${sizeBucket}` : "Filter by Size"}>
         <IconButton
@@ -134,9 +132,6 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = ({ }) => {
           </MenuItem>
         ))}
       </Menu>
-
-
-
 
     </Box>
   );
