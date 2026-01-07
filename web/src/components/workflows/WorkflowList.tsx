@@ -24,6 +24,7 @@ import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import useFavoritesStore from "../../stores/FavoritesStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -121,6 +122,7 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
+  const [showFavorites, setShowFavorites] = useState(false);
   const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("Shift"),
@@ -130,6 +132,7 @@ const WorkflowList = () => {
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 200;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
+  const favoriteWorkflowIds = useFavoritesStore((state) => state.favoriteWorkflowIds);
 
   const { data, isLoading, error, isError } = useQuery<WorkflowListType, Error>(
     {
@@ -150,6 +153,10 @@ const WorkflowList = () => {
       workflow.name.toLowerCase().includes(filterValueLower)
     );
   }, [data?.workflows, filterValue]);
+
+  const favoriteWorkflows = useMemo(() => {
+    return workflows.filter((wf) => favoriteWorkflowIds.includes(wf.id));
+  }, [workflows, favoriteWorkflowIds]);
 
   const onSelect = useCallback((workflow: Workflow) => {
     // const sortedWorkflows = [...filteredWorkflows];
@@ -255,9 +262,20 @@ const WorkflowList = () => {
   );
 
   const finalWorkflows = useMemo(() => {
-    if (!selectedTag) { return workflows; }
-    return workflows.filter((wf) => wf.tags?.includes(selectedTag));
-  }, [workflows, selectedTag]);
+    let result = workflows;
+    
+    // Apply favorites filter
+    if (showFavorites) {
+      result = result.filter((wf) => favoriteWorkflowIds.includes(wf.id));
+    }
+    
+    // Apply tag filter
+    if (selectedTag) {
+      result = result.filter((wf) => wf.tags?.includes(selectedTag));
+    }
+    
+    return result;
+  }, [workflows, favoriteWorkflowIds, showFavorites, selectedTag]);
 
   const handleEdit = useCallback((workflow: Workflow) => {
     setWorkflowToEdit(workflow);
@@ -339,6 +357,8 @@ const WorkflowList = () => {
             setFilterValue={setFilterValue}
             selectedTag={selectedTag}
             setSelectedTag={setSelectedTag}
+            showFavorites={showFavorites}
+            setShowFavorites={setShowFavorites}
             showCheckboxes={showCheckboxes}
             toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
             selectedWorkflowsCount={selectedWorkflows.length}

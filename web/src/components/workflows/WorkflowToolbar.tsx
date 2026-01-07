@@ -3,6 +3,7 @@ import { FC, useCallback, useMemo } from "react";
 import { Button, Tooltip, Select, MenuItem, Box } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -12,12 +13,15 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import useFavoritesStore from "../../stores/FavoritesStore";
 
 interface WorkflowToolbarProps {
   workflows: Workflow[];
   setFilterValue: (value: string) => void;
   selectedTag: string;
   setSelectedTag: (tag: string) => void;
+  showFavorites: boolean;
+  setShowFavorites: (show: boolean) => void;
   showCheckboxes: boolean;
   toggleCheckboxes: () => void;
   selectedWorkflowsCount: number;
@@ -73,6 +77,8 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   selectedTag,
   setSelectedTag,
   setFilterValue,
+  showFavorites,
+  setShowFavorites,
   showCheckboxes,
   toggleCheckboxes,
   selectedWorkflowsCount,
@@ -82,6 +88,8 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const favoriteWorkflowIds = useFavoritesStore((state) => state.favoriteWorkflowIds);
+  
   const uniqueTags = useMemo(() => {
     const tagSet = new Set<string>();
     workflows.forEach((wf) =>
@@ -89,6 +97,10 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     );
     return Array.from(tagSet);
   }, [workflows]);
+
+  const favoriteCount = useMemo(() => {
+    return workflows.filter((wf) => favoriteWorkflowIds.includes(wf.id)).length;
+  }, [workflows, favoriteWorkflowIds]);
 
   const handleCreateWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
@@ -124,6 +136,30 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               focusSearchInput={false}
             />
           </div>
+        </Tooltip>
+
+        <Tooltip
+          title={`${showFavorites ? "Hide" : "Show"} only favorite workflows`}
+          placement="top"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <Button
+            className={`icon-button ${showFavorites ? "favorite-active" : ""}`}
+            onClick={() => setShowFavorites(!showFavorites)}
+            sx={{
+              color: showFavorites ? "#ffd700" : undefined,
+              "&:hover": {
+                color: showFavorites ? "#ffd700" : undefined
+              }
+            }}
+          >
+            <StarIcon />
+            {favoriteCount > 0 && (
+              <span style={{ fontSize: "0.6em", marginLeft: "4px" }}>
+                {favoriteCount}
+              </span>
+            )}
+          </Button>
         </Tooltip>
 
         <Tooltip title="Filter workflows by tag" enterDelay={TOOLTIP_ENTER_DELAY}>
