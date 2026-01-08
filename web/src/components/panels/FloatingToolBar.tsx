@@ -11,8 +11,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText,
-  Divider
+  ListItemText
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -345,7 +344,7 @@ const FloatingToolBar: React.FC<{
     cancel();
   }, [cancel]);
 
-  const handlePause = useCallback(() => {
+  const _handlePause = useCallback(() => {
     pause();
   }, [pause]);
 
@@ -383,7 +382,7 @@ const FloatingToolBar: React.FC<{
     autoLayout();
   }, [autoLayout]);
 
-  const handleOpenInMiniApp = useCallback(() => {
+  const _handleOpenInMiniApp = useCallback(() => {
     if (!workflow?.id) {
       return;
     }

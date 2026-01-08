@@ -597,16 +597,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
             );
           }
 
-          // Convert array to Record keyed by thread ID
           const threadsRecord: Record<string, Thread> = {};
-          data.threads.forEach((thread) => {
+          data?.threads?.forEach((thread) => {
             threadsRecord[thread.id] = thread;
           });
 
           set({ threads: threadsRecord, threadsLoaded: true });
         } catch (error) {
           log.error("Failed to fetch threads:", error);
-          set({ threadsLoaded: true }); // Ensure threadsLoaded is true even on error
+          set({ threadsLoaded: true });
         } finally {
           set({ isLoadingThreads: false });
         }
