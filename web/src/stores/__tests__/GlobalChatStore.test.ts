@@ -50,6 +50,8 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: mockGlobalWebSocketManager
 }));
 
+declare const globalWebSocketManager: typeof mockGlobalWebSocketManager;
+
 import { encode, decode } from "@msgpack/msgpack";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
