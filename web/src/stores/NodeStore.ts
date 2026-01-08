@@ -43,7 +43,7 @@ import { customEquality } from "./customEquality";
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import log from "loglevel";
 import { autoLayout } from "../core/graph";
-import { isConnectable } from "../utils/TypeHandler";
+import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import {
   findOutputHandle,
   findInputHandle,
@@ -513,14 +513,36 @@ export const createNodeStore = (
               return;
             }
 
+            // Check if the target handle is a "collect" handle (list[T])
+            // Collect handles allow multiple incoming connections
+            let isCollectHandle = false;
+            if (targetNode && connection.targetHandle) {
+              const targetMetadata = useMetadataStore
+                .getState()
+                .getMetadata(targetNode.type || "");
+              if (targetMetadata) {
+                const targetHandle = findInputHandle(
+                  targetNode,
+                  connection.targetHandle,
+                  targetMetadata
+                );
+                if (targetHandle?.type && isCollectType(targetHandle.type)) {
+                  isCollectHandle = true;
+                }
+              }
+            }
+
             // Remove any existing connections to this target handle
-            const filteredEdges = get().edges.filter(
-              (edge) =>
-                !(
-                  edge.target === connection.target &&
-                  edge.targetHandle === connection.targetHandle
-                )
-            );
+            // UNLESS it's a collect handle, which allows multiple connections
+            const filteredEdges = isCollectHandle
+              ? get().edges
+              : get().edges.filter(
+                  (edge) =>
+                    !(
+                      edge.target === connection.target &&
+                      edge.targetHandle === connection.targetHandle
+                    )
+                );
 
             if (
               wouldCreateCycle(
