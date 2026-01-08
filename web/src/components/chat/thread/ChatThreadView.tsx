@@ -53,6 +53,7 @@ interface MemoizedMessageListContentProps
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
   bottomRef: React.RefObject<HTMLDivElement>;
+  lastUserMessageRef: React.RefObject<HTMLDivElement>;
   componentStyles: ReturnType<typeof createStyles>;
   toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
   theme: Theme;
@@ -73,6 +74,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     expandedThoughts,
     onToggleThought,
     bottomRef,
+    lastUserMessageRef,
     componentStyles,
     onInsertCode,
     toolResultsByCallId,
@@ -92,15 +94,16 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
       return map;
     }, [messages]);
 
+    // Find the index of the last user message in the filtered messages
+    const filteredMessages = messages.filter((m) => m.role !== "tool");
+    const lastUserMessageIndex = filteredMessages.reduce(
+      (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
+      -1
+    );
+
     return (
       <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
-        {messages
-          .filter((m) => {
-            // Keep user, assistant, and agent_execution messages.
-            // Only hide 'tool' role messages (raw technical output) as they are rendered 
-            // inside the assistant's ToolCallCard or handled via toolResultsByCallId.
-            return m.role !== "tool";
-          })
+        {filteredMessages
           .map((msg, index) => {
             if (msg.role === "agent_execution" && msg.agent_execution_id) {
               const executionMessages =
@@ -109,7 +112,8 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
                 return null;
               }
             }
-            return (
+            const isLastUserMessage = index === lastUserMessageIndex;
+            const messageElement = (
               <MessageView
                 key={msg.id || `msg-${index}`}
                 message={msg}
@@ -121,6 +125,15 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
                 executionMessagesById={executionMessagesById}
               />
             );
+            // Wrap the last user message in a div with ref for scroll-to-top behavior
+            if (isLastUserMessage) {
+              return (
+                <div key={`wrapper-${msg.id || index}`} ref={lastUserMessageRef}>
+                  {messageElement}
+                </div>
+              );
+            }
+            return messageElement;
           })}
         {status === "loading" && progress === 0 && !hasAgentExecutionMessages && (
           <li key="loading-indicator" className="chat-message-list-item">
@@ -220,6 +233,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const theme = useTheme();
   const internalScrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
@@ -308,6 +322,15 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     }
   }, []);
 
+  // Scroll to align the last user message at the top of the viewport
+  const scrollToLastUserMessage = useCallback(() => {
+    const el = lastUserMessageRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      userHasScrolledUpRef.current = false;
+    }
+  }, []);
+
   useEffect(() => {
     const scrollElement = scrollHost;
     const bottomElement = bottomRef.current;
@@ -351,9 +374,9 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const lastMessage =
       messages.length > 0 ? messages[messages.length - 1] : null;
     if (lastMessage?.role === "user") {
-      scrollToBottom();
+      scrollToLastUserMessage();
     }
-  }, [messages, scrollToBottom]);
+  }, [messages, scrollToLastUserMessage]);
 
   useEffect(() => {
     if (autoScrollTimeoutRef.current) {
@@ -416,6 +439,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           expandedThoughts={expandedThoughts}
           onToggleThought={handleToggleThought}
           bottomRef={bottomRef}
+          lastUserMessageRef={lastUserMessageRef}
           componentStyles={componentStyles}
           onInsertCode={onInsertCode}
           toolResultsByCallId={toolResultsByCallId}
