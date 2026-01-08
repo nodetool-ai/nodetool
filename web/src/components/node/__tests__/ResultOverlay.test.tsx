@@ -4,7 +4,14 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import ResultOverlay from "../ResultOverlay";
+import mockTheme from "../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
+
+// Mock MUI Button to avoid reliance on theme.vars internals in tests
+jest.mock("@mui/material/Button", () => ({
+  __esModule: true,
+  default: ({ children, ...rest }: any) => <button {...rest}>{children}</button>
+}));
 
 // Mock OutputRenderer
 jest.mock("../OutputRenderer", () => ({
