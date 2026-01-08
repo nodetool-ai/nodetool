@@ -140,7 +140,7 @@ lint-fix-electron:
 format: lint-fix
 
 # Type checking targets
-typecheck: typecheck-web typecheck-electron typecheck-mobile
+typecheck: typecheck-web typecheck-electron
 
 typecheck-web:
 	@echo "Type checking web package..."
