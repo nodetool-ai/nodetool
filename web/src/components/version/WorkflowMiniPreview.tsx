@@ -2,17 +2,28 @@
  * Workflow Mini Preview Component
  *
  * Displays a compact visual representation of a workflow graph.
- * Used in version history to show what a workflow looked like at a glance.
+ * Used in version history to show what a workflow looked like at a glance,
+ * and in the workflow list sidebar to show workflow structure.
  */
 
 import React, { useMemo } from "react";
 import { Box, Typography, Paper, Tooltip } from "@mui/material";
-import { WorkflowVersion, Graph, Node as NodeType } from "../../stores/ApiTypes";
+import { Graph } from "../../stores/ApiTypes";
+
+// Data structure that has graph - can be WorkflowVersion or Workflow
+interface WorkflowWithGraph {
+  graph?: Graph | null;
+  name?: string;
+  version?: number;
+}
 
 interface WorkflowMiniPreviewProps {
-  version: WorkflowVersion & { save_type?: string; size_bytes?: number };
-  width?: number;
-  height?: number;
+  /** WorkflowVersion or Workflow with graph data */
+  workflow: WorkflowWithGraph;
+  width?: number | string;
+  height?: number | string;
+  /** Optional label to show in tooltip (defaults to workflow name or version) */
+  label?: string;
 }
 
 interface PreviewNode {
@@ -31,14 +42,14 @@ const MIN_X = 20;
 const MIN_Y = 20;
 
 const getNodeColor = (nodeType: string): string => {
-  if (nodeType.includes("input")) return "#4caf50";
-  if (nodeType.includes("output")) return "#2196f3";
-  if (nodeType.includes("llm") || nodeType.includes("model")) return "#ff9800";
-  if (nodeType.includes("image")) return "#9c27b0";
-  if (nodeType.includes("text")) return "#00bcd4";
-  if (nodeType.includes("audio")) return "#e91e63";
-  if (nodeType.includes("condition") || nodeType.includes("if")) return "#f44336";
-  if (nodeType.includes("group")) return "#607d8b";
+  if (nodeType.includes("input")) {return "#4caf50";}
+  if (nodeType.includes("output")) {return "#2196f3";}
+  if (nodeType.includes("llm") || nodeType.includes("model")) {return "#ff9800";}
+  if (nodeType.includes("image")) {return "#9c27b0";}
+  if (nodeType.includes("text")) {return "#00bcd4";}
+  if (nodeType.includes("audio")) {return "#e91e63";}
+  if (nodeType.includes("condition") || nodeType.includes("if")) {return "#f44336";}
+  if (nodeType.includes("group")) {return "#607d8b";}
   return "#9e9e9e";
 };
 
@@ -56,7 +67,7 @@ const calculateNodePositions = (graph: Graph): PreviewNode[] => {
   const nodes = graph.nodes || [];
   const edges = graph.edges || [];
 
-  if (nodes.length === 0) return [];
+  if (nodes.length === 0) {return [];}
 
   const nodeMap = new Map<string, PreviewNode>();
   const visited = new Set<string>();
@@ -74,11 +85,11 @@ const calculateNodePositions = (graph: Graph): PreviewNode[] => {
 
   while (queue.length > 0) {
     const currentId = queue.shift();
-    if (!currentId || visited.has(currentId)) continue;
+    if (!currentId || visited.has(currentId)) {continue;}
     visited.add(currentId);
 
     const currentPos = positions.get(currentId);
-    if (!currentPos) continue;
+    if (!currentPos) {continue;}
 
     const outgoingEdges = edges.filter((e) => e.source === currentId);
 
@@ -112,17 +123,18 @@ const calculateNodePositions = (graph: Graph): PreviewNode[] => {
 };
 
 export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
-  version,
+  workflow,
   width = 200,
-  height = 120
+  height = 120,
+  label
 }) => {
   const graph = useMemo(() => {
     try {
-      return version.graph as Graph || { nodes: [], edges: [] };
+      return (workflow.graph as Graph) || { nodes: [], edges: [] };
     } catch {
       return { nodes: [], edges: [] };
     }
-  }, [version]);
+  }, [workflow]);
 
   const previewNodes = useMemo(() => calculateNodePositions(graph), [graph]);
 
@@ -153,24 +165,27 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
     );
   }
 
-  const scale = Math.min(
-    width / (Math.max(...previewNodes.map((n) => n.x)) + NODE_WIDTH + PADDING * 2 || width),
-    height / (Math.max(...previewNodes.map((n) => n.y)) + NODE_HEIGHT + PADDING * 2 || height),
-    1
-  );
+  // Calculate bounding box
+  const maxX = Math.max(...previewNodes.map((n) => n.x + n.width), 0) + PADDING;
+  const maxY = Math.max(...previewNodes.map((n) => n.y + n.height), 0) + PADDING;
 
-  const offsetX = (width - (Math.max(...previewNodes.map((n) => n.x)) + NODE_WIDTH) * scale) / 2;
-  const offsetY = (height - (Math.max(...previewNodes.map((n) => n.y)) + NODE_HEIGHT) * scale) / 2;
+  // Use a slight padding for the viewBox to ensure nothing is cut off
+  // We double padding for symmetry if we assume 0,0 start, but layout ensures min is MIN_X/MIN_Y
+  const viewBoxWidth = maxX + PADDING;
+  const viewBoxHeight = maxY + PADDING;
 
   return (
     <Tooltip
       title={
         <Box>
           <Typography variant="caption" fontWeight="medium">
-            {version.name || `v${version.version}`}
+            {label ||
+              workflow.name ||
+              (workflow.version ? `v${workflow.version}` : "Workflow")}
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
-            {nodeCount} node{nodeCount !== 1 ? "s" : ""}, {edgeCount} connection{edgeCount !== 1 ? "s" : ""}
+            {nodeCount} node{nodeCount !== 1 ? "s" : ""}, {edgeCount} connection
+            {edgeCount !== 1 ? "s" : ""}
           </Typography>
         </Box>
       }
@@ -194,24 +209,33 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           position: "relative"
         }}
       >
-        <svg width={width} height={height} style={{ position: "absolute", top: 0, left: 0 }}>
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display: "block" }}
+        >
           {previewNodes.map((node) => {
             const color = getNodeColor(node.type);
             return (
-              <g key={node.id} transform={`translate(${offsetX + node.x * scale}, ${offsetY + node.y * scale})`}>
+              <g
+                key={node.id}
+                transform={`translate(${node.x}, ${node.y})`}
+              >
                 <rect
-                  width={NODE_WIDTH * scale}
-                  height={NODE_HEIGHT * scale}
-                  rx={3 * scale}
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT}
+                  rx={3}
                   fill={color}
                   opacity={0.8}
                 />
                 <text
-                  x={(NODE_WIDTH * scale) / 2}
-                  y={(NODE_HEIGHT * scale) / 2 + 4 * scale}
+                  x={NODE_WIDTH / 2}
+                  y={NODE_HEIGHT / 2 + 4}
                   textAnchor="middle"
                   fill="white"
-                  fontSize={10 * scale}
+                  fontSize={10}
                   fontFamily="sans-serif"
                 >
                   {extractNodeName(node.type)}
@@ -228,10 +252,14 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
             bgcolor: "rgba(0,0,0,0.6)",
             borderRadius: 0.5,
             px: 0.5,
-            py: 0.25
+            py: 0.25,
+            pointerEvents: "none"
           }}
         >
-          <Typography variant="caption" sx={{ color: "white", fontSize: "0.6rem" }}>
+          <Typography
+            variant="caption"
+            sx={{ color: "white", fontSize: "0.6rem" }}
+          >
             {nodeCount}
           </Typography>
         </Box>

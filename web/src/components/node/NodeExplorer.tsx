@@ -16,6 +16,7 @@ import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
@@ -227,6 +228,23 @@ const NodeExplorer: React.FC = () => {
     [nodes, setSelectedNodes, setActiveView, setPanelVisible]
   );
 
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, nodeId: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openContextMenu(
+        "node-context-menu",
+        nodeId,
+        event.clientX,
+        event.clientY,
+        "node-list"
+      );
+    },
+    [openContextMenu]
+  );
+
   return (
     <Box className="node-explorer" css={explorerStyles}>
       <div className="explorer-header">
@@ -273,9 +291,7 @@ const NodeExplorer: React.FC = () => {
                 className="node-body"
                 onClick={() => handleNodeFocus(entry.node.id)}
                 onContextMenu={(event) => {
-                  //TODO: open node context menu
-                  event.preventDefault();
-                  event.stopPropagation();
+                  handleNodeContextMenu(event, entry.node.id);
                 }}
               >
                 <div className="node-text">

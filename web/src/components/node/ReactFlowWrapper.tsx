@@ -12,16 +12,7 @@ import {
 
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
-import useContextMenu from "../../stores/ContextMenuStore";
-import NodeContextMenu from "../context_menus/NodeContextMenu";
-import PaneContextMenu from "../context_menus/PaneContextMenu";
-import SelectionContextMenu from "../context_menus/SelectionContextMenu";
-import PropertyContextMenu from "../context_menus/PropertyContextMenu";
-import OutputContextMenu from "../context_menus/OutputContextMenu";
-import InputContextMenu from "../context_menus/InputContextMenu";
-import EdgeContextMenu from "../context_menus/EdgeContextMenu";
-import ConnectionMatchMenu from "../context_menus/ConnectionMatchMenu";
+import ContextMenus from "../context_menus/ContextMenus";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
@@ -31,7 +22,6 @@ import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
-import useSelect from "../../hooks/nodes/useSelect";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitView } from "../../hooks/useFitView";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
@@ -70,22 +60,6 @@ interface ReactFlowWrapperProps {
   active: boolean;
 }
 
-const ContextMenus = memo(function ContextMenus() {
-  const { openMenuType } = useContextMenu();
-
-  return (
-    <>
-      {openMenuType === "node-context-menu" && <NodeContextMenu />}
-      {openMenuType === "pane-context-menu" && <PaneContextMenu />}
-      {openMenuType === "property-context-menu" && <PropertyContextMenu />}
-      {openMenuType === "selection-context-menu" && <SelectionContextMenu />}
-      {openMenuType === "output-context-menu" && <OutputContextMenu />}
-      {openMenuType === "input-context-menu" && <InputContextMenu />}
-      {openMenuType === "edge-context-menu" && <EdgeContextMenu />}
-      {openMenuType === "connection-match-menu" && <ConnectionMatchMenu />}
-    </>
-  );
-});
 
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
@@ -109,7 +83,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const [isVisible, setIsVisible] = useState(true);
-  const [isSelecting, setIsSelecting] = useState(false);
+  const [isSelecting] = useState(false);
 
   useEffect(() => {
     setIsVisible(!!storedViewport || nodes.length === 0);
@@ -443,8 +417,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const reactFlowClasses = useMemo(() => {
     const classes = [];
-    if (zoom <= ZOOMED_OUT) {classes.push("zoomed-out");}
-    if (connecting) {classes.push("is-connecting");}
+    if (zoom <= ZOOMED_OUT) { classes.push("zoomed-out"); }
+    if (connecting) { classes.push("is-connecting"); }
     return classes.join(" ");
   }, [zoom, connecting]);
 

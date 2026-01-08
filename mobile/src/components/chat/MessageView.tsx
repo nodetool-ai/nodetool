@@ -19,26 +19,26 @@ interface MessageViewProps {
  * Extract text content from message for simple text display
  */
 function getTextContent(content: Message['content']): string {
-  if (!content) {return '';}
-  
+  if (!content) { return ''; }
+
   if (typeof content === 'string') {
     return content;
   }
-  
+
   if (Array.isArray(content)) {
     return content
       .filter((c: any) => c?.type === 'text')
       .map((c: any) => c?.text || '')
       .join('\n');
   }
-  
+
   // Handle object case (MessageContent type)
   if (typeof content === 'object' && 'type' in content) {
     if (content.type === 'text' && 'text' in content) {
       return (content as any).text || '';
     }
   }
-  
+
   return '';
 }
 
@@ -46,21 +46,21 @@ function getTextContent(content: Message['content']): string {
  * Get content items as an array of MessageContent
  */
 function getContentItems(content: Message['content']): MessageContent[] {
-  if (!content) {return [];}
-  
+  if (!content) { return []; }
+
   if (typeof content === 'string') {
     return [{ type: 'text', text: content }];
   }
-  
+
   if (Array.isArray(content)) {
     return content.filter((c): c is MessageContent => c !== null && c !== undefined);
   }
-  
+
   // Single object content
   if (typeof content === 'object' && 'type' in content) {
     return [content as MessageContent];
   }
-  
+
   return [];
 }
 
@@ -74,14 +74,7 @@ function hasMediaContent(content: Message['content']): boolean {
 
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
   const isUser = message.role === 'user';
-  const isAssistant = message.role === 'assistant';
-  const { colors, mode } = useTheme();
-  
-  // Skip non-user/assistant messages
-  if (!isUser && !isAssistant) {
-    return null;
-  }
-
+  const { mode } = useTheme();
   const contentItems = getContentItems(message.content);
   const textContent = getTextContent(message.content);
   const hasMedia = hasMediaContent(message.content);
@@ -90,8 +83,8 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
    * Render text content (used as callback for MessageContentRenderer)
    */
   const renderTextContent = useCallback((text: string, index: number) => {
-    if (!text) {return null;}
-    
+    if (!text) { return null; }
+
     if (isUser) {
       return <Text key={index} style={[styles.userText, { color: '#2A2A2A' }]}>{text}</Text>;
     }
@@ -136,8 +129,8 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
       <View
         style={[
           styles.bubble,
-          isUser 
-            ? [styles.userBubble, { backgroundColor: '#EFEFEF' }] 
+          isUser
+            ? [styles.userBubble, { backgroundColor: '#EFEFEF' }]
             : [styles.assistantBubble, { backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.05)' }],
         ]}
       >

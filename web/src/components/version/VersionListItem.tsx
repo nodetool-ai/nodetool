@@ -161,7 +161,7 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
     >
       <Box sx={{ mr: 1, flexShrink: 0 }}>
         <WorkflowMiniPreview
-          version={version}
+          workflow={version}
           width={80}
           height={50}
         />
