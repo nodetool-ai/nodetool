@@ -282,7 +282,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
         {allEdges.map(edge => {
           const sourcePos = nodePositions[edge.source];
           const targetPos = nodePositions[edge.target];
-          if (!sourcePos || !targetPos) return null;
+          if (!sourcePos || !targetPos) {return null;}
 
           return (
             <MiniEdge
@@ -299,7 +299,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
         {(newGraph?.nodes || oldGraph?.nodes || []).map(node => {
           const pos = nodePositions[node.id];
           const status = nodeStatusMap[node.id] || "unchanged";
-          if (!pos) return null;
+          if (!pos) {return null;}
 
           return (
             <Tooltip

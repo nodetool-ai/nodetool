@@ -16,24 +16,6 @@ jest.mock("react-router-dom", () => ({
   useParams: () => mockParams
 }));
 
-// Mock MUI components and hooks
-jest.mock("@mui/material/styles", () => ({
-  ...jest.requireActual("@mui/material/styles"),
-  useTheme: () => mockTheme
-}));
-
-jest.mock("@mui/material", () => ({
-  ...jest.requireActual("@mui/material"),
-  useMediaQuery: jest.fn().mockReturnValue(false),
-  Alert: ({ children, ...props }: any) => (
-    <div data-testid="alert" {...props}>
-      {children}
-    </div>
-  ),
-  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  Typography: ({ children, ...props }: any) => <p {...props}>{children}</p>
-}));
-
 // Mock hooks
 jest.mock("../../../../hooks/useEnsureChatConnected", () => ({
   useEnsureChatConnected: jest.fn()
@@ -121,12 +103,13 @@ jest.mock("../../../../components/chat/containers/ChatView", () => ({
   )
 }));
 
-jest.mock("../../../../components/chat/thread/NewChatButton", () => ({
-  NewChatButton: ({ onNewThread }: { onNewThread: () => void }) => (
-    <button onClick={onNewThread} data-testid="new-chat-button-header">
-      New Chat Header
-    </button>
-  )
+jest.mock("../../../../components/chat/sidebar/ChatSidebar", () => ({
+  ChatSidebar: () => (
+    <div data-testid="chat-sidebar">
+      <button data-testid="new-chat-button-header">New Chat Header</button>
+    </div>
+  ),
+  SIDEBAR_WIDTH: 280
 }));
 
 const renderWithProviders = (component: React.ReactElement) => {
@@ -272,9 +255,8 @@ describe("GlobalChat", () => {
       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
       // Mock the connection state to be connecting
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { globalWebSocketManager } = require("../../../../lib/websocket/GlobalWebSocketManager");
-      globalWebSocketManager.getConnectionState.mockReturnValue({
+      const { globalWebSocketManager } = await import("../../../../lib/websocket/GlobalWebSocketManager");
+      (globalWebSocketManager as any).getConnectionState.mockReturnValue({
         isConnected: false,
         isConnecting: true,
         error: null

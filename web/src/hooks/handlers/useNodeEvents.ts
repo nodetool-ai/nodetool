@@ -1,4 +1,4 @@
-import { useCallback, MouseEvent as ReactMouseEvent } from "react";
+import React, { useCallback } from "react";
 import { Node } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -16,7 +16,7 @@ export function useNodeEvents() {
       event.stopPropagation();
       openContextMenu(
         "node-context-menu",
-        "",
+        node.id,
         event.clientX,
         event.clientY,
         "node-header"

@@ -71,7 +71,7 @@ interface SettingsMenuProps {
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const {
     isMenuOpen,
     setMenuOpen,

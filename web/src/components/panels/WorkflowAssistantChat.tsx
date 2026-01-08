@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import ChatView from "../chat/containers/ChatView";
-import { DEFAULT_MODEL } from "../../config/constants";
+
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import {
   LanguageModel,
@@ -35,6 +35,7 @@ import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import SvgFileIcon from "../SvgFileIcon";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
+import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
 
 const containerStyles = css({
   flex: 1,
@@ -86,7 +87,9 @@ const WorkflowAssistantChat: React.FC = () => {
     deleteThread,
     messageCache,
     currentRunningToolCallId,
-    currentToolMessage
+    currentToolMessage,
+    selectedModel,
+    setSelectedModel
   } = useGlobalChatStore();
 
   const {
@@ -176,19 +179,8 @@ const WorkflowAssistantChat: React.FC = () => {
   // Get messages from store
   const messages = getCurrentMessagesSync();
 
-  const tryParseModel = (model: string) => {
-    try {
-      return JSON.parse(model);
-    } catch (error) {
-      return DEFAULT_MODEL;
-    }
-  };
 
   // Local UI state (model & toggles)
-  const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
-    const saved = localStorage.getItem("selectedModel");
-    return saved ? tryParseModel(saved) : DEFAULT_MODEL;
-  });
 
   // Popover state for thread list
   const [threadListAnchorEl, setThreadListAnchorEl] =
@@ -239,7 +231,12 @@ const WorkflowAssistantChat: React.FC = () => {
         }
       }
     }
-  }, [approvedModels, selectedModel.id, selectedModel.provider]);
+  }, [approvedModels, selectedModel.id, selectedModel.provider, setSelectedModel]);
+
+  // Get visible UI tool names for the assistant
+  const uiTools = useMemo(() => {
+    return FrontendToolRegistry.getManifest().map((t) => t.name);
+  }, []);
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
@@ -630,7 +627,7 @@ const WorkflowAssistantChat: React.FC = () => {
         sendMessage={handleSendMessage}
         progressMessage={statusMessage}
         model={selectedModel}
-        selectedTools={[]}
+        selectedTools={uiTools}
         selectedCollections={[]}
         onModelChange={setSelectedModel}
         helpMode={isHelpMode}

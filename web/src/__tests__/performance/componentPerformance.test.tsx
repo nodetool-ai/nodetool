@@ -90,13 +90,13 @@ describe('Performance Regression Tests', () => {
       let goodRenders = 0;
 
       const BadSelector = () => {
-        const data = useTestStore((state) => ({ data: state.data }));
+        const _data = useTestStore((state) => ({ data: state.data }));
         badRenders++;
         return null;
       };
 
       const GoodSelector = () => {
-        const data = useTestStore((state) => state.data);
+        const _data = useTestStore((state) => state.data);
         goodRenders++;
         return null;
       };

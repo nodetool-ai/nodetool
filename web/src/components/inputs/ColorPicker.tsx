@@ -73,7 +73,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   onColorChange,
   label,
   showCustom = false,
-  isNodeProperty = false,
   buttonSize = 20
 }) => {
   const theme = useTheme();

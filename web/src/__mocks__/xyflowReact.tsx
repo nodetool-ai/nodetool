@@ -3,12 +3,14 @@ import React from "react";
 const mockGetNode = jest.fn();
 const mockGetNodes = jest.fn();
 const mockGetEdges = jest.fn();
+const mockScreenToFlowPosition = jest.fn((pos) => pos);
 
 module.exports = {
   useReactFlow: () => ({
     getNode: mockGetNode,
     getNodes: mockGetNodes,
-    getEdges: mockGetEdges
+    getEdges: mockGetEdges,
+    screenToFlowPosition: mockScreenToFlowPosition
   }),
   Panel: () => null,
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
