@@ -94,12 +94,15 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
       return map;
     }, [messages]);
 
-    // Find the index of the last user message in the filtered messages
-    const filteredMessages = messages.filter((m) => m.role !== "tool");
-    const lastUserMessageIndex = filteredMessages.reduce(
-      (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
-      -1
-    );
+    // Memoize filtered messages and last user message index to avoid recalculations on each render
+    const { filteredMessages, lastUserMessageIndex } = useMemo(() => {
+      const filtered = messages.filter((m) => m.role !== "tool");
+      const lastUserIdx = filtered.reduce(
+        (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
+        -1
+      );
+      return { filteredMessages: filtered, lastUserMessageIndex: lastUserIdx };
+    }, [messages]);
 
     return (
       <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
@@ -113,9 +116,11 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
               }
             }
             const isLastUserMessage = index === lastUserMessageIndex;
+            // Use message id as key, with fallback to index-based key for rare cases where id is missing
+            const messageKey = msg.id || `msg-${index}`;
             const messageElement = (
               <MessageView
-                key={msg.id || `msg-${index}`}
+                key={messageKey}
                 message={msg}
                 expandedThoughts={expandedThoughts}
                 onToggleThought={onToggleThought}
@@ -128,7 +133,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
             // Wrap the last user message in a div with ref for scroll-to-top behavior
             if (isLastUserMessage) {
               return (
-                <div key={`wrapper-${msg.id || index}`} ref={lastUserMessageRef}>
+                <div key={`wrapper-${messageKey}`} ref={lastUserMessageRef}>
                   {messageElement}
                 </div>
               );
