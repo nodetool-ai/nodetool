@@ -37,6 +37,9 @@ import {
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "../stores/workflowUpdates";
 import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
+import useMetadataStore from "../stores/MetadataStore";
+import { validateEdges } from "../core/workflow/edgeValidation";
+import useEdgeValidationStore, { EdgeValidationResult } from "../stores/EdgeValidationStore";
 import log from "loglevel";
 
 // -----------------------------------------------------------------
@@ -123,6 +126,8 @@ type WorkflowManagerState = {
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: (packageName: string) => Promise<any>;
   validateAllEdges: () => void;
+  getEdgeValidation: () => EdgeValidationResult | null;
+  clearEdgeValidation: () => void;
 };
 
 // Defines the Zustand store type for workflow management.
@@ -697,8 +702,74 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       validateAllEdges: () => {
-        // Edge validation functionality removed - will be implemented in separate branch
-      }
+        const currentWorkflowId = get().currentWorkflowId;
+        if (!currentWorkflowId) {
+          return;
+        }
+
+        const nodeStore = get().nodeStores[currentWorkflowId];
+        if (!nodeStore) {
+          return;
+        }
+
+        const state = nodeStore.getState();
+        const nodes = state.nodes;
+        const edges = state.edges;
+
+        if (edges.length === 0) {
+          useEdgeValidationStore.getState().clearValidation(currentWorkflowId);
+          return;
+        }
+
+        const metadata = useMetadataStore.getState().metadata;
+        const result = validateEdges({
+          nodes,
+          edges,
+          metadata,
+          workflowId: currentWorkflowId
+        });
+
+        useEdgeValidationStore.getState().setValidation(currentWorkflowId, {
+          workflowId: currentWorkflowId,
+          timestamp: new Date(),
+          issues: result.issues,
+          isValid: result.isValid,
+          edgeCount: result.edgeCount,
+          issueCount: result.issueCount
+        });
+
+        if (result.issues.length > 0) {
+          const errorCount = result.issues.filter(
+            (i) => i.severity === "error"
+          ).length;
+          const warningCount = result.issues.filter(
+            (i) => i.severity === "warning"
+          ).length;
+
+          log.warn(
+            `[WorkflowManager] Edge validation found ${errorCount} error(s) and ${warningCount} warning(s) in workflow ${currentWorkflowId}`
+          );
+        } else if (edges.length > 0) {
+          log.info(
+            `[WorkflowManager] All ${edges.length} edge(s) are valid in workflow ${currentWorkflowId}`
+          );
+        }
+      },
+
+      getEdgeValidation: () => {
+        const currentWorkflowId = get().currentWorkflowId;
+        if (!currentWorkflowId) {
+          return null;
+        }
+        return useEdgeValidationStore.getState().getValidation(currentWorkflowId);
+      },
+
+      clearEdgeValidation: () => {
+        const currentWorkflowId = get().currentWorkflowId;
+        if (currentWorkflowId) {
+          useEdgeValidationStore.getState().clearValidation(currentWorkflowId);
+        }
+      },
 
       /**
        * Fetches workflow tools from the API.
