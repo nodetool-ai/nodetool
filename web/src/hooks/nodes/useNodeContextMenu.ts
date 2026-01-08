@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
+
 import { useNavigate } from "react-router-dom";
 import { Node } from "@xyflow/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -9,7 +9,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../browser/useClipboard";
 import log from "loglevel";
-import { useRemoveFromGroup } from "./useRemoveFromGroup";
+
 import useMetadataStore from "../../stores/MetadataStore";
 import { subgraph } from "../../core/graph";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
@@ -52,18 +52,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     (state) => state.closeContextMenu
   );
   const nodeId = useContextMenuStore((state) => state.nodeId);
-  const { getNode } = useReactFlow();
-  const rawNode = nodeId ? getNode(nodeId) : undefined;
-  const node = rawNode as Node<NodeData> | null;
-  const nodeData = node?.data;
-  const metadata = useMetadataStore((state) =>
-    state.getMetadata(node?.type ?? "")
-  );
-  const { writeClipboard } = useClipboard();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const navigate = useNavigate();
+
   const {
     updateNodeData,
     updateNode,
@@ -87,6 +76,19 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     workflow: state.workflow,
     findNode: state.findNode
   }));
+
+  const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
+  const node = rawNode as Node<NodeData> | null;
+  const nodeData = node?.data;
+  const metadata = useMetadataStore((state) =>
+    state.getMetadata(node?.type ?? "")
+  );
+  const { writeClipboard } = useClipboard();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+  const navigate = useNavigate();
+
   const run = useWebsocketRunner((state) => state.run);
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
@@ -202,7 +204,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     addNotification({
       type: "info",
       alert: false,
-      content: `Running workflow from ${metadata?.title || node?.type || "node"}`
+      content: `Running workflow from ${
+        metadata?.title || node?.type || "node"
+      }`
     });
     closeContextMenu();
   }, [
@@ -239,13 +243,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       writeClipboard(JSON.stringify(nodeData, null, 2), true, true);
       closeContextMenu();
     }
-  }, [
-    nodeId,
-    nodeData,
-    addNotification,
-    writeClipboard,
-    closeContextMenu
-  ]);
+  }, [nodeId, nodeData, addNotification, writeClipboard, closeContextMenu]);
 
   const handleFindTemplates = useCallback(() => {
     const nodeType = node?.type || "";
@@ -292,7 +290,15 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       });
     }
     closeContextMenu();
-  }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
+  }, [
+    node,
+    nodeId,
+    nodeData,
+    updateNodeData,
+    updateNode,
+    addNotification,
+    closeContextMenu
+  ]);
 
   const handleConvertToConstant = useCallback(() => {
     if (!node || !nodeId) {
@@ -313,10 +319,22 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       });
     }
     closeContextMenu();
-  }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
+  }, [
+    node,
+    nodeId,
+    nodeData,
+    updateNodeData,
+    updateNode,
+    addNotification,
+    closeContextMenu
+  ]);
 
-  const canConvertToInput = Boolean(nodeId && constantToInputType(node?.type ?? ""));
-  const canConvertToConstant = Boolean(nodeId && inputToConstantType(node?.type ?? ""));
+  const canConvertToInput = Boolean(
+    nodeId && constantToInputType(node?.type ?? "")
+  );
+  const canConvertToConstant = Boolean(
+    nodeId && inputToConstantType(node?.type ?? "")
+  );
   const isInGroup = Boolean(node?.parentId);
 
   return {
