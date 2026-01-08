@@ -3,6 +3,7 @@ export const PANEL_CONFIG = {
   templates: { title: "Templates" },
   activity: { title: "Activity" },
   workflows: { title: "Recent Workflows" },
+  "recent-workflows": { title: "Recent Workflows" },
   "recent-chats": { title: "Recent Chats" },
   chat: { title: "Chat" },
   welcome: { title: "Welcome" },

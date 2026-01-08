@@ -492,15 +492,23 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Activate next workflow tab",
     registerCombo: true
   },
-  // Direct tab switching (Ctrl/Cmd 1-9)
-  ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
-    title: `Switch to Tab ${n}`,
-    slug: `switchToTab${n}`,
-    keyCombo: ["Control", `${n}`],
-    category: "workflow" as const,
-    description: `Activate workflow tab ${n}`,
-    registerCombo: true
-  }))
+   // Direct tab switching (Ctrl/Cmd 1-9)
+   ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
+     title: `Switch to Tab ${n}`,
+     slug: `switchToTab${n}`,
+     keyCombo: ["Control", `${n}`],
+     category: "workflow" as const,
+     description: `Activate workflow tab ${n}`,
+     registerCombo: true
+   })),
+   {
+     title: "Recent Workflows",
+     slug: "recentWorkflows",
+     keyCombo: ["Control", "R"],
+     category: "workflow" as const,
+     description: "Open recent workflows dialog",
+     registerCombo: true
+   }
 ] as Shortcut[];
 
 /**

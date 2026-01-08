@@ -2,23 +2,27 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Workflow } from "../stores/ApiTypes";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
+import { useRecentWorkflowsStore } from "../stores/RecentWorkflowsStore";
 
 export const useWorkflowActions = () => {
   const navigate = useNavigate();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
+  const addRecentWorkflow = useRecentWorkflowsStore((state) => state.addRecentWorkflow);
 
   const handleCreateNewWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
+    addRecentWorkflow(workflow.id, workflow.name);
     navigate(`/editor/${workflow.id}`);
-  }, [createNewWorkflow, navigate]);
+  }, [createNewWorkflow, navigate, addRecentWorkflow]);
 
   const handleWorkflowClick = useCallback(
     (workflow: Workflow) => {
+      addRecentWorkflow(workflow.id, workflow.name);
       navigate(`/editor/${workflow.id}`);
     },
-    [navigate]
+    [navigate, addRecentWorkflow]
   );
 
   const handleExampleClick = useCallback(
@@ -47,13 +51,14 @@ export const useWorkflowActions = () => {
           example.package_name || undefined,
           example.name
         );
+        addRecentWorkflow(newWorkflow.id, newWorkflow.name);
         navigate(`/editor/${newWorkflow.id}`);
       } catch (error) {
         console.error("Error copying example:", error);
         setLoadingExampleId(null);
       }
     },
-    [loadingExampleId, createWorkflow, navigate]
+    [loadingExampleId, createWorkflow, navigate, addRecentWorkflow]
   );
 
   const handleViewAllTemplates = useCallback(() => {

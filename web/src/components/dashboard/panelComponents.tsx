@@ -4,6 +4,7 @@ import { IDockviewPanelProps } from "dockview";
 import ChatView from "../chat/containers/ChatView";
 import WorkflowsList from "./WorkflowsList";
 import RecentChats from "./RecentChats";
+import RecentWorkflowsPanel from "./RecentWorkflowsPanel";
 import WelcomePanel from "./WelcomePanel";
 import ProviderSetupPanel from "./ProviderSetupPanel";
 import GettingStartedPanel from "./GettingStartedPanel";
@@ -72,6 +73,13 @@ export const createPanelComponents = () => ({
       }
       handleWorkflowClick={props.params?.handleWorkflowClick || (() => {})}
     />
+  ),
+  "recent-workflows": (props: IDockviewPanelProps<PanelProps>) => (
+    <Box sx={{ overflow: "auto", height: "100%" }}>
+      <RecentWorkflowsPanel
+        onOpenWorkflow={props.params?.onOpenRecentWorkflow || (() => {})}
+      />
+    </Box>
   ),
   "recent-chats": (props: IDockviewPanelProps<PanelProps>) => (
     <Box sx={{ overflow: "auto", height: "100%" }}>
