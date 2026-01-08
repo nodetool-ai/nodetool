@@ -218,7 +218,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
     // Handle string comments as markdown
     if (typeof comment === "string" && comment.length > 0) {
-      config.editorState = (editor: any) => {
+      config.editorState = (_editor: any) => {
         $convertFromMarkdownString(comment, TRANSFORMERS);
       };
     }

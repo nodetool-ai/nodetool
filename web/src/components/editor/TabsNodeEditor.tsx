@@ -19,7 +19,6 @@ import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useAutosave } from "../../hooks/useAutosave";
 
 const styles = (theme: Theme) =>

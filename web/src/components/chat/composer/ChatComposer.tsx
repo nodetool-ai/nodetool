@@ -2,8 +2,7 @@
 import React, {
   useRef,
   useState,
-  useCallback,
-  useEffect
+  useCallback
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
