@@ -107,9 +107,9 @@ export function ContextMenuProvider({
 
       let shouldOpenMenu = true;
       if (outsideClickIgnoreClass) {
-        const element = document.elementFromPoint(x, y) as HTMLElement;
+        const element = document.elementFromPoint(x, y);
         const isClickInsideBoundary =
-          element.closest(`.${outsideClickIgnoreClass}`) !== null;
+          element?.closest(`.${outsideClickIgnoreClass}`) !== null;
         shouldOpenMenu = isClickInsideBoundary;
       }
 

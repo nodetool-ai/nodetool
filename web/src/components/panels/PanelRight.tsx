@@ -26,6 +26,7 @@ import LogPanel from "./LogPanel";
 import PanelResizeButton from "./PanelResizeButton";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
+import ContextMenus from "../context_menus/ContextMenus";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -367,6 +368,7 @@ const PanelRight: React.FC = () => {
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
+                      <ContextMenus />
                       {activeView === "inspector" && <Inspector />}
                       {activeView === "assistant" && <WorkflowAssistantChat />}
                     </NodeContext.Provider>
