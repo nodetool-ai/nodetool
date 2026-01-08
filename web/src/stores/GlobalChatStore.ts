@@ -29,9 +29,7 @@ import { isLocalhost } from "./ApiClient";
 import { client } from "./ApiClient";
 import log from "loglevel";
 import { DEFAULT_MODEL } from "../config/constants";
-import {
-  ConnectionState
-} from "../lib/websocket/WebSocketManager";
+import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import {
   FrontendToolRegistry,
@@ -288,36 +286,43 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         // Set up event handlers on the shared connection
         eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent("stateChange", (newState: ConnectionState) => {
-          // Don't override loading status when WebSocket connects
-          const currentState = get();
-          if (newState === "connected" && currentState.status === "loading") {
-            // Keep loading status if we're waiting for a response
-            set({
-              error: null,
-              statusMessage: null
-            });
-          } else {
-            set({ status: newState });
+          globalWebSocketManager.subscribeEvent(
+            "stateChange",
+            (newState: ConnectionState) => {
+              // Don't override loading status when WebSocket connects
+              const currentState = get();
+              if (
+                newState === "connected" &&
+                currentState.status === "loading"
+              ) {
+                // Keep loading status if we're waiting for a response
+                set({
+                  error: null,
+                  statusMessage: null
+                });
+              } else {
+                set({ status: newState });
 
-            if (newState === "connected") {
-              set({
-                error: null,
-                statusMessage: null
-              });
+                if (newState === "connected") {
+                  set({
+                    error: null,
+                    statusMessage: null
+                  });
+                }
+              }
             }
-          }
-        })
+          )
         );
 
         eventUnsubscribes.push(
           globalWebSocketManager.subscribeEvent(
             "reconnecting",
             (attempt: number, maxAttempts: number) => {
-          set({
-            statusMessage: `Reconnecting... (attempt ${attempt}/${maxAttempts})`
-          });
-        })
+              set({
+                statusMessage: `Reconnecting... (attempt ${attempt}/${maxAttempts})`
+              });
+            }
+          )
         );
 
         const threadSubscriptions: Record<string, () => void> = {};
@@ -332,43 +337,53 @@ const useGlobalChatStore = create<GlobalChatState>()(
           );
         });
 
-        eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent("open", () => {
-          // Send client tools manifest after connection opens
+        const sendManifest = () => {
           const manifest = FrontendToolRegistry.getManifest();
           if (manifest.length > 0) {
-            globalWebSocketManager.send({
-              type: "client_tools_manifest",
-              tools: manifest
-            });
+            void globalWebSocketManager
+              .send({
+                type: "client_tools_manifest",
+                tools: manifest
+              })
+              .catch((e) => log.error("Failed to send manifest:", e));
           }
-        })
+        };
+
+        eventUnsubscribes.push(
+          globalWebSocketManager.subscribeEvent("open", sendManifest)
         );
+
+        if (globalWebSocketManager.isConnectionOpen()) {
+          sendManifest();
+        }
 
         eventUnsubscribes.push(
           globalWebSocketManager.subscribeEvent("error", (error: Error) => {
-          log.error("WebSocket error:", error);
-          let errorMessage = error.message;
+            log.error("WebSocket error:", error);
+            let errorMessage = error.message;
 
-          if (!isLocalhost) {
-            errorMessage += " This may be due to an authentication issue.";
-          }
+            if (!isLocalhost) {
+              errorMessage += " This may be due to an authentication issue.";
+            }
 
-          set({
-            error: errorMessage
-          });
-        })
+            set({
+              error: errorMessage
+            });
+          })
         );
 
         eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent("close", (code?: number, _reason?: string) => {
-          if (code === 1008 || code === 4001 || code === 4003) {
-            // Authentication errors
-            set({
-              error: "Authentication failed. Please log in again."
-            });
-          }
-        })
+          globalWebSocketManager.subscribeEvent(
+            "close",
+            (code?: number, _reason?: string) => {
+              if (code === 1008 || code === 4001 || code === 4003) {
+                // Authentication errors
+                set({
+                  error: "Authentication failed. Please log in again."
+                });
+              }
+            }
+          )
         );
 
         // Store subscriptions
@@ -384,7 +399,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       disconnect: () => {
-        const { wsEventUnsubscribes, wsThreadSubscriptions, sendMessageTimeoutId } = get();
+        const {
+          wsEventUnsubscribes,
+          wsThreadSubscriptions,
+          sendMessageTimeoutId
+        } = get();
         wsEventUnsubscribes.forEach((unsubscribe) => unsubscribe());
         Object.values(wsThreadSubscriptions).forEach((unsubscribe) =>
           unsubscribe()
@@ -406,7 +425,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       sendMessage: async (message: Message) => {
-        const { currentThreadId, workflowId, agentMode, selectedModel, selectedTools, selectedCollections, sendMessageTimeoutId } = get();
+        const {
+          currentThreadId,
+          workflowId,
+          agentMode,
+          selectedModel,
+          selectedTools,
+          selectedCollections,
+          sendMessageTimeoutId
+        } = get();
 
         // Clear any existing safety timeout
         if (sendMessageTimeoutId !== null) {
@@ -416,7 +443,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         set({ error: null });
 
-        if (!globalWebSocketManager || !globalWebSocketManager.isConnectionOpen()) {
+        if (
+          !globalWebSocketManager ||
+          !globalWebSocketManager.isConnectionOpen()
+        ) {
           set({ error: "Not connected to chat service" });
           return;
         }
@@ -450,8 +480,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
           agent_mode: agentMode,
           model: selectedModel?.id,
           provider: selectedModel?.provider,
-          tools: selectedTools.length > 0 ? selectedTools : undefined,
-          collections: selectedCollections.length > 0 ? selectedCollections : undefined
+          tools:
+            (message as any).tools ??
+            (selectedTools.length > 0 ? selectedTools : undefined),
+          collections:
+            (message as any).collections ??
+            (selectedCollections.length > 0 ? selectedCollections : undefined)
         };
 
         // Wrap in chat_message command structure as per unified WebSocket API
@@ -508,22 +542,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Safety timeout - reset status if no response after 60 seconds
           const timeoutId = setTimeout(() => {
             const currentState = get();
-              if (
-                currentState.status === "loading" ||
-                currentState.status === "streaming"
-              ) {
-                log.warn("Generation timeout - resetting status to connected");
-                set({
-                  status: "connected",
-                  progress: { current: 0, total: 0 },
-                  statusMessage: null,
-                  currentPlanningUpdate: null,
-                  currentTaskUpdate: null,
-                  currentTaskUpdateThreadId: null,
-                  sendMessageTimeoutId: null
-                });
-              }
-            }, 60000);
+            if (
+              currentState.status === "loading" ||
+              currentState.status === "streaming"
+            ) {
+              log.warn("Generation timeout - resetting status to connected");
+              set({
+                status: "connected",
+                progress: { current: 0, total: 0 },
+                statusMessage: null,
+                currentPlanningUpdate: null,
+                currentTaskUpdate: null,
+                currentTaskUpdateThreadId: null,
+                sendMessageTimeoutId: null
+              });
+            }
+          }, 60000);
           set({ sendMessageTimeoutId: timeoutId });
         } catch (error) {
           // Clear timeout on error
@@ -584,9 +618,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             params: { path: { thread_id: threadId } }
           });
           if (error) {
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to fetch thread"
-            );
+            throw new Error(error.detail?.[0]?.msg || "Failed to fetch thread");
           }
 
           set((state) => ({
@@ -629,13 +661,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ...state.messageCache,
             [id]: []
           },
-           wsThreadSubscriptions: {
-             ...state.wsThreadSubscriptions,
-             [id]: globalWebSocketManager.subscribe(id, (data: MsgpackData) => {
-               console.log("WebSocket message received:", data);
-               handleChatWebSocketMessage(data, set, get);
-             })
-           }
+          wsThreadSubscriptions: {
+            ...state.wsThreadSubscriptions,
+            [id]: globalWebSocketManager.subscribe(id, (data: MsgpackData) => {
+              console.log("WebSocket message received:", data);
+              handleChatWebSocketMessage(data, set, get);
+            })
+          }
         }));
 
         return id;
@@ -643,7 +675,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       switchThread: (threadId: string) => {
         const exists = !!get().threads[threadId];
-        if (!exists) {return;}
+        if (!exists) {
+          return;
+        }
         set((state) => ({
           currentThreadId: threadId,
           lastUsedThreadId: threadId,
@@ -1028,12 +1062,18 @@ const useGlobalChatStore = create<GlobalChatState>()(
             }, 0);
           }
           // Ensure selection defaults are present
-          if (!state.selectedTools) {state.selectedTools = [];}
-          if (!state.selectedCollections) {state.selectedCollections = [];}
-          if (!state.selectedModel)
-            {state.selectedModel = buildDefaultLanguageModel();}
-          if (typeof state.lastUsedThreadId === "undefined")
-            {state.lastUsedThreadId = null;}
+          if (!state.selectedTools) {
+            state.selectedTools = [];
+          }
+          if (!state.selectedCollections) {
+            state.selectedCollections = [];
+          }
+          if (!state.selectedModel) {
+            state.selectedModel = buildDefaultLanguageModel();
+          }
+          if (typeof state.lastUsedThreadId === "undefined") {
+            state.lastUsedThreadId = null;
+          }
         }
       }
     }
@@ -1049,7 +1089,9 @@ const registerGlobalChatListeners = () => {
   const handleOnline = () => {
     const state = useGlobalChatStore.getState();
     if (state.status === "disconnected" || state.status === "failed") {
-      log.info("Network came online, connection will be established automatically");
+      log.info(
+        "Network came online, connection will be established automatically"
+      );
       // globalWebSocketManager handles reconnection automatically
     }
   };
@@ -1063,7 +1105,9 @@ const registerGlobalChatListeners = () => {
     if (document.visibilityState === "visible") {
       const state = useGlobalChatStore.getState();
       if (state.status === "disconnected" || state.status === "failed") {
-        log.info("Tab became visible, connection will be established automatically");
+        log.info(
+          "Tab became visible, connection will be established automatically"
+        );
         // globalWebSocketManager handles reconnection automatically
       }
     }
