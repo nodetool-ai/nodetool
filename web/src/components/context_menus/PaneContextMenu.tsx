@@ -83,44 +83,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
   );
 
-  const addInputNode = useCallback(
-    (nodeType: string, event: React.MouseEvent | undefined) => {
-      if (!event) {return;}
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.input.${nodeType}`);
-      if (metadata) {
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: menuPosition?.x || event.clientX,
-          y: menuPosition?.y || event.clientY
-        });
-        const newNode = createNode(metadata, position);
-        addNode(newNode);
-      }
-      closeContextMenu();
-    },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
-  );
-
-  const addToolResultNode = useCallback(
-    (event: React.MouseEvent | undefined) => {
-      if (!event) {return;}
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.workflows.base_node.ToolResult`);
-      if (metadata) {
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: menuPosition?.x || event.clientX,
-          y: menuPosition?.y || event.clientY
-        });
-        const newNode = createNode(metadata, position);
-        addNode(newNode);
-      }
-      closeContextMenu();
-    },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
-  );
-
   const addFavoriteNode = useCallback(
     (nodeType: string, event: React.MouseEvent | undefined) => {
       if (!event) {
@@ -251,44 +213,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           })}
         </>
       )}
-      <Divider />
-      <ContextMenuItem
-        onClick={addToolResultNode}
-        label="Add Tool Result"
-        IconComponent={<DataObjectIcon />}
-        tooltip="Add a tool result node"
-      />
-      <Divider />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("StringInput", e)}
-        label="String Input"
-        IconComponent={<TextFieldsIcon />}
-        tooltip="Add a string input node"
-      />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("IntegerInput", e)}
-        label="Integer Input"
-        IconComponent={<NumbersIcon />}
-        tooltip="Add an integer input node"
-      />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("FloatInput", e)}
-        label="Float Input"
-        IconComponent={<NumbersIcon />}
-        tooltip="Add a float input node"
-      />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("ChatInput", e)}
-        label="Chat Input"
-        IconComponent={<ChatIcon />}
-        tooltip="Add a chat input node"
-      />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("ImageInput", e)}
-        label="Image Input"
-        IconComponent={<ImageIcon />}
-        tooltip="Add an image input node"
-      />
       <Divider />
       <ContextMenuItem
         onClick={(e) => {
