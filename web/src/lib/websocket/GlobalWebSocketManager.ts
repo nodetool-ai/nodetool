@@ -3,6 +3,7 @@ import { WebSocketManager } from "./WebSocketManager";
 import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { isLocalhost } from "../../stores/ApiClient";
 import log from "loglevel";
+import { FrontendToolRegistry } from "../tools/frontendTools";
 
 type MessageHandler = (message: any) => void;
 type GlobalWebSocketEvent =
@@ -79,6 +80,9 @@ class GlobalWebSocketManager extends EventEmitter {
         this.isConnected = true;
         this.isConnecting = false;
         this.emit("open");
+        
+        // Send frontend tools manifest to the server on connection
+        this.sendToolsManifest();
       });
 
       this.wsManager.on("message", (data: any) => {
@@ -244,6 +248,27 @@ class GlobalWebSocketManager extends EventEmitter {
     return () => {
       this.removeListener(event, listener);
     };
+  }
+
+  /**
+   * Send the frontend tools manifest to the server.
+   * Called automatically on connection to expose UI tools to LLMs.
+   */
+  private sendToolsManifest(): void {
+    const manifest = FrontendToolRegistry.getManifest();
+    if (manifest.length > 0) {
+      log.info(`GlobalWebSocketManager: Sending tools manifest (${manifest.length} tools)`);
+      if (this.wsManager && this.wsManager.isConnected()) {
+        try {
+          this.wsManager.send({
+            type: "client_tools_manifest",
+            tools: manifest
+          });
+        } catch (error) {
+          log.error("GlobalWebSocketManager: Failed to send tools manifest:", error);
+        }
+      }
+    }
   }
 
   private async buildAuthenticatedUrl(): Promise<string> {
