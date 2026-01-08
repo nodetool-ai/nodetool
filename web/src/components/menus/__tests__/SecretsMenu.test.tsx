@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
@@ -174,7 +174,7 @@ describe("SecretsMenu", () => {
       mockSecretsStore.fetchSecrets.mockResolvedValue([]);
       mockSecretsStore.updateSecret.mockResolvedValue(undefined);
 
-      const component = render(<SecretsMenu />, { wrapper });
+      const _component = render(<SecretsMenu />, { wrapper });
 
       // Simulate opening dialog by calling handleOpenEditDialog directly would require
       // accessing component state. For now, just verify that updateSecret exists.

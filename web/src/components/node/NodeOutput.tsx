@@ -17,7 +17,7 @@ export type NodeOutputProps = {
   isDynamic?: boolean;
 };
 
-const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
+const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection
