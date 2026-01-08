@@ -256,17 +256,15 @@ class GlobalWebSocketManager extends EventEmitter {
    */
   private sendToolsManifest(): void {
     const manifest = FrontendToolRegistry.getManifest();
-    if (manifest.length > 0) {
+    if (manifest.length > 0 && this.wsManager) {
       log.info(`GlobalWebSocketManager: Sending tools manifest (${manifest.length} tools)`);
-      if (this.wsManager && this.wsManager.isConnected()) {
-        try {
-          this.wsManager.send({
-            type: "client_tools_manifest",
-            tools: manifest
-          });
-        } catch (error) {
-          log.error("GlobalWebSocketManager: Failed to send tools manifest:", error);
-        }
+      try {
+        this.wsManager.send({
+          type: "client_tools_manifest",
+          tools: manifest
+        });
+      } catch (error) {
+        log.error("GlobalWebSocketManager: Failed to send tools manifest:", error);
       }
     }
   }
