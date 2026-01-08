@@ -773,7 +773,7 @@ describe("GlobalChatStore", () => {
     it("sendMessage does nothing when socket is not connected", async () => {
       // Disconnect first to ensure socket is null
       store.getState().disconnect();
-      globalWebSocketManager.disconnect();
+      mockGlobalWebSocketManager.disconnect();
       store.setState({
         socket: null,
         wsManager: null,

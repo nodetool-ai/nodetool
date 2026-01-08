@@ -91,7 +91,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     []
   );
 
-  const handleOpenContextMenu = useCallback(
+  const _handleOpenContextMenu = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       openContextMenu(

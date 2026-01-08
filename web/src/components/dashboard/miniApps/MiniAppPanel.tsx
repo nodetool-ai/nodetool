@@ -42,7 +42,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [_submitError, setSubmitError] = useState<string | null>(null);
+  const [_submitError, _setSubmitError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
