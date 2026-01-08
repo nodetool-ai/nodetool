@@ -91,7 +91,11 @@ const mockTheme = createTheme({
     textChannel: "255 255 255",
     dividerChannel: "47 47 47",
     backgroundDefaultChannel: "32 32 32",
-    backgroundPaperChannel: "35 35 35"
+    backgroundPaperChannel: "35 35 35",
+    glass: {
+      blur: "8px",
+      background: "rgba(35, 35, 35, 0.85)"
+    }
   },
   // Provide spacing variables expected by MUI components (e.g., Button)
   // MUI expects spacing to be a function that multiplies by 8px
@@ -173,6 +177,14 @@ const mockTheme = createTheme({
       filled: {},
       outlined: {}
     }
+  },
+  MuiButton: {
+    styleOverrides: {
+      root: {},
+      contained: {},
+      outlined: {},
+      text: {}
+    }
   }
 };
 
@@ -182,6 +194,12 @@ const mockTheme = createTheme({
 };
 (mockTheme as any).vars.shape = {
   borderRadius: 4
+};
+
+// Add Button palette properties for MUI v7 Button component color inversion
+(mockTheme as any).vars.palette.Button = {
+  inheritContainedBg: "rgba(35, 35, 35, 0.08)",
+  inheritContainedHoverBg: "rgba(255, 255, 255, 0.08)"
 };
 
 export default mockTheme;
