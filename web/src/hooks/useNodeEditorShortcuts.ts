@@ -9,6 +9,7 @@ import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes } from "../contexts/NodeContext";
 import { useCopyPaste } from "./handlers/useCopyPaste";
 import useAlignNodes from "./useAlignNodes";
+import useDistributeNodes from "./useDistributeNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
 import { shallow } from "zustand/shallow";
@@ -52,6 +53,7 @@ export const useNodeEditorShortcuts = (
   }));
   const copyPaste = useCopyPaste();
   const alignNodes = useAlignNodes();
+  const distributeNodes = useDistributeNodes();
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
@@ -120,6 +122,14 @@ export const useNodeEditorShortcuts = (
   const handleAlignWithSpacing = useCallback(() => {
     alignNodes({ arrangeSpacing: true });
   }, [alignNodes]);
+
+  const handleDistributeHorizontal = useCallback(() => {
+    distributeNodes({ direction: "horizontal" });
+  }, [distributeNodes]);
+
+  const handleDistributeVertical = useCallback(() => {
+    distributeNodes({ direction: "vertical" });
+  }, [distributeNodes]);
 
   const closeCurrentWorkflow = useCallback(() => {
     const workflow = getCurrentWorkflow();
@@ -273,6 +283,12 @@ export const useNodeEditorShortcuts = (
         case "alignWithSpacing":
           alignNodes({ arrangeSpacing: true });
           break;
+        case "distributeHorizontal":
+          distributeNodes({ direction: "horizontal" });
+          break;
+        case "distributeVertical":
+          distributeNodes({ direction: "vertical" });
+          break;
         case "saveWorkflow":
           handleSave();
           break;
@@ -305,6 +321,7 @@ export const useNodeEditorShortcuts = (
       reactFlow,
       handleSwitchTab,
       alignNodes,
+      distributeNodes,
       handleSave,
       duplicateNodes,
       duplicateNodesVertical,
@@ -376,6 +393,14 @@ export const useNodeEditorShortcuts = (
         callback: handleAlignWithSpacing,
         active: selectedNodes.length > 0
       },
+      distributeHorizontal: {
+        callback: handleDistributeHorizontal,
+        active: selectedNodes.length >= 3
+      },
+      distributeVertical: {
+        callback: handleDistributeVertical,
+        active: selectedNodes.length >= 3
+      },
       duplicate: { callback: duplicateNodes },
       duplicateVertical: { callback: duplicateNodesVertical },
       fitView: { callback: () => handleFitView({ padding: 0.4 }) },
@@ -414,6 +439,8 @@ export const useNodeEditorShortcuts = (
     selectAllNodes,
     handleAlign,
     handleAlignWithSpacing,
+    handleDistributeHorizontal,
+    handleDistributeVertical,
     selectedNodes.length,
     duplicateNodes,
     duplicateNodesVertical,

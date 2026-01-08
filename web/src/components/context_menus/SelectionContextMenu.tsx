@@ -7,6 +7,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
+import useDistributeNodes from "../../hooks/useDistributeNodes";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 //icons
@@ -15,6 +16,7 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 // import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 // import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
+import FormatAlignCenterIcon from "@mui/icons-material/FormatAlignCenter";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import BlockIcon from "@mui/icons-material/Block";
@@ -33,6 +35,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   }));
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
+  const distributeNodes = useDistributeNodes();
   const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -77,6 +80,18 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     }
     closeContextMenu();
   }, [closeContextMenu, deleteNode, selectedNodes]);
+
+  //distribute horizontal
+  const handleDistributeHorizontal = useCallback(() => {
+    distributeNodes({ direction: "horizontal" });
+    closeContextMenu();
+  }, [distributeNodes, closeContextMenu]);
+
+  //distribute vertical
+  const handleDistributeVertical = useCallback(() => {
+    distributeNodes({ direction: "vertical" });
+    closeContextMenu();
+  }, [distributeNodes, closeContextMenu]);
 
   //collapse
   // const handleCollapseAll = useCallback(
@@ -222,6 +237,36 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
               <div className="tooltip-title">Arrange</div>
               <div className="tooltip-key">
                 <kbd>SHIFT</kbd>+<kbd>A</kbd>
+              </div>
+            </div>
+          }
+        />
+      )}
+      {selectedNodes?.length >= 3 && (
+        <ContextMenuItem
+          onClick={() => handleDistributeHorizontal()}
+          label="Distribute Horizontally"
+          IconComponent={<FormatAlignCenterIcon />}
+          tooltip={
+            <div className="tooltip-span">
+              <div className="tooltip-title">Distribute Horizontally</div>
+              <div className="tooltip-key">
+                <kbd>SHIFT</kbd>+<kbd>H</kbd>
+              </div>
+            </div>
+          }
+        />
+      )}
+      {selectedNodes?.length >= 3 && (
+        <ContextMenuItem
+          onClick={() => handleDistributeVertical()}
+          label="Distribute Vertically"
+          IconComponent={<FormatAlignCenterIcon />}
+          tooltip={
+            <div className="tooltip-span">
+              <div className="tooltip-title">Distribute Vertically</div>
+              <div className="tooltip-key">
+                <kbd>SHIFT</kbd>+<kbd>V</kbd>
               </div>
             </div>
           }

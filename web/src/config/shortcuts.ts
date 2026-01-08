@@ -262,6 +262,22 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Distribute Horizontally",
+    slug: "distributeHorizontal",
+    keyCombo: ["Shift", "H"],
+    category: "editor",
+    description: "Distribute selected nodes evenly horizontally",
+    registerCombo: true
+  },
+  {
+    title: "Distribute Vertically",
+    slug: "distributeVertical",
+    keyCombo: ["Shift", "V"],
+    category: "editor",
+    description: "Distribute selected nodes evenly vertically",
+    registerCombo: true
+  },
+  {
     title: "Duplicate",
     slug: "duplicate",
     keyCombo: ["Control", "D"],
