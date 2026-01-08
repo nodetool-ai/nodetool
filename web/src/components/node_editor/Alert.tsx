@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import React, { useEffect, useState, useRef, createRef } from "react";
 import { Alert as MUIAlert, AlertColor } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
@@ -10,7 +9,6 @@ import {
   useNotificationStore,
   Notification
 } from "../../stores/NotificationStore";
-import { useClipboard } from "../../hooks/browser/useClipboard";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 
 const TRANSITION_DURATION = 300; // Duration for fade in/out animations
@@ -31,7 +29,7 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   return typeMap[type] || "info";
 };
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     position: "fixed",
     top: "60px",
@@ -96,14 +94,13 @@ const Alert: React.FC = () => {
     lastDisplayedTimestamp: state.lastDisplayedTimestamp,
     updateLastDisplayedTimestamp: state.updateLastDisplayedTimestamp
   }));
-  const { writeClipboard } = useClipboard();
-  const theme = useTheme();
+  const _theme = useTheme();
   const [visibleNotifications, setVisibleNotifications] = useState<
     Notification[]
   >([]);
 
   const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
-  const [show, setShow] = useState<Record<string, boolean>>({});
+  const [_show, setShow] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const lastDisplayedDate = new Date(lastDisplayedTimestamp || 0);
@@ -182,21 +179,11 @@ const Alert: React.FC = () => {
     }, TRANSITION_DURATION);
   };
 
-  const initiateExitTransition = (id: string) => {
-    setShow((s) => ({ ...s, [id]: false }));
-    setTimeout(() => {
-      removeNotification(id);
-      setVisibleNotifications((prev) =>
-        prev.filter((notification) => notification.id !== id)
-      );
-    }, TRANSITION_DURATION);
-  };
-
   // const handleCopy = async (content: string) => {
   //   await writeClipboard(content, true);
   // };
   return (
-    <TransitionGroup component="ul" css={styles(theme)} className="alert-list">
+    <TransitionGroup component="ul" css={styles()} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
           nodeRefs.current[notification.id] = createRef<HTMLLIElement>();

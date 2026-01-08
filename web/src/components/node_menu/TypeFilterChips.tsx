@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo } from "react";
-import { DATA_TYPES, IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/data_types";
 import { Box, Chip, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -109,14 +109,6 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(({
   setSelectedOutputType
 }) => {
   const theme = useTheme();
-
-  const handleInputClick = (type: string) => {
-    if (selectedInputType === type) {
-      setSelectedInputType("");
-    } else {
-      setSelectedInputType(type);
-    }
-  };
 
   const handleOutputClick = (type: string) => {
     if (selectedOutputType === type) {
