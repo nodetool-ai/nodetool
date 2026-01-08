@@ -2,10 +2,11 @@
 import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { Divider, Menu } from "@mui/material";
+import { Divider, Menu, Typography, Box } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
+import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 //icons
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
@@ -16,6 +17,7 @@ import NumbersIcon from "@mui/icons-material/Numbers";
 import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
 import DataObjectIcon from "@mui/icons-material/DataObject";
+import StarIcon from "@mui/icons-material/Star";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
@@ -42,6 +44,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     (state) => state.closeContextMenu
   );
   const fitView = useFitView();
+  const favorites = useFavoriteNodesStore((state) => state.favorites);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const { createNode, addNode } = useNodes((state) => ({
     createNode: state.createNode,
@@ -79,12 +83,12 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
   );
 
-  const addInputNode = useCallback(
+  const addFavoriteNode = useCallback(
     (nodeType: string, event: React.MouseEvent | undefined) => {
-      if (!event) {return;}
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.input.${nodeType}`);
+      if (!event) {
+        return;
+      }
+      const metadata = getMetadata(nodeType);
       if (metadata) {
         const position = reactFlowInstance.screenToFlowPosition({
           x: menuPosition?.x || event.clientX,
@@ -95,26 +99,20 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       }
       closeContextMenu();
     },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu, getMetadata]
   );
 
-  const addToolResultNode = useCallback(
-    (event: React.MouseEvent | undefined) => {
-      if (!event) {return;}
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.workflows.base_node.ToolResult`);
+  const getNodeDisplayName = useCallback(
+    (nodeType: string) => {
+      const metadata = getMetadata(nodeType);
       if (metadata) {
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: menuPosition?.x || event.clientX,
-          y: menuPosition?.y || event.clientY
-        });
-        const newNode = createNode(metadata, position);
-        addNode(newNode);
+        return (
+          metadata.title || metadata.node_type.split(".").pop() || nodeType
+        );
       }
-      closeContextMenu();
+      return nodeType.split(".").pop() || nodeType;
     },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
+    [getMetadata]
   );
 
   if (!menuPosition) {
@@ -176,44 +174,45 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         IconComponent={<FitScreenIcon />}
         tooltip={getShortcutTooltip("fit-view")}
       />
-      <Divider />
-      <ContextMenuItem
-        onClick={addToolResultNode}
-        label="Add Tool Result"
-        IconComponent={<DataObjectIcon />}
-        tooltip="Add a tool result node"
-      />
-      <Divider />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("StringInput", e)}
-        label="String Input"
-        IconComponent={<TextFieldsIcon />}
-        tooltip="Add a string input node"
-      />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("IntegerInput", e)}
-        label="Integer Input"
-        IconComponent={<NumbersIcon />}
-        tooltip="Add an integer input node"
-      />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("FloatInput", e)}
-        label="Float Input"
-        IconComponent={<NumbersIcon />}
-        tooltip="Add a float input node"
-      />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("ChatInput", e)}
-        label="Chat Input"
-        IconComponent={<ChatIcon />}
-        tooltip="Add a chat input node"
-      />
-      <ContextMenuItem
-        onClick={(e) => addInputNode("ImageInput", e)}
-        label="Image Input"
-        IconComponent={<ImageIcon />}
-        tooltip="Add an image input node"
-      />
+      {favorites.length > 0 && (
+        <>
+          <Divider />
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5em",
+              padding: "4px 16px",
+              color: "text.secondary",
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px"
+            }}
+          >
+            <StarIcon
+              sx={{ fontSize: "0.85rem", color: "warning.main" }}
+            />
+            <Typography variant="inherit">Favorites</Typography>
+          </Box>
+          {favorites.map((favorite) => {
+            const displayName = getNodeDisplayName(favorite.nodeType);
+            return (
+              <ContextMenuItem
+                key={favorite.nodeType}
+                onClick={(e) => addFavoriteNode(favorite.nodeType, e)}
+                label={displayName}
+                IconComponent={
+                  <StarIcon
+                    sx={{ fontSize: "1rem", color: "warning.main", opacity: 0.7 }}
+                  />
+                }
+                tooltip={`Add ${displayName} node`}
+              />
+            );
+          })}
+        </>
+      )}
       <Divider />
       <ContextMenuItem
         onClick={(e) => {
