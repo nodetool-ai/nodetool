@@ -38,7 +38,7 @@ export const useSelectConnected = (
     const connectedNodeIds = new Set<string>();
 
     const traverseUpstream = (nodeId: string, visited: Set<string>) => {
-      if (visited.has(nodeId)) return;
+      if (visited.has(nodeId)) {return;}
       visited.add(nodeId);
 
       const incomingEdges = edges.filter((e) => e.target === nodeId);
@@ -51,7 +51,7 @@ export const useSelectConnected = (
     };
 
     const traverseDownstream = (nodeId: string, visited: Set<string>) => {
-      if (visited.has(nodeId)) return;
+      if (visited.has(nodeId)) {return;}
       visited.add(nodeId);
 
       const outgoingEdges = edges.filter((e) => e.source === nodeId);
