@@ -1,6 +1,7 @@
 import { act } from "@testing-library/react";
 import { useFavoriteNodesStore } from "../../../stores/FavoriteNodesStore";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { NodeMetadata } from "../../../stores/ApiTypes";
 
 // Test the integration of favorites with context menu logic
 describe("PaneContextMenu favorites integration", () => {
@@ -25,7 +26,7 @@ describe("PaneContextMenu favorites integration", () => {
             properties: [],
             layout: "default",
             outputs: []
-          }
+          } as unknown as NodeMetadata
         }
       });
       useFavoriteNodesStore.getState().addFavorite("nodetool.test.TestNode");
@@ -59,7 +60,7 @@ describe("PaneContextMenu favorites integration", () => {
             properties: [],
             layout: "default",
             outputs: []
-          },
+          } as unknown as NodeMetadata,
           "nodetool.test.Node2": {
             title: "Node Two",
             node_type: "nodetool.test.Node2",
@@ -67,7 +68,7 @@ describe("PaneContextMenu favorites integration", () => {
             properties: [],
             layout: "default",
             outputs: []
-          }
+          } as unknown as NodeMetadata
         }
       });
       useFavoriteNodesStore.getState().addFavorite("nodetool.test.Node1");
@@ -93,7 +94,7 @@ describe("PaneContextMenu favorites integration", () => {
             properties: [],
             layout: "default",
             outputs: []
-          }
+          } as unknown as NodeMetadata
         }
       });
     });

@@ -6,6 +6,16 @@ import { MemoryRouter } from "react-router-dom";
 import GlobalChat from "../../../../components/chat/containers/GlobalChat";
 import mockTheme from "../../../../__mocks__/themeMock";
 
+// Mock the GlobalWebSocketManager module
+const mockGetConnectionState = jest.fn();
+jest.mock("../../../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: {
+    getConnectionState: mockGetConnectionState,
+    isConnected: false,
+    isConnecting: false
+  }
+}));
+
 // Mock react-router-dom hooks
 const mockNavigate = jest.fn();
 const mockParams = { thread_id: undefined };
@@ -272,9 +282,7 @@ describe("GlobalChat", () => {
       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
       // Mock the connection state to be connecting
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { globalWebSocketManager } = require("../../../../lib/websocket/GlobalWebSocketManager");
-      globalWebSocketManager.getConnectionState.mockReturnValue({
+      mockGetConnectionState.mockReturnValue({
         isConnected: false,
         isConnecting: true,
         error: null

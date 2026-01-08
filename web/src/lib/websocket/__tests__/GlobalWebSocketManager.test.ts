@@ -2,6 +2,8 @@ import { TextEncoder, TextDecoder } from "util";
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
+import { FrontendToolRegistry } from "../../tools/frontendTools";
+
 // Mock dependencies before imports
 jest.mock("../../../stores/BASE_URL", () => ({
   BASE_URL: "http://localhost:8000",
@@ -39,7 +41,6 @@ describe("GlobalWebSocketManager", () => {
       // This test verifies the sendToolsManifest method is called
       // by checking that FrontendToolRegistry.getManifest is called
       // when the connection is established
-      const { FrontendToolRegistry } = require("../../tools/frontendTools");
       
       // The manifest should be available to send
       const manifest = FrontendToolRegistry.getManifest();
