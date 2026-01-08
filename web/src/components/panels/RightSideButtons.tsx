@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useState } from "react";
+import React, { memo } from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";

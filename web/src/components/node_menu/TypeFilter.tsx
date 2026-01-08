@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, Global } from "@emotion/react";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { DATA_TYPES, IconForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
