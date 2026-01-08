@@ -50,6 +50,12 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: mockGlobalWebSocketManager
 }));
 
+declare global {
+  // eslint-disable-next-line no-var
+  var globalWebSocketManager: typeof mockGlobalWebSocketManager;
+}
+(global as any).globalWebSocketManager = mockGlobalWebSocketManager;
+
 import { encode, decode } from "@msgpack/msgpack";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";

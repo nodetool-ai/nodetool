@@ -91,7 +91,11 @@ const mockTheme = createTheme({
     textChannel: "255 255 255",
     dividerChannel: "47 47 47",
     backgroundDefaultChannel: "32 32 32",
-    backgroundPaperChannel: "35 35 35"
+    backgroundPaperChannel: "35 35 35",
+    // Add glass property for ResultOverlay component
+    glass: {
+      blur: "10px"
+    }
   },
   // Provide spacing variables expected by MUI components (e.g., Button)
   // MUI expects spacing to be a function that multiplies by 8px
