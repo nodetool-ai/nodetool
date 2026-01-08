@@ -12,11 +12,6 @@ import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
-import TextFieldsIcon from "@mui/icons-material/TextFields";
-import NumbersIcon from "@mui/icons-material/Numbers";
-import ChatIcon from "@mui/icons-material/Chat";
-import ImageIcon from "@mui/icons-material/Image";
-import DataObjectIcon from "@mui/icons-material/DataObject";
 import StarIcon from "@mui/icons-material/Star";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";

@@ -28,7 +28,7 @@ import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
 const StandaloneMiniApp: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [_submitError, setSubmitError] = useState<string | null>(null);
   const { workflowId } = useParams<{ workflowId?: string }>();
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({

@@ -14,7 +14,6 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 
@@ -37,7 +36,6 @@ const NotificationButton: React.FC = React.memo(() => {
     lastDisplayedTimestamp,
     updateLastDisplayedTimestamp
   } = useNotificationStore();
-  const { writeClipboard } = useClipboard();
   const theme = useTheme();
   const unreadCount = useMemo(() => {
     if (!lastDisplayedTimestamp) {return notifications.length;}
@@ -56,10 +54,6 @@ const NotificationButton: React.FC = React.memo(() => {
   const handleNotificationClose = useCallback(() => {
     setNotificationAnchor(null);
   }, []);
-
-  const handleCopy = async (content: string) => {
-    await writeClipboard(content, true);
-  };
 
   return (
     <div className="notifications-container">

@@ -1,15 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useContext, useEffect, useState, useMemo } from "react";
-import { useTheme } from "@mui/material/styles";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import ChatView from "../chat/containers/ChatView";
 
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import {
   LanguageModel,
-  Message,
-  Workflow,
-  NodeMetadata
+  Message
 } from "../../stores/ApiTypes";
 import { NewChatButton } from "../chat/thread/NewChatButton";
 import {
@@ -26,12 +23,11 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AddIcon from "@mui/icons-material/Add";
 import ThreadList from "../chat/thread/ThreadList";
 import type { ThreadInfo } from "../chat/thread";
-import { useNodes, NodeContext } from "../../contexts/NodeContext";
+import { useNodes } from "../../contexts/NodeContext";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
-import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import SvgFileIcon from "../SvgFileIcon";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
