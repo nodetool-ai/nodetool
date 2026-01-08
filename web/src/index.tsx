@@ -64,6 +64,7 @@ import log from "loglevel";
 import Alert from "./components/node_editor/Alert";
 import MobileClassProvider from "./components/MobileClassProvider";
 import AppHeader from "./components/panels/AppHeader";
+import { useKeyboardShortcutListener } from "./hooks/useGlobalShortcuts";
 
 // Lazy-loaded route components for code splitting
 const Dashboard = React.lazy(
@@ -344,6 +345,8 @@ const JobReconnectionManager = () => {
 
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
+
+  useKeyboardShortcutListener();
 
   useEffect(() => {
     // Existing effect for loading metadata

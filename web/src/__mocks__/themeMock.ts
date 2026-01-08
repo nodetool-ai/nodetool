@@ -142,7 +142,9 @@ const mockTheme = createTheme({
     },
     // Add glass effect for ResultOverlay component
     glass: {
-      blur: "blur(12px)"
+      blur: "blur(12px)",
+      backgroundDialog: "rgba(0, 0, 0, 0.5)",
+      backgroundDialogContent: "#232323"
     },
     // Add Button palette for MUI v7 Button component
     Button: {
@@ -162,6 +164,20 @@ const mockTheme = createTheme({
     "0px 2px 4px -1px rgba(0,0,0,0.2),0px 4px 5px 0px rgba(0,0,0,0.14),0px 1px 10px 0px rgba(0,0,0,0.12)",
     ...Array(20).fill("none") // Fill remaining shadow values
   ]
+};
+
+// Add rounded property for dialogs and nodes
+(mockTheme as any).rounded = {
+  dialog: "20px",
+  node: "8px",
+  buttonSmall: "4px",
+  buttonLarge: "6px"
+};
+(mockTheme as any).vars.rounded = {
+  dialog: "20px",
+  node: "8px",
+  buttonSmall: "4px",
+  buttonLarge: "6px"
 };
 
 // Add tooltip property to theme

@@ -205,11 +205,9 @@ const Help = ({
           maxWidth: "1000px",
           height: "85vh",
           margin: "auto",
-          borderRadius: (theme as any)?.rounded?.dialog ?? 2,
+          borderRadius: theme.vars.rounded.dialog,
           border: `1px solid ${theme.vars.palette.grey[700]}`,
-          backgroundColor:
-            (theme as any)?.palette?.glass?.backgroundDialogContent ??
-            "transparent"
+          backgroundColor: theme.vars.palette.glass.backgroundDialogContent
         }
       }}
       slotProps={{
@@ -217,12 +215,6 @@ const Help = ({
           style: {
             backdropFilter: theme.vars.palette.glass.blur,
             backgroundColor: theme.vars.palette.glass.backgroundDialog
-          }
-        },
-        paper: {
-          style: {
-            borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.glass.backgroundDialogContent
           }
         }
       }}
