@@ -1,4 +1,5 @@
 import { TextEncoder, TextDecoder } from "util";
+import { FrontendToolRegistry } from "../../tools/frontendTools";
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
@@ -39,9 +40,6 @@ describe("GlobalWebSocketManager", () => {
       // This test verifies the sendToolsManifest method is called
       // by checking that FrontendToolRegistry.getManifest is called
       // when the connection is established
-      const { FrontendToolRegistry } = require("../../tools/frontendTools");
-      
-      // The manifest should be available to send
       const manifest = FrontendToolRegistry.getManifest();
       expect(manifest).toHaveLength(1);
       expect(manifest[0].name).toBe("ui_test_tool");
