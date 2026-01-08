@@ -5,11 +5,17 @@ import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import GlobalChat from "../../../../components/chat/containers/GlobalChat";
 import mockTheme from "../../../../__mocks__/themeMock";
+import { globalWebSocketManager } from "../../../../lib/websocket/GlobalWebSocketManager";
+
+const mockedGlobalWebSocketManager = globalWebSocketManager as jest.Mocked<typeof globalWebSocketManager> & {
+  getConnectionState: jest.Mock;
+};
 
 // Mock react-router-dom hooks
 const mockNavigate = jest.fn();
 const mockParams = { thread_id: undefined };
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
   useNavigate: () => mockNavigate,
@@ -18,11 +24,13 @@ jest.mock("react-router-dom", () => ({
 
 // Mock MUI components and hooks
 jest.mock("@mui/material/styles", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => mockTheme
 }));
 
 jest.mock("@mui/material", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   ...jest.requireActual("@mui/material"),
   useMediaQuery: jest.fn().mockReturnValue(false),
   Alert: ({ children, ...props }: any) => (
@@ -272,8 +280,7 @@ describe("GlobalChat", () => {
       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
       // Mock the connection state to be connecting
-      const { globalWebSocketManager } = require("../../../../lib/websocket/GlobalWebSocketManager");
-      globalWebSocketManager.getConnectionState.mockReturnValue({
+      mockedGlobalWebSocketManager.getConnectionState.mockReturnValue({
         isConnected: false,
         isConnecting: true,
         error: null
