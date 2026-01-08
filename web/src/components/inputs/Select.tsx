@@ -9,6 +9,7 @@ import React, {
   useId,
   useState
 } from "react";
+import { useClickOutside } from "../../hooks/useClickOutside";
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
 import { Tooltip } from "@mui/material";
@@ -119,22 +120,15 @@ const Select: React.FC<SelectProps> = ({
     return () => window.removeEventListener("resize", updateDropdownPosition);
   }, [updateDropdownPosition]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        selectRef.current &&
-        !selectRef.current.contains(event.target as Node) &&
-        activeSelect === id
-      ) {
+  useClickOutside({
+    ref: selectRef,
+    onClickOutside: () => {
+      if (activeSelect === id) {
         close();
       }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [close, activeSelect, id]);
+    },
+    enabled: activeSelect === id
+  });
 
   // Focus search input when dropdown opens
   useEffect(() => {
