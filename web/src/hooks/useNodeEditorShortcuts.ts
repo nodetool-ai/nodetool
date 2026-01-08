@@ -11,6 +11,7 @@ import { useCopyPaste } from "./handlers/useCopyPaste";
 import useAlignNodes from "./useAlignNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
+import { useSmartSelection } from "./useSmartSelection";
 import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
@@ -55,6 +56,7 @@ export const useNodeEditorShortcuts = (
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
+  const smartSelection = useSmartSelection();
 
   const nodeMenuStore = useNodeMenuStore(
     (state) => ({
@@ -395,7 +397,12 @@ export const useNodeEditorShortcuts = (
       moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
       moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
-      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 }
+      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 },
+      selectConnected: { callback: smartSelection.selectConnected, active: selectedNodes.length > 0 },
+      selectSameType: { callback: smartSelection.selectSameType, active: selectedNodes.length > 0 },
+      selectParents: { callback: smartSelection.selectParents, active: selectedNodes.length > 0 },
+      selectChildren: { callback: smartSelection.selectChildren, active: selectedNodes.length > 0 },
+      selectInverse: { callback: smartSelection.selectInverse }
     };
 
     // Switch-to-tab (1-9)
@@ -431,7 +438,8 @@ export const useNodeEditorShortcuts = (
     handleSwitchTab,
     handleMoveNodes,
     handleSwitchToTab,
-    handleBypassSelected
+    handleBypassSelected,
+    smartSelection
   ]);
 
   // useEffect for shortcut registration

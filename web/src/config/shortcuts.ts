@@ -357,6 +357,47 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Toggle bypass on selected nodes",
     registerCombo: true
   },
+  // ---------- SMART SELECTION ------------------------------------------------
+  {
+    title: "Select Connected",
+    slug: "selectConnected",
+    keyCombo: ["Control", "Shift", "C"],
+    category: "editor",
+    description: "Select all nodes connected to/from selection",
+    registerCombo: true
+  },
+  {
+    title: "Select Same Type",
+    slug: "selectSameType",
+    keyCombo: ["Control", "Shift", "T"],
+    category: "editor",
+    description: "Select all nodes of the same type",
+    registerCombo: true
+  },
+  {
+    title: "Select Parents",
+    slug: "selectParents",
+    keyCombo: ["Control", "Shift", "P"],
+    category: "editor",
+    description: "Select parent nodes of selection",
+    registerCombo: true
+  },
+  {
+    title: "Select Children",
+    slug: "selectChildren",
+    keyCombo: ["Control", "Shift", "H"],
+    category: "editor",
+    description: "Select child nodes of selection",
+    registerCombo: true
+  },
+  {
+    title: "Select Inverse",
+    slug: "selectInverse",
+    keyCombo: ["Control", "Shift", "I"],
+    category: "editor",
+    description: "Invert current selection",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {
