@@ -35,7 +35,7 @@ const listStyles = (theme: Theme) =>
       overflow: "hidden auto"
     },
     ".workflow": {
-      height: "48px",
+      height: "52px",
       padding: "4px 8px 4px 12px",
       display: "flex",
       flexDirection: "row",
