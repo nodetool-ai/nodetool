@@ -272,6 +272,7 @@ describe("GlobalChat", () => {
       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
       // Mock the connection state to be connecting
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { globalWebSocketManager } = require("../../../../lib/websocket/GlobalWebSocketManager");
       globalWebSocketManager.getConnectionState.mockReturnValue({
         isConnected: false,

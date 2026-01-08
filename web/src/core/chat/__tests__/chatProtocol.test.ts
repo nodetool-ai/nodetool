@@ -28,6 +28,7 @@ describe("chatProtocol", () => {
   });
 
   it("returns tool errors for unknown client tools", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
     const send = jest.fn();
@@ -65,6 +66,7 @@ describe("chatProtocol", () => {
   });
 
   it("returns structured tool_result on tool failure", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(true);
     (FrontendToolRegistry.call as jest.Mock).mockRejectedValue(new Error("nope"));
