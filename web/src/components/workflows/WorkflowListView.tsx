@@ -35,7 +35,7 @@ const listStyles = (theme: Theme) =>
       overflow: "hidden auto"
     },
     ".workflow": {
-      height: "52px",
+      height: "100%",
       padding: "4px 8px 4px 12px",
       display: "flex",
       flexDirection: "row",
@@ -74,7 +74,8 @@ const listStyles = (theme: Theme) =>
     },
     ".preview-container": {
       display: "flex",
-      alignItems: "center",
+      flexDirection: "column",
+      alignItems: "flex-start",
       justifyContent: "center"
     },
     ".name": {
@@ -118,6 +119,7 @@ const listStyles = (theme: Theme) =>
     },
     ".actions": {
       position: "absolute",
+      top: "8px",
       right: "0.35em",
       display: "flex",
       alignItems: "center",
@@ -155,7 +157,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     (state) => state.currentWorkflowId
   );
 
-  const ITEM_HEIGHT = 52;
+  const ITEM_HEIGHT = 150;
   const CONTAINER_HEIGHT = window.innerHeight - 210;
 
   const Row = ({

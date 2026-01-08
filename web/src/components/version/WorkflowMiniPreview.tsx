@@ -20,8 +20,8 @@ interface WorkflowWithGraph {
 interface WorkflowMiniPreviewProps {
   /** WorkflowVersion or Workflow with graph data */
   workflow: WorkflowWithGraph;
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
   /** Optional label to show in tooltip (defaults to workflow name or version) */
   label?: string;
 }
@@ -130,7 +130,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
 }) => {
   const graph = useMemo(() => {
     try {
-      return workflow.graph as Graph || { nodes: [], edges: [] };
+      return (workflow.graph as Graph) || { nodes: [], edges: [] };
     } catch {
       return { nodes: [], edges: [] };
     }
@@ -165,24 +165,27 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
     );
   }
 
-  const scale = Math.min(
-    width / (Math.max(...previewNodes.map((n) => n.x)) + NODE_WIDTH + PADDING * 2 || width),
-    height / (Math.max(...previewNodes.map((n) => n.y)) + NODE_HEIGHT + PADDING * 2 || height),
-    1
-  );
+  // Calculate bounding box
+  const maxX = Math.max(...previewNodes.map((n) => n.x + n.width), 0) + PADDING;
+  const maxY = Math.max(...previewNodes.map((n) => n.y + n.height), 0) + PADDING;
 
-  const offsetX = (width - (Math.max(...previewNodes.map((n) => n.x)) + NODE_WIDTH) * scale) / 2;
-  const offsetY = (height - (Math.max(...previewNodes.map((n) => n.y)) + NODE_HEIGHT) * scale) / 2;
+  // Use a slight padding for the viewBox to ensure nothing is cut off
+  // We double padding for symmetry if we assume 0,0 start, but layout ensures min is MIN_X/MIN_Y
+  const viewBoxWidth = maxX + PADDING;
+  const viewBoxHeight = maxY + PADDING;
 
   return (
     <Tooltip
       title={
         <Box>
           <Typography variant="caption" fontWeight="medium">
-            {label || workflow.name || (workflow.version ? `v${workflow.version}` : "Workflow")}
+            {label ||
+              workflow.name ||
+              (workflow.version ? `v${workflow.version}` : "Workflow")}
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
-            {nodeCount} node{nodeCount !== 1 ? "s" : ""}, {edgeCount} connection{edgeCount !== 1 ? "s" : ""}
+            {nodeCount} node{nodeCount !== 1 ? "s" : ""}, {edgeCount} connection
+            {edgeCount !== 1 ? "s" : ""}
           </Typography>
         </Box>
       }
@@ -206,24 +209,33 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           position: "relative"
         }}
       >
-        <svg width={width} height={height} style={{ position: "absolute", top: 0, left: 0 }}>
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display: "block" }}
+        >
           {previewNodes.map((node) => {
             const color = getNodeColor(node.type);
             return (
-              <g key={node.id} transform={`translate(${offsetX + node.x * scale}, ${offsetY + node.y * scale})`}>
+              <g
+                key={node.id}
+                transform={`translate(${node.x}, ${node.y})`}
+              >
                 <rect
-                  width={NODE_WIDTH * scale}
-                  height={NODE_HEIGHT * scale}
-                  rx={3 * scale}
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT}
+                  rx={3}
                   fill={color}
                   opacity={0.8}
                 />
                 <text
-                  x={(NODE_WIDTH * scale) / 2}
-                  y={(NODE_HEIGHT * scale) / 2 + 4 * scale}
+                  x={NODE_WIDTH / 2}
+                  y={NODE_HEIGHT / 2 + 4}
                   textAnchor="middle"
                   fill="white"
-                  fontSize={10 * scale}
+                  fontSize={10}
                   fontFamily="sans-serif"
                 >
                   {extractNodeName(node.type)}
@@ -240,10 +252,14 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
             bgcolor: "rgba(0,0,0,0.6)",
             borderRadius: 0.5,
             px: 0.5,
-            py: 0.25
+            py: 0.25,
+            pointerEvents: "none"
           }}
         >
-          <Typography variant="caption" sx={{ color: "white", fontSize: "0.6rem" }}>
+          <Typography
+            variant="caption"
+            sx={{ color: "white", fontSize: "0.6rem" }}
+          >
             {nodeCount}
           </Typography>
         </Box>
