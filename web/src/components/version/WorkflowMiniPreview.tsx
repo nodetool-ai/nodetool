@@ -2,17 +2,28 @@
  * Workflow Mini Preview Component
  *
  * Displays a compact visual representation of a workflow graph.
- * Used in version history to show what a workflow looked like at a glance.
+ * Used in version history to show what a workflow looked like at a glance,
+ * and in the workflow list sidebar to show workflow structure.
  */
 
 import React, { useMemo } from "react";
 import { Box, Typography, Paper, Tooltip } from "@mui/material";
-import { WorkflowVersion, Graph, Node as NodeType } from "../../stores/ApiTypes";
+import { Graph } from "../../stores/ApiTypes";
+
+// Data structure that has graph - can be WorkflowVersion or Workflow
+interface WorkflowWithGraph {
+  graph?: Graph | null;
+  name?: string;
+  version?: number;
+}
 
 interface WorkflowMiniPreviewProps {
-  version: WorkflowVersion & { save_type?: string; size_bytes?: number };
+  /** WorkflowVersion or Workflow with graph data */
+  workflow: WorkflowWithGraph;
   width?: number;
   height?: number;
+  /** Optional label to show in tooltip (defaults to workflow name or version) */
+  label?: string;
 }
 
 interface PreviewNode {
@@ -112,17 +123,18 @@ const calculateNodePositions = (graph: Graph): PreviewNode[] => {
 };
 
 export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
-  version,
+  workflow,
   width = 200,
-  height = 120
+  height = 120,
+  label
 }) => {
   const graph = useMemo(() => {
     try {
-      return version.graph as Graph || { nodes: [], edges: [] };
+      return workflow.graph as Graph || { nodes: [], edges: [] };
     } catch {
       return { nodes: [], edges: [] };
     }
-  }, [version]);
+  }, [workflow]);
 
   const previewNodes = useMemo(() => calculateNodePositions(graph), [graph]);
 
@@ -167,7 +179,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
       title={
         <Box>
           <Typography variant="caption" fontWeight="medium">
-            {version.name || `v${version.version}`}
+            {label || workflow.name || (workflow.version ? `v${workflow.version}` : "Workflow")}
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
             {nodeCount} node{nodeCount !== 1 ? "s" : ""}, {edgeCount} connection{edgeCount !== 1 ? "s" : ""}

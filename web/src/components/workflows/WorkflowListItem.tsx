@@ -5,11 +5,11 @@ import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import LaunchIcon from "@mui/icons-material/Launch";
 import { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import isEqual from "lodash/isEqual";
 import { escapeHtml } from "../../utils/highlightText";
+import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -70,6 +70,14 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           }}
         />
       )}
+      <Box className="preview-container" sx={{ flexShrink: 0, mr: 1 }}>
+        <WorkflowMiniPreview
+          workflow={workflow}
+          width={60}
+          height={40}
+          label={workflow.name}
+        />
+      </Box>
       <div
         className="name"
         dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}

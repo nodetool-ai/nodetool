@@ -103,7 +103,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
   cursor = cursor || "";
   const { data, error } = await client.GET("/api/workflows/", {
     params: {
-      query: { cursor, limit, columns: "name,id,updated_at,description,tags" }
+      query: { cursor, limit, columns: "name,id,updated_at,description,tags,graph" }
     }
   });
   if (error) {
