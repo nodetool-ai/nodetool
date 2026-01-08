@@ -15,6 +15,7 @@ export interface FavoriteNode {
 
 interface FavoriteNodesStore {
   favorites: FavoriteNode[];
+  isVisible: boolean;
   addFavorite: (nodeType: string) => void;
   removeFavorite: (nodeType: string) => void;
   isFavorite: (nodeType: string) => boolean;
@@ -22,6 +23,8 @@ interface FavoriteNodesStore {
   toggleFavorite: (nodeType: string) => void;
   clearFavorites: () => void;
   reorderFavorites: (fromIndex: number, toIndex: number) => void;
+  toggleVisibility: () => void;
+  setVisibility: (visible: boolean) => void;
 }
 
 const MAX_FAVORITES = 12;
@@ -30,6 +33,7 @@ export const useFavoriteNodesStore = create<FavoriteNodesStore>()(
   persist(
     (set, get) => ({
       favorites: [],
+      isVisible: true,
 
       addFavorite: (nodeType: string) => {
         set((state) => {
@@ -81,6 +85,14 @@ export const useFavoriteNodesStore = create<FavoriteNodesStore>()(
           }
           return { favorites: updated };
         });
+      },
+
+      toggleVisibility: () => {
+        set((state) => ({ isVisible: !state.isVisible }));
+      },
+
+      setVisibility: (visible: boolean) => {
+        set({ isVisible: visible });
       }
     }),
     {

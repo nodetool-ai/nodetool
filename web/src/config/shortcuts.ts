@@ -357,6 +357,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Toggle bypass on selected nodes",
     registerCombo: true
   },
+  // Direct favorite insertion (Alt+1 through Alt+9)
+  ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
+    title: `Insert Favorite ${n}`,
+    slug: `insertFavorite${n}`,
+    keyCombo: ["Alt", `${n}`],
+    category: "editor" as const,
+    description: `Insert the ${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'} favorite node`,
+    registerCombo: true
+  })),
 
   // ---------- PANEL -------------------------------------------------------
   {

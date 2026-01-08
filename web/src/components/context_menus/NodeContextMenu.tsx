@@ -11,10 +11,14 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -25,6 +29,25 @@ const NodeContextMenu: React.FC = () => {
     conditions
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
+  const isFavorite = useFavoriteNodesStore((state) =>
+    state.isFavorite(node?.type || "")
+  );
+  const toggleFavorite = useFavoriteNodesStore((state) => state.toggleFavorite);
+  const addNotification = useNotificationStore((state) => state.addNotification);
+
+  const handleToggleFavorite = () => {
+    if (node?.type) {
+      const wasAdded = !isFavorite;
+      toggleFavorite(node.type);
+      addNotification({
+        type: "info",
+        content: wasAdded
+          ? "Node added to favorites"
+          : "Node removed from favorites",
+        timeout: 2000
+      });
+    }
+  };
 
   const menuItems = [
     conditions.isInGroup && (
@@ -58,6 +81,17 @@ const NodeContextMenu: React.FC = () => {
             <kbd>B</kbd>
           </div>
         </div>
+      }
+    />,
+    <ContextMenuItem
+      key="toggle-favorite"
+      onClick={handleToggleFavorite}
+      label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+      IconComponent={isFavorite ? <StarIcon /> : <StarBorderIcon />}
+      tooltip={
+        isFavorite
+          ? "Remove this node type from favorites"
+          : "Add this node type to favorites for quick access"
       }
     />,
     <ContextMenuItem

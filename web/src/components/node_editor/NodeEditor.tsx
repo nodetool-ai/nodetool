@@ -41,6 +41,7 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
+import FavoriteNodesToolbar from "./FavoriteNodesToolbar";
 
 declare global {
   interface Window {
@@ -135,10 +136,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <CircularProgress /> Uploading assets...
             </div>
           )}
-          <ReactFlowWrapper workflowId={workflowId} active={active} />
-          {active && (
-            <>
-              <RunAsAppFab workflowId={workflowId} />
+<ReactFlowWrapper workflowId={workflowId} active={active} />
+              {active && (
+                <>
+                  <FavoriteNodesToolbar />
+                  <RunAsAppFab workflowId={workflowId} />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
