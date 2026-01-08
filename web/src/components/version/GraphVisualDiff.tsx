@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Box, Paper, Typography, Tooltip } from "@mui/material";
+import { Box, Paper, Typography, Tooltip, useTheme } from "@mui/material";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
 
@@ -29,11 +29,13 @@ interface MiniNodeProps {
 }
 
 const MiniNode: React.FC<MiniNodeProps> = ({ node, x, y, status, width, height }) => {
+  const theme = useTheme();
+
   const colors = {
-    added: { bg: "#4caf50", border: "#2e7d32", text: "#fff" },
-    removed: { bg: "#f44336", border: "#c62828", text: "#fff" },
-    modified: { bg: "#ff9800", border: "#ef6c00", text: "#fff" },
-    unchanged: { bg: "#fff", border: "#ccc", text: "#333" }
+    added: { bg: theme.palette.success.main, border: theme.palette.success.dark, text: theme.palette.success.contrastText },
+    removed: { bg: theme.palette.error.main, border: theme.palette.error.dark, text: theme.palette.error.contrastText },
+    modified: { bg: theme.palette.warning.main, border: theme.palette.warning.dark, text: theme.palette.warning.contrastText },
+    unchanged: { bg: theme.palette.action.selected, border: theme.palette.divider, text: theme.palette.text.secondary }
   };
 
   const color = colors[status];
@@ -79,7 +81,8 @@ const MiniEdge: React.FC<{
   y2: number;
   status: "added" | "removed" | "unchanged";
 }> = ({ x1, y1, x2, y2, status }) => {
-  const color = status === "added" ? "#4caf50" : status === "removed" ? "#f44336" : "#999";
+  const theme = useTheme();
+  const color = status === "added" ? theme.palette.success.main : status === "removed" ? theme.palette.error.main : theme.palette.text.disabled;
   const strokeWidth = status !== "unchanged" ? 2 : 1;
   const opacity = status === "removed" ? 0.4 : 1;
 
@@ -104,6 +107,8 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
   width = 280,
   height = 180
 }) => {
+  const theme = useTheme();
+
   const nodePositions = useMemo(() => {
     if (!newGraph?.nodes && !oldGraph?.nodes) {
       return {};
@@ -220,7 +225,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: "grey.50"
+          bgcolor: theme.palette.action.hover,
         }}
       >
         <Typography variant="caption" color="text.secondary">
@@ -235,7 +240,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
       sx={{
         width,
         height,
-        bgcolor: "grey.50",
+        bgcolor: theme.palette.action.hover,
         overflow: "hidden",
         position: "relative"
       }}
@@ -250,7 +255,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
             refY="2"
             orient="auto"
           >
-            <polygon points="0 0, 6 2, 0 4" fill="#4caf50" />
+            <polygon points="0 0, 6 2, 0 4" fill={theme.palette.success.main} />
           </marker>
           <marker
             id="arrowhead-removed"
@@ -260,7 +265,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
             refY="2"
             orient="auto"
           >
-            <polygon points="0 0, 6 2, 0 4" fill="#f44336" />
+            <polygon points="0 0, 6 2, 0 4" fill={theme.palette.error.main} />
           </marker>
           <marker
             id="arrowhead-unchanged"
@@ -270,7 +275,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
             refY="2"
             orient="auto"
           >
-            <polygon points="0 0, 6 2, 0 4" fill="#999" />
+            <polygon points="0 0, 6 2, 0 4" fill={theme.palette.text.disabled} />
           </marker>
         </defs>
 
@@ -338,7 +343,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
       >
         {diff.addedNodes.length > 0 && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#4caf50" }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.success.main }} />
             <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
               {diff.addedNodes.length}
             </Typography>
@@ -346,7 +351,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
         )}
         {diff.removedNodes.length > 0 && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#f44336" }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.error.main }} />
             <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
               {diff.removedNodes.length}
             </Typography>
@@ -354,7 +359,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
         )}
         {diff.modifiedNodes.length > 0 && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#ff9800" }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.warning.main }} />
             <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
               {diff.modifiedNodes.length}
             </Typography>
