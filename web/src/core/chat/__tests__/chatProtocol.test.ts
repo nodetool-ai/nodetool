@@ -1,5 +1,6 @@
 import { handleChatWebSocketMessage } from "../chatProtocol";
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
@@ -28,7 +29,6 @@ describe("chatProtocol", () => {
   });
 
   it("returns tool errors for unknown client tools", async () => {
-    const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
     const send = jest.fn();
     globalWebSocketManager.send = send;
@@ -65,7 +65,6 @@ describe("chatProtocol", () => {
   });
 
   it("returns structured tool_result on tool failure", async () => {
-    const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(true);
     (FrontendToolRegistry.call as jest.Mock).mockRejectedValue(new Error("nope"));
     const send = jest.fn();
