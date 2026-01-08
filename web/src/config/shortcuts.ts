@@ -357,6 +357,30 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Toggle bypass on selected nodes",
     registerCombo: true
   },
+  {
+    title: "Select Connected (All)",
+    slug: "selectConnectedAll",
+    keyCombo: ["Shift", "C"],
+    category: "editor",
+    description: "Select all nodes connected to selected nodes (inputs and outputs)",
+    registerCombo: true
+  },
+  {
+    title: "Select Connected (Inputs)",
+    slug: "selectConnectedInputs",
+    keyCombo: ["Shift", "I"],
+    category: "editor",
+    description: "Select all nodes that connect into selected nodes",
+    registerCombo: true
+  },
+  {
+    title: "Select Connected (Outputs)",
+    keyCombo: ["Shift", "O"],
+    category: "editor",
+    description: "Select all nodes that receive output from selected nodes",
+    registerCombo: true,
+    slug: "selectConnectedOutputs"
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {
