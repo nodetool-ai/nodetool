@@ -60,7 +60,7 @@ describe("useNodeEvents", () => {
       expect(mockEvent.stopPropagation).toHaveBeenCalled();
       expect(mockOpenContextMenu).toHaveBeenCalledWith(
         "node-context-menu",
-        "",
+        "node-1",
         100,
         200,
         "node-header"
@@ -82,7 +82,7 @@ describe("useNodeEvents", () => {
 
       expect(mockOpenContextMenu).toHaveBeenCalledWith(
         "node-context-menu",
-        "",
+        "different-node",
         50,
         75,
         "node-header"
