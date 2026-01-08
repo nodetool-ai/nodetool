@@ -7,7 +7,7 @@ import React, {
   useState,
   useCallback
 } from "react";
-import { Box, Alert, Typography, useMediaQuery, IconButton, Tooltip, Popover } from "@mui/material";
+import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -15,18 +15,16 @@ import ChatView from "./ChatView";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
-import { NewChatButton } from "../thread/NewChatButton";
-import ThreadList from "../thread/ThreadList";
 import type { ThreadInfo } from "../types/thread.types";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
-import ListIcon from "@mui/icons-material/List";
+import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
-   const {
+  const {
     status,
     sendMessage,
     progress,
@@ -60,7 +58,7 @@ const GlobalChat: React.FC = () => {
   useEffect(() => {
     const unsubscribe = globalWebSocketManager.subscribeEvent(
       "stateChange",
-      (state: string) => {
+      (_state: string) => {
         setConnectionState(globalWebSocketManager.getConnectionState());
       }
     );
@@ -84,12 +82,8 @@ const GlobalChat: React.FC = () => {
     (s) => s.setSelectedCollections
   );
   const theme = useTheme();
-  const [_drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Sidebar open by default
   const [alertDismissed, setAlertDismissed] = useState(false);
-
-  // Thread list popover state
-  const [threadListAnchorEl, setThreadListAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const isThreadListOpen = Boolean(threadListAnchorEl);
 
   // Reset dismissed state when status or error changes
   useEffect(() => {
@@ -107,7 +101,7 @@ const GlobalChat: React.FC = () => {
   // Get messages from store
   const messages = getCurrentMessagesSync();
   const taskUpdateForDisplay = useMemo(() => {
-    if (!currentThreadId) {return null;}
+    if (!currentThreadId) { return null; }
     if (
       currentTaskUpdate &&
       currentTaskUpdateThreadId === currentThreadId
@@ -205,14 +199,9 @@ const GlobalChat: React.FC = () => {
   // Remove extra reconnect loop; rely on WebSocketManager's exponential backoff and
   // the store's network/visibility listeners to reconnect. This avoids double reconnects.
 
-  // Close the drawer automatically when switching to desktop view
-  useEffect(() => {
-    setDrawerOpen(false);
-  }, []);
-
   // Handle mobile keyboard behavior and maintain scroll position
   useEffect(() => {
-    if (!isMobile) {return;}
+    if (!isMobile) { return; }
 
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
@@ -254,35 +243,24 @@ const GlobalChat: React.FC = () => {
 
   // Map status to ChatView compatible status
   const getChatViewStatus = () => {
-    if (status === "stopping") {return "loading";}
+    if (status === "stopping") { return "loading"; }
     return status;
   };
 
-  const handleNewChat = async () => {
+  const handleNewChat = useCallback(async () => {
     try {
       const newThreadId = await createNewThread();
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
-      setThreadListAnchorEl(null);
     } catch (error) {
       console.error("Failed to create new thread:", error);
     }
-  };
-
-  // Thread list handlers
-  const handleOpenThreadList = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setThreadListAnchorEl(event.currentTarget);
-  }, []);
-
-  const handleCloseThreadList = useCallback(() => {
-    setThreadListAnchorEl(null);
-  }, []);
+  }, [createNewThread, switchThread, navigate]);
 
   const handleSelectThread = useCallback(
     (id: string) => {
       switchThread(id);
       navigate(`/chat/${id}`);
-      setThreadListAnchorEl(null);
     },
     [switchThread, navigate]
   );
@@ -326,8 +304,8 @@ const GlobalChat: React.FC = () => {
             ? firstUserMessage.content
             : Array.isArray(firstUserMessage.content) &&
               firstUserMessage.content[0]?.type === "text"
-            ? (firstUserMessage.content[0] as any).text
-            : "[Media message]";
+              ? (firstUserMessage.content[0] as any).text
+              : "[Media message]";
         return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
       }
 
@@ -368,7 +346,7 @@ const GlobalChat: React.FC = () => {
         flex: 1,
         overflow: "hidden",
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",  // Changed from column to row for sidebar layout
         minHeight: 0,
         maxHeight: "100%",
         position: "relative"
@@ -429,13 +407,13 @@ const GlobalChat: React.FC = () => {
         paddingLeft: isMobile
           ? 0
           : leftPanel.isVisible
-          ? `${leftPanel.panelSize}px`
-          : `${leftPanel.minWidth}px`,
+            ? `${leftPanel.panelSize}px`
+            : `${leftPanel.minWidth}px`,
         paddingRight: isMobile
           ? 0
           : rightPanel.isVisible
-          ? `${rightPanel.panelSize}px`
-          : 0,
+            ? `${rightPanel.panelSize}px`
+            : 0,
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",
@@ -456,8 +434,8 @@ const GlobalChat: React.FC = () => {
                 connectionState.isConnecting
                   ? "info"
                   : !connectionState.isConnected
-                  ? "warning"
-                  : "error"
+                    ? "warning"
+                    : "error"
               }
               onClose={() => setAlertDismissed(true)}
               sx={{
@@ -474,88 +452,75 @@ const GlobalChat: React.FC = () => {
               {connectionState.isConnecting
                 ? statusMessage || "Connecting to chat service..."
                 : !connectionState.isConnected
-                ? "Connecting to chat service..."
-                : error}
+                  ? "Connecting to chat service..."
+                  : error}
             </Alert>
           )}
 
-        {/* Controls row */}
         <Box
+          className="chat-container"
           sx={{
+            position: "relative",
+            height: "100%",
+            marginTop: "50px", // Offset for AppHeader
+            minHeight: 0,
+            flex: 1,
             display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: 0.5,
-            px: 1,
-            pt: 1,
-            mt: 10
+            flexDirection: "row",
+            overflow: "hidden"
           }}
         >
-          <NewChatButton onNewThread={handleNewChat} />
-          <Tooltip title="Chat History">
-            <IconButton onClick={handleOpenThreadList} size="small">
-              <ListIcon />
-            </IconButton>
-          </Tooltip>
-          <Popover
-            open={isThreadListOpen}
-            anchorEl={threadListAnchorEl}
-            onClose={handleCloseThreadList}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "right"
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "right"
-            }}
-            slotProps={{
-              paper: {
-                sx: {
-                  width: 320,
-                  maxHeight: "70vh",
-                  borderRadius: 2,
-                  overflow: "hidden"
-                }
-              }
+          {/* Chat Sidebar */}
+          <ChatSidebar
+            threads={threadsWithMessages}
+            currentThreadId={currentThreadId}
+            onNewChat={handleNewChat}
+            onSelectThread={handleSelectThread}
+            onDeleteThread={handleDeleteThread}
+            getThreadPreview={getThreadPreview}
+            isOpen={sidebarOpen}
+            onOpenChange={setSidebarOpen}
+          />
+
+          {/* Chat View - adjusts based on sidebar state */}
+          <Box
+            sx={{
+              flex: 1,
+              height: "100%",
+              marginLeft: sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
+              transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              minHeight: 0,
+              overflow: "hidden"
             }}
           >
-            <ThreadList
-              threads={threadsWithMessages}
-              currentThreadId={currentThreadId}
-              onNewThread={handleNewChat}
-              onSelectThread={handleSelectThread}
-              onDeleteThread={handleDeleteThread}
-              getThreadPreview={getThreadPreview}
+            <ChatView
+              status={getChatViewStatus()}
+              messages={messages}
+              sendMessage={sendMessage}
+              progress={progress.current}
+              total={progress.total}
+              progressMessage={statusMessage}
+              runningToolCallId={runningToolCallId}
+              runningToolMessage={runningToolMessage}
+              model={selectedModel}
+              selectedTools={selectedTools}
+              onToolsChange={setSelectedTools}
+              selectedCollections={selectedCollections}
+              onCollectionsChange={setSelectedCollections}
+              onModelChange={setSelectedModel}
+              onStop={stopGeneration}
+              onNewChat={handleNewChat}
+              agentMode={agentMode}
+              onAgentModeToggle={setAgentMode}
+              currentPlanningUpdate={currentPlanningUpdate}
+              currentTaskUpdate={taskUpdateForDisplay}
+              currentLogUpdate={currentLogUpdate}
+              workflowId={workflowId}
             />
-          </Popover>
-        </Box>
-
-        <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
-          <ChatView
-            status={getChatViewStatus()}
-            messages={messages}
-            sendMessage={sendMessage}
-            progress={progress.current}
-            total={progress.total}
-            progressMessage={statusMessage}
-            runningToolCallId={runningToolCallId}
-            runningToolMessage={runningToolMessage}
-            model={selectedModel}
-            selectedTools={selectedTools}
-            onToolsChange={setSelectedTools}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={setSelectedCollections}
-            onModelChange={setSelectedModel}
-            onStop={stopGeneration}
-            onNewChat={handleNewChat}
-            agentMode={agentMode}
-            onAgentModeToggle={setAgentMode}
-            currentPlanningUpdate={currentPlanningUpdate}
-            currentTaskUpdate={taskUpdateForDisplay}
-            currentLogUpdate={currentLogUpdate}
-            workflowId={workflowId}
-          />
+          </Box>
         </Box>
       </Box>
     </Box>
