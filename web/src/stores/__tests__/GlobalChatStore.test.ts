@@ -64,6 +64,7 @@ import {
 } from "../ApiTypes";
 import log from "loglevel";
 import { supabase } from "../../lib/supabaseClient";
+import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 
 let uuidCounter = 0;
 jest.mock("../uuidv4", () => ({ uuidv4: () => `id-${uuidCounter++}` }));
