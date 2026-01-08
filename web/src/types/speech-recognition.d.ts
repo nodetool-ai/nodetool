@@ -3,13 +3,6 @@
  * Used for voice command functionality
  */
 
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
-
 interface SpeechRecognitionEvent extends Event {
   resultIndex: number;
   results: SpeechRecognitionResultList;
@@ -75,4 +68,7 @@ declare var SpeechRecognition: {
   prototype: SpeechRecognition;
 };
 
-export {};
+interface Window {
+  SpeechRecognition: typeof SpeechRecognition;
+  webkitSpeechRecognition: typeof SpeechRecognition;
+}

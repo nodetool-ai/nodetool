@@ -37,6 +37,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import MicIcon from "@mui/icons-material/Mic";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
@@ -44,6 +45,8 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { Workflow } from "../../stores/ApiTypes";
 import { cn } from "../editor_ui/editorUtils";
+import { Dialog, DialogContent } from "@mui/material";
+import { VoiceCommandPanel } from "../chat/composer/VoiceCommandPanel";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -264,6 +267,7 @@ const FloatingToolBar: React.FC<{
     useState<null | HTMLElement>(null);
   const [advancedMenuAnchor, setAdvancedMenuAnchor] =
     useState<null | HTMLElement>(null);
+  const [voicePanelOpen, setVoicePanelOpen] = useState(false);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
     (state) => ({
@@ -468,6 +472,14 @@ const FloatingToolBar: React.FC<{
     toggleMiniMap();
   }, [toggleMiniMap]);
 
+  const handleOpenVoicePanel = useCallback(() => {
+    setVoicePanelOpen(true);
+  }, []);
+
+  const handleCloseVoicePanel = useCallback(() => {
+    setVoicePanelOpen(false);
+  }, []);
+
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -545,6 +557,13 @@ const FloatingToolBar: React.FC<{
           variant="neutral"
           onClick={handleOpenActionsMenu}
           aria-label="More actions"
+        />
+        <ToolbarButton
+          icon={<MicIcon />}
+          tooltip="Voice Commands"
+          variant="neutral"
+          onClick={handleOpenVoicePanel}
+          aria-label="Open voice command panel"
         />
 
         {(isPaused || isSuspended) && (
@@ -684,6 +703,25 @@ const FloatingToolBar: React.FC<{
       </Menu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />
+
+      <Dialog
+        open={voicePanelOpen}
+        onClose={handleCloseVoicePanel}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: theme.vars.palette.grey[900],
+            backgroundImage: "none",
+            borderRadius: 3,
+            border: `1px solid ${theme.vars.palette.grey[700]}`
+          }
+        }}
+      >
+        <DialogContent sx={{ p: 0 }}>
+          <VoiceCommandPanel />
+        </DialogContent>
+      </Dialog>
     </>
   );
 });

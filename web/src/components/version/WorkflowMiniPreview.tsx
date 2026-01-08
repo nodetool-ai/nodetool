@@ -31,14 +31,14 @@ const MIN_X = 20;
 const MIN_Y = 20;
 
 const getNodeColor = (nodeType: string): string => {
-  if (nodeType.includes("input")) return "#4caf50";
-  if (nodeType.includes("output")) return "#2196f3";
-  if (nodeType.includes("llm") || nodeType.includes("model")) return "#ff9800";
-  if (nodeType.includes("image")) return "#9c27b0";
-  if (nodeType.includes("text")) return "#00bcd4";
-  if (nodeType.includes("audio")) return "#e91e63";
-  if (nodeType.includes("condition") || nodeType.includes("if")) return "#f44336";
-  if (nodeType.includes("group")) return "#607d8b";
+  if (nodeType.includes("input")) {return "#4caf50";}
+  if (nodeType.includes("output")) {return "#2196f3";}
+  if (nodeType.includes("llm") || nodeType.includes("model")) {return "#ff9800";}
+  if (nodeType.includes("image")) {return "#9c27b0";}
+  if (nodeType.includes("text")) {return "#00bcd4";}
+  if (nodeType.includes("audio")) {return "#e91e63";}
+  if (nodeType.includes("condition") || nodeType.includes("if")) {return "#f44336";}
+  if (nodeType.includes("group")) {return "#607d8b";}
   return "#9e9e9e";
 };
 
@@ -56,7 +56,7 @@ const calculateNodePositions = (graph: Graph): PreviewNode[] => {
   const nodes = graph.nodes || [];
   const edges = graph.edges || [];
 
-  if (nodes.length === 0) return [];
+  if (nodes.length === 0) {return [];}
 
   const nodeMap = new Map<string, PreviewNode>();
   const visited = new Set<string>();
@@ -74,11 +74,11 @@ const calculateNodePositions = (graph: Graph): PreviewNode[] => {
 
   while (queue.length > 0) {
     const currentId = queue.shift();
-    if (!currentId || visited.has(currentId)) continue;
+    if (!currentId || visited.has(currentId)) {continue;}
     visited.add(currentId);
 
     const currentPos = positions.get(currentId);
-    if (!currentPos) continue;
+    if (!currentPos) {continue;}
 
     const outgoingEdges = edges.filter((e) => e.source === currentId);
 
