@@ -12,6 +12,7 @@ import {
   NodeMetadata
 } from "../../stores/ApiTypes";
 import { NewChatButton } from "../chat/thread/NewChatButton";
+import ExplainWorkflowButton from "../chat/composer/ExplainWorkflowButton";
 import {
   IconButton,
   Tooltip,
@@ -310,7 +311,7 @@ const WorkflowAssistantChat: React.FC = () => {
           typeof firstUserMessage.content === "string"
             ? firstUserMessage.content
             : Array.isArray(firstUserMessage.content) &&
-                firstUserMessage.content[0]?.type === "text"
+              firstUserMessage.content[0]?.type === "text"
               ? (firstUserMessage.content[0] as any).text
               : "[Media message]";
         return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
@@ -562,6 +563,7 @@ const WorkflowAssistantChat: React.FC = () => {
             />
           </Tooltip>
         </Box>
+        {isHelpMode && <ExplainWorkflowButton />}
         <NewChatButton onNewThread={handleNewChat} />
         <Tooltip title="Chat History">
           <IconButton onClick={handleOpenThreadList} size="small">
@@ -650,9 +652,9 @@ const WorkflowAssistantChat: React.FC = () => {
         graph={
           isHelpMode
             ? {
-                nodes: nodes.map(reactFlowNodeToGraphNode),
-                edges: edges.map(reactFlowEdgeToGraphEdge)
-              }
+              nodes: nodes.map(reactFlowNodeToGraphNode),
+              edges: edges.map(reactFlowEdgeToGraphEdge)
+            }
             : undefined
         }
       />
