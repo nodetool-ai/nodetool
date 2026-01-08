@@ -33,14 +33,15 @@ jest.mock("../../tools/frontendTools", () => ({
   }
 }));
 
+import { FrontendToolRegistry } from "../../tools/frontendTools";
+
 describe("GlobalWebSocketManager", () => {
   describe("sendToolsManifest", () => {
     it("sends tools manifest when connection opens", () => {
       // This test verifies the sendToolsManifest method is called
       // by checking that FrontendToolRegistry.getManifest is called
       // when the connection is established
-      const { FrontendToolRegistry } = require("../../tools/frontendTools");
-      
+
       // The manifest should be available to send
       const manifest = FrontendToolRegistry.getManifest();
       expect(manifest).toHaveLength(1);

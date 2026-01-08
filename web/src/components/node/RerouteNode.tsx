@@ -44,9 +44,6 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
   const theme = useTheme();
   const { selected, id, type } = props;
 
-  // Get metadata for this node type
-  const metadata = useMetadataStore((state) => state.getMetadata(type));
-
   const { edges, findNode } = useNodes((state) => ({
     edges: state.edges,
     findNode: state.findNode

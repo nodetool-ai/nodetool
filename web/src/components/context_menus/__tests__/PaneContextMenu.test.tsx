@@ -1,6 +1,7 @@
 import { act } from "@testing-library/react";
 import { useFavoriteNodesStore } from "../../../stores/FavoriteNodesStore";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { NodeMetadata } from "../../../stores/ApiTypes";
 
 // Test the integration of favorites with context menu logic
 describe("PaneContextMenu favorites integration", () => {
@@ -13,19 +14,29 @@ describe("PaneContextMenu favorites integration", () => {
     localStorage.removeItem("nodetool-favorite-nodes");
   });
 
+  const createTestMetadata = (title: string, nodeType: string, namespace: string): NodeMetadata => ({
+    title,
+    node_type: nodeType,
+    namespace,
+    description: "",
+    the_model_info: {},
+    recommended_models: [],
+    basic_fields: [],
+    properties: [],
+    layout: "default",
+    outputs: [],
+    is_dynamic: false,
+    is_streaming_output: false,
+    expose_as_tool: false,
+    supports_dynamic_outputs: false,
+  });
+
   it("favorites store provides correct data for context menu", () => {
     // Setup metadata for the favorite node
     act(() => {
       useMetadataStore.setState({
         metadata: {
-          "nodetool.test.TestNode": {
-            title: "Test Node",
-            node_type: "nodetool.test.TestNode",
-            namespace: "nodetool.test",
-            properties: [],
-            layout: "default",
-            outputs: []
-          }
+          "nodetool.test.TestNode": createTestMetadata("Test Node", "nodetool.test.TestNode", "nodetool.test")
         }
       });
       useFavoriteNodesStore.getState().addFavorite("nodetool.test.TestNode");
@@ -52,22 +63,8 @@ describe("PaneContextMenu favorites integration", () => {
     act(() => {
       useMetadataStore.setState({
         metadata: {
-          "nodetool.test.Node1": {
-            title: "Node One",
-            node_type: "nodetool.test.Node1",
-            namespace: "nodetool.test",
-            properties: [],
-            layout: "default",
-            outputs: []
-          },
-          "nodetool.test.Node2": {
-            title: "Node Two",
-            node_type: "nodetool.test.Node2",
-            namespace: "nodetool.test",
-            properties: [],
-            layout: "default",
-            outputs: []
-          }
+          "nodetool.test.Node1": createTestMetadata("Node One", "nodetool.test.Node1", "nodetool.test"),
+          "nodetool.test.Node2": createTestMetadata("Node Two", "nodetool.test.Node2", "nodetool.test")
         }
       });
       useFavoriteNodesStore.getState().addFavorite("nodetool.test.Node1");
@@ -86,14 +83,7 @@ describe("PaneContextMenu favorites integration", () => {
     act(() => {
       useMetadataStore.setState({
         metadata: {
-          "nodetool.test.TestNode": {
-            title: "Custom Title",
-            node_type: "nodetool.test.TestNode",
-            namespace: "nodetool.test",
-            properties: [],
-            layout: "default",
-            outputs: []
-          }
+          "nodetool.test.TestNode": createTestMetadata("Custom Title", "nodetool.test.TestNode", "nodetool.test")
         }
       });
     });

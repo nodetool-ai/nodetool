@@ -149,7 +149,6 @@ const DashboardButton = memo(function DashboardButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
   const handleClick = useCallback(() => {
     navigate("/dashboard");
   }, [navigate]);
@@ -179,7 +178,6 @@ const TemplatesButton = memo(function TemplatesButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const handleClick = useCallback(() => {
     navigate("/templates");
@@ -210,7 +208,6 @@ const ChatButton = memo(function ChatButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
   const { lastUsedThreadId, createNewThread, switchThread } =
     useGlobalChatStore();
 
@@ -224,7 +221,7 @@ const ChatButton = memo(function ChatButton({
         switchThread(newThreadId);
         navigate(`/chat/${newThreadId}`);
       }
-    } catch (e) {
+    } catch (_) {
       navigate(`/chat`);
     }
   }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
@@ -298,7 +295,6 @@ const AssetsButton = memo(function AssetsButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const handleClick = useCallback(() => {
     navigate("/assets");
@@ -325,7 +321,6 @@ const CollectionsButton = memo(function CollectionsButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const handleClick = useCallback(() => {
     navigate("/collections");

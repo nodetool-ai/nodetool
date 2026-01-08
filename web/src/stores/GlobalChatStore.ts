@@ -599,7 +599,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
           // Convert array to Record keyed by thread ID
           const threadsRecord: Record<string, Thread> = {};
-          data.threads.forEach((thread) => {
+          (data.threads || []).forEach((thread) => {
             threadsRecord[thread.id] = thread;
           });
 

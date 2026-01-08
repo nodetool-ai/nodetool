@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -28,7 +28,6 @@ import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
 const StandaloneMiniApp: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const { workflowId } = useParams<{ workflowId?: string }>();
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
@@ -85,16 +84,10 @@ const StandaloneMiniApp: React.FC = () => {
     return { nodes, edges };
   }, [workflow]);
 
-  useEffect(() => {
-    setSubmitError(null);
-  }, [workflowId]);
-
   const handleSubmit = useCallback(async () => {
     if (!workflow) {
       return;
     }
-
-    setSubmitError(null);
 
     try {
       resetWorkflowState(workflow.id);
@@ -130,9 +123,6 @@ const StandaloneMiniApp: React.FC = () => {
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
       console.error("Failed to run workflow", error);
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to run workflow"
-      );
     }
   }, [
     inputDefinitions,
@@ -227,7 +217,6 @@ const StandaloneMiniApp: React.FC = () => {
                 onInputChange={updateInputValue}
                 isSubmitDisabled={isSubmitDisabled}
                 onSubmit={handleSubmit}
-                onError={setSubmitError}
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
                 {statusMessage && (

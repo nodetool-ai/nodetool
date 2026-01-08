@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -33,7 +33,6 @@ const MiniAppPage: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { workflowId } = useParams<{ workflowId?: string }>();
   const navigate = useNavigate();
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
     fetchWorkflow: state.fetchWorkflow
@@ -61,7 +60,6 @@ const MiniAppPage: React.FC = () => {
     runWorkflow,
     runnerState,
     statusMessage,
-    notifications,
     results,
     progress,
     resetWorkflowState
@@ -90,16 +88,10 @@ const MiniAppPage: React.FC = () => {
     return { nodes, edges };
   }, [workflow]);
 
-  useEffect(() => {
-    setSubmitError(null);
-  }, [workflowId]);
-
   const handleSubmit = useCallback(async () => {
     if (!workflow) {
       return;
     }
-
-    setSubmitError(null);
 
     try {
       resetWorkflowState(workflow.id);
@@ -135,9 +127,6 @@ const MiniAppPage: React.FC = () => {
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
       console.error("Failed to run workflow", error);
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to run workflow"
-      );
     }
   }, [
     inputDefinitions,
@@ -237,7 +226,6 @@ const MiniAppPage: React.FC = () => {
                 onInputChange={updateInputValue}
                 isSubmitDisabled={isSubmitDisabled}
                 onSubmit={handleSubmit}
-                onError={setSubmitError}
               />
               <Box
                 display="flex"

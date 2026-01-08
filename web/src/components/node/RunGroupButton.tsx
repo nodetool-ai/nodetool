@@ -6,7 +6,7 @@ import { IconButton, CircularProgress, Tooltip } from "@mui/material";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
-const styles = (theme: Theme, isRunning: boolean) =>
+const styles = (theme: Theme) =>
   css({
     "&.run-button": {
       width: 28,
@@ -73,7 +73,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
       <IconButton
         size="small"
         tabIndex={-1}
-        css={styles(theme, isRunning)}
+        css={styles(theme)}
         className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
         onClick={() => !isWorkflowRunning && onClick()}
       >
