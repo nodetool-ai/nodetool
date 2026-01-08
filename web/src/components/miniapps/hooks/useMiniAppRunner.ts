@@ -17,6 +17,7 @@ import {
 } from "../../../stores/WorkflowRunner";
 import { MiniAppResult, RunnerMessage } from "../types";
 import { useMiniAppsStore } from "../../../stores/MiniAppsStore";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
 type WorkflowRunnerState = ReturnType<WorkflowRunnerStore["getState"]>;
 type RunWorkflowFn = WorkflowRunnerState["run"];
@@ -61,9 +62,9 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       if (messageType === "output_update") {
         const update = typedData as unknown as OutputUpdate;
         const assetTypes = ["image", "audio", "video", "document"];
-        
+
         let value: unknown = update.value;
-        
+
         // Handle asset types with binary data conversion
         if (assetTypes.includes(update.output_type)) {
           if (typeof update.value === "string") {
@@ -84,7 +85,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
             value = (update.value as { data: Uint8Array }).data;
           }
         }
-        
+
         // Generate unique ID for each streaming update to allow multiple items
         const timestamp = Date.now();
         const random = Math.random().toString(36).substring(2, 9);
@@ -104,9 +105,9 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
       if (messageType === "preview_update") {
         const update = typedData as unknown as PreviewUpdate;
-        
+
         let value: unknown = update.value;
-        
+
         // Handle binary data conversion for preview images
         if (typeof update.value === "string") {
           // Convert base64 string to Uint8Array
@@ -125,7 +126,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
           // Extract Uint8Array from object with data property
           value = (update.value as { data: Uint8Array }).data;
         }
-        
+
         // Generate unique ID for each streaming preview update to allow multiple items
         const timestamp = Date.now();
         const random = Math.random().toString(36).substring(2, 9);
@@ -191,10 +192,28 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
     runnerStore.getState().setMessageHandler(handler);
 
+    const unsubscribe = globalWebSocketManager.subscribe(
+      workflowKey,
+      (message: any) => {
+        const currentWorkflow =
+          runnerStore.getState().workflow || selectedWorkflow;
+        if (currentWorkflow) {
+          handler(currentWorkflow, message);
+        }
+      }
+    );
+
     return () => {
+      unsubscribe();
       runnerStore.getState().setMessageHandler(originalHandler);
     };
-  }, [runnerStore, selectedWorkflow, setProgressState, upsertResult]);
+  }, [
+    runnerStore,
+    selectedWorkflow,
+    setProgressState,
+    upsertResult,
+    workflowKey
+  ]);
 
   const runWorkflow = useCallback<RunWorkflowFn>(
     async (params, workflow, nodes, edges) => {
