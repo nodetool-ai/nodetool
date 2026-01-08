@@ -5,3 +5,6 @@ export { FilePreview } from "./FilePreview";
 export { default as ToolsSelector } from "./ToolsSelector";
 export { default as CollectionsSelector } from "./CollectionsSelector";
 export { default as NodeToolsSelector } from "./NodeToolsSelector";
+export { VoiceCommandButton } from "./VoiceCommandButton";
+export { VoiceCommandPanel } from "./VoiceCommandPanel";
+export { VoiceCommandHelpDialog } from "./VoiceCommandHelpDialog";

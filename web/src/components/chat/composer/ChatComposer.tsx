@@ -10,6 +10,7 @@ import { useKeyPressed } from "../../../stores/KeyPressedStore";
 import { FilePreview } from "./FilePreview";
 import { MessageInput } from "./MessageInput";
 import { ActionButtons } from "./ActionButtons";
+import { VoiceCommandButton } from "./VoiceCommandButton";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { createStyles } from "./ChatComposer.styles";
@@ -62,6 +63,11 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     []
   );
 
+  const handleVoiceCommandTranscript = useCallback((result: any) => {
+    setPrompt(result.transcript);
+    textareaRef.current?.focus();
+  }, []);
+
   const handleSend = useCallback(() => {
     if (!isLoading && !isStreaming && prompt.length > 0) {
       const content: MessageContent[] = [
@@ -76,8 +82,6 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
       onSendMessage([...content, ...fileContents], prompt, agentMode);
       setPrompt("");
       clearFiles();
-      // Keep focus in the textarea after sending
-      // Use rAF to ensure focus after DOM updates
       requestAnimationFrame(() => {
         textareaRef.current?.focus();
       });
@@ -88,10 +92,8 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter") {
         if (shiftKeyPressed) {
-          // Allow default behavior (newline insertion)
           return;
         }
-        // For Enter without Shift (and without Meta/Alt), send the message
         if (!metaKeyPressed && !altKeyPressed) {
           e.preventDefault();
           handleSend();
@@ -102,7 +104,6 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   );
 
   const isDisabled = disabled || isLoading || isStreaming;
-  // Input is never disabled - messages are always queued by globalWebSocketManager
   const isInputDisabled = false;
 
   return (
@@ -132,6 +133,13 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             onKeyDown={handleKeyDown}
             disabled={isInputDisabled}
             placeholder="Type your message..."
+            voiceButton={
+              <VoiceCommandButton
+                onCommandProcessed={handleVoiceCommandTranscript}
+                size="small"
+                showTranscript={true}
+              />
+            }
           />
           <ActionButtons
             isLoading={isLoading}
