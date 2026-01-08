@@ -133,6 +133,12 @@ The hooks directory contains reusable React hooks organized by functionality. Ho
   - Logs component re-render causes
   - Helps identify performance issues
 
+- **`useClickOutside.ts`**: Click outside detection for UI components
+  - Detects clicks/touches outside specified elements
+  - Useful for modals, dropdowns, tooltips, context menus
+  - Supports single element (`useClickOutside`) and multiple elements (`useClickOutsideMultiple`)
+  - Configurable enabled state for conditional activation
+
 ### 5. Browser & Hardware Hooks
 
 **Location**: `/browser` subdirectory
@@ -447,7 +453,7 @@ const handleSend = useCallback(async (text: string) => {
 5. `useAssetUpload` - File uploads
 
 ### Hook Categories by Use Case
-- **Building UI**: `useNumberInput`, `useDelayedHover`, `useRenderLogger`
+- **Building UI**: `useNumberInput`, `useDelayedHover`, `useRenderLogger`, `useClickOutside`
 - **Node Operations**: `useCreateNode`, `useAlignNodes`, `useDuplicate`, `useFocusPan`
 - **Data Fetching**: `useHuggingFaceModels`, `useAssets`, `useWorkflow`
 - **File Handling**: `useFileDrop`, `useAssetUpload`, `useDropHandler`
