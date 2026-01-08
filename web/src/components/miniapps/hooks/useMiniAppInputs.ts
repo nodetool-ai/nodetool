@@ -3,8 +3,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { Node, Workflow } from "../../../stores/ApiTypes";
 import {
   InputNodeData,
-  MiniAppInputDefinition,
-  MiniAppInputValues
+  MiniAppInputDefinition
 } from "../types";
 import { getInputKind } from "../utils";
 import { useMiniAppsStore } from "../../../stores/MiniAppsStore";

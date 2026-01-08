@@ -134,7 +134,6 @@ const resolveInputValue = (
 };
 
 const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
-  workflow,
   inputDefinitions,
   inputValues,
   onInputChange,
