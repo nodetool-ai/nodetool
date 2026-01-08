@@ -31,6 +31,7 @@ import {
 } from "@mui/icons-material";
 import { VersionListItem } from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
+import { GraphVisualDiff } from "./GraphVisualDiff";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
@@ -374,24 +375,41 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       {diff && selectedVersion && compareVersion && (
         <Box
           sx={{
-            p: 1,
-            maxHeight: 200,
-            overflow: "auto",
             borderBottom: 1,
             borderColor: "divider"
           }}
         >
-          <VersionDiff
-            diff={diff}
-            oldVersionNumber={Math.min(
-              selectedVersion.version,
-              compareVersion.version
-            )}
-            newVersionNumber={Math.max(
-              selectedVersion.version,
-              compareVersion.version
-            )}
-          />
+          <Box sx={{ p: 1, bgcolor: "rgba(2, 136, 209, 0.05)" }}>
+            <Typography variant="caption" color="text.secondary" fontWeight="medium">
+              Visual Preview
+            </Typography>
+            <GraphVisualDiff
+              diff={diff}
+              oldGraph={compareVersion.version < selectedVersion.version ? compareVersion.graph : selectedVersion.graph}
+              newGraph={compareVersion.version < selectedVersion.version ? selectedVersion.graph : compareVersion.graph}
+              width={280}
+              height={140}
+            />
+          </Box>
+          <Box
+            sx={{
+              p: 1,
+              maxHeight: 200,
+              overflow: "auto"
+            }}
+          >
+            <VersionDiff
+              diff={diff}
+              oldVersionNumber={Math.min(
+                selectedVersion.version,
+                compareVersion.version
+              )}
+              newVersionNumber={Math.max(
+                selectedVersion.version,
+                compareVersion.version
+              )}
+            />
+          </Box>
         </Box>
       )}
 

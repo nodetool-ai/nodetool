@@ -1,5 +1,6 @@
 import { handleChatWebSocketMessage } from "../chatProtocol";
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
@@ -10,7 +11,8 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
 
 jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {
-    send: jest.fn().mockResolvedValue(undefined)
+    send: jest.fn().mockResolvedValue(undefined),
+    ensureConnection: jest.fn().mockResolvedValue(undefined)
   }
 }));
 
@@ -31,12 +33,11 @@ describe("chatProtocol", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
-    const send = jest.fn();
-    globalWebSocketManager.send = send;
     const set = jest.fn();
     const get = () =>
       ({
         status: "connected",
+        wsManager: { send: jest.fn() },
         frontendToolState: {},
         currentThreadId: null,
         threads: {},
@@ -57,7 +58,7 @@ describe("chatProtocol", () => {
       get
     );
 
-    expect(send).toHaveBeenCalledWith(
+    expect(globalWebSocketManager.send).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "tool_result",
         ok: false
@@ -70,12 +71,12 @@ describe("chatProtocol", () => {
     const { globalWebSocketManager } = require("../../../lib/websocket/GlobalWebSocketManager");
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(true);
     (FrontendToolRegistry.call as jest.Mock).mockRejectedValue(new Error("nope"));
-    const send = jest.fn();
-    globalWebSocketManager.send = send;
+
     const set = jest.fn();
     const get = () =>
       ({
         status: "connected",
+        wsManager: { send: jest.fn() },
         workflowId: null,
         threadWorkflowId: {},
         frontendToolState: { fetchWorkflow: jest.fn().mockResolvedValue(undefined) },
@@ -98,7 +99,7 @@ describe("chatProtocol", () => {
       get
     );
 
-    expect(send).toHaveBeenCalledWith(
+    expect(globalWebSocketManager.send).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "tool_result",
         tool_call_id: "tc_fail",
