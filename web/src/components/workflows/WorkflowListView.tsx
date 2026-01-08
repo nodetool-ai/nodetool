@@ -35,11 +35,11 @@ const listStyles = (theme: Theme) =>
       overflow: "hidden auto"
     },
     ".workflow": {
-      height: "32px",
-      padding: "0.35em .5em 0.35em 0.75em",
+      height: "100%",
+      padding: "4px 8px 4px 12px",
       display: "flex",
       flexDirection: "row",
-      alignItems: "flex-start",
+      alignItems: "center",
       margin: "0",
       width: "100%",
       cursor: "pointer",
@@ -49,7 +49,7 @@ const listStyles = (theme: Theme) =>
       borderRadius: 6,
       transition: "background 0.18s ease, border-color 0.2s ease",
       "& .MuiCheckbox-root": {
-        margin: "0 0.75em 0.35em 0",
+        margin: "0 0.75em 0 0",
         padding: 0
       },
       position: "relative"
@@ -71,6 +71,12 @@ const listStyles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       objectFit: "cover"
+    },
+    ".preview-container": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      justifyContent: "center"
     },
     ".name": {
       fontSize: theme.fontSizeSmall,
@@ -113,6 +119,7 @@ const listStyles = (theme: Theme) =>
     },
     ".actions": {
       position: "absolute",
+      top: "8px",
       right: "0.35em",
       display: "flex",
       alignItems: "center",
@@ -150,7 +157,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     (state) => state.currentWorkflowId
   );
 
-  const ITEM_HEIGHT = 32;
+  const ITEM_HEIGHT = 150;
   const CONTAINER_HEIGHT = window.innerHeight - 210;
 
   const Row = ({

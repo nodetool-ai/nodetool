@@ -14,18 +14,7 @@ jest.mock("../OutputRenderer", () => ({
   )
 }));
 
-// Mock MUI Button to avoid theme complexity with MUI v7 properties
-jest.mock("@mui/material", () => ({
-  ...jest.requireActual("@mui/material"),
-  Button: ({ children, onClick, startIcon, sx, ...props }: any) => (
-    <button onClick={onClick} data-testid="show-inputs-button" {...props}>
-      {startIcon && <span className="icon">{startIcon}</span>}
-      {children}
-    </button>
-  )
-}));
-
-const renderWithTheme = (component: React.ReactNode) => {
+const renderWithProviders = (component: React.ReactElement) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
@@ -38,7 +27,7 @@ describe("ResultOverlay", () => {
 
   it("renders the result using OutputRenderer", () => {
     const result = { type: "image", url: "test.png" };
-    renderWithTheme(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
+    renderWithProviders(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
 
     const outputRenderer = screen.getByTestId("output-renderer");
     expect(outputRenderer).toBeInTheDocument();
@@ -47,7 +36,7 @@ describe("ResultOverlay", () => {
 
   it("displays a button to show inputs", () => {
     const result = { data: "test" };
-    renderWithTheme(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
+    renderWithProviders(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
 
     const button = screen.getByRole("button", { name: /show inputs/i });
     expect(button).toBeInTheDocument();
@@ -56,7 +45,7 @@ describe("ResultOverlay", () => {
   it("calls onShowInputs when the button is clicked", async () => {
     const user = userEvent.setup();
     const result = { data: "test" };
-    renderWithTheme(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
+    renderWithProviders(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
 
     const button = screen.getByRole("button", { name: /show inputs/i });
     await user.click(button);
@@ -64,22 +53,18 @@ describe("ResultOverlay", () => {
     expect(mockOnShowInputs).toHaveBeenCalledTimes(1);
   });
 
-  it("renders with different result types", () => {
+  it("renders with string result", () => {
     const stringResult = "test string";
-    const { rerender } = renderWithTheme(
-      <ResultOverlay result={stringResult} onShowInputs={mockOnShowInputs} />
-    );
+    renderWithProviders(<ResultOverlay result={stringResult} onShowInputs={mockOnShowInputs} />);
 
     expect(screen.getByTestId("output-renderer")).toHaveTextContent(
       JSON.stringify(stringResult)
     );
+  });
 
+  it("renders with object result", () => {
     const objectResult = { key: "value", nested: { data: 123 } };
-    rerender(
-      <ThemeProvider theme={mockTheme}>
-        <ResultOverlay result={objectResult} onShowInputs={mockOnShowInputs} />
-      </ThemeProvider>
-    );
+    renderWithProviders(<ResultOverlay result={objectResult} onShowInputs={mockOnShowInputs} />);
 
     expect(screen.getByTestId("output-renderer")).toHaveTextContent(
       JSON.stringify(objectResult)
