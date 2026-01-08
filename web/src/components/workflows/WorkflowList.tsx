@@ -290,12 +290,12 @@ const WorkflowList = () => {
             aria-label="New Workflow"
             sx={{
               width: "calc(100% - 32px)",
-              margin: "16px",
-              height: "48px",
+              margin: "0 16px 8px 16px",
+              height: "32px",
               textAlign: "center",
               position: "relative",
               overflow: "hidden",
-              borderRadius: "16px",
+              borderRadius: "8px",
               color: (theme as any).vars.palette.common.white,
               background: (theme as any).vars.palette.grey[800],
               boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
