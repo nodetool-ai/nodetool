@@ -1,8 +1,16 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ThemeProvider } from "@mui/material/styles";
 import ResultOverlay from "../ResultOverlay";
+import mockTheme from "../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
+
+// Mock MUI Button to avoid reliance on theme.vars internals in tests
+jest.mock("@mui/material/Button", () => ({
+  __esModule: true,
+  default: ({ children, ...rest }: any) => <button {...rest}>{children}</button>
+}));
 
 // Mock OutputRenderer
 jest.mock("../OutputRenderer", () => ({
@@ -21,7 +29,11 @@ describe("ResultOverlay", () => {
 
   it("renders the result using OutputRenderer", () => {
     const result = { type: "image", url: "test.png" };
-    render(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ResultOverlay result={result} onShowInputs={mockOnShowInputs} />
+      </ThemeProvider>
+    );
 
     const outputRenderer = screen.getByTestId("output-renderer");
     expect(outputRenderer).toBeInTheDocument();
@@ -30,7 +42,11 @@ describe("ResultOverlay", () => {
 
   it("displays a button to show inputs", () => {
     const result = { data: "test" };
-    render(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ResultOverlay result={result} onShowInputs={mockOnShowInputs} />
+      </ThemeProvider>
+    );
 
     const button = screen.getByRole("button", { name: /show inputs/i });
     expect(button).toBeInTheDocument();
@@ -39,7 +55,11 @@ describe("ResultOverlay", () => {
   it("calls onShowInputs when the button is clicked", async () => {
     const user = userEvent.setup();
     const result = { data: "test" };
-    render(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ResultOverlay result={result} onShowInputs={mockOnShowInputs} />
+      </ThemeProvider>
+    );
 
     const button = screen.getByRole("button", { name: /show inputs/i });
     await user.click(button);
@@ -50,7 +70,9 @@ describe("ResultOverlay", () => {
   it("renders with different result types", () => {
     const stringResult = "test string";
     const { rerender } = render(
-      <ResultOverlay result={stringResult} onShowInputs={mockOnShowInputs} />
+      <ThemeProvider theme={mockTheme}>
+        <ResultOverlay result={stringResult} onShowInputs={mockOnShowInputs} />
+      </ThemeProvider>
     );
 
     expect(screen.getByTestId("output-renderer")).toHaveTextContent(
@@ -59,7 +81,9 @@ describe("ResultOverlay", () => {
 
     const objectResult = { key: "value", nested: { data: 123 } };
     rerender(
-      <ResultOverlay result={objectResult} onShowInputs={mockOnShowInputs} />
+      <ThemeProvider theme={mockTheme}>
+        <ResultOverlay result={objectResult} onShowInputs={mockOnShowInputs} />
+      </ThemeProvider>
     );
 
     expect(screen.getByTestId("output-renderer")).toHaveTextContent(
