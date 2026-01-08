@@ -268,16 +268,17 @@ describe("GlobalChat", () => {
         setSelectedCollections: jest.fn(),
         currentRunningToolCallId: null,
         currentToolMessage: null
-      });
-      (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
+       });
+       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
-      // Mock the connection state to be connecting
-      const { globalWebSocketManager } = require("../../../../lib/websocket/GlobalWebSocketManager");
-      globalWebSocketManager.getConnectionState.mockReturnValue({
+        // Mock the connection state to be connecting
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { globalWebSocketManager } = require("../../../../lib/websocket/GlobalWebSocketManager");
+        globalWebSocketManager.getConnectionState.mockReturnValue({
         isConnected: false,
         isConnecting: true,
         error: null
-      });
+       });
 
       renderWithProviders(<GlobalChat />);
 

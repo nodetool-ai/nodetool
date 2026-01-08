@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { Command, CommandInput } from "cmdk";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
@@ -258,7 +256,7 @@ const ExampleCommands = memo(function ExampleCommands() {
 const useCommandMenu = create<{
   executeAndClose: (action: () => void) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
-}>((set) => ({
+}>((_set) => ({
   executeAndClose: () => {},
   reactFlowWrapper: { current: null }
 }));

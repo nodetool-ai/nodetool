@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   List,
   ListItem,
@@ -29,7 +28,6 @@ import ImageIcon from "@mui/icons-material/Image";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import CloseIcon from "@mui/icons-material/Close";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -130,8 +128,8 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
 
   // Get center of viewport for node positioning
   const getViewportCenter = useCallback(() => {
-    const viewport = reactFlowInstance.getViewport();
-    const bounds = reactFlowInstance.getViewport();
+    const _viewport = reactFlowInstance.getViewport();
+    const _bounds = reactFlowInstance.getViewport();
     
     // Get center of visible area
     const centerX = window.innerWidth / 2;

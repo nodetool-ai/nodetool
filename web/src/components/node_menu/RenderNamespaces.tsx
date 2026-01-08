@@ -12,7 +12,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   tree,
   currentPath = []
 }) => {
-  const DEBUG_SEARCH = false;
+  const _DEBUG_SEARCH = false;
   const {
     selectedPath,
     allSearchMatches,

@@ -31,7 +31,7 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   return typeMap[type] || "info";
 };
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     position: "fixed",
     top: "60px",
@@ -103,7 +103,7 @@ const Alert: React.FC = () => {
   >([]);
 
   const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
-  const [show, setShow] = useState<Record<string, boolean>>({});
+  const [_show, setShow] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const lastDisplayedDate = new Date(lastDisplayedTimestamp || 0);
@@ -182,7 +182,7 @@ const Alert: React.FC = () => {
     }, TRANSITION_DURATION);
   };
 
-  const initiateExitTransition = (id: string) => {
+  const _initiateExitTransition = (id: string) => {
     setShow((s) => ({ ...s, [id]: false }));
     setTimeout(() => {
       removeNotification(id);

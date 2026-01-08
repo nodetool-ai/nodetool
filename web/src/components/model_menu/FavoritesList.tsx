@@ -6,16 +6,13 @@ import {
   ListItemButton,
   ListItemText,
   ListItemIcon,
-  Tooltip,
   ListSubheader,
   Box
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { toTitleCase, isHuggingFaceLocalProvider } from "../../utils/providerDisplay";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";
 
 const listStyles = css({
@@ -27,16 +24,6 @@ export interface FavoritesListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
   onSelect: (m: TModel) => void;
 }
-
-const requiredSecretForProvider = (provider?: string): string | null => {
-  const p = (provider || "").toLowerCase();
-  if (p.includes("openai")) {return "OPENAI_API_KEY";}
-  if (p.includes("anthropic")) {return "ANTHROPIC_API_KEY";}
-  if (p.includes("gemini") || p.includes("google")) {return "GEMINI_API_KEY";}
-  if (p.includes("replicate")) {return "REPLICATE_API_TOKEN";}
-  if (p.includes("aime")) {return "AIME_API_KEY";}
-  return null;
-};
 
 function FavoritesList<TModel extends ModelSelectorModel>({
   models,

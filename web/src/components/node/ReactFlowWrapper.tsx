@@ -12,7 +12,6 @@ import {
 
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useContextMenu from "../../stores/ContextMenuStore";
 import NodeContextMenu from "../context_menus/NodeContextMenu";
 import PaneContextMenu from "../context_menus/PaneContextMenu";
@@ -31,7 +30,6 @@ import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
-import useSelect from "../../hooks/nodes/useSelect";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitView } from "../../hooks/useFitView";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
@@ -108,7 +106,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const [isVisible, setIsVisible] = useState(true);
-  const [isSelecting, setIsSelecting] = useState(false);
+  const [isSelecting, _setIsSelecting] = useState(false);
 
   useEffect(() => {
     setIsVisible(!!storedViewport || nodes.length === 0);

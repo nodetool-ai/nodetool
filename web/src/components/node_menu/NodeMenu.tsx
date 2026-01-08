@@ -5,8 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { IconButton, Box } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Box } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";

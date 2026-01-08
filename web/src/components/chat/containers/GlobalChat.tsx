@@ -60,7 +60,7 @@ const GlobalChat: React.FC = () => {
   useEffect(() => {
     const unsubscribe = globalWebSocketManager.subscribeEvent(
       "stateChange",
-      (state: string) => {
+      (_state: string) => {
         setConnectionState(globalWebSocketManager.getConnectionState());
       }
     );
