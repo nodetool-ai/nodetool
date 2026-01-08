@@ -20,6 +20,7 @@ interface RenderNodesProps {
   showCheckboxes?: boolean;
   selectedNodeTypes?: string[];
   onToggleSelection?: (nodeType: string) => void;
+  showFavoriteButton?: boolean;
 }
 
 const groupNodes = (nodes: NodeMetadata[]) => {
@@ -42,7 +43,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
   showCheckboxes = false,
   selectedNodeTypes = [],
-  onToggleSelection
+  onToggleSelection,
+  showFavoriteButton = true
 }) => {
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
@@ -148,7 +150,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           >
             {textForNamespaceHeader}
           </Typography>,
-          ...nodesInNamespace.map((node) => (
+            ...nodesInNamespace.map((node) => (
             <div key={node.node_type}>
               <NodeItem
                 key={node.node_type}
@@ -158,6 +160,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
                 showCheckbox={showCheckboxes}
                 isSelected={selectedNodeTypes.includes(node.node_type)}
                 onToggleSelection={onToggleSelection}
+                showFavoriteButton={showFavoriteButton}
               />
             </div>
           ))
