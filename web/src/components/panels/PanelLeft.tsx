@@ -355,17 +355,17 @@ const styles = (
  * Format elapsed time since job started
  */
 const formatElapsedTime = (startedAt: string | null | undefined): string => {
-  if (!startedAt) {return "Not started";}
+  if (!startedAt) { return "Not started"; }
   const start = new Date(startedAt).getTime();
   // Validate the date - getTime() returns NaN for invalid dates
-  if (isNaN(start)) {return "Invalid date";}
+  if (isNaN(start)) { return "Invalid date"; }
   const now = Date.now();
   const elapsed = Math.floor((now - start) / 1000);
   // Handle negative elapsed time (future dates)
-  if (elapsed < 0) {return "0s";}
+  if (elapsed < 0) { return "0s"; }
 
-  if (elapsed < 60) {return `${elapsed}s`;}
-  if (elapsed < 3600) {return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;}
+  if (elapsed < 60) { return `${elapsed}s`; }
+  if (elapsed < 3600) { return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`; }
   const hours = Math.floor(elapsed / 3600);
   const minutes = Math.floor((elapsed % 3600) / 60);
   return `${hours}h ${minutes}m`;
@@ -384,7 +384,7 @@ const JobItem = ({ job }: { job: Job }) => {
 
   // Update elapsed time every second while job is running
   useEffect(() => {
-    if (job.status !== "running" && job.status !== "queued") {return;}
+    if (job.status !== "running" && job.status !== "queued") { return; }
 
     const interval = setInterval(() => {
       setElapsedTime(formatElapsedTime(job.started_at));
@@ -743,11 +743,10 @@ const PanelLeft: React.FC = () => {
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
             width: isVisible
-              ? `${
-                  isMobile
-                    ? Math.min(panelSize, Math.floor(window.innerWidth * 0.75))
-                    : Math.max(panelSize, 300)
-                }px`
+              ? `${isMobile
+                ? Math.min(panelSize, Math.floor(window.innerWidth * 0.75))
+                : Math.max(panelSize, 300)
+              }px`
               : PANEL_WIDTH_COLLAPSED,
             minWidth: isVisible ? "300px" : PANEL_WIDTH_COLLAPSED,
             maxWidth: isMobile ? "75vw" : "none",
