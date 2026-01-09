@@ -71,7 +71,7 @@ export function useSelectionEvents({
       selectionEndRef.current = projectMouseEventToFlow(event);
       selectGroupsWithinSelection();
     },
-    [onSelectionEndBase, projectMouseEventToFlow]
+    [onSelectionEndBase, projectMouseEventToFlow, selectGroupsWithinSelection]
   );
 
   const handleSelectionDragStart = useCallback(
