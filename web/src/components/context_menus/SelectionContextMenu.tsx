@@ -9,6 +9,7 @@ import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { useSelectConnected } from "../../hooks/useSelectConnected";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
@@ -18,6 +19,9 @@ import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import BlockIcon from "@mui/icons-material/Block";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { useNodes } from "../../contexts/NodeContext";
 
 interface SelectionContextMenuProps {
@@ -35,6 +39,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
+  const selectConnectedAll = useSelectConnected({ direction: "both" });
+  const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
+  const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -77,6 +84,22 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     }
     closeContextMenu();
   }, [closeContextMenu, deleteNode, selectedNodes]);
+
+  //select connected
+  const handleSelectConnectedAll = useCallback(() => {
+    selectConnectedAll.selectConnected();
+    closeContextMenu();
+  }, [selectConnectedAll, closeContextMenu]);
+
+  const handleSelectConnectedInputs = useCallback(() => {
+    selectConnectedInputs.selectConnected();
+    closeContextMenu();
+  }, [selectConnectedInputs, closeContextMenu]);
+
+  const handleSelectConnectedOutputs = useCallback(() => {
+    selectConnectedOutputs.selectConnected();
+    closeContextMenu();
+  }, [selectConnectedOutputs, closeContextMenu]);
 
   //collapse
   // const handleCollapseAll = useCallback(
@@ -285,6 +308,70 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           }`}
         />
       )}
+
+      <Divider />
+
+      <MenuItem disabled>
+        <Typography
+          style={{
+            margin: ".1em 0",
+            padding: "0"
+          }}
+          variant="body1"
+        >
+          CONNECTED
+        </Typography>
+      </MenuItem>
+
+      <ContextMenuItem
+        onClick={handleSelectConnectedAll}
+        label="Select All Connected"
+        IconComponent={<CallSplitIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Select All Connected</div>
+            <div className="tooltip-key">
+              <kbd>SHIFT</kbd>+<kbd>C</kbd>
+            </div>
+          </div>
+        }
+        addButtonClassName={`action ${
+          selectedNodes.length < 1 ? "disabled" : ""
+        }`}
+      />
+      <ContextMenuItem
+        onClick={handleSelectConnectedInputs}
+        label="Select Inputs"
+        IconComponent={<ArrowBackIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Select Inputs</div>
+            <div className="tooltip-key">
+              <kbd>SHIFT</kbd>+<kbd>I</kbd>
+            </div>
+          </div>
+        }
+        addButtonClassName={`action ${
+          selectedNodes.length < 1 ? "disabled" : ""
+        }`}
+      />
+      <ContextMenuItem
+        onClick={handleSelectConnectedOutputs}
+        label="Select Outputs"
+        IconComponent={<ArrowForwardIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Select Outputs</div>
+            <div className="tooltip-key">
+              <kbd>SHIFT</kbd>+<kbd>O</kbd>
+            </div>
+          </div>
+        }
+        addButtonClassName={`action ${
+          selectedNodes.length < 1 ? "disabled" : ""
+        }`}
+      />
+
       <Divider />
       <ContextMenuItem
         onClick={handleDelete}

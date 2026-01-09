@@ -152,7 +152,7 @@ typecheck-electron:
 
 typecheck-mobile:
 	@echo "Type checking mobile package..."
-	@cd mobile && ./node_modules/.bin/tsc --noEmit
+	cd mobile && npm run typecheck
 
 # Check target (run all checks)
 check: typecheck lint test

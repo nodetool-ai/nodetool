@@ -1,7 +1,6 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import {
   useKeyPressedStore,
-  initKeyListeners,
   registerComboCallback,
   unregisterComboCallback
 } from "../KeyPressedStore";

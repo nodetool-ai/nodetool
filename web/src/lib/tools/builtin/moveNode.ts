@@ -1,5 +1,3 @@
-import { FrontendToolRegistry } from "../frontendTools";
-
 // FrontendToolRegistry.register({
 //   name: "ui_move_node",
 //   description: "Move a node to an absolute canvas position.",

@@ -19,8 +19,8 @@ describe("highlightText utilities", () => {
     });
 
     it("handles quotes and apostrophes", () => {
-      // Note: The current implementation using textContent/innerHTML doesn't escape quotes and apostrophes
-      expect(escapeHtml("\"Hello\" & 'World'")).toBe("\"Hello\" &amp; 'World'");
+      // The implementation now properly escapes all HTML special characters including quotes
+      expect(escapeHtml("\"Hello\" & 'World'")).toBe("&quot;Hello&quot; &amp; &#39;World&#39;");
     });
 
     it("handles empty string", () => {
@@ -39,8 +39,9 @@ describe("highlightText utilities", () => {
     });
 
     it("handles all special characters comprehensively", () => {
-      // The implementation escapes <, >, and & but not quotes and apostrophes
-      expect(escapeHtml("<>&\"'/>")).toBe("&lt;&gt;&amp;\"'/&gt;");
+      // The implementation escapes all HTML special characters including quotes
+      // Note: replacements are processed in the order defined in the map object
+      expect(escapeHtml("<>&\"'/>")).toBe("&lt;&gt;&amp;&quot;&#39;/&gt;");
     });
   });
 

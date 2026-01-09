@@ -247,7 +247,7 @@ export function FloatingLinkEditor(): JSX.Element | null {
             <EditIcon />
           </button>
           <button
-            onClick={() => window.open(linkUrl, "_blank")}
+            onClick={() => window.open(linkUrl, "_blank", "noopener,noreferrer")}
             aria-label="Open Link"
           >
             <OpenInNewIcon />

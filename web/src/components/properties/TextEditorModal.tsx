@@ -7,12 +7,6 @@ import { css } from "@emotion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import CodeIcon from "@mui/icons-material/Code";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import SummarizeIcon from "@mui/icons-material/Summarize";
-import TranslateIcon from "@mui/icons-material/Translate";
-import ShortTextIcon from "@mui/icons-material/ShortText";
-import SpellcheckIcon from "@mui/icons-material/Spellcheck";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -107,13 +101,13 @@ const styles = (theme: Theme) =>
       width: "calc(100vw - 51px)",
       height: "fit-content",
       padding: ".5em .5em 0 .5em",
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.5)`,
-      backdropFilter: "blur(4px)",
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
+      backdropFilter: "blur(8px)",
       zIndex: 10000,
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start",
-      transition: "all 0.2s ease-in-out"
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     },
     ".modal-overlay.fullscreen": {
       top: 0,
@@ -121,13 +115,15 @@ const styles = (theme: Theme) =>
       width: "100vw",
       height: "100vh",
       padding: 0,
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.4)`
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.8)`
     },
     ".modal-content": {
-      background: theme.vars.palette.glass.backgroundDialogContent, // More opaque for better readability
-      backdropFilter: "blur(16px)", // Stronger blur
-      WebkitBackdropFilter: "blur(16px)",
-      color: theme.vars.palette.grey[100],
+      background: `linear-gradient(135deg, 
+        rgba(${theme.vars.palette.background.paperChannel} / 0.95), 
+        rgba(${theme.vars.palette.background.defaultChannel} / 0.98))`,
+      backdropFilter: "blur(24px) saturate(180%)",
+      WebkitBackdropFilter: "blur(24px) saturate(180%)",
+      color: theme.vars.palette.text.primary,
       fontSize: "var(--fontSizeBigger)",
       width: "92%",
       maxWidth: "1600px",
@@ -136,98 +132,101 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       position: "relative",
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       borderRadius: theme.vars.rounded.dialog,
-      boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)", // Custom XL shadow for glassmorphism
-      overflow: "hidden" // Ensure border-radius clips content
+      boxShadow: "0 40px 80px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.05) inset",
+      overflow: "hidden",
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     },
     ".modal-content.fullscreen": {
       width: "100%",
       maxWidth: "100%",
       height: "100%",
       borderRadius: 0,
-      borderLeft: 0,
-      borderRight: 0,
-      borderTop: 0,
-      borderBottom: 0
+      border: "none",
+      background: theme.vars.palette.background.default
     },
     ".modal-header": {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center", // Center aligned items
-      padding: "0.75em 1.5em",
-      minHeight: "3.5em",
-      background: `linear-gradient(180deg, ${theme.vars.palette.action.hover} 0%, transparent 100%)`,
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
-      position: "relative", // Changed from sticky to avoid layout issues if not needed, or keep sticky if content scrolls
+      alignItems: "center",
+      padding: "1em 1.5em",
+      minHeight: "4em",
+      background: `linear-gradient(90deg, 
+        rgba(${theme.vars.palette.background.defaultChannel} / 0.4) 0%, 
+        transparent 100%)`,
+      borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
       zIndex: 5,
       h4: {
         cursor: "default",
-        fontWeight: "600",
+        fontWeight: "700",
         margin: "0",
-        fontSize: "var(--fontSizeBig)",
-        letterSpacing: "0.02em",
+        fontSize: "1.1rem",
+        letterSpacing: "-0.01em",
         color: theme.vars.palette.text.primary,
-        textShadow: "0 1px 2px rgba(0,0,0,0.2)"
+        background: `linear-gradient(to right, ${theme.vars.palette.text.primary}, ${theme.vars.palette.grey[400]})`,
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
       }
     },
     ".title-and-description": {
       flex: 1,
       display: "flex",
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: "1em",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: "0.25em",
       overflow: "hidden"
     },
     ".toolbar-group": {
       display: "flex",
       alignItems: "center",
-      gap: ".5em",
+      gap: "0.5em",
+      backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.4)`,
+      padding: "4px 8px",
+      borderRadius: "10px",
+      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
       "& + .toolbar-group": {
-        borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
-        marginLeft: ".5em",
-        paddingLeft: ".5em"
+        marginLeft: "0.5em"
       }
     },
     ".code-tools": {
       display: "flex",
       alignItems: "center",
-      gap: ".35em",
+      gap: "0.5em",
       marginRight: "0.5em"
     },
     ".language-select": {
-      background: "rgba(0,0,0,0.2)",
-      color: theme.vars.palette.grey[100],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      background: "transparent",
+      color: theme.vars.palette.text.secondary,
+      border: "none",
       borderRadius: "6px",
       padding: "4px 8px",
-      fontSize: "var(--fontSizeSmaller)",
+      fontSize: "0.8rem",
+      fontWeight: 500,
       outline: "none",
-      transition: "all 0.2s ease",
       cursor: "pointer",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
       "&:hover": {
-        borderColor: theme.vars.palette.grey[500],
-        background: "action.selected"
+        color: theme.vars.palette.text.primary,
+        background: `rgba(${theme.vars.palette.action.activeChannel} / 0.08)`
       },
       "&:focus": {
-        borderColor: theme.vars.palette.primary.main
+        color: theme.vars.palette.primary.main
       }
     },
     ".description": {
       width: "100%",
       maxWidth: "600px",
-      maxHeight: "1.5em",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
       padding: "0",
       margin: "0",
-      fontSize: "var(--fontSizeSmaller)",
-      opacity: 0.7,
-      p: {
-        margin: 0,
-        display: "inline"
-      }
+      fontSize: "0.85rem",
+      color: theme.vars.palette.text.secondary,
+      fontWeight: 400
     },
     ".modal-body": {
       position: "relative",
@@ -241,17 +240,18 @@ const styles = (theme: Theme) =>
       ".editor": {
         flex: 1,
         width: "100%",
-        fontSize: "var(--fontSizeSmall)",
-        lineHeight: "1.5",
-        color: theme.vars.palette.grey[100],
+        fontSize: "14px",
+        lineHeight: "1.6",
+        color: theme.vars.palette.text.secondary,
         outline: "none",
         overflow: "auto !important",
         height: "100%",
-        padding: "1em 1.5em",
+        padding: "1.5em 2em", // More breathing room
         pre: {
           height: "100%",
           overflowWrap: "break-word",
-          fontFamily: "'JetBrains Mono', 'Fira Code', monospace"
+          fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+          fontVariantLigatures: "common-ligatures"
         },
         textarea: {
           overflowWrap: "break-word",
@@ -286,76 +286,73 @@ const styles = (theme: Theme) =>
         flexDirection: "column",
         height: "100%",
         overflow: "hidden",
-        position: "relative"
+        position: "relative",
+        backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`
       },
       ".assistant-pane": {
         width: "35%",
-        minWidth: "300px",
+        minWidth: "320px",
         maxWidth: "500px",
-        borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
-        background: "action.disabledBackground", // Subtle transform
+        borderLeft: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
+        background: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        overflow: "hidden"
+        overflow: "hidden",
+        boxShadow: "-10px 0 30px -10px rgba(0,0,0,0.1)"
       }
     },
     ".actions": {
       display: "flex",
-      gap: ".6em",
+      gap: "1em",
       alignItems: "center",
       flexWrap: "nowrap"
     },
     ".copy-to-clipboard-button": {
       position: "absolute",
-      right: "1.5em",
-      top: "1em"
+      right: "2em",
+      top: "1.5em",
+      zIndex: 10
     },
     ".button": {
-      padding: "6px 10px",
+      padding: "6px",
+      minWidth: "34px",
+      minHeight: "34px",
       cursor: "pointer",
-      color: theme.vars.palette.text.primary,
-      textTransform: "none",
-      borderRadius: "6px",
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: "600",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      color: theme.vars.palette.text.secondary,
+      borderRadius: "8px",
+      fontSize: "0.9rem",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      minWidth: "32px",
-      minHeight: "32px",
-      background: `linear-gradient(180deg, ${theme.vars.palette.action.hover} 0%, ${theme.vars.palette.action.hover} 100%)`,
-      border: "none",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+      background: "transparent",
+      border: "1px solid transparent",
+      transition: "all 0.2s ease",
       "&:hover": {
-        background: `linear-gradient(180deg, ${theme.vars.palette.action.focus} 0%, ${theme.vars.palette.action.selected} 100%)`,
-        boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
+        color: theme.vars.palette.primary.main,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`,
+        transform: "translateY(-1px)"
       },
       "&:active": {
-        background: "action.disabledBackground",
-        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.2)"
+        transform: "translateY(0)"
       }
     },
     ".button-close": {
       marginLeft: "0.5em",
-      padding: "6px",
-      minWidth: "32px",
-      minHeight: "32px",
-      borderRadius: "6px",
-      color: theme.vars.palette.grey[400],
-      transition: "all 0.2s ease",
+      border: `1px solid ${theme.vars.palette.grey[800]}`,
       "&:hover": {
-        backgroundColor: `rgba(${theme.vars.palette.error.mainChannel} / 0.2)`, // Subtle red hover
-        color: "error.main"
+        backgroundColor: theme.vars.palette.error.main,
+        borderColor: theme.vars.palette.error.main,
+        color: theme.vars.palette.common.white,
+        boxShadow: `0 4px 12px ${theme.vars.palette.error.main}40`
       }
     },
     ".button-ghost": {
-      padding: "6px",
+      padding: "8px",
       cursor: "pointer",
-      color: theme.vars.palette.grey[300],
-      fontSize: "var(--fontSizeSmaller)",
-      borderRadius: "6px",
+      color: theme.vars.palette.grey[400],
+      fontSize: "0.9rem",
+      borderRadius: "8px",
       background: "transparent",
       border: "1px solid transparent",
       minWidth: "32px",
@@ -363,42 +360,47 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      transition: "all 0.2s ease",
+      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       "&:hover": {
-        backgroundColor: "action.selected",
-        color: theme.vars.palette.text.primary,
-        borderColor: "action.selected"
+        color: theme.vars.palette.primary.light,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
+      },
+      "&.active": {
+        color: theme.vars.palette.primary.main,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.15)`
       }
     },
     ".resize-handle": {
       position: "relative",
-      height: "12px",
+      height: "16px", // Easier to grab
       width: "100%",
       cursor: "row-resize",
-      backgroundColor: "transparent",
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.8)`,
+      borderTop: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: "action.hover"
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&:hover .resize-handle-thumb": {
         backgroundColor: theme.vars.palette.primary.main,
-        transform: "translate(-50%, -50%) scaleX(1.1)"
+        width: "80px",
+        height: "5px",
+        boxShadow: `0 0 10px ${theme.vars.palette.primary.main}50`
       }
     },
     ".resize-handle-thumb": {
       position: "absolute",
-      width: "60px",
+      width: "48px",
       height: "4px",
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
       backgroundColor: theme.vars.palette.grey[700],
-      borderRadius: "10px",
-      transition: "all 0.2s ease"
+      borderRadius: "100px",
+      transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
     },
     "@media (max-width: 1200px)": {
       ".modal-content": {
@@ -411,12 +413,11 @@ const styles = (theme: Theme) =>
     },
     "@media (max-width: 900px)": {
       ".title-and-description": {
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: ".25em"
+        gap: "0.25em"
       },
       ".description": {
-        display: "none"
+        display: "block",
+        fontSize: "0.75rem"
       },
       ".modal-body": {
         flexDirection: "column"
@@ -466,7 +467,7 @@ const TextEditorModal = ({
   } = useMonacoEditor();
 
   // Editor mode toggle (extracted hook)
-  const { isCodeEditor, setIsCodeEditor, toggleEditorMode } = useEditorMode({
+  const { isCodeEditor, toggleEditorMode } = useEditorMode({
     storageKey: "textEditorModal_useCodeEditor",
     onCodeEnabled: () => {
       void loadMonacoIfNeeded();
@@ -523,9 +524,9 @@ const TextEditorModal = ({
   >(null);
   const navigateFnRef = useRef<
     | ((direction: "next" | "previous") => {
-        currentMatch: number;
-        totalMatches: number;
-      })
+      currentMatch: number;
+      totalMatches: number;
+    })
     | null
   >(null);
   const formatCodeBlockFnRef = useRef<(() => void) | null>(null);
@@ -536,7 +537,6 @@ const TextEditorModal = ({
 
   // Chat integration
   const {
-    handleAITransform,
     status,
     progress,
     statusMessage,
@@ -668,44 +668,6 @@ const TextEditorModal = ({
     },
     [isCodeEditor, insertIntoLexical, monacoRef]
   );
-
-  const handleImproveSelection = useCallback(async () => {
-    await handleAITransform(
-      "Improve the following text for clarity, grammar, and style. Return only the improved text without commentary:"
-    );
-  }, [handleAITransform]);
-
-  const handleSummarizeSelection = useCallback(async () => {
-    await handleAITransform(
-      "Summarize the following text in 3-5 bullet points. Return only the summary:",
-      { shouldReplace: false }
-    );
-  }, [handleAITransform]);
-
-  const handleExplainSelection = useCallback(async () => {
-    await handleAITransform(
-      "Explain the following text simply and clearly. Return only the explanation:",
-      { shouldReplace: false }
-    );
-  }, [handleAITransform]);
-
-  const handleShortenSelection = useCallback(async () => {
-    await handleAITransform(
-      "Rewrite the following text to be more concise while preserving meaning. Return only the shortened text:"
-    );
-  }, [handleAITransform]);
-
-  const handleFixGrammarSelection = useCallback(async () => {
-    await handleAITransform(
-      "Fix grammar, spelling, and punctuation in the following text without changing its meaning. Return only the corrected text:"
-    );
-  }, [handleAITransform]);
-
-  const handleTranslateSelection = useCallback(async () => {
-    await handleAITransform(
-      "Translate the following text to English. Return only the translation:"
-    );
-  }, [handleAITransform]);
 
   // Clean-up the debounced function when the component unmounts
   useEffect(() => {
@@ -864,61 +826,6 @@ const TextEditorModal = ({
                       {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}
                     </button>
                   </Tooltip>
-                )}
-                {!readOnly && (
-                  <>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Improve">
-                      <button
-                        className="button"
-                        onClick={handleImproveSelection}
-                      >
-                        <AutoFixHighIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Summarize">
-                      <button
-                        className="button"
-                        onClick={handleSummarizeSelection}
-                      >
-                        <SummarizeIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Explain">
-                      <button
-                        className="button"
-                        onClick={handleExplainSelection}
-                      >
-                        <HelpOutlineIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Shorten">
-                      <button
-                        className="button"
-                        onClick={handleShortenSelection}
-                      >
-                        <ShortTextIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip
-                      enterDelay={TOOLTIP_ENTER_DELAY}
-                      title="Fix Grammar"
-                    >
-                      <button
-                        className="button"
-                        onClick={handleFixGrammarSelection}
-                      >
-                        <SpellcheckIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Translate">
-                      <button
-                        className="button"
-                        onClick={handleTranslateSelection}
-                      >
-                        <TranslateIcon />
-                      </button>
-                    </Tooltip>
-                  </>
                 )}
               </div>
               <div className="toolbar-group">

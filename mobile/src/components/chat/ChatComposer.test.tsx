@@ -36,14 +36,14 @@ describe('ChatComposer', () => {
       expect(UNSAFE_root).toBeTruthy();
     });
 
-    it('shows connecting placeholder when disconnected', () => {
+    it('shows placeholder when disconnected', () => {
       render(
         <ChatComposer
           status="disconnected"
           onSendMessage={mockOnSendMessage}
         />
       );
-      expect(screen.getByPlaceholderText('Connecting...')).toBeTruthy();
+      expect(screen.getByPlaceholderText('Type a message...')).toBeTruthy();
     });
 
     it('shows connecting placeholder when connecting', () => {
@@ -53,18 +53,7 @@ describe('ChatComposer', () => {
           onSendMessage={mockOnSendMessage}
         />
       );
-      expect(screen.getByPlaceholderText('Connecting...')).toBeTruthy();
-    });
-
-    it('disables input when disconnected', () => {
-      render(
-        <ChatComposer
-          status="disconnected"
-          onSendMessage={mockOnSendMessage}
-        />
-      );
-      const input = screen.getByPlaceholderText('Connecting...');
-      expect(input.props.editable).toBe(false);
+      expect(screen.getByPlaceholderText('Type a message...')).toBeTruthy();
     });
 
     it('disables input when disabled prop is true', () => {

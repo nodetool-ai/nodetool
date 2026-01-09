@@ -7,7 +7,7 @@ export const TOOLTIP_ENTER_DELAY = 400;
 export const TOOLTIP_LEAVE_DELAY = 0;
 export const TOOLTIP_ENTER_NEXT_DELAY = 200;
 
-export const DEBUG_RENDER_LOGGING = true;
+export const DEBUG_RENDER_LOGGING = process.env.NODE_ENV !== "production";
 
 // NOTIFICATIONS
 export const NOTIFICATIONS_LIST_MAX_ITEMS = 100;

@@ -73,14 +73,12 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
           className={`select-model-button ${className || ""} ${active ? "active" : ""
             }`}
           sx={{
-            border: active
-              ? "1px solid var(--palette-secondary-main)"
-              : "1px solid var(--palette-divider)", // Changed from warning-main
+            border: "1px solid var(--palette-divider)",
             backgroundColor: active
-              ? "var(--palette-secondary-main)"
-              : "var(--palette-background-paper)", // Changed from warning-main
-            borderRadius: "var(--rounded-buttonSmall, 4px)", // Use theme var
-            color: active ? "var(--palette-secondary-contrastText)" : "var(--palette-text-primary)",
+              ? "var(--palette-action-selected)"
+              : "var(--palette-background-paper)",
+            borderRadius: "var(--rounded-buttonSmall, 4px)",
+            color: "var(--palette-text-primary)",
             textTransform: "none",
             display: "inline-flex",
             alignItems: "center",
@@ -92,12 +90,8 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             width: "100%",
             transition: "all 0.2s ease-in-out",
             "&:hover": {
-              backgroundColor: active
-                ? "var(--palette-secondary-dark)"
-                : "var(--palette-action-hover)",
-              borderColor: active
-                ? "var(--palette-secondary-dark)"
-                : "var(--palette-secondary-main)"
+              backgroundColor: "var(--palette-action-hover)",
+              borderColor: "var(--palette-text-secondary)"
             },
             ...sx
           }}
@@ -110,7 +104,11 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
               textAlign: "left",
               flexGrow: 1,
               overflow: "hidden",
-              marginRight: "4px"
+              marginRight: "4px",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
             <Typography
@@ -118,19 +116,18 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
               component="div"
               variant="body2"
               sx={{
-                color: "inherit", // Inherit from button color
+                color: "inherit",
                 fontSize:
                   scope === "inspector"
-                    ? theme.fontSizeSmall
-                    : theme.fontSizeTinyer,
+                    ? theme.typography.body2.fontSize
+                    : theme.fontSizeSmall,
                 lineHeight: "1.2em",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
+                whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "normal",
-                fontWeight: active ? 500 : 400
+                fontWeight: active ? 500 : 400,
+                flexShrink: 1,
+                minWidth: 0
               }}
             >
               {label}
@@ -141,18 +138,16 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
                 component="div"
                 variant="body2"
                 sx={{
-                  color: "inherit", // Inherit
-                  opacity: 0.8,
-                  lineHeight: "1.1em",
-                  display: "block",
+                  color: "inherit",
+                  opacity: 0.6,
+                  lineHeight: "1.2em",
                   fontSize:
                     scope === "inspector"
                       ? theme.fontSizeSmall
-                      : theme.fontSizeTinyer,
-                  fontWeight: "light",
+                      : theme.fontSizeTiny,
+                  fontWeight: "normal",
                   whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis"
+                  flexShrink: 0
                 }}
               >
                 {secondaryLabel}

@@ -3,15 +3,10 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $createAutoLinkNode,
   $isAutoLinkNode,
-  $isLinkNode,
-  AutoLinkNode,
-  TOGGLE_LINK_COMMAND
+  $isLinkNode
 } from "@lexical/link";
 import {
   $createTextNode,
-  $isElementNode,
-  $isLineBreakNode,
-  $isTextNode,
   TextNode
 } from "lexical";
 

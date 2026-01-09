@@ -108,10 +108,20 @@ jobs:
           echo "Pulling gemma3:270m model..."
           ${OLLAMA_PATH} pull gemma3:270m
 
+      - name: Verify Ollama model availability
+        shell: bash -l {0}
+        run: |
+          # Find ollama binary
+          OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
+
+          # List available models to verify gemma3:270m was pulled
+          echo "Available Ollama models:"
+          ${OLLAMA_PATH} list
+
       - name: Start nodetool server
         shell: bash -l {0}
         run: |
-          nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
+          OLLAMA_API_URL=http://localhost:11434 nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
           
       - name: Wait for nodetool server to be ready

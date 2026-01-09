@@ -90,13 +90,13 @@ describe('Performance Regression Tests', () => {
       let goodRenders = 0;
 
       const BadSelector = () => {
-        const data = useTestStore((state) => ({ data: state.data }));
+        const _data = useTestStore((state) => ({ data: state.data }));
         badRenders++;
         return null;
       };
 
       const GoodSelector = () => {
-        const data = useTestStore((state) => state.data);
+        const _data = useTestStore((state) => state.data);
         goodRenders++;
         return null;
       };
@@ -253,13 +253,13 @@ describe('Performance Regression Tests', () => {
 
       // C depends on B, B depends on A
       const ComponentA = () => {
-        const a = useStore((state) => state.a);
+        const _a = useStore((state) => state.a);
         aRenders++;
         return <ComponentB />;
       };
 
       const ComponentB = React.memo(() => {
-        const b = useStore((state) => state.b);
+        const _b = useStore((state) => state.b);
         bRenders++;
         return <ComponentC />;
       });
@@ -379,19 +379,19 @@ describe('Performance Regression Tests', () => {
       });
       Level2.displayName = 'Level2';
 
-      const Level1 = ({ value, trigger }: { value: number; trigger: number }) => {
+      const Level1 = ({ value, _trigger }: { value: number; _trigger: number }) => {
         return <Level2 value={value} />;
       };
 
-      const { rerender } = render(<Level1 value={10} trigger={1} />);
+      const { rerender } = render(<Level1 value={10} _trigger={1} />);
       expect(computations).toBe(1);
 
       // Re-render with same value but different trigger
-      rerender(<Level1 value={10} trigger={2} />);
+      rerender(<Level1 value={10} _trigger={2} />);
       expect(computations).toBe(1); // Should NOT recompute!
 
       // Re-render with different value
-      rerender(<Level1 value={20} trigger={3} />);
+      rerender(<Level1 value={20} _trigger={3} />);
       expect(computations).toBe(2); // Should recompute
     });
 
@@ -442,28 +442,28 @@ describe('Performance Regression Tests', () => {
       Child.displayName = 'Child';
 
       // BAD: Inline object
-      const BadParent = ({ trigger }: { trigger: number }) => {
+      const BadParent = ({ _trigger }: { _trigger: number }) => {
         return <Child config={{ value: 42 }} />; // New object every render!
       };
 
-      const { rerender: rerenderBad } = render(<BadParent trigger={1} />);
+      const { rerender: rerenderBad } = render(<BadParent _trigger={1} />);
       expect(childRenders).toBe(1);
 
-      rerenderBad(<BadParent trigger={2} />);
+      rerenderBad(<BadParent _trigger={2} />);
       expect(childRenders).toBe(2); // Re-rendered due to new object!
 
       childRenders = 0;
 
       // GOOD: Stable object
       const stableConfig = { value: 42 };
-      const GoodParent = ({ trigger }: { trigger: number }) => {
+      const GoodParent = ({ _trigger }: { _trigger: number }) => {
         return <Child config={stableConfig} />;
       };
 
-      const { rerender: rerenderGood } = render(<GoodParent trigger={1} />);
+      const { rerender: rerenderGood } = render(<GoodParent _trigger={1} />);
       expect(childRenders).toBe(1);
 
-      rerenderGood(<GoodParent trigger={2} />);
+      rerenderGood(<GoodParent _trigger={2} />);
       expect(childRenders).toBe(1); // Did NOT re-render!
     });
 
@@ -507,7 +507,7 @@ describe('Performance Regression Tests', () => {
       });
       MemoizedComponent.displayName = 'MemoizedComponent';
 
-      const Parent = ({ trigger }: { trigger: number }) => {
+      const Parent = ({ _trigger }: { _trigger: number }) => {
         return (
           <>
             <UnmemoizedComponent value={42} />
@@ -516,7 +516,7 @@ describe('Performance Regression Tests', () => {
         );
       };
 
-      const { rerender } = render(<Parent trigger={1} />);
+      const { rerender } = render(<Parent _trigger={1} />);
 
       // Initial render
       expect(unmemoizedRenders).toBe(1);
@@ -524,7 +524,7 @@ describe('Performance Regression Tests', () => {
 
       // Trigger 100 parent re-renders
       for (let i = 2; i <= 101; i++) {
-        rerender(<Parent trigger={i} />);
+        rerender(<Parent _trigger={i} />);
       }
 
       console.log(`[PERF] Unmemoized: ${unmemoizedRenders} renders`);

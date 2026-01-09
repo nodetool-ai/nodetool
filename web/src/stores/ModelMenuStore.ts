@@ -7,7 +7,6 @@ import type {
   VideoModel
 } from "./ApiTypes";
 import Fuse from "fuse.js";
-import useRemoteSettingsStore from "./RemoteSettingStore";
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
 import { useSecrets } from "../hooks/useSecrets";
@@ -107,7 +106,6 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
   if (!selectedProvider) {
     // Filter by enabled providers: missing key means enabled (default true)
     // Only filter out if explicitly set to false
-    const beforeFilter = list.length;
     list = list.filter((m) => {
       const providerKey = String(m.provider || "");
       const isEnabled = enabledProviders?.[providerKey] !== false;

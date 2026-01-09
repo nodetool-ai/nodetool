@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, CircularProgress, Box, Tooltip, Fab } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { Typography, CircularProgress } from "@mui/material";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -23,12 +22,12 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+
 
 const styles = (theme: Theme) =>
   css({
     "&": {
-      marginLeft: "0px"
+      margin: "0px"
     },
 
     ".toolbar-header": {
@@ -103,7 +102,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
   cursor = cursor || "";
   const { data, error } = await client.GET("/api/workflows/", {
     params: {
-      query: { cursor, limit, columns: "name,id,updated_at,description,tags" }
+      query: { cursor, limit, columns: "name,id,updated_at,description,tags,graph" }
     }
   });
   if (error) {
@@ -120,7 +119,6 @@ const WorkflowList = () => {
   >([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
-  const [selectedTag, setSelectedTag] = useState<string>("");
   const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("Shift"),
@@ -128,7 +126,7 @@ const WorkflowList = () => {
     })
   );
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
-  const pageSize = 200;
+  const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
   const { data, isLoading, error, isError } = useQuery<WorkflowListType, Error>(
@@ -143,7 +141,7 @@ const WorkflowList = () => {
   );
 
   const workflows = useMemo(() => {
-    if (filterValue === "") {return data?.workflows || [];}
+    if (filterValue === "") { return data?.workflows || []; }
     // Optimization: Convert filter value to lowercase once instead of for each workflow
     const filterValueLower = filterValue.toLowerCase();
     return (data?.workflows || []).filter((workflow) =>
@@ -152,42 +150,17 @@ const WorkflowList = () => {
   }, [data?.workflows, filterValue]);
 
   const onSelect = useCallback((workflow: Workflow) => {
-    // const sortedWorkflows = [...filteredWorkflows];
-    // if (shiftKeyPressed) {
-    //   if (selectedWorkflows.length > 0) {
-    //     const lastSelected = selectedWorkflows[selectedWorkflows.length - 1];
-    //     const lastIndex = sortedWorkflows.findIndex(
-    //       (w) => w.id === lastSelected
-    //     );
-    //     const currentIndex = sortedWorkflows.findIndex(
-    //       (w) => w.id === workflow.id
-    //     );
-    //     if (lastIndex !== undefined && currentIndex !== undefined) {
-    //       const start = Math.min(lastIndex, currentIndex);
-    //       const end = Math.max(lastIndex, currentIndex);
-    //       const newSelection = sortedWorkflows
-    //         .slice(start, end + 1)
-    //         .map((w) => w.id);
-    //       setSelectedWorkflows((prev) =>
-    //         Array.from(new Set([...prev, ...newSelection]))
-    //       );
-    //     }
-    //   } else {
-    //     setSelectedWorkflows([workflow.id]);
-    //   }
-    // } else {
     setSelectedWorkflows((prev) =>
       prev.includes(workflow.id)
         ? prev.filter((id) => id !== workflow.id)
         : [...prev, workflow.id]
     );
-    // }
   }, []);
 
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyPressed || shiftKeyPressed) {return;}
+      if (controlKeyPressed || shiftKeyPressed) { return; }
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -215,9 +188,7 @@ const WorkflowList = () => {
     copyWorkflow: state.copy,
     createWorkflow: state.create
   }));
-  const { createNew } = useWorkflowManager((state) => ({
-    createNew: state.createNew
-  }));
+
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
@@ -254,19 +225,11 @@ const WorkflowList = () => {
     [copyWorkflow, createWorkflow, workflows, navigate]
   );
 
-  const finalWorkflows = useMemo(() => {
-    if (!selectedTag) {return workflows;}
-    return workflows.filter((wf) => wf.tags?.includes(selectedTag));
-  }, [workflows, selectedTag]);
-
   const handleEdit = useCallback((workflow: Workflow) => {
     setWorkflowToEdit(workflow);
   }, []);
 
-  const handleCreateWorkflowTop = useCallback(async () => {
-    const workflow = await createNew();
-    navigate(`/editor/${workflow.id}`);
-  }, [createNew, navigate]);
+
 
   return (
     <>
@@ -283,48 +246,6 @@ const WorkflowList = () => {
         />
       )}
       <div css={styles(theme)}>
-        <Tooltip title="Create a new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <Fab
-            variant="extended"
-            onClick={handleCreateWorkflowTop}
-            aria-label="New Workflow"
-            sx={{
-              width: "calc(100% - 32px)",
-              margin: "16px",
-              height: "48px",
-              textAlign: "center",
-              position: "relative",
-              overflow: "hidden",
-              borderRadius: "16px",
-              color: (theme as any).vars.palette.primary.contrastText,
-              background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.main}, ${(theme as any).vars.palette.primary.dark})`,
-              boxShadow: `0 4px 20px ${(theme as any).vars.palette.primary.main}40`,
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: "0.95rem",
-              letterSpacing: "0.02em",
-              justifyContent: "center",
-              border: `1px solid ${(theme as any).vars.palette.divider}`,
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              
-              "&:hover": {
-                background: `linear-gradient(135deg, ${(theme as any).vars.palette.primary.light}, ${(theme as any).vars.palette.primary.main})`,
-                boxShadow: `0 8px 30px ${(theme as any).vars.palette.primary.main}60`,
-                transform: "translateY(-2px)",
-                border: `1px solid ${(theme as any).vars.palette.action.focus}`,
-              },
-              "&:active": {
-                transform: "scale(0.98) translateY(0)",
-                boxShadow: `0 2px 10px ${(theme as any).vars.palette.primary.main}40`,
-              },
-              "& svg": {
-                 fontSize: "1.3rem",
-              }
-            }}
-          >
-            <AddIcon sx={{ mr: 1 }} /> New Workflow
-          </Fab>
-        </Tooltip>
         <div
           className="toolbar-header"
           style={{
@@ -335,10 +256,7 @@ const WorkflowList = () => {
           }}
         >
           <WorkflowToolbar
-            workflows={workflows}
             setFilterValue={setFilterValue}
-            selectedTag={selectedTag}
-            setSelectedTag={setSelectedTag}
             showCheckboxes={showCheckboxes}
             toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
             selectedWorkflowsCount={selectedWorkflows.length}
@@ -366,7 +284,7 @@ const WorkflowList = () => {
           )}
         </div>
         <div className="workflow-items">
-          {!isLoading && !isError && finalWorkflows.length === 0 ? (
+          {!isLoading && !isError && workflows.length === 0 ? (
             <div className="empty-state">
               <Typography variant="h6">No workflows yet</Typography>
               <Typography variant="body2">
@@ -375,7 +293,7 @@ const WorkflowList = () => {
             </div>
           ) : (
             <WorkflowListView
-              workflows={finalWorkflows}
+              workflows={workflows}
               onOpenWorkflow={handleOpenWorkflow}
               onDuplicateWorkflow={duplicateWorkflow}
               onDelete={onDelete}

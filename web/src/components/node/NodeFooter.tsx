@@ -22,6 +22,7 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import useLogsStore from "../../stores/LogStore";
 import { NodeLogsDialog } from "./NodeLogs";
+import { ProcessTimer } from "./ProcessTimer";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -59,6 +60,7 @@ export interface NodeFooterProps {
   nodeType: string;
   data: NodeData;
   workflowId: string;
+  status?: string;
 }
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
@@ -66,7 +68,8 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeNamespace,
   metadata,
   data,
-  workflowId
+  workflowId,
+  status
 }) => {
   const rootCss = css({
     display: "flex",
@@ -182,7 +185,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
 
   return (
     <div className="node-footer" css={rootCss}>
-      <div className="footer-left">
+      <div className="footer-left" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
         <Tooltip
           title={
             <span>
@@ -232,6 +235,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
             <PrettyNamespace namespace={nodeNamespace} />
           </Button>
         </Tooltip>
+        {status && <ProcessTimer status={status} />}
       </div>
 
       <div className="footer-right">

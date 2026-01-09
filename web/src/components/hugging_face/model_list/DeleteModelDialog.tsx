@@ -14,7 +14,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
 import {
   isFileExplorerAvailable,
-  openHuggingfacePath,
   openOllamaPath,
   openInExplorer
 } from "../../../utils/fileExplorer";

@@ -12,7 +12,7 @@ interface ASRModelSelectProps {
 }
 
 const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const loadASRModels = useCallback(async () => {
@@ -40,12 +40,12 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
     return models.find((m) => m.id === value);
   }, [models, value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -62,7 +62,7 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
         id: model.id || "",
         name: model.name || ""
       });
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent]
   );
@@ -77,7 +77,8 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
         onClick={handleClick}
       />
       <ASRModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
       />

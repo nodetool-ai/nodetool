@@ -19,8 +19,6 @@ import {
   ImageSearch,
   Language,
   ManageSearch,
-  Image,
-  VolumeUp,
   Camera,
   Map,
   ShoppingCart,

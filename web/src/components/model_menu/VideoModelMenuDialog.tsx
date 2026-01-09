@@ -11,18 +11,21 @@ export interface VideoModelMenuDialogProps {
   onClose: () => void;
   onModelChange?: (model: VideoModel) => void;
   task?: "text_to_video" | "image_to_video";
+  anchorEl?: HTMLElement | null;
 }
 
 export default function VideoModelMenuDialog({
   open,
   onClose,
   onModelChange,
-  task
+  task,
+  anchorEl
 }: VideoModelMenuDialogProps) {
   const modelData = useVideoModelsByProvider({ task });
   return (
     <ModelMenuDialogBase<VideoModel>
       open={open}
+      anchorEl={anchorEl}
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}

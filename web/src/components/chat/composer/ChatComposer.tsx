@@ -2,8 +2,7 @@
 import React, {
   useRef,
   useState,
-  useCallback,
-  useEffect
+  useCallback
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
@@ -16,16 +15,8 @@ import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { createStyles } from "./ChatComposer.styles";
 
 interface ChatComposerProps {
-  status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  isLoading: boolean;
+  isStreaming: boolean;
   onSendMessage: (
     content: MessageContent[],
     prompt: string,
@@ -38,7 +29,8 @@ interface ChatComposerProps {
 }
 
 const ChatComposer: React.FC<ChatComposerProps> = ({
-  status,
+  isLoading,
+  isStreaming,
   onSendMessage,
   onStop,
   onNewChat,
@@ -63,14 +55,6 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
 
-  // Clear the prompt and files when disconnected
-  useEffect(() => {
-    if (status === "disconnected" || status === "connecting") {
-      setPrompt("");
-      clearFiles();
-    }
-  }, [status, clearFiles]);
-
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       setPrompt(event.target.value);
@@ -79,13 +63,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   );
 
   const handleSend = useCallback(() => {
-    if (
-      status !== "loading" &&
-      status !== "streaming" &&
-      status !== "disconnected" &&
-      status !== "connecting" &&
-      prompt.length > 0
-    ) {
+    if (!isLoading && !isStreaming && prompt.length > 0) {
       const content: MessageContent[] = [
         {
           type: "text",
@@ -104,37 +82,28 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
         textareaRef.current?.focus();
       });
     }
-  }, [status, prompt, getFileContents, onSendMessage, clearFiles, agentMode]);
+  }, [isLoading, isStreaming, prompt, getFileContents, onSendMessage, clearFiles, agentMode]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter") {
         if (shiftKeyPressed) {
           // Allow default behavior (newline insertion)
-          // We don't call e.preventDefault() here
-          // We also don't need to manually setPrompt or manage cursor
           return;
         }
         // For Enter without Shift (and without Meta/Alt), send the message
         if (!metaKeyPressed && !altKeyPressed) {
-          e.preventDefault(); // Prevent default form submission or newline in some cases
+          e.preventDefault();
           handleSend();
         }
       }
     },
-    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend] // Removed prompt from dependencies
+    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
   );
 
-  const isDisabled =
-    disabled ||
-    status === "loading" ||
-    status === "streaming" ||
-    status === "disconnected" ||
-    status === "connecting";
-
-  // Keep input enabled during generation, but disable when not connected
-  const isInputDisabled =
-    disabled || status === "disconnected" || status === "connecting";
+  const isDisabled = disabled || isLoading || isStreaming;
+  // Input is never disabled - messages are always queued by globalWebSocketManager
+  const isInputDisabled = false;
 
   return (
     <div css={createStyles(theme)} className="chat-composer">
@@ -162,14 +131,11 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             onChange={handleOnChange}
             onKeyDown={handleKeyDown}
             disabled={isInputDisabled}
-            placeholder={
-              status === "disconnected" || status === "connecting"
-                ? "Connection required to send messages..."
-                : "Type your message..."
-            }
+            placeholder="Type your message..."
           />
           <ActionButtons
-            status={status}
+            isLoading={isLoading}
+            isStreaming={isStreaming}
             onSend={handleSend}
             onStop={onStop}
             onNewChat={onNewChat}

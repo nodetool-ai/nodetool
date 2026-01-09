@@ -7,16 +7,9 @@ import {
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { TemporalState } from "zundo";
-import { Box } from "@mui/material";
 import isEqual from "lodash/isEqual";
+import { Box } from "@mui/material";
 
-interface NodeContextValue {
-  store: NodeStore;
-}
-
-// Context wrapper around a NodeStore instance. Components can use the custom
-// hooks below to access node state and actions with equality checks to minimize
-// unnecessary re-renders.
 export const NodeContext = createContext<NodeStore | null>(null);
 
 interface NodeProviderProps {

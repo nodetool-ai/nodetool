@@ -15,7 +15,6 @@ import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
 import TableActions from "./TableActions";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 export type DictDataType = "int" | "string" | "datetime" | "float";
 export type DictTableProps = {
   data: Record<string, any>;

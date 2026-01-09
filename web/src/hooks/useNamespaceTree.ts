@@ -106,7 +106,7 @@ const useNamespaceTree = (): NamespaceTree => {
 
       // Build path in tree
       let current = tree;
-      parts.forEach((part, index) => {
+      parts.forEach((part) => {
         if (!current[part]) {
           const newNode = {
             children: {} as NamespaceTree,

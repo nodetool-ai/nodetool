@@ -6,7 +6,7 @@ import { IconButton, CircularProgress, Tooltip } from "@mui/material";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
-const styles = (theme: Theme, isRunning: boolean) =>
+const styles = (theme: Theme, _isRunning: boolean) =>
   css({
     "&.run-button": {
       width: 28,

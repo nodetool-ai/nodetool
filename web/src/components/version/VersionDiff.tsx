@@ -28,7 +28,6 @@ import {
   LinkOff as LinkOffIcon
 } from "@mui/icons-material";
 import { GraphDiff, NodeChange, PropertyChange } from "../../utils/graphDiff";
-import { Node, Edge } from "../../stores/ApiTypes";
 
 interface VersionDiffProps {
   diff: GraphDiff;

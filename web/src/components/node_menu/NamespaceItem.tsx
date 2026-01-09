@@ -3,7 +3,6 @@ import { ListItem } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
-import isEqual from "lodash/isEqual";
 
 interface NamespaceItemProps {
   namespace: string;

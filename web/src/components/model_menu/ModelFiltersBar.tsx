@@ -3,25 +3,26 @@ import { css } from "@emotion/react";
 import React from "react";
 import {
   Box,
-  Tooltip,
-  IconButton,
-  Button,
   Menu,
   MenuItem,
   Checkbox,
-  ListItemText
+  ListItemText,
+  Tooltip,
+  IconButton
 } from "@mui/material";
+import CategoryIcon from "@mui/icons-material/Category";
+import StraightenIcon from "@mui/icons-material/Straighten";
 import useModelFiltersStore, {
   SizeBucket,
   TypeTag
 } from "../../stores/ModelFiltersStore";
-import ClearAllIcon from "@mui/icons-material/Backspace";
+
 
 const barStyles = css({
   display: "flex",
-  gap: 8,
+  gap: 0,
   alignItems: "center",
-  flexWrap: "wrap"
+  flexWrap: "nowrap"
 });
 
 const typeOptions: TypeTag[] = [
@@ -44,43 +45,36 @@ const sizeOptions: SizeBucket[] = [
 ];
 
 interface ModelFiltersBarProps {
-  familiesList?: string[];
   quantList?: string[];
 }
 
-const ModelFiltersBar: React.FC<ModelFiltersBarProps> = ({
-  familiesList = []
-}) => {
+const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
   const {
     selectedTypes,
     sizeBucket,
-    families,
     toggleType,
-    setSizeBucket,
-    toggleFamily,
-    clearAll
+    setSizeBucket
   } = useModelFiltersStore();
 
   // Local anchors for persistent menus
   const [typeAnchor, setTypeAnchor] = React.useState<null | HTMLElement>(null);
   const [sizeAnchor, setSizeAnchor] = React.useState<null | HTMLElement>(null);
-  const [familyAnchor, setFamilyAnchor] = React.useState<null | HTMLElement>(
-    null
-  );
+
   const openType = Boolean(typeAnchor);
   const openSize = Boolean(sizeAnchor);
-  const openFamily = Boolean(familyAnchor);
 
   return (
     <Box css={barStyles} className="model-menu__filters-bar">
       {/* Type dropdown (multi) */}
-      <Button
-        size="small"
-        variant="outlined"
-        onClick={(e) => setTypeAnchor(e.currentTarget)}
-      >
-        {selectedTypes.length ? `Type (${selectedTypes.length})` : "Type"}
-      </Button>
+      <Tooltip title={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by Type"}>
+        <IconButton
+          onClick={(e) => setTypeAnchor(e.currentTarget)}
+          size="small"
+          color={selectedTypes.length || openType ? "primary" : "default"}
+        >
+          <CategoryIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
       <Menu
         anchorEl={typeAnchor}
         open={openType}
@@ -102,13 +96,15 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = ({
       </Menu>
 
       {/* Size dropdown (single) */}
-      <Button
-        size="small"
-        variant="outlined"
-        onClick={(e) => setSizeAnchor(e.currentTarget)}
-      >
-        {sizeBucket ? `Size (${sizeBucket})` : "Size"}
-      </Button>
+      <Tooltip title={sizeBucket ? `Size: ${sizeBucket}` : "Filter by Size"}>
+        <IconButton
+          onClick={(e) => setSizeAnchor(e.currentTarget)}
+          size="small"
+          color={sizeBucket || openSize ? "primary" : "default"}
+        >
+          <StraightenIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
       <Menu
         anchorEl={sizeAnchor}
         open={openSize}
@@ -137,41 +133,6 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = ({
         ))}
       </Menu>
 
-      {/* Family dropdown (multi) */}
-      <Button
-        size="small"
-        variant="outlined"
-        onClick={(e) => setFamilyAnchor(e.currentTarget)}
-      >
-        {families.length ? `Family (${families.length})` : "Family"}
-      </Button>
-      <Menu
-        anchorEl={familyAnchor}
-        open={openFamily}
-        onClose={() => setFamilyAnchor(null)}
-        keepMounted
-      >
-        {familiesList.map((f) => (
-          <MenuItem
-            key={f}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFamily(f);
-            }}
-          >
-            <Checkbox size="small" checked={families.includes(f)} />
-            <ListItemText primary={f} />
-          </MenuItem>
-        ))}
-      </Menu>
-
-      <Tooltip title="Clear all filters">
-        <span>
-          <IconButton size="small" onClick={clearAll}>
-            <ClearAllIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
     </Box>
   );
 };

@@ -22,15 +22,15 @@ import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 interface ChatThreadViewProps {
   messages: Message[];
   status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "streaming"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
   progress: number;
   total: number;
   progressMessage: string | null;
@@ -53,6 +53,7 @@ interface MemoizedMessageListContentProps
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
   bottomRef: React.RefObject<HTMLDivElement>;
+  lastUserMessageRef: React.RefObject<HTMLDivElement>;
   componentStyles: ReturnType<typeof createStyles>;
   toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
   theme: Theme;
@@ -73,6 +74,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     expandedThoughts,
     onToggleThought,
     bottomRef,
+    lastUserMessageRef,
     componentStyles,
     onInsertCode,
     toolResultsByCallId,
@@ -84,7 +86,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     const executionMessagesById = useMemo(() => {
       const map = new Map<string, Message[]>();
       for (const msg of messages) {
-        if (msg.role !== "agent_execution" || !msg.agent_execution_id) {continue;}
+        if (msg.role !== "agent_execution" || !msg.agent_execution_id) { continue; }
         const list = map.get(msg.agent_execution_id) || [];
         list.push(msg);
         map.set(msg.agent_execution_id, list);
@@ -92,15 +94,19 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
       return map;
     }, [messages]);
 
+    // Memoize filtered messages and last user message index to avoid recalculations on each render
+    const { filteredMessages, lastUserMessageIndex } = useMemo(() => {
+      const filtered = messages.filter((m) => m.role !== "tool");
+      const lastUserIdx = filtered.reduce(
+        (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
+        -1
+      );
+      return { filteredMessages: filtered, lastUserMessageIndex: lastUserIdx };
+    }, [messages]);
+
     return (
       <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
-        {messages
-          .filter((m) => {
-            // Keep user, assistant, and agent_execution messages.
-            // Only hide 'tool' role messages (raw technical output) as they are rendered 
-            // inside the assistant's ToolCallCard or handled via toolResultsByCallId.
-            return m.role !== "tool";
-          })
+        {filteredMessages
           .map((msg, index) => {
             if (msg.role === "agent_execution" && msg.agent_execution_id) {
               const executionMessages =
@@ -109,9 +115,12 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
                 return null;
               }
             }
-            return (
+            const isLastUserMessage = index === lastUserMessageIndex;
+            // Use message id as key, with fallback to index-based key for rare cases where id is missing
+            const messageKey = msg.id || `msg-${index}`;
+            const messageElement = (
               <MessageView
-                key={msg.id || `msg-${index}`}
+                key={messageKey}
                 message={msg}
                 expandedThoughts={expandedThoughts}
                 onToggleThought={onToggleThought}
@@ -121,6 +130,15 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
                 executionMessagesById={executionMessagesById}
               />
             );
+            // Wrap the last user message in a div with ref for scroll-to-top behavior
+            if (isLastUserMessage) {
+              return (
+                <div key={`wrapper-${messageKey}`} ref={lastUserMessageRef}>
+                  {messageElement}
+                </div>
+              );
+            }
+            return messageElement;
           })}
         {status === "loading" && progress === 0 && !hasAgentExecutionMessages && (
           <li key="loading-indicator" className="chat-message-list-item">
@@ -161,42 +179,51 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
         )}
         {!hasAgentExecutionMessages && currentLogUpdate && (
           <li key="log-update" className="chat-message-list-item">
-             <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
-                <div style={{ 
-                  position: "absolute",
-                  left: "4px",
-                  top: "10px",
-                  bottom: "10px",
-                  width: "2px",
-                  background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
-                  borderRadius: "1px"
-                }} />
-                <div style={{ 
-                  position: "absolute",
-                  left: "-21px",
-                  top: "12px",
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  backgroundColor: theme.vars.palette.primary.main,
-                  border: `2px solid ${theme.vars.palette.background.default}`,
-                  boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
-                  zIndex: 2
-                }} />
-                <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
-                  fontSize: "0.8rem",
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "8px",
-                  backgroundColor: "rgba(30, 35, 40, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
-                }}>
-                  {currentLogUpdate.content}
-                </div>
+            <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+              <div style={{
+                position: "absolute",
+                left: "4px",
+                top: "10px",
+                bottom: "10px",
+                width: "2px",
+                background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
+                borderRadius: "1px"
+              }} />
+              <div style={{
+                position: "absolute",
+                left: "-21px",
+                top: "12px",
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: theme.vars.palette.primary.main,
+                border: `2px solid ${theme.vars.palette.background.default}`,
+                boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
+                zIndex: 2
+              }} />
+              <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
+                fontSize: "0.8rem",
+                padding: "0.5rem 0.75rem",
+                borderRadius: "8px",
+                backgroundColor: "rgba(30, 35, 40, 0.4)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
+              }}>
+                {currentLogUpdate.content}
+              </div>
             </div>
           </li>
         )}
         <div ref={bottomRef} style={{ height: 1 }} />
+        {/* Spacer to allow scrolling the last user message to the top of the viewport */}
+        <div
+          className="scroll-spacer"
+          style={{
+            height: 'calc(100vh - 200px)',
+            minHeight: '400px',
+            flexShrink: 0
+          }}
+        />
       </ul>
     );
   }
@@ -220,6 +247,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const theme = useTheme();
   const internalScrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
@@ -267,7 +295,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const handleScroll = useCallback(() => {
     lastUserScrollTimeRef.current = Date.now();
     const element = scrollHost;
-    if (!element) {return;}
+    if (!element) { return; }
 
     const calculatedIsNearBottom =
       element.scrollHeight - element.scrollTop - element.clientHeight <
@@ -308,10 +336,19 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     }
   }, []);
 
+  // Scroll to align the last user message at the top of the viewport
+  const scrollToLastUserMessage = useCallback(() => {
+    const el = lastUserMessageRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      userHasScrolledUpRef.current = false;
+    }
+  }, []);
+
   useEffect(() => {
     const scrollElement = scrollHost;
     const bottomElement = bottomRef.current;
-    if (!scrollElement || !bottomElement) {return;}
+    if (!scrollElement || !bottomElement) { return; }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -351,9 +388,9 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const lastMessage =
       messages.length > 0 ? messages[messages.length - 1] : null;
     if (lastMessage?.role === "user") {
-      scrollToBottom();
+      scrollToLastUserMessage();
     }
-  }, [messages, scrollToBottom]);
+  }, [messages, scrollToLastUserMessage]);
 
   useEffect(() => {
     if (autoScrollTimeoutRef.current) {
@@ -416,6 +453,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           expandedThoughts={expandedThoughts}
           onToggleThought={handleToggleThought}
           bottomRef={bottomRef}
+          lastUserMessageRef={lastUserMessageRef}
           componentStyles={componentStyles}
           onInsertCode={onInsertCode}
           toolResultsByCallId={toolResultsByCallId}

@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
@@ -10,12 +8,11 @@ import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
 import isEqual from "lodash/isEqual";
 import { Button } from "@mui/material";
-import { useState } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     "& .property-label": {
       marginBottom: "5px"
@@ -35,7 +32,6 @@ const AudioProperty = (props: PropertyProps) => {
     props.nodeType === "nodetool.input.AudioInput" ||
     props.nodeType === "nodetool.constant.Audio";
   const isRealtime = props.nodeType === "nodetool.input.RealtimeAudioInput";
-  const theme = useTheme();
   const { findNode } = useNodes((state) => ({ findNode: state.findNode }));
   const rfNode = findNode(props.nodeId);
   const inputNodeName = (rfNode?.data as any)?.properties?.name as
@@ -46,7 +42,7 @@ const AudioProperty = (props: PropertyProps) => {
 
   // Visualizer moved to AudioVisualizer component
   return (
-    <div className="audio-property" css={styles(theme)}>
+    <div className="audio-property" css={styles()}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

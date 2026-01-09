@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";
-import { components } from "../api";
 import { SecretResponse } from "./ApiTypes";
 
 interface SecretsStore {

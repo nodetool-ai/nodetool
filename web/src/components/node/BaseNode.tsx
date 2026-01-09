@@ -45,7 +45,7 @@ const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-const isProduction = process.env.NODE_ENV === "production";
+import { isProduction } from "../../stores/ApiClient";
 
 const resizer = (
   <div className="node-resizer">
@@ -163,7 +163,7 @@ const getStyleProps = (
       .replace(/\s+/g, " ")
       .trim(),
     minHeight: metadata
-      ? BASE_HEIGHT + (metadata.outputs?.length || 0) * INCREMENT_PER_OUTPUT
+      ? BASE_HEIGHT + (metadata.outputs?.length ?? 0) * INCREMENT_PER_OUTPUT
       : BASE_HEIGHT
   };
 };
@@ -278,8 +278,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       nodeNamespace: metadata.namespace || "",
       nodeBasicFields: metadata.basic_fields || [],
       hasAdvancedFields:
-        (metadata.properties?.length || 0) >
-        (metadata.basic_fields?.length || 0),
+        (metadata.properties?.length ?? 0) >
+        (metadata.basic_fields?.length ?? 0),
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
   }, [
@@ -386,7 +386,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         }),
         boxShadow: selected
           ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
-          : `0 4px 20px rgba(0, 0, 0, 0.1)`,
+          : "none",
         backgroundColor:
           hasParent && !isLoading
             ? parentColor
@@ -456,6 +456,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeType={type}
           data={data}
           workflowId={workflow_id}
+          status={status}
         />
       )}
 

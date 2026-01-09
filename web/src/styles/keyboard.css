@@ -33,7 +33,7 @@
   font-size: var(--fontSizeBig);
 }
 .hg-theme-default .has-shortcut.hg-pressed {
-  color:white !important;
+  color: var(--palette-grey-0) !important;
 }
 .hg-theme-default .hg-button.has-shortcut-inactive {
   background: var(--palette-grey-700);

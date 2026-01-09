@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Chunk } from "../../stores/ApiTypes";
 import {
   base64ToUint8Array,

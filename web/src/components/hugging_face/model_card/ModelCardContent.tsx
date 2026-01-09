@@ -10,7 +10,6 @@ import {
 import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import ReadmeDialog from "../ReadmeDialog";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 

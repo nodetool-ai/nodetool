@@ -5,11 +5,9 @@ import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import LaunchIcon from "@mui/icons-material/Launch";
 import { Workflow } from "../../stores/ApiTypes";
-import { relativeTime } from "../../utils/formatDateAndTime";
 import isEqual from "lodash/isEqual";
-import { escapeHtml } from "../../utils/highlightText";
+import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -37,9 +35,6 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   onDelete,
   onEdit
 }: WorkflowListItemProps) => {
-  const addBreaks = (text: string) => {
-    return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
-  };
 
   return (
     <Box
@@ -70,19 +65,17 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           }}
         />
       )}
-      <div
-        className="name"
-        dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-      ></div>
-      <div className="date">
-        <Typography
-          data-microtip-position="top"
-          aria-label="Last modified"
-          role="tooltip"
-        >
-          {relativeTime(workflow.updated_at)} <br />
+      <Box className="preview-container" sx={{ flexGrow: 1, width: "100%", mr: 0 }}>
+        <WorkflowMiniPreview
+          workflow={workflow}
+          width="100%"
+          height={100}
+          label={workflow.name}
+        />
+        <Typography className="name">
+          {workflow.name}
         </Typography>
-      </div>
+      </Box>
       <div className="actions">
         <Button
           size="small"
