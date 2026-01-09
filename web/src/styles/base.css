@@ -133,22 +133,22 @@ kbd {
 /* Status message animations */
 @keyframes status-color-cycle {
   0% {
-    color: #ff6b3d;
+    color: var(--palette-error-main);
   }
   20% {
-    color: #ffd700;
+    color: var(--palette-warning-main);
   }
   40% {
-    color: #9acd32;
+    color: var(--palette-success-light);
   }
   60% {
-    color: #40e0d0;
+    color: var(--palette-info-light);
   }
   80% {
-    color: #48d1ff;
+    color: var(--palette-primary-light);
   }
   100% {
-    color: #9370db;
+    color: var(--palette-secondary-main);
   }
 }
 
@@ -166,7 +166,7 @@ kbd {
 .status-message {
   display: inline-block;
   padding: 4px 8px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px var(--palette-grey-1000);
 }
 
 .status-message.animating {

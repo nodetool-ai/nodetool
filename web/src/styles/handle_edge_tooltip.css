@@ -58,7 +58,7 @@
   color: var(--palette-grey-1000);
 }
 
-/* CONNECTABLE  */
+/* CONNECTABLE */
 .react-flow.is-connecting .react-flow__node .react-flow__handle {
   cursor: none !important;
 }
@@ -147,7 +147,7 @@
 
 .react-flow__edge .react-flow__edge-text {
   visibility: visible !important;
-  fill: #000;
+  fill: var(--palette-grey-1000);
   font-size: var(--fontSizeTinyer);
   transition: all 0.2s;
 }
@@ -306,8 +306,8 @@ ul.multi-outputs li::marker {
   font-size: var(--fontSizeNormal);
   font-weight: bold;
   border: 0;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
-  background-color: rgba(0, 0, 0, 0.1);
+  text-shadow: 0 0 3px var(--palette-grey-1000);
+  background-color: var(--palette-grey-900);
   border-radius: 0.4em;
   width: 100%;
   padding: 0.25em 0.5em;
