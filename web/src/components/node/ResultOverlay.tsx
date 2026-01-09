@@ -29,7 +29,9 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         display: "flex",
         flexDirection: "column",
         width: "100%",
+        height: "100%",
         minHeight: "60px",
+        minWidth: 0,
         flex: 1,
         "&:hover .show-inputs-button": {
           opacity: 1,
@@ -81,6 +83,9 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         className="result-overlay-content"
         sx={{
           width: "100%",
+          height: "100%",
+          minHeight: 0,
+          minWidth: 0,
           flex: 1,
           display: "flex",
           flexDirection: "column",

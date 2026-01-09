@@ -36,8 +36,10 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
+import NodeResizeHandle from "./NodeResizeHandle";
 
 import { getIsElectronDetails } from "../../utils/browser";
+import { Box } from "@mui/material";
 
 
 // Node sizing constants
@@ -325,6 +327,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
   const isEmptyResult = (obj: any) => obj && typeof obj === "object" && Object.keys(obj).length === 0;
   const isOverlayVisible = showResultOverlay && result && !isEmptyResult(result);
+  const hasToggleableResult =
+    !nodeType.isOutputNode && !nodeType.isConstantNode && result && !isEmptyResult(result);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>
@@ -377,6 +381,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       className={styleProps.className}
       sx={{
         display: "flex",
+        // Important for resizable nodes:
+        // ReactFlow applies width/height to the wrapper. Ensure our visual container
+        // stretches to match so vertical resizing is visible.
+        height: "100%",
         minHeight: styleProps.minHeight,
         border: isLoading
           ? "none"
@@ -399,10 +407,26 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
         borderRadius: "var(--rounded-node)",
         // dynamic node color
-        "--node-primary-color": baseColor || "var(--palette-primary-main)"
+        "--node-primary-color": baseColor || "var(--palette-primary-main)",
+        ...(hasToggleableResult
+          ? {
+              // Match PreviewNode behavior: show the corner resize handle on hover
+              "& .react-flow__resize-control.nodrag.bottom.right.handle": {
+                opacity: 0,
+                position: "absolute",
+                right: "-8px",
+                bottom: "-9px",
+                transition: "opacity 0.2s"
+              },
+              "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
+                opacity: 1
+              }
+            }
+          : {})
       }}
     >
       {selected && <Toolbar id={id} selected={selected} />}
+      {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />}
       <NodeHeader
         id={id}
         selected={selected}
@@ -420,26 +444,30 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
       <InputNodeNameWarning nodeType={type} name={data.properties?.name} />
-      <NodeContent
-        id={id}
-        nodeType={type}
-        nodeMetadata={metadata}
-        isConstantNode={nodeType.isConstantNode}
-        isOutputNode={nodeType.isOutputNode}
-        data={data}
-        hasAdvancedFields={meta.hasAdvancedFields}
-        showAdvancedFields={showAdvancedFields}
-        onToggleAdvancedFields={onToggleAdvancedFields}
-        basicFields={meta.nodeBasicFields}
-        status={status}
-        workflowId={workflow_id}
-        showResultOverlay={showResultOverlay}
-        result={result}
-        onShowInputs={handleShowInputs}
-        onShowResults={handleShowResults}
-      />
+      <Box sx={{ flex: "1 1 auto", minHeight: 0, width: "100%" }}>
+        <NodeContent
+          id={id}
+          nodeType={type}
+          nodeMetadata={metadata}
+          isConstantNode={nodeType.isConstantNode}
+          isOutputNode={nodeType.isOutputNode}
+          data={data}
+          hasAdvancedFields={meta.hasAdvancedFields}
+          showAdvancedFields={showAdvancedFields}
+          onToggleAdvancedFields={onToggleAdvancedFields}
+          basicFields={meta.nodeBasicFields}
+          status={status}
+          workflowId={workflow_id}
+          showResultOverlay={showResultOverlay}
+          result={result}
+          onShowInputs={handleShowInputs}
+          onShowResults={handleShowResults}
+        />
+      </Box>
 
-      {selected && resizer}
+      {/* Default behavior: width-only resize for regular nodes.
+          If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}
+      {selected && !hasToggleableResult && resizer}
       {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
