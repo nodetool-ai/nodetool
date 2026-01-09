@@ -140,10 +140,6 @@ const mockTheme = createTheme({
       warningOutlinedBorder: "rgba(255, 152, 0, 0.5)",
       warningTextColor: "#ff9800"
     },
-    // Add glass effect for ResultOverlay component
-    glass: {
-      blur: "blur(12px)"
-    },
     // Add Button palette for MUI v7 Button component
     Button: {
       inheritContainedBg: "rgba(255, 255, 255, 0.08)",
