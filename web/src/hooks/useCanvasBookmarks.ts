@@ -44,7 +44,7 @@ export const useCanvasBookmarks = (): UseCanvasBookmarksReturn => {
   const workflowId = currentWorkflow?.id || "";
 
   const workflowBookmarks = useMemo(() => {
-    if (!workflowId) return [];
+    if (!workflowId) {return [];}
     const store = useBookmarkStore.getState();
     return store.getBookmarks(workflowId);
   }, [workflowId]);
@@ -76,7 +76,7 @@ export const useCanvasBookmarks = (): UseCanvasBookmarksReturn => {
 
   const handleRemoveBookmark = useCallback(
     (bookmarkId: string) => {
-      if (!workflowId) return;
+      if (!workflowId) {return;}
 
       const currentBookmarks = getBookmarks(workflowId);
       const bookmark = currentBookmarks.find((b) => b.id === bookmarkId);
@@ -96,7 +96,7 @@ export const useCanvasBookmarks = (): UseCanvasBookmarksReturn => {
       bookmarkId: string,
       updates: Partial<Pick<CanvasBookmark, "name" | "viewport">>
     ) => {
-      if (!workflowId) return;
+      if (!workflowId) {return;}
       storeUpdateBookmark(workflowId, bookmarkId, updates);
     },
     [workflowId, storeUpdateBookmark]
@@ -123,7 +123,7 @@ export const useCanvasBookmarks = (): UseCanvasBookmarksReturn => {
 
   const handleSaveBookmarkPosition = useCallback(
     (bookmarkId: string) => {
-      if (!workflowId) return;
+      if (!workflowId) {return;}
 
       const viewport = getViewport();
       storeUpdateBookmark(workflowId, bookmarkId, { viewport });
@@ -140,7 +140,7 @@ export const useCanvasBookmarks = (): UseCanvasBookmarksReturn => {
   );
 
   const handleClearAllBookmarks = useCallback(() => {
-    if (!workflowId) return;
+    if (!workflowId) {return;}
     storeClearBookmarks(workflowId);
 
     addNotification({
