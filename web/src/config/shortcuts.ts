@@ -524,7 +524,17 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "workflow" as const,
     description: `Activate workflow tab ${n}`,
     registerCombo: true
-  }))
+  })),
+
+  // ---------- FIND IN WORKFLOW ---------------------------------------------
+  {
+    title: "Find in Workflow",
+    slug: "findInWorkflow",
+    keyCombo: ["Control", "F"],
+    category: "editor" as const,
+    description: "Find and navigate to nodes in the current workflow",
+    registerCombo: true
+  }
 ] as Shortcut[];
 
 /**
