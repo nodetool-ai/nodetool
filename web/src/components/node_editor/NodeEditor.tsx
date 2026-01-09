@@ -40,7 +40,8 @@ import CommandMenu from "../menus/CommandMenu";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
-import type React from "react";
+import BookmarkPanel from "../panels/BookmarkPanel";
+import { useBookmarkShortcuts } from "../../hooks/useBookmarkShortcuts";
 
 declare global {
   interface Window {
@@ -83,6 +84,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     true,
     active
   );
+
+  // Bookmark shortcuts
+  const {
+    newBookmarkDialogOpen,
+    newBookmarkName,
+    setNewBookmarkName,
+    handleConfirmAddBookmark,
+    handleCancelAddBookmark,
+    handleKeyDown,
+    registerShortcuts,
+  } = useBookmarkShortcuts(active);
+
+  // Register bookmark shortcuts
+  useEffect(() => {
+    const unregister = registerShortcuts();
+    return unregister;
+  }, [registerShortcuts]);
 
   // OPEN NODE MENU
   const {
@@ -212,6 +230,41 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Add Bookmark Dialog */}
+      <Dialog
+        open={newBookmarkDialogOpen}
+        onClose={handleCancelAddBookmark}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Bookmark</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Bookmark Name"
+            fullWidth
+            variant="outlined"
+            value={newBookmarkName}
+            onChange={(e) => setNewBookmarkName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g., Input Nodes, Output Preview"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelAddBookmark}>Cancel</Button>
+          <Button
+            onClick={handleConfirmAddBookmark}
+            variant="contained"
+            disabled={!newBookmarkName.trim()}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <BookmarkPanel />
     </>
   );
 };

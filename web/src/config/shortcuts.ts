@@ -524,7 +524,25 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "workflow" as const,
     description: `Activate workflow tab ${n}`,
     registerCombo: true
-  }))
+  })),
+
+  // ---------- BOOKMARKS ----------------------------------------------------
+  {
+    title: "Toggle Bookmarks Panel",
+    slug: "toggleBookmarks",
+    keyCombo: ["Control", "B"],
+    category: "panel" as const,
+    description: "Show or hide the bookmarks panel",
+    registerCombo: true
+  },
+  {
+    title: "Add Bookmark",
+    slug: "addBookmark",
+    keyCombo: ["Control", "Shift", "B"],
+    category: "panel" as const,
+    description: "Save current view as a bookmark",
+    registerCombo: true
+  }
 ] as Shortcut[];
 
 /**
