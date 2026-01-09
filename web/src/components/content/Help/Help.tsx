@@ -21,7 +21,8 @@ import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import {
   NODE_EDITOR_SHORTCUTS,
   SHORTCUT_CATEGORIES,
-  Shortcut
+  Shortcut,
+  mapKeyForMac
 } from "../../../config/shortcuts";
 import { isMac as checkIsMac } from "../../../utils/platform";
 
