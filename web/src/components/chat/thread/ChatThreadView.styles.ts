@@ -18,7 +18,7 @@ export const createStyles = (theme: Theme) => ({
     justifyContent: "flex-start",
     alignItems: "center",
     overflowY: "auto",
-    padding: "0 .5em",
+    padding: "2em .5em",
     marginTop: ".2em",
     position: "relative",
 
