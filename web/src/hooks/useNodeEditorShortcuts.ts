@@ -346,7 +346,7 @@ export const useNodeEditorShortcuts = (
   const handleMoveNodes = useCallback(
     (direction: { x?: number; y?: number }) => {
       if (selectedNodes.length > 0) {
-        const updatedNodes = selectedNodes.map((node) => ({
+        selectedNodes.map((node) => ({
           ...node,
           position: {
             x: node.position.x + (direction.x || 0),
