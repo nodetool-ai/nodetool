@@ -17,6 +17,7 @@ import {
 import { ComponentRenderer } from "./ComponentRenderer";
 import { useWysiwygEditorStore, useWysiwygHistory } from "../hooks/useWysiwygEditorStore";
 import { countNodes } from "../utils/schemaUtils";
+import type { MuiComponentType } from "../types";
 
 /**
  * Zoom levels
@@ -37,11 +38,18 @@ export const Canvas: React.FC = () => {
     setHoveredNode,
     setEditing,
     updateNode,
+    setDragging,
   } = useWysiwygEditorStore();
 
   const { undo, redo, canUndo, canRedo } = useWysiwygHistory();
 
   const [zoom, setZoom] = React.useState(DEFAULT_ZOOM);
+
+  // Debug: log schema changes
+  React.useEffect(() => {
+    console.log("[Canvas] Schema updated, root children count:", schema.root.children?.length ?? 0);
+    console.log("[Canvas] Root node:", schema.root);
+  }, [schema]);
 
   // Handle click on a node
   const handleNodeClick = useCallback(
@@ -89,6 +97,40 @@ export const Canvas: React.FC = () => {
     selectNode(null);
     setEditing(false);
   }, [selectNode, setEditing]);
+
+  // Drag-and-drop handlers for components from the palette
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    // Check if this is a component drag
+    if (e.dataTransfer.types.includes("application/wysiwyg-component")) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const componentType = e.dataTransfer.getData("application/wysiwyg-component");
+      console.log("[Canvas] handleDrop called, componentType:", componentType);
+      if (componentType) {
+        // Get the CURRENT state directly from the store to avoid stale closures
+        const currentState = useWysiwygEditorStore.getState();
+        const parentId = currentState.selectedNodeId || currentState.schema.root.id;
+        console.log("[Canvas] Adding node to parent:", parentId, "(current root:", currentState.schema.root.id, ")");
+        const newNodeId = currentState.addNode(parentId, componentType as MuiComponentType);
+        console.log("[Canvas] New node created:", newNodeId);
+      }
+      setDragging(false);
+    },
+    [setDragging]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    console.log("[Canvas] handleDragEnd called");
+    setDragging(false);
+  }, [setDragging]);
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -196,6 +238,9 @@ export const Canvas: React.FC = () => {
             theme.palette.mode === "dark" ? "grey.900" : "grey.100",
         }}
         onClick={handleCanvasClick}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onDragEnd={handleDragEnd}
       >
         {/* Canvas wrapper for zoom */}
         <Box

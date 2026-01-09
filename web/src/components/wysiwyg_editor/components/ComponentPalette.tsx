@@ -104,6 +104,7 @@ const ComponentButton: React.FC<ComponentButtonProps> = ({ type, onAdd, onDragSt
   const IconComponent = componentIcons[type] || BoxIcon;
 
   const handleDragStart = (e: React.DragEvent) => {
+    console.log("[ComponentPalette] dragStart, type:", type);
     e.dataTransfer.setData("application/wysiwyg-component", type);
     e.dataTransfer.effectAllowed = "copy";
     onDragStart(type, e);
