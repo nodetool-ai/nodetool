@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import useSecretsStore from "../SecretsStore";
 import * as ApiClient from "../ApiClient";
 
@@ -101,7 +101,7 @@ describe("SecretsStore", () => {
       await act(async () => {
         try {
           await result.current.fetchSecrets();
-        } catch (error) {
+        } catch (_) {
           // Error is expected
         }
       });
@@ -186,7 +186,7 @@ describe("SecretsStore", () => {
       await act(async () => {
         try {
           await result.current.updateSecret("NONEXISTENT_KEY", "value");
-        } catch (error) {
+        } catch (_) {
           // Error is expected
         }
       });
@@ -251,7 +251,7 @@ describe("SecretsStore", () => {
       await act(async () => {
         try {
           await result.current.deleteSecret("NONEXISTENT_KEY");
-        } catch (error) {
+        } catch (_) {
           // Error is expected
         }
       });
@@ -311,7 +311,7 @@ describe("SecretsStore", () => {
       await act(async () => {
         try {
           await result.current.updateSecret("OPENAI_API_KEY", "new_value");
-        } catch (error) {
+        } catch (_) {
           // Error is expected
         }
       });
