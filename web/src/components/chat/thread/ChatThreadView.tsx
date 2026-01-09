@@ -22,15 +22,15 @@ import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 interface ChatThreadViewProps {
   messages: Message[];
   status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "streaming"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
   progress: number;
   total: number;
   progressMessage: string | null;
@@ -86,7 +86,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     const executionMessagesById = useMemo(() => {
       const map = new Map<string, Message[]>();
       for (const msg of messages) {
-        if (msg.role !== "agent_execution" || !msg.agent_execution_id) {continue;}
+        if (msg.role !== "agent_execution" || !msg.agent_execution_id) { continue; }
         const list = map.get(msg.agent_execution_id) || [];
         list.push(msg);
         map.set(msg.agent_execution_id, list);
@@ -179,42 +179,51 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
         )}
         {!hasAgentExecutionMessages && currentLogUpdate && (
           <li key="log-update" className="chat-message-list-item">
-             <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
-                <div style={{ 
-                  position: "absolute",
-                  left: "4px",
-                  top: "10px",
-                  bottom: "10px",
-                  width: "2px",
-                  background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
-                  borderRadius: "1px"
-                }} />
-                <div style={{ 
-                  position: "absolute",
-                  left: "-21px",
-                  top: "12px",
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  backgroundColor: theme.vars.palette.primary.main,
-                  border: `2px solid ${theme.vars.palette.background.default}`,
-                  boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
-                  zIndex: 2
-                }} />
-                <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
-                  fontSize: "0.8rem",
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "8px",
-                  backgroundColor: "rgba(30, 35, 40, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
-                }}>
-                  {currentLogUpdate.content}
-                </div>
+            <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+              <div style={{
+                position: "absolute",
+                left: "4px",
+                top: "10px",
+                bottom: "10px",
+                width: "2px",
+                background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
+                borderRadius: "1px"
+              }} />
+              <div style={{
+                position: "absolute",
+                left: "-21px",
+                top: "12px",
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: theme.vars.palette.primary.main,
+                border: `2px solid ${theme.vars.palette.background.default}`,
+                boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
+                zIndex: 2
+              }} />
+              <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
+                fontSize: "0.8rem",
+                padding: "0.5rem 0.75rem",
+                borderRadius: "8px",
+                backgroundColor: "rgba(30, 35, 40, 0.4)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
+              }}>
+                {currentLogUpdate.content}
+              </div>
             </div>
           </li>
         )}
         <div ref={bottomRef} style={{ height: 1 }} />
+        {/* Spacer to allow scrolling the last user message to the top of the viewport */}
+        <div
+          className="scroll-spacer"
+          style={{
+            height: 'calc(100vh - 200px)',
+            minHeight: '400px',
+            flexShrink: 0
+          }}
+        />
       </ul>
     );
   }
@@ -286,7 +295,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const handleScroll = useCallback(() => {
     lastUserScrollTimeRef.current = Date.now();
     const element = scrollHost;
-    if (!element) {return;}
+    if (!element) { return; }
 
     const calculatedIsNearBottom =
       element.scrollHeight - element.scrollTop - element.clientHeight <
@@ -339,7 +348,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   useEffect(() => {
     const scrollElement = scrollHost;
     const bottomElement = bottomRef.current;
-    if (!scrollElement || !bottomElement) {return;}
+    if (!scrollElement || !bottomElement) { return; }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
