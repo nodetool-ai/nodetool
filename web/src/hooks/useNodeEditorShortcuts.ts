@@ -24,6 +24,9 @@ import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
+import { useFavoriteNodesStore } from "../stores/FavoriteNodesStore";
+import useMetadataStore from "../stores/MetadataStore";
+import { useCreateNode } from "./useCreateNode";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -236,6 +239,41 @@ export const useNodeEditorShortcuts = (
     if (onShowShortcuts) {onShowShortcuts();}
   }, [onShowShortcuts]);
 
+  const { favorites } = useFavoriteNodesStore((state) => ({
+    favorites: state.favorites
+  }));
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const handleCreateNode = useCreateNode();
+
+  const handleAddFavoriteNode = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= favorites.length) {
+        return;
+      }
+      const favorite = favorites[index];
+      if (!favorite) {
+        return;
+      }
+      const metadata = getMetadata(favorite.nodeType);
+      if (!metadata) {
+        addNotification({
+          type: "warning",
+          content: `Unable to find metadata for ${favorite.nodeType}.`,
+          timeout: 4000
+        });
+        return;
+      }
+      handleCreateNode(metadata);
+      const displayName = metadata.title || favorite.nodeType.split(".").pop() || favorite.nodeType;
+      addNotification({
+        type: "info",
+        content: `Added ${displayName} to canvas`,
+        timeout: 2000
+      });
+    },
+    [favorites, getMetadata, handleCreateNode, addNotification]
+  );
+
   const handleMenuEvent = useCallback(
     (data: any) => {
       if (!active) {return;}
@@ -438,6 +476,14 @@ export const useNodeEditorShortcuts = (
         callback: () => handleSwitchToTab(i - 1)
       };
     }
+
+    // Add favorite node (Alt+1 through Alt+9)
+    for (let i = 1; i <= 9; i++) {
+      meta[`addFavorite${i}`] = {
+        callback: () => handleAddFavoriteNode(i - 1)
+      };
+    }
+
     return meta;
   }, [
     handleCopy,
@@ -468,7 +514,8 @@ export const useNodeEditorShortcuts = (
     handleBypassSelected,
     selectConnectedAll,
     selectConnectedInputs,
-    selectConnectedOutputs
+    selectConnectedOutputs,
+    handleAddFavoriteNode
   ]);
 
   // useEffect for shortcut registration

@@ -524,6 +524,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "workflow" as const,
     description: `Activate workflow tab ${n}`,
     registerCombo: true
+  })),
+  // Favorite nodes hotkeys (Alt+1 through Alt+9)
+  ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
+    title: `Add Favorite Node ${n}`,
+    slug: `addFavorite${n}`,
+    keyCombo: ["Alt", `${n}`],
+    category: "editor" as const,
+    description: `Add favorite node ${n} to the canvas`,
+    registerCombo: true
   }))
 ] as Shortcut[];
 
