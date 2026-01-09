@@ -5,9 +5,15 @@ import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
+import {
+  useFavoriteWorkflowActions,
+  useIsWorkflowFavorite
+} from "../../stores/FavoriteWorkflowsStore";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -35,6 +41,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   onDelete,
   onEdit
 }: WorkflowListItemProps) => {
+  const isFavorite = useIsWorkflowFavorite(workflow.id);
+  const { toggleFavorite } = useFavoriteWorkflowActions();
 
   return (
     <Box
@@ -79,6 +87,21 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       <div className="actions">
         <Button
           size="small"
+          className="favorite-button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleFavorite(workflow.id);
+          }}
+          data-microtip-position="bottom"
+          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          role="tooltip"
+          sx={{ color: isFavorite ? "warning.main" : "grey.400" }}
+        >
+          {isFavorite ? <StarIcon /> : <StarBorderIcon />}
+        </Button>
+        <Button
+          size="small"
           className="edit-button"
           onClick={(event) => {
             event.preventDefault();
@@ -96,6 +119,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           className="duplicate-button"
           onClick={(event) => {
             event.preventDefault();
+            event.stopPropagation();
             onDuplicateWorkflow(event, workflow);
           }}
           data-microtip-position="bottom"
