@@ -1,7 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useMemo, useState, useRef } from "react";
+import React, {
+  memo,
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useLayoutEffect
+} from "react";
 import {
   Button,
   Typography,
@@ -10,13 +17,11 @@ import {
   CircularProgress,
   Chip,
   Checkbox,
-  IconButton,
-  Dialog,
-  DialogContent,
-  DialogTitle
+  Popover,
+  PopoverOrigin
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import { AccountTree, Close } from "@mui/icons-material";
+import { AccountTree } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";
 import { useTheme } from "@mui/material/styles";
@@ -24,84 +29,10 @@ import SearchInput from "../../search/SearchInput";
 
 const toolsSelectorStyles = (theme: Theme) =>
   css({
-    ".dialog-title": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      margin: 0,
-      padding: theme.spacing(4, 4),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      h4: {
-        margin: 0,
-        fontSize: (theme as any).fontSizeNormal ?? undefined,
-        fontWeight: 500,
-        color: theme.vars.palette.grey[100]
-      }
-    },
-    ".close-button": {
-      position: "absolute",
-      right: theme.spacing(1),
-      top: theme.spacing(2),
-      color: theme.vars.palette.grey[500]
-    },
-    ".selector-grid": {
-      display: "flex",
-      flexDirection: "row",
-      gap: theme.spacing(2),
-      alignItems: "stretch",
-      height: "65vh"
-    },
-    ".left-pane": {
-      display: "flex",
-      flexDirection: "column",
-      flex: 1,
-      minWidth: 0
-    },
-    ".right-pane": {
-      width: 360,
-      minWidth: 320,
-      maxWidth: 420,
-      borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
-      padding: theme.spacing(0, 1.5, 1.5, 1.5),
-      background: "transparent",
-      position: "sticky",
-      top: 0,
-      alignSelf: "flex-start",
-      height: "100%",
-      overflow: "auto"
-    },
-    ".selector-content": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5em",
-      paddingTop: theme.spacing(1)
-    },
-    ".search-toolbar": {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: "0.5em",
-      minHeight: "40px",
-      flexGrow: 0,
-      overflow: "hidden",
-      width: "60%",
-      margin: 0,
-      padding: ".5em 1em .5em .7em",
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      ".search-input-container": {
-        minWidth: "170px",
-        flex: 1
-      }
-    },
     ".items-container": {
       flex: 1,
       overflow: "auto",
-      padding: "0 1em",
-      height: "100%"
+      padding: "0 8px"
     },
     ".loading-container": {
       display: "flex",
@@ -114,29 +45,29 @@ const toolsSelectorStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "flex-start",
       gap: theme.spacing(1),
-      padding: theme.spacing(1, 1),
+      padding: theme.spacing(0.75, 1),
       borderRadius: 6,
       cursor: "pointer",
       borderLeft: "3px solid transparent",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600]
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&.selected": {
-        backgroundColor: theme.vars.palette.grey[600],
-        borderLeft: `3px solid var(--palette-primary-main)`
+        backgroundColor: theme.vars.palette.action.selected,
+        borderLeft: `3px solid ${theme.vars.palette.primary.main}`
       }
     },
     ".workflow-name": {
-      color: theme.vars.palette.grey[0],
-      fontSize: "0.875rem",
+      color: theme.vars.palette.text.primary,
+      fontSize: "0.8rem",
       display: "block",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     ".workflow-description": {
-      color: theme.vars.palette.grey[200],
-      fontSize: "0.75rem",
+      color: theme.vars.palette.text.secondary,
+      fontSize: "0.7rem",
       marginTop: "2px",
       display: "block",
       overflow: "hidden",
@@ -145,7 +76,7 @@ const toolsSelectorStyles = (theme: Theme) =>
     },
     ".no-tools-message": {
       padding: theme.spacing(4),
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.text.secondary,
       textAlign: "center",
       flex: 1,
       display: "flex",
@@ -225,6 +156,45 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
     setSearchTerm(value);
   }, []);
 
+  // Positioning logic for Popover
+  const [positionConfig, setPositionConfig] = useState<{
+    anchorOrigin: PopoverOrigin;
+    transformOrigin: PopoverOrigin;
+  }>({
+    anchorOrigin: { vertical: "bottom", horizontal: "left" },
+    transformOrigin: { vertical: "top", horizontal: "left" }
+  });
+
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) {
+      return;
+    }
+    const rect = buttonRef.current.getBoundingClientRect();
+    const height = 420;
+    const spaceBelow = window.innerHeight - rect.bottom;
+
+    if (spaceBelow < height && rect.top > height) {
+      setPositionConfig({
+        anchorOrigin: { vertical: "top", horizontal: "left" },
+        transformOrigin: { vertical: "bottom", horizontal: "left" }
+      });
+    } else {
+      setPositionConfig({
+        anchorOrigin: { vertical: "bottom", horizontal: "left" },
+        transformOrigin: { vertical: "top", horizontal: "left" }
+      });
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (isMenuOpen) {
+      updatePosition();
+      setSearchTerm("");
+      window.addEventListener("resize", updatePosition);
+      return () => window.removeEventListener("resize", updatePosition);
+    }
+  }, [isMenuOpen, updatePosition]);
+
   return (
     <>
       <Tooltip
@@ -268,165 +238,183 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
           })}
         />
       </Tooltip>
-      <Dialog
+
+      <Popover
         css={toolsSelectorStyles(theme)}
-        className="workflow-tools-selector-dialog"
         open={isMenuOpen}
+        anchorEl={buttonRef.current}
         onClose={handleClose}
-        aria-labelledby="workflow-tools-selector-title"
+        anchorOrigin={positionConfig.anchorOrigin}
+        transformOrigin={positionConfig.transformOrigin}
         slotProps={{
-          backdrop: {
-            style: { backdropFilter: "blur(20px)" }
+          paper: {
+            elevation: 24,
+            style: {
+              width: "360px",
+              height: "420px",
+              maxHeight: "90vh",
+              maxWidth: "100vw",
+              borderRadius: theme.vars.rounded.dialog,
+              background: theme.vars.palette.background.paper,
+              border: `1px solid ${theme.vars.palette.divider}`,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            }
           }
         }}
-        sx={(theme) => ({
-          "& .MuiDialog-paper": {
-            width: "92%",
-            maxWidth: "1000px",
-            margin: "auto",
-            borderRadius: 1.5,
-            background: "transparent",
-            border: `1px solid ${theme.vars.palette.grey[700]}`
-          }
-        })}
       >
-        <DialogTitle className="dialog-title">
-          <Typography variant="h4" id="workflow-tools-selector-title">
-            Workflow Tools
+        {/* Header with Search */}
+        <Box
+          sx={{
+            p: 1.5,
+            pl: 2,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            flexShrink: 0,
+            background: theme.vars.palette.background.paper
+          }}
+        >
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: theme.vars.palette.text.secondary,
+              fontWeight: 600,
+              fontSize: "0.75rem",
+              textTransform: "uppercase",
+              letterSpacing: 0.5
+            }}
+          >
+            Workflows
           </Typography>
-          <Tooltip title="Close">
-            <IconButton
-              aria-label="close"
-              onClick={handleClose}
-              className="close-button"
-            >
-              <Close />
-            </IconButton>
-          </Tooltip>
-        </DialogTitle>
-        <DialogContent sx={{ background: "transparent", pt: 2 }}>
-          <div className="search-toolbar">
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <SearchInput
-              focusSearchInput={isMenuOpen}
-              focusOnTyping={false}
+              onSearchChange={handleSearchChange}
               placeholder="Search tools..."
               debounceTime={150}
-              width={300}
-              maxWidth="100%"
-              searchTerm={searchTerm}
-              onSearchChange={handleSearchChange}
+              focusSearchInput={isMenuOpen}
+              focusOnTyping
+              width="100%"
               onPressEscape={handleClose}
-              searchResults={[]}
             />
-          </div>
-          <div className="selector-grid">
-            <div className="left-pane selector-content">
-              <div className="items-container">
-                {isLoading ? (
-                  <div className="loading-container">
-                    <CircularProgress size={24} />
-                  </div>
-                ) : (!workflowTools || workflowTools.length === 0) &&
-                  selectedTools.length === 0 ? (
-                  <div className="no-tools-message">
-                    <Typography>
-                      No workflow tools available.
-                      <br />
-                      Set a workflow&apos;s run mode to &quot;tool&quot; to use
-                      it here.
-                    </Typography>
-                  </div>
-                ) : (
-                  (filteredSortedTools?.length ? filteredSortedTools : []).map(
-                    (workflow) => {
-                      const toolId = `workflow_${workflow.tool_name}`;
-                      const isSelected = selectedTools.includes(toolId);
-                      if (workflow.tool_name === null) {return null;}
-                      return (
-                        <Box
-                          key={workflow.tool_name}
-                          className={`workflow-tool-item ${
-                            isSelected ? "selected" : ""
-                          }`}
-                          onClick={() => handleToggleTool(toolId)}
-                          onMouseEnter={() =>
-                            setHoveredToolName(workflow.tool_name ?? null)
-                          }
-                          onMouseLeave={() =>
-                            setHoveredToolName((prev) =>
-                              prev === workflow.tool_name ? null : prev
-                            )
-                          }
-                        >
-                          <Checkbox
-                            size="small"
-                            edge="start"
-                            disableRipple
-                            checked={isSelected}
-                            tabIndex={-1}
-                            sx={{
-                              padding: 0,
-                              color: "var(--palette-grey-200)",
-                              "&.Mui-checked": {
-                                color: "var(--palette-primary-main)"
-                              }
-                            }}
-                          />
-                          <Box sx={{ minWidth: 0 }}>
-                            <span className="workflow-name">
-                              {workflow.name}
-                            </span>
-                            {workflow.description && (
-                              <span className="workflow-description">
-                                {workflow.description}
-                              </span>
-                            )}
-                          </Box>
-                        </Box>
-                      );
-                    }
-                  )
-                )}
-                {!isLoading &&
-                  !isError &&
-                  workflowTools &&
-                  filteredSortedTools?.length === 0 && (
-                    <div className="no-tools-message">
-                      <Typography>No matching tools</Typography>
-                    </div>
-                  )}
+          </Box>
+        </Box>
+
+        {/* Main Content */}
+        <Box sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div className="items-container">
+            {isLoading ? (
+              <div className="loading-container">
+                <CircularProgress size={24} />
               </div>
-            </div>
-            <div className="right-pane">
-              {hoveredToolName &&
-                (() => {
-                  const t = workflowTools?.find(
-                    (w) => w.tool_name === hoveredToolName
-                  );
-                  if (!t) {return null;}
+            ) : (!workflowTools || workflowTools.length === 0) &&
+              selectedTools.length === 0 ? (
+              <div className="no-tools-message">
+                <Typography variant="body2">
+                  No workflow tools available.
+                  <br />
+                  Set a workflow&apos;s run mode to &quot;tool&quot; to use it here.
+                </Typography>
+              </div>
+            ) : (
+              (filteredSortedTools?.length ? filteredSortedTools : []).map(
+                (workflow) => {
+                  const toolId = `workflow_${workflow.tool_name}`;
+                  const isSelected = selectedTools.includes(toolId);
+                  if (workflow.tool_name === null) {
+                    return null;
+                  }
                   return (
-                    <Box sx={{ p: 1.5 }}>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ color: theme.vars.palette.grey[100] }}
-                      >
-                        {t.name}
-                      </Typography>
-                      {t.description && (
-                        <Typography
-                          variant="body2"
-                          sx={{ color: theme.vars.palette.grey[300], mt: 0.5 }}
-                        >
-                          {t.description}
-                        </Typography>
-                      )}
+                    <Box
+                      key={workflow.tool_name}
+                      className={`workflow-tool-item ${isSelected ? "selected" : ""}`}
+                      onClick={() => handleToggleTool(toolId)}
+                      onMouseEnter={() =>
+                        setHoveredToolName(workflow.tool_name ?? null)
+                      }
+                      onMouseLeave={() =>
+                        setHoveredToolName((prev) =>
+                          prev === workflow.tool_name ? null : prev
+                        )
+                      }
+                    >
+                      <Checkbox
+                        size="small"
+                        edge="start"
+                        disableRipple
+                        checked={isSelected}
+                        tabIndex={-1}
+                        sx={{
+                          padding: 0,
+                          color: theme.vars.palette.text.secondary,
+                          "&.Mui-checked": {
+                            color: theme.vars.palette.primary.main
+                          }
+                        }}
+                      />
+                      <Box sx={{ minWidth: 0 }}>
+                        <span className="workflow-name">{workflow.name}</span>
+                        {workflow.description && (
+                          <span className="workflow-description">
+                            {workflow.description}
+                          </span>
+                        )}
+                      </Box>
                     </Box>
                   );
-                })()}
-            </div>
+                }
+              )
+            )}
+            {!isLoading &&
+              !isError &&
+              workflowTools &&
+              filteredSortedTools?.length === 0 && (
+                <div className="no-tools-message">
+                  <Typography variant="body2">No matching tools</Typography>
+                </div>
+              )}
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Hovered Tool Info */}
+          {hoveredToolName && (() => {
+            const t = workflowTools?.find((w) => w.tool_name === hoveredToolName);
+            if (!t) {
+              return null;
+            }
+            return (
+              <Box
+                sx={{
+                  borderTop: `1px solid ${theme.vars.palette.divider}`,
+                  p: 1.5,
+                  flexShrink: 0,
+                  bgcolor: theme.vars.palette.background.default
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  sx={{ color: theme.vars.palette.text.primary, fontSize: "0.8rem" }}
+                >
+                  {t.name}
+                </Typography>
+                {t.description && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: theme.vars.palette.text.secondary,
+                      mt: 0.5,
+                      fontSize: "0.75rem"
+                    }}
+                  >
+                    {t.description}
+                  </Typography>
+                )}
+              </Box>
+            );
+          })()}
+        </Box>
+      </Popover>
     </>
   );
 };

@@ -26,24 +26,14 @@ jest.mock("@mui/material", () => ({
       {label}
     </span>
   ),
-  Dialog: ({ open, children, onClose, ...props }: any) =>
+  Popover: ({ open, children, onClose, anchorEl, ...props }: any) =>
     open ? (
-      <div className="MuiDialog-paper" onClick={onClose}>
-        <div data-testid="dialog" role="dialog" {...props}>
+      <div className="MuiPopover-paper" data-testid="popover-backdrop" onClick={onClose}>
+        <div data-testid="popover" role="dialog" onClick={(e: any) => e.stopPropagation()} {...props}>
           {children}
         </div>
       </div>
     ) : null,
-  DialogTitle: ({ children, id, ...props }: any) => (
-    <div data-testid="dialog-title" id={id} {...props}>
-      {children}
-    </div>
-  ),
-  DialogContent: ({ children, ...props }: any) => (
-    <div data-testid="dialog-content" {...props}>
-      {children}
-    </div>
-  ),
   Typography: ({ children, variant, ...props }: any) => (
     <div
       data-testid={`typography-${variant || "body"}`}
@@ -58,31 +48,15 @@ jest.mock("@mui/material", () => ({
       {children}
     </div>
   ),
-  Divider: (props: any) => <hr data-testid="divider" {...props} />,
-  FormControlLabel: ({ control, label, ...props }: any) => (
-    <label data-testid="form-control-label" {...props}>
-      {control}
-      <span>{typeof label === "object" ? label.props.children : label}</span>
-    </label>
-  ),
-  Checkbox: ({ checked, onChange, ...props }: any) => (
+  Checkbox: ({ checked, onChange, onClick, ...props }: any) => (
     <input
       type="checkbox"
       checked={checked}
       onChange={onChange}
+      onClick={onClick}
       data-testid="checkbox"
       {...props}
     />
-  ),
-  IconButton: ({ children, onClick, ...props }: any) => (
-    <button
-      data-testid="icon-button"
-      onClick={onClick}
-      aria-label="close"
-      {...props}
-    >
-      {children}
-    </button>
   ),
   Tooltip: ({ children, title }: any) => (
     <div title={title}>
@@ -93,10 +67,27 @@ jest.mock("@mui/material", () => ({
 }));
 
 jest.mock("@mui/icons-material", () => ({
-  Folder: () => <span data-testid="folder-icon">📁</span>,
-  Close: () => <span data-testid="close-icon">✕</span>,
-  CheckBox: () => <span data-testid="checkbox-icon">☑</span>,
-  CheckBoxOutlineBlank: () => <span data-testid="checkbox-outline-icon">☐</span>
+  Folder: () => <span data-testid="folder-icon">📁</span>
+}));
+
+// Mock useTheme
+jest.mock("@mui/material/styles", () => ({
+  ...jest.requireActual("@mui/material/styles"),
+  useTheme: () => ({
+    spacing: (factor: number) => `${factor * 8}px`,
+    vars: {
+      palette: {
+        primary: { main: "#1976d2" },
+        common: { white: "#fff" },
+        grey: { 0: "#ffffff", 500: "#9e9e9e" },
+        text: { primary: "#000", secondary: "#666" },
+        action: { hover: "#f5f5f5", selected: "#e0e0e0" },
+        background: { paper: "#fff", default: "#fafafa" },
+        divider: "#e0e0e0"
+      },
+      rounded: { dialog: "8px" }
+    }
+  })
 }));
 
 // Mock the CollectionStore
@@ -244,8 +235,8 @@ describe("CollectionsSelector", () => {
     });
   });
 
-  describe("Dialog Interactions", () => {
-    it("opens dialog when button is clicked", async () => {
+  describe("Popover Interactions", () => {
+    it("opens popover when button is clicked", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
@@ -260,30 +251,11 @@ describe("CollectionsSelector", () => {
       });
     });
 
-    it("closes dialog when close button is clicked", async () => {
+    it("closes popover when clicking outside (backdrop)", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
-      // Open dialog
-      const button = screen.getByRole("button", {
-        name: "Select Collections"
-      });
-      await user.click(button);
-
-      // Click close button
-      const closeButton = screen.getByRole("button", { name: "close" });
-      await user.click(closeButton);
-
-      await waitFor(() => {
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      });
-    });
-
-    it("closes dialog when clicking outside (backdrop)", async () => {
-      const user = userEvent.setup();
-      renderComponent(baseProps);
-
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button", {
         name: "Select Collections"
       });
@@ -293,9 +265,9 @@ describe("CollectionsSelector", () => {
         expect(screen.getByRole("dialog")).toBeInTheDocument();
       });
 
-      // Click on the dialog itself (simulating backdrop click in our mock)
-      const dialog = screen.getByRole("dialog");
-      await user.click(dialog);
+      // Click on the backdrop
+      const backdrop = screen.getByTestId("popover-backdrop");
+      await user.click(backdrop);
 
       await waitFor(() => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -399,12 +371,12 @@ describe("CollectionsSelector", () => {
         value: ["collection1", "collection2"]
       });
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button");
       await user.click(button);
 
       await waitFor(() => {
-        expect(screen.getByText("2 of 3 selected")).toBeInTheDocument();
+        expect(screen.getByText("2/3")).toBeInTheDocument();
       });
     });
 
@@ -415,15 +387,13 @@ describe("CollectionsSelector", () => {
         value: ["collection1"]
       });
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button");
       await user.click(button);
 
-      // Find the checkbox for collection2 and click it
-      const collection2Checkbox = screen.getByRole("checkbox", {
-        name: /collection2/
-      });
-      await user.click(collection2Checkbox);
+      // Find the collection2 item and click it
+      const collection2Text = await screen.findByText("collection2");
+      await user.click(collection2Text);
 
       expect(mockOnChange).toHaveBeenCalledWith(["collection1", "collection2"]);
     });
@@ -435,32 +405,30 @@ describe("CollectionsSelector", () => {
         value: ["collection1", "collection2"]
       });
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button");
       await user.click(button);
 
-      // Find the checkbox for collection1 and uncheck it
-      const collection1Checkbox = screen.getByRole("checkbox", {
-        name: /collection1/
-      });
-      await user.click(collection1Checkbox);
+      // Find collection1 text and click it
+      const collection1Text = await screen.findByText("collection1");
+      await user.click(collection1Text);
 
       expect(mockOnChange).toHaveBeenCalledWith(["collection2"]);
     });
 
-    it("selects all collections when Select All is clicked", async () => {
+    it("selects all collections when All button is clicked", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button", {
         name: "Select Collections"
       });
       await user.click(button);
 
-      // Click Select All
+      // Click All button
       const selectAllButton = screen.getByRole("button", {
-        name: /Select All/i
+        name: /All/i
       });
       await user.click(selectAllButton);
 
@@ -478,12 +446,12 @@ describe("CollectionsSelector", () => {
         value: ["collection1", "collection2"]
       });
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button");
       await user.click(button);
 
-      // Click Clear All
-      const clearAllButton = screen.getByRole("button", { name: /Clear All/i });
+      // Click Clear button
+      const clearAllButton = screen.getByRole("button", { name: /Clear/i });
       await user.click(clearAllButton);
 
       expect(mockOnChange).toHaveBeenCalledWith([]);
@@ -491,30 +459,11 @@ describe("CollectionsSelector", () => {
   });
 
   describe("Accessibility", () => {
-    it("has correct aria-labelledby for dialog", async () => {
+    it("has correct title for popover", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
-      // Open dialog
-      const button = screen.getByRole("button", {
-        name: "Select Collections"
-      });
-      await user.click(button);
-
-      await waitFor(() => {
-        const dialog = screen.getByRole("dialog");
-        expect(dialog).toHaveAttribute(
-          "aria-labelledby",
-          "collections-selector-title"
-        );
-      });
-    });
-
-    it("has correct title for dialog", async () => {
-      const user = userEvent.setup();
-      renderComponent(baseProps);
-
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button", {
         name: "Select Collections"
       });
@@ -525,22 +474,7 @@ describe("CollectionsSelector", () => {
       });
     });
 
-    it("has accessible close button", async () => {
-      const user = userEvent.setup();
-      renderComponent(baseProps);
-
-      // Open dialog
-      const button = screen.getByRole("button", {
-        name: "Select Collections"
-      });
-      await user.click(button);
-
-      const closeButton = screen.getByRole("button", { name: "close" });
-      expect(closeButton).toBeInTheDocument();
-      expect(closeButton).toHaveAttribute("aria-label", "close");
-    });
-
-    it("renders checkboxes with proper labels", async () => {
+    it("renders checkboxes", async () => {
       const user = userEvent.setup();
       (useCollectionStore as unknown as jest.Mock).mockReturnValue({
         ...mockStore,
@@ -549,23 +483,16 @@ describe("CollectionsSelector", () => {
       });
       renderComponent(baseProps);
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button", {
         name: "Select Collections"
       });
       await user.click(button);
 
       await waitFor(() => {
-        // Check that checkboxes have proper accessible names
-        expect(
-          screen.getByRole("checkbox", { name: /collection1/ })
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole("checkbox", { name: /collection2/ })
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole("checkbox", { name: /collection3/ })
-        ).toBeInTheDocument();
+        // Check that checkboxes exist
+        const checkboxes = screen.getAllByRole("checkbox");
+        expect(checkboxes.length).toBe(3);
       });
     });
   });
@@ -586,24 +513,15 @@ describe("CollectionsSelector", () => {
         value: ["collection1", "collection3"]
       });
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button");
       await user.click(button);
 
       await waitFor(() => {
-        const collection1Checkbox = screen.getByRole("checkbox", {
-          name: /collection1/
-        });
-        const collection2Checkbox = screen.getByRole("checkbox", {
-          name: /collection2/
-        });
-        const collection3Checkbox = screen.getByRole("checkbox", {
-          name: /collection3/
-        });
-
-        expect(collection1Checkbox).toBeChecked();
-        expect(collection2Checkbox).not.toBeChecked();
-        expect(collection3Checkbox).toBeChecked();
+        const checkboxes = screen.getAllByRole("checkbox");
+        expect(checkboxes[0]).toBeChecked();
+        expect(checkboxes[1]).not.toBeChecked();
+        expect(checkboxes[2]).toBeChecked();
       });
     });
 
@@ -614,42 +532,39 @@ describe("CollectionsSelector", () => {
         value: ["collection2"]
       });
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button");
       await user.click(button);
 
       await waitFor(() => {
-        const collection2Checkbox = screen.getByRole("checkbox", {
-          name: /collection2/
-        });
-        expect(collection2Checkbox).toBeChecked();
+        const checkboxes = screen.getAllByRole("checkbox");
+        expect(checkboxes[1]).toBeChecked();
       });
     });
   });
 
-  describe("Dialog Styling and Layout", () => {
-    it("applies correct dialog styling classes", async () => {
+  describe("Popover Styling and Layout", () => {
+    it("renders popover with correct structure", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button", {
         name: "Select Collections"
       });
       await user.click(button);
 
       await waitFor(() => {
-        const dialog = screen.getByRole("dialog");
-        expect(dialog).toHaveClass("collections-selector-dialog");
-        expect(dialog.parentElement).toHaveClass("MuiDialog-paper");
+        const popover = screen.getByTestId("popover");
+        expect(popover).toBeInTheDocument();
       });
     });
 
-    it("renders dialog title with correct styling", async () => {
+    it("renders title with correct styling", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button", {
         name: "Select Collections"
       });
@@ -657,7 +572,7 @@ describe("CollectionsSelector", () => {
 
       await waitFor(() => {
         const title = screen.getByText("Collections");
-        expect(title).toHaveClass("MuiTypography-h4");
+        expect(title).toHaveClass("MuiTypography-subtitle2");
       });
     });
 
@@ -665,7 +580,7 @@ describe("CollectionsSelector", () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
-      // Open dialog
+      // Open popover
       const button = screen.getByRole("button", {
         name: "Select Collections"
       });
@@ -673,10 +588,10 @@ describe("CollectionsSelector", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole("button", { name: /Select All/i })
+          screen.getByRole("button", { name: /All/i })
         ).toBeInTheDocument();
         expect(
-          screen.getByRole("button", { name: /Clear All/i })
+          screen.getByRole("button", { name: /Clear/i })
         ).toBeInTheDocument();
       });
     });
