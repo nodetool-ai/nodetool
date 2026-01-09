@@ -64,7 +64,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: mockGlobalWebSocketManager
 }));
 
-import { encode, decode } from "@msgpack/msgpack";
+import { encode } from "@msgpack/msgpack";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
 import {
@@ -76,7 +76,6 @@ import {
   ToolCallUpdate,
   NodeProgress
 } from "../ApiTypes";
-import log from "loglevel";
 import { supabase } from "../../lib/supabaseClient";
 
 let uuidCounter = 0;
@@ -645,7 +644,7 @@ describe("GlobalChatStore", () => {
   describe("Thread Management", () => {
     it("switchThread switches to existing thread", async () => {
       const thread1 = await store.getState().createNewThread();
-      const thread2 = await store.getState().createNewThread();
+      const _thread2 = await store.getState().createNewThread();
 
       store.getState().switchThread(thread1);
       expect(store.getState().currentThreadId).toBe(thread1);

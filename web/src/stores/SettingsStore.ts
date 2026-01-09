@@ -91,7 +91,7 @@ export const defaultSettings: Settings = {
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       settings: { ...defaultSettings },
       isMenuOpen: false,
       settingsTab: 0,

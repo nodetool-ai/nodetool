@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Node, useReactFlow } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { useNodes } from "../contexts/NodeContext";
 

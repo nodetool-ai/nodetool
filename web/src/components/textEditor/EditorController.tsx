@@ -44,7 +44,6 @@ interface EditorControllerProps {
   onGetSelectedTextCommand?: (fn: () => string) => void;
   onIsCodeBlockChange: (isCodeBlock: boolean) => void;
   initialContent?: string;
-  wordWrapEnabled?: boolean;
 }
 
 const EditorController = ({
@@ -62,8 +61,7 @@ const EditorController = ({
   onSetAllTextCommand,
   onGetSelectedTextCommand,
   onIsCodeBlockChange,
-  initialContent,
-  wordWrapEnabled = true
+  initialContent
 }: EditorControllerProps) => {
   const [editor] = useLexicalComposerContext();
   const [initialContentSet, setInitialContentSet] = useState(false);

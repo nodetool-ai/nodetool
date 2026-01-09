@@ -1,5 +1,5 @@
 import { useCallback, MouseEvent as ReactMouseEvent, useMemo } from "react";
-import { useReactFlow, Node } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import useContextMenu from "../../stores/ContextMenuStore";
@@ -13,9 +13,7 @@ interface UsePaneEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
 }
 
-const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
-
-export function usePaneEvents({ pendingNodeType, placementLabel, reactFlowInstance }: UsePaneEventsProps) {
+export function usePaneEvents({ pendingNodeType, placementLabel: _placementLabel, reactFlowInstance }: UsePaneEventsProps) {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);

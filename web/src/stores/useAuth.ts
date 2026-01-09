@@ -34,7 +34,7 @@ export interface LoginStore {
  * Handles user session, login/logout operations, and listens for authentication state changes.
  * Automatically initializes upon application load.
  */
-export const useAuth = create<LoginStore>((set, get) => ({
+export const useAuth = create<LoginStore>((set) => ({
   session: null,
   user: null,
   state: "init",

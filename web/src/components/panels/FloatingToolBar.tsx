@@ -46,7 +46,6 @@ import { cn } from "../editor_ui/editorUtils";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
-  label?: string;
   tooltip: string;
   shortcut?: string;
   variant?: "primary" | "secondary" | "neutral" | "stop";
@@ -58,7 +57,6 @@ interface ToolbarButtonProps {
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = memo(function ToolbarButton({
   icon,
-  label,
   tooltip,
   shortcut,
   variant = "neutral",

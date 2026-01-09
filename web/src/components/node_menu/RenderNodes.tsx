@@ -178,7 +178,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     handleCreateNode,
     showCheckboxes,
     onToggleSelection,
-    selectedNodeTypes
+    selectedNodeTypes,
+    showFavoriteButton
   ]);
 
   const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};

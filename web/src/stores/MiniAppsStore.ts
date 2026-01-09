@@ -43,7 +43,7 @@ const ensureWorkflowState = (
   return defaultState;
 };
 
-export const useMiniAppsStore = create<MiniAppsState>((set, get) => ({
+export const useMiniAppsStore = create<MiniAppsState>((set) => ({
   apps: {},
   initializeInputDefaults: (workflowId, definitions) => {
     set((state) => {
