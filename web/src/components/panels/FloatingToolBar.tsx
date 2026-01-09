@@ -43,6 +43,9 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { Workflow } from "../../stores/ApiTypes";
 import { cn } from "../editor_ui/editorUtils";
+import UndoIcon from "@mui/icons-material/Undo";
+import RedoIcon from "@mui/icons-material/Redo";
+import { useHistoryState } from "../../hooks/useHistoryState";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -467,6 +470,8 @@ const FloatingToolBar: React.FC<{
     toggleMiniMap();
   }, [toggleMiniMap]);
 
+  const history = useHistoryState();
+
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -521,6 +526,24 @@ const FloatingToolBar: React.FC<{
           variant="neutral"
           onClick={handleAutoLayout}
           aria-label="Auto layout nodes"
+        />
+        <ToolbarButton
+          icon={<UndoIcon />}
+          tooltip="Undo"
+          shortcut="undo"
+          variant="neutral"
+          onClick={history.undo}
+          disabled={!history.canUndo}
+          aria-label="Undo last action"
+        />
+        <ToolbarButton
+          icon={<RedoIcon />}
+          tooltip="Redo"
+          shortcut="redo"
+          variant="neutral"
+          onClick={history.redo}
+          disabled={!history.canRedo}
+          aria-label="Redo last undone action"
         />
         <ToolbarButton
           icon={<SaveIcon />}
