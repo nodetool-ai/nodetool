@@ -20,12 +20,14 @@ import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
 import PanelResizeButton from "./PanelResizeButton";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
+import { WorkflowStatsPanel } from "../stats";
 import ContextMenus from "../context_menus/ContextMenus";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
@@ -118,6 +120,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle,
   handleWorkspaceToggle,
   handleVersionsToggle,
+  handleStatsToggle,
   activeView,
   panelVisible
 }: {
@@ -126,7 +129,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle: () => void;
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions";
+  handleStatsToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "stats";
   panelVisible: boolean;
 }) {
   return (
@@ -247,6 +251,29 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <HistoryIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Stats Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Stats</div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleStatsToggle}
+          className={
+            activeView === "stats" && panelVisible
+              ? "stats active"
+              : "stats"
+          }
+        >
+          <TrendingUpIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -339,6 +366,7 @@ const PanelRight: React.FC = () => {
             handleLogsToggle={() => handlePanelToggle("logs")}
             handleWorkspaceToggle={() => handlePanelToggle("workspace")}
             handleVersionsToggle={() => handlePanelToggle("versions")}
+            handleStatsToggle={() => handlePanelToggle("stats")}
             activeView={activeView}
             panelVisible={isVisible}
           />
@@ -365,6 +393,18 @@ const PanelRight: React.FC = () => {
                       onClose={() => handlePanelToggle("versions")}
                     />
                   ) : null
+                ) : activeView === "stats" ? (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      overflow: "auto"
+                    }}
+                  >
+                    <WorkflowStatsPanel
+                      onClose={() => handlePanelToggle("stats")}
+                    />
+                  </Box>
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
