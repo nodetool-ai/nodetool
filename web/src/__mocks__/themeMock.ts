@@ -73,9 +73,6 @@ const mockTheme = createTheme({
       default: "#202020",
       paper: "#232323"
     },
-    glass: {
-      blur: "10px"
-    },
     c_link: "#77b4e6",
     c_link_visited: "#5a9ace",
     // Add color channels for MUI v7 Button component
