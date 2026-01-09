@@ -81,8 +81,7 @@ const listStyles = (theme: Theme) =>
     ".name": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
-      margin: "0",
-      lineHeight: "1.2em",
+      lineHeight: "2.5em",
       color: theme.vars.palette.grey[0],
       userSelect: "none",
       flex: "1",
