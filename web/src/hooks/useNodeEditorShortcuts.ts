@@ -12,6 +12,7 @@ import useAlignNodes from "./useAlignNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
 import { useSelectConnected } from "./useSelectConnected";
+import { useNodeSelectionTemplate } from "./useNodeSelectionTemplate";
 import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
@@ -22,7 +23,7 @@ import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
-import { Node } from "@xyflow/react";
+import { Node, Edge } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
@@ -43,6 +44,7 @@ export const useNodeEditorShortcuts = (
     toggleBypassSelected: state.toggleBypassSelected
   }));
   const reactFlow = useReactFlow();
+  const { getNodes } = reactFlow;
   const workflowManager = useWorkflowManager((state) => ({
     saveExample: state.saveExample,
     removeWorkflow: state.removeWorkflow,
@@ -59,6 +61,12 @@ export const useNodeEditorShortcuts = (
   const selectConnectedAll = useSelectConnected({ direction: "both" });
   const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
   const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
+
+  const {
+    setSaveDialogOpen,
+    setTemplateBrowserOpen,
+    prepareTemplateForInsertion
+  } = useNodeSelectionTemplate();
 
   const nodeMenuStore = useNodeMenuStore(
     (state) => ({
@@ -368,6 +376,22 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleSaveTemplate = useCallback(() => {
+    if (selectedNodes.length === 0) {
+      addNotification({
+        content: "Select nodes to save as template",
+        type: "warning",
+        alert: false
+      });
+      return;
+    }
+    setSaveDialogOpen(true);
+  }, [selectedNodes.length, setSaveDialogOpen, addNotification]);
+
+  const handleOpenTemplateBrowser = useCallback(() => {
+    setTemplateBrowserOpen(true);
+  }, [setTemplateBrowserOpen]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -429,7 +453,12 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
-      }
+      },
+      saveTemplate: {
+        callback: handleSaveTemplate,
+        active: selectedNodes.length > 0
+      },
+      openTemplateBrowser: { callback: handleOpenTemplateBrowser }
     };
 
     // Switch-to-tab (1-9)
@@ -468,7 +497,9 @@ export const useNodeEditorShortcuts = (
     handleBypassSelected,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
+    handleSelectConnectedOutputs,
+    handleSaveTemplate,
+    handleOpenTemplateBrowser
   ]);
 
   // useEffect for shortcut registration
@@ -510,6 +541,8 @@ export const useNodeEditorShortcuts = (
     packageNameInput,
     setPackageNameInput,
     handleSaveExampleConfirm,
-    handleSaveExampleCancel
+    handleSaveExampleCancel,
+    handleSaveTemplate,
+    handleOpenTemplateBrowser
   };
 };

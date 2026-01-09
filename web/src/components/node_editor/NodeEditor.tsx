@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef } from "react";
+import { memo, useState, useRef, useCallback } from "react";
 import {
   Box,
   CircularProgress,
@@ -33,6 +33,10 @@ import { useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
+import { SaveTemplateDialog, TemplateBrowser, TemplateBrowserFab } from "../templates";
+import { useNodeSelectionTemplate } from "../../hooks/useNodeSelectionTemplate";
+import { useNodes } from "../../contexts/NodeContext";
+import { Edge, Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
@@ -67,6 +71,68 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleConfirm,
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
+
+  // Template state
+  const { isSaveDialogOpen, setSaveDialogOpen, isTemplateBrowserOpen, setTemplateBrowserOpen, prepareTemplateForInsertion } =
+    useNodeSelectionTemplate();
+  const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
+  const nodesState = useNodes((state) => state);
+  const edges = useNodes((state) => state.edges);
+  const [saveDialogSelectedNodes, setSaveDialogSelectedNodes] = useState<Node[]>([]);
+  const [saveDialogSelectedEdges, setSaveDialogSelectedEdges] = useState<Edge[]>([]);
+
+  // Template handlers
+  const handleOpenSaveTemplateDialog = useCallback(() => {
+    const selectedNodes = getSelectedNodes();
+    const selectedNodeIds = new Set(selectedNodes.map((n: Node) => n.id));
+    const selectedEdges = edges.filter(
+      (e: Edge) => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+    );
+    setSaveDialogSelectedNodes(selectedNodes);
+    setSaveDialogSelectedEdges(selectedEdges);
+    setSaveDialogOpen(true);
+  }, [getSelectedNodes, edges, setSaveDialogOpen]);
+
+  const handleInsertTemplate = useCallback(
+    (templateNodes: Node[], templateEdges: Edge[], offset: { x: number; y: number }) => {
+      const currentNodes = nodesState.nodes;
+
+      const newNodes = templateNodes.map((node) => ({
+        ...node,
+        position: {
+          x: node.position.x + offset.x,
+          y: node.position.y + offset.y
+        },
+        selected: false,
+        data: {
+          ...node.data,
+          id: node.id,
+          workflow_id: workflowId
+        } as any
+      }));
+
+      const newEdges = templateEdges.map((edge) => ({
+        ...edge,
+        selected: false,
+        sourceHandle: edge.sourceHandle ?? null,
+        targetHandle: edge.targetHandle ?? null
+      }));
+
+      nodesState.setNodes([...currentNodes, ...newNodes] as any);
+      newEdges.forEach((edge) => {
+        if (nodesState.onConnect) {
+          nodesState.onConnect({
+            source: edge.source,
+            target: edge.target,
+            sourceHandle: edge.sourceHandle || null,
+            targetHandle: edge.targetHandle || null
+          });
+        }
+      });
+      setTemplateBrowserOpen(false);
+    },
+    [nodesState, setTemplateBrowserOpen, workflowId]
+  );
 
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
@@ -139,6 +205,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           {active && (
             <>
               <RunAsAppFab workflowId={workflowId} />
+              <TemplateBrowserFab />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
@@ -212,6 +279,22 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Save Template Dialog */}
+      <SaveTemplateDialog
+        open={isSaveDialogOpen}
+        onClose={() => setSaveDialogOpen(false)}
+        selectedNodes={saveDialogSelectedNodes}
+        selectedEdges={saveDialogSelectedEdges}
+      />
+
+      {/* Template Browser Panel */}
+      {isTemplateBrowserOpen && (
+        <TemplateBrowser
+          onInsertTemplate={handleInsertTemplate}
+          onClose={() => setTemplateBrowserOpen(false)}
+        />
+      )}
     </>
   );
 };
