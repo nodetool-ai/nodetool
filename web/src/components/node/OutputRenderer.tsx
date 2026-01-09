@@ -33,6 +33,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "lodash/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+import Model3DViewer from "../asset_viewer/Model3DViewer";
 import {
   typeFor,
   renderSVGDocument,
@@ -402,6 +403,22 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             style={{ width: "100%", height: "100%" }}
           />
         );
+      case "model_3d": {
+        const url: string =
+          (value && typeof value === "object" && typeof value.uri === "string"
+            ? value.uri
+            : "") || "";
+
+        if (!url) {
+          return <JSONRenderer value={value} showActions={showTextActions} />;
+        }
+
+        return (
+          <div style={{ width: "100%", height: "100%" }}>
+            <Model3DViewer url={url} compact={true} />
+          </div>
+        );
+      }
       case "dataframe":
         return <DataTable dataframe={value as DataframeRef} editable={false} />;
       case "np_array":
