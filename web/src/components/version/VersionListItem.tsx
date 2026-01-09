@@ -39,6 +39,7 @@ interface VersionListItemProps {
   onPin: (versionId: string, pinned: boolean) => void;
   onCompare: (versionId: string) => void;
   isRestoring?: boolean;
+  isPinning?: boolean;
 }
 
 const getSaveTypeLabel = (saveType: SaveType): string => {
@@ -93,7 +94,8 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   onDelete,
   onPin,
   onCompare,
-  isRestoring = false
+  isRestoring = false,
+  isPinning = false
 }) => {
   const handleClick = useCallback(() => {
     if (compareMode) {
@@ -156,7 +158,7 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
         },
         mb: 0.5,
         borderRadius: 1,
-        opacity: isRestoring ? 0.6 : 1
+        opacity: isRestoring || isPinning ? 0.6 : 1
       }}
     >
       <Box sx={{ mr: 1, flexShrink: 0 }}>
@@ -214,7 +216,7 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
                 <CompareIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-          ) : isRestoring ? (
+          ) : isRestoring || isPinning ? (
             <CircularProgress size={20} />
           ) : (
             <>

@@ -76,7 +76,11 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     isLoading,
     error,
     restoreVersion,
-    isRestoringVersion
+    isRestoringVersion,
+    pinVersion,
+    unpinVersion,
+    isPinningVersion,
+    isUnpinningVersion
   } = useWorkflowVersions(workflowId);
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
@@ -169,8 +173,16 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareVersion
   ]);
 
-  const handlePin = useCallback((versionId: string, _pinned: boolean) => {
-  }, []);
+  const handlePin = useCallback((versionId: string, pinned: boolean) => {
+    const version = versions.find((v) => v.id === versionId);
+    if (!version) return;
+
+    if (pinned) {
+      pinVersion(version.version);
+    } else {
+      unpinVersion(version.version);
+    }
+  }, [versions, pinVersion, unpinVersion]);
 
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
@@ -438,6 +450,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 onPin={handlePin}
                 onCompare={handleCompare}
                 isRestoring={isRestoringVersion}
+                isPinning={isPinningVersion || isUnpinningVersion}
               />
             ))}
           </List>

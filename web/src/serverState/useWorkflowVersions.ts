@@ -68,6 +68,30 @@ export const restoreWorkflowVersion = async (
   await handleApiError(response);
 };
 
+export const pinWorkflowVersion = async (
+  workflowId: string,
+  version: number
+): Promise<WorkflowVersion> => {
+  const response = await fetch(
+    `${API_BASE}/${workflowId}/versions/${version}/pin`,
+    { method: "POST" }
+  );
+  await handleApiError(response);
+  return response.json() as Promise<WorkflowVersion>;
+};
+
+export const unpinWorkflowVersion = async (
+  workflowId: string,
+  version: number
+): Promise<WorkflowVersion> => {
+  const response = await fetch(
+    `${API_BASE}/${workflowId}/versions/${version}/unpin`,
+    { method: "POST" }
+  );
+  await handleApiError(response);
+  return response.json() as Promise<WorkflowVersion>;
+};
+
 export const useWorkflowVersions = (
   workflowId: string | null | undefined,
   limit: number = 100
@@ -104,12 +128,38 @@ export const useWorkflowVersions = (
     }
   });
 
+  const pinVersionMutation = useMutation({
+    mutationFn: (version: number) => pinWorkflowVersion(workflowId as string, version),
+    onSuccess: () => {
+      if (workflowId) {
+        queryClient.invalidateQueries({
+          queryKey: workflowVersionsQueryKey(workflowId)
+        });
+      }
+    }
+  });
+
+  const unpinVersionMutation = useMutation({
+    mutationFn: (version: number) => unpinWorkflowVersion(workflowId as string, version),
+    onSuccess: () => {
+      if (workflowId) {
+        queryClient.invalidateQueries({
+          queryKey: workflowVersionsQueryKey(workflowId)
+        });
+      }
+    }
+  });
+
   return {
     ...query,
     createVersion: createVersionMutation.mutateAsync,
     restoreVersion: restoreVersionMutation.mutateAsync,
+    pinVersion: pinVersionMutation.mutateAsync,
+    unpinVersion: unpinVersionMutation.mutateAsync,
     isCreatingVersion: createVersionMutation.isPending,
-    isRestoringVersion: restoreVersionMutation.isPending
+    isRestoringVersion: restoreVersionMutation.isPending,
+    isPinningVersion: pinVersionMutation.isPending,
+    isUnpinningVersion: unpinVersionMutation.isPending
   };
 };
 
