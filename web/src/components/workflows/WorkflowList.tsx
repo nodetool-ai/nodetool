@@ -22,6 +22,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 
 
 const styles = (theme: Theme) =>
@@ -119,6 +120,7 @@ const WorkflowList = () => {
   >([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("Shift"),
@@ -140,14 +142,27 @@ const WorkflowList = () => {
     }
   );
 
+  const favoriteWorkflowIds = useFavoriteWorkflowIds();
+
   const workflows = useMemo(() => {
-    if (filterValue === "") { return data?.workflows || []; }
-    // Optimization: Convert filter value to lowercase once instead of for each workflow
-    const filterValueLower = filterValue.toLowerCase();
-    return (data?.workflows || []).filter((workflow) =>
-      workflow.name.toLowerCase().includes(filterValueLower)
-    );
-  }, [data?.workflows, filterValue]);
+    if (!data?.workflows) {return [];}
+    let filtered = data.workflows;
+
+    if (filterValue !== "") {
+      const filterValueLower = filterValue.toLowerCase();
+      filtered = filtered.filter((workflow) =>
+        workflow.name.toLowerCase().includes(filterValueLower)
+      );
+    }
+
+    if (showFavoritesOnly) {
+      filtered = filtered.filter((workflow) =>
+        favoriteWorkflowIds.includes(workflow.id)
+      );
+    }
+
+    return filtered;
+  }, [data?.workflows, filterValue, showFavoritesOnly, favoriteWorkflowIds]);
 
   const onSelect = useCallback((workflow: Workflow) => {
     setSelectedWorkflows((prev) =>
@@ -172,7 +187,6 @@ const WorkflowList = () => {
     [controlKeyPressed, shiftKeyPressed]
   );
 
-  // DELETE WORKFLOW
   const onDelete = useCallback((workflow: Workflow) => {
     setWorkflowsToDelete([workflow]);
     setIsDeleteDialogOpen(true);
@@ -229,6 +243,10 @@ const WorkflowList = () => {
     setWorkflowToEdit(workflow);
   }, []);
 
+  const handleToggleFavorites = useCallback(() => {
+    setShowFavoritesOnly((prev) => !prev);
+  }, []);
+
 
 
   return (
@@ -266,6 +284,8 @@ const WorkflowList = () => {
               );
               setIsDeleteDialogOpen(true);
             }}
+            showFavoritesOnly={showFavoritesOnly}
+            onToggleFavorites={handleToggleFavorites}
           />
         </div>
         <div className="status">
@@ -281,6 +301,11 @@ const WorkflowList = () => {
               <Typography>{error?.message}</Typography>
               <Typography>No workflows found.</Typography>
             </div>
+          )}
+          {showFavoritesOnly && workflows.length === 0 && !isLoading && !isError && (
+            <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
+              No favorite workflows. Click the star icon on a workflow to add it to your favorites.
+            </Typography>
           )}
         </div>
         <div className="workflow-items">
