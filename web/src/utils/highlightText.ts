@@ -99,7 +99,7 @@ export const highlightText = (
 
   // Find the best match for coloring (most relevant and longest)
   const bestMatch = nonOverlappingMatches[0];
-  const longestLength =
+  const _longestLength =
     orderedMatches.length > 0 ? orderedMatches[0].length : 0;
 
   // Build highlighted HTML

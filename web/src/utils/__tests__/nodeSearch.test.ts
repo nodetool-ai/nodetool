@@ -40,9 +40,10 @@ jest.mock("../../stores/fuseOptions", () => ({
 const PERF_THRESHOLD_SMALL = 200; // 200ms for small dataset in CI
 const PERF_THRESHOLD_MEDIUM = 600; // 600ms for medium dataset in CI
 const PERF_THRESHOLD_LARGE = 150; // 150ms for large dataset
-const SHOULD_ENFORCE_PERF = process.env.PERF_TESTS === "true";
+const _PERF_THRESHOLD_LARGE_UNUSED = PERF_THRESHOLD_LARGE;
+const _SHOULD_ENFORCE_PERF = process.env.PERF_TESTS === "true";
 const assertPerf = (duration: number, threshold: number) => {
-  if (SHOULD_ENFORCE_PERF) {
+  if (_SHOULD_ENFORCE_PERF) {
     expect(duration).toBeLessThan(threshold);
   }
 };
@@ -624,7 +625,7 @@ describe("nodeSearch", () => {
 
       // Complex multi-word query should use Fuse.js
       const start = performance.now();
-      const results = performGroupedSearch(entries, "add subtract multiply");
+      performGroupedSearch(entries, "add subtract multiply");
       const duration = performance.now() - start;
 
       // Should still complete reasonably fast
@@ -638,7 +639,7 @@ describe("nodeSearch", () => {
       const nodes = generateLargeDataset(1000);
       
       const start = performance.now();
-      const results = computeSearchResults(nodes, "test", [], undefined, undefined);
+      computeSearchResults(nodes, "test", [], undefined, undefined);
       const duration = performance.now() - start;
 
       // CRITICAL: This threshold should not increase

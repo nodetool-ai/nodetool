@@ -25,7 +25,7 @@ export function isModelDownloaded(
 
   // Case 2: Path set - check for basename of path in cached files
   if (model.path && model.repo_id) {
-    const cachedModel = hfModels?.find((hf) => hf.id === model.repo_id);
+    const _cachedModel = hfModels?.find((hf) => hf.id === model.repo_id);
     // if (cachedModel && (cachedModel as any).cached_files) {
     //   const cachedFiles = (cachedModel as any).cached_files as CachedFileInfo[];
     //   const pathBasename = model.path.split("/").pop() || model.path;

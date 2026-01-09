@@ -6,7 +6,7 @@ import { groupByDate } from '../groupByDate';
 
 // Mock the relativeTime function
 jest.mock('../formatDateAndTime', () => ({
-  relativeTime: jest.fn((date) => {
+  relativeTime: jest.fn((_date) => {
     // For testing purposes, return a simple string based on the date
     // This is called when 7+ days have passed
     return '1 week ago';
