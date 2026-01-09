@@ -144,7 +144,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     flexDirection: "column",
                     backgroundColor: theme.vars.palette.background.default,
                     borderRight: `1px solid ${theme.vars.palette.divider}`,
-                    boxShadow: "4px 0 24px rgba(0, 0, 0, 0.2)",
+                    boxShadow: "4px 0 24px rgba(0, 0, 0, 0.05)",
                     transform: isOpen ? "translateX(0)" : `translateX(-${SIDEBAR_WIDTH}px)`,
                     transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     overflow: "hidden"
@@ -180,46 +180,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         </IconButton>
                     </Tooltip>
                 </Box>
-                {/* New Chat button */}
-                <Box sx={{ p: 2 }}>
-                    <Box
-                        component="button"
-                        onClick={handleNewChat}
-                        sx={{
-                            width: "100%",
-                            p: 1.5,
-                            borderRadius: 2,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 1,
-                            background: theme.vars.palette.grey[800],
-                            color: theme.vars.palette.common.white,
-                            border: `1px solid ${theme.vars.palette.grey[700]}`,
-                            cursor: "pointer",
-                            fontSize: "0.95rem",
-                            fontWeight: 600,
-                            letterSpacing: "0.02em",
-                            transition: "all 0.2s ease",
-                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-                            "&:hover": {
-                                background: theme.vars.palette.grey[700],
-                                borderColor: theme.vars.palette.grey[600]
-                            },
-                            "&:active": {
-                                background: theme.vars.palette.grey[800]
-                            }
-                        }}
-                    >
-                        <AddIcon sx={{ fontSize: "1.2rem" }} />
-                        New Chat
-                    </Box>
-                </Box>
-
-                {/* Search */}
-                <Box sx={{ px: 2, pb: 2 }}>
+                {/* Search with New Chat button */}
+                <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
                     <Box
                         sx={{
+                            flex: 1,
                             display: "flex",
                             alignItems: "center",
                             gap: 1,
@@ -243,7 +208,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             }}
                         />
                         <InputBase
-                            placeholder="Search your threads..."
+                            placeholder="Search threads..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             fullWidth
@@ -256,6 +221,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             }}
                         />
                     </Box>
+                    <Tooltip title="New chat" placement="bottom">
+                        <IconButton
+                            onClick={handleNewChat}
+                            size="small"
+                            sx={{
+                                backgroundColor: theme.vars.palette.grey[800],
+                                color: theme.vars.palette.common.white,
+                                border: `1px solid ${theme.vars.palette.grey[700]}`,
+                                borderRadius: 2,
+                                width: 36,
+                                height: 36,
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                    backgroundColor: theme.vars.palette.grey[700],
+                                    borderColor: theme.vars.palette.grey[600]
+                                }
+                            }}
+                        >
+                            <AddIcon sx={{ fontSize: "1.2rem" }} />
+                        </IconButton>
+                    </Tooltip>
                 </Box>
 
                 <Divider />
