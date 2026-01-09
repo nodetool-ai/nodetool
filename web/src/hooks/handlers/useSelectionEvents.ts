@@ -56,6 +56,33 @@ export function useSelectionEvents({
     [openContextMenu]
   );
 
+  const resetSelectionTracking = useCallback(() => {
+    selectionStartRef.current = null;
+    selectionEndRef.current = null;
+  }, []);
+
+  const selectGroupsWithinSelection = useCallback(() => {
+    const selectionRect = getSelectionRect(
+      selectionStartRef.current,
+      selectionEndRef.current
+    );
+    if (!selectionRect) {
+      return;
+    }
+
+    const intersectingGroups = getNodesWithinSelection(
+      reactFlowInstance,
+      selectionRect,
+      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
+    );
+
+    intersectingGroups.forEach((node) => {
+      if (!node.selected) {
+        updateNode(node.id, { selected: true });
+      }
+    });
+  }, [reactFlowInstance, updateNode]);
+
   const handleSelectionStart = useCallback(
     (event: ReactMouseEvent) => {
       const flowPoint = projectMouseEventToFlow(event);
@@ -88,33 +115,6 @@ export function useSelectionEvents({
     },
     [onSelectionDragStopBase]
   );
-
-  const resetSelectionTracking = useCallback(() => {
-    selectionStartRef.current = null;
-    selectionEndRef.current = null;
-  }, []);
-
-  const selectGroupsWithinSelection = useCallback(() => {
-    const selectionRect = getSelectionRect(
-      selectionStartRef.current,
-      selectionEndRef.current
-    );
-    if (!selectionRect) {
-      return;
-    }
-
-    const intersectingGroups = getNodesWithinSelection(
-      reactFlowInstance,
-      selectionRect,
-      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
-    );
-
-    intersectingGroups.forEach((node) => {
-      if (!node.selected) {
-        updateNode(node.id, { selected: true });
-      }
-    });
-  }, [reactFlowInstance, updateNode]);
 
   return {
     handleSelectionContextMenu,
