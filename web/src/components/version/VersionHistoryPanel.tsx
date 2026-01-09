@@ -11,7 +11,6 @@ import {
   IconButton,
   List,
   Paper,
-  Divider,
   Button,
   Dialog,
   DialogTitle,
@@ -76,7 +75,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     isLoading,
     error,
     restoreVersion,
-    isRestoringVersion
+    isRestoringVersion,
+    deleteVersion,
+    isDeletingVersion
   } = useWorkflowVersions(workflowId);
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
@@ -150,27 +151,27 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setDeleteDialogOpen(true);
   }, []);
 
-  const handleConfirmDelete = useCallback(() => {
+  const handleConfirmDelete = useCallback(async () => {
     if (versionToDelete) {
-      if (selectedVersionId === versionToDelete) {
-        setSelectedVersion(null);
-      }
-      if (compareVersionId === versionToDelete) {
-        setCompareVersion(null);
+      try {
+        const version = versions.find((v) => v.id === versionToDelete);
+        if (version) {
+          await deleteVersion(version.version);
+        }
+      } catch (error) {
+        console.error("Failed to delete version:", error);
       }
     }
     setDeleteDialogOpen(false);
     setVersionToDelete(null);
-  }, [
-    versionToDelete,
-    selectedVersionId,
-    compareVersionId,
-    setSelectedVersion,
-    setCompareVersion
-  ]);
+  }, [versionToDelete, versions, deleteVersion]);
 
-  const handlePin = useCallback((versionId: string, _pinned: boolean) => {
-  }, []);
+  const handlePin = useCallback((_versionId: string, pinned: boolean) => {
+    const version = versions.find((v) => v.id === _versionId);
+    if (version) {
+      console.log(`[handlePin] Version ${version.version} pinned: ${pinned}`);
+    }
+  }, [versions]);
 
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
@@ -438,6 +439,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 onPin={handlePin}
                 onCompare={handleCompare}
                 isRestoring={isRestoringVersion}
+                isDeleting={isDeletingVersion}
               />
             ))}
           </List>
