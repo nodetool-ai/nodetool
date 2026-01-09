@@ -17,7 +17,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   value,
   allowedProviders
 }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
@@ -31,12 +31,12 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     return fetchedModels.find((m) => m.id === value);
   }, [fetchedModels, value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -53,7 +53,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         id: model.id || "",
         name: model.name || ""
       });
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent]
   );
@@ -64,12 +64,13 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         ref={buttonRef}
         active={!!value}
         label={currentSelectedModelDetails?.name || value || "Select Model"}
-        secondaryLabel={currentSelectedModelDetails?.provider ? `Provider: ${currentSelectedModelDetails.provider}` : undefined}
+        secondaryLabel={currentSelectedModelDetails?.provider}
         subLabel="Select Model"
         onClick={handleClick}
       />
       <LanguageModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         allowedProviders={allowedProviders}

@@ -19,46 +19,30 @@ jest.mock("@mui/material", () => ({
       {title && <span data-testid="tooltip-title">{title}</span>}
     </div>
   ),
-  Dialog: ({ children, open, onClose, ...props }: any) =>
+  Popover: ({ children, open, onClose, anchorEl, ...props }: any) =>
     open ? (
-      <div data-testid="dialog-backdrop" onClick={onClose}>
+      <div data-testid="popover-backdrop" onClick={onClose}>
         <div
           role="dialog"
           aria-labelledby={props["aria-labelledby"]}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e: any) => e.stopPropagation()}
         >
           {children}
         </div>
       </div>
     ) : null,
-  DialogTitle: ({ children }: any) => (
-    <div data-testid="dialog-title">{children}</div>
-  ),
-  DialogContent: ({ children }: any) => (
-    <div data-testid="dialog-content">{children}</div>
-  ),
-  DialogActions: ({ children }: any) => (
-    <div data-testid="dialog-actions">{children}</div>
-  ),
-  IconButton: ({ children, onClick, ...props }: any) => (
-    <button onClick={onClick} {...props}>
-      {children}
-    </button>
-  ),
   Typography: ({ children }: any) => <span>{children}</span>,
-  Box: ({ children }: any) => <div>{children}</div>,
+  Box: ({ children, sx, ...props }: any) => <div {...props}>{children}</div>,
   Chip: ({ label }: any) => (
     <span className="MuiChip-root" data-testid="chip">
       {label}
     </span>
   ),
-  CircularProgress: () => <div data-testid="loading">Loading...</div>,
-  Divider: () => <hr />
+  CircularProgress: () => <div data-testid="loading">Loading...</div>
 }));
 
 jest.mock("@mui/icons-material", () => ({
-  Extension: () => <svg data-testid="ExtensionIcon" />,
-  Close: () => <svg data-testid="CloseIcon" />
+  Extension: () => <svg data-testid="ExtensionIcon" />
 }));
 
 // Test fixtures and shared mocks need to be defined before jest.mock() that use them
@@ -186,14 +170,20 @@ jest.mock("@mui/material/styles", () => ({
     },
     vars: {
       palette: {
-        primary: { light: "#90caf9" },
+        primary: { light: "#90caf9", main: "#1976d2" },
         grey: {
           0: "#ffffff",
           100: "#f5f5f5",
+          200: "#e0e0e0",
           500: "#9e9e9e",
           700: "#424242"
-        }
-      }
+        },
+        text: { primary: "#000", secondary: "#666" },
+        background: { paper: "#fff", default: "#fafafa" },
+        divider: "#e0e0e0",
+        action: { hover: "#f5f5f5", selected: "#e0e0e0" }
+      },
+      rounded: { dialog: "8px" }
     }
   })
 }));
@@ -333,8 +323,8 @@ const mockMetadataStore = {
     });
   });
 
-  describe("Dialog Interactions", () => {
-    it("opens dialog when button is clicked", async () => {
+  describe("Popover Interactions", () => {
+    it("opens popover when button is clicked", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
@@ -343,33 +333,18 @@ const mockMetadataStore = {
 
       await waitFor(() => {
         expect(screen.getByRole("dialog")).toBeInTheDocument();
-        expect(screen.getByText("Node Tools")).toBeInTheDocument();
+        expect(screen.getByTestId("search-input")).toBeInTheDocument();
       });
     });
 
-    it("closes dialog when close button is clicked", async () => {
+    it("closes popover when clicking outside (backdrop)", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
       const button = screen.getByRole("button");
       await user.click(button);
 
-      const closeButton = screen.getByRole("button", { name: /close/i });
-      await user.click(closeButton);
-
-      await waitFor(() => {
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      });
-    });
-
-    it("closes dialog when clicking outside (backdrop)", async () => {
-      const user = userEvent.setup();
-      renderComponent(baseProps);
-
-      const button = screen.getByRole("button");
-      await user.click(button);
-
-      const backdrop = screen.getByTestId("dialog-backdrop");
+      const backdrop = screen.getByTestId("popover-backdrop");
       await user.click(backdrop);
 
       await waitFor(() => {
@@ -472,7 +447,7 @@ const mockMetadataStore = {
   });
 
   describe("Accessibility", () => {
-    it("has correct aria-labelledby for dialog", async () => {
+    it("has search input in popover", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
@@ -480,36 +455,8 @@ const mockMetadataStore = {
       await user.click(button);
 
       await waitFor(() => {
-        const dialog = screen.getByRole("dialog");
-        expect(dialog).toHaveAttribute(
-          "aria-labelledby",
-          "node-tools-selector-title"
-        );
+        expect(screen.getByTestId("search-input")).toBeInTheDocument();
       });
-    });
-
-    it("has correct title for dialog", async () => {
-      const user = userEvent.setup();
-      renderComponent(baseProps);
-
-      const button = screen.getByRole("button");
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(screen.getByText("Node Tools")).toBeInTheDocument();
-      });
-    });
-
-    it("has accessible close button", async () => {
-      const user = userEvent.setup();
-      renderComponent(baseProps);
-
-      const button = screen.getByRole("button");
-      await user.click(button);
-
-      const closeButton = screen.getByRole("button", { name: /close/i });
-      expect(closeButton).toBeInTheDocument();
-      expect(closeButton).toHaveAttribute("aria-label", "close");
     });
   });
 });

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Chip,
@@ -8,11 +8,9 @@ import {
   InputLabel,
   MenuItem,
   OutlinedInput,
-  Paper,
   IconButton,
   Select,
-  SelectChangeEvent,
-  Typography
+  SelectChangeEvent
 } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
@@ -129,21 +127,12 @@ const containerStyles = (theme: Theme) =>
 
 const SEVERITIES: Severity[] = ["info", "warning", "error"];
 
-const formatTime = (ts: number) => {
-  try {
-    const d = new Date(ts);
-    return d.toLocaleTimeString();
-  } catch {
-    return "" + ts;
-  }
-};
-
 const LogPanel: React.FC = () => {
   const theme = useTheme();
   const logs = useLogsStore((s) => s.logs);
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const addNotification = useNotificationStore((s) => s.addNotification);
+  const _addNotification = useNotificationStore((s) => s.addNotification);
 
   // Map workflow id -> name for quick lookup
   const wfName = useMemo(() => {

@@ -18,7 +18,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   value,
   task
 }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
@@ -47,12 +47,12 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
     return models.find((m) => m.id === value);
   }, [models, value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -69,7 +69,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
         id: model.id || "",
         name: model.name || ""
       });
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent]
   );
@@ -84,7 +84,8 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
         onClick={handleClick}
       />
       <VideoModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         task={task}

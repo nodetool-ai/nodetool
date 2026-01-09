@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { NodeMetadata, OutputSlot, Property, TypeMetadata } from "./ApiTypes";
+import { NodeMetadata, TypeMetadata } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { Node } from "@xyflow/react";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";

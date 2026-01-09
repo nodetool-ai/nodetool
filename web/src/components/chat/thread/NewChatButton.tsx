@@ -26,26 +26,26 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
           position: "relative",
           overflow: "hidden",
           borderRadius: "16px",
-          color: "primary.contrastText",
-          background: (theme as any).vars.palette.primary.main,
-          boxShadow: `0 4px 20px ${(theme as any).vars.palette.primary.main}40`,
+          color: (theme as any).vars.palette.common.white,
+          background: (theme as any).vars.palette.grey[800],
+          boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
           textTransform: "none",
           fontWeight: 600,
           fontSize: "0.95rem",
           letterSpacing: "0.02em",
           justifyContent: "center",
-          border: "1px solid rgba(255,255,255,0.1)",
-          
+          border: `1px solid ${(theme as any).vars.palette.grey[700]}`,
+
           "&:hover": {
-            background: (theme as any).vars.palette.primary.light,
-            boxShadow: `0 8px 30px ${(theme as any).vars.palette.primary.main}60`,
-            border: "1px solid rgba(255,255,255,0.2)",
+            background: (theme as any).vars.palette.grey[700],
+            boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+            border: `1px solid ${(theme as any).vars.palette.grey[600]}`,
           },
           "&:active": {
-            boxShadow: `0 2px 10px ${(theme as any).vars.palette.primary.main}40`,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
           },
           "& svg": {
-             fontSize: "1.3rem",
+            fontSize: "1.3rem",
           }
         }}
       >

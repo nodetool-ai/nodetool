@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalChatStore from "../stores/GlobalChatStore";
 import { Message, LanguageModel } from "../stores/ApiTypes";
@@ -7,8 +7,6 @@ import { truncateString } from "../utils/truncateString";
 export const useChatService = (selectedModel: LanguageModel | null) => {
   const navigate = useNavigate();
   const {
-    connect,
-    disconnect,
     status,
     sendMessage,
     createNewThread,
@@ -26,21 +24,11 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
         return;
       }
 
-      // Only return early if we're in a failed state
-      if (status === "failed") {
-        console.error("Chat service connection failed");
-        return;
-      }
-
       try {
         const messageWithModel = {
           ...message,
           model: selectedModel.id
         };
-
-        if (status !== "connected") {
-          await connect();
-        }
 
         // Use existing thread if available, otherwise create new one
         let threadId = currentThreadId;
@@ -72,8 +60,6 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
     [
       selectedModel,
       sendMessage,
-      status,
-      connect,
       navigate,
       createNewThread,
       switchThread,

@@ -1,10 +1,18 @@
 import { handleChatWebSocketMessage } from "../chatProtocol";
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
     has: jest.fn(),
     call: jest.fn()
+  }
+}));
+
+jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
+  globalWebSocketManager: {
+    send: jest.fn().mockResolvedValue(undefined),
+    ensureConnection: jest.fn().mockResolvedValue(undefined)
   }
 }));
 
@@ -23,12 +31,12 @@ describe("chatProtocol", () => {
 
   it("returns tool errors for unknown client tools", async () => {
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
-    const send = jest.fn();
+
     const set = jest.fn();
     const get = () =>
       ({
         status: "connected",
-        wsManager: { send },
+        wsManager: { send: jest.fn() },
         frontendToolState: {},
         currentThreadId: null,
         threads: {},
@@ -49,7 +57,7 @@ describe("chatProtocol", () => {
       get
     );
 
-    expect(send).toHaveBeenCalledWith(
+    expect(globalWebSocketManager.send).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "tool_result",
         ok: false
@@ -61,12 +69,11 @@ describe("chatProtocol", () => {
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(true);
     (FrontendToolRegistry.call as jest.Mock).mockRejectedValue(new Error("nope"));
 
-    const send = jest.fn();
     const set = jest.fn();
     const get = () =>
       ({
         status: "connected",
-        wsManager: { send },
+        wsManager: { send: jest.fn() },
         workflowId: null,
         threadWorkflowId: {},
         frontendToolState: { fetchWorkflow: jest.fn().mockResolvedValue(undefined) },
@@ -89,7 +96,7 @@ describe("chatProtocol", () => {
       get
     );
 
-    expect(send).toHaveBeenCalledWith(
+    expect(globalWebSocketManager.send).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "tool_result",
         tool_call_id: "tc_fail",

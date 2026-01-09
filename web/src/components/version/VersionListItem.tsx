@@ -26,6 +26,7 @@ import {
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow } from "date-fns";
 import { WorkflowVersion } from "../../stores/ApiTypes";
+import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
 
 interface VersionListItemProps {
   version: WorkflowVersion & { save_type: SaveType; size_bytes: number; is_pinned?: boolean };
@@ -158,6 +159,13 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
         opacity: isRestoring ? 0.6 : 1
       }}
     >
+      <Box sx={{ mr: 1, flexShrink: 0 }}>
+        <WorkflowMiniPreview
+          workflow={version}
+          width={80}
+          height={50}
+        />
+      </Box>
       <ListItemText
         primary={
           <Box display="flex" alignItems="center" gap={1}>

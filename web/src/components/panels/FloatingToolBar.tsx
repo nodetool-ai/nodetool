@@ -29,6 +29,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
+import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -36,6 +37,7 @@ import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
@@ -44,7 +46,6 @@ import { cn } from "../editor_ui/editorUtils";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
-  label?: string;
   tooltip: string;
   shortcut?: string;
   variant?: "primary" | "secondary" | "neutral" | "stop";
@@ -56,7 +57,6 @@ interface ToolbarButtonProps {
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = memo(function ToolbarButton({
   icon,
-  label,
   tooltip,
   shortcut,
   variant = "neutral",
@@ -215,7 +215,7 @@ const styles = (theme: Theme) =>
       }
     },
 
-    /* Instant update button: glowing effect when active */
+/* Instant update button: glowing effect when active */
     ".floating-action-button.instant-update": {
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
@@ -228,7 +228,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.warning.contrastText,
         boxShadow: `0 0 12px ${theme.vars.palette.warning.main}`,
         "&:hover": {
-          backgroundColor: theme.vars.palette.warning.dark,
+          backgroundColor: "warning.dark",
           boxShadow: `0 0 16px ${theme.vars.palette.warning.main}`
         }
       }
@@ -238,6 +238,14 @@ const styles = (theme: Theme) =>
       "0%": { transform: "scale(1)" },
       "50%": { transform: "scale(1.1)" },
       "100%": { transform: "scale(1)" }
+    },
+
+    ".minimap-active": {
+      backgroundColor: `${theme.vars.palette.primary.main}20`,
+      color: theme.vars.palette.primary.main,
+      "&:hover": {
+        backgroundColor: `${theme.vars.palette.primary.main}30`
+      }
     }
   });
 
@@ -250,6 +258,8 @@ const FloatingToolBar: React.FC<{
   const navigate = useNavigate();
   const [paneMenuOpen, setPaneMenuOpen] = useState(false);
   const [actionsMenuAnchor, setActionsMenuAnchor] =
+    useState<null | HTMLElement>(null);
+  const [advancedMenuAnchor, setAdvancedMenuAnchor] =
     useState<null | HTMLElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
@@ -270,6 +280,13 @@ const FloatingToolBar: React.FC<{
     instantUpdate: state.settings.instantUpdate,
     setInstantUpdate: state.setInstantUpdate
   }));
+
+  const { visible: isMiniMapVisible, toggleVisible: toggleMiniMap } = useMiniMapStore(
+    (state) => ({
+      visible: state.visible,
+      toggleVisible: state.toggleVisible
+    })
+  );
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
@@ -325,7 +342,7 @@ const FloatingToolBar: React.FC<{
     cancel();
   }, [cancel]);
 
-  const handlePause = useCallback(() => {
+  const _handlePause = useCallback(() => {
     pause();
   }, [pause]);
 
@@ -363,7 +380,7 @@ const FloatingToolBar: React.FC<{
     autoLayout();
   }, [autoLayout]);
 
-  const handleOpenInMiniApp = useCallback(() => {
+  const _handleOpenInMiniApp = useCallback(() => {
     if (!workflow?.id) {
       return;
     }
@@ -425,6 +442,17 @@ const FloatingToolBar: React.FC<{
     setActionsMenuAnchor(null);
   }, []);
 
+  const handleOpenAdvancedMenu = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      setAdvancedMenuAnchor(e.currentTarget);
+    },
+    []
+  );
+
+  const handleCloseAdvancedMenu = useCallback(() => {
+    setAdvancedMenuAnchor(null);
+  }, []);
+
   const handleToggleTerminal = useCallback(() => {
     toggleBottomPanel("terminal");
   }, [toggleBottomPanel]);
@@ -432,6 +460,10 @@ const FloatingToolBar: React.FC<{
   const handleToggleInstantUpdate = useCallback(() => {
     setInstantUpdate(!instantUpdate);
   }, [instantUpdate, setInstantUpdate]);
+
+  const handleToggleMiniMap = useCallback(() => {
+    toggleMiniMap();
+  }, [toggleMiniMap]);
 
   if (!path.startsWith("/editor")) {
     return null;
@@ -589,6 +621,12 @@ const FloatingToolBar: React.FC<{
           </ListItemIcon>
           <ListItemText primary="Workflow Settings" />
         </MenuItem>
+        <MenuItem onClick={handleOpenAdvancedMenu}>
+          <ListItemIcon>
+            <MapIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Advanced" />
+        </MenuItem>
         <MenuItem
           onClick={() => {
             handleDownload();
@@ -610,6 +648,35 @@ const FloatingToolBar: React.FC<{
             <RocketLaunchIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Run as App" />
+        </MenuItem>
+      </Menu>
+
+      <Menu
+        anchorEl={advancedMenuAnchor}
+        open={Boolean(advancedMenuAnchor)}
+        onClose={handleCloseAdvancedMenu}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+        slotProps={{
+          paper: {
+            sx: { minWidth: "180px", maxWidth: "220px" }
+          }
+        }}
+      >
+        <MenuItem
+          className={cn(isMiniMapVisible && "minimap-active")}
+          onClick={() => {
+            handleToggleMiniMap();
+            handleCloseAdvancedMenu();
+          }}
+        >
+          <ListItemIcon>
+            <MapIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Mini Map"
+            secondary={isMiniMapVisible ? "Visible" : "Hidden"}
+          />
         </MenuItem>
       </Menu>
 

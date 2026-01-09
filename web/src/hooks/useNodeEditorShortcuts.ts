@@ -11,6 +11,7 @@ import { useCopyPaste } from "./handlers/useCopyPaste";
 import useAlignNodes from "./useAlignNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
+import { useSelectConnected } from "./useSelectConnected";
 import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
@@ -56,6 +57,9 @@ export const useNodeEditorShortcuts = (
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
+  const selectConnectedAll = useSelectConnected({ direction: "both" });
+  const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
+  const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
 
   const nodeMenuStore = useNodeMenuStore(
     (state) => ({
@@ -108,6 +112,24 @@ export const useNodeEditorShortcuts = (
       toggleBypassSelected();
     }
   }, [selectedNodes.length, toggleBypassSelected]);
+
+  const handleSelectConnectedAll = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      selectConnectedAll.selectConnected();
+    }
+  }, [selectedNodes.length, selectConnectedAll]);
+
+  const handleSelectConnectedInputs = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      selectConnectedInputs.selectConnected();
+    }
+  }, [selectedNodes.length, selectConnectedInputs]);
+
+  const handleSelectConnectedOutputs = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      selectConnectedOutputs.selectConnected();
+    }
+  }, [selectedNodes.length, selectConnectedOutputs]);
 
   const handleZoomIn = useCallback(() => {
     reactFlow.zoomIn({ duration: 200 });
@@ -407,7 +429,19 @@ export const useNodeEditorShortcuts = (
         callback: handleBypassSelected,
         active: selectedNodes.length > 0
       },
-      findInWorkflow: { callback: openFind }
+      findInWorkflow: { callback: openFind },
+      selectConnectedAll: {
+        callback: handleSelectConnectedAll,
+        active: selectedNodes.length > 0
+      },
+      selectConnectedInputs: {
+        callback: handleSelectConnectedInputs,
+        active: selectedNodes.length > 0
+      },
+      selectConnectedOutputs: {
+        callback: handleSelectConnectedOutputs,
+        active: selectedNodes.length > 0
+      }
     };
 
     // Switch-to-tab (1-9)
@@ -444,7 +478,11 @@ export const useNodeEditorShortcuts = (
     handleSwitchTab,
     handleMoveNodes,
     handleSwitchToTab,
-    openFind
+    openFind,
+    handleBypassSelected,
+    handleSelectConnectedAll,
+    handleSelectConnectedInputs,
+    handleSelectConnectedOutputs
   ]);
 
   // useEffect for shortcut registration

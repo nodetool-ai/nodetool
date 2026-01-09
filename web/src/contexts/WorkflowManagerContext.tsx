@@ -35,6 +35,9 @@ import {
   fetchWorkflowById,
   workflowQueryKey
 } from "../serverState/useWorkflow";
+import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "../stores/workflowUpdates";
+import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
+import log from "loglevel";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -80,9 +83,6 @@ export const determineNextWorkflowId = (
 // -----------------------------------------------------------------
 // TYPES
 // -----------------------------------------------------------------
-
-// Loading state was previously kept here for tabs; now superseded by React Query
-type LoadingState = never;
 
 type WorkflowManagerState = {
   nodeStores: Record<string, NodeStore>;
@@ -254,20 +254,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          * @throws {Error} If the save operation fails
          */
         saveWorkflow: async (workflow: Workflow) => {
-          console.log("[saveWorkflow] Saving workflow:", {
-            id: workflow.id,
-            name: workflow.name,
-            graphNodesCount: workflow.graph?.nodes?.length ?? 0,
-            graphEdgesCount: workflow.graph?.edges?.length ?? 0,
-            firstNode: workflow.graph?.nodes?.[0] ? {
-              id: workflow.graph.nodes[0].id,
-              type: workflow.graph.nodes[0].type,
-              ui_properties: workflow.graph.nodes[0].ui_properties,
-              parent_id: workflow.graph.nodes[0].parent_id,
-              dynamic_properties: workflow.graph.nodes[0].dynamic_properties
-            } : null,
-            firstEdge: workflow.graph?.edges?.[0] || null
-          });
 
           const { data, error } = await client.PUT("/api/workflows/{id}", {
             params: { path: { id: workflow.id } },
@@ -275,6 +261,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           });
           if (error) {
             throw createErrorMessage(error, "Failed to save workflow");
+          }
+
+          const versionResponse = await client.POST("/api/workflows/{id}/versions", {
+            params: { path: { id: workflow.id } },
+            body: {
+              name: workflow.name,
+              description: `Manual save: ${new Date().toISOString()}`
+            }
+          });
+          if (versionResponse.error) {
+            log.warn("[saveWorkflow] Failed to create version:", versionResponse.error);
           }
 
           if (window.api) {
@@ -302,6 +299,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             queryKey: ["workflow", data.id]
           });
           get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
+          get().queryClient?.invalidateQueries({
+            queryKey: ["workflow", data.id, "versions"]
+          });
         },
 
        /**
@@ -451,7 +451,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           thumbnail_url: workflow.thumbnail_url,
           tags: workflow.tags,
           access: "private",
-          graph: JSON.parse(JSON.stringify(workflow.graph)), // Deep copy graph
+          graph: structuredClone(workflow.graph), // Deep copy graph
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           settings: workflow.settings
@@ -568,14 +568,19 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           openWorkflows: newOpenWorkflows
         }));
         storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
+
+        const runnerStore = getWorkflowRunnerStore(workflow.id);
+        subscribeToWorkflowUpdates(workflow.id, workflow, runnerStore);
       },
 
-      /**
-       * Removes a workflow from state and localStorage.
-       * @param {string} workflowId The ID of the workflow to remove
-       */
-      removeWorkflow: (workflowId: string) => {
-        const { nodeStores, openWorkflows, currentWorkflowId } = get();
+       /**
+        * Removes a workflow from state and localStorage.
+        * @param {string} workflowId The ID of the workflow to remove
+        */
+       removeWorkflow: (workflowId: string) => {
+         unsubscribeFromWorkflowUpdates(workflowId);
+         
+         const { nodeStores, openWorkflows, currentWorkflowId } = get();
 
         const newOpenWorkflows = openWorkflows.filter(
           (w) => w.id !== workflowId
@@ -713,11 +718,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 export const FetchCurrentWorkflow: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const { setCurrentWorkflowId, getNodeStore, fetchWorkflow } =
+  const { setCurrentWorkflowId, getNodeStore, fetchWorkflow, addWorkflow } =
     useWorkflowManager((state) => ({
       setCurrentWorkflowId: state.setCurrentWorkflowId,
       getNodeStore: state.getNodeStore,
-      fetchWorkflow: state.fetchWorkflow
+      fetchWorkflow: state.fetchWorkflow,
+      addWorkflow: state.addWorkflow
     }));
   // Extract workflow id from the route.
   const { workflow: workflowId } = useParams();
@@ -728,9 +734,28 @@ export const FetchCurrentWorkflow: React.FC<{
       setCurrentWorkflowId(workflowId);
     }
     if (workflowId && !isWorkflowLoaded) {
-      fetchWorkflow(workflowId);
+      fetchWorkflow(workflowId).catch(async () => {
+        const workflow: Workflow = {
+          id: workflowId,
+          name: "New Workflow",
+          description: "",
+          access: "private",
+          thumbnail: "",
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          graph: {
+            nodes: [],
+            edges: []
+          },
+          settings: {
+            hide_ui: false
+          },
+          run_mode: "workflow"
+        };
+        addWorkflow(workflow);
+      });
     }
-  }, [workflowId, fetchWorkflow, isWorkflowLoaded, setCurrentWorkflowId]);
+  }, [workflowId, fetchWorkflow, isWorkflowLoaded, setCurrentWorkflowId, addWorkflow]);
 
   return children;
 };

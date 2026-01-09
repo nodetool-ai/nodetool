@@ -13,7 +13,6 @@
 import React, { forwardRef } from "react";
 import { Slider, SliderProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useEditorScope } from "../editor_ui/EditorUiContext";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 
 export interface NodeSliderProps extends Omit<SliderProps, "size"> {
@@ -47,7 +46,6 @@ export interface NodeSliderProps extends Omit<SliderProps, "size"> {
 export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
   ({ className, sx, changed, density = "compact", ...props }, ref) => {
     const theme = useTheme();
-    const scope = useEditorScope();
 
     const height = density === "compact" ? 5 : 6;
     const thumbSize = density === "compact" ? 8 : 10;

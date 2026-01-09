@@ -1,0 +1,48 @@
+name: Hourly OpenCode Features
+
+on:
+  schedule:
+    - cron: "45 * * * *" # Every 6 hours
+
+jobs:
+  opencode:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm ci
+          
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+        with:
+          model: minimax/MiniMax-M2.1
+          prompt: |
+            Read the docs and code to understand Nodetool.
+            Think about one exciting feature to add.
+            It can be a small nice feature or something really crazy.
+            It should follow the principles in the docs.
+            If you find anything worth addressing, submit a coherent PR to fix it.
+            make lint, make test and make typecheck have to pass.

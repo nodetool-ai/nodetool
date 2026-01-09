@@ -13,6 +13,7 @@ import log from "loglevel";
 import {
   Chunk,
   EdgeUpdate,
+  ErrorMessage,
   JobUpdate,
   Message,
   MessageContent,
@@ -31,6 +32,7 @@ import {
   FrontendToolState
 } from "../../lib/tools/frontendTools";
 import type { GlobalChatState, StepToolCall } from "../../stores/GlobalChatStore";
+import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
 
@@ -75,7 +77,8 @@ export type MsgpackData =
   | WorkflowCreatedUpdate
   | GenerationStoppedUpdate
   | ToolCallMessage
-  | ToolResultMessage;
+  | ToolResultMessage
+  | ErrorMessage;
 
 export interface ToolResultMessage {
   type: "tool_result";
@@ -150,7 +153,7 @@ const applyJobUpdate = (
       }
     };
   }
-  if (update.status === "failed") {
+  if (update.status === "failed" || update.status === "error") {
     return {
       update: {
         status: "error",
@@ -721,6 +724,7 @@ export async function handleChatWebSocketMessage(
   get: ChatStateGetter
 ) {
   const currentState = get();
+  console.log("handleChatWebSocketMessage:", data);
 
   if (currentState.status === "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
@@ -744,6 +748,7 @@ export async function handleChatWebSocketMessage(
   };
 
   if (data.type === "job_update") {
+    console.log("Job update received:", data);
     applyReducer(applyJobUpdate, data as JobUpdate);
   } else if (data.type === "node_update") {
     applyReducer(applyNodeUpdate, data as NodeUpdate);
@@ -772,14 +777,18 @@ export async function handleChatWebSocketMessage(
 
     if (!FrontendToolRegistry.has(name)) {
       log.warn(`Unknown tool: ${name}`);
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: false,
-        error: `Unsupported tool: ${name}`,
-        result: { error: `Unsupported tool: ${name}` }
-      });
+      try {
+        await globalWebSocketManager.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: false,
+          error: `Unsupported tool: ${name}`,
+          result: { error: `Unsupported tool: ${name}` }
+        });
+      } catch (error) {
+        log.error("Failed to send tool_result for unknown tool:", error);
+      }
       return;
     }
 
@@ -819,28 +828,36 @@ export async function handleChatWebSocketMessage(
       );
 
       const elapsedMs = Date.now() - startTime;
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: true,
-        result,
-        elapsed_ms: elapsedMs
-      });
+      try {
+        await globalWebSocketManager.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: true,
+          result,
+          elapsed_ms: elapsedMs
+        });
+      } catch (error) {
+        log.error("Failed to send tool_result:", error);
+      }
     } catch (error) {
       const elapsedMs = Date.now() - startTime;
       const message =
         error instanceof Error ? error.message : "Unknown error";
       log.error(`Tool execution failed for ${name}:`, error);
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: false,
-        error: message,
-        result: { error: message },
-        elapsed_ms: elapsedMs
-      });
+      try {
+        await globalWebSocketManager.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: false,
+          error: message,
+          result: { error: message },
+          elapsed_ms: elapsedMs
+        });
+      } catch (sendError) {
+        log.error("Failed to send tool_result after error:", sendError);
+      }
     }
   } else if (data.type === "generation_stopped") {
     applyReducer(
@@ -849,11 +866,12 @@ export async function handleChatWebSocketMessage(
     );
     const stoppedData = data as GenerationStoppedUpdate;
     log.info("Generation stopped:", stoppedData.message);
-  } else if ((data as any).type === "error") {
-    const errorData = data as any;
+  } else if (data.type === "error") {
+    const errorData = data as ErrorMessage;
+    console.log("Error message received:", errorData);
     applyReducer(
       (_state) => applyError(errorData.message),
-      errorData as { message?: string }
+      errorData
     );
   }
 }

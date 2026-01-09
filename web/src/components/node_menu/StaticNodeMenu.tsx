@@ -1,8 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useMemo, useRef } from "react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 
 // components
@@ -15,7 +13,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // theme
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 
-const staticMenuStyles = (theme: Theme) =>
+const staticMenuStyles = () =>
   css({
     "&": {
       display: "flex",
@@ -41,8 +39,7 @@ function StaticNodeMenu({ className }: StaticNodeMenuProps) {
     })
   );
 
-  const theme = useTheme();
-  const memoizedStyles = useMemo(() => staticMenuStyles(theme), [theme]);
+  const memoizedStyles = useMemo(() => staticMenuStyles(), []);
 
   return (
     <Box

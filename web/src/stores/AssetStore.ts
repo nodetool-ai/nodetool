@@ -141,15 +141,6 @@ export interface AssetStore {
   getAssetsRecursive: (folderId: string) => Promise<AssetTreeNode[]>;
 }
 
-/**
- * Sort assets by created_at in descending order.
- */
-const sort = (assets: { [key: string]: Asset }) => {
-  return Object.values(assets).sort((a, b) => {
-    return -a.created_at.localeCompare(b.created_at);
-  });
-};
-
 export type FolderTree = Record<string, AssetTreeNode>;
 
 const buildFolderTree = (

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
-import type { ProviderInfo } from "../stores/ApiTypes";
 
 /**
  * Hook to fetch and cache available providers with their capabilities.

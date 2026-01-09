@@ -161,6 +161,7 @@ export const useDropHandler = () => {
       addNode,
       getAsset,
       addNodeFromAsset,
+      addRecentNode,
       handlePngFile,
       handleJsonFile,
       handleCsvFile,

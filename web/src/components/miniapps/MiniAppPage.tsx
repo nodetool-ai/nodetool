@@ -33,7 +33,7 @@ const MiniAppPage: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { workflowId } = useParams<{ workflowId?: string }>();
   const navigate = useNavigate();
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [_submitError, setSubmitError] = useState<string | null>(null);
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
     fetchWorkflow: state.fetchWorkflow
@@ -61,7 +61,6 @@ const MiniAppPage: React.FC = () => {
     runWorkflow,
     runnerState,
     statusMessage,
-    notifications,
     results,
     progress,
     resetWorkflowState

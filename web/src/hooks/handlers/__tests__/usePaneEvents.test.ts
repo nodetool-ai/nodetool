@@ -2,7 +2,6 @@ import { renderHook, act } from "@testing-library/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { usePaneEvents } from "../usePaneEvents";
-import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import useNodePlacementStore from "../../../stores/NodePlacementStore";
 import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";

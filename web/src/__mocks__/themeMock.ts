@@ -91,7 +91,62 @@ const mockTheme = createTheme({
     textChannel: "255 255 255",
     dividerChannel: "47 47 47",
     backgroundDefaultChannel: "32 32 32",
-    backgroundPaperChannel: "35 35 35"
+    backgroundPaperChannel: "35 35 35",
+    // Add Alert palette for MUI v7 Alert component
+    Alert: {
+      primaryColor: "#77b4e6",
+      primaryIconColor: "#77b4e6",
+      primaryStandardBg: "rgba(119, 180, 230, 0.1)",
+      primaryStandardBgHover: "rgba(119, 180, 230, 0.2)",
+      primaryOutlinedBg: "transparent",
+      primaryOutlinedBorder: "rgba(119, 180, 230, 0.5)",
+      primaryTextColor: "#77b4e6",
+      secondaryColor: "#9c27b0",
+      secondaryIconColor: "#9c27b0",
+      secondaryStandardBg: "rgba(156, 39, 176, 0.1)",
+      secondaryStandardBgHover: "rgba(156, 39, 176, 0.2)",
+      secondaryOutlinedBg: "transparent",
+      secondaryOutlinedBorder: "rgba(156, 39, 176, 0.5)",
+      secondaryTextColor: "#9c27b0",
+      errorColor: "#f44336",
+      errorIconColor: "#f44336",
+      errorStandardBg: "rgba(244, 67, 54, 0.1)",
+      errorStandardBgHover: "rgba(244, 67, 54, 0.2)",
+      errorOutlinedBg: "transparent",
+      errorOutlinedBorder: "rgba(244, 67, 54, 0.5)",
+      errorTextColor: "#f44336",
+      infoColor: "#2196f3",
+      infoIconColor: "#2196f3",
+      infoStandardBg: "rgba(33, 150, 243, 0.1)",
+      infoStandardBgHover: "rgba(33, 150, 243, 0.2)",
+      infoOutlinedBg: "transparent",
+      infoOutlinedBorder: "rgba(33, 150, 243, 0.5)",
+      infoTextColor: "#2196f3",
+      successColor: "#4caf50",
+      successIconColor: "#4caf50",
+      successStandardBg: "rgba(76, 175, 80, 0.1)",
+      successStandardBgHover: "rgba(76, 175, 80, 0.2)",
+      successOutlinedBg: "transparent",
+      successOutlinedBorder: "rgba(76, 175, 80, 0.5)",
+      successTextColor: "#4caf50",
+      warningColor: "#ff9800",
+      warningIconColor: "#ff9800",
+      warningStandardBg: "rgba(255, 152, 0, 0.1)",
+      warningStandardBgHover: "rgba(255, 152, 0, 0.2)",
+      warningOutlinedBg: "transparent",
+      warningOutlinedBorder: "rgba(255, 152, 0, 0.5)",
+      warningTextColor: "#ff9800"
+    },
+    // Add glass effect for ResultOverlay component
+    // Add glass effect for ResultOverlay component
+    glass: {
+      blur: "blur(12px)"
+    },
+    // Add Button palette for MUI v7 Button component
+    Button: {
+      inheritContainedBg: "rgba(255, 255, 255, 0.08)",
+      inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)"
+    }
   },
   // Provide spacing variables expected by MUI components (e.g., Button)
   // MUI expects spacing to be a function that multiplies by 8px

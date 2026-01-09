@@ -71,7 +71,7 @@ export const extractWorkflowFromPng = async (
               const workflow = JSON.parse(textContent);
               resolve(workflow);
               return;
-            } catch (error) {
+            } catch {
               reject(new Error("Failed to parse workflow JSON"));
               return;
             }

@@ -1,20 +1,14 @@
-import React, { memo, useCallback } from "react";
+import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { Toolbar, IconButton, Tooltip } from "@mui/material";
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
-import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
-import HelpIcon from "@mui/icons-material/Help";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
-import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
-import { NodeData } from "../../stores/NodeData";
-import { Node } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
@@ -27,7 +21,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
   const deleteNode = useNodes((state) => state.deleteNode);
   const node = nodeId !== null ? getNode(nodeId) : null;
-  const removeFromGroup = useRemoveFromGroup();
   const { handleCopy } = useCopyPaste();
   const duplicateNodes = useDuplicateNodes();
   const openDocumentation = useNodeMenuStore(
@@ -51,7 +44,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     }
   }, [nodeId, getNode, duplicateNodes]);
 
-  const handleOpenDocumentation = useCallback(() => {
+  const _handleOpenDocumentation = useCallback(() => {
     const mousePosition = getMousePosition();
     openDocumentation(node?.type || "", {
       x: mousePosition.x,
@@ -67,49 +60,58 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       className="node-toolbar"
       sx={{ backgroundColor: "transparent" }}
     >
-      {/* {node?.parentId && (
-        <Tooltip title="Remove from Group">
-          <IconButton
-            onClick={() => removeFromGroup([node as Node<NodeData>])}
-            tabIndex={-1}
-          >
-            <GroupRemoveIcon />
-          </IconButton>
-        </Tooltip>
-      )} */}
       <Tooltip
         title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Duplicate</div>
-            <div className="tooltip-key">
-              <kbd>Space</kbd>+<kbd>D</kbd>
-            </div>
-          </div>
+          <span>
+            Duplicate{" "}
+            <span className="shortcut">{getShortcutTooltip("duplicate")}</span>
+          </span>
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        <IconButton onClick={handleDuplicateNodes} tabIndex={-1}>
-          <QueueIcon />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title={getShortcutTooltip("copy")}
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton onClick={handleCopyClicked} tabIndex={-1}>
+        <IconButton
+          className="nodrag"
+          onClick={handleDuplicateNodes}
+          tabIndex={-1}
+        >
           <CopyAllIcon />
         </IconButton>
       </Tooltip>
+
       <Tooltip
-        title={getShortcutTooltip("delete-node")}
+        title={
+          <span>
+            Delete{" "}
+            <span className="shortcut">{getShortcutTooltip("delete")}</span>
+          </span>
+        }
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        <IconButton className="delete" onClick={handleDelete} tabIndex={-1}>
+        <IconButton
+          className="nodrag"
+          onClick={handleDelete}
+          tabIndex={-1}
+        >
           <RemoveCircleIcon />
         </IconButton>
       </Tooltip>
+
+      <Tooltip
+        title={
+          <span>
+            Add Node{" "}
+            <span className="shortcut">{getShortcutTooltip("add-node")}</span>
+          </span>
+        }
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton className="nodrag" onClick={handleCopyClicked} tabIndex={-1}>
+          <QueueIcon />
+        </IconButton>
+      </Tooltip>
+
     </Toolbar>
   );
 };
 
-export default memo(NodeToolButtons, isEqual);
+export default NodeToolButtons;

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import { InputOutlined } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import OutputRenderer from "./OutputRenderer";
@@ -31,42 +31,48 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         width: "100%",
         minHeight: "60px",
         flex: 1,
-        "&:hover .result-overlay-toggle": {
-          opacity: 1
+        "&:hover .show-inputs-button": {
+          opacity: 1,
+          transform: "translateY(0)"
         }
       }}
     >
-      {/* Toggle button to show inputs - only shown if onShowInputs provided */}
+      {/* Toggle button to show inputs - only shown on hover */}
       {onShowInputs && (
         <Box
-          className="result-overlay-toggle"
+          className="show-inputs-button"
           sx={{
             position: "absolute",
-            top: 4,
-            right: 4,
+            top: 8,
+            left: "50%",
+            transform: "translateX(-50%) translateY(-4px)",
             zIndex: 20,
             opacity: 0,
-            transition: "opacity 0.15s ease-in-out"
+            transition: "opacity 0.2s ease, transform 0.2s ease"
           }}
         >
-          <Tooltip title="Show inputs" placement="left">
-            <IconButton
-              size="small"
-              onClick={onShowInputs}
-              sx={{
-                width: 24,
-                height: 24,
-                backgroundColor: "rgba(0, 0, 0, 0.6)",
-                color: "white",
-                "&:hover": {
-                  backgroundColor: "rgba(0, 0, 0, 0.8)"
-                },
-                boxShadow: theme.shadows[2]
-              }}
-            >
-              <InputOutlined sx={{ fontSize: 14 }} />
-            </IconButton>
-          </Tooltip>
+          <Button
+            size="small"
+            startIcon={<InputOutlined sx={{ fontSize: 16 }} />}
+            onClick={onShowInputs}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.75rem",
+              padding: "4px 12px",
+              backgroundColor: theme.vars.palette.background.paper,
+              color: theme.vars.palette.text.primary,
+              border: `1px solid ${theme.vars.palette.divider}`,
+              borderRadius: "16px",
+              backdropFilter: theme.vars.palette.glass.blur,
+              boxShadow: 1,
+              "&:hover": {
+                backgroundColor: theme.vars.palette.action.hover,
+                borderColor: theme.vars.palette.primary.main
+              }
+            }}
+          >
+            Show Inputs
+          </Button>
         </Box>
       )}
 
