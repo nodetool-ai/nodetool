@@ -1,19 +1,25 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useMemo, useState, useRef } from "react";
+import React, {
+  memo,
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useLayoutEffect
+} from "react";
 import {
   Button,
   Typography,
   Tooltip,
   CircularProgress,
   Chip,
-  IconButton,
-  Dialog,
-  DialogContent,
-  DialogTitle
+  Box,
+  Popover,
+  PopoverOrigin
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import { Extension, Close } from "@mui/icons-material";
+import { Extension } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useNodeToolsMenuStore } from "../../../stores/NodeMenuStore";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -24,85 +30,25 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
 
+// Popover dimensions
+const POPOVER_WIDTH = 420;
+const POPOVER_HEIGHT = 420;
+
 const toolsSelectorStyles = (theme: Theme) =>
   css({
-    ".dialog-title": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      margin: 0,
-      padding: theme.spacing(4, 4),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      h4: {
-        margin: 0,
-        fontSize: theme.fontSizeNormal,
-        fontWeight: 500,
-        color: theme.vars.palette.grey[100]
-      }
-    },
     ".MuiButton-endIcon": {
       marginLeft: 0
-    },
-    ".close-button": {
-      position: "absolute",
-      right: theme.spacing(1),
-      top: theme.spacing(2),
-      color: theme.vars.palette.grey[500]
-    },
-    ".selector-grid": {
-      display: "flex",
-      flexDirection: "row",
-      gap: theme.spacing(2),
-      alignItems: "stretch"
-    },
-    ".left-pane": {
-      display: "flex",
-      flexDirection: "column",
-      flex: 1,
-      minWidth: 0
-    },
-    ".right-pane": {
-      width: 360,
-      minWidth: 320,
-      maxWidth: 420,
-      borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
-      padding: theme.spacing(0, 1.5, 1.5, 1.5),
-      background: "transparent",
-      position: "sticky",
-      top: 0,
-      alignSelf: "flex-start"
     },
     ".selector-content": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.5em",
-      paddingTop: theme.spacing(1)
-    },
-    ".search-toolbar": {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: "0.5em",
-      minHeight: "40px",
-      flexGrow: 0,
-      overflow: "hidden",
-      width: "60%",
-      margin: 0,
-      padding: ".5em 1em .5em .7em",
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      ".search-input-container": {
-        minWidth: "170px",
-        flex: 1
-      }
+      height: "100%",
+      overflow: "hidden"
     },
     ".nodes-container": {
       flex: 1,
       overflow: "auto",
-      padding: "0 1em"
+      padding: "0 8px"
     },
     ".loading-container": {
       display: "flex",
@@ -181,12 +127,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     const nodeTypeToNode = new Map<string, NodeMetadata>();
     // Selected first to preserve order preference when rendered
     selectedNodeMetadatas.forEach((node) => {
-      if (!nodeTypeToNode.has(node.node_type))
-        {nodeTypeToNode.set(node.node_type, node);}
+      if (!nodeTypeToNode.has(node.node_type)) { nodeTypeToNode.set(node.node_type, node); }
     });
     searchResults.forEach((node) => {
-      if (!nodeTypeToNode.has(node.node_type))
-        {nodeTypeToNode.set(node.node_type, node);}
+      if (!nodeTypeToNode.has(node.node_type)) { nodeTypeToNode.set(node.node_type, node); }
     });
     return Array.from(nodeTypeToNode.values());
   }, [selectedNodeMetadatas, searchResults]);
@@ -228,6 +172,44 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   // Count of selected node tools
   const selectedCount = selectedNodeTypes.length;
   const memoizedStyles = useMemo(() => toolsSelectorStyles(theme), [theme]);
+
+  // Positioning logic for Popover (same pattern as ModelMenuDialogBase)
+  const [positionConfig, setPositionConfig] = useState<{
+    anchorOrigin: PopoverOrigin;
+    transformOrigin: PopoverOrigin;
+  }>({
+    anchorOrigin: { vertical: "bottom", horizontal: "left" },
+    transformOrigin: { vertical: "top", horizontal: "left" }
+  });
+
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) {
+      return;
+    }
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+
+    if (spaceBelow < POPOVER_HEIGHT && rect.top > POPOVER_HEIGHT) {
+      setPositionConfig({
+        anchorOrigin: { vertical: "top", horizontal: "left" },
+        transformOrigin: { vertical: "bottom", horizontal: "left" }
+      });
+    } else {
+      setPositionConfig({
+        anchorOrigin: { vertical: "bottom", horizontal: "left" },
+        transformOrigin: { vertical: "top", horizontal: "left" }
+      });
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (isMenuOpen) {
+      updatePosition();
+      setSearchTerm("");
+      window.addEventListener("resize", updatePosition);
+      return () => window.removeEventListener("resize", updatePosition);
+    }
+  }, [isMenuOpen, updatePosition, setSearchTerm]);
 
   return (
     <>
@@ -280,59 +262,70 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
         />
       </Tooltip>
 
-      <Dialog
+      <Popover
         css={memoizedStyles}
-        className="node-tools-selector-dialog"
         open={isMenuOpen}
+        anchorEl={buttonRef.current}
         onClose={handleClose}
-        aria-labelledby="node-tools-selector-title"
+        anchorOrigin={positionConfig.anchorOrigin}
+        transformOrigin={positionConfig.transformOrigin}
         slotProps={{
-          backdrop: {
-            style: { backdropFilter: "blur(20px)" }
+          paper: {
+            elevation: 24,
+            style: {
+              width: `${POPOVER_WIDTH}px`,
+              height: `${POPOVER_HEIGHT}px`,
+              maxHeight: "90vh",
+              maxWidth: "100vw",
+              borderRadius: theme.vars.rounded.dialog,
+              background: theme.vars.palette.background.paper,
+              border: `1px solid ${theme.vars.palette.divider}`,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            }
           }
         }}
-        sx={(theme) => ({
-          "& .MuiDialog-paper": {
-            width: "92%",
-            maxWidth: "1000px",
-            margin: "auto",
-            borderRadius: 1.5,
-            background: "transparent",
-            border: `1px solid ${theme.vars.palette.grey[700]}`
-          }
-        })}
       >
-        <DialogTitle className="dialog-title">
-          <Typography variant="h4" id="node-tools-selector-title">
-            Node Tools
-          </Typography>
-          <Tooltip title="Close">
-            <IconButton
-              aria-label="close"
-              onClick={handleClose}
-              className="close-button"
-            >
-              <Close />
-            </IconButton>
-          </Tooltip>
-        </DialogTitle>
-        <DialogContent sx={{ background: "transparent", pt: 2 }}>
-          <div className="search-toolbar">
+        {/* Header with Search */}
+        <Box
+          sx={{
+            p: 1.5,
+            pl: 2,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            flexShrink: 0,
+            background: theme.vars.palette.background.paper
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <SearchInput
-              focusSearchInput={isMenuOpen}
-              focusOnTyping={false}
+              onSearchChange={handleSearchChange}
               placeholder="Search nodes..."
               debounceTime={150}
-              width={300}
-              maxWidth="100%"
-              searchTerm={searchTerm}
-              onSearchChange={handleSearchChange}
+              focusSearchInput={isMenuOpen}
+              focusOnTyping
+              width="100%"
               onPressEscape={handleClose}
-              searchResults={searchResults}
             />
-          </div>
-          <div className="selector-grid">
-            <div className="left-pane selector-content">
+          </Box>
+        </Box>
+
+        {/* Main Content */}
+        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          {/* Node List */}
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              bgcolor: "background.paper"
+            }}
+          >
+            <Box className="selector-content" sx={{ flex: 1, overflow: "hidden" }}>
               <div className="nodes-container">
                 {isLoading ? (
                   <div className="loading-container">
@@ -340,15 +333,15 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   </div>
                 ) : searchResults.length === 0 && selectedCount === 0 ? (
                   <div className="no-nodes-message">
-                    <Typography>
+                    <Typography variant="body2">
                       {(() => {
                         const hasNamespaceSelected = selectedPath.length > 0;
                         const searchLength = searchTerm.trim().length;
 
                         if (hasNamespaceSelected && searchLength === 0) {
-                          return "No nodes available in selected namespace.";
+                          return "No nodes available.";
                         } else if (hasNamespaceSelected && searchLength > 0) {
-                          return "No nodes match your search in selected namespace.";
+                          return "No nodes match your search.";
                         } else {
                           return "No nodes match your search.";
                         }
@@ -365,19 +358,30 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   />
                 )}
               </div>
-            </div>
-            <div className="right-pane">
-              {hoveredNode && (
-                <NodeInfo
-                  nodeMetadata={hoveredNode}
-                  showConnections={false}
-                  menuWidth={340}
-                />
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </Box>
+          </Box>
+
+          {/* Right Pane - Node Info (compact) */}
+          {hoveredNode && (
+            <Box
+              sx={{
+                width: 180,
+                flexShrink: 0,
+                borderLeft: `1px solid ${theme.vars.palette.divider}`,
+                overflow: "auto",
+                bgcolor: theme.vars.palette.background.default,
+                p: 1
+              }}
+            >
+              <NodeInfo
+                nodeMetadata={hoveredNode}
+                showConnections={false}
+                menuWidth={160}
+              />
+            </Box>
+          )}
+        </Box>
+      </Popover>
     </>
   );
 };
