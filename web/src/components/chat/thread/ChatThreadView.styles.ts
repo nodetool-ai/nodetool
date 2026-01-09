@@ -17,7 +17,7 @@ export const createStyles = (theme: Theme) => ({
     flexDirection: "column",
     justifyContent: "flex-start",
     alignItems: "center",
-    overflow: "hidden",
+    overflowY: "auto",
     padding: "0 .5em",
     marginTop: ".2em",
     position: "relative",
