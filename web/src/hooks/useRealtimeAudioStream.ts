@@ -29,21 +29,21 @@ export const useRealtimeAudioStream = (
     setIsStreaming(false);
     try {
       mediaRecorderRef.current?.stop();
-    } catch (e) {
+    } catch {
       // noop
     }
     mediaRecorderRef.current = null;
     try {
       processorNodeRef.current?.disconnect();
       sourceNodeRef.current?.disconnect();
-    } catch (e) {
+    } catch {
       // noop
     }
     processorNodeRef.current = null;
     sourceNodeRef.current = null;
     try {
       audioContextRef.current?.close();
-    } catch (e) {
+    } catch {
       // noop
     }
     audioContextRef.current = null;
@@ -58,7 +58,7 @@ export const useRealtimeAudioStream = (
         "chunk"
       );
       end("chunk");
-    } catch (e) {
+    } catch {
       // noop
     }
     setVersion((v) => v + 1);
@@ -150,14 +150,14 @@ export const useRealtimeAudioStream = (
     return () => {
       try {
         mediaRecorderRef.current?.stop();
-      } catch (e) {
+      } catch {
         // noop
       }
       mediaRecorderRef.current = null;
       try {
         processorNodeRef.current?.disconnect();
         sourceNodeRef.current?.disconnect();
-      } catch (e) {
+      } catch {
         // noop
       }
       processorNodeRef.current = null;
@@ -167,7 +167,7 @@ export const useRealtimeAudioStream = (
       }
       try {
         audioContextRef.current?.close();
-      } catch (e) {
+      } catch {
         // noop
       }
       audioContextRef.current = null;
@@ -178,7 +178,7 @@ export const useRealtimeAudioStream = (
           "chunk"
         );
         end("chunk");
-      } catch (e) {
+      } catch {
         // noop
       }
       setVersion((v) => v + 1);

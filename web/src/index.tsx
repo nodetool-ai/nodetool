@@ -50,7 +50,6 @@ import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
-import { useSettingsStore } from "./stores/SettingsStore";
 import {
   FetchCurrentWorkflow,
   WorkflowManagerProvider

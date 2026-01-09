@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useMemo, useRef } from "react";
-import { useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 
 // components
@@ -40,7 +39,6 @@ function StaticNodeMenu({ className }: StaticNodeMenuProps) {
     })
   );
 
-  const theme = useTheme();
   const memoizedStyles = useMemo(() => staticMenuStyles(), []);
 
   return (

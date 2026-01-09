@@ -6,7 +6,6 @@ import {
   DOMConversionOutput,
   DOMExportOutput,
   LexicalNode,
-  NodeKey,
   SerializedLexicalNode,
   Spread
 } from "lexical";
@@ -45,7 +44,7 @@ export class HorizontalRuleNode extends DecoratorNode<JSX.Element> {
   }
 
   static importJSON(
-    serializedNode: SerializedHorizontalRuleNode
+    _serializedNode: SerializedHorizontalRuleNode
   ): HorizontalRuleNode {
     return $createHorizontalRuleNode();
   }
