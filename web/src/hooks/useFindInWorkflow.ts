@@ -12,6 +12,8 @@ export const useFindInWorkflow = () => {
     searchTerm,
     results,
     selectedIndex,
+    recentSearches,
+    showRecentSearches,
     openFind,
     closeFind,
     setSearchTerm,
@@ -19,13 +21,17 @@ export const useFindInWorkflow = () => {
     setSelectedIndex,
     navigateNext,
     navigatePrevious,
-    clearSearch
+    clearSearch,
+    addRecentSearch,
+    clearRecentSearches,
+    setShowRecentSearches
   } = useFindInWorkflowStore();
 
   const nodes = useNodes((state) => state.nodes);
   const { setCenter, fitView } = useReactFlow();
   const metadataStore = useMetadataStore();
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previousSearchTermRef = useRef<string>("");
 
   const getNodeDisplayName = useCallback(
     (node: Node<NodeData>): string => {
@@ -88,19 +94,26 @@ export const useFindInWorkflow = () => {
 
   const debouncedSearch = useCallback(
     (term: string) => {
-      // Update search term immediately for responsive typing
       setSearchTerm(term);
 
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
 
-      // Debounce the actual search
-      searchTimeoutRef.current = setTimeout(() => {
-        performSearch(term);
-      }, 150);
+      if (term.trim()) {
+        searchTimeoutRef.current = setTimeout(() => {
+          performSearch(term);
+          if (term !== previousSearchTermRef.current && term.trim()) {
+            addRecentSearch(term);
+            previousSearchTermRef.current = term;
+          }
+        }, 150);
+      } else {
+        setResults([]);
+        setShowRecentSearches(true);
+      }
     },
-    [performSearch, setSearchTerm]
+    [performSearch, setSearchTerm, setResults, addRecentSearch, setShowRecentSearches]
   );
 
   useEffect(() => {
@@ -150,12 +163,27 @@ export const useFindInWorkflow = () => {
     [results.length, setSelectedIndex]
   );
 
+  const selectRecentSearch = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+      setShowRecentSearches(false);
+      performSearch(term);
+      if (term !== previousSearchTermRef.current) {
+        addRecentSearch(term);
+        previousSearchTermRef.current = term;
+      }
+    },
+    [setSearchTerm, setShowRecentSearches, performSearch, addRecentSearch]
+  );
+
   return {
     isOpen,
     searchTerm,
     results,
     selectedIndex,
     totalCount: results.length,
+    recentSearches,
+    showRecentSearches,
     openFind,
     closeFind,
     performSearch: debouncedSearch,
@@ -165,6 +193,9 @@ export const useFindInWorkflow = () => {
     navigatePrevious,
     clearSearch,
     selectNode,
-    getNodeDisplayName
+    getNodeDisplayName,
+    selectRecentSearch,
+    clearRecentSearches,
+    setShowRecentSearches
   };
 };
