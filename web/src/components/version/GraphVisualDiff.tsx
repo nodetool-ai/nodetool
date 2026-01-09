@@ -137,7 +137,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
     });
 
     return positions;
-  }, [newGraph, oldGraph, width, height]);
+  }, [newGraph, oldGraph, width]);
 
   const allEdges = useMemo(() => {
     const edges: Array<{

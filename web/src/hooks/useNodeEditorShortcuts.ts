@@ -466,9 +466,9 @@ export const useNodeEditorShortcuts = (
     handleMoveNodes,
     handleSwitchToTab,
     handleBypassSelected,
-    selectConnectedAll,
-    selectConnectedInputs,
-    selectConnectedOutputs
+    handleSelectConnectedAll,
+    handleSelectConnectedInputs,
+    handleSelectConnectedOutputs
   ]);
 
   // useEffect for shortcut registration
