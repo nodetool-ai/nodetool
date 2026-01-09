@@ -72,7 +72,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           height={100}
           label={workflow.name}
         />
-        <Typography className="name" sx={{ mt: 1 }}>
+        <Typography className="name">
           {workflow.name}
         </Typography>
       </Box>
