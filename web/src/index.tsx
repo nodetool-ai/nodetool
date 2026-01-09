@@ -114,6 +114,7 @@ import "./lib/tools/builtin/setNodeColor";
 import "./lib/tools/builtin/alignNodes";
 import "./lib/tools/builtin/fitView";
 import "./lib/tools/builtin/graph";
+import "./lib/tools/builtin/slashCommands";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
 (window as any).log = log;

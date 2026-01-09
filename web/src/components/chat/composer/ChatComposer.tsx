@@ -13,6 +13,8 @@ import { ActionButtons } from "./ActionButtons";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { createStyles } from "./ChatComposer.styles";
+import { ChatCommandPalette } from "../command";
+import { useChatCommandStore, detectSlashCommand } from "../../../stores/ChatCommandStore";
 
 interface ChatComposerProps {
   isLoading: boolean;
@@ -40,6 +42,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressed(
     (state) => ({
@@ -55,9 +58,19 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
 
+  const { closePalette } = useChatCommandStore();
+
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setPrompt(event.target.value);
+      const value = event.target.value;
+      setPrompt(value);
+
+      const detected = detectSlashCommand(value);
+      if (detected) {
+        setShowCommandPalette(true);
+      } else {
+        setShowCommandPalette(false);
+      }
     },
     []
   );
@@ -76,17 +89,32 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
       onSendMessage([...content, ...fileContents], prompt, agentMode);
       setPrompt("");
       clearFiles();
+      setShowCommandPalette(false);
+      closePalette();
       // Keep focus in the textarea after sending
       // Use rAF to ensure focus after DOM updates
       requestAnimationFrame(() => {
         textareaRef.current?.focus();
       });
     }
-  }, [isLoading, isStreaming, prompt, getFileContents, onSendMessage, clearFiles, agentMode]);
+  }, [isLoading, isStreaming, prompt, getFileContents, onSendMessage, clearFiles, agentMode, closePalette]);
+
+  const handleCommandSelect = useCallback((command: string, args: string) => {
+    const fullCommand = args ? `/${command} ${args}` : `/${command}`;
+    setPrompt(fullCommand + " ");
+    setShowCommandPalette(false);
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter") {
+        if (showCommandPalette) {
+          e.preventDefault();
+          return;
+        }
         if (shiftKeyPressed) {
           // Allow default behavior (newline insertion)
           return;
@@ -96,9 +124,15 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
           e.preventDefault();
           handleSend();
         }
+      } else if (e.key === "Escape") {
+        if (showCommandPalette) {
+          e.preventDefault();
+          setShowCommandPalette(false);
+          closePalette();
+        }
       }
     },
-    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
+    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend, showCommandPalette, closePalette]
   );
 
   const isDisabled = disabled || isLoading || isStreaming;
@@ -131,8 +165,14 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             onChange={handleOnChange}
             onKeyDown={handleKeyDown}
             disabled={isInputDisabled}
-            placeholder="Type your message..."
+            placeholder="Type your message or / for commands..."
           />
+          {showCommandPalette && (
+            <ChatCommandPalette
+              onSelectCommand={handleCommandSelect}
+              onClose={() => setShowCommandPalette(false)}
+            />
+          )}
           <ActionButtons
             isLoading={isLoading}
             isStreaming={isStreaming}
