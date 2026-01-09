@@ -38,6 +38,8 @@ import {
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "../stores/workflowUpdates";
 import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
 import log from "loglevel";
+import { validateEdge } from "../utils/connectionValidation";
+import useMetadataStore from "../stores/MetadataStore";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -119,7 +121,7 @@ type WorkflowManagerState = {
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: (packageName: string) => Promise<any>;
-  validateAllEdges: () => void;
+  validateAllEdges: () => { valid: boolean; issues: Array<{ edgeId: string; reason: string }> };
 };
 
 // Defines the Zustand store type for workflow management.
@@ -694,7 +696,43 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       validateAllEdges: () => {
-        // Edge validation functionality removed - will be implemented in separate branch
+        const currentWorkflowId = get().currentWorkflowId;
+        if (!currentWorkflowId) {
+          return { valid: true, issues: [] };
+        }
+
+        const nodeStore = get().nodeStores[currentWorkflowId];
+        if (!nodeStore) {
+          return { valid: true, issues: [] };
+        }
+
+        const state = nodeStore.getState();
+        const { edges, nodes } = state;
+
+        if (edges.length === 0) {
+          return { valid: true, issues: [] };
+        }
+
+        const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+        const metadata = useMetadataStore.getState().metadata;
+
+        const issues: Array<{ edgeId: string; reason: string }> = [];
+
+        for (const edge of edges) {
+          const result = validateEdge(edge, nodeMap, metadata);
+          if (!result.valid && result.reason) {
+            issues.push({ edgeId: edge.id, reason: result.reason });
+          }
+        }
+
+        if (issues.length > 0) {
+          log.warn(
+            `[WorkflowManager] Found ${issues.length} invalid edge(s) in workflow ${currentWorkflowId}`,
+            issues
+          );
+        }
+
+        return { valid: issues.length === 0, issues };
       }
 
       /**
