@@ -35,22 +35,57 @@ interface PreviewNode {
   height: number;
 }
 
+interface PreviewEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
 const NODE_WIDTH = 60;
 const NODE_HEIGHT = 24;
 const PADDING = 10;
 const MIN_X = 20;
 const MIN_Y = 20;
 
+/**
+ * SpectraNode palette — aligns with the main app data_types.tsx
+ * for consistent visual language across the application.
+ */
+const NodeColors = {
+  input: "#10B981",       // emerald 500 - input nodes
+  output: "#3B82F6",      // blue 500 - output nodes
+  llm: "#8B5CF6",         // violet 500 - LLM/language models
+  model: "#A78BFA",       // violet 400 - other models
+  image: "#D946EF",       // fuchsia 500 - image processing
+  text: "#F59E0B",        // amber 500 - text processing
+  audio: "#0EA5E9",       // sky 500 - audio processing
+  video: "#8B5CF6",       // violet 500 - video processing
+  condition: "#F43F5E",   // rose 500 - conditions/flow control
+  loop: "#2563EB",        // blue 600 - loops
+  group: "#64748B",       // slate 500 - groups
+  math: "#22D3EE",        // cyan 400 - math/numbers
+  data: "#FACC15",        // yellow 400 - data transformation
+  agent: "#EC4899",       // pink 500 - agents
+  default: "#6B7280"      // gray 500 - fallback
+} as const;
+
 const getNodeColor = (nodeType: string): string => {
-  if (nodeType.includes("input")) {return "#4caf50";}
-  if (nodeType.includes("output")) {return "#2196f3";}
-  if (nodeType.includes("llm") || nodeType.includes("model")) {return "#ff9800";}
-  if (nodeType.includes("image")) {return "#9c27b0";}
-  if (nodeType.includes("text")) {return "#00bcd4";}
-  if (nodeType.includes("audio")) {return "#e91e63";}
-  if (nodeType.includes("condition") || nodeType.includes("if")) {return "#f44336";}
-  if (nodeType.includes("group")) {return "#607d8b";}
-  return "#9e9e9e";
+  const type = nodeType.toLowerCase();
+  if (type.includes("input") || type.includes("chatinput")) {return NodeColors.input;}
+  if (type.includes("output") || type.includes("chatoutput") || type.includes("preview")) {return NodeColors.output;}
+  if (type.includes("llm") || type.includes("chatgpt") || type.includes("claude") || type.includes("ollama") || type.includes("openai")) {return NodeColors.llm;}
+  if (type.includes("model") || type.includes("comfy")) {return NodeColors.model;}
+  if (type.includes("image") || type.includes("diffusion") || type.includes("stable")) {return NodeColors.image;}
+  if (type.includes("text") || type.includes("string") || type.includes("prompt")) {return NodeColors.text;}
+  if (type.includes("audio") || type.includes("speech") || type.includes("tts")) {return NodeColors.audio;}
+  if (type.includes("video")) {return NodeColors.video;}
+  if (type.includes("condition") || type.includes("if") || type.includes("switch") || type.includes("branch")) {return NodeColors.condition;}
+  if (type.includes("loop") || type.includes("for") || type.includes("while") || type.includes("repeat")) {return NodeColors.loop;}
+  if (type.includes("group")) {return NodeColors.group;}
+  if (type.includes("math") || type.includes("number") || type.includes("float") || type.includes("int")) {return NodeColors.math;}
+  if (type.includes("list") || type.includes("dict") || type.includes("array") || type.includes("dataframe")) {return NodeColors.data;}
+  if (type.includes("agent") || type.includes("task")) {return NodeColors.agent;}
+  return NodeColors.default;
 };
 
 const extractNodeName = (nodeType: string): string => {
@@ -63,11 +98,16 @@ const extractNodeName = (nodeType: string): string => {
     .toLowerCase();
 };
 
-const calculateNodePositions = (graph: Graph): PreviewNode[] => {
+interface CalculatedGraph {
+  nodes: PreviewNode[];
+  edges: PreviewEdge[];
+}
+
+const calculateNodePositions = (graph: Graph): CalculatedGraph => {
   const nodes = graph.nodes || [];
   const edges = graph.edges || [];
 
-  if (nodes.length === 0) {return [];}
+  if (nodes.length === 0) {return { nodes: [], edges: [] };}
 
   const nodeMap = new Map<string, PreviewNode>();
   const visited = new Set<string>();
@@ -95,7 +135,6 @@ const calculateNodePositions = (graph: Graph): PreviewNode[] => {
 
     outgoingEdges.forEach((edge, index) => {
       if (!positions.has(edge.target)) {
-        const targetIndex = edges.filter((e) => e.source === edge.target).length;
         positions.set(edge.target, {
           x: currentPos.x + xOffset,
           y: Math.max(MIN_Y, currentPos.y - (outgoingEdges.length - 1) * yOffset / 2 + index * yOffset)
@@ -119,7 +158,19 @@ const calculateNodePositions = (graph: Graph): PreviewNode[] => {
     });
   });
 
-  return Array.from(nodeMap.values());
+  // Process edges - only include edges where both source and target nodes exist
+  const previewEdges: PreviewEdge[] = edges
+    .filter((e) => nodeMap.has(e.source) && nodeMap.has(e.target))
+    .map((e) => ({
+      id: `${e.source}-${e.target}`,
+      source: e.source,
+      target: e.target
+    }));
+
+  return { 
+    nodes: Array.from(nodeMap.values()), 
+    edges: previewEdges 
+  };
 };
 
 export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
@@ -136,7 +187,17 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
     }
   }, [workflow]);
 
-  const previewNodes = useMemo(() => calculateNodePositions(graph), [graph]);
+  const { nodes: previewNodes, edges: previewEdges } = useMemo(
+    () => calculateNodePositions(graph), 
+    [graph]
+  );
+
+  // Create a map for quick node lookup when drawing edges
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, PreviewNode>();
+    previewNodes.forEach((node) => map.set(node.id, node));
+    return map;
+  }, [previewNodes]);
 
   const nodeCount = graph.nodes?.length || 0;
   const edgeCount = graph.edges?.length || 0;
@@ -152,13 +213,24 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: "action.hover",
-          border: 1,
-          borderColor: "divider",
-          borderRadius: 1
+          background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(45,45,45,0.9) 100%)",
+          border: "1px solid",
+          borderColor: "rgba(255,255,255,0.08)",
+          borderRadius: 2,
+          transition: "all 0.2s ease-in-out",
+          "&:hover": {
+            borderColor: "rgba(255,255,255,0.15)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+          }
         }}
       >
-        <Typography variant="caption" color="text.secondary">
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            color: "rgba(255,255,255,0.4)",
+            fontStyle: "italic"
+          }}
+        >
           Empty workflow
         </Typography>
       </Paper>
@@ -170,7 +242,6 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   const maxY = Math.max(...previewNodes.map((n) => n.y + n.height), 0) + PADDING;
 
   // Use a slight padding for the viewBox to ensure nothing is cut off
-  // We double padding for symmetry if we assume 0,0 start, but layout ensures min is MIN_X/MIN_Y
   const viewBoxWidth = maxX + PADDING;
   const viewBoxHeight = maxY + PADDING;
 
@@ -178,13 +249,13 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
     <Tooltip
       title={
         <Box>
-          <Typography variant="caption" fontWeight="medium">
+          <Typography variant="caption" fontWeight="medium" sx={{ display: "block" }}>
             {label ||
               workflow.name ||
               (workflow.version ? `v${workflow.version}` : "Workflow")}
           </Typography>
-          <Typography variant="caption" display="block" color="text.secondary">
-            {nodeCount} node{nodeCount !== 1 ? "s" : ""}, {edgeCount} connection
+          <Typography variant="caption" display="block" sx={{ color: "rgba(255,255,255,0.6)", mt: 0.5 }}>
+            {nodeCount} node{nodeCount !== 1 ? "s" : ""} • {edgeCount} connection
             {edgeCount !== 1 ? "s" : ""}
           </Typography>
         </Box>
@@ -201,21 +272,76 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: "action.hover",
-          border: 1,
-          borderColor: "divider",
-          borderRadius: 1,
+          background: "linear-gradient(135deg, rgba(20,22,28,0.98) 0%, rgba(35,37,42,0.95) 100%)",
+          border: "1px solid",
+          borderColor: "rgba(255,255,255,0.08)",
+          borderRadius: 2,
           overflow: "hidden",
-          position: "relative"
+          position: "relative",
+          transition: "all 0.2s ease-in-out",
+          "&:hover": {
+            borderColor: "rgba(96,165,250,0.3)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(96,165,250,0.1)"
+          }
         }}
       >
+        {/* Subtle gradient overlay */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "radial-gradient(ellipse at 30% 20%, rgba(96,165,250,0.03) 0%, transparent 50%)",
+            pointerEvents: "none"
+          }}
+        />
         <svg
           width="100%"
           height="100%"
           viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
           preserveAspectRatio="xMidYMid meet"
-          style={{ display: "block" }}
+          style={{ display: "block", position: "relative", zIndex: 1 }}
         >
+          {/* Define gradients for edges */}
+          <defs>
+            <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0.1)" />
+            </linearGradient>
+          </defs>
+
+          {/* Render edges first (behind nodes) */}
+          {previewEdges.map((edge) => {
+            const sourceNode = nodeMap.get(edge.source);
+            const targetNode = nodeMap.get(edge.target);
+            if (!sourceNode || !targetNode) {return null;}
+
+            // Calculate edge path - from right side of source to left side of target
+            const startX = sourceNode.x + sourceNode.width;
+            const startY = sourceNode.y + sourceNode.height / 2;
+            const endX = targetNode.x;
+            const endY = targetNode.y + targetNode.height / 2;
+
+            // Create a smooth bezier curve
+            const controlPointOffset = Math.min(30, Math.abs(endX - startX) / 2);
+            const path = `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
+
+            return (
+              <path
+                key={edge.id}
+                d={path}
+                fill="none"
+                stroke="url(#edgeGradient)"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                opacity={0.6}
+              />
+            );
+          })}
+
+          {/* Render nodes */}
           {previewNodes.map((node) => {
             const color = getNodeColor(node.type);
             return (
@@ -223,20 +349,40 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
                 key={node.id}
                 transform={`translate(${node.x}, ${node.y})`}
               >
+                {/* Node shadow */}
+                <rect
+                  x={1}
+                  y={2}
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT}
+                  rx={4}
+                  fill="rgba(0,0,0,0.3)"
+                />
+                {/* Node background with gradient */}
                 <rect
                   width={NODE_WIDTH}
                   height={NODE_HEIGHT}
-                  rx={3}
+                  rx={4}
                   fill={color}
-                  opacity={0.8}
+                  opacity={0.9}
                 />
+                {/* Subtle highlight at top */}
+                <rect
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT / 3}
+                  rx={4}
+                  fill="rgba(255,255,255,0.15)"
+                />
+                {/* Node text */}
                 <text
                   x={NODE_WIDTH / 2}
-                  y={NODE_HEIGHT / 2 + 4}
+                  y={NODE_HEIGHT / 2 + 3}
                   textAnchor="middle"
                   fill="white"
-                  fontSize={10}
-                  fontFamily="sans-serif"
+                  fontSize={9}
+                  fontFamily="Inter, sans-serif"
+                  fontWeight={500}
+                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
                 >
                   {extractNodeName(node.type)}
                 </text>
@@ -244,21 +390,42 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
             );
           })}
         </svg>
+
+        {/* Node count badge */}
         <Box
           sx={{
             position: "absolute",
-            bottom: 4,
-            right: 4,
-            bgcolor: "rgba(0,0,0,0.6)",
-            borderRadius: 0.5,
-            px: 0.5,
+            bottom: 6,
+            right: 6,
+            background: "linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(30,30,30,0.8) 100%)",
+            borderRadius: 1,
+            px: 1,
             py: 0.25,
-            pointerEvents: "none"
+            pointerEvents: "none",
+            border: "1px solid rgba(255,255,255,0.1)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5
           }}
         >
+          <Box
+            sx={{
+              width: 4,
+              height: 4,
+              borderRadius: "50%",
+              bgcolor: "primary.main",
+              boxShadow: "0 0 4px rgba(96,165,250,0.5)"
+            }}
+          />
           <Typography
             variant="caption"
-            sx={{ color: "white", fontSize: "0.6rem" }}
+            sx={{ 
+              color: "rgba(255,255,255,0.85)", 
+              fontSize: "0.65rem",
+              fontWeight: 600,
+              letterSpacing: "0.02em"
+            }}
           >
             {nodeCount}
           </Typography>
