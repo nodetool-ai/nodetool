@@ -25,6 +25,13 @@ interface BasePathPropertyProps extends PropertyProps {
   onlyDirs: boolean;
 }
 
+/**
+ * Check if native dialog API is available (running in Electron)
+ */
+const hasNativeDialog = (): boolean => {
+  return typeof window !== "undefined" && window.api?.dialog !== undefined;
+};
+
 // Styles
 const createPathPropertyStyles = (theme: Theme) =>
   css({
@@ -117,9 +124,42 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
   const id = `${props.pathType}-${props.property.name}-${props.propertyIndex}`;
   const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false);
 
-  const handleBrowseClick = useCallback(() => {
-    setIsFileBrowserOpen(true);
-  }, []);
+  const handleBrowseClick = useCallback(async () => {
+    // Use native dialog if available (Electron context)
+    if (hasNativeDialog() && window.api.dialog) {
+      try {
+        const currentValue = typeof props.value === "string" ? props.value : undefined;
+        const dialog = window.api.dialog;
+
+        if (props.onlyDirs) {
+          // Folder selection
+          const result = await dialog.openFolder({
+            title: props.dialogTitle,
+            defaultPath: currentValue
+          });
+          if (!result.canceled && result.filePaths.length > 0) {
+            props.onChange(result.filePaths[0]);
+          }
+        } else {
+          // File selection
+          const result = await dialog.openFile({
+            title: props.dialogTitle,
+            defaultPath: currentValue
+          });
+          if (!result.canceled && result.filePaths.length > 0) {
+            props.onChange(result.filePaths[0]);
+          }
+        }
+      } catch (error) {
+        // If native dialog fails, fall back to the custom dialog
+        console.error("Native dialog failed, falling back to custom dialog:", error);
+        setIsFileBrowserOpen(true);
+      }
+    } else {
+      // No native dialog available, use custom FileBrowserDialog
+      setIsFileBrowserOpen(true);
+    }
+  }, [props]);
 
   const handleClear = useCallback(() => {
     props.onChange("");

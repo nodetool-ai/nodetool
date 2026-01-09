@@ -25,6 +25,8 @@ import {
   Workflow,
   ModelDirectory,
   SystemDirectory,
+  DialogOpenFileRequest,
+  DialogOpenFolderRequest,
 } from "./types.d";
 
 // ============================================================================
@@ -550,6 +552,19 @@ const api = {
       preferred_save?: "desktop" | "downloads";
     }) =>
       ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
+  },
+
+  // ============================================================================
+  // dialog: Native file/folder dialogs
+  // ============================================================================
+  dialog: {
+    /** Open a native file selection dialog */
+    openFile: (options?: DialogOpenFileRequest) =>
+      ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FILE, options || {}),
+
+    /** Open a native folder selection dialog */
+    openFolder: (options?: DialogOpenFolderRequest) =>
+      ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
   },
 };
 
