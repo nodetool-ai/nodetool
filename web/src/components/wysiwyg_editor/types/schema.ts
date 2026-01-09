@@ -112,6 +112,14 @@ export interface StructuredSx {
   overflow?: ResponsiveValue<"visible" | "hidden" | "scroll" | "auto">;
   overflowX?: ResponsiveValue<"visible" | "hidden" | "scroll" | "auto">;
   overflowY?: ResponsiveValue<"visible" | "hidden" | "scroll" | "auto">;
+
+  // Position
+  position?: ResponsiveValue<"static" | "relative" | "absolute" | "fixed" | "sticky">;
+  top?: ResponsiveValue<string | number>;
+  right?: ResponsiveValue<string | number>;
+  bottom?: ResponsiveValue<string | number>;
+  left?: ResponsiveValue<string | number>;
+  zIndex?: ResponsiveValue<number>;
 }
 
 /**

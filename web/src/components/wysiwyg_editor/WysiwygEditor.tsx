@@ -6,13 +6,15 @@
  * properties panel into a three-pane layout.
  */
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Box } from "@mui/material";
-import type { UISchema } from "./types";
+import type { UISchema, UISchemaNode } from "./types";
 import { ComponentTree } from "./components/ComponentTree";
+import { ComponentPalette } from "./components/ComponentPalette";
 import { Canvas } from "./components/Canvas";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { useWysiwygEditorStore } from "./hooks/useWysiwygEditorStore";
+import { cloneNode, addChildNode } from "./utils/schemaUtils";
 
 /**
  * Props for the WysiwygEditor component
@@ -69,9 +71,10 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   defaultValue,
   readOnly = false,
   leftPanelWidth = 240,
-  rightPanelWidth = 280,
+  rightPanelWidth = 300,
 }) => {
-  const { schema, setSchema, deleteNode, selectedNodeId } = useWysiwygEditorStore();
+  const { schema, setSchema, deleteNode, duplicateNode, selectedNodeId, getSelectedNode } = useWysiwygEditorStore();
+  const clipboardRef = useRef<UISchemaNode | null>(null);
 
   // Initialize with value or defaultValue
   useEffect(() => {
@@ -104,33 +107,67 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         return;
       }
 
-      // Delete selected node
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId) {
-        // Don't delete if editing text
-        if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
-          return;
-        }
-        // Don't delete if contentEditable
-        if (document.activeElement?.getAttribute("contenteditable") === "true") {
-          return;
-        }
+      // Check if we're in an input element
+      const isInInput = 
+        document.activeElement?.tagName === "INPUT" || 
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.getAttribute("contenteditable") === "true";
+
+      // Delete selected node (Delete/Backspace)
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId && !isInInput) {
         e.preventDefault();
         deleteNode(selectedNodeId);
+        return;
+      }
+
+      // Copy: Ctrl/Cmd + C
+      if ((e.ctrlKey || e.metaKey) && e.key === "c" && !isInInput && selectedNodeId) {
+        e.preventDefault();
+        const selectedNode = getSelectedNode();
+        if (selectedNode && selectedNode.id !== schema.root.id) {
+          clipboardRef.current = cloneNode(selectedNode);
+        }
+        return;
+      }
+
+      // Paste: Ctrl/Cmd + V
+      if ((e.ctrlKey || e.metaKey) && e.key === "v" && !isInInput && clipboardRef.current) {
+        e.preventDefault();
+        const parentId = selectedNodeId || schema.root.id;
+        const pastedNode = cloneNode(clipboardRef.current);
+        
+        // Add the cloned node to the selected parent or root
+        const currentRoot = useWysiwygEditorStore.getState().schema.root;
+        const newRoot = addChildNode(currentRoot, parentId, pastedNode);
+        if (newRoot !== currentRoot) {
+          setSchema({ ...schema, root: newRoot });
+          useWysiwygEditorStore.getState().selectNode(pastedNode.id);
+        }
+        return;
+      }
+
+      // Duplicate: Ctrl/Cmd + D
+      if ((e.ctrlKey || e.metaKey) && e.key === "d" && !isInInput && selectedNodeId) {
+        e.preventDefault();
+        duplicateNode(selectedNodeId);
+        return;
       }
 
       // Undo: Ctrl/Cmd + Z
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         useWysiwygEditorStore.temporal.getState().undo();
+        return;
       }
 
       // Redo: Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y
-      if ((e.ctrlKey || e.metaKey) && (e.shiftKey && e.key === "z" || e.key === "y")) {
+      if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && e.key === "z") || e.key === "y")) {
         e.preventDefault();
         useWysiwygEditorStore.temporal.getState().redo();
+        return;
       }
     },
-    [selectedNodeId, deleteNode, readOnly]
+    [selectedNodeId, deleteNode, duplicateNode, getSelectedNode, readOnly, schema, setSchema]
   );
 
   // Attach keyboard listener
@@ -151,16 +188,28 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         bgcolor: "background.default",
       }}
     >
-      {/* Left Panel - Component Tree */}
+      {/* Left Panel - Component Tree + Palette */}
       <Box
         sx={{
           width: leftPanelWidth,
           flexShrink: 0,
           height: "100%",
           overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          borderRight: 1,
+          borderColor: "divider",
         }}
       >
-        <ComponentTree />
+        {/* Component Tree - Top half */}
+        <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <ComponentTree />
+        </Box>
+        
+        {/* Component Palette - Bottom half */}
+        <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <ComponentPalette />
+        </Box>
       </Box>
 
       {/* Center - Canvas */}

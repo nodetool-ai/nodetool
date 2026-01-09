@@ -17,11 +17,11 @@ import {
 import {
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
-  Add as AddIcon,
   Delete as DeleteIcon,
   ContentCopy as CopyIcon,
+  DragIndicator as DragIcon,
 } from "@mui/icons-material";
-import type { UISchemaNode, MuiComponentType } from "../types";
+import type { UISchemaNode } from "../types";
 import { componentRegistry } from "../types/registry";
 import { useWysiwygEditorStore } from "../hooks/useWysiwygEditorStore";
 
@@ -37,8 +37,10 @@ interface TreeItemProps {
   onToggleExpand: (nodeId: string) => void;
   onDelete: (nodeId: string) => void;
   onDuplicate: (nodeId: string) => void;
-  onAddChild: (parentId: string) => void;
   isRoot?: boolean;
+  onDragStart?: (nodeId: string, e: React.DragEvent) => void;
+  onDragOver?: (nodeId: string, e: React.DragEvent) => void;
+  onDrop?: (nodeId: string, e: React.DragEvent) => void;
 }
 
 /**
@@ -53,10 +55,13 @@ const TreeItem: React.FC<TreeItemProps> = ({
   onToggleExpand,
   onDelete,
   onDuplicate,
-  onAddChild,
   isRoot = false,
+  onDragStart,
+  onDragOver,
+  onDrop,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const hasChildren = node.children && node.children.length > 0;
   const definition = componentRegistry[node.type];
   const canHaveChildren = definition.childPolicy !== "none";
@@ -81,9 +86,36 @@ const TreeItem: React.FC<TreeItemProps> = ({
     onDuplicate(node.id);
   };
 
-  const handleAddChild = (e: React.MouseEvent) => {
+  const handleDragStart = (e: React.DragEvent) => {
+    if (isRoot) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData("application/wysiwyg-node-id", node.id);
+    e.dataTransfer.effectAllowed = "move";
+    onDragStart?.(node.id, e);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!canHaveChildren) {
+      return;
+    }
+    e.preventDefault();
     e.stopPropagation();
-    onAddChild(node.id);
+    e.dataTransfer.dropEffect = "move";
+    setIsDragOver(true);
+    onDragOver?.(node.id, e);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    onDrop?.(node.id, e);
   };
 
   // Get display name based on props
@@ -112,52 +144,77 @@ const TreeItem: React.FC<TreeItemProps> = ({
     <Box>
       {/* Tree item row */}
       <Box
+        draggable={!isRoot}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         sx={{
           display: "flex",
           alignItems: "center",
           pl: depth * 2,
           py: 0.5,
-          cursor: "pointer",
-          backgroundColor: isSelected
-            ? "action.selected"
-            : isHovered
-              ? "action.hover"
-              : "transparent",
+          cursor: isRoot ? "pointer" : "grab",
+          backgroundColor: isDragOver
+            ? "rgba(96, 165, 250, 0.15)"
+            : isSelected
+              ? "action.selected"
+              : isHovered
+                ? "action.hover"
+                : "transparent",
           borderRadius: 1,
-          transition: "background-color 0.15s ease",
+          border: isDragOver ? "1px dashed" : "1px solid transparent",
+          borderColor: isDragOver ? "primary.main" : "transparent",
+          transition: "all 0.15s ease",
           "&:hover .tree-item-actions": {
             opacity: 1,
+          },
+          "&:active": {
+            cursor: isRoot ? "pointer" : "grabbing",
           },
         }}
         onClick={handleClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Drag handle */}
+        {!isRoot && (
+          <DragIcon
+            sx={{
+              fontSize: 14,
+              color: "text.disabled",
+              mr: 0.5,
+              opacity: isHovered ? 1 : 0.3,
+              transition: "opacity 0.15s ease",
+            }}
+          />
+        )}
+
         {/* Expand/collapse toggle */}
         <IconButton
           size="small"
           onClick={handleToggleExpand}
           sx={{
             visibility: hasChildren || canHaveChildren ? "visible" : "hidden",
-            width: 24,
-            height: 24,
+            width: 20,
+            height: 20,
           }}
         >
           {isExpanded ? (
-            <ExpandMoreIcon fontSize="small" />
+            <ExpandMoreIcon sx={{ fontSize: 14 }} />
           ) : (
-            <ChevronRightIcon fontSize="small" />
+            <ChevronRightIcon sx={{ fontSize: 14 }} />
           )}
         </IconButton>
 
         {/* Component type and name */}
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, overflow: "hidden" }}>
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flex: 1, overflow: "hidden" }}>
           <Typography
             variant="caption"
             sx={{
               color: "primary.main",
               fontWeight: 500,
-              fontSize: "0.7rem",
+              fontSize: "0.65rem",
               textTransform: "uppercase",
             }}
           >
@@ -170,7 +227,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              fontSize: "0.8rem",
+              fontSize: "0.7rem",
             }}
           >
             {getDisplayName() !== node.type && getDisplayName()}
@@ -187,23 +244,16 @@ const TreeItem: React.FC<TreeItemProps> = ({
             transition: "opacity 0.15s ease",
           }}
         >
-          {canHaveChildren && (
-            <Tooltip title="Add child">
-              <IconButton size="small" onClick={handleAddChild}>
-                <AddIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
           {!isRoot && (
             <>
-              <Tooltip title="Duplicate">
-                <IconButton size="small" onClick={handleDuplicate}>
-                  <CopyIcon fontSize="small" />
+              <Tooltip title="Duplicate (Ctrl+D)">
+                <IconButton size="small" onClick={handleDuplicate} sx={{ p: 0.25 }}>
+                  <CopyIcon sx={{ fontSize: 14 }} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Delete">
-                <IconButton size="small" onClick={handleDelete} color="error">
-                  <DeleteIcon fontSize="small" />
+              <Tooltip title="Delete (Del)">
+                <IconButton size="small" onClick={handleDelete} color="error" sx={{ p: 0.25 }}>
+                  <DeleteIcon sx={{ fontSize: 14 }} />
                 </IconButton>
               </Tooltip>
             </>
@@ -225,119 +275,13 @@ const TreeItem: React.FC<TreeItemProps> = ({
               onToggleExpand={onToggleExpand}
               onDelete={onDelete}
               onDuplicate={onDuplicate}
-              onAddChild={onAddChild}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
             />
           ))}
         </Collapse>
       )}
-    </Box>
-  );
-};
-
-/**
- * Component palette for adding new components
- */
-interface ComponentPaletteProps {
-  parentId: string | null;
-  onSelectComponent: (type: MuiComponentType) => void;
-  onClose: () => void;
-}
-
-const ComponentPalette: React.FC<ComponentPaletteProps> = ({
-  parentId,
-  onSelectComponent,
-  onClose,
-}) => {
-  const categories = [
-    { key: "layout", label: "Layout" },
-    { key: "typography", label: "Typography" },
-    { key: "inputs", label: "Inputs" },
-    { key: "actions", label: "Actions" },
-    { key: "dataDisplay", label: "Data Display" },
-    { key: "navigation", label: "Navigation" },
-  ] as const;
-
-  // Get parent definition to filter allowed children
-  const parentDef = parentId ? componentRegistry[useWysiwygEditorStore.getState().getNode(parentId)?.type || "Box"] : null;
-
-  const isAllowed = (type: MuiComponentType) => {
-    if (!parentDef) {
-      return true;
-    }
-    if (parentDef.childPolicy === "any") {
-      return true;
-    }
-    if (parentDef.childPolicy === "none") {
-      return false;
-    }
-    if (parentDef.childPolicy === "specific" && parentDef.allowedChildren) {
-      return parentDef.allowedChildren.includes(type);
-    }
-    return true;
-  };
-
-  return (
-    <Box
-      sx={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        bgcolor: "background.paper",
-        zIndex: 10,
-        overflow: "auto",
-        p: 1,
-      }}
-    >
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-        <Typography variant="subtitle2">Add Component</Typography>
-        <IconButton size="small" onClick={onClose}>
-          ✕
-        </IconButton>
-      </Stack>
-
-      {categories.map(({ key, label }) => {
-        const components = Object.values(componentRegistry).filter(
-          (c) => c.category === key && isAllowed(c.type)
-        );
-        if (components.length === 0) {
-          return null;
-        }
-
-        return (
-          <Box key={key} sx={{ mb: 1 }}>
-            <Typography
-              variant="caption"
-              sx={{ color: "text.secondary", textTransform: "uppercase", fontWeight: 600 }}
-            >
-              {label}
-            </Typography>
-            <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
-              {components.map((comp) => (
-                <Box
-                  key={comp.type}
-                  onClick={() => onSelectComponent(comp.type)}
-                  sx={{
-                    px: 1,
-                    py: 0.5,
-                    bgcolor: "action.hover",
-                    borderRadius: 1,
-                    cursor: "pointer",
-                    fontSize: "0.75rem",
-                    "&:hover": {
-                      bgcolor: "primary.main",
-                      color: "primary.contrastText",
-                    },
-                  }}
-                >
-                  {comp.label}
-                </Box>
-              ))}
-            </Stack>
-          </Box>
-        );
-      })}
     </Box>
   );
 };
@@ -354,11 +298,8 @@ export const ComponentTree: React.FC = () => {
     toggleNodeExpanded,
     deleteNode,
     duplicateNode,
-    addNode,
+    moveNodeTo,
   } = useWysiwygEditorStore();
-
-  const [showPalette, setShowPalette] = useState(false);
-  const [paletteParentId, setPaletteParentId] = useState<string | null>(null);
 
   const handleSelect = useCallback(
     (nodeId: string) => {
@@ -388,35 +329,30 @@ export const ComponentTree: React.FC = () => {
     [duplicateNode]
   );
 
-  const handleAddChild = useCallback((parentId: string) => {
-    setPaletteParentId(parentId);
-    setShowPalette(true);
+  const handleDragStart = useCallback((_nodeId: string, _e: React.DragEvent) => {
+    // Could set a dragging state here if needed
   }, []);
 
-  const handleSelectComponent = useCallback(
-    (type: MuiComponentType) => {
-      if (paletteParentId) {
-        addNode(paletteParentId, type);
+  const handleDragOver = useCallback((_nodeId: string, _e: React.DragEvent) => {
+    // Visual feedback handled by TreeItem
+  }, []);
+
+  const handleDrop = useCallback(
+    (targetNodeId: string, e: React.DragEvent) => {
+      const sourceNodeId = e.dataTransfer.getData("application/wysiwyg-node-id");
+      if (sourceNodeId && sourceNodeId !== targetNodeId) {
+        moveNodeTo(sourceNodeId, targetNodeId);
       }
-      setShowPalette(false);
-      setPaletteParentId(null);
     },
-    [paletteParentId, addNode]
+    [moveNodeTo]
   );
-
-  const handleClosePalette = useCallback(() => {
-    setShowPalette(false);
-    setPaletteParentId(null);
-  }, []);
 
   return (
     <Box
       sx={{
-        height: "100%",
-        overflow: "auto",
-        position: "relative",
-        borderRight: 1,
-        borderColor: "divider",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
       }}
     >
       {/* Header */}
@@ -425,21 +361,24 @@ export const ComponentTree: React.FC = () => {
           p: 1,
           borderBottom: 1,
           borderColor: "divider",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          bgcolor: "rgba(255, 255, 255, 0.02)",
         }}
       >
-        <Typography variant="subtitle2">Component Tree</Typography>
-        <Tooltip title="Add to root">
-          <IconButton size="small" onClick={() => handleAddChild(schema.root.id)}>
-            <AddIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 600,
+            textTransform: "uppercase",
+            color: "text.secondary",
+            letterSpacing: "0.05em",
+          }}
+        >
+          Component Tree
+        </Typography>
       </Box>
 
       {/* Tree */}
-      <Box sx={{ p: 1 }}>
+      <Box sx={{ flex: 1, overflow: "auto", p: 1 }}>
         <TreeItem
           node={schema.root}
           depth={0}
@@ -449,19 +388,12 @@ export const ComponentTree: React.FC = () => {
           onToggleExpand={handleToggleExpand}
           onDelete={handleDelete}
           onDuplicate={handleDuplicate}
-          onAddChild={handleAddChild}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
           isRoot
         />
       </Box>
-
-      {/* Component palette overlay */}
-      {showPalette && (
-        <ComponentPalette
-          parentId={paletteParentId}
-          onSelectComponent={handleSelectComponent}
-          onClose={handleClosePalette}
-        />
-      )}
     </Box>
   );
 };

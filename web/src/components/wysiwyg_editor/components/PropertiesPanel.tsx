@@ -2,10 +2,10 @@
  * Properties Panel
  *
  * Displays and edits properties for the selected component.
- * Uses type-safe controls based on prop definitions.
+ * Redesigned with professional collapsible sections and visual spacing editor.
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -18,19 +18,75 @@ import {
   InputLabel,
   FormControlLabel,
   Stack,
-  Divider,
-  Tabs,
-  Tab,
   ToggleButtonGroup,
   ToggleButton,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Collapse,
+  InputAdornment,
 } from "@mui/material";
-import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
+import {
+  ExpandMore as ExpandMoreIcon,
+  ChevronRight as ChevronRightIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+} from "@mui/icons-material";
 import { componentRegistry, PropDefinition } from "../types/registry";
-import type { StructuredSx, SpacingValue } from "../types/schema";
+import type { StructuredSx } from "../types/schema";
 import { useWysiwygEditorStore } from "../hooks/useWysiwygEditorStore";
+
+/**
+ * Collapsible section component
+ */
+interface CollapsibleSectionProps {
+  title: string;
+  defaultExpanded?: boolean;
+  children: React.ReactNode;
+}
+
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
+  title,
+  defaultExpanded = true,
+  children,
+}) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+      <Box
+        onClick={() => setExpanded(!expanded)}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          cursor: "pointer",
+          py: 1,
+          px: 1.5,
+          "&:hover": {
+            bgcolor: "action.hover",
+          },
+        }}
+      >
+        {expanded ? (
+          <ExpandMoreIcon sx={{ fontSize: 16, mr: 0.5 }} />
+        ) : (
+          <ChevronRightIcon sx={{ fontSize: 16, mr: 0.5 }} />
+        )}
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            fontSize: "0.7rem",
+          }}
+        >
+          {title}
+        </Typography>
+      </Box>
+      <Collapse in={expanded}>
+        <Box sx={{ p: 1.5, pt: 0 }}>{children}</Box>
+      </Collapse>
+    </Box>
+  );
+};
 
 /**
  * Props for individual property controls
@@ -287,6 +343,216 @@ const SpacingControl: React.FC<SpacingControlProps> = ({ propKey, definition, va
 };
 
 /**
+ * Visual Spacing Box Editor
+ * A visual representation of margin/padding like in the screenshot
+ */
+interface SpacingBoxEditorProps {
+  sx: StructuredSx | undefined;
+  onChange: (sx: StructuredSx) => void;
+}
+
+const SpacingBoxEditor: React.FC<SpacingBoxEditorProps> = ({ sx, onChange }) => {
+  const currentSx = sx || {};
+
+  const handleSpacingChange = (key: keyof StructuredSx, value: string) => {
+    const numValue = value === "" ? undefined : parseInt(value) || 0;
+    onChange({ ...currentSx, [key]: numValue });
+  };
+
+  // Get numeric values for display
+  const getValue = (key: keyof StructuredSx): string => {
+    const val = currentSx[key];
+    if (val === undefined || val === null) {
+      return "0";
+    }
+    if (typeof val === "number") {
+      return String(val);
+    }
+    return "0";
+  };
+
+  return (
+    <Box sx={{ p: 1 }}>
+      {/* Margin box - outer */}
+      <Box
+        sx={{
+          position: "relative",
+          bgcolor: "rgba(255, 183, 108, 0.15)",
+          border: "1px dashed",
+          borderColor: "rgba(255, 183, 108, 0.4)",
+          borderRadius: 1,
+          p: 1,
+        }}
+      >
+        {/* Label for margin */}
+        <Typography
+          variant="caption"
+          sx={{
+            position: "absolute",
+            top: 2,
+            left: 8,
+            fontSize: "0.6rem",
+            color: "text.secondary",
+            textTransform: "uppercase",
+          }}
+        >
+          Margin
+        </Typography>
+
+        {/* Margin top */}
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 0.5 }}>
+          <TextField
+            value={getValue("mt")}
+            onChange={(e) => handleSpacingChange("mt", e.target.value)}
+            size="small"
+            variant="standard"
+            inputProps={{
+              style: { textAlign: "center", width: 30, fontSize: "0.75rem" },
+            }}
+            sx={{ "& .MuiInput-underline:before": { borderBottom: "none" } }}
+          />
+        </Box>
+
+        {/* Middle row with margin left, padding box, margin right */}
+        <Box sx={{ display: "flex", alignItems: "stretch" }}>
+          {/* Margin left */}
+          <Box sx={{ display: "flex", alignItems: "center", width: 40 }}>
+            <TextField
+              value={getValue("ml")}
+              onChange={(e) => handleSpacingChange("ml", e.target.value)}
+              size="small"
+              variant="standard"
+              inputProps={{
+                style: { textAlign: "center", width: 30, fontSize: "0.75rem" },
+              }}
+              sx={{ "& .MuiInput-underline:before": { borderBottom: "none" } }}
+            />
+          </Box>
+
+          {/* Padding box - inner */}
+          <Box
+            sx={{
+              flex: 1,
+              bgcolor: "rgba(96, 165, 250, 0.15)",
+              border: "1px dashed",
+              borderColor: "rgba(96, 165, 250, 0.4)",
+              borderRadius: 1,
+              p: 1,
+              minHeight: 60,
+            }}
+          >
+            {/* Label for padding */}
+            <Typography
+              variant="caption"
+              sx={{
+                position: "relative",
+                top: -4,
+                left: 0,
+                fontSize: "0.6rem",
+                color: "text.secondary",
+                textTransform: "uppercase",
+              }}
+            >
+              Padding
+            </Typography>
+
+            {/* Padding top */}
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <TextField
+                value={getValue("pt")}
+                onChange={(e) => handleSpacingChange("pt", e.target.value)}
+                size="small"
+                variant="standard"
+                inputProps={{
+                  style: { textAlign: "center", width: 30, fontSize: "0.75rem" },
+                }}
+                sx={{ "& .MuiInput-underline:before": { borderBottom: "none" } }}
+              />
+            </Box>
+
+            {/* Padding left + center + Padding right */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <TextField
+                value={getValue("pl")}
+                onChange={(e) => handleSpacingChange("pl", e.target.value)}
+                size="small"
+                variant="standard"
+                inputProps={{
+                  style: { textAlign: "center", width: 30, fontSize: "0.75rem" },
+                }}
+                sx={{ "& .MuiInput-underline:before": { borderBottom: "none" } }}
+              />
+              <Box
+                sx={{
+                  width: 40,
+                  height: 20,
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 0.5,
+                }}
+              />
+              <TextField
+                value={getValue("pr")}
+                onChange={(e) => handleSpacingChange("pr", e.target.value)}
+                size="small"
+                variant="standard"
+                inputProps={{
+                  style: { textAlign: "center", width: 30, fontSize: "0.75rem" },
+                }}
+                sx={{ "& .MuiInput-underline:before": { borderBottom: "none" } }}
+              />
+            </Box>
+
+            {/* Padding bottom */}
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <TextField
+                value={getValue("pb")}
+                onChange={(e) => handleSpacingChange("pb", e.target.value)}
+                size="small"
+                variant="standard"
+                inputProps={{
+                  style: { textAlign: "center", width: 30, fontSize: "0.75rem" },
+                }}
+                sx={{ "& .MuiInput-underline:before": { borderBottom: "none" } }}
+              />
+            </Box>
+          </Box>
+
+          {/* Margin right */}
+          <Box sx={{ display: "flex", alignItems: "center", width: 40, justifyContent: "flex-end" }}>
+            <TextField
+              value={getValue("mr")}
+              onChange={(e) => handleSpacingChange("mr", e.target.value)}
+              size="small"
+              variant="standard"
+              inputProps={{
+                style: { textAlign: "center", width: 30, fontSize: "0.75rem" },
+              }}
+              sx={{ "& .MuiInput-underline:before": { borderBottom: "none" } }}
+            />
+          </Box>
+        </Box>
+
+        {/* Margin bottom */}
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 0.5 }}>
+          <TextField
+            value={getValue("mb")}
+            onChange={(e) => handleSpacingChange("mb", e.target.value)}
+            size="small"
+            variant="standard"
+            inputProps={{
+              style: { textAlign: "center", width: 30, fontSize: "0.75rem" },
+            }}
+            sx={{ "& .MuiInput-underline:before": { borderBottom: "none" } }}
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+/**
  * SX Props Editor for structured styling
  */
 interface SxEditorProps {
@@ -301,20 +567,6 @@ const SxEditor: React.FC<SxEditorProps> = ({ sx, onChange }) => {
     onChange({ ...currentSx, [key]: value });
   };
 
-  const spacingProps: Array<{
-    key: keyof StructuredSx;
-    label: string;
-  }> = [
-    { key: "p", label: "Padding" },
-    { key: "px", label: "Padding X" },
-    { key: "py", label: "Padding Y" },
-    { key: "m", label: "Margin" },
-    { key: "mx", label: "Margin X" },
-    { key: "my", label: "Margin Y" },
-    { key: "gap", label: "Gap" },
-  ];
-
-  const displayOptions = ["flex", "block", "inline", "inline-flex", "none", "grid"];
   const alignItemsOptions = ["flex-start", "center", "flex-end", "stretch", "baseline"];
   const justifyContentOptions = [
     "flex-start",
@@ -324,141 +576,258 @@ const SxEditor: React.FC<SxEditorProps> = ({ sx, onChange }) => {
     "space-around",
     "space-evenly",
   ];
+  const overflowOptions = ["visible", "hidden", "scroll", "auto"];
 
   return (
-    <Stack spacing={2}>
-      {/* Spacing section */}
-      <Accordion defaultExpanded disableGutters>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="caption" fontWeight={600}>
-            Spacing
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Stack spacing={2}>
-            {spacingProps.map(({ key, label }) => (
-              <SpacingControl
-                key={key}
-                propKey={key}
-                definition={{
-                  type: "number",
-                  control: "spacing",
-                  label,
-                  min: 0,
-                  max: 10,
-                  responsive: true,
+    <Box sx={{ overflow: "auto" }}>
+      {/* Layout Section */}
+      <CollapsibleSection title="Layout" defaultExpanded>
+        <Stack spacing={1.5}>
+          {/* Display */}
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block", fontSize: "0.7rem" }}>
+              Display
+            </Typography>
+            <ToggleButtonGroup
+              value={currentSx.display ?? "block"}
+              exclusive
+              onChange={(_e, newValue) => {
+                if (newValue) {
+                  handleChange("display", newValue);
+                }
+              }}
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="block" sx={{ fontSize: "0.65rem", py: 0.25 }}>Block</ToggleButton>
+              <ToggleButton value="flex" sx={{ fontSize: "0.65rem", py: 0.25 }}>Flex</ToggleButton>
+              <ToggleButton value="grid" sx={{ fontSize: "0.65rem", py: 0.25 }}>Grid</ToggleButton>
+              <ToggleButton value="none" sx={{ fontSize: "0.65rem", py: 0.25 }}>None</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        </Stack>
+      </CollapsibleSection>
+
+      {/* Spacing Section */}
+      <CollapsibleSection title="Spacing" defaultExpanded>
+        <SpacingBoxEditor sx={sx} onChange={onChange} />
+      </CollapsibleSection>
+
+      {/* Size Section */}
+      <CollapsibleSection title="Size" defaultExpanded={false}>
+        <Stack spacing={1.5}>
+          {/* Width & Height */}
+          <Stack direction="row" spacing={1}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+                Width
+              </Typography>
+              <TextField
+                value={currentSx.width ?? ""}
+                onChange={(e) => handleChange("width", e.target.value || undefined)}
+                size="small"
+                fullWidth
+                placeholder="Auto"
+                InputProps={{
+                  endAdornment: <InputAdornment position="end" sx={{ "& p": { fontSize: "0.7rem" } }}>-</InputAdornment>,
                 }}
-                value={currentSx[key]}
-                onChange={(_, val) => handleChange(key, val as SpacingValue)}
+                sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
               />
-            ))}
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+                Height
+              </Typography>
+              <TextField
+                value={currentSx.height ?? ""}
+                onChange={(e) => handleChange("height", e.target.value || undefined)}
+                size="small"
+                fullWidth
+                placeholder="Auto"
+                InputProps={{
+                  endAdornment: <InputAdornment position="end" sx={{ "& p": { fontSize: "0.7rem" } }}>-</InputAdornment>,
+                }}
+                sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
+              />
+            </Box>
           </Stack>
-        </AccordionDetails>
-      </Accordion>
 
-      {/* Layout section */}
-      <Accordion disableGutters>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="caption" fontWeight={600}>
-            Layout
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Stack spacing={2}>
+          {/* Min Width & Min Height */}
+          <Stack direction="row" spacing={1}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+                Min W
+              </Typography>
+              <TextField
+                value={currentSx.minWidth ?? ""}
+                onChange={(e) => handleChange("minWidth", e.target.value || undefined)}
+                size="small"
+                fullWidth
+                placeholder="0"
+                InputProps={{
+                  endAdornment: <InputAdornment position="end" sx={{ "& p": { fontSize: "0.7rem" } }}>PX</InputAdornment>,
+                }}
+                sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+                Min H
+              </Typography>
+              <TextField
+                value={currentSx.minHeight ?? ""}
+                onChange={(e) => handleChange("minHeight", e.target.value || undefined)}
+                size="small"
+                fullWidth
+                placeholder="0"
+                InputProps={{
+                  endAdornment: <InputAdornment position="end" sx={{ "& p": { fontSize: "0.7rem" } }}>PX</InputAdornment>,
+                }}
+                sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
+              />
+            </Box>
+          </Stack>
+
+          {/* Max Width & Max Height */}
+          <Stack direction="row" spacing={1}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+                Max W
+              </Typography>
+              <TextField
+                value={currentSx.maxWidth ?? ""}
+                onChange={(e) => handleChange("maxWidth", e.target.value || undefined)}
+                size="small"
+                fullWidth
+                placeholder="None"
+                sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+                Max H
+              </Typography>
+              <TextField
+                value={currentSx.maxHeight ?? ""}
+                onChange={(e) => handleChange("maxHeight", e.target.value || undefined)}
+                size="small"
+                fullWidth
+                placeholder="None"
+                sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
+              />
+            </Box>
+          </Stack>
+
+          {/* Overflow */}
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block", fontSize: "0.7rem" }}>
+              Overflow
+            </Typography>
+            <ToggleButtonGroup
+              value={currentSx.overflow ?? "visible"}
+              exclusive
+              onChange={(_e, newValue) => {
+                if (newValue) {
+                  handleChange("overflow", newValue);
+                }
+              }}
+              size="small"
+              fullWidth
+            >
+              {overflowOptions.map((opt) => (
+                <ToggleButton key={opt} value={opt} sx={{ fontSize: "0.6rem", py: 0.25 }}>
+                  {opt === "visible" ? <VisibilityIcon sx={{ fontSize: 14 }} /> : 
+                   opt === "hidden" ? <VisibilityOffIcon sx={{ fontSize: 14 }} /> :
+                   opt.charAt(0).toUpperCase()}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+        </Stack>
+      </CollapsibleSection>
+
+      {/* Position Section */}
+      <CollapsibleSection title="Position" defaultExpanded={false}>
+        <Stack spacing={1.5}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block", fontSize: "0.7rem" }}>
+              Position
+            </Typography>
             <FormControl size="small" fullWidth>
-              <InputLabel>Display</InputLabel>
               <Select
-                value={currentSx.display ?? ""}
-                onChange={(e) => handleChange("display", e.target.value || undefined)}
-                label="Display"
+                value={currentSx.position ?? "static"}
+                onChange={(e) => handleChange("position", e.target.value || undefined)}
+                sx={{ fontSize: "0.75rem" }}
               >
-                <MenuItem value="">Default</MenuItem>
-                {displayOptions.map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {opt}
-                  </MenuItem>
-                ))}
+                <MenuItem value="static">Static</MenuItem>
+                <MenuItem value="relative">Relative</MenuItem>
+                <MenuItem value="absolute">Absolute</MenuItem>
+                <MenuItem value="fixed">Fixed</MenuItem>
+                <MenuItem value="sticky">Sticky</MenuItem>
               </Select>
             </FormControl>
+          </Box>
+        </Stack>
+      </CollapsibleSection>
 
-            <FormControl size="small" fullWidth>
-              <InputLabel>Align Items</InputLabel>
-              <Select
-                value={currentSx.alignItems ?? ""}
-                onChange={(e) => handleChange("alignItems", e.target.value || undefined)}
-                label="Align Items"
-              >
-                <MenuItem value="">Default</MenuItem>
-                {alignItemsOptions.map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {opt}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+      {/* Flex/Grid Section - Only show when display is flex or grid */}
+      {(currentSx.display === "flex" || currentSx.display === "inline-flex") && (
+        <CollapsibleSection title="Flex" defaultExpanded>
+          <Stack spacing={1.5}>
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block", fontSize: "0.7rem" }}>
+                Align Items
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={currentSx.alignItems ?? ""}
+                  onChange={(e) => handleChange("alignItems", e.target.value || undefined)}
+                  sx={{ fontSize: "0.75rem" }}
+                >
+                  <MenuItem value="">Default</MenuItem>
+                  {alignItemsOptions.map((opt) => (
+                    <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
 
-            <FormControl size="small" fullWidth>
-              <InputLabel>Justify Content</InputLabel>
-              <Select
-                value={currentSx.justifyContent ?? ""}
-                onChange={(e) => handleChange("justifyContent", e.target.value || undefined)}
-                label="Justify Content"
-              >
-                <MenuItem value="">Default</MenuItem>
-                {justifyContentOptions.map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {opt}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block", fontSize: "0.7rem" }}>
+                Justify Content
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={currentSx.justifyContent ?? ""}
+                  onChange={(e) => handleChange("justifyContent", e.target.value || undefined)}
+                  sx={{ fontSize: "0.75rem" }}
+                >
+                  <MenuItem value="">Default</MenuItem>
+                  {justifyContentOptions.map((opt) => (
+                    <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block", fontSize: "0.7rem" }}>
+                Gap
+              </Typography>
+              <TextField
+                type="number"
+                value={currentSx.gap ?? ""}
+                onChange={(e) => handleChange("gap", e.target.value ? Number(e.target.value) : undefined)}
+                size="small"
+                fullWidth
+                inputProps={{ min: 0, max: 10, step: 1 }}
+                sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
+              />
+            </Box>
           </Stack>
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Sizing section */}
-      <Accordion disableGutters>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="caption" fontWeight={600}>
-            Sizing
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Stack spacing={2}>
-            <TextField
-              label="Width"
-              value={currentSx.width ?? ""}
-              onChange={(e) => handleChange("width", e.target.value || undefined)}
-              size="small"
-              fullWidth
-              placeholder="auto, 100%, 200px"
-            />
-            <TextField
-              label="Height"
-              value={currentSx.height ?? ""}
-              onChange={(e) => handleChange("height", e.target.value || undefined)}
-              size="small"
-              fullWidth
-              placeholder="auto, 100%, 200px"
-            />
-            <TextField
-              label="Min Width"
-              value={currentSx.minWidth ?? ""}
-              onChange={(e) => handleChange("minWidth", e.target.value || undefined)}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Min Height"
-              value={currentSx.minHeight ?? ""}
-              onChange={(e) => handleChange("minHeight", e.target.value || undefined)}
-              size="small"
-              fullWidth
-            />
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
-    </Stack>
+        </CollapsibleSection>
+      )}
+    </Box>
   );
 };
 
@@ -493,7 +862,6 @@ const PropControl: React.FC<PropControlProps> = (props) => {
  */
 export const PropertiesPanel: React.FC = () => {
   const { selectedNodeId, getSelectedNode, updateNode } = useWysiwygEditorStore();
-  const [activeTab, setActiveTab] = React.useState(0);
 
   const selectedNode = getSelectedNode();
 
@@ -528,6 +896,7 @@ export const PropertiesPanel: React.FC = () => {
         sx={{
           height: "100%",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           borderLeft: 1,
@@ -557,52 +926,74 @@ export const PropertiesPanel: React.FC = () => {
       }}
     >
       {/* Header */}
-      <Box sx={{ p: 1, borderBottom: 1, borderColor: "divider" }}>
-        <Typography variant="subtitle2">{definition.label}</Typography>
-        <Typography variant="caption" color="text.secondary">
+      <Box
+        sx={{
+          p: 1.5,
+          borderBottom: 1,
+          borderColor: "divider",
+          bgcolor: "rgba(255, 255, 255, 0.02)",
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 600,
+            textTransform: "uppercase",
+            fontSize: "0.7rem",
+            color: "primary.main",
+          }}
+        >
+          {definition.label}
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            color: "text.secondary",
+            fontSize: "0.65rem",
+            mt: 0.25,
+          }}
+        >
           {definition.description}
         </Typography>
       </Box>
 
-      {/* Tabs */}
-      <Tabs
-        value={activeTab}
-        onChange={(_e, v) => setActiveTab(v)}
-        variant="fullWidth"
-        sx={{ borderBottom: 1, borderColor: "divider" }}
-      >
-        <Tab label="Props" sx={{ fontSize: "0.75rem", minHeight: 40 }} />
-        <Tab label="Style" sx={{ fontSize: "0.75rem", minHeight: 40 }} />
-      </Tabs>
-
-      {/* Content */}
-      <Box sx={{ flex: 1, overflow: "auto", p: 1 }}>
-        {activeTab === 0 && (
-          <Stack spacing={2}>
-            {propEntries.map(([key, propDef]) => (
-              <PropControl
-                key={key}
-                propKey={key}
-                definition={propDef}
-                value={selectedNode.props[key]}
-                onChange={handlePropChange}
-              />
-            ))}
-          </Stack>
+      {/* Scrollable content */}
+      <Box sx={{ flex: 1, overflow: "auto" }}>
+        {/* Component Props Section */}
+        {propEntries.length > 0 && (
+          <CollapsibleSection title="Properties" defaultExpanded>
+            <Stack spacing={1.5}>
+              {propEntries.map(([key, propDef]) => (
+                <PropControl
+                  key={key}
+                  propKey={key}
+                  definition={propDef}
+                  value={selectedNode.props[key]}
+                  onChange={handlePropChange}
+                />
+              ))}
+            </Stack>
+          </CollapsibleSection>
         )}
 
-        {activeTab === 1 && (
-          <SxEditor
-            sx={selectedNode.props.sx as StructuredSx | undefined}
-            onChange={handleSxChange}
-          />
-        )}
+        {/* Style Section */}
+        <SxEditor
+          sx={selectedNode.props.sx as StructuredSx | undefined}
+          onChange={handleSxChange}
+        />
       </Box>
 
-      {/* Node ID (for debugging) */}
-      <Divider />
-      <Box sx={{ p: 1 }}>
-        <Typography variant="caption" color="text.secondary">
+      {/* Footer with node ID */}
+      <Box
+        sx={{
+          p: 1,
+          borderTop: 1,
+          borderColor: "divider",
+          bgcolor: "rgba(255, 255, 255, 0.02)",
+        }}
+      >
+        <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem" }}>
           ID: {selectedNode.id.slice(0, 8)}...
         </Typography>
       </Box>
