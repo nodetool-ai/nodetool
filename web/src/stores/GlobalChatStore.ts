@@ -774,7 +774,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       loadMessages: async (threadId: string, cursor?: string) => {
-        const { messageCache, messageCursors, isLoadingMessages } = get();
+        const { messageCache, isLoadingMessages } = get();
 
         // If already loading, return cached messages
         if (isLoadingMessages) {
@@ -953,7 +953,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       stopGeneration: () => {
-        const { currentThreadId, status, sendMessageTimeoutId } = get();
+        const { currentThreadId, sendMessageTimeoutId } = get();
 
         // Clear any pending sendMessage timeout
         if (sendMessageTimeoutId !== null) {

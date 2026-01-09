@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 
 type UseEnsureChatConnectedOptions = {
   autoConnect?: boolean;

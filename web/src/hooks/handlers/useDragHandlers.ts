@@ -30,7 +30,7 @@ export default function useDragHandlers() {
     Node<NodeData> | undefined
   >();
   const { settings } = useSettingsStore((state) => state);
-  const [draggedNodes, setDraggedNodes] = useState<Set<Node<NodeData>>>(
+  const [_draggedNodes, setDraggedNodes] = useState<Set<Node<NodeData>>>(
     new Set()
   );
   const { pause, resume } = useTemporalNodes((state) => ({
@@ -38,18 +38,15 @@ export default function useDragHandlers() {
     resume: state.resume
   }));
 
-  const { createNode, addNode, setHoveredNodes, findNode, updateNode } =
+  const { setHoveredNodes, findNode } =
     useNodes((state) => ({
-      createNode: state.createNode,
-      addNode: state.addNode,
       setHoveredNodes: state.setHoveredNodes,
-      findNode: state.findNode,
-      updateNode: state.updateNode
+      findNode: state.findNode
     }));
   // Removed: createCommentNode helper and related drag-to-create logic
 
   /* NODE DRAG START */
-  const onNodeDragStart = useCallback((event: any) => {
+  const onNodeDragStart = useCallback((_event: any) => {
     setLastParentNode(undefined);
     resetWiggleDetection(); // Reset wiggle detection for new drag
   }, []);
@@ -211,7 +208,7 @@ export default function useDragHandlers() {
 
   /* SELECTION START */
   const onSelectionStart = useCallback(
-    (event: any) => {
+    (_event: any) => {
       const currentMousePos = getMousePosition();
       const projectedStartPos = reactFlow.screenToFlowPosition({
         x: currentMousePos.x,

@@ -144,7 +144,7 @@ export interface AssetStore {
 /**
  * Sort assets by created_at in descending order.
  */
-const sort = (assets: { [key: string]: Asset }) => {
+const _sort = (assets: { [key: string]: Asset }) => {
   return Object.values(assets).sort((a, b) => {
     return -a.created_at.localeCompare(b.created_at);
   });

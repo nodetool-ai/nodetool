@@ -165,7 +165,8 @@ export const useDropHandler = () => {
       handleJsonFile,
       handleCsvFile,
       handleGenericFile,
-      addNotification
+      addNotification,
+      addRecentNode
     ]
   );
 

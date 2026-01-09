@@ -33,7 +33,7 @@ export const useFocusPan = (nodeId: string) => {
   }, []);
 
   const handleFocus = useCallback(
-    (e: React.FocusEvent<HTMLElement>) => {
+    (_e: React.FocusEvent<HTMLElement>) => {
       if (wasTabPressedRef.current) {
         const node = findNode(nodeId);
         if (node) {

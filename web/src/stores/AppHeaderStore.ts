@@ -11,7 +11,7 @@ interface AppHeaderState {
   handleCloseHelp: () => void;
 }
 
-export const useAppHeaderStore = create<AppHeaderState>((set, get) => ({
+export const useAppHeaderStore = create<AppHeaderState>((set, _get) => ({
   helpIndex: 0,
   helpOpen: false,
 

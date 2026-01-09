@@ -309,7 +309,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     handlePaneContextMenu
   } = usePaneEvents({
     pendingNodeType,
-    placementLabel,
+    _placementLabel: placementLabel,
     reactFlowInstance
   });
 

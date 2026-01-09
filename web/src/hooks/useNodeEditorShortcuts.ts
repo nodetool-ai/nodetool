@@ -338,13 +338,6 @@ export const useNodeEditorShortcuts = (
   const handleMoveNodes = useCallback(
     (direction: { x?: number; y?: number }) => {
       if (selectedNodes.length > 0) {
-        const updatedNodes = selectedNodes.map((node) => ({
-          ...node,
-          position: {
-            x: node.position.x + (direction.x || 0),
-            y: node.position.y + (direction.y || 0)
-          }
-        }));
         setNodes((nodes: Node<NodeData>[]) =>
           nodes.map(
             (node: Node<NodeData>): Node<NodeData> =>
@@ -466,9 +459,9 @@ export const useNodeEditorShortcuts = (
     handleMoveNodes,
     handleSwitchToTab,
     handleBypassSelected,
-    selectConnectedAll,
-    selectConnectedInputs,
-    selectConnectedOutputs
+    handleSelectConnectedAll,
+    handleSelectConnectedInputs,
+    handleSelectConnectedOutputs
   ]);
 
   // useEffect for shortcut registration

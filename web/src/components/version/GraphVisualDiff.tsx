@@ -137,7 +137,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
     });
 
     return positions;
-  }, [newGraph, oldGraph, width, height]);
+  }, [newGraph, oldGraph, width]);
 
   const allEdges = useMemo(() => {
     const edges: Array<{
@@ -195,7 +195,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
     });
 
     const oldNodeIds = new Set(oldGraph?.nodes?.map(n => n.id) || []);
-    const newNodeIds = new Set(newGraph?.nodes?.map(n => n.id) || []);
+    const _newNodeIds = new Set(newGraph?.nodes?.map(n => n.id) || []);
 
     [...(newGraph?.nodes || [])].forEach(node => {
       if (!map[node.id] && oldNodeIds.has(node.id)) {

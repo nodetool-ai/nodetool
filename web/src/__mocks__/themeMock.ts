@@ -74,7 +74,8 @@ const mockTheme = createTheme({
       paper: "#232323"
     },
     glass: {
-      blur: "10px"
+      blur: "10px",
+      blurResultOverlay: "blur(12px)"
     },
     c_link: "#77b4e6",
     c_link_visited: "#5a9ace",
@@ -139,10 +140,6 @@ const mockTheme = createTheme({
       warningOutlinedBg: "transparent",
       warningOutlinedBorder: "rgba(255, 152, 0, 0.5)",
       warningTextColor: "#ff9800"
-    },
-    // Add glass effect for ResultOverlay component
-    glass: {
-      blur: "blur(12px)"
     },
     // Add Button palette for MUI v7 Button component
     Button: {

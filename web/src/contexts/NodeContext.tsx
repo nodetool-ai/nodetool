@@ -10,10 +10,6 @@ import { TemporalState } from "zundo";
 import { Box } from "@mui/material";
 import isEqual from "lodash/isEqual";
 
-interface NodeContextValue {
-  store: NodeStore;
-}
-
 // Context wrapper around a NodeStore instance. Components can use the custom
 // hooks below to access node state and actions with equality checks to minimize
 // unnecessary re-renders.

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, CircularProgress, Box } from "@mui/material";
+import { Typography, CircularProgress } from "@mui/material";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";

@@ -2,7 +2,6 @@ import { renderHook, act } from "@testing-library/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { usePaneEvents } from "../usePaneEvents";
-import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import useNodePlacementStore from "../../../stores/NodePlacementStore";
 import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -93,7 +92,7 @@ describe("usePaneEvents", () => {
     const { result } = renderHook(() =>
       usePaneEvents({
         pendingNodeType: null,
-        placementLabel: null,
+        _placementLabel: null,
         reactFlowInstance: mockReactFlowInstance as any
       })
     );
@@ -108,7 +107,7 @@ describe("usePaneEvents", () => {
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
-          placementLabel: null,
+          _placementLabel: null,
           reactFlowInstance: mockReactFlowInstance as any
         })
       );
@@ -129,7 +128,7 @@ describe("usePaneEvents", () => {
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
-          placementLabel: null,
+          _placementLabel: null,
           reactFlowInstance: mockReactFlowInstance as any
         })
       );
@@ -150,7 +149,7 @@ describe("usePaneEvents", () => {
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
-          placementLabel: null,
+          _placementLabel: null,
           reactFlowInstance: mockReactFlowInstance as any
         })
       );
@@ -173,7 +172,7 @@ describe("usePaneEvents", () => {
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: "nodetool.test.Node",
-          placementLabel: "Test Node",
+          _placementLabel: "Test Node",
           reactFlowInstance: mockReactFlowInstance as any
         })
       );
@@ -200,7 +199,7 @@ describe("usePaneEvents", () => {
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: "nodetool.test.MissingNode",
-          placementLabel: "Missing Node",
+          _placementLabel: "Missing Node",
           reactFlowInstance: mockReactFlowInstance as any
         })
       );
@@ -226,7 +225,7 @@ describe("usePaneEvents", () => {
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
-          placementLabel: null,
+          _placementLabel: null,
           reactFlowInstance: mockReactFlowInstance as any
         })
       );
@@ -249,7 +248,7 @@ describe("usePaneEvents", () => {
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: null,
-          placementLabel: null,
+          _placementLabel: null,
           reactFlowInstance: mockReactFlowInstance as any
         })
       );
