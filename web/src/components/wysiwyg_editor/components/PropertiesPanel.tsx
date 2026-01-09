@@ -21,7 +21,6 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Collapse,
-  InputAdornment,
 } from "@mui/material";
 import {
   ExpandMore as ExpandMoreIcon,
@@ -628,9 +627,6 @@ const SxEditor: React.FC<SxEditorProps> = ({ sx, onChange }) => {
                 size="small"
                 fullWidth
                 placeholder="Auto"
-                InputProps={{
-                  endAdornment: <InputAdornment position="end" sx={{ "& p": { fontSize: "0.7rem" } }}>-</InputAdornment>,
-                }}
                 sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
               />
             </Box>
@@ -644,9 +640,6 @@ const SxEditor: React.FC<SxEditorProps> = ({ sx, onChange }) => {
                 size="small"
                 fullWidth
                 placeholder="Auto"
-                InputProps={{
-                  endAdornment: <InputAdornment position="end" sx={{ "& p": { fontSize: "0.7rem" } }}>-</InputAdornment>,
-                }}
                 sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
               />
             </Box>
@@ -664,9 +657,6 @@ const SxEditor: React.FC<SxEditorProps> = ({ sx, onChange }) => {
                 size="small"
                 fullWidth
                 placeholder="0"
-                InputProps={{
-                  endAdornment: <InputAdornment position="end" sx={{ "& p": { fontSize: "0.7rem" } }}>PX</InputAdornment>,
-                }}
                 sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
               />
             </Box>
@@ -680,9 +670,6 @@ const SxEditor: React.FC<SxEditorProps> = ({ sx, onChange }) => {
                 size="small"
                 fullWidth
                 placeholder="0"
-                InputProps={{
-                  endAdornment: <InputAdornment position="end" sx={{ "& p": { fontSize: "0.7rem" } }}>PX</InputAdornment>,
-                }}
                 sx={{ "& input": { fontSize: "0.75rem", py: 0.5 } }}
               />
             </Box>
@@ -734,13 +721,24 @@ const SxEditor: React.FC<SxEditorProps> = ({ sx, onChange }) => {
               size="small"
               fullWidth
             >
-              {overflowOptions.map((opt) => (
-                <ToggleButton key={opt} value={opt} sx={{ fontSize: "0.6rem", py: 0.25 }}>
-                  {opt === "visible" ? <VisibilityIcon sx={{ fontSize: 14 }} /> : 
-                   opt === "hidden" ? <VisibilityOffIcon sx={{ fontSize: 14 }} /> :
-                   opt.charAt(0).toUpperCase()}
-                </ToggleButton>
-              ))}
+              {overflowOptions.map((opt) => {
+                // Render icon or text based on option
+                const getOverflowContent = () => {
+                  switch (opt) {
+                    case "visible":
+                      return <VisibilityIcon sx={{ fontSize: 14 }} />;
+                    case "hidden":
+                      return <VisibilityOffIcon sx={{ fontSize: 14 }} />;
+                    default:
+                      return opt.charAt(0).toUpperCase();
+                  }
+                };
+                return (
+                  <ToggleButton key={opt} value={opt} sx={{ fontSize: "0.6rem", py: 0.25 }}>
+                    {getOverflowContent()}
+                  </ToggleButton>
+                );
+              })}
             </ToggleButtonGroup>
           </Box>
         </Stack>
