@@ -386,7 +386,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         }),
         boxShadow: selected
           ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
-          : `0 4px 20px rgba(0, 0, 0, 0.1)`,
+          : "none",
         backgroundColor:
           hasParent && !isLoading
             ? parentColor
