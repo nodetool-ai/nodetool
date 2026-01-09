@@ -126,14 +126,14 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
 
   const handleBrowseClick = useCallback(async () => {
     // Use native dialog if available (Electron context)
+    // Note: The second check is required for TypeScript type narrowing
     if (hasNativeDialog() && window.api.dialog) {
       try {
         const currentValue = typeof props.value === "string" ? props.value : undefined;
-        const dialog = window.api.dialog;
 
         if (props.onlyDirs) {
           // Folder selection
-          const result = await dialog.openFolder({
+          const result = await window.api.dialog.openFolder({
             title: props.dialogTitle,
             defaultPath: currentValue
           });
@@ -142,7 +142,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
           }
         } else {
           // File selection
-          const result = await dialog.openFile({
+          const result = await window.api.dialog.openFile({
             title: props.dialogTitle,
             defaultPath: currentValue
           });
