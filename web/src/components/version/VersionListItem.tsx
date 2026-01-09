@@ -39,6 +39,7 @@ interface VersionListItemProps {
   onPin: (versionId: string, pinned: boolean) => void;
   onCompare: (versionId: string) => void;
   isRestoring?: boolean;
+  isPinning?: boolean;
 }
 
 const getSaveTypeLabel = (saveType: SaveType): string => {
@@ -93,7 +94,8 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   onDelete,
   onPin,
   onCompare,
-  isRestoring = false
+  isRestoring = false,
+  isPinning = false
 }) => {
   const handleClick = useCallback(() => {
     if (compareMode) {
@@ -223,15 +225,19 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
                   <RestoreIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Tooltip title={version.is_pinned ? "Unpin" : "Pin"}>
-                <IconButton size="small" onClick={handlePin}>
-                  {version.is_pinned ? (
-                    <PinIcon fontSize="small" />
-                  ) : (
-                    <PinOutlinedIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Tooltip>
+              {isPinning ? (
+                <CircularProgress size={20} />
+              ) : (
+                <Tooltip title={version.is_pinned ? "Unpin" : "Pin"}>
+                  <IconButton size="small" onClick={handlePin}>
+                    {version.is_pinned ? (
+                      <PinIcon fontSize="small" />
+                    ) : (
+                      <PinOutlinedIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
+              )}
               <Tooltip title="Delete version">
                 <IconButton size="small" onClick={handleDelete}>
                   <DeleteIcon fontSize="small" />

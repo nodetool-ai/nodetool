@@ -76,10 +76,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     isLoading,
     error,
     restoreVersion,
-    isRestoringVersion
+    isRestoringVersion,
+    pinVersion,
+    isPinningVersion
   } = useWorkflowVersions(workflowId);
 
-  const [filterType, setFilterType] = useState<SaveType | "all">("all");
+  const [filterType, setFilterType] = useState<SaveType | "all" | "pinned">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [versionToDelete, setVersionToDelete] = useState<string | null>(null);
 
@@ -88,14 +90,21 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       return [];
     }
     let filtered = apiVersions.versions;
-    if (filterType !== "all") {
+    if (filterType === "pinned") {
+      filtered = filtered.filter((v) => v.is_pinned);
+    } else if (filterType !== "all") {
       filtered = filtered.filter((v) => getSaveType(v) === filterType);
     }
-    return filtered.map((v) => ({
+    const mapped = filtered.map((v) => ({
       ...v,
       save_type: getSaveType(v),
       size_bytes: new Blob([JSON.stringify(v.graph)]).size
     }));
+    return mapped.sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      return b.version - a.version;
+    });
   }, [apiVersions, filterType]);
 
   const selectedVersion = useMemo(
@@ -169,8 +178,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareVersion
   ]);
 
-  const handlePin = useCallback((versionId: string, _pinned: boolean) => {
-  }, []);
+  const handlePin = useCallback((versionId: string, pinned: boolean) => {
+    const version = versions.find((v) => v.id === versionId);
+    if (version) {
+      pinVersion({ version: version.version, pinned });
+    }
+  }, [versions, pinVersion]);
 
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
@@ -205,7 +218,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   const handleFilterChange = useCallback(
     (
       _event: React.MouseEvent<HTMLElement>,
-      newFilter: SaveType | "all" | null
+      newFilter: SaveType | "all" | "pinned" | null
     ) => {
       if (newFilter !== null) {
         setFilterType(newFilter);
@@ -347,6 +360,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             <ToggleButton value="all" aria-label="all">
               All
             </ToggleButton>
+            <ToggleButton value="pinned" aria-label="pinned">
+              Pinned
+            </ToggleButton>
             <ToggleButton value="manual" aria-label="manual">
               Manual
             </ToggleButton>
@@ -438,6 +454,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 onPin={handlePin}
                 onCompare={handleCompare}
                 isRestoring={isRestoringVersion}
+                isPinning={isPinningVersion}
               />
             ))}
           </List>

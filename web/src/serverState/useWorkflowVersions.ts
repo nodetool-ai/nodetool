@@ -68,6 +68,23 @@ export const restoreWorkflowVersion = async (
   await handleApiError(response);
 };
 
+export const pinWorkflowVersion = async (
+  workflowId: string,
+  version: number,
+  pinned: boolean
+): Promise<WorkflowVersion> => {
+  const response = await fetch(
+    `${API_BASE}/${workflowId}/versions/${version}/pin`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned })
+    }
+  );
+  await handleApiError(response);
+  return response.json() as Promise<WorkflowVersion>;
+};
+
 export const useWorkflowVersions = (
   workflowId: string | null | undefined,
   limit: number = 100
@@ -104,12 +121,26 @@ export const useWorkflowVersions = (
     }
   });
 
+  const pinVersionMutation = useMutation({
+    mutationFn: ({ version, pinned }: { version: number; pinned: boolean }) =>
+      pinWorkflowVersion(workflowId as string, version, pinned),
+    onSuccess: () => {
+      if (workflowId) {
+        queryClient.invalidateQueries({
+          queryKey: workflowVersionsQueryKey(workflowId)
+        });
+      }
+    }
+  });
+
   return {
     ...query,
     createVersion: createVersionMutation.mutateAsync,
     restoreVersion: restoreVersionMutation.mutateAsync,
+    pinVersion: pinVersionMutation.mutateAsync,
     isCreatingVersion: createVersionMutation.isPending,
-    isRestoringVersion: restoreVersionMutation.isPending
+    isRestoringVersion: restoreVersionMutation.isPending,
+    isPinningVersion: pinVersionMutation.isPending
   };
 };
 
