@@ -41,7 +41,7 @@ export function useProcessedEdges({
   });
 
   // Structural key: only things that affect edge typing / gradients
-  const nodesStructureKey = useMemo(() => {
+  const [_nodesStructureKey] = useMemo(() => {
     if (isSelecting) {return "";} // we’ll reuse cache while dragging
     return nodes
       .map((n) => {

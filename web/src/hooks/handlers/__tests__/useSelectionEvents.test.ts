@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useSelectionEvents } from "../useSelectionEvents";
@@ -287,7 +287,7 @@ describe("useSelectionEvents", () => {
         })
       );
 
-      const flowPosition = result.current.projectMouseEventToFlow({
+      result.current.projectMouseEventToFlow({
         clientX: 300
       });
 

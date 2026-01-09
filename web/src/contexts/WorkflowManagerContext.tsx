@@ -84,9 +84,6 @@ export const determineNextWorkflowId = (
 // TYPES
 // -----------------------------------------------------------------
 
-// Loading state was previously kept here for tabs; now superseded by React Query
-type LoadingState = never;
-
 type WorkflowManagerState = {
   nodeStores: Record<string, NodeStore>;
   currentWorkflowId: string | null;

@@ -57,7 +57,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
     secrets: Record<string, string> = {}
   ) => {
     set({ isLoading: true, error: null });
-    const { error, data } = await client.PUT("/api/settings/", {
+    const { error } = await client.PUT("/api/settings/", {
       body: {
         settings: settings as Record<string, never>,
         secrets: secrets as Record<string, never>

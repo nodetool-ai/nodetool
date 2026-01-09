@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import { act } from "@testing-library/react";
-import {
-  useFavoriteNodesStore,
-  FavoriteNode
-} from "../FavoriteNodesStore";
+import { useFavoriteNodesStore } from "../FavoriteNodesStore";
 
 describe("FavoriteNodesStore", () => {
   beforeEach(() => {

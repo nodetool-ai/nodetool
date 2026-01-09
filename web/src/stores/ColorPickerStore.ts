@@ -71,7 +71,7 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export const useColorPickerStore = create<ColorPickerState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       recentColors: [],
       swatches: [],
       palettes: [],

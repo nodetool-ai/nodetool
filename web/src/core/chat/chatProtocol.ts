@@ -27,7 +27,6 @@ import {
   TaskUpdate,
   ToolCallUpdate
 } from "../../stores/ApiTypes";
-import type { components } from "../../api";
 import {
   FrontendToolRegistry,
   FrontendToolState
