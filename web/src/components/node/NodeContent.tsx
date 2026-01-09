@@ -61,17 +61,14 @@ const NodeContent: React.FC<NodeContentProps> = ({
 
   // For output nodes, always show overlay when result is available
   const shouldShowOverlay = isOutputNode
-    ? (result && !isEmptyObject(result))
-    : (showResultOverlay && result && !isEmptyObject(result));
+    ? result && !isEmptyObject(result)
+    : showResultOverlay && result && !isEmptyObject(result);
 
   if (shouldShowOverlay) {
     return (
       <Box
         sx={{
-          display: "grid",
-          position: "relative",
-          gridTemplateColumns: "1fr",
-          gridTemplateRows: "1fr"
+          position: "relative"
         }}
       >
         {/* Keep inputs and outputs in DOM for handles and to set size, but hide most content visually */}
@@ -79,11 +76,11 @@ const NodeContent: React.FC<NodeContentProps> = ({
           sx={{
             visibility: "hidden",
             pointerEvents: "none",
-            gridArea: "1 / 1 / 2 / 2",
             // Keep handles visible and interactive
             "& .react-flow__handle": {
               visibility: "visible",
-              pointerEvents: "auto"
+              pointerEvents: "auto",
+              zIndex: 2
             }
           }}
         >
@@ -106,11 +103,16 @@ const NodeContent: React.FC<NodeContentProps> = ({
         </Box>
         <Box
           sx={{
-            gridArea: "1 / 1 / 2 / 2",
+            position: "absolute",
+            inset: 0,
+            zIndex: 1,
             width: "100%",
-            minHeight: "100%",
-            maxHeight: "800px",
-            overflow: "auto"
+            height: "100%",
+            overflow: "auto",
+            // Keep handles clickable even when overlay is on top
+            "& .react-flow__handle": {
+              pointerEvents: "none"
+            }
           }}
         >
           <ResultOverlay
