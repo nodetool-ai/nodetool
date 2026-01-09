@@ -479,7 +479,6 @@ export const useNodeEditorShortcuts = (
     handleMoveNodes,
     handleSwitchToTab,
     openFind,
-    handleBypassSelected,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
     handleSelectConnectedOutputs
