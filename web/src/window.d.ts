@@ -152,6 +152,21 @@ declare global {
           message: string;
         }>;
       };
+
+      // Dialog module - Native file/folder dialogs
+      dialog?: {
+        openFile: (options?: {
+          title?: string;
+          defaultPath?: string;
+          filters?: { name: string; extensions: string[] }[];
+          multiSelections?: boolean;
+        }) => Promise<{ canceled: boolean; filePaths: string[] }>;
+        openFolder: (options?: {
+          title?: string;
+          defaultPath?: string;
+          buttonLabel?: string;
+        }) => Promise<{ canceled: boolean; filePaths: string[] }>;
+      };
     };
     process: {
       type: string;
