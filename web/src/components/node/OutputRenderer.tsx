@@ -294,6 +294,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const [openAsset, setLocalOpenAsset] = useState<Asset | null>(null);
+  const [openModel3D, setOpenModel3D] = useState<{
+    url: string;
+    contentType?: string;
+  } | null>(null);
   const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
@@ -413,9 +417,20 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return <JSONRenderer value={value} showActions={showTextActions} />;
         }
 
+        const format =
+          value && typeof value === "object" && typeof (value as any).format === "string"
+            ? ((value as any).format as string)
+            : undefined;
+        const contentType =
+          format === "gltf" ? "model/gltf+json" : "model/gltf-binary";
+
         return (
           <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
-            <Model3DViewer url={url} compact={true} />
+            <Model3DViewer
+              url={url}
+              compact={true}
+              onClick={() => setOpenModel3D({ url, contentType })}
+            />
           </div>
         );
       }
@@ -731,6 +746,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           }
           open={openAsset !== null}
           onClose={() => setLocalOpenAsset(null)}
+        />
+      )}
+      {openModel3D && (
+        <AssetViewer
+          url={openModel3D.url}
+          contentType={openModel3D.contentType}
+          open={true}
+          onClose={() => setOpenModel3D(null)}
         />
       )}
       {renderContent}

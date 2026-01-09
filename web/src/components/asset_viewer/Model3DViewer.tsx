@@ -46,6 +46,7 @@ import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CloseIcon from "@mui/icons-material/Close";
+import { cn, reactFlowClasses } from "../ui_primitives";
 
 // Lighting presets (must match drei Environment preset types)
 type LightingPreset =
@@ -473,7 +474,8 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   const [showAxes, setShowAxes] = useState(!compact);
   const [wireframe, setWireframe] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [lightingPreset, setLightingPreset] = useState<LightingPreset>("studio");
+  const [lightingPreset, setLightingPreset] =
+    useState<LightingPreset>("studio");
   const [backgroundColor, setBackgroundColor] =
     useState<BackgroundColor>("dark");
   const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
@@ -608,7 +610,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
       ref={containerRef}
     >
       <div
-        className="model-container"
+        className={cn("model-container", reactFlowClasses.nodrag)}
         onClick={compact ? onClick : undefined}
       >
         <div className="canvas-container">
@@ -634,10 +636,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             gl={{ preserveDrawingBuffer: true }}
             style={{ background: bgColorValue }}
           >
-            <ModelErrorBoundary
-              onError={handleModelError}
-              fallback={null}
-            >
+            <ModelErrorBoundary onError={handleModelError} fallback={null}>
               <Suspense
                 fallback={
                   <Html center>
