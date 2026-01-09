@@ -222,10 +222,9 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
         if (event.key === "Enter") {
           event.preventDefault();
-          if (event.shiftKey) {
-            navigatePrevious();
-          } else {
-            navigateNext();
+          if (results.length > 0) {
+            goToSelected();
+            closeFind();
           }
           return;
         }
@@ -250,7 +249,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isOpen, closeFind, navigateNext, navigatePrevious]);
+    }, [isOpen, closeFind, navigateNext, navigatePrevious, results.length, goToSelected]);
 
     if (!isOpen) {
       return null;
