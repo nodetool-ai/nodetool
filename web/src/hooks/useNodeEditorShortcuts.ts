@@ -12,6 +12,7 @@ import useAlignNodes from "./useAlignNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
 import { useSelectConnected } from "./useSelectConnected";
+import { useNodeGroupTemplates } from "./useNodeGroupTemplates";
 import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
@@ -59,6 +60,7 @@ export const useNodeEditorShortcuts = (
   const selectConnectedAll = useSelectConnected({ direction: "both" });
   const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
   const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
+  const nodeGroupTemplates = useNodeGroupTemplates();
 
   const nodeMenuStore = useNodeMenuStore(
     (state) => ({
@@ -307,8 +309,11 @@ export const useNodeEditorShortcuts = (
         case "group":
           handleGroup();
           break;
-        case "switchToTab":
-          handleSwitchToTab(data.index);
+        case "saveNodeGroupTemplate":
+          nodeGroupTemplates.openTemplateDialog();
+          break;
+        case "insertNodeGroupTemplate":
+          nodeGroupTemplates.openTemplateDialog();
           break;
         default:
           break;
@@ -429,6 +434,13 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
+      },
+      saveNodeGroupTemplate: {
+        callback: nodeGroupTemplates.openTemplateDialog,
+        active: selectedNodes.length > 0
+      },
+      insertNodeGroupTemplate: {
+        callback: nodeGroupTemplates.openTemplateDialog
       }
     };
 
@@ -468,7 +480,8 @@ export const useNodeEditorShortcuts = (
     handleBypassSelected,
     selectConnectedAll,
     selectConnectedInputs,
-    selectConnectedOutputs
+    selectConnectedOutputs,
+    nodeGroupTemplates
   ]);
 
   // useEffect for shortcut registration

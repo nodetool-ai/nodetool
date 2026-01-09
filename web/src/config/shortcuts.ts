@@ -524,7 +524,25 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "workflow" as const,
     description: `Activate workflow tab ${n}`,
     registerCombo: true
-  }))
+  })),
+
+  // ---------- NODE GROUP TEMPLATES ---------------------------------------
+  {
+    title: "Save Selection as Template",
+    slug: "saveNodeGroupTemplate",
+    keyCombo: ["Control", "Shift", "T"],
+    category: "workflow" as const,
+    description: "Save selected nodes as a reusable template",
+    registerCombo: true
+  },
+  {
+    title: "Insert Node Group Template",
+    slug: "insertNodeGroupTemplate",
+    keyCombo: ["Control", "Shift", "V"],
+    category: "workflow" as const,
+    description: "Open template dialog to insert a saved template",
+    registerCombo: true
+  }
 ] as Shortcut[];
 
 /**

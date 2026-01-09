@@ -40,6 +40,8 @@ import CommandMenu from "../menus/CommandMenu";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
+import NodeGroupTemplateDialog from "../dialogs/NodeGroupTemplateDialog";
+import { useNodeGroupTemplates } from "../../hooks/useNodeGroupTemplates";
 import type React from "react";
 
 declare global {
@@ -67,6 +69,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleConfirm,
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
+
+  const nodeGroupTemplates = useNodeGroupTemplates();
 
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
@@ -212,6 +216,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <NodeGroupTemplateDialog
+        open={nodeGroupTemplates.isDialogOpen}
+        onClose={nodeGroupTemplates.closeTemplateDialog}
+      />
     </>
   );
 };
