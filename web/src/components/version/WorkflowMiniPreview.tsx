@@ -46,25 +46,27 @@ const NODE_HEIGHT = 24;
 const PADDING = 10;
 const MIN_X = 20;
 const MIN_Y = 20;
+const EDGE_CONTROL_POINT_OFFSET = 30; // Maximum offset for bezier curve control points
 
 /**
- * SpectraNode palette — aligns with the main app data_types.tsx
- * for consistent visual language across the application.
+ * NodeColors palette for mini preview - aligned with SpectraNode from data_types.tsx
+ * Note: We maintain a local copy because SpectraNode is not exported from data_types.tsx
+ * and the preview needs fewer, simplified categories for visual clarity at small sizes.
  */
 const NodeColors = {
-  input: "#10B981",       // emerald 500 - input nodes
-  output: "#3B82F6",      // blue 500 - output nodes
+  input: "#10B981",       // emerald 500 - input nodes (aligns with SpectraNode.boolean)
+  output: "#3B82F6",      // blue 500 - output nodes (aligns with SpectraNode.reference)
   llm: "#8B5CF6",         // violet 500 - LLM/language models
   model: "#A78BFA",       // violet 400 - other models
-  image: "#D946EF",       // fuchsia 500 - image processing
-  text: "#F59E0B",        // amber 500 - text processing
-  audio: "#0EA5E9",       // sky 500 - audio processing
-  video: "#8B5CF6",       // violet 500 - video processing
-  condition: "#F43F5E",   // rose 500 - conditions/flow control
+  image: "#D946EF",       // fuchsia 500 - image processing (aligns with SpectraNode.texture)
+  text: "#F59E0B",        // amber 500 - text processing (aligns with SpectraNode.textual)
+  audio: "#0EA5E9",       // sky 500 - audio processing (aligns with SpectraNode.audio)
+  video: "#8B5CF6",       // violet 500 - video processing (aligns with SpectraNode.video)
+  condition: "#F43F5E",   // rose 500 - conditions/flow control (aligns with SpectraNode.event)
   loop: "#2563EB",        // blue 600 - loops
-  group: "#64748B",       // slate 500 - groups
-  math: "#22D3EE",        // cyan 400 - math/numbers
-  data: "#FACC15",        // yellow 400 - data transformation
+  group: "#64748B",       // slate 500 - groups (aligns with SpectraNode.execution)
+  math: "#22D3EE",        // cyan 400 - math/numbers (aligns with SpectraNode.scalar)
+  data: "#FACC15",        // yellow 400 - data transformation (aligns with SpectraNode.collection)
   agent: "#EC4899",       // pink 500 - agents
   default: "#6B7280"      // gray 500 - fallback
 } as const;
@@ -255,8 +257,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
               (workflow.version ? `v${workflow.version}` : "Workflow")}
           </Typography>
           <Typography variant="caption" display="block" sx={{ color: "rgba(255,255,255,0.6)", mt: 0.5 }}>
-            {nodeCount} node{nodeCount !== 1 ? "s" : ""} • {edgeCount} connection
-            {edgeCount !== 1 ? "s" : ""}
+            {`${nodeCount} node${nodeCount !== 1 ? "s" : ""} • ${edgeCount} connection${edgeCount !== 1 ? "s" : ""}`}
           </Typography>
         </Box>
       }
@@ -325,7 +326,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
             const endY = targetNode.y + targetNode.height / 2;
 
             // Create a smooth bezier curve
-            const controlPointOffset = Math.min(30, Math.abs(endX - startX) / 2);
+            const controlPointOffset = Math.min(EDGE_CONTROL_POINT_OFFSET, Math.abs(endX - startX) / 2);
             const path = `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
 
             return (
