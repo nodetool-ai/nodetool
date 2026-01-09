@@ -73,20 +73,20 @@ const NodeColors = {
 
 const getNodeColor = (nodeType: string): string => {
   const type = nodeType.toLowerCase();
-  if (type.includes("input") || type.includes("chatinput")) {return NodeColors.input;}
-  if (type.includes("output") || type.includes("chatoutput") || type.includes("preview")) {return NodeColors.output;}
-  if (type.includes("llm") || type.includes("chatgpt") || type.includes("claude") || type.includes("ollama") || type.includes("openai")) {return NodeColors.llm;}
-  if (type.includes("model") || type.includes("comfy")) {return NodeColors.model;}
-  if (type.includes("image") || type.includes("diffusion") || type.includes("stable")) {return NodeColors.image;}
-  if (type.includes("text") || type.includes("string") || type.includes("prompt")) {return NodeColors.text;}
-  if (type.includes("audio") || type.includes("speech") || type.includes("tts")) {return NodeColors.audio;}
-  if (type.includes("video")) {return NodeColors.video;}
-  if (type.includes("condition") || type.includes("if") || type.includes("switch") || type.includes("branch")) {return NodeColors.condition;}
-  if (type.includes("loop") || type.includes("for") || type.includes("while") || type.includes("repeat")) {return NodeColors.loop;}
-  if (type.includes("group")) {return NodeColors.group;}
-  if (type.includes("math") || type.includes("number") || type.includes("float") || type.includes("int")) {return NodeColors.math;}
-  if (type.includes("list") || type.includes("dict") || type.includes("array") || type.includes("dataframe")) {return NodeColors.data;}
-  if (type.includes("agent") || type.includes("task")) {return NodeColors.agent;}
+  if (type.includes("input") || type.includes("chatinput")) { return NodeColors.input; }
+  if (type.includes("output") || type.includes("chatoutput") || type.includes("preview")) { return NodeColors.output; }
+  if (type.includes("llm") || type.includes("chatgpt") || type.includes("claude") || type.includes("ollama") || type.includes("openai")) { return NodeColors.llm; }
+  if (type.includes("model") || type.includes("comfy")) { return NodeColors.model; }
+  if (type.includes("image") || type.includes("diffusion") || type.includes("stable")) { return NodeColors.image; }
+  if (type.includes("text") || type.includes("string") || type.includes("prompt")) { return NodeColors.text; }
+  if (type.includes("audio") || type.includes("speech") || type.includes("tts")) { return NodeColors.audio; }
+  if (type.includes("video")) { return NodeColors.video; }
+  if (type.includes("condition") || type.includes("if") || type.includes("switch") || type.includes("branch")) { return NodeColors.condition; }
+  if (type.includes("loop") || type.includes("for") || type.includes("while") || type.includes("repeat")) { return NodeColors.loop; }
+  if (type.includes("group")) { return NodeColors.group; }
+  if (type.includes("math") || type.includes("number") || type.includes("float") || type.includes("int")) { return NodeColors.math; }
+  if (type.includes("list") || type.includes("dict") || type.includes("array") || type.includes("dataframe")) { return NodeColors.data; }
+  if (type.includes("agent") || type.includes("task")) { return NodeColors.agent; }
   return NodeColors.default;
 };
 
@@ -109,7 +109,7 @@ const calculateNodePositions = (graph: Graph): CalculatedGraph => {
   const nodes = graph.nodes || [];
   const edges = graph.edges || [];
 
-  if (nodes.length === 0) {return { nodes: [], edges: [] };}
+  if (nodes.length === 0) { return { nodes: [], edges: [] }; }
 
   const nodeMap = new Map<string, PreviewNode>();
   const visited = new Set<string>();
@@ -127,11 +127,11 @@ const calculateNodePositions = (graph: Graph): CalculatedGraph => {
 
   while (queue.length > 0) {
     const currentId = queue.shift();
-    if (!currentId || visited.has(currentId)) {continue;}
+    if (!currentId || visited.has(currentId)) { continue; }
     visited.add(currentId);
 
     const currentPos = positions.get(currentId);
-    if (!currentPos) {continue;}
+    if (!currentPos) { continue; }
 
     const outgoingEdges = edges.filter((e) => e.source === currentId);
 
@@ -169,9 +169,9 @@ const calculateNodePositions = (graph: Graph): CalculatedGraph => {
       target: e.target
     }));
 
-  return { 
-    nodes: Array.from(nodeMap.values()), 
-    edges: previewEdges 
+  return {
+    nodes: Array.from(nodeMap.values()),
+    edges: previewEdges
   };
 };
 
@@ -190,7 +190,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   }, [workflow]);
 
   const { nodes: previewNodes, edges: previewEdges } = useMemo(
-    () => calculateNodePositions(graph), 
+    () => calculateNodePositions(graph),
     [graph]
   );
 
@@ -226,9 +226,9 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           }
         }}
       >
-        <Typography 
-          variant="caption" 
-          sx={{ 
+        <Typography
+          variant="caption"
+          sx={{
             color: "rgba(255,255,255,0.4)",
             fontStyle: "italic"
           }}
@@ -248,191 +248,134 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   const viewBoxHeight = maxY + PADDING;
 
   return (
-    <Tooltip
-      title={
-        <Box>
-          <Typography variant="caption" fontWeight="medium" sx={{ display: "block" }}>
-            {label ||
-              workflow.name ||
-              (workflow.version ? `v${workflow.version}` : "Workflow")}
-          </Typography>
-          <Typography variant="caption" display="block" sx={{ color: "rgba(255,255,255,0.6)", mt: 0.5 }}>
-            {`${nodeCount} node${nodeCount !== 1 ? "s" : ""} • ${edgeCount} connection${edgeCount !== 1 ? "s" : ""}`}
-          </Typography>
-        </Box>
-      }
-      arrow
-      placement="top"
+    <Paper
+      elevation={0}
+      sx={{
+        width,
+        height,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, rgba(20,22,28,0.98) 0%, rgba(35,37,42,0.95) 100%)",
+        border: "1px solid",
+        borderColor: "rgba(255,255,255,0.08)",
+        borderRadius: 2,
+        overflow: "hidden",
+        position: "relative",
+        transition: "all 0.2s ease-in-out",
+        "&:hover": {
+          borderColor: "rgba(96,165,250,0.3)",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(96,165,250,0.1)"
+        }
+      }}
     >
-      <Paper
-        elevation={0}
+      {/* Subtle gradient overlay */}
+      <Box
         sx={{
-          width,
-          height,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, rgba(20,22,28,0.98) 0%, rgba(35,37,42,0.95) 100%)",
-          border: "1px solid",
-          borderColor: "rgba(255,255,255,0.08)",
-          borderRadius: 2,
-          overflow: "hidden",
-          position: "relative",
-          transition: "all 0.2s ease-in-out",
-          "&:hover": {
-            borderColor: "rgba(96,165,250,0.3)",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(96,165,250,0.1)"
-          }
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "radial-gradient(ellipse at 30% 20%, rgba(96,165,250,0.03) 0%, transparent 50%)",
+          pointerEvents: "none"
         }}
+      />
+      <svg
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ display: "block", position: "relative", zIndex: 1 }}
       >
-        {/* Subtle gradient overlay */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "radial-gradient(ellipse at 30% 20%, rgba(96,165,250,0.03) 0%, transparent 50%)",
-            pointerEvents: "none"
-          }}
-        />
-        <svg
-          width="100%"
-          height="100%"
-          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-          preserveAspectRatio="xMidYMid meet"
-          style={{ display: "block", position: "relative", zIndex: 1 }}
-        >
-          {/* Define gradients for edges */}
-          <defs>
-            <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0.1)" />
-            </linearGradient>
-          </defs>
+        {/* Define gradients for edges */}
+        <defs>
+          <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.1)" />
+          </linearGradient>
+        </defs>
 
-          {/* Render edges first (behind nodes) */}
-          {previewEdges.map((edge) => {
-            const sourceNode = nodeMap.get(edge.source);
-            const targetNode = nodeMap.get(edge.target);
-            if (!sourceNode || !targetNode) {return null;}
+        {/* Render edges first (behind nodes) */}
+        {previewEdges.map((edge) => {
+          const sourceNode = nodeMap.get(edge.source);
+          const targetNode = nodeMap.get(edge.target);
+          if (!sourceNode || !targetNode) { return null; }
 
-            // Calculate edge path - from right side of source to left side of target
-            const startX = sourceNode.x + sourceNode.width;
-            const startY = sourceNode.y + sourceNode.height / 2;
-            const endX = targetNode.x;
-            const endY = targetNode.y + targetNode.height / 2;
+          // Calculate edge path - from right side of source to left side of target
+          const startX = sourceNode.x + sourceNode.width;
+          const startY = sourceNode.y + sourceNode.height / 2;
+          const endX = targetNode.x;
+          const endY = targetNode.y + targetNode.height / 2;
 
-            // Create a smooth bezier curve
-            const controlPointOffset = Math.min(EDGE_CONTROL_POINT_OFFSET, Math.abs(endX - startX) / 2);
-            const path = `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
+          // Create a smooth bezier curve
+          const controlPointOffset = Math.min(EDGE_CONTROL_POINT_OFFSET, Math.abs(endX - startX) / 2);
+          const path = `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
 
-            return (
-              <path
-                key={edge.id}
-                d={path}
-                fill="none"
-                stroke="url(#edgeGradient)"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                opacity={0.6}
+          return (
+            <path
+              key={edge.id}
+              d={path}
+              fill="none"
+              stroke="url(#edgeGradient)"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              opacity={0.6}
+            />
+          );
+        })}
+
+        {/* Render nodes */}
+        {previewNodes.map((node) => {
+          const color = getNodeColor(node.type);
+          return (
+            <g
+              key={node.id}
+              transform={`translate(${node.x}, ${node.y})`}
+            >
+              {/* Node shadow */}
+              <rect
+                x={1}
+                y={2}
+                width={NODE_WIDTH}
+                height={NODE_HEIGHT}
+                rx={4}
+                fill="rgba(0,0,0,0.3)"
               />
-            );
-          })}
-
-          {/* Render nodes */}
-          {previewNodes.map((node) => {
-            const color = getNodeColor(node.type);
-            return (
-              <g
-                key={node.id}
-                transform={`translate(${node.x}, ${node.y})`}
+              {/* Node background with gradient */}
+              <rect
+                width={NODE_WIDTH}
+                height={NODE_HEIGHT}
+                rx={4}
+                fill={color}
+                opacity={0.9}
+              />
+              {/* Subtle highlight at top */}
+              <rect
+                width={NODE_WIDTH}
+                height={NODE_HEIGHT / 3}
+                rx={4}
+                fill="rgba(255,255,255,0.15)"
+              />
+              {/* Node text */}
+              <text
+                x={NODE_WIDTH / 2}
+                y={NODE_HEIGHT / 2 + 3}
+                textAnchor="middle"
+                fill="white"
+                fontSize={9}
+                fontFamily="Inter, sans-serif"
+                fontWeight={500}
+                style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
               >
-                {/* Node shadow */}
-                <rect
-                  x={1}
-                  y={2}
-                  width={NODE_WIDTH}
-                  height={NODE_HEIGHT}
-                  rx={4}
-                  fill="rgba(0,0,0,0.3)"
-                />
-                {/* Node background with gradient */}
-                <rect
-                  width={NODE_WIDTH}
-                  height={NODE_HEIGHT}
-                  rx={4}
-                  fill={color}
-                  opacity={0.9}
-                />
-                {/* Subtle highlight at top */}
-                <rect
-                  width={NODE_WIDTH}
-                  height={NODE_HEIGHT / 3}
-                  rx={4}
-                  fill="rgba(255,255,255,0.15)"
-                />
-                {/* Node text */}
-                <text
-                  x={NODE_WIDTH / 2}
-                  y={NODE_HEIGHT / 2 + 3}
-                  textAnchor="middle"
-                  fill="white"
-                  fontSize={9}
-                  fontFamily="Inter, sans-serif"
-                  fontWeight={500}
-                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
-                >
-                  {extractNodeName(node.type)}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Node count badge */}
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: 6,
-            right: 6,
-            background: "linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(30,30,30,0.8) 100%)",
-            borderRadius: 1,
-            px: 1,
-            py: 0.25,
-            pointerEvents: "none",
-            border: "1px solid rgba(255,255,255,0.1)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5
-          }}
-        >
-          <Box
-            sx={{
-              width: 4,
-              height: 4,
-              borderRadius: "50%",
-              bgcolor: "primary.main",
-              boxShadow: "0 0 4px rgba(96,165,250,0.5)"
-            }}
-          />
-          <Typography
-            variant="caption"
-            sx={{ 
-              color: "rgba(255,255,255,0.85)", 
-              fontSize: "0.65rem",
-              fontWeight: 600,
-              letterSpacing: "0.02em"
-            }}
-          >
-            {nodeCount}
-          </Typography>
-        </Box>
-      </Paper>
-    </Tooltip>
+                {extractNodeName(node.type)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </Paper>
   );
 };
 

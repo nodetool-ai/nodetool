@@ -4,7 +4,6 @@
 import {
   PrefixTreeSearch,
   SearchField,
-  PrefixSearchOptions,
 } from "../PrefixTreeSearch";
 import { NodeMetadata } from "../../stores/ApiTypes";
 
@@ -405,7 +404,7 @@ describe("PrefixTreeSearch", () => {
         const iterations = 50;
         const start = performance.now();
         for (let i = 0; i < iterations; i++) {
-          const results = search.search(query, { maxResults: 100 });
+          search.search(query, { maxResults: 100 });
         }
         const avgTime = (performance.now() - start) / iterations;
         times.push(avgTime);
@@ -476,7 +475,7 @@ describe("PrefixTreeSearch", () => {
       search.indexNodes(nodes);
 
       const start = performance.now();
-      const results = search.search("test");
+      search.search("test");
       const duration = performance.now() - start;
 
       // CRITICAL: This threshold should not increase

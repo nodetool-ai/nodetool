@@ -182,6 +182,12 @@ declare global {
       debug: {
         exportBundle: (request: DebugBundleRequest) => Promise<DebugBundleResponse>;
       };
+
+      // Native dialog operations
+      dialog: {
+        openFile: (options?: DialogOpenFileRequest) => Promise<DialogOpenResult>;
+        openFolder: (options?: DialogOpenFolderRequest) => Promise<DialogOpenResult>;
+      };
     };
 
     // Alias exposed by preload for legacy pages.
@@ -438,6 +444,9 @@ export enum IpcChannels {
   GET_SYSTEM_INFO = "get-system-info",
   // Debug channels
   DEBUG_EXPORT_BUNDLE = "debug-export-bundle",
+  // Dialog channels
+  DIALOG_OPEN_FILE = "dialog-open-file",
+  DIALOG_OPEN_FOLDER = "dialog-open-folder",
 }
 
 
@@ -467,6 +476,30 @@ export interface DebugBundleResponse {
   file_path: string;
   filename: string;
   message: string;
+}
+
+// Dialog types for native file/folder selection
+export interface DialogFileFilter {
+  name: string;
+  extensions: string[];
+}
+
+export interface DialogOpenFileRequest {
+  title?: string;
+  defaultPath?: string;
+  filters?: DialogFileFilter[];
+  multiSelections?: boolean;
+}
+
+export interface DialogOpenFolderRequest {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+}
+
+export interface DialogOpenResult {
+  canceled: boolean;
+  filePaths: string[];
 }
 
 // Request/Response types for each IPC channel
@@ -544,6 +577,9 @@ export interface IpcRequest {
   [IpcChannels.GET_SYSTEM_INFO]: void;
   // Debug
   [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleRequest;
+  // Dialog
+  [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenFileRequest;
+  [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenFolderRequest;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -611,6 +647,9 @@ export interface IpcResponse {
   [IpcChannels.GET_SYSTEM_INFO]: SystemInfo;
   // Debug
   [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleResponse;
+  // Dialog
+  [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenResult;
+  [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenResult;
 }
 
 

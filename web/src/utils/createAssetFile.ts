@@ -1,6 +1,5 @@
 import log from "loglevel";
 import type { Chunk } from "../stores/ApiTypes";
-import { BASE_URL } from "../stores/BASE_URL";
 import { authHeader } from "../stores/ApiClient";
 import { client } from "../stores/ApiClient";
 

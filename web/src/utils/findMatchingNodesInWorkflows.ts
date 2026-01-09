@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import { Workflow, Node as ApiNode } from "../stores/ApiTypes";
+import { Workflow } from "../stores/ApiTypes";
 import { SearchResult } from "../types/search";
 import { FUSE_THRESHOLD, FUSE_MIN_MATCH_FACTOR } from "../config/constants";
 
