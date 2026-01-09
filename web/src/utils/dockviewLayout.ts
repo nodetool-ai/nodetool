@@ -108,7 +108,7 @@ export function applyDockviewLayoutSafely(
   try {
     const migrated = migrateDockviewLayout(layout);
     api.fromJSON(migrated);
-  } catch (err) {
+  } catch (_err) {
     // Fallback to default if anything goes wrong
     try {
       api.fromJSON(defaultLayout);

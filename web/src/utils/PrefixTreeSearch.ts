@@ -148,12 +148,12 @@ export class PrefixTreeSearch {
   /**
    * Insert a word into the Trie with associated node reference
    */
-  private insertWord(
+   private insertWord(
     root: TrieNode,
     word: string,
     node: NodeMetadata,
     weight: number,
-    field: string
+    _field: string
   ): void {
     const normalized = word.toLowerCase().trim();
     if (!normalized) {return;}

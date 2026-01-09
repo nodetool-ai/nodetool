@@ -13,7 +13,7 @@ class WebSocketService {
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
   private isConnecting = false;
   private isConnected = false;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
 
   private maxReconnectAttempts = 5;
