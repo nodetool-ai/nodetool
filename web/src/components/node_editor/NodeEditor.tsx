@@ -41,6 +41,7 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
+import FindInWorkflowDialog from "./FindInWorkflowDialog";
 
 declare global {
   interface Window {
@@ -147,6 +148,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 redo={() => nodeHistory.redo()}
                 reactFlowWrapper={reactFlowWrapperRef}
               />
+              <FindInWorkflowDialog workflowId={workflowId} />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

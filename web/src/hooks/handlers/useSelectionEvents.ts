@@ -55,6 +55,11 @@ export function useSelectionEvents({
     [openContextMenu]
   );
 
+  const resetSelectionTracking = useCallback(() => {
+    selectionStartRef.current = null;
+    selectionEndRef.current = null;
+  }, []);
+
   const selectGroupsWithinSelection = useCallback(() => {
     const selectionRect = getSelectionRect(
       selectionStartRef.current,
@@ -109,11 +114,6 @@ export function useSelectionEvents({
     },
     [onSelectionDragStopBase]
   );
-
-  const resetSelectionTracking = useCallback(() => {
-    selectionStartRef.current = null;
-    selectionEndRef.current = null;
-  }, []);
 
   return {
     handleSelectionContextMenu,

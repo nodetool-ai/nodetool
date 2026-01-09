@@ -24,6 +24,7 @@ import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
+import { useFindInWorkflow } from "./useFindInWorkflow";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -72,10 +73,12 @@ export const useNodeEditorShortcuts = (
     (state) => state.addNotification
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
+  const findInWorkflow = useFindInWorkflow();
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } = nodesStore;
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+    nodesStore;
   const {
     saveExample,
     removeWorkflow,
@@ -86,6 +89,7 @@ export const useNodeEditorShortcuts = (
   } = workflowManager;
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
+  const { openFind } = findInWorkflow;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
@@ -233,12 +237,16 @@ export const useNodeEditorShortcuts = (
   }, []);
 
   const handleShowKeyboardShortcuts = useCallback(() => {
-    if (onShowShortcuts) {onShowShortcuts();}
+    if (onShowShortcuts) {
+      onShowShortcuts();
+    }
   }, [onShowShortcuts]);
 
   const handleMenuEvent = useCallback(
     (data: any) => {
-      if (!active) {return;}
+      if (!active) {
+        return;
+      }
       switch (data.type) {
         case "copy":
           handleCopy();
@@ -338,7 +346,7 @@ export const useNodeEditorShortcuts = (
   const handleMoveNodes = useCallback(
     (direction: { x?: number; y?: number }) => {
       if (selectedNodes.length > 0) {
-        const updatedNodes = selectedNodes.map((node) => ({
+        selectedNodes.map((node) => ({
           ...node,
           position: {
             x: node.position.x + (direction.x || 0),
@@ -417,7 +425,11 @@ export const useNodeEditorShortcuts = (
       moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
       moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
-      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 },
+      bypassNode: {
+        callback: handleBypassSelected,
+        active: selectedNodes.length > 0
+      },
+      findInWorkflow: { callback: openFind },
       selectConnectedAll: {
         callback: handleSelectConnectedAll,
         active: selectedNodes.length > 0
@@ -447,11 +459,10 @@ export const useNodeEditorShortcuts = (
     nodeHistory.redo,
     selectAllNodes,
     handleAlign,
-    handleAlignWithSpacing,
     selectedNodes.length,
+    handleAlignWithSpacing,
     duplicateNodes,
     duplicateNodesVertical,
-    handleFitView,
     handleOpenNodeMenu,
     handleGroup,
     handleInspectorToggle,
@@ -462,9 +473,12 @@ export const useNodeEditorShortcuts = (
     closeCurrentWorkflow,
     handleZoomIn,
     handleZoomOut,
+    handleBypassSelected,
+    handleFitView,
     handleSwitchTab,
     handleMoveNodes,
     handleSwitchToTab,
+    openFind,
     handleBypassSelected,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
@@ -476,11 +490,17 @@ export const useNodeEditorShortcuts = (
     const registered: string[] = [];
 
     NODE_EDITOR_SHORTCUTS.forEach((sc) => {
-      if (!sc.registerCombo) {return;}
-      if (sc.electronOnly && !electronDetails.isElectron) {return;}
+      if (!sc.registerCombo) {
+        return;
+      }
+      if (sc.electronOnly && !electronDetails.isElectron) {
+        return;
+      }
 
       const meta = shortcutMeta[sc.slug];
-      if (!meta) {return;}
+      if (!meta) {
+        return;
+      }
 
       const combos = [sc.keyCombo, ...(sc.altKeyCombos ?? [])];
 

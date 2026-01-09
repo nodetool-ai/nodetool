@@ -27,6 +27,8 @@ jest.mock('../types.d', () => ({
     PACKAGE_UPDATE: 'package-update',
     PACKAGE_SEARCH_NODES: 'package-search-nodes',
     PACKAGE_OPEN_EXTERNAL: 'package-open-external',
+    DIALOG_OPEN_FILE: 'dialog-open-file',
+    DIALOG_OPEN_FOLDER: 'dialog-open-folder',
   },
   IpcEvents: {},
   IpcResponse: {},
@@ -97,10 +99,13 @@ jest.mock('electron', () => {
     shell: {
       openExternal: jest.fn(),
     },
+    dialog: {
+      showOpenDialog: jest.fn(),
+    },
   };
 });
 
-import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell } from 'electron';
+import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell, dialog } from 'electron';
 import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer, restartLlamaServer } from '../server';
 import { logMessage } from '../logger';
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
@@ -149,10 +154,13 @@ const Channels = {
   PACKAGE_SEARCH_NODES: 'package-search-nodes',
   PACKAGE_OPEN_EXTERNAL: 'package-open-external',
   PACKAGE_UPDATES_AVAILABLE: 'package-updates-available',
+  DIALOG_OPEN_FILE: 'dialog-open-file',
+  DIALOG_OPEN_FOLDER: 'dialog-open-folder',
 };
 
 const ipcMainMock = ipcMain as jest.Mocked<typeof ipcMain>;
 const browserWindowMock = BrowserWindow as jest.Mocked<typeof BrowserWindow>;
+const dialogMock = dialog as jest.Mocked<typeof dialog>;
 const clipboardMock = clipboard as jest.Mocked<typeof clipboard>;
 const globalShortcutMock = globalShortcut as jest.Mocked<typeof globalShortcut>;
 
@@ -593,6 +601,116 @@ describe('initializeIpcHandlers', () => {
 
       closeHandler({});
       // Should not throw or call window methods
+    });
+  });
+
+  describe('dialog handlers', () => {
+    beforeEach(() => {
+      initializeIpcHandlers();
+    });
+
+    it('should handle DIALOG_OPEN_FILE', async () => {
+      const mockResult = { canceled: false, filePaths: ['/path/to/file.txt'] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, { title: 'Select File', defaultPath: '/home' });
+      
+      expect(dialogMock.showOpenDialog).toHaveBeenCalledWith({
+        title: 'Select File',
+        defaultPath: '/home',
+        filters: undefined,
+        properties: ['openFile'],
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should handle DIALOG_OPEN_FILE with multi-selection', async () => {
+      const mockResult = { canceled: false, filePaths: ['/path/to/file1.txt', '/path/to/file2.txt'] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, { title: 'Select Files', multiSelections: true });
+      
+      expect(dialogMock.showOpenDialog).toHaveBeenCalledWith({
+        title: 'Select Files',
+        defaultPath: undefined,
+        filters: undefined,
+        properties: ['openFile', 'multiSelections'],
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should handle DIALOG_OPEN_FILE canceled', async () => {
+      const mockResult = { canceled: true, filePaths: [] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, {});
+      
+      expect(result.canceled).toBe(true);
+      expect(result.filePaths).toEqual([]);
+    });
+
+    it('should handle DIALOG_OPEN_FOLDER', async () => {
+      const mockResult = { canceled: false, filePaths: ['/path/to/folder'] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, { title: 'Select Folder', defaultPath: '/home' });
+      
+      expect(dialogMock.showOpenDialog).toHaveBeenCalledWith({
+        title: 'Select Folder',
+        defaultPath: '/home',
+        buttonLabel: 'Select Folder',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should handle DIALOG_OPEN_FOLDER with custom button label', async () => {
+      const mockResult = { canceled: false, filePaths: ['/path/to/folder'] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, { title: 'Pick Folder', buttonLabel: 'Choose' });
+      
+      expect(dialogMock.showOpenDialog).toHaveBeenCalledWith({
+        title: 'Pick Folder',
+        defaultPath: undefined,
+        buttonLabel: 'Choose',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should handle DIALOG_OPEN_FOLDER canceled', async () => {
+      const mockResult = { canceled: true, filePaths: [] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, {});
+      
+      expect(result.canceled).toBe(true);
+      expect(result.filePaths).toEqual([]);
     });
   });
 });

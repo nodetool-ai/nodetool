@@ -153,7 +153,7 @@ export class PrefixTreeSearch {
     word: string,
     node: NodeMetadata,
     weight: number,
-    field: string
+    _field: string
   ): void {
     const normalized = word.toLowerCase().trim();
     if (!normalized) {return;}

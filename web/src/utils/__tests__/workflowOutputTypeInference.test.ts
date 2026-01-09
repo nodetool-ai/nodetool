@@ -1,8 +1,6 @@
 import {
   inferWorkflowOutputSchema,
   getInferredOutputType,
-  InferredOutputType,
-  InferredOutputSchema
 } from "../workflowOutputTypeInference";
 import { Graph, Node, Edge, OutputSlot } from "../../stores/ApiTypes";
 

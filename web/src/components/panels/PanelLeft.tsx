@@ -20,6 +20,7 @@ import WorkflowList from "../workflows/WorkflowList";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
+import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -765,6 +766,7 @@ const PanelLeft: React.FC = () => {
       >
         <div className="panel-content">
           <ContextMenuProvider>
+            <ContextMenus />
             <VerticalToolbar
               activeView={activeView}
               onViewChange={onViewChange}

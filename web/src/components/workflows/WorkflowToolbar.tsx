@@ -3,6 +3,8 @@ import { FC, useCallback } from "react";
 import { Button, Tooltip, Box, IconButton } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +21,8 @@ interface WorkflowToolbarProps {
   toggleCheckboxes: () => void;
   selectedWorkflowsCount: number;
   onBulkDelete: () => void;
+  showFavoritesOnly?: boolean;
+  onToggleFavorites?: () => void;
 }
 
 const styles = (theme: Theme) =>
@@ -43,6 +47,28 @@ const styles = (theme: Theme) =>
       },
       "&:hover svg": {
         fill: "var(--palette-primary-main)"
+      }
+    },
+    ".tools .favorite-button": {
+      fontSize: "0.7em",
+      borderColor: `${"var(--palette-primary-main)"}33`,
+      width: "2em",
+      height: "2em",
+      "&:hover": {
+        borderColor: "var(--palette-primary-main)"
+      },
+      "& svg": {
+        color: theme.vars.palette.grey[400]
+      },
+      "&:hover svg": {
+        fill: "var(--palette-primary-main)"
+      }
+    },
+    ".tools .favorite-button.active": {
+      borderColor: "warning.main",
+      "& svg": {
+        color: "warning.main",
+        fill: "warning.main"
       }
     },
     ".tools .delete-selected-button": {
@@ -87,7 +113,9 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   showCheckboxes,
   toggleCheckboxes,
   selectedWorkflowsCount,
-  onBulkDelete
+  onBulkDelete,
+  showFavoritesOnly = false,
+  onToggleFavorites
 }) => {
   const theme = useTheme();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
@@ -135,6 +163,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             </Button>
           </Tooltip>
         )}
+
         <Tooltip
           title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
           placement="top"
@@ -144,6 +173,21 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             <CheckBoxIcon />
           </IconButton>
         </Tooltip>
+
+        {onToggleFavorites && (
+          <Tooltip
+            title={`${showFavoritesOnly ? "Show all workflows" : "Show favorites only"}`}
+            placement="top"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <IconButton
+              className={`favorite-button ${showFavoritesOnly ? "active" : ""}`}
+              onClick={onToggleFavorites}
+            >
+              {showFavoritesOnly ? <StarIcon /> : <StarBorderIcon />}
+            </IconButton>
+          </Tooltip>
+        )}
 
         <Tooltip title="Create new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton
