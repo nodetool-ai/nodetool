@@ -1,19 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
-import { Box, Button, Typography } from "@mui/material";
+import React, { memo, useCallback, useEffect } from "react";
+import { Box, Typography } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
-import {
-  useFavoriteWorkflowActions,
-  useIsWorkflowFavorite
-} from "../../stores/FavoriteWorkflowsStore";
+import useContextMenuStore from "../../stores/ContextMenuStore";
+import { useWorkflowActionsStore } from "../../stores/WorkflowActionsStore";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -39,10 +32,37 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   onDuplicateWorkflow,
   onSelect,
   onDelete,
-  onEdit
+  onEdit,
+  onOpenAsApp
 }: WorkflowListItemProps) => {
-  const isFavorite = useIsWorkflowFavorite(workflow.id);
-  const { toggleFavorite } = useFavoriteWorkflowActions();
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const setActions = useWorkflowActionsStore((state) => state.setActions);
+  const clearActions = useWorkflowActionsStore((state) => state.clearActions);
+
+  useEffect(() => {
+    setActions({ onEdit, onDuplicate: onDuplicateWorkflow, onDelete, onOpenAsApp });
+    return () => clearActions();
+  }, [setActions, clearActions, onEdit, onDuplicateWorkflow, onDelete, onOpenAsApp]);
+
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openContextMenu(
+        "workflow-context-menu",
+        workflow.id,
+        event.clientX,
+        event.clientY,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        workflow
+      );
+    },
+    [openContextMenu, workflow]
+  );
 
   return (
     <Box
@@ -53,9 +73,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         (isCurrent ? " current" : "") +
         (isAlternate ? " alternate" : "")
       }
-      onContextMenu={(e) => {
-        e.preventDefault();
-      }}
+      onContextMenu={handleContextMenu}
       onClick={(e) => {
         if (!e.defaultPrevented) {
           onOpenWorkflow(workflow);
@@ -80,67 +98,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           height={100}
           label={workflow.name}
         />
-        <Typography className="name">
-          {workflow.name}
-        </Typography>
+        <Typography className="name">{workflow.name}</Typography>
       </Box>
-      <div className="actions">
-        <Button
-          size="small"
-          className="favorite-button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            toggleFavorite(workflow.id);
-          }}
-          data-microtip-position="bottom"
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          role="tooltip"
-          sx={{ color: isFavorite ? "warning.main" : "grey.400" }}
-        >
-          {isFavorite ? <StarIcon /> : <StarBorderIcon />}
-        </Button>
-        <Button
-          size="small"
-          className="edit-button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onEdit(workflow);
-          }}
-          data-microtip-position="bottom"
-          aria-label="Edit"
-          role="tooltip"
-        >
-          <EditIcon />
-        </Button>
-        <Button
-          size="small"
-          className="duplicate-button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onDuplicateWorkflow(event, workflow);
-          }}
-          data-microtip-position="bottom"
-          aria-label="Duplicate"
-          role="tooltip"
-        >
-          <ContentCopyIcon />
-        </Button>
-
-        <Button
-          size="small"
-          className="delete-button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onDelete(workflow);
-          }}
-        >
-          <DeleteIcon />
-        </Button>
-      </div>
     </Box>
   );
 };
