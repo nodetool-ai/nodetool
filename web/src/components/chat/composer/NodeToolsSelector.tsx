@@ -30,6 +30,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
 
+// Popover dimensions
+const POPOVER_WIDTH = 420;
+const POPOVER_HEIGHT = 420;
+
 const toolsSelectorStyles = (theme: Theme) =>
   css({
     ".MuiButton-endIcon": {
@@ -185,10 +189,9 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
       return;
     }
     const rect = buttonRef.current.getBoundingClientRect();
-    const height = 420;
     const spaceBelow = window.innerHeight - rect.bottom;
 
-    if (spaceBelow < height && rect.top > height) {
+    if (spaceBelow < POPOVER_HEIGHT && rect.top > POPOVER_HEIGHT) {
       setPositionConfig({
         anchorOrigin: { vertical: "top", horizontal: "left" },
         transformOrigin: { vertical: "bottom", horizontal: "left" }
@@ -272,8 +275,8 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
           paper: {
             elevation: 24,
             style: {
-              width: "420px",
-              height: "420px",
+              width: `${POPOVER_WIDTH}px`,
+              height: `${POPOVER_HEIGHT}px`,
               maxHeight: "90vh",
               maxWidth: "100vw",
               borderRadius: theme.vars.rounded.dialog,
