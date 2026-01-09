@@ -10,6 +10,10 @@ import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
 
+const VALID_COLOR = "#22c55e";
+const INVALID_COLOR = "#ef4444";
+const DEFAULT_COLOR = "#111";
+
 const ConnectionLine: ConnectionLineComponent = ({
   fromX,
   fromY,
@@ -20,6 +24,9 @@ const ConnectionLine: ConnectionLineComponent = ({
   connectionLineType = ConnectionLineType.SimpleBezier
 }) => {
   const connectType = useConnectionStore((state) => state.connectType);
+  const connectionValidation = useConnectionStore(
+    (state) => state.connectionValidation
+  );
   const className = connectType?.type || undefined;
 
   let dAttr = "";
@@ -33,7 +40,6 @@ const ConnectionLine: ConnectionLineComponent = ({
   };
 
   if (connectionLineType === ConnectionLineType.Bezier) {
-    // we assume the destination position is opposite to the source position
     [dAttr] = getBezierPath(pathParams);
   } else if (connectionLineType === ConnectionLineType.Step) {
     [dAttr] = getSmoothStepPath({
@@ -47,6 +53,15 @@ const ConnectionLine: ConnectionLineComponent = ({
   } else {
     dAttr = `M${fromX},${fromY} ${toX},${toY}`;
   }
+
+  const strokeColor = connectionValidation
+    ? connectionValidation.valid
+      ? VALID_COLOR
+      : INVALID_COLOR
+    : DEFAULT_COLOR;
+
+  const strokeDasharray = connectionValidation?.valid === false ? "6 4" : undefined;
+
   const width = 12;
   const height = 12;
   const offsetX = width / 2;
@@ -56,7 +71,9 @@ const ConnectionLine: ConnectionLineComponent = ({
     <g className={"custom-connection-line"}>
       <path
         fill="none"
-        stroke="#111"
+        stroke={strokeColor}
+        strokeWidth={connectionValidation?.valid === false ? 2 : 1.5}
+        strokeDasharray={strokeDasharray}
         className={Slugify(className || "")}
         d={dAttr}
       />
@@ -68,6 +85,9 @@ const ConnectionLine: ConnectionLineComponent = ({
         width={width}
         height={height}
         rx="1"
+        fill={strokeColor}
+        stroke={strokeColor}
+        strokeWidth={connectionValidation?.valid === false ? 2 : 1}
       />
     </g>
   );

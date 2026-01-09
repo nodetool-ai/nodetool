@@ -5,12 +5,18 @@ import { Node } from "@xyflow/react";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 export type ConnectDirection = "target" | "source" | "" | null;
 
+export type ConnectionValidationResult =
+  | { valid: true }
+  | { valid: false; reason: string };
+
 type ConnectionStore = {
   connecting: boolean;
   connectType: TypeMetadata | null;
   connectDirection: ConnectDirection;
   connectNodeId: string | null;
   connectHandleId: string | null;
+  connectionValidation: ConnectionValidationResult | null;
+  setConnectionValidation: (result: ConnectionValidationResult | null) => void;
   startConnecting: (
     node: Node<NodeData>,
     handleId: string,
@@ -26,18 +32,20 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
   connectDirection: null,
   connectNodeId: null,
   connectHandleId: null,
+  connectionValidation: null,
 
-  /**
-   * Handle the end event of a connection between two nodes.
-   * Reset all values used for connecting.
-   */
+  setConnectionValidation: (result) => {
+    set({ connectionValidation: result });
+  },
+
   endConnecting: () => {
     set({
       connecting: false,
       connectType: null,
       connectDirection: null,
       connectNodeId: null,
-      connectHandleId: null
+      connectHandleId: null,
+      connectionValidation: null
     });
   },
 

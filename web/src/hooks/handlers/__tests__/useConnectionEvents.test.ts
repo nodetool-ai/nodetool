@@ -2,8 +2,10 @@ import { renderHook } from "@testing-library/react";
 import { Edge } from "@xyflow/react";
 import { useConnectionEvents } from "../useConnectionEvents";
 import { useNodes } from "../../../contexts/NodeContext";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 jest.mock("../../../contexts/NodeContext");
+jest.mock("../../../stores/MetadataStore");
 
 describe("useConnectionEvents", () => {
   const mockEdges = [
@@ -11,17 +13,29 @@ describe("useConnectionEvents", () => {
     { id: "edge-2", source: "node-2", target: "node-3" }
   ] as Edge[];
 
+  const mockNodes = [
+    { id: "node-1", type: "testType1" },
+    { id: "node-2", type: "testType2" },
+    { id: "node-3", type: "testType3" }
+  ];
+
   const mockedUseNodes = useNodes as unknown as jest.Mock;
+  const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockedUseNodes.mockImplementation((selector) => {
       if (typeof selector === 'function') {
         return selector({
-          edges: mockEdges
+          edges: mockEdges,
+          nodes: mockNodes
         });
       }
-      return { edges: mockEdges };
+      return { edges: mockEdges, nodes: mockNodes };
+    });
+
+    mockedUseMetadataStore.mockReturnValue({
+      getMetadata: jest.fn().mockReturnValue({})
     });
   });
 
