@@ -132,6 +132,15 @@ export interface GlobalChatState {
   frontendToolState: FrontendToolState;
   setFrontendToolState: (state: FrontendToolState) => void;
 
+  // Undo/Redo state
+  chatHistory: Array<{ messageCache: Record<string, Message[]> }>;
+  chatHistoryIndex: number;
+
+  // Undo/Redo actions
+  undo: () => void;
+  redo: () => void;
+  saveChatSnapshot: () => void;
+
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -266,6 +275,45 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Safety timeout tracking for sendMessage
       sendMessageTimeoutId: null,
+
+      // Undo/Redo state
+      chatHistory: [],
+      chatHistoryIndex: -1,
+
+      // Undo/Redo actions
+      undo: () => {
+        const { chatHistory, chatHistoryIndex } = get();
+        if (chatHistoryIndex > 0) {
+          const newIndex = chatHistoryIndex - 1;
+          const snapshot = chatHistory[newIndex];
+          set({
+            messageCache: snapshot.messageCache,
+            chatHistoryIndex: newIndex
+          });
+        }
+      },
+      redo: () => {
+        const { chatHistory, chatHistoryIndex } = get();
+        if (chatHistoryIndex < chatHistory.length - 1) {
+          const newIndex = chatHistoryIndex + 1;
+          const snapshot = chatHistory[newIndex];
+          set({
+            messageCache: snapshot.messageCache,
+            chatHistoryIndex: newIndex
+          });
+        }
+      },
+      saveChatSnapshot: () => {
+        const { messageCache, chatHistory, chatHistoryIndex } = get();
+        // Remove any future history if we're not at the end
+        const newHistory = chatHistory.slice(0, chatHistoryIndex + 1);
+        // Add current state to history (limit to 50 snapshots)
+        const newChatHistory = [...newHistory, { messageCache: { ...messageCache } }].slice(-50);
+        set({
+          chatHistory: newChatHistory,
+          chatHistoryIndex: newChatHistory.length - 1
+        });
+      },
 
       connect: async () => {
         log.info("Connecting to global chat");
@@ -930,11 +978,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
       addMessageToCache: (threadId: string, message: Message) => {
         set((state) => {
           const existingMessages = state.messageCache[threadId] || [];
+          const newMessageCache = {
+            ...state.messageCache,
+            [threadId]: [...existingMessages, message]
+          };
+          // Save snapshot for undo/redo
+          const newHistory = state.chatHistory.slice(0, state.chatHistoryIndex + 1);
+          const newChatHistory = [...newHistory, { messageCache: newMessageCache }].slice(-50);
           return {
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...existingMessages, message]
-            }
+            messageCache: newMessageCache,
+            chatHistory: newChatHistory,
+            chatHistoryIndex: newChatHistory.length - 1
           };
         });
       },

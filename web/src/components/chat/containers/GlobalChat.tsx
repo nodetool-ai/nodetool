@@ -20,10 +20,15 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
+import { useChatShortcuts } from "../../../hooks/useChatShortcuts";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
+
+  // Enable chat keyboard shortcuts (Ctrl/Cmd+Z for undo, Ctrl/Cmd+Shift+Z for redo)
+  useChatShortcuts(true);
+
   const {
     status,
     sendMessage,

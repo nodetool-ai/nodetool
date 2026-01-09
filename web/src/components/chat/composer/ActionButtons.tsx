@@ -6,6 +6,7 @@ import React from "react";
 import { Tooltip, Typography } from "@mui/material";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
+import { UndoRedoButtons } from "./UndoRedoButtons";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface ActionButtonsProps {
@@ -46,6 +47,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   return (
     <div className="chat-action-buttons" css={styles(theme)}>
+      {/* Undo/Redo buttons */}
+      <UndoRedoButtons />
       {/* {onNewChat && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="New Chat">
           <span className="new-chat-button-wrapper button-wrapper">
