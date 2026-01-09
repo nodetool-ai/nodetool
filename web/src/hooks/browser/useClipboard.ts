@@ -39,7 +39,7 @@ export const useClipboard = () => {
         Object.prototype.hasOwnProperty.call(parsedData, "edges") &&
         Array.isArray(parsedData.edges);
       return hasNodes && hasValidEdges;
-    } catch (error) {
+    } catch {
       return false;
     }
   }, []);
@@ -58,7 +58,7 @@ export const useClipboard = () => {
       try {
         data = await window.api.clipboardReadText();
         log.info("Clipboard read via Electron API.");
-      } catch (e) {
+      } catch {
         log.warn("Electron clipboard read failed, falling back to navigator.");
         if (document.hasFocus() && navigator.clipboard) {
           data = await navigator.clipboard.readText();

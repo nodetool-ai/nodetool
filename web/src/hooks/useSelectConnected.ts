@@ -1,6 +1,4 @@
 import { useCallback, useMemo } from "react";
-import { Node } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
 import { useNodes } from "../contexts/NodeContext";
 
 type Direction = "upstream" | "downstream" | "both";

@@ -4,8 +4,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $getSelection,
   $isRangeSelection,
-  FORMAT_TEXT_COMMAND,
-  TextNode
+  FORMAT_TEXT_COMMAND
 } from "lexical";
 import { memo, useCallback, useEffect, useState } from "react";
 import FormatSizeIcon from "@mui/icons-material/FormatSize";
@@ -14,10 +13,7 @@ import {
   addClassNamesToElement,
   removeClassNamesFromElement
 } from "@lexical/utils";
-import {
-  $patchStyleText,
-  $getSelectionStyleValueForProperty
-} from "@lexical/selection";
+import { $patchStyleText } from "@lexical/selection";
 import { copyAsMarkdown } from "./exportMarkdown";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "./HorizontalRulePlugin";
 

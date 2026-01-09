@@ -11,7 +11,6 @@ import {
   IconButton,
   List,
   Paper,
-  Divider,
   Button,
   Dialog,
   DialogTitle,
@@ -169,7 +168,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareVersion
   ]);
 
-  const handlePin = useCallback((versionId: string, _pinned: boolean) => {
+  const handlePin = useCallback((_versionId: string, _pinned: boolean) => {
   }, []);
 
   const handleRestore = useCallback(

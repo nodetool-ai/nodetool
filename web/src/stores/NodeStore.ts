@@ -15,8 +15,6 @@ import type { TemporalState } from "zundo";
 import { create, StoreApi, UseBoundStore } from "zustand";
 import {
   NodeMetadata,
-  OutputSlot,
-  Property,
   RepoPath,
   UnifiedModel,
   Workflow
@@ -46,9 +44,7 @@ import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import {
   findOutputHandle,
-  findInputHandle,
-  hasOutputHandle,
-  hasInputHandle
+  findInputHandle
 } from "../utils/handleUtils";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
@@ -1158,46 +1154,10 @@ export const createNodeStore = (
         limit: undo_limit,
         equality: customEquality,
         partialize: (state): PartializedNodeStore => {
-          const { workflow, nodes, edges, ...rest } = state;
+          const { workflow, nodes, edges } = state;
           return { workflow, nodes, edges };
         }
       }
     )
   );
 
-const extractModelRepos = (nodes: GraphNode[]): string[] => {
-  return nodes.reduce<string[]>((acc, node) => {
-    const data = node.data as Record<string, any>;
-    for (const name of Object.keys(data)) {
-      const value = data[name];
-      if (value && value.type?.startsWith("hf.")) {
-        if (value.repo_id && !value.path) {
-          acc.push(value.repo_id);
-        }
-      }
-    }
-    return acc;
-  }, []);
-};
-
-/**
- * Extract model files from workflow nodes that need to be cached
- */
-const extractModelFiles = (nodes: GraphNode[]): RepoPath[] => {
-  return nodes.reduce<RepoPath[]>((acc, node) => {
-    const data = node.data as Record<string, any>;
-    for (const name of Object.keys(data)) {
-      const value = data[name];
-      if (value && value.type?.startsWith("hf.")) {
-        if (value.repo_id && value.path) {
-          acc.push({
-            repo_id: value.repo_id,
-            path: value.path,
-            downloaded: false
-          });
-        }
-      }
-    }
-    return acc;
-  }, []);
-};

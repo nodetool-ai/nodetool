@@ -133,7 +133,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         .then(() => {
           set({ reconnectAttempts: 0 });
         })
-        .catch((err) => {
+        .catch(() => {
           get().reconnectWebSocket();
         });
     }, delay);

@@ -1,4 +1,4 @@
-import { useCallback, useRef, MouseEvent as ReactMouseEvent, useMemo } from "react";
+import { useCallback, useRef, MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -6,7 +6,6 @@ import {
   getSelectionRect,
   getNodesWithinSelection
 } from "../../utils/selectionBounds";
-import useDragHandlers from "./useDragHandlers";
 
 interface UseSelectionEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
