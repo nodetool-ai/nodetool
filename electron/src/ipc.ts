@@ -4,6 +4,7 @@ import {
   clipboard,
   globalShortcut,
   shell,
+  dialog,
 } from "electron";
 import {
   getServerState,
@@ -564,6 +565,42 @@ export function initializeIpcHandlers(): void {
     async (_event, request) => {
       logMessage("Exporting debug bundle");
       return await exportDebugBundle(request);
+    }
+  );
+
+  // Dialog handlers for native file/folder selection
+  createIpcMainHandler(
+    IpcChannels.DIALOG_OPEN_FILE,
+    async (_event, request) => {
+      logMessage("Opening native file dialog");
+      const properties: ("openFile" | "multiSelections")[] = ["openFile"];
+      if (request.multiSelections) {
+        properties.push("multiSelections");
+      }
+
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: request.title || "Select File",
+        defaultPath: request.defaultPath,
+        filters: request.filters,
+        properties,
+      });
+
+      return { canceled, filePaths };
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.DIALOG_OPEN_FOLDER,
+    async (_event, request) => {
+      logMessage("Opening native folder dialog");
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: request.title || "Select Folder",
+        defaultPath: request.defaultPath,
+        buttonLabel: request.buttonLabel || "Select Folder",
+        properties: ["openDirectory", "createDirectory"],
+      });
+
+      return { canceled, filePaths };
     }
   );
 }
