@@ -27,3 +27,8 @@
 .base-node .react-flow__resize-control.handle.right {
   cursor: ew-resize;
 }
+
+/* Bottom-right resize handle (used by PreviewNode and result-toggle nodes) */
+.node-resize-handle .react-flow__resize-control.nodrag.bottom.right.handle {
+  cursor: nwse-resize;
+}

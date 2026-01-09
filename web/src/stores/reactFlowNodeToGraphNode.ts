@@ -16,6 +16,15 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     bypassed: node.data.bypassed || false
   };
 
+  // Persist explicit vertical resize (NodeResizeControl writes to node.style.height)
+  if (
+    node.style &&
+    "height" in node.style &&
+    typeof (node.style as any).height === "number"
+  ) {
+    ui_properties.height = (node.style as any).height;
+  }
+
   if (node.type === "nodetool.group.Loop") {
     ui_properties.selectable = false;
     ui_properties.height = node.measured?.height;

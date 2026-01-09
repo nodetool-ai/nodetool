@@ -414,7 +414,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         }
 
         return (
-          <div style={{ width: "100%", height: "100%" }}>
+          <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
             <Model3DViewer url={url} compact={true} />
           </div>
         );

@@ -68,7 +68,12 @@ const NodeContent: React.FC<NodeContentProps> = ({
     return (
       <Box
         sx={{
-          position: "relative"
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column"
         }}
       >
         {/* Keep inputs and outputs in DOM for handles and to set size, but hide most content visually */}
@@ -108,6 +113,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
             zIndex: 1,
             width: "100%",
             height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
             overflow: "auto",
             // Keep handles clickable even when overlay is on top
             "& .react-flow__handle": {
@@ -133,7 +141,16 @@ const NodeContent: React.FC<NodeContentProps> = ({
     !isConstantNode;
 
   return (
-    <Box sx={{ position: "relative" }}>
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column"
+      }}
+    >
       <NodeInputs
         id={id}
         nodeMetadata={nodeMetadata}
