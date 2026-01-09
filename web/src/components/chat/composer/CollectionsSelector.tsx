@@ -17,6 +17,10 @@ import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
+// Popover dimensions
+const POPOVER_WIDTH = 320;
+const POPOVER_HEIGHT = 380;
+
 const styles = (theme: Theme) => css({
   ".collections-list": {
     flex: 1,
@@ -113,10 +117,9 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
       return;
     }
     const rect = buttonRef.current.getBoundingClientRect();
-    const height = 380;
     const spaceBelow = window.innerHeight - rect.bottom;
 
-    if (spaceBelow < height && rect.top > height) {
+    if (spaceBelow < POPOVER_HEIGHT && rect.top > POPOVER_HEIGHT) {
       setPositionConfig({
         anchorOrigin: { vertical: "top", horizontal: "left" },
         transformOrigin: { vertical: "bottom", horizontal: "left" }
@@ -199,8 +202,8 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
           paper: {
             elevation: 24,
             style: {
-              width: "320px",
-              height: "380px",
+              width: `${POPOVER_WIDTH}px`,
+              height: `${POPOVER_HEIGHT}px`,
               maxHeight: "90vh",
               maxWidth: "100vw",
               borderRadius: theme.vars.rounded.dialog,
