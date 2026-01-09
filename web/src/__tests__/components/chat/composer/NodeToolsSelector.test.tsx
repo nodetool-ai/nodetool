@@ -333,7 +333,7 @@ const mockMetadataStore = {
 
       await waitFor(() => {
         expect(screen.getByRole("dialog")).toBeInTheDocument();
-        expect(screen.getByText("Node Tools")).toBeInTheDocument();
+        expect(screen.getByTestId("search-input")).toBeInTheDocument();
       });
     });
 
@@ -447,7 +447,7 @@ const mockMetadataStore = {
   });
 
   describe("Accessibility", () => {
-    it("has correct title for popover", async () => {
+    it("has search input in popover", async () => {
       const user = userEvent.setup();
       renderComponent(baseProps);
 
@@ -455,7 +455,7 @@ const mockMetadataStore = {
       await user.click(button);
 
       await waitFor(() => {
-        expect(screen.getByText("Node Tools")).toBeInTheDocument();
+        expect(screen.getByTestId("search-input")).toBeInTheDocument();
       });
     });
   });

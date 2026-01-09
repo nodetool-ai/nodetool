@@ -73,6 +73,11 @@ function hasMediaContent(content: Message['content']): boolean {
 }
 
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
+  // Return null for system and tool messages as they should not be displayed
+  if (message.role === 'system' || message.role === 'tool') {
+    return null;
+  }
+
   const isUser = message.role === 'user';
   const { mode } = useTheme();
   const contentItems = getContentItems(message.content);
