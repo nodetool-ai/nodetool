@@ -116,19 +116,19 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
   const [hoveredToolName, setHoveredToolName] = useState<string | null>(null);
 
   const filteredSortedTools = useMemo(() => {
-    if (!workflowTools) {return [] as typeof workflowTools;}
+    if (!workflowTools) { return [] as typeof workflowTools; }
     const q = searchTerm.trim().toLowerCase();
     const filtered = q
       ? workflowTools.filter((w) => {
-          const name = (w.name ?? "").toLowerCase();
-          const desc = (w.description ?? "").toLowerCase();
-          return name.includes(q) || desc.includes(q);
-        })
+        const name = (w.name ?? "").toLowerCase();
+        const desc = (w.description ?? "").toLowerCase();
+        return name.includes(q) || desc.includes(q);
+      })
       : workflowTools;
     return [...filtered].sort((a, b) => {
       const aSelected = selectedTools.includes(`workflow_${a.tool_name}`);
       const bSelected = selectedTools.includes(`workflow_${b.tool_name}`);
-      if (aSelected !== bSelected) {return aSelected ? -1 : 1;}
+      if (aSelected !== bSelected) { return aSelected ? -1 : 1; }
       return (a.name ?? "").localeCompare(b.name ?? "");
     });
   }, [workflowTools, searchTerm, selectedTools]);
@@ -210,9 +210,8 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
       >
         <Button
           ref={buttonRef}
-          className={`workflow-tools-button ${
-            selectedTools.length > 0 ? "active" : ""
-          }`}
+          className={`workflow-tools-button ${selectedTools.length > 0 ? "active" : ""
+            }`}
           onClick={handleClick}
           size="small"
           startIcon={<AccountTree fontSize="small" />}
@@ -280,18 +279,6 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             background: theme.vars.palette.background.paper
           }}
         >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: theme.vars.palette.text.secondary,
-              fontWeight: 600,
-              fontSize: "0.75rem",
-              textTransform: "uppercase",
-              letterSpacing: 0.5
-            }}
-          >
-            Workflows
-          </Typography>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <SearchInput
               onSearchChange={handleSearchChange}

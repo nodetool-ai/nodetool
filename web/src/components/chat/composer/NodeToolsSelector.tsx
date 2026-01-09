@@ -127,12 +127,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     const nodeTypeToNode = new Map<string, NodeMetadata>();
     // Selected first to preserve order preference when rendered
     selectedNodeMetadatas.forEach((node) => {
-      if (!nodeTypeToNode.has(node.node_type))
-        {nodeTypeToNode.set(node.node_type, node);}
+      if (!nodeTypeToNode.has(node.node_type)) { nodeTypeToNode.set(node.node_type, node); }
     });
     searchResults.forEach((node) => {
-      if (!nodeTypeToNode.has(node.node_type))
-        {nodeTypeToNode.set(node.node_type, node);}
+      if (!nodeTypeToNode.has(node.node_type)) { nodeTypeToNode.set(node.node_type, node); }
     });
     return Array.from(nodeTypeToNode.values());
   }, [selectedNodeMetadatas, searchResults]);
@@ -302,18 +300,6 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
             background: theme.vars.palette.background.paper
           }}
         >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: theme.vars.palette.text.secondary,
-              fontWeight: 600,
-              fontSize: "0.75rem",
-              textTransform: "uppercase",
-              letterSpacing: 0.5
-            }}
-          >
-            Node Tools
-          </Typography>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <SearchInput
               onSearchChange={handleSearchChange}
