@@ -101,8 +101,8 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       size_bytes: new Blob([JSON.stringify(v.graph)]).size
     }));
     return mapped.sort((a, b) => {
-      if (a.is_pinned && !b.is_pinned) return -1;
-      if (!a.is_pinned && b.is_pinned) return 1;
+      if (a.is_pinned && !b.is_pinned) {return -1;}
+      if (!a.is_pinned && b.is_pinned) {return 1;}
       return b.version - a.version;
     });
   }, [apiVersions, filterType]);
