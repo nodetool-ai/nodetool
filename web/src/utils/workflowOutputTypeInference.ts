@@ -1,4 +1,4 @@
-import { Graph, Node, Edge, OutputSlot, TypeMetadata } from "../stores/ApiTypes";
+import { Graph, Node, Edge, OutputSlot } from "../stores/ApiTypes";
 import useMetadataStore from "../stores/MetadataStore";
 
 export interface InferredOutputType {

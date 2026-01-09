@@ -43,7 +43,7 @@ export function useDynamicSvgImport(iconName: string) {
         if (icon) {
           importedIconRef.current = icon;
         }
-      } catch (err) {
+      } catch (_) {
         // Fallback to default icon on error
         console.warn(`Failed to load icon ${iconName}, using fallback`);
       } finally {
