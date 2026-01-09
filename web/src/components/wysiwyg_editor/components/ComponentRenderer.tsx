@@ -126,7 +126,13 @@ const NodeWrapper: React.FC<NodeWrapperProps> = ({
   };
 
   return (
-    <Box sx={boxStyles} onClick={handleClick} onDoubleClick={handleDoubleClick} data-wysiwyg-node={nodeId}>
+    <Box
+      sx={boxStyles}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      data-wysiwyg-node={nodeId}
+      data-wysiwyg-type={nodeType}
+    >
       {children}
     </Box>
   );
