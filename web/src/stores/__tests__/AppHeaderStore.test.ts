@@ -3,10 +3,9 @@ import { useAppHeaderStore } from "../AppHeaderStore";
 
 describe("AppHeaderStore", () => {
   beforeEach(() => {
-    const { setHelpOpen, setShortcutsDialogOpen } = useAppHeaderStore.getState();
+    const { setHelpOpen } = useAppHeaderStore.getState();
     act(() => {
       setHelpOpen(false);
-      setShortcutsDialogOpen(false);
     });
   });
 
@@ -23,11 +22,6 @@ describe("AppHeaderStore", () => {
     it("has helpIndex 0 initially", () => {
       const state = useAppHeaderStore.getState();
       expect(state.helpIndex).toBe(0);
-    });
-
-    it("has shortcutsDialogOpen false initially", () => {
-      const state = useAppHeaderStore.getState();
-      expect(state.shortcutsDialogOpen).toBe(false);
     });
   });
 
@@ -63,27 +57,6 @@ describe("AppHeaderStore", () => {
     });
   });
 
-  describe("setShortcutsDialogOpen", () => {
-    it("sets shortcutsDialogOpen to true", () => {
-      const { setShortcutsDialogOpen } = useAppHeaderStore.getState();
-      act(() => {
-        setShortcutsDialogOpen(true);
-      });
-
-      expect(useAppHeaderStore.getState().shortcutsDialogOpen).toBe(true);
-    });
-
-    it("sets shortcutsDialogOpen to false", () => {
-      const { setShortcutsDialogOpen } = useAppHeaderStore.getState();
-      act(() => {
-        setShortcutsDialogOpen(true);
-        setShortcutsDialogOpen(false);
-      });
-
-      expect(useAppHeaderStore.getState().shortcutsDialogOpen).toBe(false);
-    });
-  });
-
   describe("handleOpenHelp", () => {
     it("opens help dialog", () => {
       const { handleOpenHelp } = useAppHeaderStore.getState();
@@ -107,27 +80,15 @@ describe("AppHeaderStore", () => {
     });
   });
 
-  describe("handleOpenShortcutsDialog", () => {
-    it("opens shortcuts dialog", () => {
-      const { handleOpenShortcutsDialog } = useAppHeaderStore.getState();
+  describe("handleOpenHelpAtShortcuts", () => {
+    it("opens help dialog at shortcuts tab", () => {
+      const { handleOpenHelpAtShortcuts } = useAppHeaderStore.getState();
       act(() => {
-        handleOpenShortcutsDialog();
+        handleOpenHelpAtShortcuts();
       });
 
-      expect(useAppHeaderStore.getState().shortcutsDialogOpen).toBe(true);
-    });
-  });
-
-  describe("handleCloseShortcutsDialog", () => {
-    it("closes shortcuts dialog", () => {
-      const { handleOpenShortcutsDialog, handleCloseShortcutsDialog } =
-        useAppHeaderStore.getState();
-      act(() => {
-        handleOpenShortcutsDialog();
-        handleCloseShortcutsDialog();
-      });
-
-      expect(useAppHeaderStore.getState().shortcutsDialogOpen).toBe(false);
+      expect(useAppHeaderStore.getState().helpOpen).toBe(true);
+      expect(useAppHeaderStore.getState().helpIndex).toBe(0);
     });
   });
 });

@@ -6,14 +6,14 @@ import {
 import { useAppHeaderStore } from "../stores/AppHeaderStore";
 
 export const useGlobalShortcuts = () => {
-  const { handleOpenShortcutsDialog } = useAppHeaderStore();
+  const { handleOpenHelpAtShortcuts } = useAppHeaderStore();
 
   useEffect(() => {
     const shortcutId = "showShortcutsDialog";
 
     registerComboCallback(shortcutId, {
       callback: () => {
-        handleOpenShortcutsDialog();
+        handleOpenHelpAtShortcuts();
       },
       preventDefault: true,
       active: true
@@ -22,11 +22,11 @@ export const useGlobalShortcuts = () => {
     return () => {
       unregisterComboCallback(shortcutId);
     };
-  }, [handleOpenShortcutsDialog]);
+  }, [handleOpenHelpAtShortcuts]);
 };
 
 export const useKeyboardShortcutListener = () => {
-  const { handleOpenShortcutsDialog } = useAppHeaderStore();
+  const { handleOpenHelpAtShortcuts } = useAppHeaderStore();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -36,7 +36,7 @@ export const useKeyboardShortcutListener = () => {
         !target.matches("input, textarea, [contenteditable]")
       ) {
         event.preventDefault();
-        handleOpenShortcutsDialog();
+        handleOpenHelpAtShortcuts();
       }
     };
 
@@ -45,5 +45,5 @@ export const useKeyboardShortcutListener = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [handleOpenShortcutsDialog]);
+  }, [handleOpenHelpAtShortcuts]);
 };

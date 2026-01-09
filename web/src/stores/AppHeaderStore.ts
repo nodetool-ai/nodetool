@@ -3,29 +3,23 @@ import { create } from "zustand";
 interface AppHeaderState {
   helpOpen: boolean;
   helpIndex: number;
-  shortcutsDialogOpen: boolean;
 
   setHelpOpen: (open: boolean) => void;
   setHelpIndex: (index: number) => void;
-  setShortcutsDialogOpen: (open: boolean) => void;
 
   handleOpenHelp: () => void;
   handleCloseHelp: () => void;
-  handleOpenShortcutsDialog: () => void;
-  handleCloseShortcutsDialog: () => void;
+  handleOpenHelpAtShortcuts: () => void;
 }
 
-export const useAppHeaderStore = create<AppHeaderState>((set, get) => ({
+export const useAppHeaderStore = create<AppHeaderState>((set) => ({
   helpIndex: 0,
   helpOpen: false,
-  shortcutsDialogOpen: false,
 
   setHelpOpen: (open) => set({ helpOpen: open }),
   setHelpIndex: (index) => set({ helpIndex: index }),
-  setShortcutsDialogOpen: (open) => set({ shortcutsDialogOpen: open }),
 
-  handleOpenHelp: () => set({ helpOpen: true }),
+  handleOpenHelp: () => set({ helpOpen: true, helpIndex: 0 }),
   handleCloseHelp: () => set({ helpOpen: false }),
-  handleOpenShortcutsDialog: () => set({ shortcutsDialogOpen: true }),
-  handleCloseShortcutsDialog: () => set({ shortcutsDialogOpen: false })
+  handleOpenHelpAtShortcuts: () => set({ helpOpen: true, helpIndex: 0 })
 }));

@@ -2,13 +2,11 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useState } from "react";
+import React, { memo } from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
-import KeyboardIcon from "@mui/icons-material/Keyboard";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import Help from "../content/Help/Help";
-import KeyboardShortcutsDialog from "../dialogs/KeyboardShortcutsDialog";
 import SettingsMenu from "../menus/SettingsMenu";
 import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
@@ -40,11 +38,6 @@ const styles = (theme: Theme) =>
 const RightSideButtons: React.FC = () => {
   const theme = useTheme();
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
-  const {
-    shortcutsDialogOpen,
-    handleCloseShortcutsDialog,
-    handleOpenShortcutsDialog
-  } = useAppHeaderStore();
 
   return (
     <Box className="buttons-right" css={styles(theme)}>
@@ -56,15 +49,14 @@ const RightSideButtons: React.FC = () => {
       )}
       <NotificationButton />
       <Help open={helpOpen} handleClose={handleCloseHelp} />
-      <KeyboardShortcutsDialog
-        open={shortcutsDialogOpen}
-        onClose={handleCloseShortcutsDialog}
-      />
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
         title={
           <div style={{ textAlign: "center" }}>
             <Typography variant="inherit">Help</Typography>
+            <Typography variant="caption" display="block">
+              Press ?
+            </Typography>
           </div>
         }
       >
@@ -77,28 +69,6 @@ const RightSideButtons: React.FC = () => {
           tabIndex={-1}
         >
           <QuestionMarkIcon />
-        </Button>
-      </Tooltip>
-      <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        title={
-          <div style={{ textAlign: "center" }}>
-            <Typography variant="inherit">Keyboard Shortcuts</Typography>
-            <Typography variant="caption" display="block">
-              Press ?
-            </Typography>
-          </div>
-        }
-      >
-        <Button
-          className="command-icon"
-          onClick={(e) => {
-            e.preventDefault();
-            handleOpenShortcutsDialog();
-          }}
-          tabIndex={-1}
-        >
-          <KeyboardIcon />
         </Button>
       </Tooltip>
       <SettingsMenu />
