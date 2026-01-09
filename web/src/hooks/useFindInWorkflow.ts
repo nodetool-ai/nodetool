@@ -27,64 +27,81 @@ export const useFindInWorkflow = () => {
   const metadataStore = useMetadataStore();
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getNodeDisplayName = useCallback((node: Node<NodeData>): string => {
-    const title = node.data?.properties?.name;
-    if (title && typeof title === "string" && title.trim()) {
-      return title;
-    }
-    const nodeType = node.type ?? "";
-    const metadata = metadataStore.getMetadata(nodeType);
-    if (metadata?.title) {
-      return metadata.title;
-    }
-    return nodeType.split(".").pop() || node.id;
-  }, [metadataStore]);
-
-  const searchNodes = useCallback((term: string, nodeList: Node<NodeData>[]): Node<NodeData>[] => {
-    if (!term.trim()) {
-      return [];
-    }
-
-    const normalizedTerm = term.toLowerCase().trim();
-    const results: Node<NodeData>[] = [];
-
-    for (const node of nodeList) {
-      const displayName = getNodeDisplayName(node).toLowerCase();
-      const nodeType = (node.type ?? "").toLowerCase();
-      const nodeId = node.id.toLowerCase();
-
-      if (
-        displayName.includes(normalizedTerm) ||
-        nodeType.includes(normalizedTerm) ||
-        nodeId.includes(normalizedTerm)
-      ) {
-        results.push(node);
+  const getNodeDisplayName = useCallback(
+    (node: Node<NodeData>): string => {
+      const title = node.data?.properties?.name;
+      if (title && typeof title === "string" && title.trim()) {
+        return title;
       }
-    }
+      const nodeType = node.type ?? "";
+      const metadata = metadataStore.getMetadata(nodeType);
+      if (metadata?.title) {
+        return metadata.title;
+      }
+      return nodeType.split(".").pop() || node.id;
+    },
+    [metadataStore]
+  );
 
-    return results;
-  }, [getNodeDisplayName]);
+  const searchNodes = useCallback(
+    (term: string, nodeList: Node<NodeData>[]): Node<NodeData>[] => {
+      if (!term.trim()) {
+        return [];
+      }
 
-  const performSearch = useCallback((term: string) => {
-    setSearchTerm(term);
-    
-    if (!term.trim()) {
-      setResults([]);
-      return;
-    }
+      const normalizedTerm = term.toLowerCase().trim();
+      const results: Node<NodeData>[] = [];
 
-    const matchingNodes = searchNodes(term, nodes);
-    setResults(matchingNodes.map((node, index) => ({ node, matchIndex: index })));
-  }, [nodes, searchNodes, setSearchTerm, setResults]);
+      for (const node of nodeList) {
+        const displayName = getNodeDisplayName(node).toLowerCase();
+        const nodeType = (node.type ?? "").toLowerCase();
+        const nodeId = node.id.toLowerCase();
 
-  const debouncedSearch = useCallback((term: string) => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    searchTimeoutRef.current = setTimeout(() => {
-      performSearch(term);
-    }, 150);
-  }, [performSearch]);
+        if (
+          displayName.includes(normalizedTerm) ||
+          nodeType.includes(normalizedTerm) ||
+          nodeId.includes(normalizedTerm)
+        ) {
+          results.push(node);
+        }
+      }
+
+      return results;
+    },
+    [getNodeDisplayName]
+  );
+
+  const performSearch = useCallback(
+    (term: string) => {
+      if (!term.trim()) {
+        setResults([]);
+        return;
+      }
+
+      const matchingNodes = searchNodes(term, nodes);
+      setResults(
+        matchingNodes.map((node, index) => ({ node, matchIndex: index }))
+      );
+    },
+    [nodes, searchNodes, setResults]
+  );
+
+  const debouncedSearch = useCallback(
+    (term: string) => {
+      // Update search term immediately for responsive typing
+      setSearchTerm(term);
+
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Debounce the actual search
+      searchTimeoutRef.current = setTimeout(() => {
+        performSearch(term);
+      }, 150);
+    },
+    [performSearch, setSearchTerm]
+  );
 
   useEffect(() => {
     return () => {
@@ -95,7 +112,11 @@ export const useFindInWorkflow = () => {
   }, []);
 
   const goToSelected = useCallback(() => {
-    if (results.length === 0 || selectedIndex < 0 || selectedIndex >= results.length) {
+    if (
+      results.length === 0 ||
+      selectedIndex < 0 ||
+      selectedIndex >= results.length
+    ) {
       return;
     }
 
@@ -120,11 +141,14 @@ export const useFindInWorkflow = () => {
     });
   }, [results, selectedIndex, setCenter, fitView]);
 
-  const selectNode = useCallback((index: number) => {
-    if (index >= 0 && index < results.length) {
-      setSelectedIndex(index);
-    }
-  }, [results.length, setSelectedIndex]);
+  const selectNode = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < results.length) {
+        setSelectedIndex(index);
+      }
+    },
+    [results.length, setSelectedIndex]
+  );
 
   return {
     isOpen,

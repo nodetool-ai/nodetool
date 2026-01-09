@@ -12,18 +12,18 @@ import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
 const styles = (theme: Theme) =>
   css({
-    "& .find-dialog-container": {
+    "&.find-dialog-container": {
       position: "fixed",
       top: "60px",
       right: "20px",
-      width: "320px",
+      width: "300px",
       maxHeight: "400px",
       zIndex: 20000,
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: "12px",
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
       border: `1px solid ${theme.vars.palette.divider}`,
       animation: "fadeIn 0.15s ease-out forwards",
       overflow: "hidden"
