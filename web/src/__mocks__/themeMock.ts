@@ -73,9 +73,6 @@ const mockTheme = createTheme({
       default: "#202020",
       paper: "#232323"
     },
-    glass: {
-      blur: "10px"
-    },
     c_link: "#77b4e6",
     c_link_visited: "#5a9ace",
     // Add color channels for MUI v7 Button component
@@ -140,6 +137,7 @@ const mockTheme = createTheme({
       warningOutlinedBorder: "rgba(255, 152, 0, 0.5)",
       warningTextColor: "#ff9800"
     },
+    // Add glass effect for ResultOverlay component
     // Add glass effect for ResultOverlay component
     glass: {
       blur: "blur(12px)"
