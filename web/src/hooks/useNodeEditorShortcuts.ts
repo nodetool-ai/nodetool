@@ -20,6 +20,7 @@ import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
+import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
@@ -214,6 +215,17 @@ export const useNodeEditorShortcuts = (
     if (onShowShortcuts) {onShowShortcuts();}
   }, [onShowShortcuts]);
 
+  const { openFind } = useFindInWorkflowStore(
+    (state) => ({ openFind: state.openFind }),
+    shallow
+  );
+
+  const handleOpenFindInWorkflow = useCallback(() => {
+    if (active) {
+      openFind();
+    }
+  }, [active, openFind]);
+
   const handleMenuEvent = useCallback(
     (data: any) => {
       if (!active) {return;}
@@ -395,7 +407,20 @@ export const useNodeEditorShortcuts = (
       moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
       moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
-      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 }
+      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 },
+      selectConnectedAll: {
+        callback: handleSelectConnectedAll,
+        active: selectedNodes.length > 0
+      },
+      selectConnectedInputs: {
+        callback: handleSelectConnectedInputs,
+        active: selectedNodes.length > 0
+      },
+      selectConnectedOutputs: {
+        callback: handleSelectConnectedOutputs,
+        active: selectedNodes.length > 0
+      },
+      findInWorkflow: { callback: handleOpenFindInWorkflow }
     };
 
     // Switch-to-tab (1-9)
