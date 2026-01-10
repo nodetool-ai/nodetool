@@ -336,3 +336,24 @@ When documenting new insights:
 ## Last Updated
 
 2026-01-10 - Initial memory system creation with pre-existing patterns documented
+
+---
+
+### Mobile Package Dependencies Issue (2026-01-10)
+
+**Insight**: Mobile package requires `npm install` before type checking can succeed.
+
+**Problem**: The mobile package (React Native/Expo) has its own `package.json` with separate dependencies from the web and electron packages. When running `make typecheck`, the mobile package fails because `node_modules` is not installed.
+
+**Solution**: Always run `npm install` in the mobile directory before type checking:
+```bash
+cd mobile && npm install
+```
+
+**Impact**: TypeScript cannot find module declarations for React, React Native, and other dependencies without `node_modules` installed. This affects both local development and CI pipelines.
+
+**Files**: `mobile/package.json`, `mobile/tsconfig.json`
+
+**Recommendation**: Consider adding `npm install` as a pre-step in the Makefile typecheck-mobile command or CI pipeline to prevent failures.
+
+**Date**: 2026-01-10
