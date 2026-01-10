@@ -99,6 +99,7 @@ const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
+import "./lib/tools/builtin/addNodeComment";
 import "./lib/tools/builtin/setSelectionMode";
 import "./lib/tools/builtin/setAutoLayout";
 import "./lib/tools/builtin/setNodeSyncMode";
