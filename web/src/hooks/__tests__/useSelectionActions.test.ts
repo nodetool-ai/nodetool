@@ -3,6 +3,7 @@ import { useSelectionActions } from "../useSelectionActions";
 
 const mockSetNodes = jest.fn();
 const mockSetEdges = jest.fn();
+const mockSurroundWithGroup = jest.fn();
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({
@@ -13,7 +14,15 @@ jest.mock("@xyflow/react", () => ({
 }));
 
 jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn(),
+  useTemporalNodes: jest.fn(() => ({
+    pause: jest.fn(),
+    resume: jest.fn()
+  }))
+}));
+
+jest.mock("../nodes/useSurroundWithGroup", () => ({
+  useSurroundWithGroup: jest.fn(() => mockSurroundWithGroup)
 }));
 
 import { useNodes } from "../../contexts/NodeContext";

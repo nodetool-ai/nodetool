@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
+import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
 interface SelectionActionsReturn {
   alignLeft: () => void;
@@ -24,6 +25,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
   const deleteNode = useNodes((state) => state.deleteNode);
   const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
   const reactFlow = useReactFlow();
+  const surroundWithGroup = useSurroundWithGroup();
 
   const alignLeft = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -155,17 +157,19 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length < 3) {return;}
 
-    const sortedNodes = [...selectedNodes].sort(
+    // Sort by X position to find leftmost and rightmost, but maintain original order
+    const sortedByX = [...selectedNodes].sort(
       (a, b) => a.position.x - b.position.x
     );
 
-    const leftMostX = sortedNodes[0]!.position.x;
-    const rightMostNode = sortedNodes[sortedNodes.length - 1]!;
+    const leftMostNode = sortedByX[0]!;
+    const rightMostNode = sortedByX[sortedByX.length - 1]!;
+    const leftMostX = leftMostNode.position.x;
     const rightMostX = rightMostNode.position.x;
     const rightMostWidth = rightMostNode.measured?.width ?? NODE_WIDTH;
 
     // Calculate total width of all nodes
-    const totalWidth = sortedNodes.reduce((sum, node) => {
+    const totalWidth = selectedNodes.reduce((sum, node) => {
       return sum + (node.measured?.width ?? NODE_WIDTH);
     }, 0);
 
@@ -175,21 +179,26 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     
     // Use minimum spacing of 50px if calculated spacing is too small
     const MIN_SPACING = 50;
-    let spacing = availableSpace / (sortedNodes.length - 1);
+    let spacing = availableSpace / (selectedNodes.length - 1);
     
     if (spacing < MIN_SPACING) {
       spacing = MIN_SPACING;
     }
 
+    // Create position map maintaining original order
+    const positionMap = new Map<string, number>();
     let currentX = leftMostX;
+    
+    selectedNodes.forEach((node) => {
+      positionMap.set(node.id, currentX);
+      const nodeWidth = node.measured?.width ?? NODE_WIDTH;
+      currentX += nodeWidth + spacing;
+    });
 
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        const sortedIndex = sortedNodes.findIndex(n => n.id === node.id);
-        if (sortedIndex !== -1) {
-          const nodeWidth = node.measured?.width ?? NODE_WIDTH;
-          const newX = currentX;
-          currentX += nodeWidth + spacing;
+        const newX = positionMap.get(node.id);
+        if (newX !== undefined) {
           return { ...node, position: { ...node.position, x: newX } };
         }
         return node;
@@ -201,17 +210,19 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length < 3) {return;}
 
-    const sortedNodes = [...selectedNodes].sort(
+    // Sort by Y position to find topmost and bottommost, but maintain original order
+    const sortedByY = [...selectedNodes].sort(
       (a, b) => a.position.y - b.position.y
     );
 
-    const topMostY = sortedNodes[0]!.position.y;
-    const bottomMostNode = sortedNodes[sortedNodes.length - 1]!;
+    const topMostNode = sortedByY[0]!;
+    const bottomMostNode = sortedByY[sortedByY.length - 1]!;
+    const topMostY = topMostNode.position.y;
     const bottomMostY = bottomMostNode.position.y;
     const bottomMostHeight = bottomMostNode.measured?.height ?? 0;
 
     // Calculate total height of all nodes
-    const totalHeight = sortedNodes.reduce((sum, node) => {
+    const totalHeight = selectedNodes.reduce((sum, node) => {
       return sum + (node.measured?.height ?? 0);
     }, 0);
 
@@ -221,21 +232,26 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     
     // Use minimum spacing of 50px if calculated spacing is too small
     const MIN_SPACING = 50;
-    let spacing = availableSpace / (sortedNodes.length - 1);
+    let spacing = availableSpace / (selectedNodes.length - 1);
     
     if (spacing < MIN_SPACING) {
       spacing = MIN_SPACING;
     }
 
+    // Create position map maintaining original order
+    const positionMap = new Map<string, number>();
     let currentY = topMostY;
+    
+    selectedNodes.forEach((node) => {
+      positionMap.set(node.id, currentY);
+      const nodeHeight = node.measured?.height ?? 0;
+      currentY += nodeHeight + spacing;
+    });
 
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        const sortedIndex = sortedNodes.findIndex(n => n.id === node.id);
-        if (sortedIndex !== -1) {
-          const nodeHeight = node.measured?.height ?? 0;
-          const newY = currentY;
-          currentY += nodeHeight + spacing;
+        const newY = positionMap.get(node.id);
+        if (newY !== undefined) {
           return { ...node, position: { ...node.position, y: newY } };
         }
         return node;
@@ -306,14 +322,8 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length < 2) {return;}
 
-    // TODO: Implement proper Group node creation using nodetool.workflows.base_node.Group
-    // Current implementation creates ReactFlow groups which can be confusing
-    // For now, we disable this functionality
-    console.warn("Group functionality is currently disabled pending proper implementation");
-    
-    // The proper implementation would use useSurroundWithGroup hook
-    // or createNode with GROUP_NODE_METADATA similar to useSurroundWithGroup
-  }, [getSelectedNodes]);
+    surroundWithGroup({ selectedNodes });
+  }, [getSelectedNodes, surroundWithGroup]);
 
   const bypassSelected = useCallback(() => {
     toggleBypassSelected();
