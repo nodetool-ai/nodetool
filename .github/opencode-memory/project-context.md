@@ -155,4 +155,7 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
-_No entries yet - this memory system is new as of 2026-01-10_
+**2026-01-10 - Code Quality Improvements**:
+- Replaced direct `console.*` statements with `loglevel` library across 6 files
+- Standardized error handling with proper type narrowing for caught errors
+- Files: workflowUpdates.ts, GlobalChatStore.ts, WorkflowRunner.ts, CollectionStore.ts, getAssetThumbUrl.ts, NodeMenuStore.ts
