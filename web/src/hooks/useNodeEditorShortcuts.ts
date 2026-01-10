@@ -4,6 +4,7 @@ import {
   unregisterComboCallback
 } from "../stores/KeyPressedStore";
 import { NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
+import { useShortcutSettingsStore } from "../stores/ShortcutSettingsStore";
 import { getIsElectronDetails } from "../utils/browser";
 import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes } from "../contexts/NodeContext";
@@ -487,6 +488,7 @@ export const useNodeEditorShortcuts = (
   // useEffect for shortcut registration
   useEffect(() => {
     const registered: string[] = [];
+    const customShortcuts = useShortcutSettingsStore.getState().customShortcuts;
 
     NODE_EDITOR_SHORTCUTS.forEach((sc) => {
       if (!sc.registerCombo) {
@@ -501,7 +503,20 @@ export const useNodeEditorShortcuts = (
         return;
       }
 
-      const combos = [sc.keyCombo, ...(sc.altKeyCombos ?? [])];
+      // Get the effective combo (custom or default)
+      let effectiveCombo = sc.keyCombo;
+
+      if (sc.slug in customShortcuts) {
+        const custom = customShortcuts[sc.slug];
+        effectiveCombo = custom.keyCombo;
+        if (custom.keyComboMac) {
+          effectiveCombo = custom.keyComboMac;
+        }
+      } else if (isMac() && sc.keyComboMac) {
+        effectiveCombo = sc.keyComboMac;
+      }
+
+      const combos = [effectiveCombo, ...(sc.altKeyCombos ?? [])];
 
       combos.forEach((cmb) => {
         const normalized = mapComboForOS(cmb)

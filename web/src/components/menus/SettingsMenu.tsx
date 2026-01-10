@@ -34,6 +34,7 @@ import SecretsMenu from "./SecretsMenu";
 import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
+import KeyboardShortcutsSettings from "../settings/KeyboardShortcutsSettings";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -274,6 +275,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       category: "General",
       items: [
         { id: "editor", label: "Editor" },
+        { id: "keyboard", label: "Keyboard Shortcuts" },
         { id: "autosave", label: "Autosave" },
         { id: "navigation", label: "Navigation" },
         { id: "grid", label: "Grid & Connections" },
@@ -473,6 +475,13 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           )}
                         </div>
                       </div>
+                    </div>
+
+                    <div className="settings-section">
+                      <Typography variant="h3" id="keyboard">
+                        Keyboard Shortcuts
+                      </Typography>
+                      <KeyboardShortcutsSettings />
                     </div>
 
                     <div className="settings-section">

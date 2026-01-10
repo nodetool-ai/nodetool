@@ -155,4 +155,30 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### [Custom Keyboard Shortcuts UI] (2026-01-10)
+
+**What**: Added a keyboard shortcuts customization UI that allows users to view, search, customize, and reset keyboard shortcuts. Users can remap any shortcut, with conflict detection and resolution.
+
+**Why**: Power users often prefer custom key bindings. This feature enhances productivity by allowing users to configure shortcuts to match their preferences or muscle memory from other applications.
+
+**Implementation**:
+- Created `ShortcutSettingsStore.ts` (Zustand store with persistence) for managing custom shortcuts
+- Created `KeyboardShortcutsSettings.tsx` (settings panel component with search, filter, and export/import)
+- Created `ShortcutRow.tsx` (editable shortcut row with key recording)
+- Created `ShortcutConflictDialog.tsx` (conflict resolution dialog)
+- Modified `useNodeEditorShortcuts.ts` to use custom shortcuts from store
+- Added new section to Settings menu under General > Keyboard Shortcuts
+
+**Files Changed**:
+- `web/src/stores/ShortcutSettingsStore.ts` - New store for custom shortcuts
+- `web/src/components/settings/KeyboardShortcutsSettings.tsx` - Main settings panel
+- `web/src/components/settings/ShortcutRow.tsx` - Individual shortcut editor
+- `web/src/components/settings/ShortcutConflictDialog.tsx` - Conflict resolution
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Updated to use custom shortcuts
+- `web/src/components/menus/SettingsMenu.tsx` - Added keyboard shortcuts section
+- `web/src/utils/shortcutUtils.ts` - Utility functions for shortcuts
+- `web/src/stores/__tests__/ShortcutSettingsStore.test.ts` - Tests
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

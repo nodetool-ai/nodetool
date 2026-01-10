@@ -107,6 +107,7 @@ Last updated: 2026-01-10
 - **Infinite Scroll**: Load content incrementally on scroll
 - **Context Menus**: Right-click menus for various elements (nodes, edges, pane, properties)
 - **Keyboard Shortcuts**: Configurable keyboard shortcuts system
+- **Custom Keyboard Shortcuts UI**: View, search, customize, and reset keyboard shortcuts via Settings panel
 - **Close Button**: Consistent close button component
 - **Delete Button**: Consistent delete button component
 
