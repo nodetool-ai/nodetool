@@ -19,6 +19,7 @@ Last updated: 2026-01-10
 - **Copy/Paste**: Copy and paste nodes within and across workflows
 - **Find in Workflow**: Search for nodes by name, type, or properties
 - **Node Placement**: Smart node placement with collision avoidance
+- **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search

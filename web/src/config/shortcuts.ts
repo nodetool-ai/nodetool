@@ -381,6 +381,79 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true,
     slug: "selectConnectedOutputs"
   },
+  // ---------- ALIGNMENT & DISTRIBUTION ---------------------------------------
+  {
+    title: "Align Left",
+    slug: "alignLeft",
+    keyCombo: ["Shift", "ArrowLeft"],
+    category: "editor",
+    description: "Align selected nodes to the left edge",
+    registerCombo: true
+  },
+  {
+    title: "Align Center",
+    slug: "alignCenter",
+    keyCombo: ["Shift", "H"],
+    category: "editor",
+    description: "Align selected nodes to their center",
+    registerCombo: true
+  },
+  {
+    title: "Align Right",
+    slug: "alignRight",
+    keyCombo: ["Shift", "ArrowRight"],
+    category: "editor",
+    description: "Align selected nodes to the right edge",
+    registerCombo: true
+  },
+  {
+    title: "Align Top",
+    slug: "alignTop",
+    keyCombo: ["Shift", "ArrowUp"],
+    category: "editor",
+    description: "Align selected nodes to the top edge",
+    registerCombo: true
+  },
+  {
+    title: "Align Middle",
+    slug: "alignMiddle",
+    keyCombo: ["Shift", "V"],
+    category: "editor",
+    description: "Align selected nodes to their vertical center",
+    registerCombo: true
+  },
+  {
+    title: "Align Bottom",
+    slug: "alignBottom",
+    keyCombo: ["Shift", "ArrowDown"],
+    category: "editor",
+    description: "Align selected nodes to the bottom edge",
+    registerCombo: true
+  },
+  {
+    title: "Distribute Horizontally",
+    slug: "distributeHorizontal",
+    keyCombo: ["Shift", "D"],
+    category: "editor",
+    description: "Distribute selected nodes evenly horizontally",
+    registerCombo: true
+  },
+  {
+    title: "Distribute Vertically",
+    slug: "distributeVertical",
+    keyCombo: ["Control", "Shift", "D"],
+    category: "editor",
+    description: "Distribute selected nodes evenly vertically",
+    registerCombo: true
+  },
+  {
+    title: "Delete Selected",
+    slug: "deleteSelected",
+    keyCombo: ["Control", "Delete"],
+    category: "editor",
+    description: "Delete all selected nodes",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {
