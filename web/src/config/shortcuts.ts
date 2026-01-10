@@ -441,6 +441,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   //   registerCombo: true
   // },
 
+  // ---------- VERSION HISTORY -------------------------------------------------
+  {
+    title: "Version History",
+    slug: "toggleVersionHistory",
+    keyCombo: ["Control", "Shift", "V"],
+    category: "panel",
+    description: "Show or hide Version History panel",
+    registerCombo: true
+  },
+
   // ---------- WORKFLOW ----------------------------------------------------
   {
     title: "Run Workflow",

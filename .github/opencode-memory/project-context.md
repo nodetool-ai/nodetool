@@ -155,4 +155,19 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Version History Keyboard Shortcut (2026-01-10)
+
+**What**: Added keyboard shortcut Ctrl+Shift+V to open the Version History panel in the right panel.
+
+**Why**: The Version History panel existed but was only accessible via the UI. Adding a keyboard shortcut improves accessibility and workflow efficiency for power users.
+
+**Implementation**: 
+- Added new shortcut definition in `web/src/config/shortcuts.ts` with slug `toggleVersionHistory`
+- Added handler callback `handleVersionHistoryToggle` in `web/src/hooks/useNodeEditorShortcuts.ts`
+- Connected to existing `useRightPanelStore.handleViewChange("versions")` API
+
+**Files**:
+- `web/src/config/shortcuts.ts` - Added shortcut definition
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handler and dependency
+
 _No entries yet - this memory system is new as of 2026-01-10_
