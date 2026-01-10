@@ -336,3 +336,38 @@ When documenting new insights:
 ## Last Updated
 
 2026-01-10 - Initial memory system creation with pre-existing patterns documented
+
+---
+
+### Keyboard Shortcuts Dialog Feature (2026-01-10)
+
+**What**: Added a searchable, filterable Keyboard Shortcuts Reference Dialog to NodeTool's UI.
+
+**Why**: Users needed a quick way to reference all available keyboard shortcuts without opening the full help dialog with the visual keyboard.
+
+**Implementation**:
+- Created `KeyboardShortcutsDialog` component at `web/src/components/ui/KeyboardShortcutsDialog.tsx`
+- Dialog includes:
+  - Search functionality to filter shortcuts by name, description, or key
+  - Category filter tabs (All, Editor, Workflow, Panels, Assets)
+  - Two views: List View (searchable/filterable) and By Category (quick reference)
+  - Keyboard shortcut display with OS-specific key labels
+- Added `keyboardShortcutsOpen` state to `AppHeaderStore`
+- Integrated dialog trigger button with keyboard icon in `RightSideButtons`
+- Registered global keyboard shortcut (Ctrl+/ or Meta+/) to open dialog via `KeyPressedStore`
+- Added comprehensive tests in `KeyboardShortcutsDialog.test.tsx`
+
+**Files**:
+- `web/src/components/ui/KeyboardShortcutsDialog.tsx` - Main dialog component
+- `web/src/components/ui/__tests__/KeyboardShortcutsDialog.test.tsx` - Tests
+- `web/src/stores/AppHeaderStore.ts` - Added keyboard shortcuts dialog state
+- `web/src/stores/KeyPressedStore.ts` - Added global keyboard shortcut registration
+- `web/src/components/panels/RightSideButtons.tsx` - Added dialog integration
+
+**Key Technical Decisions**:
+- Used MUI Dialog pattern consistent with existing Help dialog
+- Followed existing Typography variant patterns (caption, body1, body2)
+- Reused existing `NODE_EDITOR_SHORTCUTS` and `SHORTCUT_CATEGORIES` from shortcuts config
+- Global shortcut registered at module level in KeyPressedStore for app-wide availability
+
+**Date**: 2026-01-10
