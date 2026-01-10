@@ -16,6 +16,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
 import { useRightPanelStore } from "./RightPanelStore";
+import { useAppHeaderStore } from "./AppHeaderStore";
 
 // Allowed key combinations for HTMLTextAreaElement
 const ALLOWED_TEXTAREA_COMBOS: Array<{
@@ -379,10 +380,27 @@ const assistantCallback = () => {
   handleViewChange("assistant");
 };
 
+const keyboardShortcutsCallback = () => {
+  const { handleOpenKeyboardShortcuts } = useAppHeaderStore.getState();
+  handleOpenKeyboardShortcuts();
+};
+
 // Lower-case 'o'
 registerComboCallback("o", {
   preventDefault: false,
   callback: assistantCallback
+});
+
+// Ctrl+/ for keyboard shortcuts dialog (Windows/Linux)
+registerComboCallback("control+/", {
+  preventDefault: true,
+  callback: keyboardShortcutsCallback
+});
+
+// Meta+/ for keyboard shortcuts dialog (macOS)
+registerComboCallback("meta+/", {
+  preventDefault: true,
+  callback: keyboardShortcutsCallback
 });
 
 export {

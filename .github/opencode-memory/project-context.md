@@ -153,6 +153,30 @@ test('handles user interaction', async () => {
 
 ## Recent Changes
 
+### Keyboard Shortcuts Dialog Feature (2026-01-10)
+
+**What**: Added a searchable, filterable Keyboard Shortcuts Reference Dialog to NodeTool's UI.
+
+**Why**: Users needed a quick way to reference all available keyboard shortcuts without opening the full help dialog with the visual keyboard.
+
+**Files Changed**:
+- `web/src/components/ui/KeyboardShortcutsDialog.tsx` - New dialog component
+- `web/src/components/ui/__tests__/KeyboardShortcutsDialog.test.tsx` - Tests
+- `web/src/stores/AppHeaderStore.ts` - Added keyboard shortcuts dialog state
+- `web/src/stores/KeyPressedStore.ts` - Added global keyboard shortcut registration
+- `web/src/components/panels/RightSideButtons.tsx` - Added dialog integration
+
+**Key Features**:
+- Search shortcuts by name, description, or key
+- Filter by category (Editor, Workflow, Panels, Assets)
+- Two views: List View and By Category reference
+- Global keyboard shortcut: Ctrl+/ or Meta+/
+- OS-specific key labels (Win/Mac)
+
+**Date**: 2026-01-10
+
+---
+
 > OpenCode workflows should add entries here when making significant changes
 
 _No entries yet - this memory system is new as of 2026-01-10_
