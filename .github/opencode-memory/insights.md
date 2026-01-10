@@ -357,3 +357,45 @@ cd mobile && npm install
 **Recommendation**: Consider adding `npm install` as a pre-step in the Makefile typecheck-mobile command or CI pipeline to prevent failures.
 
 **Date**: 2026-01-10
+
+---
+
+### GitHub Workflow Dependency Management (2026-01-10)
+
+**Insight**: GitHub workflows must install npm dependencies in all package directories (web, electron, mobile) to ensure consistent CI/CD behavior.
+
+**Problem**: Workflows that only install dependencies for web and electron will fail when mobile package changes are made, since mobile tests and type checks depend on installed node_modules.
+
+**Solution**: Add explicit dependency installation steps for all packages in workflows:
+```yaml
+- name: Install web dependencies
+  run: |
+    cd web
+    npm ci
+
+- name: Install electron dependencies
+  run: |
+    cd electron
+    npm ci
+
+- name: Install mobile dependencies
+  run: |
+    cd mobile
+    npm ci
+```
+
+**Additional Fix**: Update path filters to include `mobile/**` so workflows trigger on mobile package changes:
+```yaml
+on:
+  push:
+    paths:
+      - "web/**"
+      - "electron/**"
+      - "mobile/**"
+```
+
+**Impact**: Ensures all packages are properly set up before running tests, type checks, or builds in CI.
+
+**Files**: `.github/workflows/e2e.yml`, `.github/workflows/copilot-setup-steps.yml`, `.github/workflows/test.yml`
+
+**Date**: 2026-01-10
