@@ -694,7 +694,61 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       validateAllEdges: () => {
-        // Edge validation functionality removed - will be implemented in separate branch
+        const currentWorkflowId = get().currentWorkflowId;
+        if (!currentWorkflowId) {
+          return;
+        }
+
+        const nodeStore = get().nodeStores[currentWorkflowId];
+        if (!nodeStore) {
+          return;
+        }
+
+        const state = nodeStore.getState();
+        const nodes = state.nodes;
+        const edges = state.edges;
+
+        if (nodes.length === 0 || edges.length === 0) {
+          return;
+        }
+
+        const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+        const invalidEdgeIds: string[] = [];
+
+        for (const edge of edges) {
+          const sourceNode = nodeMap.get(edge.source);
+          const targetNode = nodeMap.get(edge.target);
+
+          if (!sourceNode || !targetNode) {
+            invalidEdgeIds.push(edge.id);
+            continue;
+          }
+
+          const sourceType = sourceNode.type;
+          const targetType = targetNode.type;
+
+          if (!sourceType || !targetType) {
+            invalidEdgeIds.push(edge.id);
+            continue;
+          }
+        }
+
+        if (invalidEdgeIds.length > 0) {
+          log.info(
+            `[WorkflowManager] Removing ${invalidEdgeIds.length} invalid edge(s) from workflow ${currentWorkflowId}`
+          );
+
+          state.edges.forEach((edge) => {
+            if (invalidEdgeIds.includes(edge.id)) {
+              state.onEdgesChange?.([
+                {
+                  id: edge.id,
+                  type: "remove"
+                }
+              ]);
+            }
+          });
+        }
       }
 
       /**

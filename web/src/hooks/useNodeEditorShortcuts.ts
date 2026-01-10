@@ -30,7 +30,9 @@ const ControlOrMeta = isMac() ? "Meta" : "Control";
 
 export const useNodeEditorShortcuts = (
   active: boolean,
-  onShowShortcuts?: () => void
+  onShowShortcuts?: () => void,
+  onCreateSnapshot?: () => void,
+  onOpenSnapshots?: () => void
 ) => {
   const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
   const [packageNameInput, setPackageNameInput] = useState("");
@@ -236,6 +238,18 @@ export const useNodeEditorShortcuts = (
     setPackageNameInput("");
   }, []);
 
+  const handleCreateSnapshot = useCallback(() => {
+    if (onCreateSnapshot) {
+      onCreateSnapshot();
+    }
+  }, [onCreateSnapshot]);
+
+  const handleOpenSnapshots = useCallback(() => {
+    if (onOpenSnapshots) {
+      onOpenSnapshots();
+    }
+  }, [onOpenSnapshots]);
+
   const handleShowKeyboardShortcuts = useCallback(() => {
     if (onShowShortcuts) {
       onShowShortcuts();
@@ -346,13 +360,6 @@ export const useNodeEditorShortcuts = (
   const handleMoveNodes = useCallback(
     (direction: { x?: number; y?: number }) => {
       if (selectedNodes.length > 0) {
-        selectedNodes.map((node) => ({
-          ...node,
-          position: {
-            x: node.position.x + (direction.x || 0),
-            y: node.position.y + (direction.y || 0)
-          }
-        }));
         setNodes((nodes: Node<NodeData>[]) =>
           nodes.map(
             (node: Node<NodeData>): Node<NodeData> =>
@@ -441,7 +448,9 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
-      }
+      },
+      createSnapshot: { callback: handleCreateSnapshot },
+      openSnapshots: { callback: handleOpenSnapshots }
     };
 
     // Switch-to-tab (1-9)
@@ -482,7 +491,9 @@ export const useNodeEditorShortcuts = (
     handleBypassSelected,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
+    handleSelectConnectedOutputs,
+    handleCreateSnapshot,
+    handleOpenSnapshots
   ]);
 
   // useEffect for shortcut registration

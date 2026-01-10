@@ -534,6 +534,24 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Find and navigate to nodes in the current workflow",
     registerCombo: true
+  },
+
+  // ---------- SNAPSHOTS ------------------------------------------------------
+  {
+    title: "Create Snapshot",
+    slug: "createSnapshot",
+    keyCombo: ["Control", "Shift", "S"],
+    category: "workflow" as const,
+    description: "Create a snapshot of the current workflow state",
+    registerCombo: true
+  },
+  {
+    title: "Open Snapshots",
+    slug: "openSnapshots",
+    keyCombo: ["Control", "Shift", "H"],
+    category: "panel" as const,
+    description: "Open the Snapshots panel",
+    registerCombo: false
   }
 ] as Shortcut[];
 

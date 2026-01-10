@@ -106,4 +106,37 @@ describe("graphMapping helpers", () => {
     expect(sanitized).toHaveLength(1);
     expect(sanitized[0].id).toBe("e1");
   });
+
+  it("rejects edges with missing source node", () => {
+    const node = makeNode("b");
+    const edge = makeEdge("e1", "missing", "b");
+
+    const valid = isValidEdge(edge, new Map([["b", node]]), {
+      test: baseMetadata
+    });
+
+    expect(valid).toBe(false);
+  });
+
+  it("rejects edges with missing handle IDs", () => {
+    const nodeA = makeNode("a");
+    const nodeB = makeNode("b");
+    const edge = makeEdge("e1", "a", "b", "", "input");
+
+    const valid = isValidEdge(edge, new Map([["a", nodeA], ["b", nodeB]]), {
+      test: baseMetadata
+    });
+
+    expect(valid).toBe(false);
+  });
+
+  it("allows edges when metadata is not yet loaded", () => {
+    const nodeA = makeNode("a");
+    const nodeB = makeNode("b");
+    const edge = makeEdge("e1", "a", "b");
+
+    const valid = isValidEdge(edge, new Map([["a", nodeA], ["b", nodeB]]), {});
+
+    expect(valid).toBe(true);
+  });
 });
