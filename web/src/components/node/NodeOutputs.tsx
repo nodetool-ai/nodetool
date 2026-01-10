@@ -15,6 +15,7 @@ import MenuItem from "@mui/material/MenuItem";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import useDynamicOutput from "../../hooks/nodes/useDynamicOutput";
+import { validateIdentifierName } from "../../utils/identifierValidation";
 
 import isEqual from "lodash/isEqual";
 
@@ -40,6 +41,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
   const [renameValue, setRenameValue] = useState("");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameType, setRenameType] = useState("string");
+  const [renameError, setRenameError] = useState<string | undefined>();
 
   type OutputItem = Property & { isDynamic?: boolean };
 
@@ -82,6 +84,12 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
   const onSubmitEdit = useCallback(() => {
     const newName = renameValue.trim();
     if (!newName || renameTarget === null) {return;}
+    
+    const validation = validateIdentifierName(newName);
+    if (!validation.isValid) {
+      setRenameError(validation.error);
+      return;
+    }
 
     const currentDynamic: Record<string, any> = {
       ...(node?.data?.dynamic_outputs || {})
@@ -99,6 +107,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
 
     setRenameTarget(null);
     setRenameValue("");
+    setRenameError(undefined);
     setShowRenameDialog(false);
   }, [
     renameValue,
@@ -156,10 +165,17 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
               label="Name"
               size="small"
               value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
+              onChange={(e) => {
+                setRenameValue(e.target.value);
+                if (renameError) {
+                  setRenameError(undefined);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {onSubmitEdit();}
               }}
+              error={!!renameError}
+              helperText={renameError || "Cannot start with a number"}
               sx={{ flex: 1 }}
             />
             <TextField
