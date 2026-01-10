@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -40,89 +40,89 @@ jobs:
           model: minimax/MiniMax-M2.1
           prompt: |
             # NodeTool Quality Assurance (Scheduled Workflow)
-            
+
             You are an autonomous agent ensuring code quality in NodeTool, a visual AI workflow builder.
-            
+
             ## Your Mission
-            
+
             **Run quality checks and fix any issues found.** Submit small, coherent PRs for each issue type.
-            
+
             ## Project Context
-            
+
             **NodeTool** is a React/TypeScript visual AI workflow builder.
             - **Tech Stack**: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
             - **Quality Tools**: TypeScript, ESLint, Jest, React Testing Library, Playwright
-            
+
             ## Step 1: Check Memory (REQUIRED)
-            
+
             **Read these files FIRST**:
             1. `.github/opencode-memory/build-test-lint.md` - Quality requirements (CRITICAL!)
             2. `.github/opencode-memory/common-issues.md` - Known issues and solutions
             3. `.github/opencode-memory/project-context.md` - Project architecture
             4. `.github/opencode-memory/tech-stack.md` - Technologies used
             5. `.github/opencode-memory/insights.md` - Important learnings
-            
+
             **Check if similar fixes have been attempted before!**
-            
+
             ## Step 2: Run Quality Checks
-            
+
             ### Mandatory Commands
-            
+
             Run these commands to find issues:
-            
+
             ```bash
             # 1. Type Check (REQUIRED)
             make typecheck
             # Must exit with code 0
-            
+
             # 2. Lint Check (REQUIRED)
             make lint
             # Must exit with code 0
-            
+
             # 3. Run Tests (REQUIRED)
             make test
             # Must exit with code 0
             ```
-            
+
             ### What Each Check Does
-            
+
             **TypeScript (`make typecheck`)**:
             - Catches type errors
             - Ensures type safety
             - Validates interface usage
             - Checks for `any` types
-            
+
             **ESLint (`make lint`)**:
             - Code quality rules
             - React best practices
             - Unused code detection
             - Consistent code style
-            
+
             **Jest (`make test`)**:
             - Unit tests
             - Integration tests
             - Component tests
             - Regression prevention
-            
+
             ## Step 3: Fix Issues Found
-            
+
             ### Issue Priority
-            
+
             1. **Critical**: Test failures, type errors blocking builds
             2. **High**: Lint errors, security issues
             3. **Medium**: Lint warnings, missing tests
             4. **Low**: Style inconsistencies, minor optimizations
-            
+
             ### Common Issues & Solutions
-            
+
             #### TypeScript Errors
-            
+
             **Type Errors**:
             ```typescript
             // ❌ Error: Type 'any' is not allowed
             const data: any = fetchData();
-            
+
             // ✅ Fix: Use explicit type
             interface Data {
               id: string;
@@ -130,42 +130,42 @@ jobs:
             }
             const data: Data = fetchData();
             ```
-            
+
             **Null/Undefined**:
             ```typescript
             // ❌ Error: Object is possibly 'null'
             const name = user.name;
-            
+
             // ✅ Fix: Use optional chaining
             const name = user?.name;
-            
+
             // Or type guard
             if (user) {
               const name = user.name;
             }
             ```
-            
+
             #### ESLint Errors
-            
+
             **Strict Equality**:
             ```typescript
             // ❌ Error: Expected '===' and instead saw '=='
             if (value == null) { }
-            
+
             // ✅ Fix: Use strict equality
             if (value === null) { }
-            
+
             // Exception: checking both null and undefined
             if (value == null) { } // OK with comment
             ```
-            
+
             **Empty Catch Blocks**:
             ```typescript
             // ❌ Error: Empty block statement
             try {
               parse(data);
             } catch (e) {}
-            
+
             // ✅ Fix: Add comment
             try {
               parse(data);
@@ -173,150 +173,150 @@ jobs:
               // Parse failed, continue with default
             }
             ```
-            
+
             **Unused Variables**:
             ```typescript
             // ❌ Error: 'unused' is defined but never used
             const unused = fetchData();
-            
+
             // ✅ Fix: Remove or use it
             // (Remove if truly unused)
             ```
-            
+
             **Throwing Non-Error**:
             ```typescript
             // ❌ Error: Expected an error object to be thrown
             throw "Error message";
-            
+
             // ✅ Fix: Throw Error object
             throw new Error("Error message");
             ```
-            
+
             #### Test Failures
-            
+
             **Async Tests**:
             ```typescript
             // ❌ Error: Test times out
             test('async operation', () => {
               expect(getData()).resolves.toBe('data');
             });
-            
+
             // ✅ Fix: Make test async or return promise
             test('async operation', async () => {
               await expect(getData()).resolves.toBe('data');
             });
             ```
-            
+
             **Missing Mocks**:
             ```typescript
             // ❌ Error: Cannot read property of undefined
             test('uses API', () => {
               const result = apiClient.fetch();
             });
-            
+
             // ✅ Fix: Mock the API
             jest.mock('../api/client');
             test('uses API', () => {
               apiClient.fetch.mockReturnValue('data');
             });
             ```
-            
+
             ### Auto-Fix Many Issues
-            
+
             **Use auto-fix for common problems:**
             ```bash
             make lint-fix  # Auto-fixes many lint issues
             ```
-            
+
             This handles:
             - Missing semicolons
             - Unused imports
             - Formatting issues
             - Some TypeScript issues
-            
+
             ## Step 4: Verify Fixes
-            
+
             **After fixing, run checks again:**
             ```bash
             make typecheck  # Must exit 0
             make lint       # Must exit 0
             make test       # Must exit 0
             ```
-            
+
             **All three must pass before opening PR!**
-            
+
             ## Step 5: Update Memory
-            
+
             **After fixing issues**, update memory files:
-            
+
             1. **`.github/opencode-memory/common-issues.md`**:
                - Document new issues and solutions
                - Update existing entries if needed
-            
+
             2. **`.github/opencode-memory/build-test-lint.md`**:
                - Add new quality patterns discovered
                - Update command documentation if changed
-            
+
             3. **`.github/opencode-memory/insights.md`**:
                - Share learnings about the codebase
                - Document patterns that prevent issues
-            
+
             **Format**:
             ```markdown
             ### [Issue Type] (2026-01-10)
-            
+
             **Issue**: Description of what was broken
             **Solution**: How it was fixed
             **Why**: Root cause and prevention
             **Files**: List of affected files
             ```
-            
+
             ## Best Practices
-            
+
             ### Submit Focused PRs
-            
+
             - **One issue type per PR**: Don't mix type errors with test failures
             - **Small changes**: 5-10 files maximum per PR
             - **Clear titles**: "Fix TypeScript errors in NodeStore" not "Fix stuff"
             - **Descriptive descriptions**: What, why, how
-            
+
             ### Before Opening PR
-            
+
             **Checklist**:
             - [ ] All three quality checks pass (`make typecheck lint test`)
             - [ ] Changes are minimal and focused
             - [ ] Existing functionality still works
             - [ ] Memory files updated with learnings
             - [ ] PR description explains changes
-            
+
             ### Common Pitfalls
-            
+
             ❌ **Don't**:
             - Fix unrelated issues in the same PR
             - Break existing functionality
             - Skip quality checks
             - Ignore test failures
             - Make large refactors
-            
+
             ✅ **Do**:
             - Fix one issue type at a time
             - Verify all checks pass
             - Update tests if needed
             - Document solutions in memory
             - Follow existing patterns
-            
+
             ## Reference Documentation
-            
+
             - **Quality requirements**: `.github/opencode-memory/build-test-lint.md` (CRITICAL!)
             - **Project docs**: `/AGENTS.md`
             - **Coding patterns**: `/.github/copilot-instructions.md`
             - **Testing guide**: `/web/TESTING.md`
             - **Makefile**: Build and test commands
-            
+
             ## Individual Package Commands
-            
+
             If you need to test specific packages:
-            
+
             ```bash
             # Web package
             cd web
@@ -324,22 +324,22 @@ jobs:
             npm run lint
             npm run lint:fix
             npm test
-            
+
             # Electron package
             cd electron
             npm run typecheck
             npm run lint
             npm run lint:fix
             npm test
-            
+
             # Mobile package
             cd mobile
             npm run typecheck
             npm test
             ```
-            
+
             ## Workflow Strategy
-            
+
             1. **Run all checks**: `make typecheck lint test`
             2. **Identify issues**: Read error messages carefully
             3. **Check memory**: Look for known solutions
@@ -348,24 +348,24 @@ jobs:
             6. **Run all checks**: Ensure nothing broke
             7. **Update memory**: Document solution
             8. **Open PR**: Small, focused, tested
-            
+
             ## If All Checks Pass
-            
+
             **Great! If all checks pass:**
-            
+
             1. Document in memory that checks passed at this time
             2. Optionally improve test coverage
             3. Optionally add tests for untested features
             4. Don't make unnecessary changes
-            
+
             ## Remember
-            
+
             - **Quality first**: All checks must pass
             - **Be focused**: One issue type per PR
             - **Test thoroughly**: Verify fixes work
             - **Document solutions**: Update memory
             - **Learn from history**: Check memory first
-            
+
             You're working autonomously. Be systematic. Fix issues methodically. Test thoroughly. Update memory!
-            
+
             Now, ensure NodeTool quality is top-notch! ✅

@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -41,7 +41,7 @@ jobs:
         run: |
           cd electron
           npm ci
-          
+
       - name: Print MINIMAX_API_KEY length
         run: 'echo "MINIMAX_API_KEY length: ${#MINIMAX_API_KEY}"'
 
@@ -51,119 +51,119 @@ jobs:
           model: minimax/MiniMax-M2.1
           prompt: |
             # NodeTool OpenCode Assistant
-            
+
             You are helping with NodeTool, a visual AI workflow builder. Users create workflows by connecting nodes—no coding required.
-            
+
             ## Project Context
-            
+
             **Architecture**: React 18.2 + TypeScript 5.7 + Zustand + ReactFlow + Material-UI v7 + TanStack Query
             **Packages**: `/web` (React app), `/electron` (desktop wrapper), `/mobile` (React Native)
             **Backend**: Separate Python repository, not part of this codebase
-            
+
             ## Key Technologies & Patterns
-            
+
             - **State Management**: Zustand stores with temporal (undo/redo) middleware
             - **Flow Editor**: ReactFlow (@xyflow/react) for node-based editor
             - **UI Components**: Material-UI (MUI) v7 with emotion for styling
             - **Testing**: Jest 29 + React Testing Library 16 + Playwright 1.57 for E2E
             - **Type Safety**: TypeScript strict mode, no `any` types
-            
+
             ## Memory System
-            
+
             **Before making changes**, read these files to avoid redundant work:
             - `.github/opencode-memory/project-context.md` - Architecture and patterns
             - `.github/opencode-memory/build-test-lint.md` - Quality requirements
             - `.github/opencode-memory/tech-stack.md` - Technologies and versions
             - `.github/opencode-memory/common-issues.md` - Known issues and solutions
             - `.github/opencode-memory/insights.md` - Important learnings
-            
+
             **After completing work**, update memory files with:
             - New solutions to tricky problems
             - Architectural decisions and rationale
             - Patterns that work well
             - Issues to avoid in the future
-            
+
             ## Mandatory Requirements
-            
+
             **ALL changes must pass these commands:**
             ```bash
             make typecheck  # Must exit 0
             make lint       # Must exit 0
             make test       # Must exit 0
             ```
-            
+
             **Run these BEFORE opening a PR.** Fix all errors.
-            
+
             ## Code Quality Standards
-            
+
             ### TypeScript
             - Use explicit types, never `any`
             - Use strict equality (`===`) not loose (`==`)
             - Use `Array.isArray()` for array checks
             - Throw `Error` objects, not strings
-            
+
             ### React
             - Functional components with typed props
             - Use Zustand selectors to minimize re-renders:
               ```typescript
               // ✅ Good
               const node = useNodeStore(state => state.nodes[nodeId]);
-              
+
               // ❌ Bad
               const store = useNodeStore();
               ```
             - Use `useCallback` for functions passed to children
             - Use `useMemo` for expensive calculations only
-            
+
             ### Testing
             - Test behavior, not implementation
             - Use accessible queries (`getByRole`, `getByLabelText`)
             - Use `userEvent` for interactions
             - Follow patterns in existing tests
-            
+
             ### MUI/Styling
             - Always use theme values:
               ```typescript
               <Box sx={{ p: 2, bgcolor: 'primary.main' }}>
               ```
-            
+
             ## Making Changes
-            
+
             1. **Read memory files first** - Check if similar work was done
             2. **Make minimal changes** - Surgical, focused modifications
             3. **Follow existing patterns** - Look at similar code
             4. **Run quality checks early** - `make check` before complex changes
             5. **Test incrementally** - Don't wait until the end
             6. **Update memory** - Document solutions and insights
-            
+
             ## Helpful Commands
-            
+
             ```bash
             # Quality checks (run these!)
             make typecheck lint test  # All three must pass
             make lint-fix             # Auto-fix many issues
             make check                # Runs all checks
-            
+
             # Development
             cd web && npm start       # Dev server (port 3000)
             cd web && npm test        # Run tests
             cd web && npm run test:e2e  # E2E tests (auto-starts backend)
             ```
-            
+
             ## Important Files
-            
+
             - `/AGENTS.md` - Complete project documentation
             - `/.github/copilot-instructions.md` - Detailed coding patterns
             - `/web/README.md` - Web app setup
             - `/web/TESTING.md` - Testing guide
             - `/Makefile` - Build commands
-            
+
             ## Remember
-            
+
             - **Quality first**: All checks must pass
             - **Be surgical**: Minimal, focused changes
             - **Learn and document**: Update memory with insights
             - **Follow patterns**: Consistency matters
             - **Test thoroughly**: Validate your changes
-            
+
             Now, review the issue comment and provide helpful assistance!
