@@ -534,6 +534,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Find and navigate to nodes in the current workflow",
     registerCombo: true
+  },
+
+  // ---------- QUICK FAVORITES PALETTE ----------------------------------------
+  {
+    title: "Quick Favorites",
+    slug: "quickFavorites",
+    keyCombo: ["Alt", "F"],
+    category: "panel" as const,
+    description: "Open Quick Favorites Palette for instant node insertion",
+    registerCombo: true
   }
 ] as Shortcut[];
 
