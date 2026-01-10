@@ -155,4 +155,15 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Virtualized Node Menu (2026-01-10)
+
+**What**: Implemented virtualized scrolling for the node menu using @tanstack/react-virtual
+**Why**: Performance optimization for users with many node types; the node menu can now handle large node collections efficiently
+**Implementation**: Created VirtualizedNodeList component that renders only visible nodes, improving performance for workflows with 100+ nodes. Updated RenderNodes.tsx to use the new component for both search and regular node display modes.
+**Files**: 
+- `web/src/components/node_menu/VirtualizedNodeList.tsx` (new)
+- `web/src/components/node_menu/RenderNodes.tsx` (modified)
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

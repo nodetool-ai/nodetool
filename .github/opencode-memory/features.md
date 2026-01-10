@@ -232,7 +232,7 @@ Last updated: 2026-01-10
 - **useCallback**: Memoized callbacks for stable references
 - **useMemo**: Memoized expensive calculations
 - **Selective Zustand Subscriptions**: Subscribe only to needed state slices
-- **Virtualization Ready**: Structure supports virtualized lists (not yet implemented)
+- **Virtualized Lists**: Virtualized node list rendering for large node collections using @tanstack/react-virtual
 
 ---
 
@@ -262,7 +262,6 @@ Last updated: 2026-01-10
 
 *(Update this section when considering these features in the future)*
 
-- **Virtualized Lists**: Large list virtualization for performance
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions

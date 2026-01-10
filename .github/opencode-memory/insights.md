@@ -360,6 +360,29 @@ cd mobile && npm install
 
 ---
 
+### Virtualized Node Menu (2026-01-10)
+
+**Insight**: Using @tanstack/react-virtual for node menu improves performance with large node collections.
+
+**Why**: The node menu was rendering all nodes at once, causing performance issues when there are many node types. Virtualization renders only visible items, reducing DOM nodes and improving scrolling performance.
+
+**Implementation**: Created VirtualizedNodeList component with:
+- Fixed item height for consistent virtualization
+- Overscan for smooth scrolling
+- Memoized callbacks for drag and click handlers
+- Support for both search mode and regular mode
+
+**Benefits**:
+- Handles 100+ nodes without performance degradation
+- Smooth scrolling in large node menus
+- Reduced memory footprint
+
+**Files**: `web/src/components/node_menu/VirtualizedNodeList.tsx`, `web/src/components/node_menu/RenderNodes.tsx`
+
+**Date**: 2026-01-10
+
+---
+
 ### GitHub Workflow Dependency Management (2026-01-10)
 
 **Insight**: GitHub workflows must install npm dependencies in all package directories (web, electron, mobile) to ensure consistent CI/CD behavior.
