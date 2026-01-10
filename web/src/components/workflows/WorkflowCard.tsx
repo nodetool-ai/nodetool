@@ -261,8 +261,8 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
         )}
 
         <Box className="chips-container" sx={chipsContainerSx}>
-          {Array.isArray((workflow as any).required_providers) &&
-            (workflow as any).required_providers.map((prov: string) => (
+          {workflow.required_providers &&
+            workflow.required_providers.map((prov: string) => (
               <Chip
                 key={`prov-${prov}`}
                 label={prov}
@@ -273,8 +273,8 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
               />
             ))}
 
-          {Array.isArray((workflow as any).required_models) &&
-            (workflow as any).required_models
+          {workflow.required_models &&
+            workflow.required_models
               .slice(0, 3)
               .map((model: string) => (
                 <Chip
@@ -287,10 +287,10 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
                 />
               ))}
 
-          {Array.isArray((workflow as any).required_models) &&
-            (workflow as any).required_models.length > 3 && (
+          {workflow.required_models &&
+            workflow.required_models.length > 3 && (
               <Chip
-                label={`+${(workflow as any).required_models.length - 3}`}
+                label={`+${workflow.required_models.length - 3}`}
                 size="small"
                 variant="outlined"
                 sx={chipSx(theme, "info", { uppercase: false })}
