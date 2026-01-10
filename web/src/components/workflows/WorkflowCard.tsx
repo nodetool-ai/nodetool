@@ -5,7 +5,8 @@ import {
   Typography,
   CircularProgress,
   Fade,
-  Chip
+  Chip,
+  Tooltip
 } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
@@ -41,11 +42,7 @@ const cardStyles = (theme: Theme) =>
       borderColor: theme.vars.palette.primary.main,
       boxShadow: `0 8px 24px rgba(0, 0, 0, 0.3)`
     },
-    "&:hover .card-description": {
-      maxHeight: "80px",
-      opacity: 1,
-      marginTop: "8px"
-    },
+
     "&:hover .chips-container": {
       opacity: 1,
       maxHeight: "60px"
@@ -154,18 +151,7 @@ const cardStyles = (theme: Theme) =>
       overflow: "hidden",
       margin: 0
     },
-    ".card-description": {
-      fontSize: "0.8rem",
-      color: theme.vars.palette.text.secondary,
-      lineHeight: 1.4,
-      maxHeight: 0,
-      opacity: 0,
-      overflow: "hidden",
-      transition: "max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease",
-      display: "-webkit-box",
-      WebkitLineClamp: 3,
-      WebkitBoxOrient: "vertical"
-    },
+
     ".chips-container": {
       display: "flex",
       flexWrap: "wrap",
@@ -186,119 +172,141 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   onClick
 }) => {
   const theme = useTheme();
-  
+
   const handleClick = useCallback(() => {
     onClick(workflow);
   }, [onClick, workflow]);
-  
+
   const imageUrl = useMemo(() => {
     return `${BASE_URL}/api/assets/packages/${workflow.package_name}/${workflow.name}.jpg`;
   }, [workflow.package_name, workflow.name]);
-  
+
   const packageNameDisplay = useMemo(() => {
     return workflow.package_name?.replace("nodetool-", "") || "N/A";
   }, [workflow.package_name]);
-  
+
   return (
-    <Box
-      css={cardStyles(theme)}
-      className={isLoading ? "loading" : ""}
-      onClick={handleClick}
+    <Tooltip
+      title={workflow.description || ""}
+      placement="top"
+      arrow
+      enterDelay={300}
+      leaveDelay={0}
+      slotProps={{
+        tooltip: {
+          sx: {
+            backgroundColor: theme.vars.palette.grey[800],
+            color: theme.vars.palette.text.primary,
+            fontSize: "0.85rem",
+            padding: "10px 14px",
+            maxWidth: 300,
+            borderRadius: "8px",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)"
+          }
+        },
+        arrow: {
+          sx: {
+            color: theme.vars.palette.grey[800]
+          }
+        }
+      }}
     >
-      {isLoading && (
-        <Fade in={true}>
-          <Box className="loading-overlay">
-            <CircularProgress size={36} color="primary" />
-            <Typography className="loading-text">
-              Creating workflow...
-            </Typography>
-          </Box>
-        </Fade>
-      )}
-      
-      <Box className="card-image-container">
-        <img
-          className="card-image"
-          src={imageUrl}
-          alt={workflow.name}
-          loading="lazy"
-        />
-        <Typography className="package-badge">
-          {packageNameDisplay}
-        </Typography>
-        {nodesOnlySearch && matchedNodes.length > 0 && (
-          <Box className="matched-nodes">
-            {matchedNodes.slice(0, 3).map((match, idx) => (
-              <Typography key={idx} className="matched-item">
-                {getNodeDisplayName(match.text) && (
-                  <span className="matched-item-name">
-                    {getNodeDisplayName(match.text)}
-                  </span>
-                )}
-                <span className="matched-item-namespace">
-                  {getNodeNamespace(match.text)}
-                </span>
+      <Box
+        css={cardStyles(theme)}
+        className={isLoading ? "loading" : ""}
+        onClick={handleClick}
+      >
+        {isLoading && (
+          <Fade in={true}>
+            <Box className="loading-overlay">
+              <CircularProgress size={36} color="primary" />
+              <Typography className="loading-text">
+                Creating workflow...
               </Typography>
-            ))}
-            {matchedNodes.length > 3 && (
-              <Typography className="matched-item">
-                +{matchedNodes.length - 3} more
-              </Typography>
-            )}
-          </Box>
+            </Box>
+          </Fade>
         )}
-      </Box>
 
-      <Box className="card-content">
-        <Typography component="h3" className="card-title">
-          {workflow.name}
-        </Typography>
-        
-        {workflow.description && (
-          <Typography className="card-description">
-            {workflow.description}
+        <Box className="card-image-container">
+          <img
+            className="card-image"
+            src={imageUrl}
+            alt={workflow.name}
+            loading="lazy"
+          />
+          <Typography className="package-badge">
+            {packageNameDisplay}
           </Typography>
-        )}
+          {nodesOnlySearch && matchedNodes.length > 0 && (
+            <Box className="matched-nodes">
+              {matchedNodes.slice(0, 3).map((match, idx) => (
+                <Typography key={idx} className="matched-item">
+                  {getNodeDisplayName(match.text) && (
+                    <span className="matched-item-name">
+                      {getNodeDisplayName(match.text)}
+                    </span>
+                  )}
+                  <span className="matched-item-namespace">
+                    {getNodeNamespace(match.text)}
+                  </span>
+                </Typography>
+              ))}
+              {matchedNodes.length > 3 && (
+                <Typography className="matched-item">
+                  +{matchedNodes.length - 3} more
+                </Typography>
+              )}
+            </Box>
+          )}
+        </Box>
 
-        <Box className="chips-container" sx={chipsContainerSx}>
-          {workflow.required_providers &&
-            workflow.required_providers.map((prov: string) => (
-              <Chip
-                key={`prov-${prov}`}
-                label={prov}
-                title={prov}
-                size="small"
-                variant="outlined"
-                sx={chipSx(theme, "secondary")}
-              />
-            ))}
+        <Box className="card-content">
+          <Typography component="h3" className="card-title">
+            {workflow.name}
+          </Typography>
 
-          {workflow.required_models &&
-            workflow.required_models
-              .slice(0, 3)
-              .map((model: string) => (
+
+
+          <Box className="chips-container" sx={chipsContainerSx}>
+            {workflow.required_providers &&
+              workflow.required_providers.map((prov: string) => (
                 <Chip
-                  key={`model-${model}`}
-                  label={model}
-                  title={model}
+                  key={`prov-${prov}`}
+                  label={prov}
+                  title={prov}
                   size="small"
                   variant="outlined"
-                  sx={chipSx(theme, "primary")}
+                  sx={chipSx(theme, "secondary")}
                 />
               ))}
 
-          {workflow.required_models &&
-            workflow.required_models.length > 3 && (
-              <Chip
-                label={`+${workflow.required_models.length - 3}`}
-                size="small"
-                variant="outlined"
-                sx={chipSx(theme, "info", { uppercase: false })}
-              />
-            )}
+            {workflow.required_models &&
+              workflow.required_models
+                .slice(0, 3)
+                .map((model: string) => (
+                  <Chip
+                    key={`model-${model}`}
+                    label={model}
+                    title={model}
+                    size="small"
+                    variant="outlined"
+                    sx={chipSx(theme, "primary")}
+                  />
+                ))}
+
+            {workflow.required_models &&
+              workflow.required_models.length > 3 && (
+                <Chip
+                  label={`+${workflow.required_models.length - 3}`}
+                  size="small"
+                  variant="outlined"
+                  sx={chipSx(theme, "info", { uppercase: false })}
+                />
+              )}
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </Tooltip>
   );
 };
 
