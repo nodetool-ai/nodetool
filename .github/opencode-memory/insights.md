@@ -336,3 +336,30 @@ When documenting new insights:
 ## Last Updated
 
 2026-01-10 - Initial memory system creation with pre-existing patterns documented
+
+---
+
+### Recent Workflows Feature (2026-01-10)
+
+**What**: Added quick access to recently opened workflows on the dashboard.
+
+**Why**: Users often switch between a few workflows repeatedly. Having quick access to recent workflows improves productivity without cluttering the main workflow list.
+
+**Implementation**:
+1. Created `RecentWorkflowsStore` - Zustand store with persistence for tracking up to 10 recent workflows
+2. Created `RecentWorkflowsTiles` - Dashboard component with clickable workflow tiles
+3. Integrated with `useWorkflowActions` - Automatically tracks workflow opens when clicking or creating workflows
+4. Added to `WorkflowsList` - Displayed above the main workflow list
+
+**Files Changed**:
+- `web/src/stores/RecentWorkflowsStore.ts` - New store with add/get/clear/remove operations
+- `web/src/stores/__tests__/RecentWorkflowsStore.test.ts` - Comprehensive tests
+- `web/src/components/dashboard/RecentWorkflowsTiles.tsx` - UI component
+- `web/src/components/dashboard/WorkflowsList.tsx` - Integration point
+- `web/src/hooks/useWorkflowActions.ts` - Tracking integration
+
+**Key Patterns**:
+- Follows existing `RecentNodesStore` pattern
+- Uses Zustand with persist middleware for localStorage persistence
+- Time-based ordering with auto-move-to-front on revisit
+- Clear button for user control

@@ -399,3 +399,18 @@ When you encounter and solve a new issue:
 ## Last Updated
 
 2026-01-10 - Initial memory system creation
+
+---
+
+### Missing Emotion css Import
+
+**Issue**: TypeScript error "Cannot find name 'css'. Did you mean 'CSS'?" after adding component imports.
+
+**Solution**: Ensure `css` is imported from `@emotion/react`:
+```typescript
+import { css } from "@emotion/react";
+```
+
+**Files**: Components using Emotion CSS-in-JS need this import.
+
+**Date**: 2026-01-10

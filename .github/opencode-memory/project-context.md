@@ -155,4 +155,22 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
-_No entries yet - this memory system is new as of 2026-01-10_
+### Recent Workflows Quick Access (2026-01-10)
+
+**Feature**: Added quick access tiles showing recently opened workflows on the dashboard.
+
+**Purpose**: Improve workflow navigation by showing recently used workflows at a glance.
+
+**Implementation**:
+- `RecentWorkflowsStore` - Zustand store with localStorage persistence (max 10 items)
+- `RecentWorkflowsTiles` - Visual tile component with hover effects and click navigation
+- Integrated with workflow opening actions for automatic tracking
+
+**Files Added**:
+- `web/src/stores/RecentWorkflowsStore.ts`
+- `web/src/stores/__tests__/RecentWorkflowsStore.test.ts`
+- `web/src/components/dashboard/RecentWorkflowsTiles.tsx`
+
+**Files Modified**:
+- `web/src/components/dashboard/WorkflowsList.tsx` - Added RecentWorkflowsTiles
+- `web/src/hooks/useWorkflowActions.ts` - Added tracking calls

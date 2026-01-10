@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import React from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
+import { css } from "@emotion/react";
 import {
   Box,
   Typography,
@@ -15,6 +15,7 @@ import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import AddIcon from "@mui/icons-material/Add";
+import RecentWorkflowsTiles from "./RecentWorkflowsTiles";
 
 interface WorkflowsListProps {
   sortedWorkflows: Workflow[];
@@ -143,6 +144,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   const theme = useTheme();
   return (
     <div className="workflows-list" css={styles(theme)}>
+      <RecentWorkflowsTiles />
       <Box className="header-controls">
         <Typography variant="h3" className="section-title">
           Recent Workflows
