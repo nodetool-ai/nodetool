@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Box, Typography, Paper, Tooltip } from "@mui/material";
+import { Box, Typography, Paper } from "@mui/material";
 import { Graph } from "../../stores/ApiTypes";
 
 // Data structure that has graph - can be WorkflowVersion or Workflow
@@ -178,8 +178,7 @@ const calculateNodePositions = (graph: Graph): CalculatedGraph => {
 export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   workflow,
   width = 200,
-  height = 120,
-  label
+  height = 120
 }) => {
   const graph = useMemo(() => {
     try {
@@ -202,7 +201,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   }, [previewNodes]);
 
   const nodeCount = graph.nodes?.length || 0;
-  const edgeCount = graph.edges?.length || 0;
+  const _edgeCount = graph.edges?.length || 0;
 
   if (nodeCount === 0) {
     return (
