@@ -153,6 +153,43 @@ test('handles user interaction', async () => {
 
 ## Recent Changes
 
+### Node Templates Feature (2026-01-10)
+
+**What**: Added Node Templates feature that allows users to save frequently used node configurations as templates for quick reuse.
+
+**Why**: Users often repeat similar node configurations (e.g., same LLM settings, prompt templates). This feature saves time by allowing quick creation of pre-configured nodes.
+
+**Implementation**:
+- Created `NodeTemplatesStore` for persistent template storage (localStorage)
+- Added `NodeTemplatesTiles` component to display templates in the node menu
+- Created `SaveTemplateDialog` for saving node configurations as templates
+- Extended `useCreateNode` hook to support pre-configured properties
+- Added "Save as Template" option to node context menu
+- Integrated drag-and-drop support for templates
+- Added usage tracking to show most frequently used templates first
+
+**Files**:
+- `web/src/stores/NodeTemplatesStore.ts` - Template storage and management
+- `web/src/stores/__tests__/NodeTemplatesStore.test.ts` - Unit tests
+- `web/src/components/node_menu/NodeTemplatesTiles.tsx` - Template display component
+- `web/src/components/dialogs/SaveTemplateDialog.tsx` - Save template dialog
+- `web/src/hooks/useCreateNode.ts` - Extended to support template properties
+- `web/src/hooks/nodes/useNodeContextMenu.ts` - Added save template handler
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added menu option
+- `web/src/components/node_menu/NamespaceList.tsx` - Integrated templates display
+- `web/src/lib/dragdrop/types.ts` - Added template drag type
+- `web/src/hooks/handlers/useDropHandler.ts` - Added template drop handling
+- `web/src/lib/dragdrop/serialization.ts` - Added template serialization
+
+**Key Decisions**:
+- Templates are stored locally in localStorage (persisted across sessions)
+- Templates are sorted by usage count (most used first)
+- Templates can be filtered by node type
+- Supports name, description, tags, and pre-configured properties
+- Drag-and-drop support for quick template usage
+
+---
+
 > OpenCode workflows should add entries here when making significant changes
 
 _No entries yet - this memory system is new as of 2026-01-10_

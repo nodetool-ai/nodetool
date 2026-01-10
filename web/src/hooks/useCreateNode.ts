@@ -6,9 +6,6 @@ import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { useRecentNodesStore } from "../stores/RecentNodesStore";
 
-// This hook encapsulates the logic for creating a new node in the graph.
-// It handles translating screen coordinates to ReactFlow coordinates and
-
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined
 ) => {
@@ -27,19 +24,19 @@ export const useCreateNode = (
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
 
   const handleCreateNode = useCallback(
-    (metadata: NodeMetadata) => {
-      if (!reactFlowInstance) {return;}
+    (metadata: NodeMetadata, properties?: Record<string, unknown>) => {
+      if (!reactFlowInstance) {
+        return;
+      }
 
       const position = centerPosition ?? clickPosition;
       const rfPos = reactFlowInstance.screenToFlowPosition(position);
 
-      const newNode = createNode(metadata, rfPos);
+      const newNode = createNode(metadata, rfPos, properties);
       addNode(newNode);
 
-      // Track this node as recently used
       addRecentNode(metadata.node_type);
 
-      // Close the node menu after creating a node
       closeNodeMenu();
     },
     [

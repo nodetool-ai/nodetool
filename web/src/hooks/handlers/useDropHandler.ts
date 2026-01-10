@@ -14,6 +14,7 @@ import {
   extractFiles
 } from "../../lib/dragdrop";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import { useNodeTemplatesStore } from "../../stores/NodeTemplatesStore";
 
 // Node spacing when dropping multiple assets
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -57,6 +58,9 @@ export const useDropHandler = () => {
   );
   const addNodeFromAsset = useAddNodeFromAsset();
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
+  const incrementTemplateUsage = useNodeTemplatesStore(
+    (state) => state.incrementUsage
+  );
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -78,6 +82,19 @@ export const useDropHandler = () => {
         addNode(newNode);
         // Track this node as recently used
         addRecentNode(node.node_type);
+        return;
+      }
+
+      // Handle create-node-from-template drop
+      if (dragData?.type === "create-node-from-template") {
+        const { metadata, template } = dragData.payload as {
+          metadata: NodeMetadata;
+          template: { id: string; properties: Record<string, unknown> };
+        };
+        const newNode = createNode(metadata, position, template.properties);
+        addNode(newNode);
+        addRecentNode(metadata.node_type);
+        incrementTemplateUsage(template.id);
         return;
       }
 
@@ -162,6 +179,7 @@ export const useDropHandler = () => {
       getAsset,
       addNodeFromAsset,
       addRecentNode,
+      incrementTemplateUsage,
       handlePngFile,
       handleJsonFile,
       handleCsvFile,

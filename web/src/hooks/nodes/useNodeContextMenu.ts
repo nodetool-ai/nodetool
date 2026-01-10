@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 import { Node } from "@xyflow/react";
@@ -18,6 +18,7 @@ import {
   constantToInputType,
   inputToConstantType
 } from "../../utils/NodeTypeMapping";
+import SaveTemplateDialog from "../../components/dialogs/SaveTemplateDialog";
 
 interface UseNodeContextMenuReturn {
   menuPosition: { x: number; y: number } | null;
@@ -25,16 +26,21 @@ interface UseNodeContextMenuReturn {
   nodeId: string | null;
   node: Node<NodeData> | null;
   nodeData: NodeData | undefined;
+  saveTemplateDialogOpen: boolean;
   handlers: {
     handleToggleComment: () => void;
     handleRunFromHere: () => void;
     handleToggleBypass: () => void;
     handleCopyMetadataToClipboard: () => void;
     handleFindTemplates: () => void;
+    handleSaveAsTemplate: () => void;
     handleSelectAllSameType: () => void;
     handleDeleteNode: () => void;
     handleConvertToInput: () => void;
     handleConvertToConstant: () => void;
+  };
+  dialogHandlers: {
+    handleCloseSaveTemplateDialog: () => void;
   };
   conditions: {
     hasCommentTitle: boolean;
@@ -97,6 +103,8 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
+
+  const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
 
   const handleToggleComment = useCallback(() => {
     if (!nodeId) {
@@ -251,6 +259,15 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     closeContextMenu();
   }, [navigate, closeContextMenu, node?.type]);
 
+  const handleSaveAsTemplate = useCallback(() => {
+    setSaveTemplateDialogOpen(true);
+  }, []);
+
+  const handleCloseSaveTemplateDialog = useCallback(() => {
+    setSaveTemplateDialogOpen(false);
+    closeContextMenu();
+  }, [closeContextMenu]);
+
   const handleSelectAllSameType = useCallback(() => {
     if (node?.type) {
       selectNodesByType(node.type);
@@ -343,16 +360,21 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     nodeId,
     node: node || null,
     nodeData,
+    saveTemplateDialogOpen,
     handlers: {
       handleToggleComment,
       handleRunFromHere,
       handleToggleBypass,
       handleCopyMetadataToClipboard,
       handleFindTemplates,
+      handleSaveAsTemplate,
       handleSelectAllSameType,
       handleDeleteNode,
       handleConvertToInput,
       handleConvertToConstant
+    },
+    dialogHandlers: {
+      handleCloseSaveTemplateDialog
     },
     conditions: {
       hasCommentTitle,

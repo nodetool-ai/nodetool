@@ -12,6 +12,7 @@ import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
 import FavoritesTiles from "./FavoritesTiles";
+import NodeTemplatesTiles from "./NodeTemplatesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
@@ -492,6 +493,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             />
             <div className="quick-action-tiles-container">
               <FavoritesTiles />
+              <NodeTemplatesTiles />
               <RecentNodesTiles />
               <QuickActionTiles />
             </div>
