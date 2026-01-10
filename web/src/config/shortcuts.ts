@@ -142,7 +142,9 @@ export const getShortcutTooltip = (
   const showBoth = os === "both";
 
   const keyChildren: React.ReactNode[] = showBoth
-    ? [...renderSeries(winCombo), " / ", ...renderSeries(macCombo)]
+    ? winCombo === macCombo
+      ? renderSeries(winCombo)
+      : [...renderSeries(winCombo), " / ", ...renderSeries(macCombo)]
     : renderSeries(os === "mac" ? macCombo : winCombo);
 
   if (mode === "combo") {
@@ -449,10 +451,12 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Delete Selected",
     slug: "deleteSelected",
-    keyCombo: ["Control", "Delete"],
+    keyCombo: ["Delete"],
+    keyComboMac: ["Backspace"],
     category: "editor",
     description: "Delete all selected nodes",
-    registerCombo: true
+    registerCombo: true,
+    altKeyCombos: [["Backspace"]]
   },
 
   // ---------- PANEL -------------------------------------------------------

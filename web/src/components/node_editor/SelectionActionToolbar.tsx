@@ -89,7 +89,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   const selectionActions = useSelectionActions();
 
   const canAlign = selectedNodes.length >= 2;
-  const canDistribute = selectedNodes.length >= 3;
+  const canDistribute = selectedNodes.length >= 2;
   const canGroup = selectedNodes.length >= 2;
 
   const handleKeyDown = useCallback(

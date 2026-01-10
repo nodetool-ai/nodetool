@@ -19,6 +19,7 @@ interface SelectionActionsReturn {
 }
 
 const NODE_WIDTH = 280;
+const NODE_HEIGHT = 50;
 
 export const useSelectionActions = (): SelectionActionsReturn => {
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
@@ -29,7 +30,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const alignLeft = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 2) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
     const leftMostX = Math.min(...selectedNodes.map((n) => n.position.x));
 
@@ -45,7 +48,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const alignCenter = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 2) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
     // Calculate the average center X position
     const avgCenterX =
@@ -58,9 +63,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       currentNodes.map((node) => {
         if (node.selected) {
           const nodeWidth = node.measured?.width ?? NODE_WIDTH;
-          return { 
-            ...node, 
-            position: { ...node.position, x: avgCenterX - nodeWidth / 2 } 
+          return {
+            ...node,
+            position: { ...node.position, x: avgCenterX - nodeWidth / 2 }
           };
         }
         return node;
@@ -70,10 +75,14 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const alignRight = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 2) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
     const rightMostX = Math.max(
-      ...selectedNodes.map((n) => n.position.x + (n.measured?.width ?? NODE_WIDTH))
+      ...selectedNodes.map(
+        (n) => n.position.x + (n.measured?.width ?? NODE_WIDTH)
+      )
     );
 
     reactFlow.setNodes((currentNodes) =>
@@ -92,7 +101,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const alignTop = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 2) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
     const topMostY = Math.min(...selectedNodes.map((n) => n.position.y));
 
@@ -108,7 +119,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const alignMiddle = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 2) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
     // Calculate the average center Y position
     const avgCenterY =
@@ -121,9 +134,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       currentNodes.map((node) => {
         if (node.selected) {
           const nodeHeight = node.measured?.height ?? 0;
-          return { 
-            ...node, 
-            position: { ...node.position, y: avgCenterY - nodeHeight / 2 } 
+          return {
+            ...node,
+            position: { ...node.position, y: avgCenterY - nodeHeight / 2 }
           };
         }
         return node;
@@ -133,7 +146,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const alignBottom = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 2) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
     const bottomMostY = Math.max(
       ...selectedNodes.map((n) => n.position.y + (n.measured?.height ?? 0))
@@ -155,41 +170,45 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const distributeHorizontal = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 3) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
-    // Sort by X position to find leftmost and rightmost, but maintain original order
-    const sortedByX = [...selectedNodes].sort(
-      (a, b) => a.position.x - b.position.x
+    const sortedByX = [...selectedNodes].sort((a, b) => {
+      const delta = a.position.x - b.position.x;
+      if (delta !== 0) {
+        return delta;
+      }
+      return a.id.localeCompare(b.id);
+    });
+
+    const leftMostX = Math.min(...sortedByX.map((n) => n.position.x));
+    const rightMostEdgeX = Math.max(
+      ...sortedByX.map((n) => n.position.x + (n.measured?.width ?? NODE_WIDTH))
     );
 
-    const leftMostNode = sortedByX[0]!;
-    const rightMostNode = sortedByX[sortedByX.length - 1]!;
-    const leftMostX = leftMostNode.position.x;
-    const rightMostX = rightMostNode.position.x;
-    const rightMostWidth = rightMostNode.measured?.width ?? NODE_WIDTH;
-
     // Calculate total width of all nodes
-    const totalWidth = selectedNodes.reduce((sum, node) => {
+    const totalWidth = sortedByX.reduce((sum, node) => {
       return sum + (node.measured?.width ?? NODE_WIDTH);
     }, 0);
 
     // Calculate available space between leftmost and rightmost nodes
-    const totalSpan = (rightMostX + rightMostWidth) - leftMostX;
+    const totalSpan = rightMostEdgeX - leftMostX;
     const availableSpace = totalSpan - totalWidth;
-    
+
     // Use minimum spacing of 50px if calculated spacing is too small
     const MIN_SPACING = 50;
-    let spacing = availableSpace / (selectedNodes.length - 1);
-    
+    let spacing = availableSpace / (sortedByX.length - 1);
+
     if (spacing < MIN_SPACING) {
       spacing = MIN_SPACING;
     }
 
-    // Create position map maintaining original order
+    // Create position map in axis order so selection ordering doesn't affect layout
     const positionMap = new Map<string, number>();
     let currentX = leftMostX;
-    
-    selectedNodes.forEach((node) => {
+
+    sortedByX.forEach((node) => {
       positionMap.set(node.id, currentX);
       const nodeWidth = node.measured?.width ?? NODE_WIDTH;
       currentX += nodeWidth + spacing;
@@ -208,43 +227,49 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const distributeVertical = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 3) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
-    // Sort by Y position to find topmost and bottommost, but maintain original order
-    const sortedByY = [...selectedNodes].sort(
-      (a, b) => a.position.y - b.position.y
+    const sortedByY = [...selectedNodes].sort((a, b) => {
+      const delta = a.position.y - b.position.y;
+      if (delta !== 0) {
+        return delta;
+      }
+      return a.id.localeCompare(b.id);
+    });
+
+    const topMostY = Math.min(...sortedByY.map((n) => n.position.y));
+    const bottomMostEdgeY = Math.max(
+      ...sortedByY.map(
+        (n) => n.position.y + (n.measured?.height ?? NODE_HEIGHT)
+      )
     );
 
-    const topMostNode = sortedByY[0]!;
-    const bottomMostNode = sortedByY[sortedByY.length - 1]!;
-    const topMostY = topMostNode.position.y;
-    const bottomMostY = bottomMostNode.position.y;
-    const bottomMostHeight = bottomMostNode.measured?.height ?? 0;
-
     // Calculate total height of all nodes
-    const totalHeight = selectedNodes.reduce((sum, node) => {
-      return sum + (node.measured?.height ?? 0);
+    const totalHeight = sortedByY.reduce((sum, node) => {
+      return sum + (node.measured?.height ?? NODE_HEIGHT);
     }, 0);
 
     // Calculate available space between topmost and bottommost nodes
-    const totalSpan = (bottomMostY + bottomMostHeight) - topMostY;
+    const totalSpan = bottomMostEdgeY - topMostY;
     const availableSpace = totalSpan - totalHeight;
-    
+
     // Use minimum spacing of 50px if calculated spacing is too small
     const MIN_SPACING = 50;
-    let spacing = availableSpace / (selectedNodes.length - 1);
-    
+    let spacing = availableSpace / (sortedByY.length - 1);
+
     if (spacing < MIN_SPACING) {
       spacing = MIN_SPACING;
     }
 
-    // Create position map maintaining original order
+    // Create position map in axis order so selection ordering doesn't affect layout
     const positionMap = new Map<string, number>();
     let currentY = topMostY;
-    
-    selectedNodes.forEach((node) => {
+
+    sortedByY.forEach((node) => {
       positionMap.set(node.id, currentY);
-      const nodeHeight = node.measured?.height ?? 0;
+      const nodeHeight = node.measured?.height ?? NODE_HEIGHT;
       currentY += nodeHeight + spacing;
     });
 
@@ -268,7 +293,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const duplicateSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length === 0) {return;}
+    if (selectedNodes.length === 0) {
+      return;
+    }
 
     // Use larger offset for better spacing
     const offset = 50;
@@ -310,9 +337,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
       // Deselect original nodes, keep only new nodes selected
       return [
-        ...currentNodes.map(node => 
+        ...currentNodes.map((node) =>
           node.selected ? { ...node, selected: false } : node
-        ), 
+        ),
         ...newNodes
       ];
     });
@@ -320,7 +347,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const groupSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length < 2) {return;}
+    if (selectedNodes.length < 2) {
+      return;
+    }
 
     surroundWithGroup({ selectedNodes });
   }, [getSelectedNodes, surroundWithGroup]);
