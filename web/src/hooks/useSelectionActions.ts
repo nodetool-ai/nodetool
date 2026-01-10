@@ -45,14 +45,21 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length < 2) {return;}
 
-    const centerX =
-      selectedNodes.reduce((sum, n) => sum + n.position.x, 0) /
-      selectedNodes.length;
+    // Calculate the average center X position
+    const avgCenterX =
+      selectedNodes.reduce((sum, n) => {
+        const nodeWidth = n.measured?.width ?? NODE_WIDTH;
+        return sum + n.position.x + nodeWidth / 2;
+      }, 0) / selectedNodes.length;
 
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
         if (node.selected) {
-          return { ...node, position: { ...node.position, x: centerX } };
+          const nodeWidth = node.measured?.width ?? NODE_WIDTH;
+          return { 
+            ...node, 
+            position: { ...node.position, x: avgCenterX - nodeWidth / 2 } 
+          };
         }
         return node;
       })
@@ -101,14 +108,21 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length < 2) {return;}
 
-    const middleY =
-      selectedNodes.reduce((sum, n) => sum + n.position.y, 0) /
-      selectedNodes.length;
+    // Calculate the average center Y position
+    const avgCenterY =
+      selectedNodes.reduce((sum, n) => {
+        const nodeHeight = n.measured?.height ?? 0;
+        return sum + n.position.y + nodeHeight / 2;
+      }, 0) / selectedNodes.length;
 
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
         if (node.selected) {
-          return { ...node, position: { ...node.position, y: middleY } };
+          const nodeHeight = node.measured?.height ?? 0;
+          return { 
+            ...node, 
+            position: { ...node.position, y: avgCenterY - nodeHeight / 2 } 
+          };
         }
         return node;
       })
@@ -146,20 +160,33 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     );
 
     const leftMostX = sortedNodes[0]!.position.x;
-    const rightMostX = sortedNodes[sortedNodes.length - 1]!.position.x;
+    const rightMostNode = sortedNodes[sortedNodes.length - 1]!;
+    const rightMostX = rightMostNode.position.x;
+    const rightMostWidth = rightMostNode.measured?.width ?? NODE_WIDTH;
 
+    // Calculate total width of all nodes
     const totalWidth = sortedNodes.reduce((sum, node) => {
       return sum + (node.measured?.width ?? NODE_WIDTH);
     }, 0);
 
-    const availableSpace = rightMostX - leftMostX - totalWidth;
-    const spacing = availableSpace / (sortedNodes.length - 1);
+    // Calculate available space between leftmost and rightmost nodes
+    const totalSpan = (rightMostX + rightMostWidth) - leftMostX;
+    const availableSpace = totalSpan - totalWidth;
+    
+    // Use minimum spacing of 50px if calculated spacing is too small
+    const MIN_SPACING = 50;
+    let spacing = availableSpace / (sortedNodes.length - 1);
+    
+    if (spacing < MIN_SPACING) {
+      spacing = MIN_SPACING;
+    }
 
     let currentX = leftMostX;
 
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        if (node.selected) {
+        const sortedIndex = sortedNodes.findIndex(n => n.id === node.id);
+        if (sortedIndex !== -1) {
           const nodeWidth = node.measured?.width ?? NODE_WIDTH;
           const newX = currentX;
           currentX += nodeWidth + spacing;
@@ -179,20 +206,33 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     );
 
     const topMostY = sortedNodes[0]!.position.y;
-    const bottomMostY = sortedNodes[sortedNodes.length - 1]!.position.y;
+    const bottomMostNode = sortedNodes[sortedNodes.length - 1]!;
+    const bottomMostY = bottomMostNode.position.y;
+    const bottomMostHeight = bottomMostNode.measured?.height ?? 0;
 
+    // Calculate total height of all nodes
     const totalHeight = sortedNodes.reduce((sum, node) => {
       return sum + (node.measured?.height ?? 0);
     }, 0);
 
-    const availableSpace = bottomMostY - topMostY - totalHeight;
-    const spacing = availableSpace / (sortedNodes.length - 1);
+    // Calculate available space between topmost and bottommost nodes
+    const totalSpan = (bottomMostY + bottomMostHeight) - topMostY;
+    const availableSpace = totalSpan - totalHeight;
+    
+    // Use minimum spacing of 50px if calculated spacing is too small
+    const MIN_SPACING = 50;
+    let spacing = availableSpace / (sortedNodes.length - 1);
+    
+    if (spacing < MIN_SPACING) {
+      spacing = MIN_SPACING;
+    }
 
     let currentY = topMostY;
 
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        if (node.selected) {
+        const sortedIndex = sortedNodes.findIndex(n => n.id === node.id);
+        if (sortedIndex !== -1) {
           const nodeHeight = node.measured?.height ?? 0;
           const newY = currentY;
           currentY += nodeHeight + spacing;
@@ -214,7 +254,8 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length === 0) {return;}
 
-    const offset = 30;
+    // Use larger offset for better spacing
+    const offset = 50;
 
     reactFlow.setNodes((currentNodes) => {
       const newNodes: typeof currentNodes = [];
@@ -251,7 +292,13 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
       reactFlow.setEdges(newEdges);
 
-      return [...currentNodes, ...newNodes];
+      // Deselect original nodes, keep only new nodes selected
+      return [
+        ...currentNodes.map(node => 
+          node.selected ? { ...node, selected: false } : node
+        ), 
+        ...newNodes
+      ];
     });
   }, [getSelectedNodes, reactFlow]);
 
@@ -259,49 +306,14 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length < 2) {return;}
 
-    const minX = Math.min(...selectedNodes.map((n) => n.position.x));
-    const minY = Math.min(...selectedNodes.map((n) => n.position.y));
-    const maxX = Math.max(...selectedNodes.map((n) => n.position.x + (n.measured?.width ?? NODE_WIDTH)));
-    const maxY = Math.max(...selectedNodes.map((n) => n.position.y + (n.measured?.height ?? 0)));
-
-    const groupId = `group_${Date.now()}`;
-    const padding = 20;
-
-    reactFlow.setNodes((currentNodes) => {
-      const groupNode = {
-        id: groupId,
-        type: "group" as const,
-        position: { x: minX - padding, y: minY - padding },
-        data: {
-          label: "",
-          collapsed: false,
-          color: undefined
-        },
-        style: {
-          width: maxX - minX + padding * 2,
-          height: maxY - minY + padding * 2
-        },
-        selected: true,
-        parentId: undefined,
-        extent: undefined,
-        expandParent: false
-      };
-
-      const updatedNodes = currentNodes.map((node) => {
-        if (node.selected) {
-          return {
-            ...node,
-            parentId: groupId,
-            extent: "parent" as const,
-            selected: false
-          };
-        }
-        return node;
-      });
-
-      return [groupNode, ...updatedNodes];
-    });
-  }, [getSelectedNodes, reactFlow]);
+    // TODO: Implement proper Group node creation using nodetool.workflows.base_node.Group
+    // Current implementation creates ReactFlow groups which can be confusing
+    // For now, we disable this functionality
+    console.warn("Group functionality is currently disabled pending proper implementation");
+    
+    // The proper implementation would use useSurroundWithGroup hook
+    // or createNode with GROUP_NODE_METADATA similar to useSurroundWithGroup
+  }, [getSelectedNodes]);
 
   const bypassSelected = useCallback(() => {
     toggleBypassSelected();
