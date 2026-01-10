@@ -71,6 +71,7 @@ jobs:
             ## Memory System
 
             **Before making changes**, read these files to avoid redundant work:
+            - **`.github/opencode-memory/features.md`** - **Complete feature list (MUST READ!)**
             - `.github/opencode-memory/project-context.md` - Architecture and patterns
             - `.github/opencode-memory/build-test-lint.md` - Quality requirements
             - `.github/opencode-memory/tech-stack.md` - Technologies and versions
@@ -78,6 +79,7 @@ jobs:
             - `.github/opencode-memory/insights.md` - Important learnings
 
             **After completing work**, update memory files with:
+            - **New features added** (update features.md - REQUIRED!)
             - New solutions to tricky problems
             - Architectural decisions and rationale
             - Patterns that work well
