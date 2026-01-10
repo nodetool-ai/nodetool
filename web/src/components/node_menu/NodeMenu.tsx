@@ -10,6 +10,7 @@ import { Box } from "@mui/material";
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import TemplatesTiles from "./TemplatesTiles";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -158,7 +159,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setMenuSize,
     moveSelectionUp,
     moveSelectionDown,
-    getSelectedNode
+    getSelectedNode,
+    selectedNodeType
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -175,7 +177,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setMenuSize: state.setMenuSize,
       moveSelectionUp: state.moveSelectionUp,
       moveSelectionDown: state.moveSelectionDown,
-      getSelectedNode: state.getSelectedNode
+      getSelectedNode: state.getSelectedNode,
+      selectedNodeType: state.selectedNodeType
     }),
     isEqual
   );
@@ -308,6 +311,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 setSelectedOutputType={setSelectedOutputType}
               />
             </Box>
+            <TemplatesTiles selectedNodeType={selectedNodeType} />
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}

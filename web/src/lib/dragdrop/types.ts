@@ -45,6 +45,7 @@ export interface DragMetadata {
   sourceName?: string;
   count?: number;
   thumbnailUrl?: string;
+  templateProperties?: Record<string, unknown>;
 }
 
 /**

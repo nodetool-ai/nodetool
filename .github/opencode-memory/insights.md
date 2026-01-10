@@ -333,6 +333,44 @@ When documenting new insights:
 6. **Files**: Related files
 7. **Date**: When documented
 
+---
+
+### Async Store Actions in Zustand with Testing Library (2026-01-10)
+
+**Insight**: When using async functions in Zustand stores, testing with React Testing Library's `act` requires careful handling.
+
+**Problem**: The `addTemplate` function returns a `Promise<string>` but TypeScript and testing library don't automatically track assignments inside async callbacks.
+
+**Solution**: Restructure tests to either:
+1. Extract values from state after `await act()` completes
+2. Return the value from the async callback and capture it in the test
+
+**Example**:
+```typescript
+// Instead of this (problematic):
+let templateId: string;
+await act(async () => {
+  templateId = await store.addTemplate(...);
+});
+
+// Use this (works correctly):
+await act(async () => {
+  await store.addTemplate(...);
+});
+const template = store.templates[0]; // Get from state
+
+// Or return the value:
+const id = await act(async () => {
+  return store.addTemplate(...);
+});
+```
+
+**Files**: `web/src/stores/__tests__/NodeTemplatesStore.test.ts`
+
+**Date**: 2026-01-10
+
+---
+
 ## Last Updated
 
 2026-01-10 - Initial memory system creation with pre-existing patterns documented
