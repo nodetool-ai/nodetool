@@ -57,11 +57,12 @@ jobs:
             ## Step 1: Check Memory (REQUIRED)
 
             **Read these files FIRST** to avoid redundant work:
-            1. `.github/opencode-memory/project-context.md` - Architecture and patterns
-            2. `.github/opencode-memory/build-test-lint.md` - Quality standards
-            3. `.github/opencode-memory/tech-stack.md` - Technologies and versions
-            4. `.github/opencode-memory/common-issues.md` - Known issues (don't re-solve!)
-            5. `.github/opencode-memory/insights.md` - Important learnings
+            1. **`.github/opencode-memory/features.md`** - **Complete feature list (understand what exists!)**
+            2. `.github/opencode-memory/project-context.md` - Architecture and patterns
+            3. `.github/opencode-memory/build-test-lint.md` - Quality standards
+            4. `.github/opencode-memory/tech-stack.md` - Technologies and versions
+            5. `.github/opencode-memory/common-issues.md` - Known issues (don't re-solve!)
+            6. `.github/opencode-memory/insights.md` - Important learnings
 
             **Check if this issue has been addressed before!**
 
@@ -206,6 +207,10 @@ jobs:
 
             3. **`.github/opencode-memory/project-context.md`**:
                - Add entry to "Recent Changes"
+
+            4. **`.github/opencode-memory/features.md`** (if relevant):
+               - Update feature descriptions if behavior changed
+               - Add to "Features NOT Yet Implemented" if removing placeholder
 
             **Format**:
             ```markdown
