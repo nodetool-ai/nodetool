@@ -202,6 +202,7 @@ describe("useNodeContextMenu", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       expect(result.current.conditions.hasCommentTitle).toBe(false);
+      expect(result.current.conditions.hasComment).toBe(false);
       expect(result.current.conditions.isBypassed).toBe(false);
       expect(result.current.conditions.canConvertToInput).toBe(true);
       expect(result.current.conditions.canConvertToConstant).toBe(true);
@@ -211,21 +212,21 @@ describe("useNodeContextMenu", () => {
   });
 
   describe("handleToggleComment", () => {
-    it("adds comment when hasCommentTitle is false", () => {
+    it("adds comment when hasComment is false", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       act(() => {
         result.current.handlers.handleToggleComment();
       });
 
-      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { title: "comment" });
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { comment: "Add your comment here", commentCollapsed: false });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
 
-    it("removes comment when hasCommentTitle is true", () => {
+    it("removes comment when hasComment is true", () => {
       const nodeWithComment = {
         ...mockNode,
-        data: { ...mockNode.data, title: "my comment" }
+        data: { ...mockNode.data, comment: "my comment" }
       };
 
       mockedUseNodes.mockImplementation((selector) => {
@@ -255,13 +256,13 @@ describe("useNodeContextMenu", () => {
 
       const { result } = renderHook(() => useNodeContextMenu());
 
-      expect(result.current.conditions.hasCommentTitle).toBe(true);
+      expect(result.current.conditions.hasComment).toBe(true);
 
       act(() => {
         result.current.handlers.handleToggleComment();
       });
 
-      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { title: "" });
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { comment: "", commentCollapsed: false });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
   });

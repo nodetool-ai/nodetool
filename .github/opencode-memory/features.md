@@ -28,6 +28,7 @@ Last updated: 2026-01-10
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)
 - **Node Tooltips**: Hover tooltips showing node handle information
 - **Node Documentation**: Inline documentation for each node type
+- **Node Comments**: Add multi-line annotations to nodes for workflow documentation
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
@@ -106,7 +107,7 @@ Last updated: 2026-01-10
 - **File Upload Button**: Button component for file uploads
 - **Infinite Scroll**: Load content incrementally on scroll
 - **Context Menus**: Right-click menus for various elements (nodes, edges, pane, properties)
-- **Keyboard Shortcuts**: Configurable keyboard shortcuts system
+- **Keyboard Shortcuts**: Configurable keyboard shortcuts system with Ctrl+/ for comments
 - **Close Button**: Consistent close button component
 - **Delete Button**: Consistent delete button component
 

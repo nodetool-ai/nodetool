@@ -339,6 +339,82 @@ When documenting new insights:
 
 ---
 
+### Emotion Styled Components Pattern (2026-01-10)
+
+**Insight**: Using `@emotion/styled` provides better TypeScript support and cleaner syntax compared to template literals with the `css` function when dealing with dynamic props and nested structures.
+
+**Example**:
+```typescript
+import styled from "@emotion/styled";
+
+const CommentContainer = styled.div<{ isCollapsed: boolean }>`
+  position: relative;
+  min-height: ${(props) => (props.isCollapsed ? "2em" : "100px")};
+  background: ${(props) => props.theme.vars.palette.c_bg_comment};
+`;
+```
+
+**Rationale**:
+- TypeScript infers prop types automatically
+- Theme access via `props.theme` works seamlessly
+- Media queries and pseudo-selectors are cleaner
+- Easier to read and maintain than template literals
+
+**Files**: `web/src/components/node/CommentEditor.tsx`
+
+**Date**: 2026-01-10
+
+---
+
+### React Hooks in Callbacks (2026-01-10)
+
+**Insight**: React hooks (including `useCallback`) must follow the Rules of Hooks. Never call hooks inside callbacks, loops, or conditional statements.
+
+**Problem**: Initially tried to call `useNodes` inside `handleToggleComment` callback:
+```typescript
+// ❌ Bad - violates Rules of Hooks
+const handleToggleComment = useCallback(() => {
+  const updateNodeData = useNodes((state) => state.updateNodeData);
+  // ...
+}, [selectedNodes]);
+```
+
+**Solution**: Destructure hooks at component level:
+```typescript
+// ✅ Good - hooks at component level
+const nodesStore = useNodes((state) => ({
+  selectedNodes: state.getSelectedNodes(),
+  updateNodeData: state.updateNodeData
+}));
+const { selectedNodes, updateNodeData } = nodesStore;
+
+const handleToggleComment = useCallback(() => {
+  updateNodeData(nodeId, { comment: "..." });
+}, [selectedNodes, updateNodeData]);
+```
+
+**Files**: `web/src/hooks/useNodeEditorShortcuts.ts`
+
+**Date**: 2026-01-10
+
+---
+
+### MUI Icons Availability (2026-01-10)
+
+**Insight**: Not all icon names are available in MUI icons. `CollapseContent` and `ExpandContent` don't exist; use `UnfoldLess` and `UnfoldMore` instead.
+
+**Solution**:
+```typescript
+import CollapseIcon from "@mui/icons-material/UnfoldLess";
+import ExpandIcon from "@mui/icons-material/UnfoldMore";
+```
+
+**Files**: `web/src/components/node/CommentEditor.tsx`
+
+**Date**: 2026-01-10
+
+---
+
 ### Mobile Package Dependencies Issue (2026-01-10)
 
 **Insight**: Mobile package requires `npm install` before type checking can succeed.

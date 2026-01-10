@@ -155,4 +155,28 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Node Comments Feature (2026-01-10)
+
+**What**: Added comprehensive node comment/annotation functionality to the workflow editor.
+
+**Why**: Users needed a way to document their workflows, explain complex node configurations, and leave notes for collaboration. The previous implementation only supported basic title-based comments.
+
+**Implementation**:
+- Added `comment` and `commentCollapsed` fields to NodeData type
+- Created CommentEditor component with multi-line editing, auto-resize, and collapse functionality
+- Updated NodeContextMenu with improved comment toggle
+- Added keyboard shortcut (Ctrl+/) for quick comment editing
+- Used Emotion styled components for CSS-in-JS styling
+- Integrated with existing NodeStore for state management
+
+**Files**:
+- `web/src/stores/NodeData.ts` - Added comment fields
+- `web/src/components/node/CommentEditor.tsx` - New comment editor component
+- `web/src/components/node/BaseNode.tsx` - Integrated CommentEditor
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Updated comment menu item
+- `web/src/hooks/nodes/useNodeContextMenu.ts` - Updated comment handlers
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added Ctrl+/ shortcut
+- `web/src/config/shortcuts.ts` - Added comment shortcut definition
+- `web/src/hooks/nodes/__tests__/useNodeContextMenu.test.ts` - Updated tests
+
 _No entries yet - this memory system is new as of 2026-01-10_

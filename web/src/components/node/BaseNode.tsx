@@ -40,6 +40,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
+import CommentEditor from "./CommentEditor";
 
 
 // Node sizing constants
@@ -489,6 +490,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
+      {(data.comment || selected) && (
+        <CommentEditor
+          nodeId={id}
+          comment={data.comment || ""}
+          isCollapsed={data.commentCollapsed || false}
+          onCollapseChange={() => {}}
+        />
+      )}
     </Container>
   );
 };

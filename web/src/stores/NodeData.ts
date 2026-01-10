@@ -21,4 +21,8 @@ export type NodeData = {
     x: number;
     y: number;
   };
+  // User-defined comment/annotation for the node
+  comment?: string;
+  // Comment visibility state (can be collapsed)
+  commentCollapsed?: boolean;
 };
