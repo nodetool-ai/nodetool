@@ -24,6 +24,16 @@ import { FixedSizeGrid as Grid, GridChildComponentProps } from "react-window";
 
 const styles = (theme: Theme) =>
   css({
+    "&": {
+      position: "relative",
+      width: "100%",
+      height: "100%",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      flex: "1 1 auto",
+      minHeight: 0
+    },
     ".workflow-grid": {
       position: "relative",
       top: "0",
@@ -35,16 +45,6 @@ const styles = (theme: Theme) =>
       boxSizing: "border-box",
       overflowY: "hidden",
       overflowX: "hidden",
-      display: "flex",
-      flexDirection: "column",
-      flex: "1 1 auto",
-      minHeight: 0
-    },
-    "&": {
-      position: "relative",
-      width: "100%",
-      height: "100%",
-      overflow: "hidden",
       display: "flex",
       flexDirection: "column",
       flex: "1 1 auto",
@@ -65,149 +65,6 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       padding: "0 1em"
     },
-    ".workflow": {
-      position: "relative",
-      flexGrow: "1",
-      flexShrink: "0",
-      flexBasis: "220px",
-      margin: "0.5em",
-      maxWidth: "220px",
-      cursor: "pointer",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      height: "auto",
-      overflow: "hidden",
-      borderRadius: "16px",
-      background: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
-      transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-      boxShadow: `0 4px 6px ${theme.vars.palette.grey[900]}1a`,
-      "&:hover": {
-        transform: "translateY(-4px) scale(1.02)",
-        boxShadow: `
-          0 0 5px ${"var(--palette-primary-main)"},
-          0 0 15px ${"var(--palette-primary-main)"}90,
-          0 0 30px ${"var(--palette-primary-main)"}60,
-          0 0 60px ${"var(--palette-primary-main)"}30,
-          inset 0 0 20px ${"var(--palette-primary-main)"}10
-        `,
-        background: theme.vars.palette.grey[850],
-        borderColor: "var(--palette-primary-main)",
-        outline: `1px solid ${"var(--palette-primary-main)"}80`,
-        outlineOffset: "2px",
-        zIndex: 10,
-        animation: "sciFiGlow 2s ease-in-out infinite"
-      },
-      "@keyframes sciFiGlow": {
-        "0%, 100%": {
-          boxShadow: `
-            0 0 5px ${"var(--palette-primary-main)"},
-            0 0 15px ${"var(--palette-primary-main)"}90,
-            0 0 30px ${"var(--palette-primary-main)"}60,
-            0 0 60px ${"var(--palette-primary-main)"}30,
-            inset 0 0 20px ${"var(--palette-primary-main)"}10
-          `
-        },
-        "50%": {
-          boxShadow: `
-            0 0 8px ${"var(--palette-primary-main)"},
-            0 0 25px ${"var(--palette-primary-main)"}95,
-            0 0 50px ${"var(--palette-primary-main)"}70,
-            0 0 80px ${"var(--palette-primary-main)"}40,
-            inset 0 0 30px ${"var(--palette-primary-main)"}15
-          `
-        }
-      }
-    },
-    ".workflow.loading": {
-      cursor: "wait",
-      pointerEvents: "none" /* Disables all clicks */
-    },
-    ".loading-overlay": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      padding: "10px",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.7)`,
-      zIndex: 10,
-      borderRadius: "4px",
-      backdropFilter: "blur(2px)",
-      boxShadow: `0 0 15px ${"var(--palette-primary-main)"}60`,
-      border: `1px solid ${"var(--palette-primary-main)"}80`
-    },
-    ".loading-text": {
-      color: "var(--palette-primary-main)",
-      fontSize: "0.9rem",
-      marginTop: "12px",
-      textAlign: "center",
-      fontWeight: "bold",
-      textShadow: `0 1px 3px ${theme.vars.palette.grey[1000]}cc`
-    },
-    ".workflow h3": {
-      color: theme.vars.palette.text.primary,
-      marginTop: "1em",
-      marginBottom: "4px",
-      padding: "0 16px",
-      fontSize: "1.1rem",
-      fontWeight: 600,
-      height: "auto",
-      lineHeight: "1.3",
-      overflow: "hidden",
-      position: "relative",
-      zIndex: 2,
-      display: "-webkit-box",
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: "vertical"
-    },
-    ".workflow .package-name": {
-      position: "absolute",
-      bottom: "8px",
-      left: "8px",
-      fontSize: "0.7rem",
-      lineHeight: "1.2",
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
-      backdropFilter: "blur(4px)",
-      color: theme.vars.palette.common.white,
-      padding: "4px 8px",
-      borderRadius: "6px",
-      margin: "0",
-      zIndex: 110,
-      fontWeight: 600,
-      letterSpacing: "0.5px",
-      opacity: 0,
-      transition: "opacity 0.2s ease"
-    },
-    ".workflow:hover .package-name": {
-      opacity: 1
-    },
-    ".workflow .chips-container": {
-      display: "none",
-      padding: "0 0.75em 0.75em"
-    },
-    ".workflow:hover .chips-container": {
-      display: "flex"
-    },
-    ".workflow .description": {
-      fontSize: "0.875rem",
-      color: theme.vars.palette.text.secondary,
-      lineHeight: "1.4",
-      display: "none",
-      width: "100%",
-      position: "relative",
-      margin: "0",
-      padding: "0.75em 0.75em 0.75em"
-    },
-    ".workflow:hover .description": {
-      display: "block",
-      color: theme.vars.palette.text.primary
-    },
     ".loading-indicator": {
       display: "flex",
       justifyContent: "center",
@@ -215,41 +72,6 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       height: "50vh",
       width: "100%"
-    },
-    ".image-wrapper": {
-      width: "100%",
-      height: "140px",
-      overflow: "hidden",
-      position: "relative",
-      borderTopLeftRadius: "16px",
-      borderTopRightRadius: "16px",
-      background: `linear-gradient(0deg, ${"var(--palette-primary-main)"}20, ${
-        theme.vars.palette.grey[800]
-      }22)`,
-      transition: "height 0.3s ease"
-    },
-    ".workflow:hover .image-wrapper": {
-      height: "200px"
-    },
-
-    "@keyframes sciFiPulse": {
-      "0%": {
-        boxShadow: `0 0 5px ${"var(--palette-primary-main)"}`,
-        filter: "brightness(1)"
-      },
-      "50%": {
-        boxShadow: `0 0 20px ${"var(--palette-primary-main)"}`,
-        filter: "brightness(1.2)"
-      },
-      "100%": {
-        boxShadow: `0 0 5px ${"var(--palette-primary-main)"}`,
-        filter: "brightness(1)"
-      }
-    },
-    ".workflow img": {
-      width: "100%",
-      height: "100%",
-      objectFit: "cover"
     },
     ".tag-menu": {
       margin: "20px",
@@ -273,7 +95,7 @@ const styles = (theme: Theme) =>
       gap: "4px"
     },
     ".tag-menu button": {
-      transition: "all 0.3s ease",
+      transition: "all 0.2s ease",
       textTransform: "uppercase",
       letterSpacing: "0.5px",
       fontWeight: 600,
@@ -282,10 +104,9 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.action.hover,
       borderRadius: "20px !important",
       "&:hover": {
-        border: `1px solid ${"var(--palette-primary-main)"}`,
+        border: `1px solid ${theme.vars.palette.primary.main}`,
         background: theme.vars.palette.action.selected,
-        color: theme.vars.palette.text.primary,
-        boxShadow: `0 0 12px ${"var(--palette-primary-main)"}40`
+        color: theme.vars.palette.text.primary
       },
       fontSize: "0.8rem",
       padding: "6px 16px",
@@ -295,23 +116,11 @@ const styles = (theme: Theme) =>
       }
     },
     ".tag-menu .selected": {
-      boxShadow: `0 0 15px ${"var(--palette-primary-main)"}60`,
-      border: `1px solid ${"var(--palette-primary-main)"}`,
+      border: `1px solid ${theme.vars.palette.primary.main}`,
       background: "rgba(var(--palette-primary-main-channel) / 0.1)",
-      color: "var(--palette-primary-main) !important",
+      color: theme.vars.palette.primary.main,
       "&:hover": {
-        background: "rgba(var(--palette-primary-main-channel) / 0.2)"
-      }
-    },
-    "@keyframes glowPulse": {
-      "0%": {
-        boxShadow: `0 0 5px ${"var(--palette-primary-main)"}50`
-      },
-      "50%": {
-        boxShadow: `0 0 15px ${"var(--palette-primary-main)"}90`
-      },
-      "100%": {
-        boxShadow: `0 0 5px ${"var(--palette-primary-main)"}50`
+        background: "rgba(var(--palette-primary-main-channel) / 0.15)"
       }
     },
     ".search-container": {
@@ -335,8 +144,8 @@ const styles = (theme: Theme) =>
           borderColor: theme.vars.palette.action.focus
         },
         "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-          borderColor: "var(--palette-primary-main)",
-          boxShadow: `0 0 0 2px ${"var(--palette-primary-main)"}20`
+          borderColor: theme.vars.palette.primary.main,
+          boxShadow: `0 0 0 2px rgba(var(--palette-primary-main-channel) / 0.2)`
         }
       }
     },
@@ -353,47 +162,11 @@ const styles = (theme: Theme) =>
       maxHeight: "100px",
       overflowY: "auto"
     },
-    ".matched-nodes": {
-      position: "absolute",
-      top: "2px",
-      left: "2px",
-      display: "none",
-      flexDirection: "column",
-      gap: "2px",
-      width: "fit-content",
-      height: "100%",
-      zIndex: 100
-    },
-    ".workflow:hover .matched-nodes": {
-      display: "flex"
-    },
-    ".matched-item": {
-      width: "fit-content",
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      padding: ".2em .4em",
-      marginRight: ".5em",
-      borderRadius: ".3em",
-      color: theme.vars.palette.grey[1000],
-      wordBreak: "break-word",
-      backgroundColor: theme.vars.palette.grey[200],
-      opacity: 0.96
-    },
-    ".matched-item-name": {
-      fontSize: "14px",
-      color: theme.vars.palette.grey[900]
-    },
-    ".matched-item-namespace": {
-      display: "block",
-      color: theme.vars.palette.grey[800],
-      fontSize: "11px",
-      fontWeight: 600
-    },
     ".no-results": {
       padding: "2em",
       opacity: 0,
-      animation: "fadeIn 0.2s ease-in forwards",
-      animationDelay: "2s"
+      animation: "fadeIn 0.3s ease-in forwards",
+      animationDelay: "1s"
     },
     "@keyframes fadeIn": {
       from: { opacity: 0 },
@@ -630,10 +403,10 @@ const TemplateGrid = () => {
   };
   const theme = useTheme();
 
-  // Grid configuration
-  const CARD_WIDTH = 240;
-  const CARD_HEIGHT = 220; // Reduced since description/chips hidden by default
-  const GAP = 16;
+  // Grid configuration - adjusted for new card design with image-first layout
+  const CARD_WIDTH = 260;
+  const CARD_HEIGHT = 240;
+  const GAP = 20;
 
   // Calculate grid dimensions based on container width
   const calculateColumns = useCallback((width: number) => {

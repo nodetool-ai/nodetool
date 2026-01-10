@@ -1,10 +1,7 @@
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import { act } from "@testing-library/react";
 import {
-  useFavoriteWorkflowsStore,
-  useFavoriteWorkflowActions,
-  useIsWorkflowFavorite,
-  useFavoriteWorkflowIds
+  useFavoriteWorkflowsStore
 } from "../FavoriteWorkflowsStore";
 
 describe("FavoriteWorkflowsStore", () => {

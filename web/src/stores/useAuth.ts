@@ -8,6 +8,11 @@ import { isLocalhost } from "./ApiClient"; // Keep isLocalhost for potential dev
 // Define Supabase provider types supported by the application
 export type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
 
+// Supabase subscription type from @supabase/supabase-js
+type SupabaseSubscription = {
+  unsubscribe: () => void;
+};
+
 /**
  * Interface defining the structure of the authentication Zustand store.
  */
@@ -20,12 +25,16 @@ export interface LoginStore {
   state: "init" | "loading" | "error" | "logged_in" | "logged_out";
   /** Stores the error message if an authentication operation fails. */
   error: string | null;
+  /** Internal subscription to auth state changes for cleanup. */
+  _authSubscription: SupabaseSubscription | null;
   /** Initiates the OAuth sign-in flow with the specified provider. */
   signInWithProvider: (provider: OAuthProviderSupabase) => Promise<void>;
   /** Signs the current user out. */
   signOut: () => Promise<void>;
   /** Initializes the auth store, checking for existing sessions and setting up listeners. */
   initialize: () => Promise<void>;
+  /** Cleans up the auth subscription to prevent memory leaks. */
+  cleanup: () => void;
 }
 
 /**
@@ -33,12 +42,30 @@ export interface LoginStore {
  *
  * Handles user session, login/logout operations, and listens for authentication state changes.
  * Automatically initializes upon application load.
+ *
+ * IMPORTANT: This store manages a Supabase subscription that must be cleaned up to prevent
+ * memory leaks. The subscription is automatically unsubscribed when the user signs out
+ * or when cleanup() is called.
  */
-export const useAuth = create<LoginStore>((set) => ({
+export const useAuth = create<LoginStore>((set, get) => ({
   session: null,
   user: null,
   state: "init",
   error: null,
+  _authSubscription: null,
+
+  /**
+   * Cleanup function to unsubscribe from auth state changes.
+   * Should be called when the application unmounts or when resetting auth state.
+   */
+  cleanup: () => {
+    const subscription = get()._authSubscription;
+    if (subscription) {
+      subscription.unsubscribe();
+      set({ _authSubscription: null });
+      log.info("Auth: Subscription cleaned up");
+    }
+  },
 
   /**
    * Initializes the authentication state.
@@ -48,6 +75,10 @@ export const useAuth = create<LoginStore>((set) => ({
    */
   initialize: async () => {
     log.info("Auth: Initializing...");
+
+    // Clean up any existing subscription before initializing
+    get().cleanup();
+
     if (isLocalhost) {
       // Provide a predictable state for local development without requiring login
       log.info("Auth: Running in localhost mode, setting state to logged_in.");
@@ -57,7 +88,8 @@ export const useAuth = create<LoginStore>((set) => ({
         user: {
           id: "1"
         },
-        error: null
+        error: null,
+        _authSubscription: null
       });
       return;
     }
@@ -77,15 +109,16 @@ export const useAuth = create<LoginStore>((set) => ({
         session,
         user: session?.user ?? null,
         state: session ? "logged_in" : "logged_out",
-        error: null
+        error: null,
+        _authSubscription: null
       });
       log.info(
         "Auth: Initial session checked.",
         session ? "Found" : "Not found"
       );
 
-      // Listen for subsequent auth state changes (login, logout, token refresh)
-      supabase.auth.onAuthStateChange((event, session) => {
+      // Subscribe to auth state changes and store the subscription for cleanup
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         log.info(
           "Auth: State Change Event -",
           event,
@@ -99,16 +132,17 @@ export const useAuth = create<LoginStore>((set) => ({
           error: null
         });
       });
-      // Note: The subscription returned by onAuthStateChange is not explicitly
-      // unsubscribed here, as the auth store is typically global and persists
-      // for the application's lifetime.
+
+      // Store subscription reference for cleanup
+      set({ _authSubscription: subscription });
     } catch (error: any) {
       log.info("Auth: Initialization error", error);
       set({
         state: "error",
         error: createErrorMessage(error, "Auth initialization failed").message,
         session: null,
-        user: null
+        user: null,
+        _authSubscription: null
       });
     }
   },
@@ -148,6 +182,9 @@ export const useAuth = create<LoginStore>((set) => ({
   signOut: async () => {
     set({ state: "loading", error: null });
     try {
+      // Clean up subscription before signing out
+      get().cleanup();
+
       const { error } = await supabase.auth.signOut();
       if (error) {throw error;}
       // Explicitly set state to logged_out here, although onAuthStateChange

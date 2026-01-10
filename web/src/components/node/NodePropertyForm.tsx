@@ -19,6 +19,7 @@ import isEqual from "lodash/isEqual";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { validateIdentifierName } from "../../utils/identifierValidation";
 
 interface NodePropertyFormProps {
   id: string;
@@ -45,9 +46,18 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   const [newOutputType, setNewOutputType] = useState("string");
   const [showInputDialog, setShowInputDialog] = useState(false);
   const [newInputName, setNewInputName] = useState("");
+  const [inputNameError, setInputNameError] = useState<string | undefined>();
+  const [outputNameError, setOutputNameError] = useState<string | undefined>();
+
   const onSubmitAdd = useCallback(() => {
     const name = newOutputName.trim();
-    if (!name) {return;}
+    const validation = validateIdentifierName(name);
+    
+    if (!validation.isValid) {
+      setOutputNameError(validation.error);
+      return;
+    }
+    
     handleAddOutput(name, {
       type: newOutputType,
       type_args: [],
@@ -55,6 +65,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     });
     setNewOutputName("");
     setNewOutputType("string");
+    setOutputNameError(undefined);
     setShowOutputDialog(false);
   }, [newOutputName, newOutputType, handleAddOutput]);
 
@@ -185,10 +196,19 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                   label="Name"
                   size="small"
                   value={newOutputName}
-                  onChange={(e) => setNewOutputName(e.target.value)}
+                  onChange={(e) => {
+                    setNewOutputName(e.target.value);
+                    if (outputNameError) {
+                      setOutputNameError(undefined);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {onSubmitAdd();}
                   }}
+                  error={!!outputNameError}
+                  helperText={
+                    outputNameError || "Cannot start with a number"
+                  }
                   sx={{ flex: 1 }}
                 />
                 <TextField
@@ -248,16 +268,30 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               label="Name"
               size="small"
               value={newInputName}
-              onChange={(e) => setNewInputName(e.target.value)}
+              onChange={(e) => {
+                setNewInputName(e.target.value);
+                if (inputNameError) {
+                  setInputNameError(undefined);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   const name = newInputName.trim();
-                  if (!name) {return;}
+                  const validation = validateIdentifierName(name);
+                  
+                  if (!validation.isValid) {
+                    setInputNameError(validation.error);
+                    return;
+                  }
+                  
                   onAddProperty(name);
                   setNewInputName("");
+                  setInputNameError(undefined);
                   setShowInputDialog(false);
                 }
               }}
+              error={!!inputNameError}
+              helperText={inputNameError || "Cannot start with a number"}
               sx={{ flex: 1 }}
             />
           </Box>
@@ -273,9 +307,16 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           <Button
             onClick={() => {
               const name = newInputName.trim();
-              if (!name) {return;}
+              const validation = validateIdentifierName(name);
+              
+              if (!validation.isValid) {
+                setInputNameError(validation.error);
+                return;
+              }
+              
               onAddProperty(name);
               setNewInputName("");
+              setInputNameError(undefined);
               setShowInputDialog(false);
             }}
             variant="contained"
