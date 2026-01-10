@@ -179,7 +179,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   workflow,
   width = 200,
   height = 120,
-  label
+  label,
 }) => {
   const graph = useMemo(() => {
     try {
@@ -202,7 +202,6 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   }, [previewNodes]);
 
   const nodeCount = graph.nodes?.length || 0;
-  const edgeCount = graph.edges?.length || 0;
 
   if (nodeCount === 0) {
     return (
@@ -247,7 +246,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   const viewBoxWidth = maxX + PADDING;
   const viewBoxHeight = maxY + PADDING;
 
-  return (
+  const preview = (
     <Paper
       elevation={0}
       sx={{
@@ -377,6 +376,16 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
       </svg>
     </Paper>
   );
+
+  if (label) {
+    return (
+      <Tooltip title={label} arrow>
+        {preview}
+      </Tooltip>
+    );
+  }
+
+  return preview;
 };
 
 export default WorkflowMiniPreview;
