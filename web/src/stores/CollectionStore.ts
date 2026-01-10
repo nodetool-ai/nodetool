@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { CollectionList as CollectionListType } from "./ApiTypes";
 import { client } from "./ApiClient";
+import log from "loglevel";
 
 interface ApiErrorDetail {
   loc: string[];
@@ -181,11 +182,12 @@ export const useCollectionStore = create<CollectionStore>()(
                   "Unknown error"
               });
             }
-          } catch (err: any) {
-            console.error(`Failed to index file ${file.name}:`, err);
+          } catch (err) {
+            log.error(`Failed to index file ${file.name}:`, err);
+            const errorMessage = err instanceof Error ? err.message : String(err);
             errors.push({
               file: file.name,
-              error: String(err?.message || err)
+              error: errorMessage
             });
           } finally {
             completed++;

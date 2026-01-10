@@ -336,3 +336,49 @@ When documenting new insights:
 ## Last Updated
 
 2026-01-10 - Initial memory system creation with pre-existing patterns documented
+
+---
+
+### Code Quality: Console Statement Standardization (2026-01-10)
+
+**Issue**: Multiple files used `console.log`, `console.warn`, and `console.error` instead of the centralized `loglevel` library.
+
+**Solution**: Replaced all direct console statements with proper `log.debug()`, `log.warn()`, and `log.error()` calls:
+
+**Files Changed**:
+- `web/src/stores/workflowUpdates.ts` - Removed console.log debug statement
+- `web/src/stores/GlobalChatStore.ts` - Removed 3 console.log debug statements (lines 334, 666, 1149)
+- `web/src/stores/WorkflowRunner.ts` - Changed console.warn to log.warn
+- `web/src/stores/CollectionStore.ts` - Added log import, changed console.error to log.error
+- `web/src/utils/getAssetThumbUrl.ts` - Added log import, changed console.error to log.error
+- `web/src/stores/NodeMenuStore.ts` - Added log import, replaced 5 console.debug/trace with log.debug/trace
+
+**Why**: Using a centralized logging library provides:
+- Consistent log formatting across the application
+- Better control over log levels (debug, info, warn, error)
+- Easier to configure in different environments
+- Better performance when logging is disabled
+
+**Impact**: Improved code consistency and maintainability.
+
+---
+
+### Error Handling: Type Narrowing for Unknown Types (2026-01-10)
+
+**Issue**: In CollectionStore.ts, changing `catch (err: any)` to `catch (err)` caused type errors when accessing `err.message`.
+
+**Solution**: Used proper type narrowing:
+```typescript
+} catch (err) {
+  log.error(`Failed to index file ${file.name}:`, err);
+  const errorMessage = err instanceof Error ? err.message : String(err);
+  errors.push({
+    file: file.name,
+    error: errorMessage
+  });
+}
+```
+
+**Why**: TypeScript 5+ treats caught errors as `unknown` by default, requiring explicit type narrowing before accessing properties.
+
+**Impact**: Type-safe error handling that works with TypeScript's strict mode.

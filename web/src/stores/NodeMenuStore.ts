@@ -14,6 +14,7 @@
  */
 
 import { create } from "zustand";
+import log from "loglevel";
 import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
 import useMetadataStore from "./MetadataStore";
@@ -301,7 +302,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
        * @param searchId - Optional ID to cancel outdated searches
        */
       performSearch: (term: string, searchId?: number) => {
-        console.debug("[NodeMenuStore] performSearch", {
+        log.debug("[NodeMenuStore] performSearch", {
           term,
           searchId,
           isMenuOpen: get().isMenuOpen,
@@ -405,10 +406,10 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         set({ highlightedNamespaces: [...newHighlightedNamespaces] });
       },
       closeNodeMenu: () => {
-        console.debug("[NodeMenuStore] closeNodeMenu executing", {
+        log.debug("[NodeMenuStore] closeNodeMenu executing", {
           isOpen: get().isMenuOpen
         });
-        console.trace("[NodeMenuStore] closeNodeMenu trace");
+        log.trace("[NodeMenuStore] closeNodeMenu trace");
         if (get().isMenuOpen) {
           if (get().dragToCreate) {
             set({ dragToCreate: false });
@@ -434,7 +435,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         }
       },
       openNodeMenu: (params: OpenNodeMenuParams) => {
-        console.debug("[NodeMenuStore] openNodeMenu called", params);
+        log.debug("[NodeMenuStore] openNodeMenu called", params);
         set({ clickPosition: { x: params.x, y: params.y } });
         const { menuWidth, menuHeight } = get();
 
@@ -526,7 +527,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 
         // debug: after state set
         setTimeout(() => {
-          console.debug("[NodeMenuStore] openNodeMenu state", get().isMenuOpen);
+          log.debug("[NodeMenuStore] openNodeMenu state", get().isMenuOpen);
         }, 0);
 
         // Perform search when opening if needed

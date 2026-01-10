@@ -399,3 +399,48 @@ When you encounter and solve a new issue:
 ## Last Updated
 
 2026-01-10 - Initial memory system creation
+
+---
+
+### Direct console Statements
+
+**Issue**: ESLint or code reviews flag usage of `console.log`, `console.warn`, `console.error` instead of the centralized `loglevel` library.
+
+**Solution**: Use `loglevel` for all logging:
+```typescript
+import log from "loglevel";
+
+// Instead of:
+console.log("Debug message", data);
+
+// Use:
+log.debug("Debug message", data);
+log.warn("Warning message");
+log.error("Error message", error);
+```
+
+**Why**: Centralized logging provides consistent formatting, log level control, and better performance in production.
+
+**Files**: Any file in `src/stores/`, `src/utils/`, etc.
+
+---
+
+### Catching Errors with Unknown Type
+
+**Issue**: TypeScript 5+ treats caught errors as `unknown` type, causing errors when accessing `err.message`:
+```typescript
+// ❌ Bad
+} catch (err) {
+  errors.push({ error: String(err?.message || err) }); // Error: Property 'message' does not exist
+}
+
+// ✅ Good
+} catch (err) {
+  const errorMessage = err instanceof Error ? err.message : String(err);
+  errors.push({ error: errorMessage });
+}
+```
+
+**Why**: TypeScript's strict mode requires explicit type narrowing for caught errors.
+
+**Files**: `web/src/stores/CollectionStore.ts`
