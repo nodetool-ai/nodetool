@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 type StatusStore = {
-  statuses: Record<string, string>;
+  statuses: Record<string, any>;
   setStatus: (workflowId: string, nodeId: string, status: any) => void;
   getStatus: (workflowId: string, nodeId: string) => any;
   clearStatuses: (workflowId: string) => void;
