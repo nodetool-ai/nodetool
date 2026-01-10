@@ -18,18 +18,24 @@ OpenCode workflows run on a schedule and work autonomously. This memory system h
 - `tech-stack.md` - Technologies, versions, and key dependencies
 - `common-issues.md` - Known issues and their solutions
 - `insights.md` - Important discoveries and learnings
+- `features.md` - Comprehensive list of all existing features (READ FIRST!)
 
 ## How to Use
 
 ### For OpenCode Workflows
 
-1. **Before making changes**: Read relevant memory files to understand context
+1. **Before making changes**: 
+   - **READ `features.md` FIRST** to check for existing features
+   - Read relevant memory files to understand context
 2. **While working**: Consider if you're solving a problem that might recur
-3. **After completing work**: Update memory files with new insights
+3. **After completing work**: 
+   - Update `features.md` if adding new features
+   - Update other memory files with new insights
 
 ### What to Remember
 
 ✅ **DO remember:**
+- **New features added** to the codebase (update features.md)
 - Solutions to tricky bugs that might recur
 - Important architectural decisions and their rationale
 - Code patterns that work well in this codebase
