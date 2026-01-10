@@ -1427,15 +1427,19 @@ This repository includes a comprehensive AGENTS.md documentation system to guide
 │   │   └── 📄 AGENTS.md               # Library integrations
 │   └── 📁 config/
 │       └── 📄 AGENTS.md               # Configuration management
-├── 📁 electron/src/
-│   └── 📄 AGENTS.md                   # Electron desktop app
-├── 📁 docs/
-│   └── 📄 AGENTS.md                   # Documentation guidelines
-├── 📁 scripts/
-│   └── 📄 AGENTS.md                   # Build and release scripts
-└── 📁 workflow_runner/
-    └── 📄 AGENTS.md                   # Standalone workflow runner
-```
+ ├── 📁 electron/src/
+ │   └── 📄 AGENTS.md                   # Electron desktop app
+ ├── 📁 mobile/
+ │   ├── 📄 README.md                   # Mobile app setup and usage
+ │   ├── 📄 QUICKSTART.md                # Quick start guide for mobile
+ │   └── 📄 ARCHITECTURE.md             # Mobile app architecture
+ ├── 📁 docs/
+ │   └── 📄 AGENTS.md                   # Documentation guidelines
+ ├── 📁 scripts/
+ │   └── 📄 AGENTS.md                   # Build and release scripts
+ └── 📁 workflow_runner/
+     └── 📄 AGENTS.md                   # Standalone workflow runner
+ ```
 
 ### Complete File List
 
@@ -1454,13 +1458,18 @@ This repository includes a comprehensive AGENTS.md documentation system to guide
 - `/web/src/lib/AGENTS.md` - Third-party integrations
 - `/web/src/config/AGENTS.md` - Configuration and constants
 
+**Mobile Application (3 files):**
+- `/mobile/README.md` - React Native/Expo mobile app setup and usage
+- `/mobile/QUICKSTART.md` - Step-by-step guide to run the mobile app
+- `/mobile/ARCHITECTURE.md` - Architecture and implementation details
+
 **Other Components (4 files):**
 - `/electron/src/AGENTS.md` - Desktop application
 - `/docs/AGENTS.md` - Documentation writing
 - `/scripts/AGENTS.md` - Build automation
 - `/workflow_runner/AGENTS.md` - Standalone runner
 
-**Total: 14 AGENTS.md files** providing comprehensive guidance across the entire codebase.
+**Total: 17 documentation files** providing comprehensive guidance across the entire codebase.
 
 ### Navigation Features
 
@@ -1495,5 +1504,17 @@ When adding new sections or directories:
 5. Update this root file's Quick Navigation section
 6. Keep content focused on what AI agents need to know
 7. Include practical examples and code patterns
+
+### Documentation Maintenance
+
+Keeping AGENTS.md files up to date is essential:
+
+1. **Update When Making Changes**: When modifying core functionality, update the relevant AGENTS.md
+2. **Review Periodically**: Check documentation monthly for stale content or broken links
+3. **Test Examples**: Verify all code examples still work
+4. **Sync with Codebase**: Ensure docs reflect current implementation
+5. **Version Tagging**: For major changes, consider adding version notes
+
+**Last Updated**: January 2026
 
 ---

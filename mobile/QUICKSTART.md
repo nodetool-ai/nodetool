@@ -1,5 +1,7 @@
 # Quick Start Guide for NodeTool Mobile App
 
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Mobile Quick Start**
+
 This guide will help you get the NodeTool mobile app running on your device.
 
 ## Prerequisites

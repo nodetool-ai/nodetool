@@ -1,5 +1,7 @@
 # NodeTool Mobile App
 
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Mobile README**
+
 React Native mobile application for running NodeTool Mini Apps and AI Chat.
 
 ## Features
