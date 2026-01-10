@@ -8,7 +8,7 @@ import PDFViewer from "../../components/asset_viewer/PDFViewer";
 import Model3DViewer from "../../components/asset_viewer/Model3DViewer";
 
 // Helper to detect 3D model content types
-const is3DModel = (type: string, url?: string): boolean => {
+const isModel3D = (type: string, url?: string): boolean => {
   // Check MIME types
   if (
     type.startsWith("model/") ||
@@ -63,7 +63,7 @@ export function useAssetDisplay(params: {
       if (type.startsWith("application/pdf")) {
         return <PDFViewer asset={asset} />;
       }
-      if (is3DModel(type, asset.get_url ?? undefined)) {
+      if (isModel3D(type, asset.get_url ?? undefined)) {
         return <Model3DViewer asset={asset} />;
       }
     }
@@ -86,7 +86,7 @@ export function useAssetDisplay(params: {
       if (type === "document" && url?.endsWith(".pdf")) {
         return <PDFViewer url={url} />;
       }
-      if (is3DModel(type, url)) {
+      if (isModel3D(type, url)) {
         return <Model3DViewer url={url} />;
       }
     }
@@ -95,13 +95,3 @@ export function useAssetDisplay(params: {
 
   return { component } as const;
 }
-
-
-
-
-
-
-
-
-
-
