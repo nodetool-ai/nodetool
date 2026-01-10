@@ -41,7 +41,8 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    updateNodeData: state.updateNodeData
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -77,7 +78,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected, updateNodeData } =
     nodesStore;
   const {
     saveExample,
@@ -376,6 +377,18 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleToggleComment = useCallback(() => {
+    if (selectedNodes.length === 1) {
+      const node = selectedNodes[0];
+      const currentComment = node.data.comment || "";
+      if (currentComment.trim()) {
+        updateNodeData(node.id, { comment: "", commentCollapsed: false });
+      } else {
+        updateNodeData(node.id, { comment: "Add your comment here", commentCollapsed: false });
+      }
+    }
+  }, [selectedNodes, updateNodeData]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -441,6 +454,10 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
+      },
+      toggleComment: {
+        callback: handleToggleComment,
+        active: selectedNodes.length === 1
       }
     };
 
@@ -481,7 +498,8 @@ export const useNodeEditorShortcuts = (
     openFind,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
+    handleSelectConnectedOutputs,
+    handleToggleComment
   ]);
 
   // useEffect for shortcut registration

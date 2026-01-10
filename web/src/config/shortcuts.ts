@@ -381,6 +381,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true,
     slug: "selectConnectedOutputs"
   },
+  {
+    title: "Add/Edit Comment",
+    slug: "toggleComment",
+    keyCombo: ["Control", "/"],
+    category: "editor" as const,
+    description: "Add or edit comment on selected node",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {
