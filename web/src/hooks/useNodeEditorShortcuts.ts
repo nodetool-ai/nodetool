@@ -25,6 +25,7 @@ import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
+import { COMMENT_NODE_METADATA } from "../utils/nodeUtils";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -41,7 +42,9 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    createNode: state.createNode,
+    addNode: state.addNode
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -77,7 +80,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected, createNode, addNode } =
     nodesStore;
   const {
     saveExample,
@@ -376,6 +379,21 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleAddComment = useCallback(() => {
+    if (!reactFlow) {return;}
+    const centerX = (typeof window !== "undefined" ? window.innerWidth : 800) / 2;
+    const centerY = (typeof window !== "undefined" ? window.innerHeight : 600) / 2;
+    const position = reactFlow.screenToFlowPosition({
+      x: centerX,
+      y: centerY
+    });
+    const newNode = createNode(COMMENT_NODE_METADATA, position);
+    newNode.width = 150;
+    newNode.height = 100;
+    newNode.style = { width: 150, height: 100 };
+    addNode(newNode);
+  }, [reactFlow, createNode, addNode]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -441,7 +459,8 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
-      }
+      },
+      addComment: { callback: handleAddComment }
     };
 
     // Switch-to-tab (1-9)
@@ -481,7 +500,8 @@ export const useNodeEditorShortcuts = (
     openFind,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
+    handleSelectConnectedOutputs,
+    handleAddComment
   ]);
 
   // useEffect for shortcut registration

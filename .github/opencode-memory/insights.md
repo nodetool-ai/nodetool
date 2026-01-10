@@ -321,6 +321,25 @@ const { data, isLoading, error } = useQuery({
 
 ---
 
+### Quick Comment Add Implementation (2026-01-10)
+
+**Insight**: Comment nodes can be quickly added using viewport center calculation.
+
+**Pattern**:
+```typescript
+const centerX = window.innerWidth / 2;
+const centerY = window.innerHeight / 2;
+const position = reactFlow.screenToFlowPosition({ x: centerX, y: centerY });
+```
+
+**Why**: This approach works reliably across different screen sizes and zoom levels. The `screenToFlowPosition` method converts screen coordinates to ReactFlow canvas coordinates.
+
+**Files**: `web/src/components/panels/FloatingToolBar.tsx`, `web/src/hooks/useNodeEditorShortcuts.ts`
+
+**Date**: 2026-01-10
+
+---
+
 ## How to Add New Insights
 
 When documenting new insights:
@@ -335,7 +354,7 @@ When documenting new insights:
 
 ## Last Updated
 
-2026-01-10 - Initial memory system creation with pre-existing patterns documented
+2026-01-10 - Quick Comment Add feature implemented
 
 ---
 

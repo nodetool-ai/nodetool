@@ -155,4 +155,25 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Quick Comment Add Feature (2026-01-10)
+
+**What**: Added a quick way to add comment/sticky note nodes to workflows. Users can now:
+- Click the new Comment icon button in the floating toolbar to add a comment at the center of the viewport
+- Press `Shift+C` to quickly add a comment node
+
+**Why**: The CommentNode component already existed but was not easily discoverable or accessible. Users needed an intuitive way to add annotations to their workflows.
+
+**Implementation**:
+- Added `CommentIcon` button to `FloatingToolBar.tsx` next to Auto Layout button
+- Added `handleAddComment` callback that calculates viewport center and creates a comment node
+- Registered new keyboard shortcut `Shift+C` in `shortcuts.ts`
+- Implemented shortcut handler in `useNodeEditorShortcuts.ts`
+
+**Files Changed**:
+- `web/src/components/panels/FloatingToolBar.tsx` - Added comment button and handler
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added Shift+C keyboard shortcut
+- `web/src/config/shortcuts.ts` - Added `addComment` shortcut definition
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
