@@ -155,4 +155,34 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Node Templates Feature (2026-01-10)
+
+**What**: Added Node Templates feature that allows users to save configured node properties as reusable templates.
+
+**Why**: Users often create nodes with the same configuration repeatedly (e.g., Claude LLM with specific system prompts). Templates eliminate this repetition by saving and applying common configurations.
+
+**Implementation**:
+- Created `NodeTemplatesStore` (Zustand store with persistence) to manage templates
+- Created `NodeTemplates` component for template management in node context menu
+- Created `TemplatesTiles` component for displaying templates in the NodeMenu
+- Extended `useCreateNode` hook to accept template properties
+- Extended `DragMetadata` interface to support template properties during drag-and-drop
+- Added comprehensive tests for the store operations
+
+**Files**:
+- `web/src/stores/NodeTemplatesStore.ts` - New store for template management
+- `web/src/components/node/NodeTemplates.tsx` - Template management UI
+- `web/src/components/node_menu/TemplatesTiles.tsx` - Templates display in NodeMenu
+- `web/src/hooks/useCreateNode.ts` - Updated to support template properties
+- `web/src/lib/dragdrop/types.ts` - Extended DragMetadata interface
+- `web/src/stores/__tests__/NodeTemplatesStore.test.ts` - Store tests
+
+**Key Technical Decisions**:
+- Templates persist to localStorage via Zustand persist middleware
+- Templates are organized by node type with configurable limits (20 per type, 100 total)
+- Templates track usage count for popularity-based sorting
+- Template properties are applied during node creation via updated `createNode` function
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
