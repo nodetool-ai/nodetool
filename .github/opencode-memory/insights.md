@@ -399,3 +399,26 @@ on:
 **Files**: `.github/workflows/e2e.yml`, `.github/workflows/copilot-setup-steps.yml`, `.github/workflows/test.yml`
 
 **Date**: 2026-01-10
+
+---
+
+### Node Templates Implementation (2026-01-10)
+
+**Insight**: The `addTemplate` function adds new templates to the front of the array, not the back.
+
+**Discovery**: When implementing the Node Templates feature, tests failed because templates were being added in reverse order. The `addTemplate` function uses `[newTemplate, ...state.templates]` to prepend new templates.
+
+**Test Fix**: Updated tests to account for this behavior:
+```typescript
+// Templates are added to the front, so reverse the order when testing
+act(() => {
+  useNodeTemplatesStore.getState().addTemplate("C", "nodetool.test.Node", {});
+  useNodeTemplatesStore.getState().addTemplate("B", "nodetool.test.Node", {});
+  useNodeTemplatesStore.getState().addTemplate("A", "nodetool.test.Node", {});
+});
+// Results in templates array: ["A", "B", "C"]
+```
+
+**Files**: `web/src/stores/NodeTemplatesStore.ts`, `web/src/stores/__tests__/NodeTemplatesStore.test.ts`
+
+**Date**: 2026-01-10

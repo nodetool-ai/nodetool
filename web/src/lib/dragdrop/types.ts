@@ -6,6 +6,7 @@
  */
 
 import type { Asset, NodeMetadata } from "../../stores/ApiTypes";
+import type { NodeTemplate } from "../../stores/NodeTemplatesStore";
 
 /**
  * Supported drag data types in the application.
@@ -13,6 +14,7 @@ import type { Asset, NodeMetadata } from "../../stores/ApiTypes";
  */
 export type DragDataType =
   | "create-node" // Node from node menu (maps to existing "create-node" key)
+  | "create-node-from-template" // Node from node template
   | "asset" // Single asset (maps to existing "asset" key)
   | "assets-multiple" // Multiple assets (maps to existing "selectedAssetIds" key)
   | "file" // External file from OS
@@ -24,6 +26,7 @@ export type DragDataType =
  */
 export interface DragPayloadMap {
   "create-node": NodeMetadata;
+  "create-node-from-template": { metadata: NodeMetadata; template: NodeTemplate };
   asset: Asset;
   "assets-multiple": string[]; // Asset IDs
   file: File;

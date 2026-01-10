@@ -11,10 +11,12 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import BookmarkAddIcon from "@mui/icons-material/BookmarkAdd";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import SaveTemplateDialog from "../dialogs/SaveTemplateDialog";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -22,7 +24,9 @@ const NodeContextMenu: React.FC = () => {
     closeContextMenu,
     node,
     handlers,
-    conditions
+    conditions,
+    saveTemplateDialogOpen,
+    dialogHandlers
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
 
@@ -97,6 +101,13 @@ const NodeContextMenu: React.FC = () => {
       tooltip="Find Templates using this node"
     />,
     <ContextMenuItem
+      key="save-as-template"
+      onClick={handlers.handleSaveAsTemplate}
+      label="Save as Template"
+      IconComponent={<BookmarkAddIcon />}
+      tooltip="Save this node configuration as a template"
+    />,
+    <ContextMenuItem
       key="select-all"
       onClick={handlers.handleSelectAllSameType}
       label={`Select all ${""} nodes`}
@@ -124,25 +135,33 @@ const NodeContextMenu: React.FC = () => {
   ];
 
   return (
-    <Menu
-      className="context-menu node-context-menu"
-      open={menuPosition !== null}
-      onClose={closeContextMenu}
-      onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: "8px"
-          }
+    <>
+      <Menu
+        className="context-menu node-context-menu"
+        open={menuPosition !== null}
+        onClose={closeContextMenu}
+        onContextMenu={(event) => event.preventDefault()}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
         }
-      }}
-    >
-      {menuItems.filter(Boolean)}
-    </Menu>
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "8px"
+            }
+          }
+        }}
+      >
+        {menuItems.filter(Boolean)}
+      </Menu>
+      <SaveTemplateDialog
+        open={saveTemplateDialogOpen}
+        onClose={dialogHandlers.handleCloseSaveTemplateDialog}
+        nodeType={node?.type ?? ""}
+        nodeProperties={node?.data?.properties ?? {}}
+      />
+    </>
   );
 };
 
