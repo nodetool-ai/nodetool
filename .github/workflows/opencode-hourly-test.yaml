@@ -57,11 +57,12 @@ jobs:
             ## Step 1: Check Memory (REQUIRED)
 
             **Read these files FIRST**:
-            1. `.github/opencode-memory/build-test-lint.md` - Quality requirements (CRITICAL!)
-            2. `.github/opencode-memory/common-issues.md` - Known issues and solutions
-            3. `.github/opencode-memory/project-context.md` - Project architecture
-            4. `.github/opencode-memory/tech-stack.md` - Technologies used
-            5. `.github/opencode-memory/insights.md` - Important learnings
+            1. **`.github/opencode-memory/features.md`** - Understand what exists before testing
+            2. `.github/opencode-memory/build-test-lint.md` - Quality requirements (CRITICAL!)
+            3. `.github/opencode-memory/common-issues.md` - Known issues and solutions
+            4. `.github/opencode-memory/project-context.md` - Project architecture
+            5. `.github/opencode-memory/tech-stack.md` - Technologies used
+            6. `.github/opencode-memory/insights.md` - Important learnings
 
             **Check if similar fixes have been attempted before!**
 
@@ -260,6 +261,9 @@ jobs:
             3. **`.github/opencode-memory/insights.md`**:
                - Share learnings about the codebase
                - Document patterns that prevent issues
+
+            4. **`.github/opencode-memory/features.md`** (if relevant):
+               - Update if test fixes reveal missing or broken features
 
             **Format**:
             ```markdown

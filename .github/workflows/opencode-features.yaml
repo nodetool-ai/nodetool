@@ -66,20 +66,23 @@ jobs:
             ## Step 1: Learn from Memory (REQUIRED)
 
             **Read these files FIRST** to avoid redundant work:
-            1. `.github/opencode-memory/project-context.md` - Architecture, patterns, data flow
-            2. `.github/opencode-memory/build-test-lint.md` - Quality requirements and commands
-            3. `.github/opencode-memory/tech-stack.md` - Technologies and versions
-            4. `.github/opencode-memory/common-issues.md` - Known issues and solutions
-            5. `.github/opencode-memory/insights.md` - Important discoveries
+            1. **`.github/opencode-memory/features.md`** - **COMPREHENSIVE FEATURE LIST (READ FIRST!)**
+            2. `.github/opencode-memory/project-context.md` - Architecture, patterns, data flow
+            3. `.github/opencode-memory/build-test-lint.md` - Quality requirements and commands
+            4. `.github/opencode-memory/tech-stack.md` - Technologies and versions
+            5. `.github/opencode-memory/common-issues.md` - Known issues and solutions
+            6. `.github/opencode-memory/insights.md` - Important discoveries
 
-            **Check if similar work has been attempted before!**
+            **CRITICAL**: Check `features.md` to ensure your feature doesn't already exist!
 
             ## Step 2: Explore and Plan
 
-            1. **Read documentation**: `/AGENTS.md`, `/web/README.md`, `/.github/copilot-instructions.md`
-            2. **Understand the codebase**: Explore relevant directories
-            3. **Think creatively**: What would make NodeTool better?
-            4. **Validate feasibility**: Can it be done with frontend-only changes?
+            1. **Check for duplicates**: Search `features.md` for similar functionality
+            2. **Read documentation**: `/AGENTS.md`, `/web/README.md`, `/.github/copilot-instructions.md`
+            3. **Understand the codebase**: Explore relevant directories
+            4. **Think creatively**: What would make NodeTool better?
+            5. **Validate feasibility**: Can it be done with frontend-only changes?
+            6. **Confirm uniqueness**: Ensure feature is not redundant with existing features
 
             **Feature Ideas** (or come up with your own):
             - Enhanced keyboard shortcuts or accessibility
@@ -155,11 +158,20 @@ jobs:
 
             **After completing your feature**, update memory files:
 
-            1. **`.github/opencode-memory/insights.md`** - Document new patterns or discoveries
-            2. **`.github/opencode-memory/common-issues.md`** - Add any tricky problems you solved
-            3. **`.github/opencode-memory/project-context.md`** - Add entry to "Recent Changes"
+            1. **`.github/opencode-memory/features.md`** - **ADD YOUR NEW FEATURE (REQUIRED!)**
+               - Add to appropriate section
+               - Use **bold** for feature name
+               - Keep description concise (1-2 lines)
+            2. **`.github/opencode-memory/insights.md`** - Document new patterns or discoveries
+            3. **`.github/opencode-memory/common-issues.md`** - Add any tricky problems you solved
+            4. **`.github/opencode-memory/project-context.md`** - Add entry to "Recent Changes"
 
-            **Format**:
+            **Format for features.md**:
+            ```markdown
+            - **Feature Name**: Brief description of what it does
+            ```
+
+            **Format for project-context.md**:
             ```markdown
             ### [Feature Name] (2026-01-10)
 
