@@ -306,6 +306,35 @@ const { data, isLoading, error } = useQuery({
 
 ## Future Considerations
 
+### Quick Favorites Palette Feature (2026-01-10)
+
+**What**: Added a keyboard-driven Quick Favorites Palette (`Alt+F`) for instant node insertion from favorites. Features search, keyboard navigation (↑↓ to navigate, Enter to insert, Esc to close), and integrates with the existing favorites infrastructure.
+
+**Why**: Power users often reuse the same 5-10 nodes repeatedly. This feature provides a faster alternative to opening the full Node Menu for frequently used nodes.
+
+**Implementation**:
+- New `QuickFavoritesPaletteStore.ts` for modal state management
+- New `QuickFavoritesPalette.tsx` component with polished UI
+- Added `quickFavorites` keyboard shortcut in `config/shortcuts.ts`
+- Integrated into `NodeEditor.tsx`
+- Comprehensive tests in `QuickFavoritesPaletteStore.test.ts`
+
+**Files**:
+- `web/src/stores/QuickFavoritesPaletteStore.ts`
+- `web/src/stores/__tests__/QuickFavoritesPaletteStore.test.ts`
+- `web/src/components/node_menu/QuickFavoritesPalette.tsx`
+- `web/src/config/shortcuts.ts` (shortcut definition)
+- `web/src/hooks/useNodeEditorShortcuts.ts` (shortcut registration)
+- `web/src/components/node_editor/NodeEditor.tsx` (component integration)
+
+**Key Decisions**:
+- Palette uses same favorites data from `useFavoriteNodesStore` (no duplication)
+- Filtering happens in real-time as user types
+- Keyboard navigation is independent of ReactFlow (uses store state)
+- Empty state shows helpful message about adding favorites
+
+---
+
 ### React 19 Migration
 
 **Note**: Project currently uses React 18.2 intentionally.

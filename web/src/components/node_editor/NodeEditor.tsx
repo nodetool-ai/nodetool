@@ -42,6 +42,7 @@ import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import QuickFavoritesPalette from "../node_menu/QuickFavoritesPalette";
 
 declare global {
   interface Window {
@@ -141,6 +142,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             <>
               <RunAsAppFab workflowId={workflowId} />
               <NodeMenu focusSearchInput={true} />
+              <QuickFavoritesPalette />
               <CommandMenu
                 open={commandMenuOpen}
                 setOpen={setCommandMenuOpen}

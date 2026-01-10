@@ -25,6 +25,7 @@ import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
+import { useQuickFavoritesPaletteStore } from "../stores/QuickFavoritesPaletteStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -90,6 +91,9 @@ export const useNodeEditorShortcuts = (
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
   const { openFind } = findInWorkflow;
+  const toggleQuickFavorites = useQuickFavoritesPaletteStore(
+    (state) => state.togglePalette
+  );
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
@@ -441,7 +445,8 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
-      }
+      },
+      quickFavorites: { callback: toggleQuickFavorites }
     };
 
     // Switch-to-tab (1-9)
@@ -481,7 +486,8 @@ export const useNodeEditorShortcuts = (
     openFind,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
+    handleSelectConnectedOutputs,
+    toggleQuickFavorites
   ]);
 
   // useEffect for shortcut registration

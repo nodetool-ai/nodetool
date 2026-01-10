@@ -155,4 +155,11 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Quick Favorites Palette (2026-01-10)
+
+**What**: Added keyboard-driven Quick Favorites Palette for instant node insertion
+**Why**: Faster workflow creation for power users who frequently reuse the same nodes
+**Implementation**: New store, component, keyboard shortcut, and comprehensive tests
+**Files**: See insights.md for details
+
 _No entries yet - this memory system is new as of 2026-01-10_
