@@ -155,4 +155,23 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Quick Actions Toolbar (2026-01-10)
+
+**What**: Added a floating Quick Actions Toolbar that appears above selected nodes in the workflow editor, providing quick access to common operations without using keyboard shortcuts.
+
+**Why**: Improves workflow efficiency by providing mouse-accessible shortcuts for frequently used operations like copy, duplicate, delete, align, group, and bypass.
+
+**Implementation**: 
+- Created `QuickActionsToolbar` component (`web/src/components/node_editor/QuickActionsToolbar.tsx`) with MUI icons and tooltip controls
+- Toolbar automatically appears when nodes are selected and disappears when no nodes are selected
+- Position is calculated based on the bounds of selected nodes
+- Actions include: Copy, Duplicate, Align, Group, Bypass, Delete
+- Each action button has proper keyboard accessibility and tooltips
+
+**Files Changed**:
+- `web/src/components/node_editor/QuickActionsToolbar.tsx` (new)
+- `web/src/components/node/ReactFlowWrapper.tsx` (modified to include toolbar)
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

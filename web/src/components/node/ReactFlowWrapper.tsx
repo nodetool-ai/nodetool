@@ -48,6 +48,9 @@ import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
+import GhostNode from "./GhostNode";
+import MiniMapNavigator from "./MiniMapNavigator";
+import QuickActionsToolbar from "../node_editor/QuickActionsToolbar";
 
 const fitViewOptions = {
   maxZoom: MAX_ZOOM,
@@ -59,10 +62,6 @@ interface ReactFlowWrapperProps {
   workflowId: string;
   active: boolean;
 }
-
-
-import GhostNode from "./GhostNode";
-import MiniMapNavigator from "./MiniMapNavigator";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -543,6 +542,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         />
       )}
       <MiniMapNavigator />
+      <QuickActionsToolbar />
     </div>
   );
 };
