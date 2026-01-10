@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useMemo } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import SearchResultItem from "./SearchResultItem";
@@ -10,7 +10,7 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as VirtualList, ListChildComponentProps } from "react-window";
 
 interface SearchResultsPanelProps {
-  searchNodes: NodeMetadata[];
+  searchNodes?: NodeMetadata[] | React.ReactNode;
 }
 
 const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
@@ -22,13 +22,6 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
   const listRef = useRef<VirtualList>(null);
-
-  // Scroll to the selected item when selectedIndex changes
-  useEffect(() => {
-    if (selectedIndex >= 0 && listRef.current) {
-      listRef.current.scrollToItem(selectedIndex, "smart");
-    }
-  }, [selectedIndex]);
 
   const handleDragStart = useCallback(
     (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
@@ -47,9 +40,21 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     clearDrag();
   }, [clearDrag]);
 
+  const nodes = useMemo(
+    () => (Array.isArray(searchNodes) ? (searchNodes as NodeMetadata[]) : []),
+    [searchNodes]
+  );
+
+  // Scroll to the selected item when selectedIndex changes
+  useEffect(() => {
+    if (selectedIndex >= 0 && listRef.current) {
+      listRef.current.scrollToItem(selectedIndex, "smart");
+    }
+  }, [selectedIndex]);
+
   const renderSearchRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {
-      const node = searchNodes[index];
+      const node = nodes[index];
       return (
         <div style={style}>
           <SearchResultItem
@@ -62,8 +67,12 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
         </div>
       );
     },
-    [searchNodes, handleDragStart, handleDragEnd, handleCreateNode, selectedIndex]
+    [nodes, handleDragStart, handleDragEnd, handleCreateNode, selectedIndex]
   );
+
+  if (!Array.isArray(searchNodes)) {
+    return <>{searchNodes}</>;
+  }
 
   return (
     <AutoSizer>
@@ -75,7 +84,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
             ref={listRef}
             height={safeHeight}
             width={safeWidth}
-            itemCount={searchNodes.length}
+            itemCount={nodes.length}
             itemSize={72}
             style={{ overflowX: "hidden" }}
           >

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -8,6 +8,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NodeItem from "./NodeItem";
 import SearchResultItem from "./SearchResultItem";
 import SearchResultsPanel from "./SearchResultsPanel";
+import VirtualizedNodeList from "./VirtualizedNodeList";
 import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
@@ -22,6 +23,9 @@ interface RenderNodesProps {
   onToggleSelection?: (nodeType: string) => void;
   showFavoriteButton?: boolean;
 }
+
+const VIRTUALIZATION_THRESHOLD = 20;
+const ITEM_HEIGHT = 40;
 
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
@@ -88,12 +92,23 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   }, [searchTerm, groupedSearchResults]);
 
   const elements = useMemo(() => {
-    // If we're searching, render flat ranked results with SearchResultItem
     if (searchTerm && groupedSearchResults.length > 0) {
-      // Flatten all results from groups (now just one "Results" group)
       const allSearchNodes = groupedSearchResults.flatMap(
         (group) => group.nodes
       );
+
+      if (allSearchNodes.length >= VIRTUALIZATION_THRESHOLD) {
+        return (
+          <SearchResultsPanel
+            searchNodes={
+              <VirtualizedNodeList
+                nodes={allSearchNodes}
+                height="100%"
+              />
+            }
+          />
+        );
+      }
 
       return allSearchNodes.map((node) => (
         <SearchResultItem
@@ -106,7 +121,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       ));
     }
 
-    // Otherwise use the original namespace-based grouping
     const seenServices = new Set<string>();
 
     return Object.entries(groupNodes(nodes)).flatMap(
@@ -126,44 +140,49 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           );
         }
 
-        let textForNamespaceHeader = namespace; // Default to full namespace string
+        let textForNamespaceHeader = namespace;
 
         if (selectedPath && selectedPath === namespace) {
-          // If the current group of nodes IS the selected namespace, display its last part.
-          // e.g., selectedPath="A.B", namespace="A.B" -> display "B"
           textForNamespaceHeader = namespace.split(".").pop() || namespace;
         } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
-          // If the current group of nodes is a sub-namespace of the selected one, display the relative path.
-          // e.g., selectedPath="A", namespace="A.B.C" -> display "B.C"
           textForNamespaceHeader = namespace.substring(selectedPath.length + 1);
         }
-        // If selectedPath is empty (root is selected), textForNamespaceHeader remains the full 'namespace'.
-        // If namespace is not a child of selectedPath and not equal to selectedPath,
-        // it also remains the full 'namespace'.
+
+        const shouldVirtualize = nodesInNamespace.length >= VIRTUALIZATION_THRESHOLD;
 
         elements.push(
-          <Typography
-            key={`namespace-${namespace}-${namespaceIndex}`}
-            variant="h5"
-            component="div"
-            className="namespace-text"
-          >
-            {textForNamespaceHeader}
-          </Typography>,
-            ...nodesInNamespace.map((node) => (
-            <div key={node.node_type}>
-              <NodeItem
-                key={node.node_type}
-                node={node}
-                onDragStart={handleDragStart(node)}
-                onClick={() => handleCreateNode(node)}
-                showCheckbox={showCheckboxes}
-                isSelected={selectedNodeTypes.includes(node.node_type)}
-                onToggleSelection={onToggleSelection}
-                showFavoriteButton={showFavoriteButton}
+          <React.Fragment key={`namespace-fragment-${namespace}`}>
+            <Typography
+              key={`namespace-${namespace}-${namespaceIndex}`}
+              variant="h5"
+              component="div"
+              className="namespace-text"
+            >
+              {textForNamespaceHeader}
+            </Typography>
+            {shouldVirtualize ? (
+              <VirtualizedNodeList
+                key={`virtualized-${namespace}`}
+                nodes={nodesInNamespace}
+                height={nodesInNamespace.length * ITEM_HEIGHT}
               />
-            </div>
-          ))
+            ) : (
+              nodesInNamespace.map((node) => (
+                <div key={node.node_type}>
+                  <NodeItem
+                    key={node.node_type}
+                    node={node}
+                    onDragStart={handleDragStart(node)}
+                    onClick={() => handleCreateNode(node)}
+                    showCheckbox={showCheckboxes}
+                    isSelected={selectedNodeTypes.includes(node.node_type)}
+                    onToggleSelection={onToggleSelection}
+                    showFavoriteButton={showFavoriteButton}
+                  />
+                </div>
+              ))
+            )}
+          </React.Fragment>
         );
         return elements;
       }

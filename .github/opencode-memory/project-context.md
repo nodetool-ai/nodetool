@@ -155,4 +155,23 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Virtualized Node Lists (2026-01-10)
+
+**What**: Implemented virtualization for the Node Menu to improve performance when displaying many nodes.
+
+**Why**: The Node Menu was rendering all nodes in a namespace at once, which caused performance issues when there are 100+ nodes. Virtualization ensures only visible nodes are rendered.
+
+**Implementation**: 
+- Created `VirtualizedNodeList` component using `@tanstack/react-virtual`
+- Updated `RenderNodes` to use virtualization when there are more than 20 nodes in a namespace
+- Updated `SearchResultsPanel` to accept rendered nodes for virtualization support
+- Uses a threshold of 20 nodes before switching to virtualized rendering
+
+**Files**:
+- `web/src/components/node_menu/VirtualizedNodeList.tsx` - New virtualized list component
+- `web/src/components/node_menu/RenderNodes.tsx` - Updated to use virtualization
+- `web/src/components/node_menu/SearchResultsPanel.tsx` - Updated to support rendered nodes
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
