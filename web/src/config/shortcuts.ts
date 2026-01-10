@@ -534,6 +534,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Find and navigate to nodes in the current workflow",
     registerCombo: true
+  },
+  {
+    title: "Add Comment",
+    slug: "addComment",
+    keyCombo: ["Shift", "C"],
+    category: "editor" as const,
+    description: "Add a comment node at the center of the viewport",
+    registerCombo: true
   }
 ] as Shortcut[];
 

@@ -17,6 +17,7 @@ import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
+import CommentIcon from "@mui/icons-material/Comment";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
@@ -24,6 +25,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { COMMENT_NODE_METADATA } from "../../utils/nodeUtils";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -39,6 +41,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
+import { useReactFlow } from "@xyflow/react";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { Workflow } from "../../stores/ApiTypes";
@@ -288,16 +291,19 @@ const FloatingToolBar: React.FC<{
     })
   );
 
-  const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
+  const { workflow, nodes, edges, autoLayout, workflowJSON, createNode, addNode } = useNodes(
     (state) => ({
       workflow: state.workflow,
       nodes: state.nodes,
       edges: state.edges,
       autoLayout: state.autoLayout,
-      workflowJSON: state.workflowJSON
+      workflowJSON: state.workflowJSON,
+      createNode: state.createNode,
+      addNode: state.addNode
     })
   );
   const getCurrentWorkflow = useNodes((state) => state.getWorkflow);
+  const reactFlowInstance = useReactFlow();
 
   const { run, isWorkflowRunning, isPaused, isSuspended, cancel, pause, resume } = useWebsocketRunner(
     (state) => ({
@@ -465,6 +471,21 @@ const FloatingToolBar: React.FC<{
     toggleMiniMap();
   }, [toggleMiniMap]);
 
+  const handleAddComment = useCallback(() => {
+    if (!reactFlowInstance) {return;}
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const position = reactFlowInstance.screenToFlowPosition({
+      x: centerX,
+      y: centerY
+    });
+    const newNode = createNode(COMMENT_NODE_METADATA, position);
+    newNode.width = 150;
+    newNode.height = 100;
+    newNode.style = { width: 150, height: 100 };
+    addNode(newNode);
+  }, [reactFlowInstance, createNode, addNode]);
+
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -519,6 +540,14 @@ const FloatingToolBar: React.FC<{
           variant="neutral"
           onClick={handleAutoLayout}
           aria-label="Auto layout nodes"
+        />
+        <ToolbarButton
+          icon={<CommentIcon />}
+          tooltip="Add Comment"
+          shortcut="addComment"
+          variant="neutral"
+          onClick={handleAddComment}
+          aria-label="Add comment node"
         />
         <ToolbarButton
           icon={<SaveIcon />}
