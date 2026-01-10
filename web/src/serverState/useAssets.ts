@@ -32,14 +32,12 @@ export const useAssets = (_initialFolderId: string | null = null) => {
   const currentUser = useAuth((state) => state.user);
   const setCurrentFolder = useAssetGridStore((state) => state.setCurrentFolder);
   const loadCurrentFolder = useAssetStore((state) => state.loadCurrentFolder);
-  const {
-    load,
-    loadFolderTree,
-    update,
-    delete: deleteAsset,
-    createFolder
-  } = useAssetStore();
-  const { settings } = useSettingsStore();
+  const load = useAssetStore((state) => state.load);
+  const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
+  const update = useAssetStore((state) => state.update);
+  const deleteAsset = useAssetStore((state) => state.delete);
+  const createFolder = useAssetStore((state) => state.createFolder);
+  const { settings } = useSettingsStore((state) => ({ settings: state.settings }));
   const queryClient = useQueryClient();
   const setSelectedFolderId = useAssetGridStore(
     (state) => state.setSelectedFolderId

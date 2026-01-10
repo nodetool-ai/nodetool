@@ -442,3 +442,54 @@ cd mobile && npm install
 **Prevention**: When adding new workflows that need npm dependencies, ensure all three packages (web, electron, mobile) have their dependencies installed. Also ensure path filters include `mobile/**` if mobile changes should trigger the workflow.
 
 ---
+
+### Full Store Subscriptions Causing Unnecessary Re-renders (2026-01-10)
+
+**Issue**: Components were subscribing to entire Zustand stores instead of selective state slices, causing unnecessary re-renders when any part of the store changed.
+
+**Example of problematic code**:
+```typescript
+// ❌ Bad - subscribes to entire store
+const { load, loadFolderTree, update, delete: deleteAsset, createFolder } = useAssetStore();
+const { settings, updateSettings } = useSettingsStore();
+```
+
+**Solution**: Use selective subscriptions to subscribe only to the specific state needed:
+```typescript
+// ✅ Good - selective subscriptions
+const load = useAssetStore((state) => state.load);
+const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
+const update = useAssetStore((state) => state.update);
+const deleteAsset = useAssetStore((state) => state.delete);
+const createFolder = useAssetStore((state) => state.createFolder);
+const settings = useSettingsStore((state) => state.settings);
+const updateSettings = useSettingsStore((state) => state.updateSettings);
+```
+
+**Files Fixed**:
+- `web/src/serverState/useAssets.ts` - Fixed useAssetStore and useSettingsStore subscriptions
+- `web/src/components/dashboard/WelcomePanel.tsx` - Fixed useSettingsStore subscription
+- `web/src/components/content/Welcome/Welcome.tsx` - Fixed useSettingsStore subscription
+
+**Why**: Zustand with selective subscriptions prevents unnecessary re-renders. When a component subscribes to the entire store, it re-renders whenever any state changes. Selective subscriptions ensure components only re-render when their specific slice of state changes.
+
+**Prevention**: Always use selectors with Zustand stores: `useStore(state => state.specificProperty)` instead of `useStore()`.
+
+---
+
+### TypeScript `any` Types in StatusStore (2026-01-10)
+
+**Issue**: Attempted to change `status: any` to `status: string` in StatusStore, which broke tests that stored objects, null, and undefined as status values.
+
+**Solution**: Kept `any` type since StatusStore legitimately needs to store polymorphic status values (strings, objects, null, undefined).
+
+**Files**: `web/src/stores/StatusStore.ts`
+
+**Why**: StatusStore is designed to store arbitrary status data for workflow nodes. The status can be:
+- Simple strings ("running", "completed")
+- Complex objects with progress info
+- null or undefined values
+
+**Lesson**: Not all `any` types should be replaced. Some legitimately need to support arbitrary data.
+
+---

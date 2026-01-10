@@ -155,4 +155,20 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Code Quality Improvements (2026-01-10)
+
+**Changes Made**:
+- Fixed full store subscriptions in 3 files to use selective subscriptions for better performance
+- Verified TypeScript type checking passes for web and electron packages
+- Verified all unit tests pass
+
+**Files Changed**:
+- `web/src/serverState/useAssets.ts` - Fixed useAssetStore and useSettingsStore subscriptions
+- `web/src/components/dashboard/WelcomePanel.tsx` - Fixed useSettingsStore subscription
+- `web/src/components/content/Welcome/Welcome.tsx` - Fixed useSettingsStore subscription
+
+**Impact**: Components will only re-render when their specific data changes, improving overall application performance.
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

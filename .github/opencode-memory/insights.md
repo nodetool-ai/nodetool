@@ -399,3 +399,41 @@ on:
 **Files**: `.github/workflows/e2e.yml`, `.github/workflows/copilot-setup-steps.yml`, `.github/workflows/test.yml`
 
 **Date**: 2026-01-10
+
+---
+
+### Selective Store Subscriptions Performance Impact (2026-01-10)
+
+**Insight**: Converting full store subscriptions to selective subscriptions improves rendering performance significantly.
+
+**Pattern**: Replace `const { a, b } = useStore()` with:
+```typescript
+const a = useStore(state => state.a);
+const b = useStore(state => state.b);
+```
+
+**Impact**: Components only re-render when their specific data changes, not when any part of the store updates. This is especially important in the node editor where many components subscribe to NodeStore.
+
+**Files**: `web/src/serverState/useAssets.ts`, `web/src/components/dashboard/WelcomePanel.tsx`, `web/src/components/content/Welcome/Welcome.tsx`
+
+**Date**: 2026-01-10
+
+---
+
+### When to Keep `any` Types (2026-01-10)
+
+**Insight**: Not all `any` types should be replaced with more specific types. Some genuinely need to support arbitrary data.
+
+**Examples where `any` is appropriate**:
+- StatusStore status values (can be strings, objects, null, undefined)
+- NodeData properties (arbitrary node configuration)
+- ResultStore results (execution results of any type)
+
+**When to avoid `any`**:
+- Function parameters with known types
+- Return types that can be typed more specifically
+- Variables holding known data structures
+
+**Files**: `web/src/stores/StatusStore.ts`
+
+**Date**: 2026-01-10
