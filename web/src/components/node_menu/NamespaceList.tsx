@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useEffect } from "react";
 import { Box, List, Typography, Button } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
@@ -15,6 +15,8 @@ import FavoritesTiles from "./FavoritesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
+import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 type NamespaceTree = {
   [key: string]: {
@@ -424,7 +426,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches,
     hoveredNode,
     selectedInputType,
-    selectedOutputType
+    selectedOutputType,
+    isMenuOpen
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     selectedPath: state.selectedPath,
@@ -432,7 +435,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches: state.allSearchMatches,
     hoveredNode: state.hoveredNode,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType
+    selectedOutputType: state.selectedOutputType,
+    isMenuOpen: state.isMenuOpen
   }));
 
   const allMetadata = useMetadataStore((state) => state.metadata);
@@ -444,15 +448,52 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   const minSearchTermLength =
     searchTerm.includes("+") ||
-      searchTerm.includes("-") ||
-      searchTerm.includes("*") ||
-      searchTerm.includes("/")
+    searchTerm.includes("-") ||
+    searchTerm.includes("*") ||
+    searchTerm.includes("/")
       ? 0
       : 1;
 
   const totalNodes = useMemo(() => {
     return Object.values(allMetadata).length;
   }, [allMetadata]);
+
+  // Keyboard shortcut to toggle favorite on hovered node
+  const toggleFavorite = useFavoriteNodesStore((state) => state.toggleFavorite);
+  const isFavorite = useFavoriteNodesStore((state) => (nodeType: string) => state.isFavorite(nodeType));
+  const addNotification = useNotificationStore((state) => state.addNotification);
+
+  const handleToggleFavorite = useCallback(() => {
+    if (hoveredNode) {
+      const wasAdded = !isFavorite(hoveredNode.node_type);
+      toggleFavorite(hoveredNode.node_type);
+      addNotification({
+        type: "info",
+        content: wasAdded
+          ? `${hoveredNode.title} added to favorites (press F to toggle)`
+          : `${hoveredNode.title} removed from favorites`,
+        timeout: 2000
+      });
+    }
+  }, [hoveredNode, toggleFavorite, isFavorite, addNotification]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isMenuOpen) { return; }
+      if (!hoveredNode) { return; }
+      // Press 'F' to toggle favorite on hovered node
+      if (event.key.toLowerCase() === "f" && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+        const target = event.target as HTMLElement;
+        // Don't trigger if user is typing in an input
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") { return; }
+        event.preventDefault();
+        handleToggleFavorite();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMenuOpen, hoveredNode, handleToggleFavorite]);
 
   return (
     <div

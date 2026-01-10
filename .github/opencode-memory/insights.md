@@ -336,3 +336,52 @@ When documenting new insights:
 ## Last Updated
 
 2026-01-10 - Initial memory system creation with pre-existing patterns documented
+
+---
+
+## New Feature Implementation (2026-01-10)
+
+### Keyboard Shortcut for Node Favorites
+
+**Feature**: Added 'F' keyboard shortcut to toggle favorite status on hovered nodes in the node menu.
+
+**What**: Users can now press 'F' when hovering over a node in the node menu to add/remove it from favorites without using the mouse.
+
+**Why**: Improves accessibility and speed for power users who prefer keyboard navigation. Reduces mouse-keyboard context switching.
+
+**Implementation**:
+1. Added `useEffect` in `NamespaceList.tsx` to listen for 'F' key presses
+2. Only triggers when node menu is open and a node is hovered
+3. Ignores 'F' key when user is typing in an input field
+4. Shows notification feedback when toggling favorites
+5. Updated tooltip in `NodeItem.tsx` to show "Press F to toggle" hint
+
+**Files Changed**:
+- `web/src/components/node_menu/NamespaceList.tsx` - Added keyboard shortcut handler
+- `web/src/components/node_menu/NodeItem.tsx` - Updated tooltip with shortcut hint
+
+**Key Patterns**:
+- Used `useCallback` for stable callback reference
+- Used `useEffect` with cleanup for keyboard event listener
+- Checked `event.target.tagName` to avoid triggering when typing
+- Used existing `FavoriteNodesStore` for state management
+- Used existing `NotificationStore` for user feedback
+
+**Code Example**:
+```typescript
+useEffect(() => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (!isMenuOpen) { return; }
+    if (!hoveredNode) { return; }
+    if (event.key.toLowerCase() === "f" && 
+        !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") { return; }
+      event.preventDefault();
+      handleToggleFavorite();
+    }
+  };
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [isMenuOpen, hoveredNode, handleToggleFavorite]);
+```

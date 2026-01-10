@@ -159,7 +159,20 @@ const NodeItem = memo(
             </Typography>
             {showFavoriteButton && (
               <Tooltip
-                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                title={
+                  <div>
+                    <div>{isFavorite ? "Remove from favorites" : "Add to favorites"}</div>
+                    <div
+                      style={{
+                        fontSize: "0.7rem",
+                        opacity: 0.75,
+                        marginTop: "4px"
+                      }}
+                    >
+                      Press F to toggle
+                    </div>
+                  </div>
+                }
                 placement="top"
                 enterDelay={TOOLTIP_ENTER_DELAY}
               >

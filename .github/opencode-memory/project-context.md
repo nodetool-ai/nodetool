@@ -155,4 +155,16 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Keyboard Shortcut for Node Favorites (2026-01-10)
+
+**What**: Added 'F' keyboard shortcut to toggle favorite status on hovered nodes in the node menu.
+
+**Why**: Improves accessibility and speed for power users who prefer keyboard navigation.
+
+**Files**: 
+- `web/src/components/node_menu/NamespaceList.tsx`
+- `web/src/components/node_menu/NodeItem.tsx`
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
