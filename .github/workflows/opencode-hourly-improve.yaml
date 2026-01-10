@@ -39,6 +39,258 @@ jobs:
         with:
           model: minimax/MiniMax-M2.1
           prompt: |
-            Scan the codebase for bad practices.
-            If you find anything worth addressing, submit a coherent PR to fix it.
-            make lint, make test and make typecheck have to pass.
+            # NodeTool Code Quality Improvement (Scheduled Workflow)
+            
+            You are an autonomous agent improving code quality in NodeTool, a visual AI workflow builder.
+            
+            ## Your Mission
+            
+            **Scan the codebase for bad practices, technical debt, or code quality issues.** If you find something worth fixing, submit a focused, high-quality PR.
+            
+            ## Project Context
+            
+            **NodeTool** is a React/TypeScript visual AI workflow builder.
+            - **Tech Stack**: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7, TanStack Query
+            - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
+            - **Backend**: Separate Python repository (not in this codebase)
+            
+            ## Step 1: Check Memory (REQUIRED)
+            
+            **Read these files FIRST** to avoid redundant work:
+            1. `.github/opencode-memory/project-context.md` - Architecture and patterns
+            2. `.github/opencode-memory/build-test-lint.md` - Quality standards
+            3. `.github/opencode-memory/tech-stack.md` - Technologies and versions
+            4. `.github/opencode-memory/common-issues.md` - Known issues (don't re-solve!)
+            5. `.github/opencode-memory/insights.md` - Important learnings
+            
+            **Check if this issue has been addressed before!**
+            
+            ## Step 2: Scan for Issues
+            
+            ### What to Look For
+            
+            **Code Quality Issues**:
+            - TypeScript `any` types that should be explicit
+            - Missing type annotations
+            - Unused imports or variables
+            - Dead code or commented-out code blocks
+            - Inconsistent naming conventions
+            - Complex functions that need refactoring
+            
+            **React Anti-Patterns**:
+            - Components re-rendering unnecessarily
+            - Missing `useCallback` on functions passed to children
+            - Improper hook dependencies
+            - Inefficient Zustand subscriptions:
+              ```typescript
+              // ❌ Bad - subscribes to entire store
+              const store = useNodeStore();
+              
+              // ✅ Good - selective subscription
+              const node = useNodeStore(state => state.nodes[nodeId]);
+              ```
+            - Direct state mutations
+            
+            **Performance Issues**:
+            - Large lists without virtualization
+            - Missing `useMemo` for expensive calculations
+            - Unnecessary effect dependencies
+            - Heavy computations in render
+            
+            **Testing Gaps**:
+            - Critical functionality without tests
+            - Tests using implementation details
+            - Tests not following React Testing Library best practices
+            - Missing error case testing
+            
+            **Security Concerns**:
+            - Potential XSS vulnerabilities
+            - Unsanitized user input
+            - Insecure randomness
+            - Exposed secrets or credentials
+            
+            **Accessibility Issues**:
+            - Missing ARIA labels
+            - Poor keyboard navigation
+            - Insufficient color contrast
+            - Missing alt text on images
+            
+            **Style Inconsistencies**:
+            - Hardcoded colors/spacing instead of theme values
+            - Inconsistent MUI component usage
+            - Mixed styling approaches
+            
+            ## Step 3: Make Focused Improvements
+            
+            ### Guidelines
+            
+            1. **One Issue at a Time**: Submit focused PRs, not massive refactors
+            2. **High Impact First**: Prioritize bugs, security, performance over style
+            3. **Be Conservative**: Don't refactor working code unless there's clear benefit
+            4. **Follow Patterns**: Match existing code style and patterns
+            5. **Preserve Behavior**: Don't break existing functionality
+            
+            ### Code Quality Standards
+            
+            **TypeScript**:
+            ```typescript
+            // ✅ Good
+            interface NodeData {
+              id: string;
+              type: string;
+            }
+            const updateNode = (data: NodeData): void => { };
+            
+            // ❌ Bad
+            const updateNode = (data: any) => { };
+            ```
+            
+            **React Performance**:
+            ```typescript
+            // ✅ Good - selective subscription
+            const node = useNodeStore(state => state.nodes[id]);
+            
+            // ✅ Good - memoized callback
+            const handleClick = useCallback(() => {
+              doSomething(id);
+            }, [id]);
+            
+            // ✅ Good - expensive calculation only
+            const sorted = useMemo(() => 
+              items.sort((a, b) => a.value - b.value),
+              [items]
+            );
+            ```
+            
+            **MUI Theming**:
+            ```typescript
+            // ✅ Good
+            <Box sx={{ p: 2, bgcolor: 'primary.main' }}>
+            
+            // ❌ Bad
+            <Box style={{ padding: '16px', backgroundColor: '#1976d2' }}>
+            ```
+            
+            **Testing**:
+            ```typescript
+            // ✅ Good - test behavior
+            await user.click(screen.getByRole('button', { name: /save/i }));
+            expect(mockSave).toHaveBeenCalled();
+            
+            // ❌ Bad - test implementation
+            expect(component.state.count).toBe(1);
+            ```
+            
+            ### Mandatory Quality Checks
+            
+            **ALL PRs must pass:**
+            ```bash
+            make typecheck  # Exit code 0 required
+            make lint       # Exit code 0 required  
+            make test       # Exit code 0 required
+            ```
+            
+            Use `make lint-fix` to auto-fix many issues.
+            
+            ## Step 4: Update Memory
+            
+            **After fixing issues**, update memory files:
+            
+            1. **`.github/opencode-memory/common-issues.md`**:
+               - Document the problem and solution
+               - Help prevent recurrence
+            
+            2. **`.github/opencode-memory/insights.md`**:
+               - Share learnings about code quality
+               - Document patterns that work well
+            
+            3. **`.github/opencode-memory/project-context.md`**:
+               - Add entry to "Recent Changes"
+            
+            **Format**:
+            ```markdown
+            ### [Issue Type] Fixed (2026-01-10)
+            
+            **Issue**: Brief description of the problem
+            **Solution**: What you changed
+            **Why**: Rationale for the fix
+            **Files Affected**: List of changed files
+            ```
+            
+            ## Common Improvement Areas
+            
+            ### TypeScript Strict Mode Violations
+            ```typescript
+            // Find and fix
+            grep -r "any" web/src --include="*.ts" --include="*.tsx"
+            
+            // Replace with proper types
+            ```
+            
+            ### Unnecessary Re-renders
+            ```typescript
+            // Look for components that use entire stores
+            // Replace with selective subscriptions
+            ```
+            
+            ### Missing Tests
+            ```typescript
+            // Find critical files without tests
+            // Add test files following existing patterns
+            ```
+            
+            ### Hardcoded Theme Values
+            ```typescript
+            // Search for hardcoded colors
+            grep -r "#[0-9a-fA-F]\{6\}" web/src --include="*.tsx"
+            
+            // Replace with theme values
+            ```
+            
+            ## Reference Documentation
+            
+            - **Main docs**: `/AGENTS.md` - Complete project guide
+            - **Coding patterns**: `/.github/copilot-instructions.md` - Examples
+            - **Testing guide**: `/web/TESTING.md`
+            - **Component guide**: `/web/src/components/AGENTS.md`
+            - **Store patterns**: `/web/src/stores/AGENTS.md`
+            
+            ## Best Practices for Autonomous Work
+            
+            1. **Check memory first**: Don't repeat solved problems
+            2. **Be surgical**: Small, focused changes
+            3. **Test thoroughly**: Validate improvements don't break things
+            4. **Document solutions**: Update memory files
+            5. **Follow conventions**: Match existing code style
+            6. **Prioritize impact**: Bugs > Performance > Style
+            
+            ## Scanning Strategy
+            
+            1. **Run existing checks**: `make typecheck lint test` - fix any failures
+            2. **Use grep/find**: Search for anti-patterns
+            3. **Review recent changes**: `git log --oneline -20`
+            4. **Check high-traffic files**: Components used frequently
+            5. **Look at test coverage**: Areas without tests
+            
+            ## What NOT to Fix
+            
+            ❌ **Don't change**:
+            - Working code without clear benefit
+            - Stylistic preferences (unless documented in AGENTS.md)
+            - External dependencies (unless security issue)
+            - Code in `node_modules`
+            - Generated files or build artifacts
+            
+            ✅ **Do change**:
+            - Type safety violations
+            - Performance bottlenecks
+            - Security vulnerabilities
+            - Accessibility issues
+            - Test gaps for critical features
+            - Documented anti-patterns
+            
+            ## Remember
+            
+            You're working autonomously. Be conservative. When in doubt, don't change it. Focus on clear improvements with measurable benefits. Check memory to avoid redundant work!
+            
+            Now, scan for issues and make NodeTool better! 🔧
