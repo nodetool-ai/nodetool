@@ -39,6 +39,8 @@ import ChunkDisplay from "./ChunkDisplay";
 
 import { getIsElectronDetails } from "../../utils/browser";
 
+import NodeComment from "./NodeComment";
+
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -438,6 +440,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onShowInputs={handleShowInputs}
         onShowResults={handleShowResults}
       />
+
+      {data.comment && <NodeComment nodeId={id} comment={data.comment} />}
 
       {selected && resizer}
       {toolCall?.message && status === "running" && (
