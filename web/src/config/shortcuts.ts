@@ -527,12 +527,30 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   })),
 
   // ---------- FIND IN WORKFLOW ---------------------------------------------
-  {
+   {
     title: "Find in Workflow",
     slug: "findInWorkflow",
     keyCombo: ["Control", "F"],
     category: "editor" as const,
     description: "Find and navigate to nodes in the current workflow",
+    registerCombo: true
+  },
+
+  // ---------- ANNOTATIONS ----------------------------------------------------
+  {
+    title: "Add Annotation",
+    slug: "addAnnotation",
+    keyCombo: ["C"],
+    category: "editor" as const,
+    description: "Add a new comment/annotation at the current position",
+    registerCombo: true
+  },
+  {
+    title: "Toggle Annotation Panel",
+    slug: "toggleAnnotationPanel",
+    keyCombo: ["Shift", "C"],
+    category: "panel" as const,
+    description: "Show or hide Annotation Navigator panel",
     registerCombo: true
   }
 ] as Shortcut[];

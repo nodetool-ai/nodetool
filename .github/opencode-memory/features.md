@@ -32,6 +32,7 @@ Last updated: 2026-01-10
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Annotation Navigator**: Panel to browse, search, and navigate all annotations in a workflow
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates
@@ -107,6 +108,7 @@ Last updated: 2026-01-10
 - **Infinite Scroll**: Load content incrementally on scroll
 - **Context Menus**: Right-click menus for various elements (nodes, edges, pane, properties)
 - **Keyboard Shortcuts**: Configurable keyboard shortcuts system
+- **Quick Add Annotation**: Press 'C' to add a comment/annotation at cursor position
 - **Close Button**: Consistent close button component
 - **Delete Button**: Consistent delete button component
 

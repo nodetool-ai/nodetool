@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   registerComboCallback,
   unregisterComboCallback
@@ -22,9 +22,11 @@ import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
+import { NodeStoreState } from "../stores/NodeStore";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
+import useMetadataStore from "../stores/MetadataStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -74,6 +76,17 @@ export const useNodeEditorShortcuts = (
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
+
+  const nodesStoreRef = useRef<NodeStoreState | null>(null);
+
+  const nodesState = useNodes((state) => state);
+
+  useEffect(() => {
+    if (nodesState && typeof nodesState === 'object') {
+      nodesStoreRef.current = nodesState as unknown as NodeStoreState;
+    }
+  }, [nodesState]);
+
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -376,6 +389,26 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleAnnotationPanelToggle = useCallback(() => {
+    inspectorToggle("annotations");
+  }, [inspectorToggle]);
+
+  const handleAddAnnotation = useCallback(() => {
+    const mousePos = getMousePosition();
+    const rfPos = reactFlow.screenToFlowPosition(mousePos);
+    const metadata = useMetadataStore.getState().metadata;
+    const commentNodeType = "nodetool.workflows.base_node.Comment";
+    const commentMetadata = metadata[commentNodeType];
+
+    if (commentMetadata) {
+      const nodesState = nodesStoreRef.current;
+      if (nodesState) {
+        const newNode = nodesState.createNode(commentMetadata, rfPos);
+        nodesState.addNode(newNode);
+      }
+    }
+  }, [reactFlow]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -441,7 +474,9 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
-      }
+      },
+      addAnnotation: { callback: handleAddAnnotation },
+      toggleAnnotationPanel: { callback: handleAnnotationPanelToggle }
     };
 
     // Switch-to-tab (1-9)
@@ -481,7 +516,9 @@ export const useNodeEditorShortcuts = (
     openFind,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
+    handleSelectConnectedOutputs,
+    handleAddAnnotation,
+    handleAnnotationPanelToggle
   ]);
 
   // useEffect for shortcut registration

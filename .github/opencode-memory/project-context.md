@@ -155,4 +155,52 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Workflow Annotation Navigator (2026-01-10)
+
+**What**: Added workflow annotation feature with two components:
+1. **Annotation Navigator Panel**: A dockable panel in the right sidebar to browse, search, and navigate all annotations in a workflow
+2. **Quick Comment Shortcut**: Press 'C' to add a comment/annotation at the current cursor position
+
+**Why**: Enhances workflow documentation by making it easier to:
+- Find and manage annotations in complex workflows
+- Search through annotation content
+- Quickly add annotations without searching through the node menu
+- Navigate to specific annotations by clicking
+
+**Implementation**:
+- Created `AnnotationNavigatorPanel.tsx` component in `web/src/components/panels/`
+- Added keyboard shortcuts 'C' (add annotation) and 'Shift+C' (toggle panel) in `shortcuts.ts`
+- Updated `useNodeEditorShortcuts.ts` to handle the new shortcuts
+- Added "annotations" view to `RightPanelStore` and `PanelRight` component
+- Used existing `CommentNode` type for creating new annotations
+
+**Files Changed**:
+- `web/src/components/panels/AnnotationNavigatorPanel.tsx` (new)
+- `web/src/config/shortcuts.ts` (updated)
+- `web/src/hooks/useNodeEditorShortcuts.ts` (updated)
+- `web/src/stores/RightPanelStore.ts` (updated)
+- `web/src/components/panels/PanelRight.tsx` (updated)
+
+### Mobile Package Dependencies Issue (2026-01-10)
+
+**What**: Mobile package type check fails because `node_modules` is not installed.
+
+**Solution**: Run `npm install` in the mobile directory before type checking.
+
+**Files**: `mobile/package.json`, `mobile/tsconfig.json`
+
+---
+
+### GitHub Workflow Missing Package Dependencies (2026-01-10)
+
+**What**: Some GitHub workflow files only install dependencies for web and electron packages, missing mobile package dependencies.
+
+**Solution**: Updated workflows to install dependencies in all package directories.
+
+**Files Modified**:
+- `.github/workflows/e2e.yml` - Added mobile dependency installation and updated path filters
+- `.github/workflows/copilot-setup-steps.yml` - Added mobile dependency installation
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

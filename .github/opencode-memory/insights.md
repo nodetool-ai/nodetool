@@ -399,3 +399,28 @@ on:
 **Files**: `.github/workflows/e2e.yml`, `.github/workflows/copilot-setup-steps.yml`, `.github/workflows/test.yml`
 
 **Date**: 2026-01-10
+
+---
+
+### Annotation Navigator Implementation (2026-01-10)
+
+**Insight**: Adding new features to existing editor requires careful integration with multiple systems.
+
+**Key Learnings**:
+1. Shortcut registration requires updating both `config/shortcuts.ts` and the hook that handles them
+2. Adding new panel views requires updating the store type, the panel component, and the toolbar
+3. Using React hooks (like `useContext`) inside callbacks is not allowed - use refs instead
+4. The store has `metadata` (NodeMetadata objects) separate from `nodeTypes` (React components)
+
+**Pattern**:
+```typescript
+// Store access pattern for callbacks
+const nodesStoreRef = useRef<NodeStoreState | null>(null);
+useEffect(() => {
+  nodesStoreRef.current = useNodes.getState() as unknown as NodeStoreState;
+}, []);
+```
+
+**Files**: `web/src/components/panels/AnnotationNavigatorPanel.tsx`, `web/src/hooks/useNodeEditorShortcuts.ts`, `web/src/config/shortcuts.ts`
+
+**Date**: 2026-01-10
