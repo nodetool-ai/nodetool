@@ -306,7 +306,39 @@ const { data, isLoading, error } = useQuery({
 
 ## Future Considerations
 
-### React 19 Migration
+### Favorites Tiles Integration (2026-01-10)
+
+**What**: Integrated the existing `FavoritesTiles` component into the `NodeMenu` to display favorite nodes at the top of the node selection menu.
+
+**Why**: Users frequently use certain nodes. Having quick access to favorites improves workflow efficiency by allowing users to quickly add their most-used nodes.
+
+**Implementation**: 
+- Added import for `FavoritesTiles` component in `NodeMenu.tsx`
+- Rendered `FavoritesTiles` at the top of the node menu container, before the search toolbar
+- Created comprehensive tests for `FavoritesTiles` component including:
+  - Rendering when favorites exist
+  - Displaying all favorite nodes with titles
+  - Clear all button functionality
+  - Unfavorite button interactions
+  - Grid layout verification
+  - Missing metadata handling
+
+**Files Changed**:
+- `web/src/components/node_menu/NodeMenu.tsx` - Added FavoritesTiles import and rendering
+- `web/src/components/node_menu/__tests__/FavoritesTiles.test.tsx` - New test file with 10 passing tests
+
+**Key Technical Details**:
+- Favorites are stored in `FavoriteNodesStore` with localStorage persistence
+- Each favorite tracks nodeType and timestamp
+- Maximum of 12 favorites can be stored
+- Favorites can be reordered, cleared, or individually removed
+- Node menu shows favorites at the top for quick access
+
+**Testing Approach**:
+- Used ThemeProvider with mock theme for MUI v7 compatibility
+- Mocked Zustand stores using selector pattern `(selector) => selector(state)`
+- Tested all interactive behaviors including hover states and click actions
+- Verified component doesn't render when no favorites exist
 
 **Note**: Project currently uses React 18.2 intentionally.
 

@@ -10,6 +10,7 @@ import { Box } from "@mui/material";
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import FavoritesTiles from "./FavoritesTiles";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -282,6 +283,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         <div className="draggable-header">
         </div>
         <Box className="node-menu-container">
+          <FavoritesTiles />
           <div className="main-content">
             <Box className="search-toolbar">
               <Box className="search-row">

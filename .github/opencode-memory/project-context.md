@@ -155,4 +155,19 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Favorites Tiles Integration (2026-01-10)
+
+**Summary**: Integrated favorite nodes into the NodeMenu for quick access to frequently used nodes.
+
+**Changes**:
+- Added FavoritesTiles component to NodeMenu UI
+- Created comprehensive test suite for FavoritesTiles
+- All tests pass (10/10)
+- TypeScript strict mode: passed
+- ESLint: passed with no errors
+
+**Impact**: Users can now quickly access their favorite nodes from the NodeMenu, improving workflow efficiency.
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

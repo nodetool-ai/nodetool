@@ -73,6 +73,35 @@ cd ../electron && npm start
 
 ## Testing Issues
 
+## Testing Issues
+
+### Mocking Zustand Stores in Tests
+
+**Issue**: When mocking Zustand stores in tests, the mock must return the result of calling the selector function, not just the store object.
+
+**Solution**: Use the selector pattern in mockImplementation:
+```typescript
+// ❌ Bad
+(useNotificationStore as unknown as jest.Mock).mockImplementation(() => ({
+  addNotification: jest.fn(),
+}));
+
+// ✅ Good
+(useNotificationStore as unknown as jest.Mock).mockImplementation((selector: any) =>
+  selector({ addNotification: jest.fn() })
+);
+```
+
+**Why**: Components use selective subscriptions like:
+```typescript
+const addNotification = useNotificationStore((state) => state.addNotification);
+```
+The mock needs to return what the selector returns when called with the store state.
+
+**Files**: `web/src/components/node_menu/__tests__/FavoritesTiles.test.tsx`
+
+---
+
 ### E2E Tests Failing to Connect
 
 **Issue**: E2E tests fail with "Cannot connect to backend".
