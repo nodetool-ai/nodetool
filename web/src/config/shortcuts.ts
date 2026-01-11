@@ -360,6 +360,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Add Annotation",
+    slug: "addAnnotation",
+    keyCombo: ["N"],
+    category: "editor",
+    description: "Add or edit annotation on selected node",
+    registerCombo: true
+  },
+  {
     title: "Select Connected (All)",
     slug: "selectConnectedAll",
     keyCombo: ["Shift", "C"],

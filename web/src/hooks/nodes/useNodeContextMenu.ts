@@ -26,6 +26,8 @@ interface UseNodeContextMenuReturn {
   node: Node<NodeData> | null;
   nodeData: NodeData | undefined;
   handlers: {
+    handleToggleAnnotation: () => void;
+    handleClearAnnotation: () => void;
     handleToggleComment: () => void;
     handleRunFromHere: () => void;
     handleToggleBypass: () => void;
@@ -37,6 +39,7 @@ interface UseNodeContextMenuReturn {
     handleConvertToConstant: () => void;
   };
   conditions: {
+    hasAnnotation: boolean;
     hasCommentTitle: boolean;
     isBypassed: boolean;
     canConvertToInput: boolean;
@@ -95,8 +98,31 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   );
   const getResult = useResultsStore((state) => state.getResult);
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const hasAnnotation = Boolean(nodeData?.annotation?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
+
+  const handleToggleAnnotation = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    const currentAnnotation = nodeData?.annotation || "";
+    const newAnnotation = currentAnnotation.trim()
+      ? ""
+      : prompt("Enter annotation for this node:", currentAnnotation);
+    if (newAnnotation !== null) {
+      updateNodeData(nodeId, { annotation: newAnnotation.trim() || undefined });
+    }
+    closeContextMenu();
+  }, [closeContextMenu, nodeId, nodeData, updateNodeData]);
+
+  const handleClearAnnotation = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    updateNodeData(nodeId, { annotation: undefined });
+    closeContextMenu();
+  }, [closeContextMenu, nodeId, updateNodeData]);
 
   const handleToggleComment = useCallback(() => {
     if (!nodeId) {
@@ -344,6 +370,8 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     node: node || null,
     nodeData,
     handlers: {
+      handleToggleAnnotation,
+      handleClearAnnotation,
       handleToggleComment,
       handleRunFromHere,
       handleToggleBypass,
@@ -355,6 +383,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       handleConvertToConstant
     },
     conditions: {
+      hasAnnotation,
       hasCommentTitle,
       isBypassed,
       canConvertToInput,

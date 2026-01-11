@@ -694,4 +694,106 @@ describe("useNodeContextMenu", () => {
       expect(result.current.node).toBeNull();
     });
   });
+
+  describe("handleToggleAnnotation", () => {
+    it("does nothing when nodeId is null", () => {
+      mockedUseContextMenuStore.mockImplementation((selector) => {
+        const state = {
+          menuPosition: null,
+          closeContextMenu: mockCloseContextMenu,
+          nodeId: null
+        };
+        return selector(state);
+      });
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleToggleAnnotation();
+      });
+
+      expect(mockUpdateNodeData).not.toHaveBeenCalled();
+    });
+
+    it("clears annotation when annotation exists", () => {
+      const nodeWithAnnotation = {
+        ...mockNode,
+        data: { ...mockNode.data, annotation: "existing annotation" }
+      };
+
+      mockedUseNodes.mockImplementation((selector) => {
+        const state = {
+          updateNodeData: mockUpdateNodeData,
+          updateNode: mockUpdateNode,
+          selectNodesByType: mockSelectNodesByType,
+          deleteNode: mockDeleteNode,
+          getSelectedNodes: mockGetSelectedNodes,
+          toggleBypass: mockToggleBypass,
+          nodes: [nodeWithAnnotation, ...mockNodes.slice(1)],
+          edges: mockEdges,
+          workflow: mockWorkflow,
+          findNode: mockFindNode
+        };
+        return selector(state);
+      });
+
+      mockedUseReactFlow.mockImplementation(() => ({
+        getNode: jest.fn((id) => {
+          const nodes = [nodeWithAnnotation, ...mockNodes.slice(1)];
+          return nodes.find((n: { id: string }) => n.id === id) || null;
+        }),
+        getNodes: jest.fn(() => [nodeWithAnnotation, ...mockNodes.slice(1)]),
+        getEdges: jest.fn(() => mockEdges)
+      }));
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(true);
+
+      act(() => {
+        result.current.handlers.handleToggleAnnotation();
+      });
+
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { annotation: undefined });
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("returns conditions.hasAnnotation", () => {
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(false);
+    });
+  });
+
+  describe("handleClearAnnotation", () => {
+    it("clears annotation and closes menu", () => {
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleClearAnnotation();
+      });
+
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { annotation: undefined });
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("does nothing when nodeId is null", () => {
+      mockedUseContextMenuStore.mockImplementation((selector) => {
+        const state = {
+          menuPosition: null,
+          closeContextMenu: mockCloseContextMenu,
+          nodeId: null
+        };
+        return selector(state);
+      });
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleClearAnnotation();
+      });
+
+      expect(mockUpdateNodeData).not.toHaveBeenCalled();
+    });
+  });
 });
