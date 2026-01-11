@@ -335,7 +335,7 @@ When documenting new insights:
 
 ## Last Updated
 
-2026-01-10 - Initial memory system creation with pre-existing patterns documented
+2026-01-11 - Added Node Menu Virtualization insight
 
 ---
 
@@ -449,3 +449,28 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Node Menu Virtualization Implementation (2026-01-11)
+
+**Insight**: Node menu virtualization improves performance when rendering large node collections by only rendering visible items.
+
+**Implementation**: `@tanstack/react-virtual` with `useVirtualizer` hook in a scrollable container.
+
+**Key Patterns**:
+1. Fixed-height items with `estimateSize` for dynamic content
+2. ScrollRef attached to container for proper scroll handling
+3. Overscan for smoother scrolling experience
+4. Proper TypeScript typing for virtualizer return values
+
+**Files**:
+- `web/src/components/node_menu/VirtualizedNodeList.tsx` - New virtualized list component
+- `web/src/components/node_menu/RenderNodes.tsx` - Updated to use virtualization
+
+**Benefits**:
+- Renders only visible nodes instead of all nodes at once
+- Maintains keyboard navigation and accessibility
+- Compatible with existing filtering and search functionality
+
+**Date**: 2026-01-11

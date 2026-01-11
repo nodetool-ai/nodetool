@@ -2,7 +2,7 @@
 
 This document lists all existing features in NodeTool to help OpenCode agents avoid creating redundant functionality. **Always read this file before planning new features.**
 
-Last updated: 2026-01-10
+Last updated: 2026-01-11
 
 ---
 
@@ -110,6 +110,7 @@ Last updated: 2026-01-10
 - **Keyboard Shortcuts**: Configurable keyboard shortcuts system
 - **Close Button**: Consistent close button component
 - **Delete Button**: Consistent delete button component
+- **Virtualized Node List**: Virtual scrolling for node menu to handle large node collections efficiently
 
 ### Theming & Appearance
 - **Theme Switcher**: Switch between light and dark themes
@@ -263,7 +264,7 @@ Last updated: 2026-01-10
 
 *(Update this section when considering these features in the future)*
 
-- **Virtualized Lists**: Large list virtualization for performance
+- **Virtualized Lists**: Large list virtualization for performance (NOW IMPLEMENTED for Node Menu)
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions

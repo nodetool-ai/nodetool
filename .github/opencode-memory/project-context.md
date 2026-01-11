@@ -155,6 +155,25 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Virtualized Node Menu (2026-01-11)
+
+**What**: Added virtualization to the node menu to improve performance with large node collections.
+
+**Why**: The original implementation rendered all node types at once, which could cause performance issues when the number of node types grows. Virtualization ensures only visible nodes are rendered.
+
+**Implementation**:
+- Created `VirtualizedNodeList.tsx` using `@tanstack/react-virtual` for efficient list rendering
+- Modified `RenderNodes.tsx` to use the new virtualized component
+- Added comprehensive tests for the virtualized list component
+- Fixed TypeScript type errors and ESLint warnings
+
+**Files Changed**:
+- `web/src/components/node_menu/VirtualizedNodeList.tsx` - New virtualized node list component
+- `web/src/components/node_menu/RenderNodes.tsx` - Updated to use VirtualizedNodeList
+- `web/src/components/node_menu/__tests__/VirtualizedNodeList.test.tsx` - Component tests
+
+---
+
 ### Selection Action Toolbar (2026-01-10)
 
 **What**: Added a floating toolbar that appears when 2+ nodes are selected, providing quick access to batch operations like align, distribute, group, and delete.
@@ -178,5 +197,3 @@ test('handles user interaction', async () => {
 - `web/src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx` - Component tests
 
 ---
-
-_No entries yet - this memory system is new as of 2026-01-10_
