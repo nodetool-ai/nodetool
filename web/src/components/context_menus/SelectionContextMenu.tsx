@@ -10,6 +10,7 @@ import useAlignNodes from "../../hooks/useAlignNodes";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useSelectConnected } from "../../hooks/useSelectConnected";
+import { useSubgraphOperations } from "../../hooks/nodes/useSubgraphOperations";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
@@ -22,6 +23,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { useNodes } from "../../contexts/NodeContext";
 
 interface SelectionContextMenuProps {
@@ -39,6 +41,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
+  const { handleConvertToSubgraph } = useSubgraphOperations();
   const selectConnectedAll = useSelectConnected({ direction: "both" });
   const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
   const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
@@ -284,6 +287,28 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           }
           addButtonClassName={`action ${
             selectedNodes.length < 1 ? "disabled" : ""
+          }`}
+        />
+      )}
+
+      {selectedNodes.length >= 2 && (
+        <ContextMenuItem
+          onClick={() => {
+            handleConvertToSubgraph();
+            closeContextMenu();
+          }}
+          label="Convert to Subgraph"
+          IconComponent={<AccountTreeIcon />}
+          tooltip={
+            <div className="tooltip-span">
+              <div className="tooltip-title">Convert to Subgraph</div>
+              <div className="tooltip-description">
+                Create a reusable subgraph from selected nodes
+              </div>
+            </div>
+          }
+          addButtonClassName={`action ${
+            selectedNodes.length < 2 ? "disabled" : ""
           }`}
         />
       )}

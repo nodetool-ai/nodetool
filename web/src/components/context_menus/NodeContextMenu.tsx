@@ -2,6 +2,7 @@ import React from "react";
 import { Menu, Divider } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
+import { useSubgraphOperations } from "../../hooks/nodes/useSubgraphOperations";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
@@ -11,10 +12,12 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { SUBGRAPH_NODE_TYPE } from "../../types/subgraph";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -25,6 +28,9 @@ const NodeContextMenu: React.FC = () => {
     conditions
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
+  const { handleUnpackSubgraph } = useSubgraphOperations();
+  
+  const isSubgraphNode = node?.type === SUBGRAPH_NODE_TYPE;
 
   const menuItems = [
     conditions.isInGroup && (
@@ -34,6 +40,20 @@ const NodeContextMenu: React.FC = () => {
         label="Remove from Group"
         IconComponent={<GroupRemoveIcon />}
         tooltip="Remove this node from the group"
+      />
+    ),
+    isSubgraphNode && (
+      <ContextMenuItem
+        key="unpack-subgraph"
+        onClick={() => {
+          if (node?.id) {
+            handleUnpackSubgraph(node.id);
+            closeContextMenu();
+          }
+        }}
+        label="Unpack Subgraph"
+        IconComponent={<UnfoldMoreIcon />}
+        tooltip="Unpack this subgraph back into individual nodes"
       />
     ),
     <ContextMenuItem
