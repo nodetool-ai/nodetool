@@ -44,6 +44,8 @@ export interface OpenNodeMenuParams {
 
 export type NodeMenuStore = {
   isMenuOpen: boolean;
+  viewMode: "nodes" | "templates";
+  setViewMode: (mode: "nodes" | "templates") => void;
   dragToCreate: boolean;
   setDragToCreate: (dragToCreate: boolean) => void;
   connectDirection: ConnectDirection;
@@ -85,6 +87,11 @@ export type NodeMenuStore = {
   groupedSearchResults: SearchResultGroup[];
 
   filterNodes: (nodes: NodeMetadata[]) => NodeMetadata[];
+
+  // Template dialog state
+  isSaveTemplateDialogOpen: boolean;
+  openSaveTemplateDialog: () => void;
+  closeSaveTemplateDialog: () => void;
 
   // Add new properties for search cancellation
   currentSearchId: number;
@@ -166,6 +173,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
     return {
       // menu
       isMenuOpen: false,
+      viewMode: "nodes",
+      setViewMode: (mode) => set({ viewMode: mode }),
       closeBlockUntil: 0,
       dropType: "",
       dragToCreate: false,
@@ -560,7 +569,12 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
         if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
         return allNodes[selectedIndex];
-      }
+      },
+
+      // Template dialog state
+      isSaveTemplateDialogOpen: false,
+      openSaveTemplateDialog: () => set({ isSaveTemplateDialogOpen: true }),
+      closeSaveTemplateDialog: () => set({ isSaveTemplateDialogOpen: false })
     };
   });
 

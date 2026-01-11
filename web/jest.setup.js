@@ -45,3 +45,21 @@ Module.prototype.require = function(id) {
   }
   return originalRequire.apply(this, arguments);
 };
+
+// Mock crypto.randomUUID for NodeTemplatesStore tests
+// This must be done before any module imports that use crypto
+let uuidCallCount = 0;
+
+Object.defineProperty(global, 'crypto', {
+  value: {
+    randomUUID: () => {
+      uuidCallCount++;
+      return `mock-uuid-${Date.now()}-${uuidCallCount}-${Math.random().toString(36).substring(2, 15)}`;
+    }
+  },
+  writable: true,
+  configurable: true
+});
+
+// Expose uuidCallCount for tests to reset
+global.__TEST_UUID_CALL_COUNT = uuidCallCount;

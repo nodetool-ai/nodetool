@@ -13,6 +13,7 @@ export const DRAG_DATA_MIME = "application/x-nodetool-drag";
 /** Legacy key mapping for backward compatibility */
 const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   "create-node": "create-node",
+  "create-template": "create-template",
   asset: "asset",
   "assets-multiple": "selectedAssetIds",
   file: "", // External files don't use custom keys

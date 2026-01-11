@@ -5,11 +5,12 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { Box } from "@mui/material";
+import { Box, Tabs, Tab } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import TemplatesBrowser from "./TemplatesBrowser";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -158,7 +159,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setMenuSize,
     moveSelectionUp,
     moveSelectionDown,
-    getSelectedNode
+    getSelectedNode,
+    viewMode,
+    setViewMode
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -175,7 +178,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setMenuSize: state.setMenuSize,
       moveSelectionUp: state.moveSelectionUp,
       moveSelectionDown: state.moveSelectionDown,
-      getSelectedNode: state.getSelectedNode
+      getSelectedNode: state.getSelectedNode,
+      viewMode: state.viewMode,
+      setViewMode: state.setViewMode
     }),
     isEqual
   );
@@ -197,11 +202,18 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   }, [moveSelectionUp]);
 
   const handleEnter = useCallback(() => {
+    if (viewMode === "templates") {
+      return;
+    }
     const selectedNode = getSelectedNode();
     if (selectedNode) {
       handleCreateNode(selectedNode);
     }
-  }, [getSelectedNode, handleCreateNode]);
+  }, [getSelectedNode, handleCreateNode, viewMode]);
+
+  const handleTabChange = useCallback((_event: React.SyntheticEvent, newValue: "nodes" | "templates") => {
+    setViewMode(newValue);
+  }, [setViewMode]);
 
   useCombo(["Escape"], closeNodeMenu);
 
@@ -282,36 +294,59 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         <div className="draggable-header">
         </div>
         <Box className="node-menu-container">
+          <Tabs
+            value={viewMode}
+            onChange={handleTabChange}
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+              mb: 1,
+              "& .MuiTab-root": {
+                textTransform: "none",
+                minHeight: "40px",
+                minWidth: "100px"
+              }
+            }}
+          >
+            <Tab value="nodes" label="Nodes" />
+            <Tab value="templates" label="Templates" />
+          </Tabs>
           <div className="main-content">
-            <Box className="search-toolbar">
-              <Box className="search-row">
-                <SearchInput
-                  focusSearchInput={focusSearchInput}
-                  focusOnTyping={true}
-                  placeholder="Search for nodes..."
-                  debounceTime={80}
-                  width={500}
-                  maxWidth={"600px"}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  onPressEscape={closeNodeMenu}
-                  onPressArrowDown={handleArrowDown}
-                  onPressArrowUp={handleArrowUp}
-                  onPressEnter={handleEnter}
-                  searchResults={searchResults}
+            {viewMode === "nodes" ? (
+              <>
+                <Box className="search-toolbar">
+                  <Box className="search-row">
+                    <SearchInput
+                      focusSearchInput={focusSearchInput}
+                      focusOnTyping={true}
+                      placeholder="Search for nodes..."
+                      debounceTime={80}
+                      width={500}
+                      maxWidth={"600px"}
+                      searchTerm={searchTerm}
+                      onSearchChange={setSearchTerm}
+                      onPressEscape={closeNodeMenu}
+                      onPressArrowDown={handleArrowDown}
+                      onPressArrowUp={handleArrowUp}
+                      onPressEnter={handleEnter}
+                      searchResults={searchResults}
+                    />
+                  </Box>
+                  <TypeFilterChips
+                    selectedInputType={selectedInputType}
+                    selectedOutputType={selectedOutputType}
+                    setSelectedInputType={setSelectedInputType}
+                    setSelectedOutputType={setSelectedOutputType}
+                  />
+                </Box>
+                <NamespaceList
+                  namespaceTree={namespaceTree}
+                  metadata={searchResults}
                 />
-              </Box>
-              <TypeFilterChips
-                selectedInputType={selectedInputType}
-                selectedOutputType={selectedOutputType}
-                setSelectedInputType={setSelectedInputType}
-                setSelectedOutputType={setSelectedOutputType}
-              />
-            </Box>
-            <NamespaceList
-              namespaceTree={namespaceTree}
-              metadata={searchResults}
-            />
+              </>
+            ) : (
+              <TemplatesBrowser searchTerm={searchTerm} />
+            )}
           </div>
         </Box>
       </Box>

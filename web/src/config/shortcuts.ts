@@ -526,15 +526,33 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   })),
 
-  // ---------- FIND IN WORKFLOW ---------------------------------------------
-  {
-    title: "Find in Workflow",
-    slug: "findInWorkflow",
-    keyCombo: ["Control", "F"],
-    category: "editor" as const,
-    description: "Find and navigate to nodes in the current workflow",
-    registerCombo: true
-  }
+   // ---------- FIND IN WORKFLOW ---------------------------------------------
+   {
+     title: "Find in Workflow",
+     slug: "findInWorkflow",
+     keyCombo: ["Control", "F"],
+     category: "editor" as const,
+     description: "Find and navigate to nodes in the current workflow",
+     registerCombo: true
+   },
+
+   // ---------- TEMPLATES -------------------------------------------------------
+   {
+     title: "Save as Template",
+     slug: "saveAsTemplate",
+     keyCombo: ["Control", "Shift", "T"],
+     category: "editor" as const,
+     description: "Save selected nodes as a reusable template",
+     registerCombo: true
+   },
+   {
+     title: "Open Templates",
+     slug: "openTemplates",
+     keyCombo: ["T"],
+     category: "panel" as const,
+     description: "Open Node Menu with Templates tab active",
+     registerCombo: true
+   }
 ] as Shortcut[];
 
 /**
