@@ -333,6 +333,47 @@ When documenting new insights:
 6. **Files**: Related files
 7. **Date**: When documented
 
+## Quick Notes Implementation Insights (2026-01-11)
+
+### Creating New Node Types
+
+**Insight**: Creating a new node type in NodeTool requires coordinated changes across multiple files.
+
+**Pattern**:
+1. Create the node component (`QuickNoteNode.tsx`)
+2. Add node metadata constant (`nodeUtils.ts`)
+3. Register in ReactFlow nodeTypes (`ReactFlowWrapper.tsx`)
+4. Add UI to create the node (context menu, toolbar)
+5. Add keyboard shortcut (`shortcuts.ts`)
+6. Implement shortcut handler (`useNodeEditorShortcuts.ts`)
+
+**Example**:
+```typescript
+// 1. Component with simple text input and color picker
+const QuickNoteNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  // ... implementation
+};
+
+// 2. Metadata constant
+export const QUICKNOTE_NODE_METADATA: NodeMetadata = {
+  node_type: "nodetool.workflows.base_node.QuickNote",
+  layout: "default",
+  // ...
+};
+
+// 3. Register in ReactFlowWrapper
+const nodeTypes = useMemo(() => ({
+  ...baseNodeTypes,
+  "nodetool.workflows.base_node.QuickNote": QuickNoteNode,
+}), [baseNodeTypes]);
+```
+
+**Impact**: Following this pattern ensures the new node integrates properly with the workflow editor.
+
+**Files**: `web/src/components/node/QuickNoteNode.tsx`, `web/src/utils/nodeUtils.ts`, etc.
+
+**Date**: 2026-01-11
+
 ## Last Updated
 
 2026-01-10 - Initial memory system creation with pre-existing patterns documented

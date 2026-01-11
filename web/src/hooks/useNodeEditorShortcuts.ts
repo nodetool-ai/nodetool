@@ -25,6 +25,7 @@ import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
+import { QUICKNOTE_NODE_METADATA } from "../utils/nodeUtils";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -41,7 +42,9 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    createNode: state.createNode,
+    addNode: state.addNode
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -77,8 +80,14 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
-    nodesStore;
+  const {
+    selectedNodes,
+    selectAllNodes,
+    setNodes,
+    toggleBypassSelected,
+    createNode,
+    addNode
+  } = nodesStore;
   const {
     saveExample,
     removeWorkflow,
@@ -376,6 +385,26 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleAddQuickNote = useCallback(() => {
+    const screenCenter = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
+    };
+    const position = reactFlow.screenToFlowPosition(screenCenter);
+    const newNode = createNode(QUICKNOTE_NODE_METADATA, position);
+    newNode.width = 200;
+    newNode.height = 120;
+    newNode.style = { width: 200, height: 120 };
+    newNode.data = {
+      ...newNode.data,
+      properties: {
+        quicknote_color: "#FFF9C4",
+        quicknote_text: ""
+      }
+    };
+    addNode(newNode);
+  }, [reactFlow, createNode, addNode]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -441,7 +470,8 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
-      }
+      },
+      addQuickNote: { callback: handleAddQuickNote }
     };
 
     // Switch-to-tab (1-9)
@@ -479,10 +509,11 @@ export const useNodeEditorShortcuts = (
     handleMoveNodes,
     handleSwitchToTab,
     openFind,
-    handleSelectConnectedAll,
-    handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
-  ]);
+     handleSelectConnectedAll,
+     handleSelectConnectedInputs,
+     handleSelectConnectedOutputs,
+     handleAddQuickNote
+   ]);
 
   // useEffect for shortcut registration
   useEffect(() => {
