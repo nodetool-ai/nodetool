@@ -42,6 +42,8 @@ import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import SelectionActionToolbar from "./SelectionActionToolbar";
+import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
   interface Window {
@@ -58,6 +60,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
+  const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -140,6 +143,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           {active && (
             <>
               <RunAsAppFab workflowId={workflowId} />
+              <SelectionActionToolbar
+                visible={selectedNodes.length >= 2}
+              />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}

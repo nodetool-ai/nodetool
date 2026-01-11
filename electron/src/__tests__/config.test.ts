@@ -155,7 +155,7 @@ describe('Config', () => {
 
         const result = getCondaEnvPath();
 
-        expect(result).toBe('/Library/Application Support/nodetool/conda_env');
+        expect(result.replace(/\\/g, '/')).toBe('/Library/Application Support/nodetool/conda_env');
       });
 
       it('should use user path when SUDO_USER not set', () => {
@@ -163,7 +163,7 @@ describe('Config', () => {
 
         const result = getCondaEnvPath();
 
-        expect(result).toContain('Library/Application Support/nodetool/conda_env');
+        expect(result.replace(/\\/g, '/')).toContain('Library/Application Support/nodetool/conda_env');
       });
     });
 
@@ -188,7 +188,8 @@ describe('Config', () => {
 
         const result = getCondaEnvPath();
 
-        expect(result).toContain('.local/share/nodetool/conda_env');
+        // Normalize separators so this is platform-agnostic (Windows runners use `\`)
+        expect(result.replace(/\\/g, '/')).toContain('.local/share/nodetool/conda_env');
       });
     });
 
@@ -203,7 +204,8 @@ describe('Config', () => {
       it('should use fallback path for unknown platforms', () => {
         const result = getCondaEnvPath();
 
-        expect(result).toContain('.nodetool/conda_env');
+        // Normalize separators so this is platform-agnostic (Windows runners use `\`)
+        expect(result.replace(/\\/g, '/')).toContain('.nodetool/conda_env');
       });
     });
   });
@@ -360,11 +362,12 @@ describe('Config', () => {
       });
 
       const result = getProcessEnv();
+      const normalizedPath = (result.PATH ?? '').replace(/\\/g, '/');
 
       expect(result.PYTHONPATH).toBeDefined();
       expect(result.PYTHONUNBUFFERED).toBe('1');
       expect(result.PYTHONNOUSERSITE).toBe('1');
-      expect(result.PATH).toContain('/test/conda');
+      expect(normalizedPath).toContain('/test/conda');
       expect(result.PATH).toContain('Scripts');
       expect(result.PATH).toContain('Library');
       expect(result.HOME).toBe('/home/user');
@@ -378,12 +381,13 @@ describe('Config', () => {
       });
 
       const result = getProcessEnv();
+      const normalizedPath = (result.PATH ?? '').replace(/\\/g, '/');
 
       expect(result.PYTHONPATH).toBeDefined();
       expect(result.PYTHONUNBUFFERED).toBe('1');
       expect(result.PYTHONNOUSERSITE).toBe('1');
-      expect(result.PATH).toContain('/test/conda/bin');
-      expect(result.PATH).toContain('/test/conda/lib');
+      expect(normalizedPath).toContain('/test/conda/bin');
+      expect(normalizedPath).toContain('/test/conda/lib');
       expect(result.HOME).toBe('/home/user');
     });
 
@@ -391,9 +395,10 @@ describe('Config', () => {
       delete process.env.PATH;
 
       const result = getProcessEnv();
+      const normalizedPath = (result.PATH ?? '').replace(/\\/g, '/');
 
       expect(result.PATH).toBeDefined();
-      expect(result.PATH).toContain('/test/conda');
+      expect(normalizedPath).toContain('/test/conda');
     });
 
     it('should filter out non-string environment variables', () => {

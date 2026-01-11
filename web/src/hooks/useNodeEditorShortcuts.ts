@@ -25,6 +25,7 @@ import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
+import { useSelectionActions } from "./useSelectionActions";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -60,6 +61,7 @@ export const useNodeEditorShortcuts = (
   const selectConnectedAll = useSelectConnected({ direction: "both" });
   const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
   const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
+  const selectionActions = useSelectionActions();
 
   const nodeMenuStore = useNodeMenuStore(
     (state) => ({
@@ -441,6 +443,42 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
+      },
+      alignLeft: {
+        callback: selectionActions.alignLeft,
+        active: selectedNodes.length > 1
+      },
+      alignCenter: {
+        callback: selectionActions.alignCenter,
+        active: selectedNodes.length > 1
+      },
+      alignRight: {
+        callback: selectionActions.alignRight,
+        active: selectedNodes.length > 1
+      },
+      alignTop: {
+        callback: selectionActions.alignTop,
+        active: selectedNodes.length > 1
+      },
+      alignMiddle: {
+        callback: selectionActions.alignMiddle,
+        active: selectedNodes.length > 1
+      },
+      alignBottom: {
+        callback: selectionActions.alignBottom,
+        active: selectedNodes.length > 1
+      },
+      distributeHorizontal: {
+        callback: selectionActions.distributeHorizontal,
+        active: selectedNodes.length > 1
+      },
+      distributeVertical: {
+        callback: selectionActions.distributeVertical,
+        active: selectedNodes.length > 1
+      },
+      deleteSelected: {
+        callback: selectionActions.deleteSelected,
+        active: selectedNodes.length > 0
       }
     };
 
@@ -481,7 +519,16 @@ export const useNodeEditorShortcuts = (
     openFind,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
+    handleSelectConnectedOutputs,
+    selectionActions.alignLeft,
+    selectionActions.alignCenter,
+    selectionActions.alignRight,
+    selectionActions.alignTop,
+    selectionActions.alignMiddle,
+    selectionActions.alignBottom,
+    selectionActions.distributeHorizontal,
+    selectionActions.distributeVertical,
+    selectionActions.deleteSelected
   ]);
 
   // useEffect for shortcut registration

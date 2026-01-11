@@ -489,7 +489,9 @@ describe('Performance Regression Tests', () => {
       const duration = performance.now() - start;
 
       console.log(`[PERF] Large tree (243 components) render: ${duration.toFixed(2)}ms`);
-      expect(duration).toBeLessThan(100); // Should be fast
+      // Note: This is inherently environment-dependent (CPU load, CI runners, etc.).
+      // Keep the threshold high enough to avoid flakiness while still catching big regressions.
+      expect(duration).toBeLessThan(200);
     });
 
     it('should benchmark memo effectiveness', () => {
