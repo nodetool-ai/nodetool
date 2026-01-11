@@ -11,6 +11,8 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import NotesIcon from "@mui/icons-material/Notes";
+import ClearIcon from "@mui/icons-material/Clear";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
@@ -60,6 +62,31 @@ const NodeContextMenu: React.FC = () => {
         </div>
       }
     />,
+    <ContextMenuItem
+      key="toggle-annotation"
+      onClick={handlers.handleToggleAnnotation}
+      label={conditions.hasAnnotation ? "Edit Annotation" : "Add Annotation"}
+      IconComponent={<NotesIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">
+            {conditions.hasAnnotation ? "Edit Annotation" : "Add Annotation"}
+          </div>
+          <div className="tooltip-key">
+            <kbd>N</kbd>
+          </div>
+        </div>
+      }
+    />,
+    conditions.hasAnnotation && (
+      <ContextMenuItem
+        key="clear-annotation"
+        onClick={handlers.handleClearAnnotation}
+        label="Clear Annotation"
+        IconComponent={<ClearIcon />}
+        tooltip="Remove the annotation from this node"
+      />
+    ),
     <ContextMenuItem
       key="toggle-comment"
       onClick={handlers.handleToggleComment}

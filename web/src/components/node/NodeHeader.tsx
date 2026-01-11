@@ -7,6 +7,7 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { AnnotationBadge } from "./AnnotationBadge";
 
 export interface NodeHeaderProps {
   id: string;
@@ -180,6 +181,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
+        <AnnotationBadge nodeId={id} annotation={data.annotation} />
       </div>
     </div>
   );

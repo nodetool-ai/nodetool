@@ -179,4 +179,31 @@ test('handles user interaction', async () => {
 
 ---
 
+### Node Annotations (2026-01-11)
+
+**What**: Added ability to add lightweight annotations to any node for documentation purposes. Annotations appear as a badge on the node header and show on hover.
+
+**Why**: Enhance workflow documentation by allowing users to add notes, reminders, or explanations directly on nodes without creating separate Comment nodes.
+
+**Implementation**:
+- Added `annotation` property to `NodeData` type
+- Created `AnnotationBadge` component that displays a note icon when annotation exists
+- Integrated badge into `NodeHeader` component
+- Added context menu options: "Add/Edit Annotation" and "Clear Annotation"
+- Added keyboard shortcut (N) for quick annotation on selected node
+- Added tests for the badge component and context menu handlers
+
+**Files Changed**:
+- `web/src/stores/NodeData.ts` - Added annotation property
+- `web/src/components/node/AnnotationBadge.tsx` - New badge component
+- `web/src/components/node/NodeHeader.tsx` - Integrated badge
+- `web/src/hooks/nodes/useNodeContextMenu.ts` - Added annotation handlers
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added menu items
+- `web/src/config/shortcuts.ts` - Added N shortcut
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handler
+- `web/src/components/node/__tests__/AnnotationBadge.test.tsx` - Badge tests
+- `web/src/hooks/nodes/__tests__/useNodeContextMenu.test.ts` - Handler tests
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

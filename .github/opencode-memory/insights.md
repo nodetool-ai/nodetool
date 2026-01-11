@@ -449,3 +449,30 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Node Annotations Implementation (2026-01-11)
+
+**Insight**: MUI Tooltip component with custom `open/onOpen/onClose` props provides better control over tooltip visibility, especially when combined with mouse events on parent elements.
+
+**Pattern**: Using controlled Tooltip with `onMouseEnter`/`onMouseLeave` for hover tooltips:
+```typescript
+<Tooltip
+  title={<div>{annotation}</div>}
+  open={tooltipOpen}
+  onOpen={() => setTooltipOpen(true)}
+  onClose={() => setTooltipOpen(false)}
+  arrow
+>
+  <div css={badgeStyles}>
+    <NotesIcon />
+  </div>
+</Tooltip>
+```
+
+**Why**: The default MUI Tooltip can interfere with mouse events on child elements. Using controlled props ensures proper event handling.
+
+**Files**: `web/src/components/node/AnnotationBadge.tsx`
+
+**Date**: 2026-01-11

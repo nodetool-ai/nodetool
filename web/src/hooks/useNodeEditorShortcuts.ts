@@ -42,7 +42,8 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    updateNodeData: state.updateNodeData
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -378,6 +379,24 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleAddAnnotation = useCallback(() => {
+    if (selectedNodes.length !== 1) {
+      return;
+    }
+    const node = selectedNodes[0];
+    const currentAnnotation = node.data.annotation || "";
+    const newAnnotation = prompt(
+      "Enter annotation for this node:",
+      currentAnnotation
+    );
+    if (newAnnotation !== null) {
+      nodesStore.updateNodeData(node.id, {
+        ...node.data,
+        annotation: newAnnotation.trim() || undefined
+      } as Partial<NodeData>);
+    }
+  }, [selectedNodes, nodesStore]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -430,6 +449,10 @@ export const useNodeEditorShortcuts = (
       bypassNode: {
         callback: handleBypassSelected,
         active: selectedNodes.length > 0
+      },
+      addAnnotation: {
+        callback: handleAddAnnotation,
+        active: selectedNodes.length === 1
       },
       findInWorkflow: { callback: openFind },
       selectConnectedAll: {
@@ -512,6 +535,7 @@ export const useNodeEditorShortcuts = (
     handleZoomIn,
     handleZoomOut,
     handleBypassSelected,
+    handleAddAnnotation,
     handleFitView,
     handleSwitchTab,
     handleMoveNodes,
