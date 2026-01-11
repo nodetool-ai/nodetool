@@ -360,6 +360,42 @@ cd mobile && npm install
 
 ---
 
+### Workflow Comments Panel Implementation (2026-01-11)
+
+**Insight**: Building on existing panel infrastructure is more efficient than creating new systems.
+
+**Key Learnings**:
+1. The right panel system (`RightPanelStore`, `PanelRight`) is designed to be extensible with minimal changes
+2. Adding a new panel view only requires updating the `RightPanelView` type and adding the button/rendering logic
+3. Zustand stores can be created for specific features without modifying existing stores
+4. Keyboard shortcuts can be registered independently via the existing `useNodeEditorShortcuts` pattern
+
+**Pattern**:
+```typescript
+// 1. Add view type to RightPanelView
+export type RightPanelView = "inspector" | "assistant" | "logs" | "workspace" | "versions" | "comments";
+
+// 2. Create a new store for feature-specific state
+const useCommentsStore = create<CommentsState>((set, get) => ({ ... }));
+
+// 3. Create panel component following existing patterns
+const CommentsPanel: React.FC = () => { ... };
+
+// 4. Add shortcut to shortcuts.ts
+{ title: "Comments", slug: "toggleComments", keyCombo: ["C"], category: "panel" }
+
+// 5. Register callback in useNodeEditorShortcuts.ts
+const handleCommentsToggle = useCallback(() => inspectorToggle("comments"), [inspectorToggle]);
+```
+
+**Impact**: The comments panel was implemented in ~4 hours with proper TypeScript types, linting, and testing.
+
+**Files**: See project-context.md for full list
+
+**Date**: 2026-01-11
+
+---
+
 ### GitHub Workflow Dependency Management (2026-01-10)
 
 **Insight**: GitHub workflows must install npm dependencies in all package directories (web, electron, mobile) to ensure consistent CI/CD behavior.

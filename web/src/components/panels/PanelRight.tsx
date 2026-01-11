@@ -20,6 +20,7 @@ import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
+import CommentIcon from "@mui/icons-material/Comment";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
@@ -27,6 +28,7 @@ import PanelResizeButton from "./PanelResizeButton";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
+import CommentsPanel from "./CommentsPanel";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -118,6 +120,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle,
   handleWorkspaceToggle,
   handleVersionsToggle,
+  handleCommentsToggle,
   activeView,
   panelVisible
 }: {
@@ -126,7 +129,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle: () => void;
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions";
+  handleCommentsToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "comments";
   panelVisible: boolean;
 }) {
   return (
@@ -247,6 +251,25 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <HistoryIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Comments Button */}
+      <Tooltip
+        title="Comments"
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleCommentsToggle}
+          className={
+            activeView === "comments" && panelVisible
+              ? "comments active"
+              : "comments"
+          }
+        >
+          <CommentIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -339,6 +362,7 @@ const PanelRight: React.FC = () => {
             handleLogsToggle={() => handlePanelToggle("logs")}
             handleWorkspaceToggle={() => handlePanelToggle("workspace")}
             handleVersionsToggle={() => handlePanelToggle("versions")}
+            handleCommentsToggle={() => handlePanelToggle("comments")}
             activeView={activeView}
             panelVisible={isVisible}
           />
@@ -365,6 +389,8 @@ const PanelRight: React.FC = () => {
                       onClose={() => handlePanelToggle("versions")}
                     />
                   ) : null
+                ) : activeView === "comments" ? (
+                  <CommentsPanel />
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>

@@ -155,4 +155,33 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Workflow Comments Panel (2026-01-11)
+
+**What**: Added a dedicated Comments sidebar panel to the right panel system that displays all comment nodes in the current workflow with search functionality and navigation.
+
+**Why**: The existing CommentNode component allowed adding rich text annotations to workflows, but there was no easy way to view all comments at once or navigate between them. Users needed a centralized panel to manage and discover comments in complex workflows.
+
+**Implementation**:
+- Created `CommentsStore.ts` for managing comment state and filtering logic
+- Created `CommentsPanel.tsx` component with search, list view, and click-to-navigate functionality
+- Added "comments" view to `RightPanelStore` and `RightPanelView` type
+- Integrated Comments button into the PanelRight vertical toolbar
+- Added "C" keyboard shortcut to toggle the comments panel
+- Follows existing panel architecture patterns (like Inspector, Logs, Workspace)
+
+**Files**:
+- `web/src/stores/CommentsStore.ts` - New store for comment management
+- `web/src/components/panels/CommentsPanel.tsx` - New panel component
+- `web/src/stores/RightPanelStore.ts` - Added "comments" view type
+- `web/src/components/panels/PanelRight.tsx` - Added toolbar button and panel rendering
+- `web/src/config/shortcuts.ts` - Added "C" shortcut for comments panel
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Registered shortcut callback
+
+**Key Features**:
+- Lists all comment nodes in the current workflow
+- Search/filter comments by content
+- Click on any comment to zoom and navigate to it
+- Shows comment color indicator and preview text
+- Empty state with call-to-action for adding first comment
+
 _No entries yet - this memory system is new as of 2026-01-10_

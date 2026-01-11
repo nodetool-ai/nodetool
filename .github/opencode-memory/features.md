@@ -32,6 +32,8 @@ Last updated: 2026-01-10
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Comments Panel**: Dedicated sidebar panel to view, search, and navigate all comments in a workflow
+- **Comment Navigation**: Click to zoom directly to any comment in the workflow
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates
