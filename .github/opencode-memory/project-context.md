@@ -155,4 +155,31 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Version Timeline Feature (2026-01-11)
+
+**What**: Added a new visual Version Timeline component for workflow version management
+**Why**: To provide a more intuitive and visual way for users to browse, compare, and restore workflow versions
+**Implementation**:
+- Created `VersionTimeline.tsx` component with visual timeline display
+- Added checkpoint creation with custom names
+- Implemented version detail panel with expanded view
+- Added version export as JSON functionality
+- Integrated with existing `VersionHistoryStore` and `useWorkflowVersions` hooks
+- Used existing `GraphVisualDiff` and `VersionDiff` components for comparison
+
+**Files Changed**:
+- `web/src/components/version/VersionTimeline.tsx` (new)
+- `web/src/components/version/__tests__/VersionTimeline.test.tsx` (new)
+- `web/src/components/version/index.ts` (updated)
+
+**Key Features**:
+- Visual timeline with color-coded save types (manual, checkpoint, autosave, restore)
+- Checkpoint creation with custom names via dialog
+- Version export to JSON for backup/sharing
+- Compare mode for visual diff between versions
+- Expanded view showing version details (name, description, node/edge counts)
+- Filter by save type (All, Manual, Checkpoint, Auto-save)
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

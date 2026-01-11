@@ -122,6 +122,29 @@ screen.getByTestId('save-button')
 
 ---
 
+### Mocking Complex Modules in Tests
+
+**Insight**: Dynamic module mocking with `jest.doMock` can be tricky. Static mocks at the top level work better for most cases.
+
+**Pattern**:
+```typescript
+// ✅ Better - static mock at top level
+jest.mock("../../../serverState/useWorkflowVersions", () => ({
+  useWorkflowVersions: jest.fn(() => ({
+    data: { versions: mockVersions, ... },
+    isLoading: false,
+    ...
+  }))
+}));
+
+// ❌ Avoid - dynamic mocking inside tests
+jest.doMock("../../../serverState/useWorkflowVersions", ...)
+```
+
+**Date**: 2026-01-11
+
+---
+
 ## Code Quality Insights
 
 ### TypeScript Strict Mode

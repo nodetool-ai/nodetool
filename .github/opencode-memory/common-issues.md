@@ -465,3 +465,52 @@ cd mobile && npm install
 **Prevention**: When adding new workflows that need npm dependencies, ensure all three packages (web, electron, mobile) have their dependencies installed. Also ensure path filters include `mobile/**` if mobile changes should trigger the workflow.
 
 ---
+
+### Luxon Import Issues in Component Testing (2026-01-11)
+
+**Issue**: TypeScript errors with "Module 'luxon' has no exported member 'formatDistanceToNow'" when importing from luxon.
+
+**Root Cause**: Using named exports from luxon incorrectly. The `formatDistanceToNow` and `format` functions are not directly exported; instead, they should be used as methods on `DateTime`.
+
+**Solution**: Use `DateTime` class methods:
+```typescript
+// ❌ Bad
+import { formatDistanceToNow, format } from "luxon";
+formatDistanceToNow(new Date(date), { addSuffix: true });
+
+// ✅ Good
+import { DateTime } from "luxon";
+DateTime.fromISO(date).toRelative({ addSuffix: true });
+
+// Or use existing utility
+import { relativeTime } from "../../utils/formatDateAndTime";
+relativeTime(date);
+```
+
+**Files**: `web/src/components/version/VersionTimeline.tsx`
+
+**Prevention**: Check how luxon is imported and used in existing files (`web/src/utils/formatDateAndTime.ts`) before using it in new components.
+
+---
+
+### ESLint Non-Null Assertion on Optional Chain (2026-01-11)
+
+**Issue**: ESLint error "Optional chain expressions can return undefined by design - using a non-null assertion is unsafe and wrong" when using `?.!` pattern.
+
+**Solution**: Use safer conditional logic instead of non-null assertion:
+```typescript
+// ❌ Bad
+handleExportVersion(versions.find(v => v.id === menuVersionId)?.version!);
+
+// ✅ Good
+const found = versions.find(v => v.id === menuVersionId);
+if (found) {
+  handleExportVersion(found.version);
+}
+```
+
+**Files**: `web/src/components/version/VersionTimeline.tsx`
+
+**Prevention**: Always prefer explicit null checks over non-null assertions on optional chains. The non-null assertion defeats the purpose of optional chaining.
+
+---
