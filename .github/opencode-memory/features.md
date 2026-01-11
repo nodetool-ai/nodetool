@@ -2,7 +2,7 @@
 
 This document lists all existing features in NodeTool to help OpenCode agents avoid creating redundant functionality. **Always read this file before planning new features.**
 
-Last updated: 2026-01-10
+Last updated: 2026-01-11
 
 ---
 
@@ -33,6 +33,8 @@ Last updated: 2026-01-10
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Color Presets**: Save and apply named color schemes to multiple nodes at once
+- **Batch Node Coloring**: Apply colors to all selected nodes with a single click
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

@@ -179,4 +179,29 @@ test('handles user interaction', async () => {
 
 ---
 
+### Batch Node Coloring with Color Presets (2026-01-11)
+
+**What**: Added a color preset system that allows users to save named color schemes and apply them to multiple selected nodes at once. Features include creating, editing, duplicating, and deleting presets; quick color application from the selection toolbar; and saving the current node color as a new preset.
+
+**Why**: Improved workflow organization and visual clarity by enabling users to color-code nodes consistently across their workflows, making complex workflows easier to understand and navigate.
+
+**Implementation**:
+- Created `NodeColorPresetsStore` (Zustand store with persistence) to manage color presets
+- Created `useNodeColoring` hook for batch color operations on selected nodes
+- Created `ColorPresetsDialog` component for managing presets (create, edit, delete, duplicate)
+- Extended `SelectionActionToolbar` with a color preset button that opens a popover with quick color access
+- Integrated dialog into `NodeEditor` component
+- Added comprehensive tests for the store and hook
+
+**Files Changed**:
+- `web/src/stores/NodeColorPresetsStore.ts` - New store for color presets
+- `web/src/hooks/useNodeColoring.ts` - New hook for batch color operations
+- `web/src/components/node_editor/ColorPresetsDialog.tsx` - New dialog for managing presets
+- `web/src/components/node_editor/SelectionActionToolbar.tsx` - Added color preset button and popover
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated ColorPresetsDialog
+- `web/src/stores/__tests__/NodeColorPresetsStore.test.ts` - Store tests
+- `web/src/hooks/__tests__/useNodeColoring.test.ts` - Hook tests
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

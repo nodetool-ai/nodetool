@@ -43,7 +43,9 @@ import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
+import ColorPresetsDialog from "./ColorPresetsDialog";
 import { useNodes } from "../../contexts/NodeContext";
+import { useNodeColorPresetsStore } from "../../stores/NodeColorPresetsStore";
 
 declare global {
   interface Window {
@@ -64,6 +66,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
+  const isDialogOpen = useNodeColorPresetsStore((state) => state.isDialogOpen);
+  const setDialogOpen = useNodeColorPresetsStore((state) => state.setDialogOpen);
   const {
     packageNameDialogOpen,
     packageNameInput,
@@ -155,6 +159,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <ColorPresetsDialog
+                open={isDialogOpen}
+                onClose={() => setDialogOpen(false)}
+              />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

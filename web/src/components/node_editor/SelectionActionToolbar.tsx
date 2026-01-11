@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from "react";
-import { Box, IconButton, Tooltip, Divider } from "@mui/material";
+import React, { useCallback, useMemo, useState } from "react";
+import { Box, IconButton, Tooltip, Divider, Popover, Button } from "@mui/material";
 import {
   AlignHorizontalLeft,
   AlignHorizontalCenter,
@@ -12,10 +12,14 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit
+  CallSplit,
+  Palette,
+  ChevronRight
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
+import { useNodeColoring } from "../../hooks/useNodeColoring";
+import { useNodeColorPresetsStore } from "../../stores/NodeColorPresetsStore";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
 interface SelectionActionToolbarProps {
@@ -41,6 +45,38 @@ type ButtonItem = ActionButton | DividerButton;
 const isDividerButton = (button: ButtonItem): button is DividerButton => {
   return button.divider === true;
 };
+
+const ColorPresetButton: React.FC<{
+  color: string;
+  name: string;
+  onClick: () => void;
+  disabled?: boolean;
+}> = ({ color, name, onClick, disabled }) => (
+  <Tooltip title={name} arrow placement="top">
+    <span>
+      <IconButton
+        size="small"
+        aria-label={`Apply ${name} color`}
+        onClick={onClick}
+        disabled={disabled}
+        sx={{
+          width: 28,
+          height: 28,
+          backgroundColor: color,
+          border: 1,
+          borderColor: "grey.400",
+          "&:hover": {
+            backgroundColor: color,
+            opacity: 0.8
+          },
+          "&.Mui-disabled": {
+            opacity: 0.4
+          }
+        }}
+      />
+    </span>
+  </Tooltip>
+);
 
 const renderButton = (button: ActionButton, index: number): React.ReactNode => (
   <Tooltip
@@ -87,6 +123,11 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
 }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const selectionActions = useSelectionActions();
+  const { applyPresetToSelected, hasSelectedNodes } = useNodeColoring();
+  const presets = useNodeColorPresetsStore((state) => state.presets);
+  const setDialogOpen = useNodeColorPresetsStore((state) => state.setDialogOpen);
+
+  const [colorAnchorEl, setColorAnchorEl] = useState<null | HTMLElement>(null);
 
   const canAlign = selectedNodes.length >= 2;
   const canDistribute = selectedNodes.length >= 2;
@@ -100,6 +141,27 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
     },
     [onClose]
   );
+
+  const handleOpenColorMenu = useCallback(() => {
+    setColorAnchorEl(document.body);
+  }, []);
+
+  const handleColorClose = useCallback(() => {
+    setColorAnchorEl(null);
+  }, []);
+
+  const handlePresetClick = useCallback(
+    (presetId: string) => {
+      applyPresetToSelected(presetId);
+      handleColorClose();
+    },
+    [applyPresetToSelected, handleColorClose]
+  );
+
+  const handleManagePresets = useCallback(() => {
+    setDialogOpen(true);
+    handleColorClose();
+  }, [setDialogOpen, handleColorClose]);
 
   const alignmentButtons: ButtonItem[] = useMemo(
     () => [
@@ -202,6 +264,19 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
     [canGroup, selectionActions]
   );
 
+  const colorButtons: ButtonItem[] = useMemo(
+    () => [
+      {
+        icon: <Palette fontSize="small" />,
+        label: "Color Presets",
+        slug: "colorPresets",
+        action: handleOpenColorMenu,
+        disabled: !hasSelectedNodes
+      }
+    ],
+    [hasSelectedNodes, handleOpenColorMenu]
+  );
+
   if (!visible) {
     return null;
   }
@@ -211,42 +286,95 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
     { divider: true } as DividerButton,
     ...distributionButtons,
     { divider: true } as DividerButton,
+    ...colorButtons,
+    { divider: true } as DividerButton,
     ...actionButtons
   ];
 
-  return (
-    <Box
-      className="selection-action-toolbar"
-      role="region"
-      aria-label="Selection Action Toolbar"
-      onKeyDown={handleKeyDown}
-      sx={{
-        position: "absolute",
-        bottom: "auto",
-        top: 80,
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        gap: 0.5,
-        padding: "6px 10px",
-        bgcolor: "background.paper",
-        borderRadius: 2,
-        boxShadow: 3,
-        border: 1,
-        borderColor: "divider"
-      }}
-    >
-      {allButtons.map((button, index) => {
-        if (isDividerButton(button)) {
-          return renderDivider(index);
-        }
+  const visiblePresets = presets.slice(0, 8);
 
-        const actionButton = button as ActionButton;
-        return renderButton(actionButton, index);
-      })}
-    </Box>
+  return (
+    <>
+      <Box
+        className="selection-action-toolbar"
+        role="region"
+        aria-label="Selection Action Toolbar"
+        onKeyDown={handleKeyDown}
+        sx={{
+          position: "absolute",
+          bottom: "auto",
+          top: 80,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          padding: "6px 10px",
+          bgcolor: "background.paper",
+          borderRadius: 2,
+          boxShadow: 3,
+          border: 1,
+          borderColor: "divider"
+        }}
+      >
+        {allButtons.map((button, index) => {
+          if (isDividerButton(button)) {
+            return renderDivider(index);
+          }
+
+          const actionButton = button as ActionButton;
+          return renderButton(actionButton, index);
+        })}
+      </Box>
+
+      <Popover
+        open={Boolean(colorAnchorEl)}
+        anchorEl={colorAnchorEl}
+        onClose={handleColorClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "center"
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "center"
+        }}
+        PaperProps={{
+          sx: {
+            bgcolor: "background.paper",
+            border: 1,
+            borderColor: "divider",
+            borderRadius: 1,
+            p: 1
+          }
+        }}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 200 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+            {visiblePresets.map((preset) => (
+              <ColorPresetButton
+                key={preset.id}
+                color={preset.color}
+                name={preset.name}
+                onClick={() => handlePresetClick(preset.id)}
+                disabled={!hasSelectedNodes}
+              />
+            ))}
+          </Box>
+          <Divider />
+          <Button
+            size="small"
+            startIcon={<Palette fontSize="small" />}
+            endIcon={<ChevronRight fontSize="small" />}
+            onClick={handleManagePresets}
+            sx={{ justifyContent: "flex-start" }}
+          >
+            Manage Presets...
+          </Button>
+        </Box>
+      </Popover>
+    </>
   );
 };
 
