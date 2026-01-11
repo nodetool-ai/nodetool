@@ -5,6 +5,7 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { Asset } from "../../stores/ApiTypes";
 import log from "loglevel";
 import { useNodes } from "../../contexts/NodeContext";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 export type WaveRecorderProps = {
   onChange: (asset: Asset) => void;
@@ -24,12 +25,20 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   const recordRef = useRef<any | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Get global default device from settings
+  const globalDefaultDeviceId = useSettingsStore(
+    (state) => state.settings.defaultAudioInputDeviceId
+  );
+
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [audioInputDevices, setAudioInputDevices] = useState<AudioDevice[]>([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState<string[]>([]);
-  const [selectedInputDeviceId, setSelectedInputDeviceId] = useState<string>("");
+  // Initialize with global default if available
+  const [selectedInputDeviceId, setSelectedInputDeviceId] = useState<string>(
+    globalDefaultDeviceId || ""
+  );
 
   const fetchAudioDeviceNames = useCallback(() => {
     if (!navigator.mediaDevices) {

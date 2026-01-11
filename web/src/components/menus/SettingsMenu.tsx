@@ -41,6 +41,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
+import AudioInputTester from "../audio/AudioInputTester";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -277,7 +278,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         { id: "autosave", label: "Autosave" },
         { id: "navigation", label: "Navigation" },
         { id: "grid", label: "Grid & Connections" },
-        { id: "appearance", label: "Appearance" }
+        { id: "appearance", label: "Appearance" },
+        { id: "audio-input", label: "Audio Input" }
       ]
     }
   ];
@@ -842,6 +844,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         <Typography className="description">
                           Display time in 12h or 24h format.
                         </Typography>
+                      </div>
+                    </div>
+
+                    <Typography variant="h3" id="audio-input">
+                      Audio Input
+                    </Typography>
+                    <div className="settings-section">
+                      <div className="settings-item">
+                        <Typography className="description" sx={{ marginBottom: "1em" }}>
+                          Select your default recording device for audio nodes.
+                          Use the test button to verify your microphone is working correctly.
+                        </Typography>
+                        <AudioInputTester
+                          useGlobalDefault={true}
+                          label="Default Recording Device"
+                        />
                       </div>
                     </div>
 
