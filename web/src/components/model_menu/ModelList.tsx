@@ -99,7 +99,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                       width: "100%"
                     }}
                   >
-                    <div
+                    <span
                       className="model-name"
                       style={{
                         overflow: "hidden",
@@ -123,7 +123,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                           )
                         );
                       })()}
-                    </div>
+                    </span>
                     {available && isLocalProvider(m.provider) && (
                       <Tooltip
                         title="Runs locally on your device"
@@ -211,21 +211,27 @@ function ModelList<TModel extends ModelSelectorModel>({
                   </Box>
                 }
                 secondary={
-                  <Box
-                    sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: theme.vars.fontSizeTiny,
+                      color: theme.vars.palette.text.secondary,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap"
+                    }}
                   >
-                    <div
-                      style={{
-                        fontSize: theme.vars.fontSizeTiny,
-                        color: theme.vars.palette.text.secondary
-                      }}
-                    >
-                      {m.path ? m.name : m.provider ? `Provider: ${m.provider}` : ""}
-                    </div>
-                  </Box>
+                    {m.path ? m.name : m.provider ? `Provider: ${m.provider}` : ""}
+                  </span>
                 }
                 primaryTypographyProps={{
+                  component: "div",
                   noWrap: true
+                }}
+                secondaryTypographyProps={{
+                  component: "div"
                 }}
               />
             </ListItemButton>
@@ -279,13 +285,13 @@ function ModelList<TModel extends ModelSelectorModel>({
                   overflowX: "hidden",
                   height: safeHeight,
                   width: safeWidth,
-                  "& .MuiListItemButton-root": { py: 0.4 },
+                  "& .MuiListItemButton-root": { py: 0.5 },
                   "& .MuiListItemText-primary": {
-                    fontSize: theme.vars.fontSizeSmall
+                    fontSize: theme.vars.fontSizeNormal
                   },
                   "& .MuiListItemText-secondary": {
                     color: theme.vars.palette.text.secondary,
-                    fontSize: theme.vars.fontSizeTiny
+                    fontSize: theme.vars.fontSizeSmall
                   },
                   "& .model-menu__model-item.is-unavailable": {
                     opacity: 0.55,
@@ -308,7 +314,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                   height={safeHeight}
                   width={safeWidth}
                   itemCount={models.length}
-                  itemSize={36}
+                  itemSize={40}
                 >
                   {renderRow}
                 </VirtualList>
