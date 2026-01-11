@@ -42,9 +42,14 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
   "application/json": "json"
 };
 
-const convertDataFrameToCSV = (dataframe: any): string => {
-  const headers = dataframe.columns.map((col: any) => col.name).join(",");
-  const rows = dataframe.data.map((row: any) => row.join(",")).join("\n");
+interface DataFrame {
+  columns: Array<{ name: string }>;
+  data: string[][];
+}
+
+const convertDataFrameToCSV = (dataframe: DataFrame): string => {
+  const headers = dataframe.columns.map((col) => col.name).join(",");
+  const rows = dataframe.data.map((row) => row.join(",")).join("\n");
   return `${headers}\n${rows}`;
 };
 
@@ -80,8 +85,8 @@ const decodeBase64 = (value: string): Uint8Array => {
   return TEXT_ENCODER.encode(value);
 };
 
-const toUint8Array = (input: any): Uint8Array => {
-  if (!input) {return new Uint8Array();}
+const toUint8Array = (input: unknown): Uint8Array => {
+  if (!input) { return new Uint8Array(); }
   if (input instanceof Uint8Array) {
     return input;
   }
@@ -110,11 +115,11 @@ const toUint8Array = (input: any): Uint8Array => {
     return new Uint8Array(input);
   }
   if (typeof input === "object") {
-    if ("data" in input) {
-      return toUint8Array((input as any).data);
+    if ("data" in input && input.data != null) {
+      return toUint8Array((input as { data: unknown }).data);
     }
-    if ("content" in input) {
-      return toUint8Array((input as any).content);
+    if ("content" in input && input.content != null) {
+      return toUint8Array((input as { content: unknown }).content);
     }
     return new Uint8Array(Object.values(input as Record<string, number>));
   }
@@ -137,8 +142,11 @@ const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   return cloned;
 };
 
-const isChunk = (value: any): value is Chunk =>
-  value && typeof value === "object" && value.type === "chunk";
+const isChunk = (value: unknown): value is Chunk =>
+  value != null &&
+  typeof value === "object" &&
+  "type" in value &&
+  value.type === "chunk";
 
 const resolveDownloadUri = (uri: string): string => {
   if (typeof window === "undefined") {
@@ -227,7 +235,7 @@ const concatTextChunksSafely = (
   return { text: parts.join(""), truncated: false };
 };
 
-const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => {
+const normalizeOutput = (output: unknown, options?: CreateAssetFileOptions): unknown => {
   const maxTextChars = Math.max(
     1,
     options?.maxTextChars ?? DEFAULT_MAX_TEXT_CHARS
@@ -266,16 +274,16 @@ const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => 
   return output;
 };
 
-const getOutputType = (output: any): string | undefined => {
-  if (output && typeof output === "object") {
-    return output.type;
+const getOutputType = (output: unknown): string | undefined => {
+  if (output != null && typeof output === "object") {
+    return (output as Record<string, unknown>).type as string | undefined;
   }
   return undefined;
 };
 
-const getOutputData = (output: any): any => {
-  if (output && typeof output === "object") {
-    const record = output as Record<string, any>;
+const getOutputData = (output: unknown): unknown => {
+  if (output != null && typeof output === "object") {
+    const record = output as Record<string, unknown>;
     if ("data" in record && record.data !== undefined && record.data !== null) {
       return record.data;
     }
@@ -299,24 +307,39 @@ const getOutputData = (output: any): any => {
 };
 
 const getMimeType = (
-  output: Record<string, any> | undefined,
+  output: Record<string, unknown> | undefined,
   fallback: string
 ): string => {
   if (!output || typeof output !== "object") {
     return fallback;
   }
 
-  const asString = (value: any) =>
-    typeof value === "string" && value.includes("/");
+  const mimeType = output.mime_type;
+  if (typeof mimeType === "string" && mimeType.includes("/")) {
+    return mimeType;
+  }
+  const mimeType2 = output.mimeType;
+  if (typeof mimeType2 === "string" && mimeType2.includes("/")) {
+    return mimeType2;
+  }
+  const type = output.type;
+  if (typeof type === "string" && type.includes("/")) {
+    return type;
+  }
+  const data = output.data;
+  if (data && typeof data === "object") {
+    const dataRecord = data as Record<string, unknown>;
+    const dataMimeType = dataRecord.mime_type;
+    if (typeof dataMimeType === "string" && dataMimeType.includes("/")) {
+      return dataMimeType;
+    }
+    const dataMimeType2 = dataRecord.mimeType;
+    if (typeof dataMimeType2 === "string" && dataMimeType2.includes("/")) {
+      return dataMimeType2;
+    }
+  }
 
-  return (
-    (asString(output.mime_type) && output.mime_type) ||
-    (asString(output.mimeType) && output.mimeType) ||
-    (asString(output.type) && output.type) ||
-    (asString(output.data?.mime_type) && output.data?.mime_type) ||
-    (asString(output.data?.mimeType) && output.data?.mimeType) ||
-    fallback
-  );
+  return fallback;
 };
 
 const getExtension = (mimeType: string, defaultExt: string) => {
@@ -363,10 +386,11 @@ const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
 };
 
 const createSingleAssetFile = async (
-  output: any,
+  output: unknown,
   id: string,
   index?: number
 ): Promise<AssetFileResult> => {
+  const outputRecord = output as Record<string, unknown> | null | undefined;
   const originalData = getOutputData(output);
 
   let data = originalData;
@@ -382,23 +406,25 @@ const createSingleAssetFile = async (
     (data.startsWith("http://") || data.startsWith("https://"));
 
   const shouldFetchFromUri =
-    typeof output?.uri === "string" && (isDataEmpty || stringLooksLikeUrl);
+    typeof outputRecord?.uri === "string" && (isDataEmpty || stringLooksLikeUrl);
   const shouldDownloadAsset =
     !shouldFetchFromUri &&
-    typeof output?.asset_id === "string" &&
+    typeof outputRecord?.asset_id === "string" &&
     (isDataEmpty || data === output);
 
   if (shouldFetchFromUri) {
     try {
-      data = await fetchBinaryFromUri(output.uri);
+      const uriValue = typeof outputRecord?.uri === "string" ? outputRecord.uri : "";
+      data = await fetchBinaryFromUri(uriValue);
     } catch (err) {
       log.warn("[createAssetFile] Failed to fetch data from URI", err);
       data = originalData ?? new Uint8Array();
     }
   } else if (shouldDownloadAsset) {
     try {
+      const assetId = typeof outputRecord?.asset_id === "string" ? outputRecord.asset_id : "";
       const assetResponse = await client.GET("/api/assets/{id}", {
-        params: { path: { id: output.asset_id } }
+        params: { path: { id: assetId } }
       });
       if (assetResponse.error) {
         const detail =
@@ -428,63 +454,74 @@ const createSingleAssetFile = async (
 
   switch (type) {
     case "image": {
-      mimeType = getMimeType(output, "image/png");
+      mimeType = getMimeType(outputRecord ?? undefined, "image/png");
       const extension = getExtension(mimeType, "png");
       content = toArrayBuffer(toUint8Array(data));
-      filename = buildFilename(output?.filename, id, suffix, extension, index);
+      const filenameValue = typeof outputRecord?.filename === "string" ? outputRecord.filename : undefined;
+      filename = buildFilename(filenameValue, id, suffix, extension, index);
       break;
     }
     case "video": {
-      mimeType = getMimeType(output, "video/mp4");
+      mimeType = getMimeType(outputRecord ?? undefined, "video/mp4");
       const extension = getExtension(mimeType, "mp4");
       content = toArrayBuffer(toUint8Array(data));
-      filename = buildFilename(output?.filename, id, suffix, extension, index);
+      const filenameValue = typeof outputRecord?.filename === "string" ? outputRecord.filename : undefined;
+      filename = buildFilename(filenameValue, id, suffix, extension, index);
       break;
     }
     case "audio": {
-      mimeType = getMimeType(output, "audio/mp3");
+      mimeType = getMimeType(outputRecord ?? undefined, "audio/mp3");
       const extension = getExtension(mimeType, "mp3");
       content = toArrayBuffer(toUint8Array(data));
-      filename = buildFilename(output?.filename, id, suffix, extension, index);
+      const filenameValue = typeof outputRecord?.filename === "string" ? outputRecord.filename : undefined;
+      filename = buildFilename(filenameValue, id, suffix, extension, index);
       break;
     }
-    case "dataframe":
-      content = convertDataFrameToCSV(data);
+    case "dataframe": {
+      content = convertDataFrameToCSV(data as DataFrame);
       mimeType = "text/csv";
-      filename = buildFilename(output?.filename, id, suffix, "csv", index);
+      const filenameValue = typeof outputRecord?.filename === "string" ? outputRecord.filename : undefined;
+      filename = buildFilename(filenameValue, id, suffix, "csv", index);
       break;
+    }
     case "object":
-    case "array":
+    case "array": {
       content = JSON.stringify(data, null, 2);
       mimeType = "application/json";
-      filename = buildFilename(output?.filename, id, suffix, "json", index);
+      const filenameValue = typeof outputRecord?.filename === "string" ? outputRecord.filename : undefined;
+      filename = buildFilename(filenameValue, id, suffix, "json", index);
       break;
-    case "text":
+    }
+    case "text": {
       content = typeof data === "string" ? data : JSON.stringify(data, null, 2);
-      mimeType = getMimeType(output, "text/plain");
+      mimeType = getMimeType(outputRecord ?? undefined, "text/plain");
+      const filenameText = typeof outputRecord?.filename === "string" ? outputRecord.filename : undefined;
       filename = buildFilename(
-        output?.filename,
+        filenameText,
         id,
         suffix,
         getExtension(mimeType, "txt"),
         index
       );
       break;
-    default:
+    }
+    default: {
       content =
         typeof output === "string"
           ? output
           : typeof data === "string" || data instanceof Blob
           ? data
           : JSON.stringify(output, null, 2);
-      mimeType = getMimeType(output, "text/plain");
+      mimeType = getMimeType(outputRecord ?? undefined, "text/plain");
+      const filenameDefault = typeof outputRecord?.filename === "string" ? outputRecord.filename : undefined;
       filename = buildFilename(
-        output?.filename,
+        filenameDefault,
         id,
         suffix,
         getExtension(mimeType, "txt"),
         index
       );
+    }
   }
 
   const file = new File([content], filename, { type: mimeType });
@@ -499,7 +536,7 @@ const createSingleAssetFile = async (
 };
 
 export const createAssetFile = async (
-  output: any | any[],
+  output: unknown | unknown[],
   id: string,
   options?: CreateAssetFileOptions
 ): Promise<AssetFileResult[]> => {

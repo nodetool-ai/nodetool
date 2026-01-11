@@ -141,8 +141,9 @@ export const useDropHandler = () => {
           }
 
           if (result.success) {
-            if (result.data && "id" in result.data) {
-              addNodeFromAsset(result.data, position);
+            if (result.data && typeof result.data === "object" && "id" in result.data) {
+              const asset = result.data as unknown as Asset;
+              addNodeFromAsset(asset, position);
             }
           } else {
             addNotification({

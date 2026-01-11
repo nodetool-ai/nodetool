@@ -155,4 +155,19 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
-_No entries yet - this memory system is new as of 2026-01-10_
+### TypeScript Type Safety Improvements (2026-01-11)
+
+**Summary**: Replaced `any` types with `unknown` and proper type definitions across multiple files.
+
+**Changes**:
+- `ResultsStore.ts`: Changed `Record<string, any>` to `Record<string, unknown>`
+- `dropHandlerUtils.ts`: Fixed error handling with proper type guards
+- `createAssetFile.ts`: Added type definitions for DataFrame and utility functions
+- `useDragHandlers.ts`: Changed event handlers to use `MouseEvent` type
+- `BaseNode.tsx`: Updated result type handling with type guards
+
+**Impact**: Improved type safety without breaking existing functionality.
+
+**Date**: 2026-01-11
+
+---

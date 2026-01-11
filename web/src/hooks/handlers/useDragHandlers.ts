@@ -46,9 +46,9 @@ export default function useDragHandlers() {
   // Removed: createCommentNode helper and related drag-to-create logic
 
   /* NODE DRAG START */
-  const onNodeDragStart = useCallback((_event: any) => {
+  const onNodeDragStart = useCallback((_event: MouseEvent) => {
     setLastParentNode(undefined);
-    resetWiggleDetection(); // Reset wiggle detection for new drag
+    resetWiggleDetection();
   }, []);
 
   /* NODE DRAG */
@@ -103,7 +103,7 @@ export default function useDragHandlers() {
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
-    (_event: any, node: Node<NodeData>) => {
+    (_event: MouseEvent, node: Node<NodeData>) => {
       // Only add to group if a valid parent was intersected during drag
       // and the node isn't already in that group
       if (lastParentNode && node.parentId !== lastParentNode.id) {
@@ -120,7 +120,7 @@ export default function useDragHandlers() {
 
   /* SELECTION DRAG START */
   const onSelectionDragStart = useCallback(
-    (event: any, nodes: Node<NodeData>[]) => {
+    (_event: MouseEvent, nodes: Node<NodeData>[]) => {
       // Clear potential parent from previous drag
       setLastParentNode(undefined);
       pause(); // pause history
@@ -207,7 +207,7 @@ export default function useDragHandlers() {
   );
 
   /* SELECTION START */
-  const onSelectionStart = useCallback((_event: any) => {
+  const onSelectionStart = useCallback((_event: MouseEvent) => {
     const currentMousePos = getMousePosition();
     const projectedStartPos = reactFlow.screenToFlowPosition({
       x: currentMousePos.x,

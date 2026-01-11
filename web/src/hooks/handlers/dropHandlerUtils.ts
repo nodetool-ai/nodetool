@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 
 export type FileHandlerResult = {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
 };
 
@@ -151,10 +151,10 @@ export const useFileHandlers = () => {
         });
 
         return { success: true };
-      } catch (error: any) {
+      } catch (error) {
         return {
           success: false,
-          error: error.message || "Failed to upload file as asset"
+          error: error instanceof Error ? error.message : "Failed to upload file as asset"
         };
       }
     },
@@ -194,12 +194,12 @@ export const useFileHandlers = () => {
         } else {
           return await handleGenericFile(file, position);
         }
-      } catch (error: any) {
-        return {
-          success: false,
-          error: error.message || "Failed to process PNG file"
-        };
-      }
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : "Failed to create workflow"
+            };
+          }
     },
     [createWorkflow, handleGenericFile, navigate]
   );
@@ -219,10 +219,10 @@ export const useFileHandlers = () => {
             });
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
-          } catch (error: any) {
+          } catch (error) {
             return {
               success: false,
-              error: error.detail || "Failed to create workflow"
+              error: error instanceof Error ? error.message : "Failed to create workflow"
             };
           }
         } else if (isNodetoolWorkflowJson(jsonData)) {
@@ -235,20 +235,20 @@ export const useFileHandlers = () => {
             });
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
-          } catch (error: any) {
+          } catch (error) {
             return {
               success: false,
-              error: error.message || "Failed to create workflow"
+              error: error instanceof Error ? error.message : "Failed to create workflow"
             };
           }
         } else {
           // Handle as regular JSON file
           return await handleGenericFile(file, position);
         }
-      } catch (error: any) {
+      } catch (error) {
         return {
           success: false,
-          error: error.message || "Failed to process JSON file"
+          error: error instanceof Error ? error.message : "Failed to process JSON file"
         };
       }
     },
@@ -262,13 +262,12 @@ export const useFileHandlers = () => {
         if (remainingFiles.length === 0) {
           return { success: true, data: null };
         } else {
-          // If createDataframe didn't handle the file, treat it as a generic file
           return await handleGenericFile(file, position);
         }
-      } catch (error: any) {
+      } catch (error) {
         return {
           success: false,
-          error: error.message || "Failed to process CSV file"
+          error: error instanceof Error ? error.message : "Failed to process CSV file"
         };
       }
     },

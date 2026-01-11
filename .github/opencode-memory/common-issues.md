@@ -465,3 +465,25 @@ cd mobile && npm install
 **Prevention**: When adding new workflows that need npm dependencies, ensure all three packages (web, electron, mobile) have their dependencies installed. Also ensure path filters include `mobile/**` if mobile changes should trigger the workflow.
 
 ---
+
+### TypeScript `any` Type Fixes (2026-01-11)
+
+**Issue**: Multiple files used `any` type which bypasses TypeScript's type checking and can lead to runtime errors.
+
+**Solution**: Replaced `any` types with `unknown` and proper type definitions:
+
+1. **ResultsStore.ts**: Changed `results`, `outputResults`, and `previews` from `Record<string, any>` to `Record<string, unknown>`
+2. **dropHandlerUtils.ts**: Updated `FileHandlerResult` type and replaced `catch (error: any)` with proper error handling using `unknown` and `instanceof Error`
+3. **createAssetFile.ts**: Added proper type definitions for `DataFrame`, `toUint8Array`, `normalizeOutput`, `getOutputType`, `getOutputData`, and `getMimeType` functions
+4. **useDragHandlers.ts**: Changed event handler parameters from `_event: any` to proper `MouseEvent` types
+
+**Files Modified**:
+- `web/src/stores/ResultsStore.ts`
+- `web/src/hooks/handlers/dropHandlerUtils.ts`
+- `web/src/utils/createAssetFile.ts`
+- `web/src/hooks/handlers/useDragHandlers.ts`
+- `web/src/components/node/BaseNode.tsx`
+
+**Why**: Using `unknown` instead of `any` forces explicit type checking, improving type safety and catching potential bugs at compile time.
+
+---

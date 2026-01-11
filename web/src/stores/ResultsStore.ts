@@ -2,15 +2,15 @@ import { create } from "zustand";
 import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
 
 type ResultsStore = {
-  results: Record<string, any>;
-  outputResults: Record<string, any>;
+  results: Record<string, unknown>;
+  outputResults: Record<string, unknown>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
   edges: Record<string, { status: string; counter?: number }>;
   chunks: Record<string, string>;
   tasks: Record<string, Task>;
   toolCalls: Record<string, ToolCallUpdate>;
   planningUpdates: Record<string, PlanningUpdate>;
-  previews: Record<string, any>;
+  previews: Record<string, unknown>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   clearResults: (workflowId: string) => void;
   clearOutputResults: (workflowId: string) => void;
@@ -34,22 +34,22 @@ type ResultsStore = {
   setPreview: (
     workflowId: string,
     nodeId: string,
-    preview: any,
+    preview: unknown,
     append?: boolean
   ) => void;
-  getPreview: (workflowId: string, nodeId: string) => any;
+  getPreview: (workflowId: string, nodeId: string) => unknown;
   setResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: unknown,
     append?: boolean
   ) => void;
-  getResult: (workflowId: string, nodeId: string) => any;
-  getOutputResult: (workflowId: string, nodeId: string) => any;
+  getResult: (workflowId: string, nodeId: string) => unknown;
+  getOutputResult: (workflowId: string, nodeId: string) => unknown;
   setOutputResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: unknown,
     append?: boolean
   ) => void;
   setTask: (workflowId: string, nodeId: string, task: Task) => void;
@@ -132,7 +132,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setPreview: (
     workflowId: string,
     nodeId: string,
-    preview: any,
+    preview: unknown,
     append?: boolean
   ) => {
     if (get().previews[hashKey(workflowId, nodeId)] === undefined || !append) {
@@ -348,23 +348,25 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: unknown,
     append?: boolean
   ) => {
     const key = hashKey(workflowId, nodeId);
-    if (get().results[key] === undefined || !append) {
-      set({ results: { ...get().results, [key]: result } });
+    const currentResults = get().results;
+    if (currentResults[key] === undefined || !append) {
+      set({ results: { ...currentResults, [key]: result } });
     } else {
-      if (Array.isArray(get().results[key])) {
+      const currentResult = currentResults[key];
+      if (Array.isArray(currentResult)) {
         set({
           results: {
-            ...get().results,
-            [key]: [...get().results[key], result]
+            ...currentResults,
+            [key]: [...currentResult, result]
           }
         });
       } else {
         set({
-          results: { ...get().results, [key]: [get().results[key], result] }
+          results: { ...currentResults, [key]: [currentResult, result] }
         });
       }
     }
@@ -409,27 +411,29 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setOutputResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: unknown,
     append?: boolean
   ) => {
     const key = hashKey(workflowId, nodeId);
-    if (get().outputResults[key] === undefined || !append) {
+    const currentOutputResults = get().outputResults;
+    if (currentOutputResults[key] === undefined || !append) {
       set({
-        outputResults: { ...get().outputResults, [key]: result }
+        outputResults: { ...currentOutputResults, [key]: result }
       });
     } else {
-      if (Array.isArray(get().outputResults[key])) {
+      const currentResult = currentOutputResults[key];
+      if (Array.isArray(currentResult)) {
         set({
           outputResults: {
-            ...get().outputResults,
-            [key]: [...get().outputResults[key], result]
+            ...currentOutputResults,
+            [key]: [...currentResult, result]
           }
         });
       } else {
         set({
           outputResults: {
-            ...get().outputResults,
-            [key]: [get().outputResults[key], result]
+            ...currentOutputResults,
+            [key]: [currentResult, result]
           }
         });
       }

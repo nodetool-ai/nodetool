@@ -428,3 +428,46 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### TypeScript `unknown` vs `any` Best Practice (2026-01-11)
+
+**Insight**: Prefer `unknown` over `any` for improved type safety.
+
+**Rationale**:
+- `any` completely bypasses TypeScript's type checking
+- `unknown` forces explicit type narrowing before use
+- Using `unknown` catches type errors at compile time rather than runtime
+
+**Pattern for error handling**:
+```typescript
+// ❌ Bad
+catch (error: any) {
+  return error.message || "Failed";
+}
+
+// ✅ Good
+catch (error) {
+  return error instanceof Error ? error.message : "Failed";
+}
+```
+
+**Pattern for conditional types**:
+```typescript
+// ❌ Bad - spreads on Record<string, any>
+results: Record<string, any>
+
+// ✅ Good - requires explicit type guard
+results: Record<string, unknown>
+const isObject = (val: unknown): val is object =>
+  val != null && typeof val === "object";
+```
+
+**Impact**: Improved type safety throughout the web package with proper type narrowing in conditional expressions.
+
+**Files**: `web/src/stores/ResultsStore.ts`, `web/src/hooks/handlers/dropHandlerUtils.ts`, `web/src/utils/createAssetFile.ts`
+
+**Date**: 2026-01-11
+
+**Date**: 2026-01-10
