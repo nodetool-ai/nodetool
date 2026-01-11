@@ -155,4 +155,31 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Workflow Statistics Panel (2026-01-11)
+
+**What**: Added a new Statistics panel to the right sidebar that displays real-time workflow analytics including node count, edge count, connectivity metrics, node type breakdown, complexity score, and max execution depth.
+
+**Why**: Users needed a way to understand workflow complexity and structure at a glance without counting nodes manually or analyzing the graph visually.
+
+**Implementation**: 
+- Created `WorkflowStatsStore` for managing statistics state
+- Created `useWorkflowStats` hook with exported utility functions (`computeMaxDepth`, `computeComplexityScore`)
+- Created `WorkflowStatsPanel` component with MUI theming and responsive design
+- Integrated into existing `PanelRight` component with new "stats" view
+- Added keyboard shortcut (S key) to toggle the panel
+- Added stats.svg icon
+
+**Files**:
+- `web/src/stores/WorkflowStatsStore.ts` - New store for statistics
+- `web/src/hooks/useWorkflowStats.ts` - Hook with computation logic
+- `web/src/components/panels/WorkflowStatsPanel.tsx` - Panel component
+- `web/src/components/panels/PanelRight.tsx` - Integration
+- `web/src/stores/RightPanelStore.ts` - Added "stats" view type
+- `web/src/config/shortcuts.ts` - Added keyboard shortcut
+- `web/src/icons/stats.svg` - New icon
+
+**Pattern**: Follows existing Zustand store pattern with selective subscriptions and MUI component styling.
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

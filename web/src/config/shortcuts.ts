@@ -431,6 +431,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Operator panel",
     registerCombo: false
   },
+  {
+    title: "Statistics",
+    slug: "toggleStats",
+    keyCombo: ["S"],
+    category: "panel",
+    description: "Show or hide Statistics panel",
+    registerCombo: false
+  },
   // K is conflicting with CommandMenu shortcut
   // {
   //   title: "Keyboard Shortcuts",
