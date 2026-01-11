@@ -69,10 +69,14 @@ const resizer = (
 
 const Toolbar = memo(function Toolbar({
   id,
-  selected
+  selected,
+  nodeType,
+  nodeData
 }: {
   id: string;
   selected: boolean;
+  nodeType: string;
+  nodeData: NodeData;
 }) {
   const { activeSelect } = useSelect();
   if (activeSelect || !selected) {
@@ -80,7 +84,7 @@ const Toolbar = memo(function Toolbar({
   }
   return (
     <NodeToolbar position={Position.Top} offset={0}>
-      <NodeToolButtons nodeId={id} />
+      <NodeToolButtons nodeId={id} nodeType={nodeType} data={nodeData} />
     </NodeToolbar>
   );
 });
@@ -425,7 +429,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : {})
       }}
     >
-      {selected && <Toolbar id={id} selected={selected} />}
+      {selected && <Toolbar id={id} selected={selected} nodeType={type} nodeData={data} />}
       {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />}
       <NodeHeader
         id={id}

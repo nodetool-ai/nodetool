@@ -465,3 +465,39 @@ cd mobile && npm install
 **Prevention**: When adding new workflows that need npm dependencies, ensure all three packages (web, electron, mobile) have their dependencies installed. Also ensure path filters include `mobile/**` if mobile changes should trigger the workflow.
 
 ---
+
+### NotificationStore Import Issue (2026-01-11)
+
+**Issue**: `import useNotificationStore from "../../stores/NotificationStore"` failed with "has no default export".
+
+**Root Cause**: NotificationStore exports `useNotificationStore` as a named export, not a default export.
+
+**Solution**: Use named import:
+```typescript
+import { useNotificationStore } from "../../stores/NotificationStore";
+```
+
+**Files**: `web/src/components/node/NodePresetMenu.tsx`
+
+**Date**: 2026-01-11
+
+---
+
+### Zustand Store Type Annotations (2026-01-11)
+
+**Issue**: Implicit `any` type on state parameter in Zustand store selectors.
+
+**Solution**: Export the store interface and use explicit type annotation:
+```typescript
+import { NodePresetsStore, useNodePresetsStore } from "../../stores/NodePresetsStore";
+
+const presets = useNodePresetsStore((state: NodePresetsStore) =>
+  state.getPresetsForNodeType(nodeType)
+);
+```
+
+**Files**: `web/src/components/node/NodePresetMenu.tsx`
+
+**Date**: 2026-01-11
+
+---

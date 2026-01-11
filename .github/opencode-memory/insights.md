@@ -339,6 +339,33 @@ When documenting new insights:
 
 ---
 
+### Node Presets Feature Implementation (2026-01-11)
+
+**Insight**: Node presets required integrating with the node toolbar system without breaking existing functionality.
+
+**Challenge**: The `Toolbar` component in `BaseNode.tsx` is an inline memoized component that didn't have access to `nodeType` and `data` from the outer scope.
+
+**Solution**: Extended the `Toolbar` component props to accept `nodeType` and `nodeData`, then passed these from the parent `BaseNode` component. This pattern maintains separation of concerns while allowing the toolbar to access node-specific data.
+
+**Files Modified**:
+- `web/src/components/node/BaseNode.tsx` - Extended Toolbar props and usage
+
+**Date**: 2026-01-11
+
+---
+
+### MUI Popover vs Dialog for Menu Positioning (2026-01-11)
+
+**Insight**: Used Popover for preset list (supports anchorEl positioning) and Dialog for save preset form (modal focus).
+
+**Reasoning**:
+- Popover: Better for context menus that appear near an anchor element
+- Dialog: Better for forms requiring user attention and input validation
+
+**Date**: 2026-01-11
+
+---
+
 ### Mobile Package Dependencies Issue (2026-01-10)
 
 **Insight**: Mobile package requires `npm install` before type checking can succeed.
