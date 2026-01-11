@@ -64,7 +64,9 @@ interface ReactFlowWrapperProps {
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import SubgraphNode from "./SubgraphNode";
-import { SUBGRAPH_NODE_TYPE } from "../../types/subgraph";
+import SubgraphInputNode from "./SubgraphInputNode";
+import SubgraphOutputNode from "./SubgraphOutputNode";
+import { SUBGRAPH_NODE_TYPE, SUBGRAPH_INPUT_NODE_TYPE, SUBGRAPH_OUTPUT_NODE_TYPE } from "../../types/subgraph";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -227,6 +229,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.compare.CompareImages": CompareImagesNode,
       "nodetool.control.Reroute": RerouteNode,
       [SUBGRAPH_NODE_TYPE]: SubgraphNode,
+      [SUBGRAPH_INPUT_NODE_TYPE]: SubgraphInputNode,
+      [SUBGRAPH_OUTPUT_NODE_TYPE]: SubgraphOutputNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]

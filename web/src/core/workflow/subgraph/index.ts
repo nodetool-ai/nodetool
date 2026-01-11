@@ -45,3 +45,31 @@ export {
   hasSubgraphs,
   validateNoCircularReferences
 } from "./flatten";
+
+// Blueprints
+export {
+  getAllBlueprints,
+  getBlueprint,
+  saveBlueprint,
+  deleteBlueprint,
+  createBlueprintFromDefinition,
+  exportBlueprint,
+  importBlueprint,
+  searchBlueprints,
+  getBlueprintsByCategory,
+  getAllCategories,
+  getAllTags,
+  type SubgraphBlueprint
+} from "./blueprints";
+
+// Search
+export {
+  searchSubgraphs,
+  filterSubgraphs,
+  findSubgraphsWithNodeType,
+  findSubgraphsByTag,
+  getAllSubgraphTags,
+  getSubgraphStats,
+  type SearchOptions,
+  type SearchResult
+} from "./search";

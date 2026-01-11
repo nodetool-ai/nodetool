@@ -86,6 +86,8 @@ export interface SubgraphDefinition {
   updated_at: string;            // ISO timestamp
   description?: string;          // Optional description
   thumbnail?: string;            // Optional thumbnail URL
+  tags?: string[];               // Categorization tags
+  category?: string;             // Category for organization
 }
 
 /**
