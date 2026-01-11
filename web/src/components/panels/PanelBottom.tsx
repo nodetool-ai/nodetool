@@ -8,12 +8,14 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo } from "react";
 import isEqual from "lodash/isEqual";
 import Terminal from "../terminal/Terminal";
+import PerformanceProfiler from "../node_editor/PerformanceProfiler";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import SpeedIcon from "@mui/icons-material/Speed";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -93,6 +95,13 @@ const styles = (theme: Theme) =>
       ".terminal-container": {
         width: "100%"
       }
+    },
+    ".performance-wrapper": {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      overflow: "auto",
+      width: "100%"
     }
   });
 
@@ -118,6 +127,64 @@ const PanelBottom: React.FC = () => {
         typeof window !== "undefined" ? Math.max(200, window.innerHeight * 0.6) : panelSize
       )
     : 0;
+
+  const renderHeader = () => {
+    if (activeView === "terminal") {
+      return (
+        <>
+          <div className="left">
+            <TerminalIcon fontSize="small" />
+            <Typography variant="body2">Terminal</Typography>
+          </div>
+          <Tooltip
+            title={
+              <div className="tooltip-span">
+                <div className="tooltip-title">Hide terminal</div>
+                <div className="tooltip-key">
+                  <kbd>Ctrl</kbd> + <kbd>`</kbd>
+                </div>
+              </div>
+            }
+            placement="top-start"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <IconButton
+              size="small"
+              onClick={() => handlePanelToggle("terminal")}
+              aria-label="Hide terminal"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      );
+    }
+    return (
+      <>
+        <div className="left">
+          <SpeedIcon fontSize="small" />
+          <Typography variant="body2">Performance</Typography>
+        </div>
+        <Tooltip
+          title={
+            <div className="tooltip-span">
+              <div className="tooltip-title">Hide performance panel</div>
+            </div>
+          }
+          placement="top-start"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <IconButton
+            size="small"
+            onClick={() => handlePanelToggle("performance")}
+            aria-label="Hide performance panel"
+          >
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
+      </>
+    );
+  };
 
   return (
     <div
@@ -159,30 +226,7 @@ const PanelBottom: React.FC = () => {
         <div className="panel-content">
           {isVisible && (
             <div className="panel-header">
-              <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
-              </div>
-              <Tooltip
-                title={
-                  <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
-                    <div className="tooltip-key">
-                      <kbd>Ctrl</kbd> + <kbd>`</kbd>
-                    </div>
-                  </div>
-                }
-                placement="top-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                <IconButton
-                  size="small"
-                  onClick={() => handlePanelToggle("terminal")}
-                  aria-label="Hide terminal"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              {renderHeader()}
             </div>
           )}
           <div
@@ -192,6 +236,14 @@ const PanelBottom: React.FC = () => {
             }}
           >
             <Terminal />
+          </div>
+          <div
+            className="performance-wrapper"
+            style={{
+              display: activeView === "performance" && isVisible ? "flex" : "none"
+            }}
+          >
+            <PerformanceProfiler workflowId="current" />
           </div>
         </div>
       </Drawer>
