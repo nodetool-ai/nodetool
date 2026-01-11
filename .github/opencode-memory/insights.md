@@ -428,3 +428,38 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Workflow Statistics Implementation (2026-01-11)
+
+**Insight**: Computing real-time workflow statistics requires careful handling of the graph structure and efficient algorithms.
+
+**Key Learnings**:
+1. **Graph Depth Calculation**: Use Kahn's algorithm (topological sort with in-degree tracking) for max depth calculation
+2. **Complexity Scoring**: Weighted formula combining node count, edge count, max depth, and processing nodes
+3. **Performance**: Export utility functions for testing and reuse; memoize computations with useMemo
+4. **Type Handling**: Extended NodeData interface with optional nodeType property for type checking
+
+**Implementation**:
+```typescript
+// Max depth using Kahn's algorithm
+function computeMaxDepth(nodes, edges) {
+  const adjacency = new Map();
+  const inDegree = new Map();
+  // Initialize graph
+  // Process nodes by in-degree
+  // Track maximum distance from source
+}
+
+// Complexity scoring with weighted factors
+function computeComplexityScore(nodeCount, edgeCount, maxDepth, processingNodeCount) {
+  return nodeCount * 1 + edgeCount * 2 + maxDepth * 3 + processingNodeCount * 1.5;
+}
+```
+
+**Impact**: Users can now understand workflow complexity at a glance with metrics that update in real-time.
+
+**Files**: `web/src/hooks/useWorkflowStats.ts`, `web/src/components/panels/WorkflowStatsPanel.tsx`
+
+**Date**: 2026-01-11

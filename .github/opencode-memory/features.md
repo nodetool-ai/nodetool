@@ -110,13 +110,6 @@ Last updated: 2026-01-10
 - **Close Button**: Consistent close button component
 - **Delete Button**: Consistent delete button component
 
-### Theming & Appearance
-- **Theme Switcher**: Switch between light and dark themes
-- **Custom Themes**: Create and customize color themes
-- **Color Palettes**: Predefined color palettes for themes
-- **Responsive Design**: Mobile-responsive interface
-- **Logo Component**: Application branding
-
 ### Panels & Layout
 - **Left Panel**: Collapsible left sidebar with node menu
 - **Right Panel**: Collapsible right sidebar with properties
@@ -124,6 +117,7 @@ Last updated: 2026-01-10
 - **Panel Resizing**: Adjustable panel dimensions
 - **Layout Persistence**: Remember panel states across sessions
 - **Title Bar**: Custom title bar for Electron app
+- **Statistics Panel**: Real-time workflow statistics (node count, complexity, connectivity)
 
 ---
 
