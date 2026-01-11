@@ -23,6 +23,7 @@ Last updated: 2026-01-10
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
+- **Quick Node Palette**: Fast, fuzzy-search modal for quickly adding nodes (Ctrl+Shift+P / Cmd+Shift+P)
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)

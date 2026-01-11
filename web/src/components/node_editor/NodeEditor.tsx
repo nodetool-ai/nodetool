@@ -31,6 +31,7 @@ import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
+import QuickNodePalette from "../node_menu/QuickNodePalette";
 import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
@@ -38,6 +39,7 @@ import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 import CommandMenu from "../menus/CommandMenu";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { useQuickNodePaletteStore } from "../../stores/QuickNodePaletteStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
@@ -79,6 +81,20 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active) {
         setCommandMenuOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for QuickNodePalette (Meta+Shift+P on Mac, Ctrl+Shift+P on Windows/Linux)
+  const quickPaletteCombo = isMac() ? ["meta", "shift", "p"] : ["control", "shift", "p"];
+  const toggleQuickPalette = useQuickNodePaletteStore((state) => state.togglePalette);
+  useCombo(
+    quickPaletteCombo,
+    () => {
+      if (active) {
+        toggleQuickPalette();
       }
     },
     true,
@@ -141,6 +157,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             <>
               <RunAsAppFab workflowId={workflowId} />
               <NodeMenu focusSearchInput={true} />
+              <QuickNodePalette />
               <CommandMenu
                 open={commandMenuOpen}
                 setOpen={setCommandMenuOpen}
