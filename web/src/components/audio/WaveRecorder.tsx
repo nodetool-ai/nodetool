@@ -22,15 +22,12 @@ import {
 } from "../../hooks/browser/useWaveRecorder";
 import Select from "../inputs/Select";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-
-/**
- * Formats seconds into MM:SS format
- */
-const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-};
+import {
+  formatTime,
+  createAudioContext,
+  createConfiguredAnalyser,
+  calculateSignalLevel
+} from "../../utils/audioUtils";
 
 const WaveRecorder = (props: WaveRecorderProps) => {
   const theme = useTheme();
@@ -120,14 +117,10 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       .then((stream) => {
         streamRef.current = stream;
 
-        const AudioCtx =
-          (window as any).AudioContext || (window as any).webkitAudioContext;
-        const audioContext: AudioContext = new AudioCtx();
+        const audioContext = createAudioContext();
         audioContextRef.current = audioContext;
 
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.5;
+        const analyser = createConfiguredAnalyser(audioContext);
         analyserRef.current = analyser;
 
         const source = audioContext.createMediaStreamSource(stream);
@@ -140,15 +133,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
             return;
           }
           analyserRef.current.getByteFrequencyData(dataArray);
-
-          // Calculate RMS level
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i] * dataArray[i];
-          }
-          const rms = Math.sqrt(sum / dataArray.length);
-          const normalizedLevel = Math.min(1, rms / 128);
-
+          const normalizedLevel = calculateSignalLevel(dataArray);
           setSignalLevel(normalizedLevel);
           animationFrameRef.current = requestAnimationFrame(updateLevel);
         };
