@@ -428,3 +428,32 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Virtualized Node List Performance (2026-01-11)
+
+**Insight**: The node menu's namespace-based node list now uses virtualization for improved performance.
+
+**What**: Added `VirtualizedRenderNodes` component that uses `react-window`'s `VariableSizeList` to render only visible nodes, dramatically improving performance when there are many nodes.
+
+**Why**: Previously, `RenderNodes` rendered all nodes in a namespace at once, which caused performance issues with large node counts. The search results already used virtualization via `SearchResultsPanel`, but the namespace-based view did not.
+
+**Implementation**:
+- Created `VirtualizedRenderNodes.tsx` with `react-window`'s `VariableSizeList`
+- Uses `AutoSizer` for responsive container sizing
+- Handles namespace headers and API key validation components
+- Maintains keyboard navigation support
+- Updated `RenderNodes.tsx` to use the new virtualized component
+
+**Benefits**:
+- Improved rendering performance with large node sets
+- Reduced memory usage (only renders visible items)
+- Consistent with existing search results virtualization
+- Maintains all existing functionality (drag-and-drop, favorites, etc.)
+
+**Files**:
+- `web/src/components/node_menu/VirtualizedRenderNodes.tsx` (new)
+- `web/src/components/node_menu/RenderNodes.tsx` (modified)
+
+**Date**: 2026-01-11

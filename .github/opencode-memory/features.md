@@ -32,6 +32,7 @@ Last updated: 2026-01-10
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Virtualized Node List**: Virtualized rendering of node lists for improved performance with many nodes
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates
@@ -262,7 +263,6 @@ Last updated: 2026-01-10
 
 *(Update this section when considering these features in the future)*
 
-- **Virtualized Lists**: Large list virtualization for performance
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions

@@ -155,4 +155,26 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Virtualized Node List (2026-01-11)
+
+**What**: Added virtualization to the node menu's namespace-based node list for improved performance with large node counts.
+
+**Why**: The original `RenderNodes` component rendered all nodes at once, causing performance issues when users have many node types installed.
+
+**Implementation**: Created `VirtualizedRenderNodes` component using `react-window`'s `VariableSizeList` with `AutoSizer` for responsive sizing. The component handles namespace headers, API key validation, and maintains keyboard navigation support. Updated `RenderNodes.tsx` to delegate to the new component.
+
+**Files**:
+- `web/src/components/node_menu/VirtualizedRenderNodes.tsx` (new - 230 lines)
+- `web/src/components/node_menu/RenderNodes.tsx` (modified - reduced from 223 lines to 73 lines)
+
+**Key Technical Decisions**:
+- Uses existing `react-window` library already used by `SearchResultsPanel`
+- Variable size items (headers: 40px, API key validation: 32px, nodes: 48px)
+- Maintains drag-and-drop, favorites, and checkbox functionality
+- Follows same pattern as search results virtualization
+
+**Performance Impact**: Significant improvement when browsing nodes in namespaces with many node types.
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
