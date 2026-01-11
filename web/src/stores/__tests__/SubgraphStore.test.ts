@@ -238,6 +238,43 @@ describe("SubgraphStore", () => {
     });
   });
 
+  describe("Graph caching", () => {
+    it("should save and retrieve graph", () => {
+      const nodes = [
+        { id: "node-1", type: "test", position: { x: 0, y: 0 }, data: { properties: {}, workflow_id: "test" } }
+      ] as any[];
+      const edges = [{ id: "edge-1", source: "node-1", target: "node-2" }] as any[];
+
+      act(() => {
+        useSubgraphStore.getState().saveGraph("graph-1", nodes, edges, "subgraph-id-1");
+      });
+
+      const { result } = renderHook(() => useSubgraphStore());
+      const cached = result.current.getGraph("graph-1");
+      expect(cached).toBeDefined();
+      expect(cached?.nodes).toHaveLength(1);
+      expect(cached?.edges).toHaveLength(1);
+      expect(cached?.subgraphId).toBe("subgraph-id-1");
+    });
+
+    it("should return undefined for non-existent graph", () => {
+      const { result } = renderHook(() => useSubgraphStore());
+      expect(result.current.getGraph("non-existent")).toBeUndefined();
+    });
+
+    it("should clear graph cache", () => {
+      const nodes = [{ id: "node-1", type: "test", position: { x: 0, y: 0 }, data: {} }] as any[];
+
+      act(() => {
+        useSubgraphStore.getState().saveGraph("graph-1", nodes, [], undefined);
+        useSubgraphStore.getState().clearGraphCache();
+      });
+
+      const { result } = renderHook(() => useSubgraphStore());
+      expect(result.current.getGraph("graph-1")).toBeUndefined();
+    });
+  });
+
   describe("Reset", () => {
     it("should reset all state", () => {
       const definition: SubgraphDefinition = {
@@ -253,11 +290,13 @@ describe("SubgraphStore", () => {
       };
 
       const viewport = { x: 100, y: 200, zoom: 1.5 };
+      const nodes = [{ id: "node-1", type: "test", position: { x: 0, y: 0 }, data: {} }] as any[];
 
       act(() => {
         useSubgraphStore.getState().addDefinition(definition);
         useSubgraphStore.getState().openSubgraph("subgraph-1");
         useSubgraphStore.getState().saveViewport("graph-1", viewport);
+        useSubgraphStore.getState().saveGraph("graph-1", nodes, [], undefined);
         useSubgraphStore.getState().reset();
       });
 
@@ -265,6 +304,7 @@ describe("SubgraphStore", () => {
       expect(result.current.getAllDefinitions()).toHaveLength(0);
       expect(result.current.isAtRoot()).toBe(true);
       expect(result.current.getViewport("graph-1")).toBeUndefined();
+      expect(result.current.getGraph("graph-1")).toBeUndefined();
     });
   });
 });

@@ -1,34 +1,46 @@
 /**
  * SubgraphStore manages subgraph definitions and navigation state.
- * 
+ *
  * Responsibilities:
  * - Registry of subgraph definitions (blueprints)
  * - Navigation stack for hierarchical graph traversal
  * - Viewport caching per graph level
+ * - Graph caching for parent graphs when navigating into subgraphs
  * - Subgraph CRUD operations
  */
 
 import { create } from "zustand";
-import { Viewport } from "@xyflow/react";
-import {
-  SubgraphDefinition,
-  SubgraphNavigationState
-} from "../types/subgraph";
+import { Viewport, Node, Edge } from "@xyflow/react";
+import { SubgraphDefinition, SubgraphNavigationState } from "../types/subgraph";
+import { NodeData } from "./NodeData";
 
 /**
  * Root graph identifier
  */
 export const ROOT_GRAPH_ID = "root";
 
+/**
+ * Cached graph state for navigation
+ */
+export interface CachedGraph {
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+  // The subgraphId that nodes in this graph belong to (undefined for root)
+  subgraphId?: string;
+}
+
 export interface SubgraphStoreState {
   // Subgraph definitions registry (keyed by definition ID)
   definitions: Map<string, SubgraphDefinition>;
-  
+
   // Navigation state
-  currentGraphId: string;           // "root" or subgraph instance ID
-  navigationPath: string[];         // Path from root to current (instance IDs)
+  currentGraphId: string; // "root" or subgraph instance ID
+  navigationPath: string[]; // Path from root to current (instance IDs)
   viewportCache: Map<string, Viewport>;
-  
+
+  // Graph cache for parent graphs (keyed by graphId - "root" or instance ID)
+  graphCache: Map<string, CachedGraph>;
+
   // Definition management
   addDefinition: (definition: SubgraphDefinition) => void;
   removeDefinition: (id: string) => void;
@@ -36,7 +48,7 @@ export interface SubgraphStoreState {
   getDefinition: (id: string) => SubgraphDefinition | undefined;
   getAllDefinitions: () => SubgraphDefinition[];
   hasDefinition: (id: string) => boolean;
-  
+
   // Navigation operations
   openSubgraph: (instanceId: string, viewport?: Viewport) => void;
   exitSubgraph: () => void;
@@ -44,12 +56,22 @@ export interface SubgraphStoreState {
   isAtRoot: () => boolean;
   getCurrentDepth: () => number;
   getNavigationState: () => SubgraphNavigationState;
-  
+
   // Viewport management
   saveViewport: (graphId: string, viewport: Viewport) => void;
   getViewport: (graphId: string) => Viewport | undefined;
   clearViewportCache: () => void;
-  
+
+  // Graph cache management
+  saveGraph: (
+    graphId: string,
+    nodes: Node<NodeData>[],
+    edges: Edge[],
+    subgraphId?: string
+  ) => void;
+  getGraph: (graphId: string) => CachedGraph | undefined;
+  clearGraphCache: () => void;
+
   // Utility
   reset: () => void;
 }
@@ -63,7 +85,8 @@ export const useSubgraphStore = create<SubgraphStoreState>((set, get) => ({
   currentGraphId: ROOT_GRAPH_ID,
   navigationPath: [],
   viewportCache: new Map(),
-  
+  graphCache: new Map(),
+
   // Definition management
   addDefinition: (definition: SubgraphDefinition) => {
     set((state) => {
@@ -72,7 +95,7 @@ export const useSubgraphStore = create<SubgraphStoreState>((set, get) => ({
       return { definitions: newDefinitions };
     });
   },
-  
+
   removeDefinition: (id: string) => {
     set((state) => {
       const newDefinitions = new Map(state.definitions);
@@ -80,101 +103,106 @@ export const useSubgraphStore = create<SubgraphStoreState>((set, get) => ({
       return { definitions: newDefinitions };
     });
   },
-  
+
   updateDefinition: (id: string, updates: Partial<SubgraphDefinition>) => {
     set((state) => {
       const existing = state.definitions.get(id);
       if (!existing) {
-        console.warn(`[SubgraphStore] Cannot update non-existent definition: ${id}`);
+        console.warn(
+          `[SubgraphStore] Cannot update non-existent definition: ${id}`
+        );
         return state;
       }
-      
+
       const updated: SubgraphDefinition = {
         ...existing,
         ...updates,
         updated_at: new Date().toISOString()
       };
-      
+
       const newDefinitions = new Map(state.definitions);
       newDefinitions.set(id, updated);
       return { definitions: newDefinitions };
     });
   },
-  
+
   getDefinition: (id: string) => {
     return get().definitions.get(id);
   },
-  
+
   getAllDefinitions: () => {
     return Array.from(get().definitions.values());
   },
-  
+
   hasDefinition: (id: string) => {
     return get().definitions.has(id);
   },
-  
+
   // Navigation operations
   openSubgraph: (instanceId: string, viewport?: Viewport) => {
     const state = get();
-    
+
     // Save current viewport before navigating
     if (viewport) {
       state.saveViewport(state.currentGraphId, viewport);
     }
-    
+
     // Push to navigation stack
     const newPath = [...state.navigationPath, instanceId];
-    
+
     set({
       currentGraphId: instanceId,
       navigationPath: newPath
     });
-    
-    console.log(`[SubgraphStore] Opened subgraph: ${instanceId}, depth: ${newPath.length}`);
+
+    console.log(
+      `[SubgraphStore] Opened subgraph: ${instanceId}, depth: ${newPath.length}`
+    );
   },
-  
+
   exitSubgraph: () => {
     const state = get();
-    
+
     if (state.navigationPath.length === 0) {
       console.warn("[SubgraphStore] Already at root, cannot exit");
       return;
     }
-    
+
     // Pop from navigation stack
     const newPath = [...state.navigationPath];
     newPath.pop();
-    
+
     // Determine new current graph
-    const newCurrentId = newPath.length > 0 
-      ? newPath[newPath.length - 1] 
-      : ROOT_GRAPH_ID;
-    
+    const newCurrentId =
+      newPath.length > 0 ? newPath[newPath.length - 1] : ROOT_GRAPH_ID;
+
     set({
       currentGraphId: newCurrentId,
       navigationPath: newPath
     });
-    
-    console.log(`[SubgraphStore] Exited to: ${newCurrentId}, depth: ${newPath.length}`);
+
+    console.log(
+      `[SubgraphStore] Exited to: ${newCurrentId}, depth: ${newPath.length}`
+    );
   },
-  
+
   exitToRoot: () => {
     set({
       currentGraphId: ROOT_GRAPH_ID,
       navigationPath: []
     });
-    
+
     console.log("[SubgraphStore] Exited to root");
   },
-  
+
   isAtRoot: () => {
     return get().currentGraphId === ROOT_GRAPH_ID;
   },
-  
+
   getCurrentDepth: () => {
     return get().navigationPath.length;
   },
-  
+
   getNavigationState: () => {
     const state = get();
     return {
@@ -183,7 +211,7 @@ export const useSubgraphStore = create<SubgraphStoreState>((set, get) => ({
       viewportCache: state.viewportCache
     };
   },
-  
+
   // Viewport management
   saveViewport: (graphId: string, viewport: Viewport) => {
     set((state) => {
@@ -192,22 +220,48 @@ export const useSubgraphStore = create<SubgraphStoreState>((set, get) => ({
       return { viewportCache: newCache };
     });
   },
-  
+
   getViewport: (graphId: string) => {
     return get().viewportCache.get(graphId);
   },
-  
+
   clearViewportCache: () => {
     set({ viewportCache: new Map() });
   },
-  
+
+  // Graph cache management
+  saveGraph: (
+    graphId: string,
+    nodes: Node<NodeData>[],
+    edges: Edge[],
+    subgraphId?: string
+  ) => {
+    set((state) => {
+      const newCache = new Map(state.graphCache);
+      newCache.set(graphId, { nodes, edges, subgraphId });
+      return { graphCache: newCache };
+    });
+    console.log(
+      `[SubgraphStore] Saved graph cache for: ${graphId}, nodes: ${nodes.length}, edges: ${edges.length}`
+    );
+  },
+
+  getGraph: (graphId: string) => {
+    return get().graphCache.get(graphId);
+  },
+
+  clearGraphCache: () => {
+    set({ graphCache: new Map() });
+  },
+
   // Utility
   reset: () => {
     set({
       definitions: new Map(),
       currentGraphId: ROOT_GRAPH_ID,
       navigationPath: [],
-      viewportCache: new Map()
+      viewportCache: new Map(),
+      graphCache: new Map()
     });
   }
 }));
@@ -215,17 +269,16 @@ export const useSubgraphStore = create<SubgraphStoreState>((set, get) => ({
 /**
  * Selector hooks for common use cases
  */
-export const useSubgraphDefinitions = () => 
+export const useSubgraphDefinitions = () =>
   useSubgraphStore((state) => state.getAllDefinitions());
 
-export const useCurrentGraphId = () => 
+export const useCurrentGraphId = () =>
   useSubgraphStore((state) => state.currentGraphId);
 
-export const useNavigationPath = () => 
+export const useNavigationPath = () =>
   useSubgraphStore((state) => state.navigationPath);
 
-export const useIsAtRoot = () => 
-  useSubgraphStore((state) => state.isAtRoot());
+export const useIsAtRoot = () => useSubgraphStore((state) => state.isAtRoot());
 
 export const useSubgraphDefinition = (id: string) =>
   useSubgraphStore((state) => state.getDefinition(id));

@@ -18,6 +18,8 @@ import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { SUBGRAPH_NODE_TYPE } from "../../types/subgraph";
+import { useSubgraphStore, ROOT_GRAPH_ID } from "../../stores/SubgraphStore";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -31,8 +33,33 @@ const NodeContextMenu: React.FC = () => {
   const { handleUnpackSubgraph } = useSubgraphOperations();
   
   const isSubgraphNode = node?.type === SUBGRAPH_NODE_TYPE;
+  
+  // Check if we're inside a subgraph (not at root)
+  const currentGraphId = useSubgraphStore((state) => state.currentGraphId);
+  const exitSubgraph = useSubgraphStore((state) => state.exitSubgraph);
+  const isInsideSubgraph = currentGraphId !== ROOT_GRAPH_ID;
+  
+  // Debug logging for context menu
+  if (menuPosition !== null) {
+    console.log(`[NodeContextMenu] node.type=${node?.type}, isSubgraph=${isSubgraphNode}, SUBGRAPH_NODE_TYPE=${SUBGRAPH_NODE_TYPE}, isInsideSubgraph=${isInsideSubgraph}`);
+  }
+
+  const handleExitSubgraph = () => {
+    exitSubgraph();
+    closeContextMenu();
+  };
 
   const menuItems = [
+    // Show "Go to Parent" when inside a subgraph
+    isInsideSubgraph && (
+      <ContextMenuItem
+        key="exit-subgraph"
+        onClick={handleExitSubgraph}
+        label="Go to Parent Graph"
+        IconComponent={<ArrowUpwardIcon />}
+        tooltip="Navigate back to the parent graph"
+      />
+    ),
     conditions.isInGroup && (
       <ContextMenuItem
         key="remove-from-group"
