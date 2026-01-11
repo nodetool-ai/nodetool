@@ -20,6 +20,7 @@ Last updated: 2026-01-10
 - **Find in Workflow**: Search for nodes by name, type, or properties
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
+- **Workflow Snapshots**: Save, view, and restore named snapshots of workflow state for safe experimentation
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search

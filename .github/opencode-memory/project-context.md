@@ -179,4 +179,32 @@ test('handles user interaction', async () => {
 
 ---
 
+### Workflow Snapshots (2026-01-11)
+
+**What**: Added a workflow snapshot system that allows users to save named snapshots of workflow state, enabling safe experimentation with the ability to restore previous states.
+
+**Why**: Users often want to experiment with workflow changes but fear losing their working configuration. Snapshots provide a way to save checkpoints and restore them later.
+
+**Implementation**:
+- Created `SnapshotStore.ts` (Zustand store with persistence) for managing snapshots
+- Created `useSnapshots.ts` hook for interacting with the snapshot store
+- Created `SnapshotDialog.tsx` dialog component for creating and managing snapshots
+- Created `SnapshotPanel.tsx` collapsible panel for quick access to snapshots
+- Integrated snapshot functionality into `NodeEditor.tsx`
+- Added keyboard shortcuts: `Ctrl+Shift+S` (create snapshot), `Ctrl+Shift+E` (show snapshots)
+- Snapshots persist to localStorage via Zustand persist middleware
+
+**Files Changed**:
+- `web/src/stores/SnapshotStore.ts` - New snapshot store with persistence
+- `web/src/hooks/useSnapshots.ts` - New hook for snapshot operations
+- `web/src/components/node_editor/SnapshotDialog.tsx` - New dialog component
+- `web/src/components/node_editor/SnapshotPanel.tsx` - New collapsible panel
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated snapshot functionality
+- `web/src/config/shortcuts.ts` - Added snapshot shortcuts
+- `web/src/stores/__tests__/SnapshotStore.test.ts` - Store tests
+- `web/src/components/node_editor/__tests__/SnapshotDialog.test.tsx` - Dialog tests
+- `web/src/components/node_editor/__tests__/SnapshotPanel.test.tsx` - Panel tests
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

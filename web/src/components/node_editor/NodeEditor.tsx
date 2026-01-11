@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef } from "react";
+import { memo, useState, useRef, useCallback } from "react";
 import {
   Box,
   CircularProgress,
@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { NodeData } from "../../stores/NodeData";
 //css
 import "../../styles/base.css";
 import "../../styles/nodes.css";
@@ -29,7 +30,7 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "lodash/isEqual";
 import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useTemporalNodes } from "../../contexts/NodeContext";
+import { useTemporalNodes, useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
@@ -43,7 +44,9 @@ import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
-import { useNodes } from "../../contexts/NodeContext";
+import SnapshotPanel from "./SnapshotPanel";
+import SnapshotDialog from "./SnapshotDialog";
+import { Node, Edge } from "@xyflow/react";
 
 declare global {
   interface Window {
@@ -61,8 +64,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const nodes = useNodes((state) => state.nodes);
+  const edges = useNodes((state) => state.edges);
+  const setNodes = useNodes((state) => state.setNodes);
+  const setEdges = useNodes((state) => state.setEdges);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -87,6 +95,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     true,
     active
   );
+
+  // Keyboard shortcut for showing snapshot panel (Ctrl+Shift+E)
+  useCombo(
+    isMac() ? ["meta", "shift", "e"] : ["control", "shift", "e"],
+    () => {
+      if (active) {
+        setSnapshotDialogOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
+  const handleRestoreSnapshot = useCallback((restoredNodes: Node[], restoredEdges: Edge[]) => {
+    setNodes(restoredNodes as Node<NodeData>[]);
+    setEdges(restoredEdges);
+  }, [setNodes, setEdges]);
 
   // OPEN NODE MENU
   const {
@@ -146,6 +171,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 2}
               />
+              <SnapshotPanel
+                workflowId={workflowId}
+                nodes={nodes}
+                edges={edges}
+                onRestoreSnapshot={handleRestoreSnapshot}
+              />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
@@ -155,6 +186,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <SnapshotDialog
+                open={snapshotDialogOpen}
+                onClose={() => setSnapshotDialogOpen(false)}
+                workflowId={workflowId}
+                nodes={nodes}
+                edges={edges}
+                onRestoreSnapshot={handleRestoreSnapshot}
+              />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {
