@@ -179,4 +179,26 @@ test('handles user interaction', async () => {
 
 ---
 
+### Zustand Store Subscription Optimization (2026-01-11)
+
+**What**: Fixed components subscribing to entire Zustand stores instead of selective state slices, preventing unnecessary re-renders.
+
+**Why**: Components using `useStore()` without selectors re-render on ANY state change, causing performance issues in frequently updating stores like GlobalChatStore.
+
+**Implementation**:
+- Converted `WorkflowAssistantChat` from destructuring entire store to 17 individual selectors
+- Converted `ChatButton` in AppHeader from destructuring entire store to 3 individual selectors
+- Converted `WelcomePanel` from destructuring entire store to 2 individual selectors
+- Converted `Welcome` page from destructuring entire store to 2 individual selectors
+
+**Impact**: Reduced re-render frequency in chat and workflow assistant components by ensuring they only update when their specific data changes.
+
+**Files Changed**:
+- `web/src/components/panels/WorkflowAssistantChat.tsx`
+- `web/src/components/panels/AppHeader.tsx`
+- `web/src/components/dashboard/WelcomePanel.tsx`
+- `web/src/components/content/Welcome/Welcome.tsx`
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
