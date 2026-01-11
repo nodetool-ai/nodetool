@@ -425,22 +425,32 @@ When you encounter and solve a new issue:
 
 ---
 
-### Mobile Package Type Checking Failures (2026-01-10)
+### Mobile Package Dependencies Issue (2026-01-10)
 
-**Issue**: Mobile package type check fails with "Cannot find module 'react'" and similar errors for React Native dependencies.
+**Insight**: Mobile package requires `npm install` before type checking can succeed.
 
-**Root Cause**: The mobile package's `node_modules` directory was not installed, causing TypeScript to fail finding type declarations.
+**Problem**: The mobile package (React Native/Expo) has its own `package.json` with separate dependencies from the web and electron packages. When running `make typecheck`, the mobile package fails because `node_modules` is not installed.
 
-**Solution**: Run `npm install` in the mobile package directory to install dependencies:
+**Solution**: Always run `npm install` in the mobile directory before type checking:
 ```bash
 cd mobile && npm install
 ```
 
-**Verification**: After installation, `make typecheck` passes for all packages.
+**Impact**: TypeScript cannot find module declarations for React, React Native, and other dependencies without `node_modules` installed. This affects both local development and CI pipelines.
 
 **Files**: `mobile/package.json`, `mobile/tsconfig.json`
 
-**Prevention**: Ensure dependencies are installed before running type checks. The Makefile's `typecheck-mobile` target should ensure npm install is run, or CI pipeline should install all package dependencies.
+**Recommendation**: Consider adding `npm install` as a pre-step in the Makefile typecheck-mobile command or CI pipeline to prevent failures.
+
+**Status**: RESOLVED (2026-01-11) - Verified that running `npm install` in mobile directory resolves all type checking errors.
+
+**Verification**:
+```bash
+cd mobile && npm install
+make typecheck  # All packages pass
+```
+
+**Date**: 2026-01-10 (initial), 2026-01-11 (verified resolved)
 
 ---
 
