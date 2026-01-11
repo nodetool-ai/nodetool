@@ -30,11 +30,9 @@ import React, { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   MemoryStats,
-  LoadedModel,
-  UnloadModelResponse,
-  ClearModelsResponse,
-  ClearGPUResponse,
-  FullCleanupResponse
+  LoadedModelsResponse,
+  ModelUnloadResult,
+  MemoryCleanupResult
 } from "../../types/memory";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -116,11 +114,11 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
 
   // Fetch loaded models
   const {
-    data: loadedModels,
+    data: modelsResponse,
     isLoading: modelsLoading,
     error: modelsError,
     refetch: refetchModels
-  } = useQuery<LoadedModel[]>({
+  } = useQuery<LoadedModelsResponse>({
     queryKey: ["loaded-models"],
     queryFn: async () => {
       const response = await fetch("/api/memory/models");
@@ -132,14 +130,16 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
     enabled: open
   });
 
+  const loadedModels = modelsResponse?.models ?? [];
+
   // Unload specific model mutation
   const unloadModelMutation = useMutation<
-    UnloadModelResponse,
+    ModelUnloadResult,
     Error,
     { id: string; force?: boolean }
   >({
     mutationFn: async ({ id, force = false }) => {
-      const url = `/api/memory/models/${id}${force ? "?force=true" : ""}`;
+      const url = `/api/memory/models/${encodeURIComponent(id)}${force ? "?force=true" : ""}`;
       const response = await fetch(url, {
         method: "DELETE"
       });
@@ -152,7 +152,9 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
     onSuccess: (data, variables) => {
       addNotification({
         type: "success",
-        content: data.message || `Model ${variables.id} unloaded successfully`,
+        content:
+          data.message ||
+          `Model ${variables.id} unloaded (freed ${formatMB(data.memory_freed_mb)})`,
         alert: true
       });
       queryClient.invalidateQueries({ queryKey: ["memory-stats"] });
@@ -168,7 +170,7 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
   });
 
   // Clear all models mutation
-  const clearModelsMutation = useMutation<ClearModelsResponse, Error>({
+  const clearModelsMutation = useMutation<MemoryCleanupResult, Error>({
     mutationFn: async () => {
       const response = await fetch("/api/memory/models/clear", {
         method: "POST"
@@ -181,7 +183,7 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
     onSuccess: (data) => {
       addNotification({
         type: "success",
-        content: `Unloaded ${data.models_unloaded} models, freed ${data.freed_memory_gb.toFixed(2)} GB`,
+        content: `Unloaded ${data.models_unloaded} models, freed ${formatMB(data.ram_freed_mb)}`,
         alert: true
       });
       queryClient.invalidateQueries({ queryKey: ["memory-stats"] });
@@ -197,7 +199,7 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
   });
 
   // Clear GPU cache mutation
-  const clearGPUMutation = useMutation<ClearGPUResponse, Error>({
+  const clearGPUMutation = useMutation<MemoryCleanupResult, Error>({
     mutationFn: async () => {
       const response = await fetch("/api/memory/gpu", {
         method: "POST"
@@ -225,7 +227,7 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
   });
 
   // Full cleanup mutation
-  const fullCleanupMutation = useMutation<FullCleanupResponse, Error>({
+  const fullCleanupMutation = useMutation<MemoryCleanupResult, Error>({
     mutationFn: async () => {
       const response = await fetch("/api/memory/all", {
         method: "POST"
@@ -238,7 +240,7 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
     onSuccess: (data) => {
       addNotification({
         type: "success",
-        content: `Full cleanup complete: ${data.models_unloaded} models unloaded, ${data.uri_cache_cleared} cache items cleared, ${data.freed_memory_gb.toFixed(2)} GB freed`,
+        content: `Full cleanup: ${data.models_unloaded} models unloaded, ${data.cache_items_cleared} cache items cleared, ${formatMB(data.ram_freed_mb)} freed`,
         alert: true
       });
       queryClient.invalidateQueries({ queryKey: ["memory-stats"] });
@@ -259,18 +261,8 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
   }, [refetchStats, refetchModels]);
 
   const handleUnloadModel = useCallback(
-    (id: string, inUse: boolean) => {
-      if (inUse) {
-        // eslint-disable-next-line no-alert
-        const force = window.confirm(
-          "This model is currently in use. Force unload?"
-        );
-        if (force) {
-          unloadModelMutation.mutate({ id, force: true });
-        }
-      } else {
-        unloadModelMutation.mutate({ id });
-      }
+    (id: string) => {
+      unloadModelMutation.mutate({ id });
     },
     [unloadModelMutation]
   );
@@ -301,8 +293,31 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
     }
   }, [fullCleanupMutation]);
 
-  const formatBytes = (gb: number): string => {
-    return `${gb.toFixed(2)} GB`;
+  // Format MB values with appropriate units
+  const formatMB = (mb: number | undefined | null): string => {
+    if (mb === undefined || mb === null) {
+      return "N/A";
+    }
+    if (mb >= 1024) {
+      return `${(mb / 1024).toFixed(2)} GB`;
+    }
+    return `${mb.toFixed(0)} MB`;
+  };
+
+  // Calculate RAM usage percentage
+  const getRamPercent = (): number => {
+    if (!memoryStats?.ram_total_mb || memoryStats.ram_total_mb === 0) {
+      return 0;
+    }
+    return (memoryStats.ram_mb / memoryStats.ram_total_mb) * 100;
+  };
+
+  // Calculate GPU usage percentage
+  const getGpuPercent = (): number => {
+    if (!memoryStats?.gpu_total_mb || memoryStats.gpu_total_mb === 0) {
+      return 0;
+    }
+    return ((memoryStats.gpu_allocated_mb ?? 0) / memoryStats.gpu_total_mb) * 100;
   };
 
   return (
@@ -353,50 +368,64 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
                     RAM Usage
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    {formatBytes(memoryStats.ram_used_gb)} /{" "}
-                    {formatBytes(memoryStats.ram_total_gb)} (
-                    {memoryStats.ram_percent.toFixed(1)}%)
+                    {formatMB(memoryStats.ram_mb)}
+                    {memoryStats.ram_total_mb &&
+                      ` / ${formatMB(memoryStats.ram_total_mb)}`}{" "}
+                    ({getRamPercent().toFixed(1)}%)
                   </Typography>
                 </div>
                 <LinearProgress
                   variant="determinate"
-                  value={memoryStats.ram_percent}
+                  value={getRamPercent()}
                   sx={{ height: 8, borderRadius: 4 }}
                 />
               </div>
 
-              <div className="stat-item">
-                <div className="stat-header">
-                  <Typography variant="body2" color="text.secondary">
-                    GPU Memory Allocated
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {formatBytes(memoryStats.gpu_allocated_gb)}
-                    {memoryStats.gpu_total_gb &&
-                      ` / ${formatBytes(memoryStats.gpu_total_gb)}`}
-                  </Typography>
-                </div>
-                <LinearProgress
-                  variant="determinate"
-                  value={
-                    memoryStats.gpu_total_gb
-                      ? (memoryStats.gpu_allocated_gb /
-                          memoryStats.gpu_total_gb) *
-                        100
-                      : 0
-                  }
-                  sx={{ height: 8, borderRadius: 4 }}
-                  color="secondary"
-                />
-              </div>
+              {memoryStats.gpu_allocated_mb !== undefined &&
+                memoryStats.gpu_allocated_mb !== null && (
+                  <>
+                    <div className="stat-item">
+                      <div className="stat-header">
+                        <Typography variant="body2" color="text.secondary">
+                          GPU Memory Allocated
+                        </Typography>
+                        <Typography variant="body2" fontWeight="bold">
+                          {formatMB(memoryStats.gpu_allocated_mb)}
+                          {memoryStats.gpu_total_mb &&
+                            ` / ${formatMB(memoryStats.gpu_total_mb)}`}
+                        </Typography>
+                      </div>
+                      <LinearProgress
+                        variant="determinate"
+                        value={getGpuPercent()}
+                        sx={{ height: 8, borderRadius: 4 }}
+                        color="secondary"
+                      />
+                    </div>
+
+                    {memoryStats.gpu_reserved_mb !== undefined &&
+                      memoryStats.gpu_reserved_mb !== null && (
+                        <div className="stat-item">
+                          <div className="stat-header">
+                            <Typography variant="body2" color="text.secondary">
+                              GPU Memory Reserved
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold">
+                              {formatMB(memoryStats.gpu_reserved_mb)}
+                            </Typography>
+                          </div>
+                        </div>
+                      )}
+                  </>
+                )}
 
               <div className="stat-item">
                 <div className="stat-header">
                   <Typography variant="body2" color="text.secondary">
-                    GPU Memory Reserved
+                    Loaded Models
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    {formatBytes(memoryStats.gpu_reserved_gb)}
+                    {memoryStats.loaded_models_count} ({formatMB(memoryStats.loaded_models_memory_mb)})
                   </Typography>
                 </div>
               </div>
@@ -407,7 +436,7 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
                     Cache Items
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    {memoryStats.cache_count}
+                    {memoryStats.memory_cache_count}
                   </Typography>
                 </div>
               </div>
@@ -423,14 +452,14 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
 
           {modelsLoading ? (
             <LinearProgress />
-          ) : loadedModels && loadedModels.length > 0 ? (
+          ) : loadedModels.length > 0 ? (
             <TableContainer component={Paper} className="table-container">
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Model ID</TableCell>
-                    <TableCell>Name</TableCell>
+                    <TableCell>ID</TableCell>
                     <TableCell>Type</TableCell>
+                    <TableCell>Device</TableCell>
                     <TableCell align="right">Memory</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell align="center">Actions</TableCell>
@@ -440,48 +469,61 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
                   {loadedModels.map((model) => (
                     <TableRow key={model.id}>
                       <TableCell>
-                        <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
-                          {model.id}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{model.name}</TableCell>
-                      <TableCell>{model.type || "-"}</TableCell>
-                      <TableCell align="right">
-                        {formatBytes(model.memory_gb)}
+                        <Tooltip
+                          title={model.model_id || model.id}
+                          enterDelay={TOOLTIP_ENTER_DELAY}
+                        >
+                          <Typography
+                            variant="body2"
+                            noWrap
+                            sx={{ maxWidth: 200 }}
+                          >
+                            {model.model_id || model.id}
+                          </Typography>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
-                        {model.in_use ? (
+                        <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+                          {model.type}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={model.device}
+                          size="small"
+                          color={model.device === "cuda" ? "primary" : "default"}
+                          sx={{ height: 20 }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatMB(model.memory_mb)}
+                      </TableCell>
+                      <TableCell>
+                        {model.offloaded ? (
                           <Chip
-                            label="In Use"
+                            label="Offloaded"
                             size="small"
-                            color="warning"
+                            color="info"
                             sx={{ height: 20 }}
                           />
                         ) : (
                           <Chip
-                            label="Idle"
+                            label="Active"
                             size="small"
-                            color="default"
+                            color="success"
                             sx={{ height: 20 }}
                           />
                         )}
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip
-                          title={
-                            model.in_use
-                              ? "Model in use - will prompt for force unload"
-                              : "Unload model"
-                          }
+                          title="Unload model"
                           enterDelay={TOOLTIP_ENTER_DELAY}
                         >
                           <IconButton
                             size="small"
-                            onClick={() =>
-                              handleUnloadModel(model.id, model.in_use)
-                            }
+                            onClick={() => handleUnloadModel(model.id)}
                             disabled={unloadModelMutation.isPending}
-                            color={model.in_use ? "warning" : "default"}
                           >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
@@ -512,11 +554,7 @@ const MemoryManagementDialog: React.FC<MemoryManagementDialogProps> = ({
             size="small"
             color="warning"
             onClick={handleClearAllModels}
-            disabled={
-              clearModelsMutation.isPending ||
-              !loadedModels ||
-              loadedModels.length === 0
-            }
+            disabled={clearModelsMutation.isPending || loadedModels.length === 0}
           >
             Unload All Models
           </Button>
