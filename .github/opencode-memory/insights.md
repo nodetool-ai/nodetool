@@ -449,3 +449,23 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### distributeHorizontal/distributeVertical Implementation Fix (2026-01-11)
+
+**Insight**: Node distribution algorithms must carefully define what constitutes the "span" boundary. Whether to include node dimensions in the span calculation significantly affects the distribution outcome.
+
+**Issue**: The original implementation used `(lastNode.position + nodeWidth)` as the right boundary, which extended the span by node widths. The tests expected distribution based only on node positions.
+
+**Key Learning**: When distributing nodes evenly:
+- Sort nodes by their position (X or Y)
+- Calculate span as `lastNode.position - firstNode.position` (positions only)
+- Step = span / (count - 1)
+- New position = firstNode.position + index * step
+
+**Formula**: `node[i].position = firstNode.position + i * (lastNode.position - firstNode.position) / (count - 1)`
+
+**Files**: `web/src/hooks/useSelectionActions.ts`
+
+**Date**: 2026-01-11

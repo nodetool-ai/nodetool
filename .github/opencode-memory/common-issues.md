@@ -465,3 +465,25 @@ cd mobile && npm install
 **Prevention**: When adding new workflows that need npm dependencies, ensure all three packages (web, electron, mobile) have their dependencies installed. Also ensure path filters include `mobile/**` if mobile changes should trigger the workflow.
 
 ---
+
+### useSelectionActions distribute tests failing (2026-01-11)
+
+**Issue**: 2 tests in `useSelectionActions.test.ts` were failing:
+- `distributeHorizontal › distributes nodes in x-order, independent of getSelectedNodes() ordering`
+- `distributeVertical › distributes nodes in y-order, independent of getSelectedNodes() ordering`
+
+**Root Cause**: The distribute functions were using `(lastNode.position + lastNode.width/height)` as the span boundary, which resulted in incorrect step calculation. The tests expected positions based on using only `lastNode.position` as the boundary.
+
+**Solution**: Updated `distributeHorizontal` and `distributeVertical` in `useSelectionActions.ts` to use `lastNode.position` (not `lastNode.position + width/height`) as the right/bottom boundary for span calculation.
+
+**Formula Change**:
+- Before: `span = (lastNode.position + lastNode.width) - firstNode.position`
+- After: `span = lastNode.position - firstNode.position`
+
+This ensures nodes are distributed evenly between their current positions, not extending to include node widths.
+
+**Files**: `web/src/hooks/useSelectionActions.ts`
+
+**Prevention**: When implementing distribution algorithms, clearly define whether the span should include node dimensions or just positions. Document the expected behavior in tests.
+
+---

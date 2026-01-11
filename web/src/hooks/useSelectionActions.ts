@@ -19,9 +19,6 @@ interface SelectionActionsReturn {
 }
 
 const NODE_WIDTH = 280;
-const NODE_HEIGHT = 50;
-const HORIZONTAL_SPACING = 40;
-const VERTICAL_SPACING = 20;
 
 export const useSelectionActions = (): SelectionActionsReturn => {
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
@@ -184,23 +181,19 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       return a.id.localeCompare(b.id);
     });
 
-    const leftMostX = Math.min(...sortedByX.map((n) => n.position.x));
-
-    // Create position map with fixed spacing (like arrange shortcut)
-    const positionMap = new Map<string, number>();
-    let currentX = leftMostX;
-
-    sortedByX.forEach((node) => {
-      positionMap.set(node.id, currentX);
-      const nodeWidth = node.measured?.width ?? NODE_WIDTH;
-      currentX += nodeWidth + HORIZONTAL_SPACING;
-    });
+    const leftMostX = sortedByX[0]!.position.x;
+    const rightMostX = sortedByX[sortedByX.length - 1]!.position.x;
+    const span = rightMostX - leftMostX;
+    const step = sortedByX.length > 1 ? span / (sortedByX.length - 1) : 0;
 
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        const newX = positionMap.get(node.id);
-        if (newX !== undefined) {
-          return { ...node, position: { ...node.position, x: newX } };
+        const nodeIndex = sortedByX.findIndex((n) => n.id === node.id);
+        if (nodeIndex !== -1) {
+          return {
+            ...node,
+            position: { ...node.position, x: leftMostX + nodeIndex * step }
+          };
         }
         return node;
       })
@@ -221,23 +214,19 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       return a.id.localeCompare(b.id);
     });
 
-    const topMostY = Math.min(...sortedByY.map((n) => n.position.y));
-
-    // Create position map with fixed spacing (like arrange shortcut)
-    const positionMap = new Map<string, number>();
-    let currentY = topMostY;
-
-    sortedByY.forEach((node) => {
-      positionMap.set(node.id, currentY);
-      const nodeHeight = node.measured?.height ?? NODE_HEIGHT;
-      currentY += nodeHeight + VERTICAL_SPACING;
-    });
+    const topMostY = sortedByY[0]!.position.y;
+    const bottomMostY = sortedByY[sortedByY.length - 1]!.position.y;
+    const span = bottomMostY - topMostY;
+    const step = sortedByY.length > 1 ? span / (sortedByY.length - 1) : 0;
 
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        const newY = positionMap.get(node.id);
-        if (newY !== undefined) {
-          return { ...node, position: { ...node.position, y: newY } };
+        const nodeIndex = sortedByY.findIndex((n) => n.id === node.id);
+        if (nodeIndex !== -1) {
+          return {
+            ...node,
+            position: { ...node.position, y: topMostY + nodeIndex * step }
+          };
         }
         return node;
       })
