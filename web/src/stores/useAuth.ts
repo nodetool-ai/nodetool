@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import log from "loglevel";
-import { createErrorMessage } from "../utils/errorHandling";
 import { supabase } from "../lib/supabaseClient"; // Import Supabase client
 import type { Session, User, Provider } from "@supabase/supabase-js"; // Import Supabase types
 import { isLocalhost } from "./ApiClient"; // Keep isLocalhost for potential dev bypass
@@ -135,11 +134,11 @@ export const useAuth = create<LoginStore>((set, get) => ({
 
       // Store subscription reference for cleanup
       set({ _authSubscription: subscription });
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.info("Auth: Initialization error", error);
       set({
         state: "error",
-        error: createErrorMessage(error, "Auth initialization failed").message,
+        error: error instanceof Error ? error.message : "Auth initialization failed",
         session: null,
         user: null,
         _authSubscription: null
@@ -166,12 +165,11 @@ export const useAuth = create<LoginStore>((set, get) => ({
       });
       if (error) {throw error;}
       // State update (to 'logged_in') is handled by the onAuthStateChange listener.
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.info(`Auth: Sign in with ${provider} error`, error);
       set({
         state: "error",
-        error: createErrorMessage(error, `Failed to sign in with ${provider}`)
-          .message
+        error: error instanceof Error ? error.message : `Failed to sign in with ${provider}`
       });
     }
   },
@@ -190,12 +188,11 @@ export const useAuth = create<LoginStore>((set, get) => ({
       // Explicitly set state to logged_out here, although onAuthStateChange
       // will also fire and update the state.
       set({ session: null, user: null, state: "logged_out", error: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.info("Auth: Sign out error", error);
-      // If sign-out fails, remain in an error state but clear session/user
       set({
         state: "error",
-        error: createErrorMessage(error, "Failed to sign out").message,
+        error: error instanceof Error ? error.message : "Failed to sign out",
         session: null,
         user: null
       });

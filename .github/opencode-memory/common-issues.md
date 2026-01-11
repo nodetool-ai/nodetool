@@ -465,3 +465,31 @@ cd mobile && npm install
 **Prevention**: When adding new workflows that need npm dependencies, ensure all three packages (web, electron, mobile) have their dependencies installed. Also ensure path filters include `mobile/**` if mobile changes should trigger the workflow.
 
 ---
+
+### TypeScript `any` Type Usage (2026-01-11)
+
+**Issue**: Multiple files used `any` type for error handlers, callback parameters, and generic utilities, reducing type safety.
+
+**Solution**: Replaced `any` with proper types:
+- Error handlers: `catch (error: any)` → `catch (error: unknown)` with proper type narrowing
+- Generic utilities: `result: any` → `result: unknown`
+- Message types: `(message: any)` → properly typed union types like `MsgpackData`
+- Search info: `searchInfo?: any` → explicit `SearchInfo` interface
+
+**Files Modified**:
+- `web/src/utils/edgeValue.ts` - Changed `GetResult` and `resolveResultValue` parameter types
+- `web/src/utils/errorHandling.ts` - Changed `error: any` to `error: unknown`
+- `web/src/stores/formatNodeDocumentation.ts` - Added `SearchInfo` interface
+- `web/src/stores/workflowUpdates.ts` - Changed message callback type to `MsgpackData`
+- `web/src/stores/useAuth.ts` - Changed all catch block error types
+- `web/src/stores/SecretsStore.ts` - Changed catch block error types
+
+**Benefits**:
+- Improved TypeScript type safety
+- Better IDE support and autocomplete
+- Catches potential bugs at compile time
+- More descriptive error messages using type guards
+
+**Prevention**: Use `unknown` instead of `any` for error handlers and generic parameters. Apply proper type guards when narrowing `unknown` to specific types.
+
+---

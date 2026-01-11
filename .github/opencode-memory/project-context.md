@@ -155,4 +155,24 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Type Safety Improvements (2026-01-11)
+
+**Changes**:
+- Replaced `any` types with `unknown` and proper type guards in error handlers
+- Added explicit `SearchInfo` interface for node documentation search
+- Typed WebSocket message callbacks with `MsgpackData` union type
+- Updated catch blocks to use type narrowing for better error messages
+
+**Files**:
+- `web/src/utils/edgeValue.ts`
+- `web/src/utils/errorHandling.ts`
+- `web/src/stores/formatNodeDocumentation.ts`
+- `web/src/stores/workflowUpdates.ts`
+- `web/src/stores/useAuth.ts`
+- `web/src/stores/SecretsStore.ts`
+
+**Verification**: All quality checks pass (`make typecheck`, `make lint`, `make test`)
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
