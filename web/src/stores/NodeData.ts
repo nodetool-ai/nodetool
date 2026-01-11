@@ -21,4 +21,5 @@ export type NodeData = {
     x: number;
     y: number;
   };
+  comment?: string;
 };

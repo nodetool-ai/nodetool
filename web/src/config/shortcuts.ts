@@ -1,4 +1,5 @@
 import React from "react";
+import { isMac } from "../utils/platform";
 
 /**
  * Defines the structure for a keyboard shortcut.
@@ -23,6 +24,8 @@ export interface Shortcut {
   /** Additional alternative key combinations that trigger the same shortcut */
   altKeyCombos?: string[][];
 }
+
+const ControlOrMeta = isMac() ? "Meta" : "Control";
 
 /**
  * Maps common modifier keys to their macOS equivalents.
@@ -380,6 +383,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Select all nodes that receive output from selected nodes",
     registerCombo: true,
     slug: "selectConnectedOutputs"
+  },
+  {
+    title: "Add/Edit Comment",
+    slug: "addComment",
+    keyCombo: [ControlOrMeta, "/"],
+    category: "editor",
+    description: "Add or edit comment on selected node",
+    registerCombo: true
   },
 
   // ---------- PANEL -------------------------------------------------------

@@ -14,6 +14,7 @@ import { useDuplicateNodes } from "./useDuplicate";
 import { useSelectConnected } from "./useSelectConnected";
 import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
+import useNodeCommentsStore from "../stores/NodeCommentsStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import { useFitView } from "./useFitView";
@@ -130,6 +131,21 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs.selectConnected();
     }
   }, [selectedNodes.length, selectConnectedOutputs]);
+
+  const { setActiveCommentNodeId } = useNodeCommentsStore((state) => ({
+    setActiveCommentNodeId: state.setActiveCommentNodeId,
+  }));
+
+  const handleAddComment = useCallback(() => {
+    if (selectedNodes.length === 1) {
+      setActiveCommentNodeId(selectedNodes[0].id);
+    } else if (selectedNodes.length > 1) {
+      addNotification({
+        content: "Please select a single node to add a comment",
+        type: "info"
+      });
+    }
+  }, [selectedNodes, setActiveCommentNodeId, addNotification]);
 
   const handleZoomIn = useCallback(() => {
     reactFlow.zoomIn({ duration: 200 });
@@ -441,6 +457,10 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs: {
         callback: handleSelectConnectedOutputs,
         active: selectedNodes.length > 0
+      },
+      addComment: {
+        callback: handleAddComment,
+        active: selectedNodes.length > 0
       }
     };
 
@@ -481,7 +501,8 @@ export const useNodeEditorShortcuts = (
     openFind,
     handleSelectConnectedAll,
     handleSelectConnectedInputs,
-    handleSelectConnectedOutputs
+    handleSelectConnectedOutputs,
+    handleAddComment
   ]);
 
   // useEffect for shortcut registration

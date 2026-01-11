@@ -11,6 +11,7 @@ import { useClipboard } from "../browser/useClipboard";
 import log from "loglevel";
 
 import useMetadataStore from "../../stores/MetadataStore";
+import useNodeCommentsStore from "../../stores/NodeCommentsStore";
 import { subgraph } from "../../core/graph";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodes } from "../../contexts/NodeContext";
@@ -38,6 +39,7 @@ interface UseNodeContextMenuReturn {
   };
   conditions: {
     hasCommentTitle: boolean;
+    hasComment: boolean;
     isBypassed: boolean;
     canConvertToInput: boolean;
     canConvertToConstant: boolean;
@@ -95,6 +97,12 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   );
   const getResult = useResultsStore((state) => state.getResult);
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const hasComment = useNodeCommentsStore((state) =>
+    nodeId ? state.hasComment(nodeId) : false
+  );
+  const { setActiveCommentNodeId } = useNodeCommentsStore((state) => ({
+    setActiveCommentNodeId: state.setActiveCommentNodeId,
+  }));
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
 
@@ -102,9 +110,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     if (!nodeId) {
       return;
     }
-    updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
+    setActiveCommentNodeId(nodeId);
     closeContextMenu();
-  }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
+  }, [closeContextMenu, nodeId, setActiveCommentNodeId]);
 
   const handleRunFromHere = useCallback(() => {
     if (!node || !nodeId || isWorkflowRunning) {
@@ -356,6 +364,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     },
     conditions: {
       hasCommentTitle,
+      hasComment,
       isBypassed,
       canConvertToInput,
       canConvertToConstant,
