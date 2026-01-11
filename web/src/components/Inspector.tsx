@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
+import AnnotationProperty from "./properties/AnnotationProperty";
 import { Box, Button, IconButton, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
@@ -175,15 +176,17 @@ const styles = (theme: Theme) =>
 const Inspector: React.FC = () => {
   const {
     selectedNodes,
+    updateNodeProperties,
+    updateNodeData,
     edges,
     findNode,
-    updateNodeProperties,
     setSelectedNodes
   } = useNodes((state) => ({
     selectedNodes: state.getSelectedNodes(),
     edges: state.edges,
     findNode: state.findNode,
     updateNodeProperties: state.updateNodeProperties,
+    updateNodeData: state.updateNodeData,
     setSelectedNodes: state.setSelectedNodes
   }));
   const getMetadata = useMetadataStore((state) => state.getMetadata);
@@ -254,11 +257,17 @@ const Inspector: React.FC = () => {
 
   const handleMultiPropertyChange = useCallback(
     (propertyName: string, value: any) => {
-      multiNodeIds.forEach((nodeId) =>
-        updateNodeProperties(nodeId, { [propertyName]: value })
-      );
+      if (propertyName === "annotation") {
+        multiNodeIds.forEach((nodeId) =>
+          updateNodeData(nodeId, { annotation: value })
+        );
+      } else {
+        multiNodeIds.forEach((nodeId) =>
+          updateNodeProperties(nodeId, { [propertyName]: value })
+        );
+      }
     },
-    [multiNodeIds, updateNodeProperties]
+    [multiNodeIds, updateNodeProperties, updateNodeData]
   );
 
   if (selectedNodes.length === 0) {
@@ -436,6 +445,15 @@ const Inspector: React.FC = () => {
                 layout=""
               />
             ))}
+
+            {/* Annotation field */}
+            <AnnotationProperty
+              nodeId={selectedNode.id}
+              annotation={selectedNode.data.annotation}
+              onAnnotationChange={(newAnnotation) => {
+                handleMultiPropertyChange("annotation", newAnnotation);
+              }}
+            />
 
             {/* Dynamic properties, if any */}
             {Object.entries(selectedNode.data.dynamic_properties || {}).map(
