@@ -526,15 +526,26 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   })),
 
-  // ---------- FIND IN WORKFLOW ---------------------------------------------
-  {
-    title: "Find in Workflow",
-    slug: "findInWorkflow",
-    keyCombo: ["Control", "F"],
-    category: "editor" as const,
-    description: "Find and navigate to nodes in the current workflow",
-    registerCombo: true
-  }
+   // ---------- FIND IN WORKFLOW ---------------------------------------------
+   {
+     title: "Find in Workflow",
+     slug: "findInWorkflow",
+     keyCombo: ["Control", "F"],
+     category: "editor" as const,
+     description: "Find and navigate to nodes in the current workflow",
+     registerCombo: true
+   },
+
+   // ---------- QUICK NODE PALETTE -------------------------------------------
+   {
+     title: "Quick Node Palette",
+     slug: "quickNodePalette",
+     keyCombo: ["Control", "Shift", "P"],
+     keyComboMac: ["Meta", "Shift", "P"],
+     category: "panel" as const,
+     description: "Open quick node search palette for fast node addition",
+     registerCombo: false
+   }
 ] as Shortcut[];
 
 /**
