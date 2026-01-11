@@ -155,4 +155,38 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Node Annotations Feature (2026-01-11)
+
+**What**: Added the ability to add custom annotations/notes to any node in the workflow editor. Users can now document their workflows directly within the editor.
+
+**Why**: Workflow documentation is important for complex AI pipelines. Previously, users had no way to add notes to individual nodes. This feature enables better workflow documentation and collaboration.
+
+**Implementation**:
+- Added `annotation` field to `NodeData` type in `web/src/stores/NodeData.ts`
+- Created new `AnnotationProperty` component at `web/src/components/properties/AnnotationProperty.tsx` for editing annotations in the Inspector panel
+- Added visual annotation indicator (icon) to `NodeHeader` component at `web/src/components/node/NodeHeader.tsx` that shows tooltip on hover
+- Integrated annotation editing into the Inspector panel at `web/src/components/Inspector.tsx`
+- Extended `handleMultiPropertyChange` to use `updateNodeData` for annotation field (since it's a data field, not a property)
+
+**Key Files**:
+- `web/src/stores/NodeData.ts` - Added annotation field to type definition
+- `web/src/components/properties/AnnotationProperty.tsx` - New component for annotation editing
+- `web/src/components/node/NodeHeader.tsx` - Added annotation indicator with tooltip
+- `web/src/components/Inspector.tsx` - Integrated AnnotationProperty into properties panel
+
+**Features**:
+- Visual indicator icon on nodes that have annotations
+- Hover tooltip showing the annotation content
+- Inline editing in the Inspector panel
+- Multi-select support for batch annotation updates
+- Keyboard shortcuts (Ctrl+Enter to save, Escape to cancel)
+- Visual indicator showing annotation presence
+
+**Testing**:
+- All type checks pass (web and electron packages)
+- All linting passes
+- All unit and integration tests pass
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

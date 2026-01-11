@@ -7,6 +7,8 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { Tooltip } from "@mui/material";
+import DescriptionIcon from "@mui/icons-material/Description";
 
 export interface NodeHeaderProps {
   id: string;
@@ -179,6 +181,36 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         </span>
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
+        )}
+        {data.annotation && data.annotation.trim().length > 0 && (
+          <Tooltip
+            title={
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>Annotation</div>
+                <div>{data.annotation}</div>
+              </div>
+            }
+            arrow
+            placement="top"
+          >
+            <span
+              className="annotation-indicator"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "18px",
+                height: "18px",
+                borderRadius: "4px",
+                backgroundColor: "rgba(25, 118, 210, 0.2)",
+                color: "var(--palette-primary-main)",
+                fontSize: "10px",
+                cursor: "help"
+              }}
+            >
+              <DescriptionIcon sx={{ fontSize: 12 }} />
+            </span>
+          </Tooltip>
         )}
       </div>
     </div>

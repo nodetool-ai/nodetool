@@ -13,6 +13,8 @@ export type NodeData = {
   bypassed?: boolean; // When true, node is bypassed and passes inputs through to outputs
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
   originalType?: string;
+  // Custom annotation/description added by user
+  annotation?: string;
   size?: {
     width: number;
     height: number;

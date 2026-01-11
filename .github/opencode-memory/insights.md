@@ -339,6 +339,35 @@ When documenting new insights:
 
 ---
 
+### Node Annotation Implementation (2026-01-11)
+
+**Insight**: Adding user annotations to nodes required understanding the difference between `properties` (node configuration) and `data` (node metadata) in the NodeData structure.
+
+**Key Learnings**:
+1. Annotations are stored as a direct field on `data`, not inside `data.properties`
+2. Update mechanism uses `updateNodeData` instead of `updateNodeProperties` for data fields
+3. Visual indicator in the node header improves discoverability without cluttering the UI
+4. Integration with the Inspector panel requires handling both single-node and multi-select cases
+
+**Implementation Pattern**:
+```typescript
+// For data fields (annotation, title, bypassed, etc.):
+updateNodeData(nodeId, { annotation: newAnnotation })
+
+// For properties (configuration values):
+updateNodeProperties(nodeId, { [propertyName]: value })
+```
+
+**Files**:
+- `web/src/stores/NodeData.ts` - Type definition with annotation field
+- `web/src/components/properties/AnnotationProperty.tsx` - Annotation editor component
+- `web/src/components/node/NodeHeader.tsx` - Visual indicator with tooltip
+- `web/src/components/Inspector.tsx` - Integration point
+
+**Date**: 2026-01-11
+
+---
+
 ### Mobile Package Dependencies Issue (2026-01-10)
 
 **Insight**: Mobile package requires `npm install` before type checking can succeed.
