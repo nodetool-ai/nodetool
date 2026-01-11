@@ -9,10 +9,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Button } from "@mui/material";
+import { Box, Button, IconButton, Popover } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import SettingsIcon from "@mui/icons-material/Settings";
+import { useState } from "react";
 import { useSubgraphStore, ROOT_GRAPH_ID } from "../../stores/SubgraphStore";
 import { useNodes } from "../../contexts/NodeContext";
+import SubgraphEditorPanel from "../panels/SubgraphEditorPanel";
 
 const styles = (theme: Theme) =>
   css({
@@ -60,6 +63,15 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       display: "flex",
       alignItems: "center"
+    },
+    ".settings-button": {
+      marginLeft: "4px",
+      padding: "4px",
+      color: theme.vars.palette.text.secondary,
+      "&:hover": {
+        color: theme.vars.palette.primary.main,
+        backgroundColor: theme.vars.palette.action.hover
+      }
     }
   });
 
@@ -74,6 +86,10 @@ const SubgraphBreadcrumb: React.FC = () => {
   const { workflow } = useNodes((state) => ({
     workflow: state.workflow
   }));
+
+  const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(
+    null
+  );
 
   // Compute isAtRoot locally for proper reactivity
   const isAtRoot = currentGraphId === ROOT_GRAPH_ID;
@@ -107,6 +123,24 @@ const SubgraphBreadcrumb: React.FC = () => {
     }
     return undefined;
   };
+
+  // Get current subgraph's definition ID
+  const getCurrentSubgraphId = (): string | undefined => {
+    if (navigationPath.length === 0) {
+      return undefined;
+    }
+
+    const currentInstanceId = navigationPath[navigationPath.length - 1];
+    const parentGraphId =
+      navigationPath.length === 1
+        ? ROOT_GRAPH_ID
+        : navigationPath[navigationPath.length - 2];
+
+    const node = findNodeInGraph(parentGraphId, currentInstanceId);
+    return node?.data?.subgraphId;
+  };
+
+  const currentSubgraphId = getCurrentSubgraphId();
 
   const breadcrumbItems: Array<{ label: string; onClick?: () => void }> = [
     {
@@ -146,30 +180,81 @@ const SubgraphBreadcrumb: React.FC = () => {
     }
   }
 
-  return (
-    <Box css={styles(theme)}>
-      {breadcrumbItems.map((item, index) => {
-        const isLast = index === breadcrumbItems.length - 1;
+  const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
+    setSettingsAnchor(event.currentTarget);
+  };
 
-        return (
-          <Box key={index} sx={{ display: "flex", alignItems: "center" }}>
-            {index > 0 && (
-              <span className="separator">
-                <ChevronRightIcon fontSize="small" />
-              </span>
-            )}
-            <Button
-              className={isLast ? "nav-button-current" : "nav-button"}
-              onClick={item.onClick}
-              disabled={isLast}
-              disableRipple={isLast}
-            >
-              {item.label}
-            </Button>
-          </Box>
-        );
-      })}
-    </Box>
+  const handleSettingsClose = () => {
+    setSettingsAnchor(null);
+  };
+
+  return (
+    <>
+      <Box css={styles(theme)}>
+        {breadcrumbItems.map((item, index) => {
+          const isLast = index === breadcrumbItems.length - 1;
+
+          return (
+            <Box key={index} sx={{ display: "flex", alignItems: "center" }}>
+              {index > 0 && (
+                <span className="separator">
+                  <ChevronRightIcon fontSize="small" />
+                </span>
+              )}
+              <Button
+                className={isLast ? "nav-button-current" : "nav-button"}
+                onClick={item.onClick}
+                disabled={isLast}
+                disableRipple={isLast}
+              >
+                {item.label}
+              </Button>
+            </Box>
+          );
+        })}
+
+        {/* Settings button for current subgraph */}
+        {currentSubgraphId && (
+          <IconButton
+            className="settings-button"
+            size="small"
+            onClick={handleSettingsClick}
+            title="Subgraph settings"
+          >
+            <SettingsIcon fontSize="small" />
+          </IconButton>
+        )}
+      </Box>
+
+      {/* Settings Popover */}
+      <Popover
+        open={Boolean(settingsAnchor)}
+        anchorEl={settingsAnchor}
+        onClose={handleSettingsClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right"
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right"
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              width: 320,
+              maxHeight: "70vh",
+              mt: 1,
+              borderRadius: 2
+            }
+          }
+        }}
+      >
+        {currentSubgraphId && (
+          <SubgraphEditorPanel subgraphId={currentSubgraphId} />
+        )}
+      </Popover>
+    </>
   );
 };
 

@@ -167,9 +167,13 @@ export function convertToSubgraph(
   // Analyze boundary
   const boundary = analyzeBoundary(selectedNodes, allEdges);
   
+  console.log(`[convertToSubgraph] Boundary analysis: inputLinks=${boundary.boundaryInputLinks.length}, outputLinks=${boundary.boundaryOutputLinks.length}, internalLinks=${boundary.internalLinks.length}`);
+  
   // Create input/output slots
   const inputs = createInputSlots(boundary.boundaryInputLinks, selectedNodes);
   const outputs = createOutputSlots(boundary.boundaryOutputLinks, selectedNodes);
+  
+  console.log(`[convertToSubgraph] Created inputs=${inputs.length}, outputs=${outputs.length}`);
   
   // Convert ReactFlow nodes/edges to backend format
   const internalGraphNodes: GraphNode[] = selectedNodes.map(node =>

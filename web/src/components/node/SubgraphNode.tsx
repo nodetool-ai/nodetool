@@ -89,6 +89,9 @@ const SubgraphNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
   
   const bypassed = nodeData.bypassed || false;
   
+  // Debug: log definition details
+  console.log(`[SubgraphNode] id=${id}, subgraphId=${subgraphId}, definition found=${!!definition}, inputs=${definition?.inputs?.length || 0}, outputs=${definition?.outputs?.length || 0}`);
+  
   const handleDoubleClick = useCallback(() => {
     if (!definition) {
       console.warn("[SubgraphNode] Cannot open subgraph: definition not found");

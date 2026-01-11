@@ -71,10 +71,18 @@ const SubgraphEditorPanel: React.FC<SubgraphEditorPanelProps> = ({ subgraphId })
   
   const definition = getDefinition(subgraphId);
   
+  const [subgraphName, setSubgraphName] = useState(definition?.name || "");
   const [newInputName, setNewInputName] = useState("");
   const [newOutputName, setNewOutputName] = useState("");
   const [blueprintName, setBlueprintName] = useState("");
   const [blueprintDescription, setBlueprintDescription] = useState("");
+  
+  const handleNameChange = (newName: string) => {
+    setSubgraphName(newName);
+    if (newName.trim()) {
+      updateDefinition(subgraphId, { name: newName.trim() });
+    }
+  };
   
   if (!definition) {
     return (
@@ -214,14 +222,16 @@ const SubgraphEditorPanel: React.FC<SubgraphEditorPanelProps> = ({ subgraphId })
       {/* Subgraph Info */}
       <div className="section">
         <Typography className="section-title">Subgraph Properties</Typography>
-        <Typography variant="body2">
-          <strong>Name:</strong> {definition.name}
-        </Typography>
-        <Typography variant="body2">
-          <strong>Nodes:</strong> {definition.nodes.length}
-        </Typography>
-        <Typography variant="body2">
-          <strong>Edges:</strong> {definition.edges.length}
+        <TextField
+          size="small"
+          fullWidth
+          label="Name"
+          value={subgraphName}
+          onChange={(e) => handleNameChange(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+        <Typography variant="body2" color="text.secondary">
+          {definition.nodes.length} nodes, {definition.edges.length} edges
         </Typography>
       </div>
       
