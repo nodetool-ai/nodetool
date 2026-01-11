@@ -5,7 +5,7 @@ import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, ReactNode } from "react";
 import {
   Node,
   NodeProps,
@@ -298,9 +298,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Results and rendering
-  const result = useResultsStore((state) => {
+  const result: ReactNode | null | undefined = useResultsStore((state) => {
     const r = state.getOutputResult(workflow_id, id) || state.getResult(workflow_id, id);
-    return r;
+    return r as ReactNode | null | undefined;
   });
 
   // Manage overlay visibility based on node status and result
@@ -468,7 +468,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {/* Default behavior: width-only resize for regular nodes.
           If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}
       {selected && !hasToggleableResult && resizer}
-      {toolCall?.message && status === "running" && (
+      {typeof status === "string" && status === "running" && toolCall?.message && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
       {planningUpdate && !task && (

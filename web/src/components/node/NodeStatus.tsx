@@ -6,11 +6,14 @@ import isEqual from "lodash/isEqual";
 import { useTheme } from "@mui/material/styles";
 
 interface NodeStatusProps {
-  status: string;
+  status?: string | object | null;
 }
 
 const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {
   const theme = useTheme();
+  if (typeof status !== "string") {
+    return null;
+  }
   if (status !== "booting") {return null;}
 
   return (

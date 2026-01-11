@@ -465,3 +465,43 @@ cd mobile && npm install
 **Prevention**: When adding new workflows that need npm dependencies, ensure all three packages (web, electron, mobile) have their dependencies installed. Also ensure path filters include `mobile/**` if mobile changes should trigger the workflow.
 
 ---
+
+### StatusStore Type Safety Improvements (2026-01-11)
+
+**Issue**: StatusStore used implicit `any` types for status values, allowing strings, objects, and null to be mixed without type safety.
+
+**Solution**: Defined explicit `NodeStatus` type that accepts string, object, null, or undefined:
+```typescript
+export type NodeStatus = string | object | null | undefined;
+```
+
+**Files Modified**:
+- `web/src/stores/StatusStore.ts` - Added explicit type definition
+- `web/src/components/node/NodeStatus.tsx` - Updated interface to accept new type
+- `web/src/components/node/NodeFooter.tsx` - Updated status prop type
+- `web/src/components/node/ProcessTimer.tsx` - Updated to handle non-string statuses
+- `web/src/stores/__tests__/StatusStore.test.ts` - Verified compatibility
+
+**Prevention**: Always define explicit types for store values that can have multiple shapes.
+
+---
+
+### ResultsStore Type Safety Improvements (2026-01-11)
+
+**Issue**: ResultsStore used `any` types for results and previews, losing type safety.
+
+**Solution**: Defined `NodeResult` and `NodePreview` types as `unknown` with proper type assertions where needed:
+```typescript
+type NodeResult = unknown;
+type NodePreview = unknown;
+```
+
+**Files Modified**:
+- `web/src/stores/ResultsStore.ts` - Added explicit type definitions
+- `web/src/components/node/NodeContent.tsx` - Updated result prop to ReactNode
+
+**Why unknown instead of any**: `unknown` forces type checking when accessing values, while still allowing the store to hold any serializable result. Type assertions are used where array operations are performed.
+
+**Prevention**: Use `unknown` instead of `any` to maintain type safety while allowing flexible data structures.
+
+---

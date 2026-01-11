@@ -60,7 +60,7 @@ export interface NodeFooterProps {
   nodeType: string;
   data: NodeData;
   workflowId: string;
-  status?: string;
+  status?: string | object | null;
 }
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
