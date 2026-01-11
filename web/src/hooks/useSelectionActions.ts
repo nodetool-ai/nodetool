@@ -20,6 +20,8 @@ interface SelectionActionsReturn {
 
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 50;
+const HORIZONTAL_SPACING = 40;
+const VERTICAL_SPACING = 20;
 
 export const useSelectionActions = (): SelectionActionsReturn => {
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
@@ -183,35 +185,15 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     });
 
     const leftMostX = Math.min(...sortedByX.map((n) => n.position.x));
-    const rightMostEdgeX = Math.max(
-      ...sortedByX.map((n) => n.position.x + (n.measured?.width ?? NODE_WIDTH))
-    );
 
-    // Calculate total width of all nodes
-    const totalWidth = sortedByX.reduce((sum, node) => {
-      return sum + (node.measured?.width ?? NODE_WIDTH);
-    }, 0);
-
-    // Calculate available space between leftmost and rightmost nodes
-    const totalSpan = rightMostEdgeX - leftMostX;
-    const availableSpace = totalSpan - totalWidth;
-
-    // Use minimum spacing of 50px if calculated spacing is too small
-    const MIN_SPACING = 50;
-    let spacing = availableSpace / (sortedByX.length - 1);
-
-    if (spacing < MIN_SPACING) {
-      spacing = MIN_SPACING;
-    }
-
-    // Create position map in axis order so selection ordering doesn't affect layout
+    // Create position map with fixed spacing (like arrange shortcut)
     const positionMap = new Map<string, number>();
     let currentX = leftMostX;
 
     sortedByX.forEach((node) => {
       positionMap.set(node.id, currentX);
       const nodeWidth = node.measured?.width ?? NODE_WIDTH;
-      currentX += nodeWidth + spacing;
+      currentX += nodeWidth + HORIZONTAL_SPACING;
     });
 
     reactFlow.setNodes((currentNodes) =>
@@ -240,37 +222,15 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     });
 
     const topMostY = Math.min(...sortedByY.map((n) => n.position.y));
-    const bottomMostEdgeY = Math.max(
-      ...sortedByY.map(
-        (n) => n.position.y + (n.measured?.height ?? NODE_HEIGHT)
-      )
-    );
 
-    // Calculate total height of all nodes
-    const totalHeight = sortedByY.reduce((sum, node) => {
-      return sum + (node.measured?.height ?? NODE_HEIGHT);
-    }, 0);
-
-    // Calculate available space between topmost and bottommost nodes
-    const totalSpan = bottomMostEdgeY - topMostY;
-    const availableSpace = totalSpan - totalHeight;
-
-    // Use minimum spacing of 50px if calculated spacing is too small
-    const MIN_SPACING = 50;
-    let spacing = availableSpace / (sortedByY.length - 1);
-
-    if (spacing < MIN_SPACING) {
-      spacing = MIN_SPACING;
-    }
-
-    // Create position map in axis order so selection ordering doesn't affect layout
+    // Create position map with fixed spacing (like arrange shortcut)
     const positionMap = new Map<string, number>();
     let currentY = topMostY;
 
     sortedByY.forEach((node) => {
       positionMap.set(node.id, currentY);
       const nodeHeight = node.measured?.height ?? NODE_HEIGHT;
-      currentY += nodeHeight + spacing;
+      currentY += nodeHeight + VERTICAL_SPACING;
     });
 
     reactFlow.setNodes((currentNodes) =>

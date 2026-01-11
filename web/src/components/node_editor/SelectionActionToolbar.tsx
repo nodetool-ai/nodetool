@@ -7,8 +7,8 @@ import {
   AlignVerticalTop,
   AlignVerticalCenter,
   AlignVerticalBottom,
-  VerticalSplit,
-  HorizontalSplit,
+  MoreHoriz,
+  MoreVert,
   Delete,
   ContentCopy,
   Layers,
@@ -153,14 +153,14 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   const distributionButtons: ButtonItem[] = useMemo(
     () => [
       {
-        icon: <HorizontalSplit fontSize="small" />,
+        icon: <MoreHoriz fontSize="small" />,
         label: "Distribute Horizontally",
         slug: "distributeHorizontal",
         action: selectionActions.distributeHorizontal,
         disabled: !canDistribute
       },
       {
-        icon: <VerticalSplit fontSize="small" />,
+        icon: <MoreVert fontSize="small" />,
         label: "Distribute Vertically",
         slug: "distributeVertical",
         action: selectionActions.distributeVertical,
@@ -202,7 +202,9 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
     [canGroup, selectionActions]
   );
 
-  if (!visible) {return null;}
+  if (!visible) {
+    return null;
+  }
 
   const allButtons: ButtonItem[] = [
     ...alignmentButtons,
