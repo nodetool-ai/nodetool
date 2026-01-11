@@ -44,6 +44,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import { useNodes } from "../../contexts/NodeContext";
+import SubgraphBreadcrumb from "../navigation/SubgraphBreadcrumb";
 
 declare global {
   interface Window {
@@ -139,6 +140,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <CircularProgress /> Uploading assets...
             </div>
           )}
+          <SubgraphBreadcrumb />
           <ReactFlowWrapper workflowId={workflowId} active={active} />
           {active && (
             <>

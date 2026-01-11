@@ -90,9 +90,23 @@ const SubgraphNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
   const bypassed = nodeData.bypassed || false;
   
   const handleDoubleClick = useCallback(() => {
-    // Open the subgraph for editing
+    if (!definition) {
+      console.warn("[SubgraphNode] Cannot open subgraph: definition not found");
+      return;
+    }
+    
+    // Open the subgraph for editing - this will navigate into it
+    // The navigation will swap the displayed nodes/edges to show the subgraph's internal structure
     openSubgraph(id as string);
-  }, [id, openSubgraph]);
+    
+    // Load the subgraph's internal nodes and edges
+    // This is a simplified implementation - in a full version, we'd need to:
+    // 1. Convert definition nodes/edges to ReactFlow format
+    // 2. Handle viewport restoration if cached
+    // For now, we'll let the SubgraphStore handle the navigation state
+    
+    console.log(`[SubgraphNode] Navigated into subgraph: ${definition.name}`);
+  }, [id, definition, openSubgraph]);
   
   if (!definition) {
     return (

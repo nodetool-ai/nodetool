@@ -2,6 +2,7 @@ import { Node } from "@xyflow/react";
 import { Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
+import { SUBGRAPH_NODE_TYPE } from "../types/subgraph";
 
 export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const ui_properties: NodeUIProperties = {
@@ -38,10 +39,18 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     ui_properties.height = node.measured?.height;
   }
 
+  // For subgraph nodes, ensure subgraphId is preserved in properties
+  const isSubgraphNode = node.type === SUBGRAPH_NODE_TYPE;
+  const properties = node.data?.properties || {};
+  
+  if (isSubgraphNode && (node.data as any).subgraphId) {
+    properties.subgraphId = (node.data as any).subgraphId;
+  }
+
   return {
     id: node.id,
     type: node.type || "",
-    data: node.data?.properties,
+    data: properties,
     parent_id: node.parentId,
     ui_properties: ui_properties,
     dynamic_properties: node.data?.dynamic_properties || {},

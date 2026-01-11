@@ -2,6 +2,7 @@ import { Node } from "@xyflow/react";
 import { Workflow, Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
+import { SUBGRAPH_NODE_TYPE } from "../types/subgraph";
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -10,6 +11,7 @@ export function graphNodeToReactFlowNode(
   const ui_properties = node.ui_properties as NodeUIProperties;
   const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
+  const isSubgraphNode = node.type === SUBGRAPH_NODE_TYPE;
 
   // Debug: warn if node.data contains a stale workflow_id
   if (
@@ -44,6 +46,12 @@ export function graphNodeToReactFlowNode(
 
   const isBypassed = ui_properties?.bypassed || false;
 
+  // For subgraph nodes, preserve subgraphId in data
+  const nodeDataProperties = node.data || {};
+  const dataWithSubgraph = isSubgraphNode
+    ? { ...nodeDataProperties }
+    : nodeDataProperties;
+
   return {
     type: node.type,
     id: node.id,
@@ -57,7 +65,7 @@ export function graphNodeToReactFlowNode(
     selectable: ui_properties?.selectable,
     className: isBypassed ? "bypassed" : undefined,
     data: {
-      properties: node.data || {},
+      properties: dataWithSubgraph,
       dynamic_properties: node.dynamic_properties || {},
       dynamic_outputs: node.dynamic_outputs || {},
       sync_mode: node.sync_mode,
@@ -67,7 +75,11 @@ export function graphNodeToReactFlowNode(
       workflow_id: workflow.id,
       title: ui_properties?.title,
       color: ui_properties?.color,
-      originalType: node.type
+      originalType: node.type,
+      // Preserve subgraphId at top level for easy access
+      ...(isSubgraphNode && (nodeDataProperties as any).subgraphId
+        ? { subgraphId: (nodeDataProperties as any).subgraphId }
+        : {})
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     style: {
