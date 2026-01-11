@@ -153,6 +153,26 @@ test('handles user interaction', async () => {
 
 ## Recent Changes
 
+### Workflow Description Feature (2026-01-11)
+
+**What**: Added workflow description functionality that allows users to view and edit workflow descriptions from within the editor.
+
+**Why**: Workflow descriptions help users document and understand the purpose of their workflows, improving collaboration and workflow management.
+
+**Implementation**:
+- Created `WorkflowDescriptionDialog` component for viewing/editing descriptions
+- Integrated the dialog into the node editor via the FloatingToolbar "More" menu
+- Used the existing `updateWorkflow` method from WorkflowManagerContext to save descriptions
+- Added comprehensive tests for the dialog component
+
+**Files**:
+- `web/src/components/workflows/WorkflowDescriptionDialog.tsx` - Main dialog component
+- `web/src/components/workflows/__tests__/WorkflowDescriptionDialog.test.tsx` - Tests
+- `web/src/components/panels/FloatingToolBar.tsx` - Added description menu item
+- `web/src/components/editor/TabsNodeEditor.tsx` - Integrated dialog into editor
+
+---
+
 > OpenCode workflows should add entries here when making significant changes
 
 _No entries yet - this memory system is new as of 2026-01-10_
