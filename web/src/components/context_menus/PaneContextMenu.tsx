@@ -11,6 +11,7 @@ import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
+import NotesIcon from "@mui/icons-material/Notes";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import StarIcon from "@mui/icons-material/Star";
 //behaviours
@@ -21,7 +22,8 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import {
   GROUP_NODE_METADATA,
-  COMMENT_NODE_METADATA
+  COMMENT_NODE_METADATA,
+  QUICKNOTE_NODE_METADATA
 } from "../../utils/nodeUtils";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
@@ -61,6 +63,29 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     newNode.height = 100;
     newNode.style = { width: 150, height: 100 };
     addNode(newNode);
+  };
+
+  const addQuickNote = (event: React.MouseEvent) => {
+    const metadata = QUICKNOTE_NODE_METADATA;
+    const newNode = createNode(
+      metadata,
+      reactFlowInstance.screenToFlowPosition({
+        x: menuPosition?.x || event.clientX,
+        y: menuPosition?.y || event.clientY
+      })
+    );
+    newNode.width = 200;
+    newNode.height = 120;
+    newNode.style = { width: 200, height: 120 };
+    newNode.data = {
+      ...newNode.data,
+      properties: {
+        quicknote_color: "#FFF9C4",
+        quicknote_text: ""
+      }
+    };
+    addNode(newNode);
+    closeContextMenu();
   };
 
   const addGroupNode = useCallback(
@@ -232,6 +257,18 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         label="Add Group"
         IconComponent={<GroupWorkIcon />}
         tooltip={"Add a group node"}
+      />
+      <ContextMenuItem
+        onClick={(e) => {
+          if (e) {
+            e.preventDefault();
+            addQuickNote(e);
+          }
+          closeContextMenu();
+        }}
+        label="Add Quick Note"
+        IconComponent={<NotesIcon />}
+        tooltip={"Add a quick note (N key)"}
       />
     </Menu>
   );

@@ -526,16 +526,24 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   })),
 
-  // ---------- FIND IN WORKFLOW ---------------------------------------------
-  {
-    title: "Find in Workflow",
-    slug: "findInWorkflow",
-    keyCombo: ["Control", "F"],
-    category: "editor" as const,
-    description: "Find and navigate to nodes in the current workflow",
-    registerCombo: true
-  }
-] as Shortcut[];
+   // ---------- FIND IN WORKFLOW ---------------------------------------------
+   {
+     title: "Find in Workflow",
+     slug: "findInWorkflow",
+     keyCombo: ["Control", "F"],
+     category: "editor" as const,
+     description: "Find and navigate to nodes in the current workflow",
+     registerCombo: true
+   },
+   {
+     title: "Add Quick Note",
+     slug: "addQuickNote",
+     keyCombo: ["N"],
+     category: "editor" as const,
+     description: "Add a quick note at the center of the viewport",
+     registerCombo: true
+   }
+ ] as Shortcut[];
 
 /**
  * A mapping of shortcut categories to their human-readable display names.

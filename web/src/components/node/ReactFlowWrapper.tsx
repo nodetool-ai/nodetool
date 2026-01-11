@@ -14,6 +14,7 @@ import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import ContextMenus from "../context_menus/ContextMenus";
 import CommentNode from "../node/CommentNode";
+import QuickNoteNode from "../node/QuickNoteNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
@@ -221,6 +222,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       ...baseNodeTypes,
       "nodetool.workflows.base_node.Group": GroupNode,
       "nodetool.workflows.base_node.Comment": CommentNode,
+      "nodetool.workflows.base_node.QuickNote": QuickNoteNode,
       "nodetool.workflows.base_node.Preview": PreviewNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
       "nodetool.control.Reroute": RerouteNode,

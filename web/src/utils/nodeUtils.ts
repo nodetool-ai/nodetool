@@ -1,6 +1,7 @@
 import { NodeMetadata } from "../stores/ApiTypes";
 
 export const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
+export const QUICKNOTE_NODE_TYPE = "nodetool.workflows.base_node.QuickNote";
 
 /**
  * Default metadata used for creating a Group node when
@@ -35,6 +36,26 @@ export const COMMENT_NODE_METADATA: NodeMetadata = {
   outputs: [],
   the_model_info: {},
   layout: "comment",
+  recommended_models: [],
+  basic_fields: [],
+  is_dynamic: false,
+  expose_as_tool: false,
+  supports_dynamic_outputs: false,
+  is_streaming_output: false
+};
+
+/**
+ * Default metadata used for creating a QuickNote node.
+ */
+export const QUICKNOTE_NODE_METADATA: NodeMetadata = {
+  namespace: "default",
+  node_type: QUICKNOTE_NODE_TYPE,
+  properties: [],
+  title: "Quick Note",
+  description: "Quick note for annotations",
+  outputs: [],
+  the_model_info: {},
+  layout: "default",
   recommended_models: [],
   basic_fields: [],
   is_dynamic: false,

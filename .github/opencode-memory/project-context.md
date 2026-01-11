@@ -155,4 +155,34 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Quick Notes Feature (2026-01-11)
+
+**What**: Added a lightweight Quick Note feature for annotating workflows. This complements the existing rich CommentNode with a simpler, faster alternative for quick annotations.
+
+**Why**: Users need a fast way to add simple notes to workflows without the overhead of full rich text editing. The existing CommentNode is powerful but complex for simple use cases.
+
+**Implementation**:
+- Created `QuickNoteNode` component (`web/src/components/node/QuickNoteNode.tsx`) - simple sticky note with text input and color picker
+- Added `QUICKNOTE_NODE_METADATA` in `web/src/utils/nodeUtils.ts`
+- Registered node type in `ReactFlowWrapper.tsx`
+- Added "Add Quick Note" option to pane context menu (`PaneContextMenu.tsx`)
+- Added keyboard shortcut (N key) in `shortcuts.ts`
+- Implemented shortcut handler in `useNodeEditorShortcuts.ts`
+
+**Features**:
+- Simple text input for quick notes
+- 8 color options for different note types
+- Auto-resize based on content
+- Resizable via drag handle
+- Context menu option to create notes
+- N keyboard shortcut to create note at viewport center
+
+**Files**:
+- `web/src/components/node/QuickNoteNode.tsx` (new)
+- `web/src/utils/nodeUtils.ts` (modified)
+- `web/src/components/node/ReactFlowWrapper.tsx` (modified)
+- `web/src/components/context_menus/PaneContextMenu.tsx` (modified)
+- `web/src/config/shortcuts.ts` (modified)
+- `web/src/hooks/useNodeEditorShortcuts.ts` (modified)
+
 _No entries yet - this memory system is new as of 2026-01-10_
