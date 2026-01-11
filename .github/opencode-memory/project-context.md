@@ -179,4 +179,26 @@ test('handles user interaction', async () => {
 
 ---
 
+### Virtualized Node List (2026-01-11)
+
+**What**: Implemented virtualized rendering for the node menu using @tanstack/react-virtual to improve performance when browsing or searching through many node types (100+).
+
+**Why**: The node menu previously rendered all nodes as DOM elements, causing performance issues when there are many node types. Virtualization ensures only visible nodes are rendered.
+
+**Implementation**:
+- Created `useVirtualizedNodes` hook with configurable estimateSize, overscan, and enabled options
+- Created `VirtualNamespaceList` component for virtualized namespace-grouped node lists
+- Created `VirtualSearchResults` component for virtualized search result lists
+- Modified `RenderNodes` component to use virtualization for both namespace views and search results
+- Virtualization activates when node count exceeds 20 items
+- Added comprehensive tests for the virtualization hook
+
+**Files Changed**:
+- `web/src/hooks/useVirtualizedNodes.ts` - New hook for virtualization logic
+- `web/src/components/node_menu/VirtualNamespaceList.tsx` - Virtualized namespace list component
+- `web/src/components/node_menu/RenderNodes.tsx` - Integrated virtualization
+- `web/src/hooks/__tests__/useVirtualizedNodes.test.ts` - Hook tests
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

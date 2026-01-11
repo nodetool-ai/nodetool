@@ -1,19 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo } from "react";
-// mui
-// store
+import { memo, useCallback, useMemo, useRef } from "react";
+import { Box, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-// utils
-import NodeItem from "./NodeItem";
 import SearchResultItem from "./SearchResultItem";
-import SearchResultsPanel from "./SearchResultsPanel";
-import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
-import { useDragDropStore } from "../../lib/dragdrop/store";
+import { NODE_ITEM_HEIGHT, NODE_ITEM_OVERSCAN } from "../../hooks/useVirtualizedNodes";
+import VirtualNamespaceList from "./VirtualNamespaceList";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -23,20 +19,66 @@ interface RenderNodesProps {
   showFavoriteButton?: boolean;
 }
 
-const groupNodes = (nodes: NodeMetadata[]) => {
-  const groups: { [key: string]: NodeMetadata[] } = {};
-  nodes.forEach((node) => {
-    if (!groups[node.namespace]) {
-      groups[node.namespace] = [];
-    }
-    groups[node.namespace].push(node);
+const VirtualSearchResults: React.FC<{
+  nodes: NodeMetadata[];
+  containerRef: React.RefObject<HTMLDivElement>;
+  handleDragStart: (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => void;
+  handleCreateNode: (node: NodeMetadata) => void;
+}> = ({ nodes, containerRef, handleDragStart, handleCreateNode }) => {
+  const count = nodes.length;
+  const virtualizer = useVirtualizer({
+    count,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => NODE_ITEM_HEIGHT,
+    overscan: NODE_ITEM_OVERSCAN,
+    enabled: count > 20
   });
-  return groups;
-};
 
-const getServiceFromNamespace = (namespace: string): string => {
-  const parts = namespace.split(".");
-  return parts[0];
+  const items = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+
+  return (
+    <Box
+      ref={containerRef}
+      sx={{
+        height: "100%",
+        overflow: "hidden"
+      }}
+    >
+      <Box
+        sx={{
+          height: `${totalSize}px`,
+          width: "100%",
+          position: "relative"
+        }}
+      >
+        {items.map((virtualItem) => {
+          const node = nodes[virtualItem.index];
+          return (
+            <Box
+              key={virtualItem.key}
+              data-index={virtualItem.index}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${virtualItem.size}px`,
+                transform: `translateY(${virtualItem.start}px)`
+              }}
+            >
+              <SearchResultItem
+                node={node}
+                onDragStart={handleDragStart(node)}
+                onDragEnd={() => {}}
+                onClick={() => handleCreateNode(node)}
+              />
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
 };
 
 const RenderNodes: React.FC<RenderNodesProps> = ({
@@ -46,35 +88,23 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   onToggleSelection,
   showFavoriteButton = true
 }) => {
-  const { setDragToCreate, groupedSearchResults, searchTerm } =
+  const { groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
-      setDragToCreate: state.setDragToCreate,
       groupedSearchResults: state.groupedSearchResults,
       searchTerm: state.searchTerm
     }));
-  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
-  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   const handleCreateNode = useCreateNode();
   const handleDragStart = useCallback(
     (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
-      setDragToCreate(true);
-      // Use unified drag serialization
       serializeDragData(
         { type: "create-node", payload: node },
         event.dataTransfer
       );
       event.dataTransfer.effectAllowed = "move";
-
-      // Update global drag state
-      setActiveDrag({ type: "create-node", payload: node });
     },
-    [setDragToCreate, setActiveDrag]
+    []
   );
-
-  const handleDragEnd = useCallback(() => {
-    clearDrag();
-  }, [clearDrag]);
 
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
@@ -87,100 +117,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
-  const elements = useMemo(() => {
-    // If we're searching, render flat ranked results with SearchResultItem
-    if (searchTerm && groupedSearchResults.length > 0) {
-      // Flatten all results from groups (now just one "Results" group)
-      const allSearchNodes = groupedSearchResults.flatMap(
-        (group) => group.nodes
-      );
-
-      return allSearchNodes.map((node) => (
-        <SearchResultItem
-          key={node.node_type}
-          node={node}
-          onDragStart={handleDragStart(node)}
-          onDragEnd={handleDragEnd}
-          onClick={() => handleCreateNode(node)}
-        />
-      ));
-    }
-
-    // Otherwise use the original namespace-based grouping
-    const seenServices = new Set<string>();
-
-    return Object.entries(groupNodes(nodes)).flatMap(
-      ([namespace, nodesInNamespace], namespaceIndex) => {
-        const service = getServiceFromNamespace(namespace);
-        const isFirstNamespaceForService = !seenServices.has(service);
-        seenServices.add(service);
-
-        const elements: JSX.Element[] = [];
-
-        if (isFirstNamespaceForService) {
-          elements.push(
-            <ApiKeyValidation
-              key={`api-key-${service}-${namespaceIndex}`}
-              nodeNamespace={namespace}
-            />
-          );
-        }
-
-        let textForNamespaceHeader = namespace; // Default to full namespace string
-
-        if (selectedPath && selectedPath === namespace) {
-          // If the current group of nodes IS the selected namespace, display its last part.
-          // e.g., selectedPath="A.B", namespace="A.B" -> display "B"
-          textForNamespaceHeader = namespace.split(".").pop() || namespace;
-        } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
-          // If the current group of nodes is a sub-namespace of the selected one, display the relative path.
-          // e.g., selectedPath="A", namespace="A.B.C" -> display "B.C"
-          textForNamespaceHeader = namespace.substring(selectedPath.length + 1);
-        }
-        // If selectedPath is empty (root is selected), textForNamespaceHeader remains the full 'namespace'.
-        // If namespace is not a child of selectedPath and not equal to selectedPath,
-        // it also remains the full 'namespace'.
-
-        elements.push(
-          <Typography
-            key={`namespace-${namespace}-${namespaceIndex}`}
-            variant="h5"
-            component="div"
-            className="namespace-text"
-          >
-            {textForNamespaceHeader}
-          </Typography>,
-            ...nodesInNamespace.map((node) => (
-            <div key={node.node_type}>
-              <NodeItem
-                key={node.node_type}
-                node={node}
-                onDragStart={handleDragStart(node)}
-                onClick={() => handleCreateNode(node)}
-                showCheckbox={showCheckboxes}
-                isSelected={selectedNodeTypes.includes(node.node_type)}
-                onToggleSelection={onToggleSelection}
-                showFavoriteButton={showFavoriteButton}
-              />
-            </div>
-          ))
-        );
-        return elements;
-      }
-    );
-  }, [
-    searchTerm,
-    nodes,
-    groupedSearchResults,
-    selectedPath,
-    handleDragStart,
-    handleDragEnd,
-    handleCreateNode,
-    showCheckboxes,
-    onToggleSelection,
-    selectedNodeTypes,
-    showFavoriteButton
-  ]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};
 
@@ -188,9 +125,22 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     <div className="nodes" style={style}>
       {nodes.length > 0 ? (
         searchNodes ? (
-          <SearchResultsPanel searchNodes={searchNodes} />
+          <VirtualSearchResults
+            nodes={searchNodes}
+            containerRef={containerRef}
+            handleDragStart={handleDragStart}
+            handleCreateNode={handleCreateNode}
+          />
         ) : (
-          elements
+          <VirtualNamespaceList
+            nodes={nodes}
+            containerRef={containerRef}
+            selectedPath={selectedPath}
+            showCheckboxes={showCheckboxes}
+            selectedNodeTypes={selectedNodeTypes}
+            onToggleSelection={onToggleSelection}
+            showFavoriteButton={showFavoriteButton}
+          />
         )
       ) : (
         <div className="no-selection">
