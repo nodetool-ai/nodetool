@@ -105,7 +105,17 @@ export function useSubgraphOperations() {
         return;
       }
 
-      const subgraphId = (node.data as any).subgraphId;
+      const subgraphId = node.data.subgraphId;
+      
+      if (!subgraphId) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Subgraph node is missing subgraphId"
+        });
+        return;
+      }
+      
       const definition = getDefinition(subgraphId);
 
       if (!definition) {

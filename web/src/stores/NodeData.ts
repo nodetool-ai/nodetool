@@ -21,4 +21,6 @@ export type NodeData = {
     x: number;
     y: number;
   };
+  // Subgraph-specific
+  subgraphId?: string; // References SubgraphDefinition.id for subgraph instance nodes
 };

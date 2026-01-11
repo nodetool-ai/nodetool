@@ -43,8 +43,8 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const isSubgraphNode = node.type === SUBGRAPH_NODE_TYPE;
   const properties = node.data?.properties || {};
   
-  if (isSubgraphNode && (node.data as any).subgraphId) {
-    properties.subgraphId = (node.data as any).subgraphId;
+  if (isSubgraphNode && node.data.subgraphId) {
+    properties.subgraphId = node.data.subgraphId;
   }
 
   return {

@@ -84,7 +84,7 @@ const SubgraphNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
   
   // Type-safe access to subgraph-specific properties
   const nodeData = data as NodeData;
-  const subgraphId = (nodeData as any).subgraphId as string | undefined;
+  const subgraphId = nodeData.subgraphId;
   const definition = subgraphId ? getDefinition(subgraphId) : undefined;
   
   const bypassed = nodeData.bypassed || false;

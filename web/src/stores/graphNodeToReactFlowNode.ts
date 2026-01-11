@@ -48,9 +48,9 @@ export function graphNodeToReactFlowNode(
 
   // For subgraph nodes, preserve subgraphId in data
   const nodeDataProperties = node.data || {};
-  const dataWithSubgraph = isSubgraphNode
-    ? { ...nodeDataProperties }
-    : nodeDataProperties;
+  const subgraphId = isSubgraphNode && typeof nodeDataProperties === "object" && "subgraphId" in nodeDataProperties
+    ? (nodeDataProperties as any).subgraphId
+    : undefined;
 
   return {
     type: node.type,
@@ -65,7 +65,7 @@ export function graphNodeToReactFlowNode(
     selectable: ui_properties?.selectable,
     className: isBypassed ? "bypassed" : undefined,
     data: {
-      properties: dataWithSubgraph,
+      properties: nodeDataProperties,
       dynamic_properties: node.dynamic_properties || {},
       dynamic_outputs: node.dynamic_outputs || {},
       sync_mode: node.sync_mode,
@@ -76,10 +76,7 @@ export function graphNodeToReactFlowNode(
       title: ui_properties?.title,
       color: ui_properties?.color,
       originalType: node.type,
-      // Preserve subgraphId at top level for easy access
-      ...(isSubgraphNode && (nodeDataProperties as any).subgraphId
-        ? { subgraphId: (nodeDataProperties as any).subgraphId }
-        : {})
+      subgraphId
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     style: {

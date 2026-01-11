@@ -208,7 +208,7 @@ export function convertToSubgraph(
       workflow_id: workflowId,
       title: definition.name,
       subgraphId: definition.id
-    } as any, // Extended with subgraphId
+    },
     width: 280,
     height: 150
   };
