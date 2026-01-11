@@ -470,11 +470,11 @@ export const useNodeEditorShortcuts = (
       },
       distributeHorizontal: {
         callback: selectionActions.distributeHorizontal,
-        active: selectedNodes.length > 2
+        active: selectedNodes.length > 1
       },
       distributeVertical: {
         callback: selectionActions.distributeVertical,
-        active: selectedNodes.length > 2
+        active: selectedNodes.length > 1
       },
       deleteSelected: {
         callback: selectionActions.deleteSelected,
