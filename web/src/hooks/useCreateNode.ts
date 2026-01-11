@@ -5,6 +5,7 @@ import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { useRecentNodesStore } from "../stores/RecentNodesStore";
+import { useFrequentNodesStore } from "../stores/FrequentNodesStore";
 
 // This hook encapsulates the logic for creating a new node in the graph.
 // It handles translating screen coordinates to ReactFlow coordinates and
@@ -25,6 +26,7 @@ export const useCreateNode = (
     createNode: state.createNode
   }));
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
+  const incrementUsage = useFrequentNodesStore((state) => state.incrementUsage);
 
   const handleCreateNode = useCallback(
     (metadata: NodeMetadata) => {
@@ -39,6 +41,9 @@ export const useCreateNode = (
       // Track this node as recently used
       addRecentNode(metadata.node_type);
 
+      // Track usage frequency for smart suggestions
+      incrementUsage(metadata.node_type);
+
       // Close the node menu after creating a node
       closeNodeMenu();
     },
@@ -49,6 +54,7 @@ export const useCreateNode = (
       createNode,
       addNode,
       addRecentNode,
+      incrementUsage,
       closeNodeMenu
     ]
   );

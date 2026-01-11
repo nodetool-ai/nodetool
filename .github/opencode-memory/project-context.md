@@ -179,4 +179,26 @@ test('handles user interaction', async () => {
 
 ---
 
+### Frequent Nodes Feature (2026-01-11)
+
+**What**: Added smart node suggestions based on usage frequency tracking. Users can see their most frequently used nodes in the NodeMenu with usage counts displayed on each tile.
+
+**Why**: Enhances workflow creation speed by helping users quickly access their most-used nodes. Complements the existing favorites and recent nodes features with data-driven suggestions.
+
+**Implementation**:
+- Created `FrequentNodesStore` with persistent storage to track node usage counts
+- Created `FrequentNodesTiles` component that displays frequently used nodes in the NodeMenu
+- Integrated usage tracking into `useCreateNode` hook to increment usage when nodes are created
+- Tiles show usage count badges and have a reset button to clear usage history
+- Minimum threshold (2 uses) required before nodes appear in suggestions
+
+**Files Changed**:
+- `web/src/stores/FrequentNodesStore.ts` - New store for tracking frequent nodes
+- `web/src/components/node_menu/FrequentNodesTiles.tsx` - New UI component
+- `web/src/hooks/useCreateNode.ts` - Added usage tracking
+- `web/src/components/node_menu/NodeMenu.tsx` - Integrated FrequentNodesTiles
+- `web/src/stores/__tests__/FrequentNodesStore.test.ts` - Store tests
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

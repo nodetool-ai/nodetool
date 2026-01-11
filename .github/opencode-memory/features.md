@@ -31,6 +31,7 @@ Last updated: 2026-01-10
 - **Node Documentation**: Inline documentation for each node type
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
+- **Frequent Nodes**: Smart suggestions based on actual usage frequency with usage counts
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
 

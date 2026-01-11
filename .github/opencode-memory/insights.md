@@ -449,3 +449,19 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Frequent Nodes Store Implementation (2026-01-11)
+
+**Insight**: Using Zustand's persist middleware with versioned storage allows tracking user behavior across sessions without backend dependencies.
+
+**Implementation Details**:
+- `FrequentNodesStore` uses `persist` middleware with version 1
+- Tracks `nodeType`, `count`, and `lastUsed` for each node
+- `getMostFrequent()` filters by minimum usage threshold (2 uses) before returning results
+- Store limits to MAX_FREQUENT_NODES (20) to prevent unbounded growth
+
+**Files**: `web/src/stores/FrequentNodesStore.ts`
+
+**Date**: 2026-01-11

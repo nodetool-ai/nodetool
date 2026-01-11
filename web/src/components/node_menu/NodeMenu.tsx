@@ -10,6 +10,7 @@ import { Box } from "@mui/material";
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import FrequentNodesTiles from "./FrequentNodesTiles";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -307,6 +308,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 setSelectedInputType={setSelectedInputType}
                 setSelectedOutputType={setSelectedOutputType}
               />
+              <FrequentNodesTiles />
             </Box>
             <NamespaceList
               namespaceTree={namespaceTree}
