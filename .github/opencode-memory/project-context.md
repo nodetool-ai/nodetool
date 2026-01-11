@@ -155,4 +155,41 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
-_No entries yet - this memory system is new as of 2026-01-10_
+### Node Comments Feature (2026-01-11)
+
+**What**: Added the ability to add comments to individual nodes in the workflow editor for documentation purposes.
+
+**Why**: Users needed a way to document their workflows and explain complex node configurations directly within the editor.
+
+**Implementation**:
+- Created `NodeCommentsStore` (zustand store) for managing node comments with CRUD operations
+- Created `CommentDialog` component for adding/editing comments via a modal dialog
+- Created `CommentBadge` component to display a visual indicator on nodes with comments
+- Updated `NodeContextMenu` to include "Add/Edit Comment" option
+- Updated `NodeHeader` to display the comment badge
+- Updated `useNodeEditorShortcuts` to add keyboard shortcut (Cmd/Ctrl + /) for quick comment access
+- Updated `NodeData` type to include optional comment field
+- Updated tests in `NodeCommentsStore.test.ts` and `useNodeContextMenu.test.ts`
+
+**Files Changed**:
+- `web/src/stores/NodeCommentsStore.ts` (new)
+- `web/src/stores/NodeData.ts` (updated)
+- `web/src/components/dialogs/CommentDialog.tsx` (new)
+- `web/src/components/node/CommentBadge.tsx` (new)
+- `web/src/components/node/NodeHeader.tsx` (updated)
+- `web/src/components/node_editor/NodeEditor.tsx` (updated)
+- `web/src/components/context_menus/NodeContextMenu.tsx` (updated)
+- `web/src/hooks/nodes/useNodeContextMenu.ts` (updated)
+- `web/src/hooks/useNodeEditorShortcuts.ts` (updated)
+- `web/src/config/shortcuts.ts` (updated)
+- `web/src/stores/__tests__/NodeCommentsStore.test.ts` (new)
+- `web/src/hooks/nodes/__tests__/useNodeContextMenu.test.ts` (updated)
+
+**Key Features**:
+- Comments are stored separately from node data using a dedicated store
+- Visual badge on nodes with comments (yellow/orange colored)
+- Tooltip showing full comment text on hover
+- Keyboard shortcut (Cmd/Ctrl + /) for quick access
+- Right-click context menu option
+- Delete comments from the dialog
+- Whitespace trimming for comment text

@@ -63,11 +63,11 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="toggle-comment"
       onClick={handlers.handleToggleComment}
-      label={conditions.hasCommentTitle ? "Remove Comment" : "Add Comment"}
+      label={conditions.hasComment ? "Edit Comment" : "Add Comment"}
       IconComponent={<EditIcon />}
       tooltip={
-        conditions.hasCommentTitle
-          ? "Remove the comment from this node"
+        conditions.hasComment
+          ? "Edit or remove the comment from this node"
           : "Add a comment to this node"
       }
     />,

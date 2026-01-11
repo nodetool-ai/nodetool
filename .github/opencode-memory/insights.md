@@ -428,3 +428,33 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Comment Store Pattern (2026-01-11)
+
+**Insight**: Using a separate Zustand store for comments instead of embedding in node data provides better separation of concerns.
+
+**Rationale**:
+- Comments are independent of node data structure
+- Easier to manage CRUD operations for comments
+- Can be accessed/modified without modifying the node itself
+- Comments persist even when node properties change
+
+**Implementation**:
+```typescript
+interface NodeCommentsState {
+  comments: Record<string, NodeComment>;
+  activeCommentNodeId: string | null;
+  // ... actions
+}
+```
+
+**Benefits**:
+- Comments don't affect node serialization
+- Independent lifecycle from node data
+- Can be cleared/managed separately
+
+**Files**: `web/src/stores/NodeCommentsStore.ts`
+
+**Date**: 2026-01-11

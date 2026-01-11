@@ -15,6 +15,7 @@ jest.mock("../../../stores/WorkflowRunner");
 jest.mock("../../../hooks/browser/useClipboard");
 jest.mock("../useRemoveFromGroup");
 jest.mock("../../../stores/MetadataStore");
+jest.mock("../../../stores/NodeCommentsStore");
 jest.mock("../../../core/graph");
 jest.mock("../../../utils/edgeValue");
 jest.mock("../../../utils/NodeTypeMapping");
@@ -57,6 +58,7 @@ import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useRemoveFromGroup } from "../useRemoveFromGroup";
 import useMetadataStore from "../../../stores/MetadataStore";
+import useNodeCommentsStore from "../../../stores/NodeCommentsStore";
 import { subgraph } from "../../../core/graph";
 import { resolveExternalEdgeValue } from "../../../utils/edgeValue";
 import { constantToInputType, inputToConstantType } from "../../../utils/NodeTypeMapping";
@@ -70,6 +72,7 @@ const mockedUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockedUseClipboard = useClipboard as jest.Mock;
 const mockedUseRemoveFromGroup = useRemoveFromGroup as jest.Mock;
 const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
+const mockedUseNodeCommentsStore = useNodeCommentsStore as jest.Mock;
 const mockedSubgraph = subgraph as jest.Mock;
 const mockedResolveExternalEdgeValue = resolveExternalEdgeValue as jest.Mock;
 const mockedConstantToInputType = constantToInputType as jest.Mock;
@@ -168,6 +171,15 @@ describe("useNodeContextMenu", () => {
       return selector(state);
     });
 
+    const mockSetActiveCommentNodeId = jest.fn();
+    mockedUseNodeCommentsStore.mockImplementation((selector) => {
+      const state = {
+        hasComment: jest.fn((nodeId: string) => false),
+        setActiveCommentNodeId: mockSetActiveCommentNodeId
+      };
+      return selector(state);
+    });
+
     mockGetMetadata.mockReturnValue({ title: "String Constant" });
     mockedConstantToInputType.mockReturnValue("nodetool.input.StringInput");
     mockedInputToConstantType.mockReturnValue("nodetool.constant.String");
@@ -202,6 +214,7 @@ describe("useNodeContextMenu", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       expect(result.current.conditions.hasCommentTitle).toBe(false);
+      expect(result.current.conditions.hasComment).toBe(false);
       expect(result.current.conditions.isBypassed).toBe(false);
       expect(result.current.conditions.canConvertToInput).toBe(true);
       expect(result.current.conditions.canConvertToConstant).toBe(true);
@@ -211,18 +224,28 @@ describe("useNodeContextMenu", () => {
   });
 
   describe("handleToggleComment", () => {
-    it("adds comment when hasCommentTitle is false", () => {
+    it("opens comment dialog for selected node", () => {
+      const mockSetActiveCommentNodeId = jest.fn();
+      mockedUseNodeCommentsStore.mockImplementation((selector) => {
+        const state = {
+          hasComment: jest.fn((nodeId: string) => false),
+          setActiveCommentNodeId: mockSetActiveCommentNodeId
+        };
+        return selector(state);
+      });
+
       const { result } = renderHook(() => useNodeContextMenu());
 
       act(() => {
         result.current.handlers.handleToggleComment();
       });
 
-      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { title: "comment" });
+      expect(mockSetActiveCommentNodeId).toHaveBeenCalledWith("node-1");
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
 
-    it("removes comment when hasCommentTitle is true", () => {
+    it("opens comment dialog even when node has existing comment", () => {
+      const mockSetActiveCommentNodeId = jest.fn();
       const nodeWithComment = {
         ...mockNode,
         data: { ...mockNode.data, title: "my comment" }
@@ -244,24 +267,23 @@ describe("useNodeContextMenu", () => {
         return selector(state);
       });
 
-      mockedUseReactFlow.mockImplementation(() => ({
-        getNode: jest.fn((id) => {
-          const nodes = [nodeWithComment, ...mockNodes.slice(1)];
-          return nodes.find((n: { id: string }) => n.id === id) || null;
-        }),
-        getNodes: jest.fn(() => [nodeWithComment, ...mockNodes.slice(1)]),
-        getEdges: jest.fn(() => mockEdges)
-      }));
+      mockedUseNodeCommentsStore.mockImplementation((selector) => {
+        const state = {
+          hasComment: jest.fn((nodeId: string) => nodeId === "node-1"),
+          setActiveCommentNodeId: mockSetActiveCommentNodeId
+        };
+        return selector(state);
+      });
 
       const { result } = renderHook(() => useNodeContextMenu());
 
-      expect(result.current.conditions.hasCommentTitle).toBe(true);
+      expect(result.current.conditions.hasComment).toBe(true);
 
       act(() => {
         result.current.handlers.handleToggleComment();
       });
 
-      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { title: "" });
+      expect(mockSetActiveCommentNodeId).toHaveBeenCalledWith("node-1");
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
   });

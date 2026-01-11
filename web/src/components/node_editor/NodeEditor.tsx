@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef } from "react";
+import { memo, useState, useRef, useMemo, useCallback } from "react";
 import {
   Box,
   CircularProgress,
@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useNodeCommentsStore from "../../stores/NodeCommentsStore";
 //css
 import "../../styles/base.css";
 import "../../styles/nodes.css";
@@ -29,7 +30,7 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "lodash/isEqual";
 import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useTemporalNodes } from "../../contexts/NodeContext";
+import { useTemporalNodes, useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
@@ -42,6 +43,7 @@ import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import CommentDialog from "../dialogs/CommentDialog";
 
 declare global {
   interface Window {
@@ -68,6 +70,26 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleConfirm,
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
+
+  // Comment dialog state
+  const activeCommentNodeId = useNodeCommentsStore(
+    (state) => state.activeCommentNodeId
+  );
+  const setActiveCommentNodeId = useNodeCommentsStore(
+    (state) => state.setActiveCommentNodeId
+  );
+  const nodes = useNodes((state) => state.nodes);
+
+  const activeCommentNode = useMemo(() => {
+    if (!activeCommentNodeId) {
+      return null;
+    }
+    return nodes.find((n) => n.id === activeCommentNodeId) || null;
+  }, [activeCommentNodeId, nodes]);
+
+  const handleCloseCommentDialog = useCallback(() => {
+    setActiveCommentNodeId(null);
+  }, [setActiveCommentNodeId]);
 
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
@@ -214,6 +236,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Comment Dialog */}
+      {activeCommentNodeId && activeCommentNode && (
+        <CommentDialog
+          open={activeCommentNodeId !== null}
+          onClose={handleCloseCommentDialog}
+          nodeId={activeCommentNodeId}
+          nodeTitle={activeCommentNode.data.title || activeCommentNode.type}
+        />
+      )}
     </>
   );
 };

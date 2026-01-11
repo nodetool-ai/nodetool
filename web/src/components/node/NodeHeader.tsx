@@ -1,12 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
+import useNodeCommentsStore from "../../stores/NodeCommentsStore";
 import { memo, useCallback, useMemo } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
+import CommentBadge from "./CommentBadge";
 
 export interface NodeHeaderProps {
   id: string;
@@ -56,6 +58,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           display: "flex",
           alignItems: "center",
           gap: "8px",
+          padding: "4px 4px"
+        },
+        ".header-right": {
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
           padding: "4px 4px"
         },
         ".node-icon": {
@@ -125,6 +133,15 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const hasIcon = Boolean(iconType);
 
+  const comment = useMemo(
+    () => (id ? useNodeCommentsStore.getState().getComment(id) : undefined),
+    [id]
+  );
+
+  const handleCommentClick = useCallback(() => {
+    useNodeCommentsStore.getState().setActiveCommentNodeId(id);
+  }, [id]);
+
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
     if (backgroundColor === "transparent") {
       return { background: "transparent" } as React.CSSProperties;
@@ -179,6 +196,15 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         </span>
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
+        )}
+      </div>
+      <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        {comment && (
+          <CommentBadge
+            comment={comment.text}
+            onClick={handleCommentClick}
+            isSelected={selected}
+          />
         )}
       </div>
     </div>
