@@ -7,11 +7,18 @@ export class AppError extends Error {
 }
 
 export const createErrorMessage = (
-  error: any,
+  error: unknown,
   defaultMessage: string
 ): Error => {
-  if (error?.detail) {
-    return new AppError(defaultMessage, error.detail.toString());
+  if (
+    error !== null &&
+    typeof error === "object" &&
+    "detail" in error
+  ) {
+    const detail = (error as Record<string, unknown>).detail;
+    if (detail) {
+      return new AppError(defaultMessage, String(detail));
+    }
   }
   if (typeof error === "string") {
     return new AppError(defaultMessage, error);

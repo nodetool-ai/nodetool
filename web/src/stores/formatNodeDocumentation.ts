@@ -5,10 +5,19 @@ import {
 } from "../utils/highlightText";
 import { SplitNodeDescription } from "./NodeMenuStore";
 
+export interface SearchInfo {
+  score?: number;
+  matches?: Array<{
+    key: string;
+    value: string;
+    indices: number[][];
+  }>;
+}
+
 export const formatNodeDocumentation = (
   fullDocumentation: string,
   searchTerm?: string,
-  searchInfo?: any
+  searchInfo?: SearchInfo
 ): SplitNodeDescription => {
   const safeDocumentation = (fullDocumentation ?? "").toString();
   const lines = safeDocumentation.split("\n").map((line) => line.trim());

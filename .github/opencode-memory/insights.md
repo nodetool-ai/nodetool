@@ -428,3 +428,43 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### TypeScript Type Safety Improvements (2026-01-11)
+
+**Insight**: Replacing `any` with `unknown` and proper type guards improves code safety without breaking functionality.
+
+**Key Patterns**:
+1. Error handlers: Use `unknown` instead of `any`, then narrow with type guards
+   ```typescript
+   } catch (error: unknown) {
+     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+   }
+   ```
+
+2. Generic utilities: Use `unknown` for input, narrow with type checks
+   ```typescript
+   const resolveResultValue = (result: unknown, sourceHandle?: string) => {
+     if (typeof result === "object" && result !== null && sourceHandle in result) {
+       return (result as Record<string, unknown>)[sourceHandle];
+     }
+     return result;
+   };
+   ```
+
+3. Union types: Use discriminated unions instead of `any` for message types
+   ```typescript
+   // Instead of (message: any)
+   type MsgpackData = JobUpdate | NodeUpdate | OutputUpdate | ...;
+   ```
+
+**Impact**:
+- 6+ files improved with explicit types
+- Tests continue to pass (behavior preserved)
+- Better IDE support and autocomplete
+- Catches potential bugs at compile time
+
+**Files**: `web/src/utils/edgeValue.ts`, `web/src/utils/errorHandling.ts`, `web/src/stores/*.ts`
+
+**Date**: 2026-01-11
