@@ -155,4 +155,36 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Workflow Documentation Feature (2026-01-11)
+
+**What**: Added a new Workflow Documentation panel that allows users to document their workflows with rich text descriptions, input/output documentation, and notes. The feature includes a markdown export capability.
+
+**Why**: Users needed a way to document their workflows to share with others, remember workflow purposes, and provide context for complex AI pipelines.
+
+**Implementation**:
+- Created `WorkflowDocumentationStore` with Zustand for state management (persist middleware for localStorage)
+- Created `WorkflowDocumentationPanel` component with tabs for Description, I/O, and Notes
+- Integrated rich text editor using existing Lexical infrastructure
+- Added markdown export functionality
+- Added new "documentation" view to RightPanelStore
+- Added toolbar button to PanelRight.tsx with keyboard shortcut (Ctrl/Cmd+D)
+
+**Files**:
+- `web/src/stores/WorkflowDocumentationStore.ts` - New store
+- `web/src/components/documentation/WorkflowDocumentationPanel.tsx` - New panel component
+- `web/src/components/panels/PanelRight.tsx` - Updated to include documentation panel
+- `web/src/stores/RightPanelStore.ts` - Extended RightPanelView type
+- `web/src/components/editor_ui/EditorUiContext.tsx` - Extended EditorUiScope type
+- `web/src/config/shortcuts.ts` - Added toggleDocumentation shortcut
+- `web/src/components/textEditor/LexicalEditor.tsx` - Added placeholder prop support
+- `web/src/stores/__tests__/WorkflowDocumentationStore.test.ts` - Unit tests
+
+**Key Technical Decisions**:
+- Used Zustand with persist middleware for localStorage persistence
+- Leveraged existing Lexical editor infrastructure for rich text editing
+- Extended existing RightPanelStore pattern for consistency
+- Tab-based UI for organized documentation sections
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

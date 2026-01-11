@@ -44,6 +44,7 @@ Last updated: 2026-01-10
 - **Version History**: Track workflow changes over time
 - **Workflow Export/Import**: Export workflows as JSON files
 - **Workflow Actions**: Batch operations on workflows
+- **Workflow Documentation**: Rich text documentation panel for documenting workflows with description, inputs/outputs, and notes
 
 ### Workflow Execution
 - **Run Workflows**: Execute workflows with real-time progress

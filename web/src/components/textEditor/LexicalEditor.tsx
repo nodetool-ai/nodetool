@@ -164,13 +164,15 @@ interface LexicalPluginsProps {
   onBlur?: (editorState: EditorState) => void;
   onFocusChange?: (isFocused: boolean) => void;
   wordWrapEnabled?: boolean;
+  placeholder?: string;
 }
 
 const LexicalPlugins = ({
   onChange,
   onBlur,
   onFocusChange,
-  wordWrapEnabled = true
+  wordWrapEnabled = true,
+  placeholder
 }: LexicalPluginsProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const theme = useTheme();
@@ -201,7 +203,9 @@ const LexicalPlugins = ({
           />
         }
         placeholder={
-          <div className="editor-placeholder">{isFocused ? "" : "// ..."}</div>
+          <div className="editor-placeholder">
+            {isFocused ? "" : placeholder ?? "// ..."}
+          </div>
         }
         ErrorBoundary={() => null}
       />

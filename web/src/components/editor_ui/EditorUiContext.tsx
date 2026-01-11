@@ -8,7 +8,7 @@
 
 import React, { createContext, useContext, useMemo } from "react";
 
-export type EditorUiScope = "node" | "inspector";
+export type EditorUiScope = "node" | "inspector" | "documentation";
 
 const EditorUiContext = createContext<EditorUiScope | undefined>(undefined);
 
