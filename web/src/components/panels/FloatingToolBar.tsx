@@ -36,6 +36,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
@@ -251,7 +252,8 @@ const styles = (theme: Theme) =>
 
 const FloatingToolBar: React.FC<{
   setWorkflowToEdit: (workflow: Workflow) => void;
-}> = memo(function FloatingToolBar({ setWorkflowToEdit }) {
+  onOpenDescription?: () => void;
+}> = memo(function FloatingToolBar({ setWorkflowToEdit, onOpenDescription }) {
   const theme = useTheme();
   const location = useLocation();
   const path = location.pathname;
@@ -620,6 +622,17 @@ const FloatingToolBar: React.FC<{
             <EditIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Workflow Settings" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onOpenDescription?.();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <DescriptionIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Description" />
         </MenuItem>
         <MenuItem onClick={handleOpenAdvancedMenu}>
           <ListItemIcon>

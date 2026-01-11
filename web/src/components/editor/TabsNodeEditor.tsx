@@ -16,6 +16,7 @@ import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
+import WorkflowDescriptionDialog from "../workflows/WorkflowDescriptionDialog";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -301,6 +302,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   // const normalizedPlatform = platform.toLowerCase();
 
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
 
   // Determine tab ids: storage open ids + currently loaded ones + active id
   // Seed from localStorage on mount to show placeholders during hydration,
@@ -406,6 +408,11 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
           workflow={workflowToEdit}
         />
       )}
+      <WorkflowDescriptionDialog
+        workflowId={currentWorkflowId || ""}
+        open={descriptionDialogOpen}
+        onClose={() => setDescriptionDialogOpen(false)}
+      />
       <div
         css={styles(theme)}
         className="tabs-node-editor"
@@ -463,6 +470,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
 
                           <FloatingToolBar
                             setWorkflowToEdit={(wf) => setWorkflowToEdit(wf)}
+                            onOpenDescription={() => setDescriptionDialogOpen(true)}
                           />
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
