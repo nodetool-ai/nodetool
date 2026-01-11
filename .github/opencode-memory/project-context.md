@@ -179,4 +179,22 @@ test('handles user interaction', async () => {
 
 ---
 
+### Virtualized Node List (2026-01-11)
+
+**What**: Added virtualization to the namespace-based node list in the NodeMenu for improved performance with large node collections.
+
+**Why**: The search results already used react-window virtualization, but the namespace-based browsing rendered all nodes directly, causing performance issues with many nodes.
+
+**Implementation**:
+- Created `VirtualizedNodeList` component using `react-window`'s `FixedSizeList` with `AutoSizer`
+- Modified `RenderNodes` component to use virtualization when browsing namespaces (non-search mode)
+- Maintained consistent behavior with existing search result virtualization
+- Uses same item height (40px) as search results for visual consistency
+
+**Files Changed**:
+- `web/src/components/node_menu/VirtualizedNodeList.tsx` - New virtualized list component
+- `web/src/components/node_menu/RenderNodes.tsx` - Updated to use VirtualizedNodeList
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

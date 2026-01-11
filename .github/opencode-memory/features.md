@@ -24,6 +24,7 @@ Last updated: 2026-01-10
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
+- **Virtualized Node List**: Efficient rendering of large node lists using react-window virtualization
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)

@@ -449,3 +449,26 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Virtualized Node List Implementation (2026-01-11)
+
+**Insight**: Adding virtualization to a component that already exists in a different form requires careful refactoring to avoid breaking existing functionality.
+
+**Challenge**: The `RenderNodes` component previously rendered namespace-browsing nodes inline. Adding virtualization required creating a new component (`VirtualizedNodeList`) while maintaining the same behavior.
+
+**Solution**:
+- Created `VirtualizedNodeList` with similar interface to existing `SearchResultsPanel`
+- Refactored `RenderNodes` to delegate to either `VirtualizedNodeList` (browsing) or `SearchResultsPanel` (searching)
+- Preserved existing imports and hooks that weren't needed by moving them to the new component
+
+**Pattern**: When virtualizing existing components:
+1. Create new virtualized component
+2. Update parent to conditionally render virtualized vs original
+3. Move dependencies (hooks, imports) to appropriate component
+4. Test both virtualized and non-virtualized paths
+
+**Files**: `web/src/components/node_menu/VirtualizedNodeList.tsx`, `web/src/components/node_menu/RenderNodes.tsx`
+
+**Date**: 2026-01-11
