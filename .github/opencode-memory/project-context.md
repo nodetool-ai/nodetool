@@ -155,4 +155,30 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Node Presets Feature (2026-01-11)
+
+**What**: Added Node Presets feature that allows users to save and quickly apply common node configurations.
+
+**Why**: Users often configure nodes with similar settings (e.g., LLM nodes with specific temperature, model settings). Presets eliminate repetitive configuration work.
+
+**Implementation**:
+- Created `NodePresetsStore.ts` (Zustand store) for managing presets with localStorage persistence
+- Created `useNodePresets.ts` hook for using presets in components
+- Created `NodePresetMenu.tsx` component for preset UI (popover with apply, save, rename, delete, duplicate actions)
+- Integrated preset button into `NodeToolButtons.tsx` toolbar that appears above selected nodes
+- Presets support: name, description, and property values
+- Limits: 20 presets per node type, 100 total presets
+
+**Files**:
+- `web/src/stores/NodePresetsStore.ts` - New store for preset management
+- `web/src/hooks/useNodePresets.ts` - New hook for preset operations
+- `web/src/components/node/NodePresetMenu.tsx` - New component for preset UI
+- `web/src/components/node/NodeToolButtons.tsx` - Updated to include preset button
+
+**Key Patterns Followed**:
+- Zustand store with persistence middleware (same as FavoriteNodesStore)
+- Selective subscriptions to prevent unnecessary re-renders
+- MUI components with theme integration
+- TypeScript strict mode compliance
+
 _No entries yet - this memory system is new as of 2026-01-10_
