@@ -155,4 +155,28 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Selection Action Toolbar (2026-01-10)
+
+**What**: Added a floating toolbar that appears when 2+ nodes are selected, providing quick access to batch operations like align, distribute, group, and delete.
+
+**Why**: Improved user experience for workflows with many nodes by making batch operations more discoverable and accessible without memorizing keyboard shortcuts.
+
+**Implementation**:
+- Created `useSelectionActions` hook with batch operations (align left/center/right, align top/middle/bottom, distribute horizontally/vertically, delete, duplicate, group, bypass)
+- Created `SelectionActionToolbar` component with MUI buttons and tooltips
+- Integrated toolbar into `NodeEditor` component, visible when 2+ nodes selected
+- Added 11 new keyboard shortcuts for batch operations (Shift+Arrow keys for alignment, etc.)
+- Added comprehensive tests for the hook and component
+
+**Files Changed**:
+- `web/src/hooks/useSelectionActions.ts` - New hook for batch operations
+- `web/src/components/node_editor/SelectionActionToolbar.tsx` - New toolbar component
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated toolbar
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handlers
+- `web/src/config/shortcuts.ts` - Added 11 new shortcuts
+- `web/src/hooks/__tests__/useSelectionActions.test.ts` - Hook tests
+- `web/src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx` - Component tests
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

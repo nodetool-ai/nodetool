@@ -47,7 +47,9 @@ describe("CalendarEventView", () => {
 
   it("formats dates correctly", () => {
     render(<CalendarEventView event={mockEvent} />);
-    // Note: Exact date format depends on locale, checking for parts
-    expect(screen.getByText(/10\/15\/2023/)).toBeInTheDocument();
+    // Locale-independent: accept either MM/DD/YYYY or DD.MM.YYYY (with optional leading zeros)
+    expect(
+      screen.getByText(/(?:0?10\D+0?15|0?15\D+0?10)\D+2023/)
+    ).toBeInTheDocument();
   });
 });
