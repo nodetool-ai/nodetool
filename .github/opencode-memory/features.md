@@ -110,6 +110,7 @@ Last updated: 2026-01-10
 - **Keyboard Shortcuts**: Configurable keyboard shortcuts system
 - **Close Button**: Consistent close button component
 - **Delete Button**: Consistent delete button component
+- **Workflow Statistics Panel**: Real-time statistics panel showing node/edge counts, connectivity metrics, and workflow complexity analysis
 
 ### Theming & Appearance
 - **Theme Switcher**: Switch between light and dark themes

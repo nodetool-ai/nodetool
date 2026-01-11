@@ -179,4 +179,32 @@ test('handles user interaction', async () => {
 
 ---
 
+### Workflow Statistics Panel (2026-01-11)
+
+**What**: Added a collapsible statistics panel that displays real-time metrics about the current workflow including node/edge counts, connectivity analysis, node type breakdown, and complexity metrics.
+
+**Why**: Helps users understand workflow complexity at a glance, identify disconnected nodes, and get insights into the structure of their workflows.
+
+**Implementation**:
+- Created `useWorkflowStats` hook that calculates comprehensive workflow statistics from nodes and edges
+- Created `WorkflowStatsPanel` component with collapsible design, showing:
+  - Total nodes, connections, inputs, outputs, processing nodes, groups
+  - Connected vs disconnected node counts
+  - Connection density percentage
+  - Maximum connection depth (longest path)
+  - Average nodes per group
+  - Selected node count (when nodes are selected)
+- Added keyboard shortcut (S key) to toggle the stats panel
+- Integrated panel into `NodeEditor` component, positioned in bottom-left corner
+- Panel is collapsible with smooth animations
+
+**Files Changed**:
+- `web/src/hooks/useWorkflowStats.ts` - New hook for calculating workflow statistics
+- `web/src/components/node_editor/WorkflowStatsPanel.tsx` - New statistics panel component
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated stats panel
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added toggleStatsPanel handler
+- `web/src/config/shortcuts.ts` - Added toggleStatsPanel shortcut
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

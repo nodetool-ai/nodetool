@@ -43,6 +43,7 @@ import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
+import WorkflowStatsPanel from "./WorkflowStatsPanel";
 import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
@@ -63,6 +64,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [statsPanelOpen, setStatsPanelOpen] = useState(true);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -70,7 +72,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     setPackageNameInput,
     handleSaveExampleConfirm,
     handleSaveExampleCancel
-  } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
+  } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v), () => setStatsPanelOpen((v) => !v));
 
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
@@ -145,6 +147,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <RunAsAppFab workflowId={workflowId} />
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 2}
+              />
+              <WorkflowStatsPanel
+                open={statsPanelOpen}
+                onToggle={() => setStatsPanelOpen(!statsPanelOpen)}
               />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu

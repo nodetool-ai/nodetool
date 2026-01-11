@@ -31,7 +31,8 @@ const ControlOrMeta = isMac() ? "Meta" : "Control";
 
 export const useNodeEditorShortcuts = (
   active: boolean,
-  onShowShortcuts?: () => void
+  onShowShortcuts?: () => void,
+  onToggleStatsPanel?: () => void
 ) => {
   const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
   const [packageNameInput, setPackageNameInput] = useState("");
@@ -244,6 +245,12 @@ export const useNodeEditorShortcuts = (
     }
   }, [onShowShortcuts]);
 
+  const handleToggleStatsPanel = useCallback(() => {
+    if (onToggleStatsPanel) {
+      onToggleStatsPanel();
+    }
+  }, [onToggleStatsPanel]);
+
   const handleMenuEvent = useCallback(
     (data: any) => {
       if (!active) {
@@ -432,6 +439,7 @@ export const useNodeEditorShortcuts = (
         active: selectedNodes.length > 0
       },
       findInWorkflow: { callback: openFind },
+      toggleStatsPanel: { callback: handleToggleStatsPanel },
       selectConnectedAll: {
         callback: handleSelectConnectedAll,
         active: selectedNodes.length > 0
@@ -518,6 +526,7 @@ export const useNodeEditorShortcuts = (
     handleSwitchToTab,
     openFind,
     handleSelectConnectedAll,
+    handleToggleStatsPanel,
     handleSelectConnectedInputs,
     handleSelectConnectedOutputs,
     selectionActions.alignLeft,

@@ -611,6 +611,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Find and navigate to nodes in the current workflow",
     registerCombo: true
+  },
+  {
+    title: "Toggle Stats Panel",
+    slug: "toggleStatsPanel",
+    keyCombo: ["S"],
+    category: "panel" as const,
+    description: "Show or hide workflow statistics panel",
+    registerCombo: true
   }
 ] as Shortcut[];
 

@@ -449,3 +449,44 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Workflow Statistics Panel Implementation (2026-01-11)
+
+**Insight**: NodeStore contains both nodes and edges in the same state object, so a single `useNodes` hook can access both for calculating statistics.
+
+**Challenge**: The `useEdges` hook doesn't exist in NodeContext - edges are stored alongside nodes in the NodeStore.
+
+**Solution**: Use a combined selector with `useNodes` to get both nodes and edges:
+```typescript
+const { nodes, edges } = useNodes((state) => ({
+  nodes: state.nodes,
+  edges: (state as { edges: Edge[] }).edges
+}), shallow);
+```
+
+**Impact**: Simplifies statistics calculation by using a single store subscription instead of multiple hooks.
+
+**Files**: `web/src/hooks/useWorkflowStats.ts`, `web/src/contexts/NodeContext.tsx`
+
+**Date**: 2026-01-11
+
+---
+
+### Test File Path Resolution (2026-01-11)
+
+**Insight**: ESLint parser may have issues with JSX in test files that use complex TypeScript types. Simplify tests by using `renderHook` from React Testing Library instead of full component rendering.
+
+**Pattern**: When testing hooks, use `renderHook` from `@testing-library/react` which provides cleaner test isolation and avoids JSX parsing issues in ESLint.
+
+**Example**:
+```typescript
+import { renderHook } from "@testing-library/react";
+import useWorkflowStats from "../useWorkflowStats";
+
+const { result } = renderHook(() => useWorkflowStats());
+expect(result.current.stats.nodeCount).toBe(0);
+```
+
+**Date**: 2026-01-11
