@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, ReactNode } from "react";
 import { Button, Box } from "@mui/material";
 import { Visibility } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
@@ -23,10 +23,10 @@ interface NodeContentProps {
   showAdvancedFields: boolean;
   hasAdvancedFields: boolean;
   onToggleAdvancedFields: () => void;
-  status: string;
+  status?: string | object | null;
   workflowId: string;
   showResultOverlay: boolean;
-  result: any;
+  result: ReactNode;
   onShowInputs: () => void;
   onShowResults?: () => void;
 }

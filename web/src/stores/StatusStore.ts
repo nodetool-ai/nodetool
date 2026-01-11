@@ -1,9 +1,11 @@
 import { create } from "zustand";
 
+export type NodeStatus = string | object | null | undefined;
+
 type StatusStore = {
-  statuses: Record<string, string>;
-  setStatus: (workflowId: string, nodeId: string, status: any) => void;
-  getStatus: (workflowId: string, nodeId: string) => any;
+  statuses: Record<string, NodeStatus>;
+  setStatus: (workflowId: string, nodeId: string, status: NodeStatus) => void;
+  getStatus: (workflowId: string, nodeId: string) => NodeStatus | undefined;
   clearStatuses: (workflowId: string) => void;
 };
 
@@ -36,7 +38,7 @@ const useStatusStore = create<StatusStore>((set, get) => ({
    * @param nodeId The id of the node.
    * @param status The status to set.
    */
-  setStatus: (workflowId: string, nodeId: string, status: any) => {
+  setStatus: (workflowId: string, nodeId: string, status: NodeStatus) => {
     const key = hashKey(workflowId, nodeId);
     set({ statuses: { ...get().statuses, [key]: status } });
   },

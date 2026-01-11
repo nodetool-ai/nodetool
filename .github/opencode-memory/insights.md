@@ -428,3 +428,42 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Type Safety Trade-offs with Flexible Data (2026-01-11)
+
+**Insight**: When improving type safety for stores that hold flexible data (like results, previews, statuses), there are trade-offs between strictness and practicality.
+
+**Key Learnings**:
+1. **Status values** can be strings ("running", "completed"), objects, or null. Using a union type `string | object | null | undefined` maintains flexibility while providing some type safety.
+
+2. **Result values** need to be renderable as ReactNode. Using `unknown` instead of `any` forces type checking when accessing values, but requires type assertions when performing operations like array spreading.
+
+3. **Component props** need to handle the full range of possible values. Components like `NodeContent`, `NodeFooter`, and `ProcessTimer` need updated interfaces to accept the new types.
+
+4. **Type assertions** are sometimes necessary when TypeScript can't narrow types after runtime checks like `Array.isArray()`.
+
+**Example**:
+```typescript
+// Store type - flexible but explicit
+type NodeStatus = string | object | null | undefined;
+type NodeResult = unknown;
+
+// Component usage with type narrowing
+if (typeof status === "string" && status === "running") {
+  // TypeScript knows status is "running" here
+}
+
+// Array operations require type assertion
+if (Array.isArray(get().results[key])) {
+  const currentArray = get().results[key] as unknown[];
+  set({ results: { ...get().results, [key]: [...currentArray, result] } });
+}
+```
+
+**Impact**: Improved type safety while maintaining runtime flexibility.
+
+**Files**: `web/src/stores/StatusStore.ts`, `web/src/stores/ResultsStore.ts`, related components
+
+**Date**: 2026-01-11

@@ -4,12 +4,16 @@ import React, { memo, useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import isEqual from "lodash/isEqual";
 
-export const ProcessTimer = ({ status }: { status: string }) => {
+export const ProcessTimer = ({ status }: { status?: string | object | null }) => {
   const [seconds, setSeconds] = useState("");
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     let startTime: number | null = null;
+
+    if (typeof status !== "string") {
+      return;
+    }
 
     if (status === "running") {
       startTime = Date.now();
