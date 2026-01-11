@@ -34,7 +34,8 @@ const styles = (theme: Theme, bypassed: boolean) =>
       border: `2px solid ${theme.vars.palette.primary.light}`,
       boxShadow: `0 0 0 2px ${hexToRgba(theme.vars.palette.primary.main, 0.3)}`
     },
-    ".subgraph-header": {
+    // Use node-header class for context menu compatibility
+    ".node-header.subgraph-header": {
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       padding: "8px 12px",
@@ -148,8 +149,8 @@ const SubgraphNode: React.FC<NodeProps> = memo(({ id, data, selected }) => {
         />
       ))}
       
-      {/* Header */}
-      <div className="subgraph-header">
+      {/* Header - uses node-header class for context menu compatibility */}
+      <div className="node-header subgraph-header node-drag-handle">
         <span className="subgraph-icon">📦</span>
         <span>{nodeData.title || definition.name}</span>
         <span className="subgraph-badge">{nodeCount} nodes</span>

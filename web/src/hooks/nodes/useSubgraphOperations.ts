@@ -94,7 +94,9 @@ export function useSubgraphOperations() {
 
   const handleUnpackSubgraph = useCallback(
     (nodeId: string) => {
+      console.log(`[useSubgraphOperations] handleUnpackSubgraph called with nodeId=${nodeId}`);
       const node = findNode(nodeId);
+      console.log(`[useSubgraphOperations] node found=${!!node}, node.type=${node?.type}, expected=${SUBGRAPH_NODE_TYPE}`);
 
       if (!node || node.type !== SUBGRAPH_NODE_TYPE) {
         addNotification({
