@@ -208,8 +208,9 @@ const ChatButton = memo(function ChatButton({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const { lastUsedThreadId, createNewThread, switchThread } =
-    useGlobalChatStore();
+  const lastUsedThreadId = useGlobalChatStore((state) => state.lastUsedThreadId);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
 
   const handleClick = useCallback(async () => {
     try {

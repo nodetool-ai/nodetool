@@ -230,7 +230,8 @@ const Welcome = () => {
     ...section,
     originalContent: section.content
   }));
-  const { settings, updateSettings } = useSettingsStore();
+  const settings = useSettingsStore((state) => state.settings);
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
   const theme = useTheme();
   const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
 

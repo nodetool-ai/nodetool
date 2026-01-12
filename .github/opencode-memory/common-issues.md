@@ -522,6 +522,55 @@ cd mobile && npm install
 
 ---
 
+### Unnecessary Re-renders from Zustand Store Subscriptions (2026-01-11)
+
+**Issue**: Components subscribing to entire Zustand stores instead of selective state slices, causing unnecessary re-renders.
+
+**Problem Files**:
+- `web/src/components/panels/WorkflowAssistantChat.tsx` - Used `useGlobalChatStore()` without selector
+- `web/src/components/panels/AppHeader.tsx` - `ChatButton` used `useGlobalChatStore()` without selector
+- `web/src/components/dashboard/WelcomePanel.tsx` - Used `useSettingsStore()` without selector
+- `web/src/components/content/Welcome/Welcome.tsx` - Used `useSettingsStore()` without selector
+
+**Solution**: Use selective Zustand selectors:
+
+```typescript
+// ❌ Bad - subscribes to entire store
+const { settings, updateSettings } = useSettingsStore();
+
+// ✅ Good - subscribes only to needed state
+const settings = useSettingsStore((state) => state.settings);
+const updateSettings = useSettingsStore((state) => state.updateSettings);
+```
+
+**Why**: When using `useStore()` without a selector, the component re-renders on ANY state change. Using selective selectors ensures components only re-render when the specific state they need changes.
+
+**Impact**: Significant reduction in unnecessary re-renders, especially in the chat and workflow assistant components.
+
+**Files Fixed**:
+- `web/src/components/panels/WorkflowAssistantChat.tsx`
+- `web/src/components/panels/AppHeader.tsx`
+- `web/src/components/dashboard/WelcomePanel.tsx`
+- `web/src/components/content/Welcome/Welcome.tsx`
+
+---
+
+### `any` Type Usage Throughout Codebase (2026-01-11)
+
+**Issue**: Found 100+ instances of implicit `any` types and explicit `any` usage throughout the codebase.
+
+**Categories**:
+1. **Test Files**: Many test files use `any` for mock data and selectors - acceptable for tests
+2. **Error Handling**: `catch (error: any)` pattern used throughout - could use `unknown` with type guards
+3. **Utility Functions**: Some utility functions use `any` for flexible input types
+4. **Component Props**: Some component props use `any` instead of specific types
+
+**Recommendation**: Focus on fixing `any` types in:
+1. Critical error handling paths
+2. Component props passed frequently
+3. Data transformation utilities
+
+**Not Fixed**: Due to scope, but identified for future improvement.
 ### Jest E2E Test Exclusion (2026-01-12)
 
 **Issue**: E2E tests (Playwright) were being loaded by Jest despite `testPathIgnorePatterns` configuration, causing "TransformStream is not defined" errors.
