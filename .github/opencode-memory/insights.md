@@ -449,3 +449,44 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Jest testPathIgnorePatterns Leading Slash (2026-01-12)
+
+**Insight**: Jest `testPathIgnorePatterns` expects relative paths without leading slashes.
+
+**Why**: When Jest reports test paths, they don't include a leading slash. A pattern like `/tests/e2e/` won't match paths like `tests/e2e/dashboard.spec.ts`.
+
+**Pattern**: Always use `tests/e2e/` instead of `/tests/e2e/` in `testPathIgnorePatterns`.
+
+**Files**: `web/jest.config.ts`
+
+**Date**: 2026-01-12
+
+---
+
+### Node Distribution Algorithms (2026-01-12)
+
+**Insight**: There are multiple valid approaches to distributing nodes in a visual editor:
+
+1. **Fixed Spacing**: Place nodes with constant distance between them (e.g., 40px)
+   - Pros: Predictable, consistent gaps
+   - Cons: May not fill available space
+
+2. **Equal Distribution**: Spread nodes evenly across the total span
+   - Formula: `position = min + index * (max - min) / (count - 1)`
+   - Pros: Fills available space, visually balanced
+   - Cons: Spacing varies based on total span
+
+**Decision**: The Selection Action Toolbar uses Equal Distribution to maximize space utilization and create visually balanced layouts.
+
+**Files**: `web/src/hooks/useSelectionActions.ts`
+
+**Date**: 2026-01-12
+
+---
+
+## Last Updated
+
+2026-01-12 - Added Jest path pattern and node distribution algorithm insights
