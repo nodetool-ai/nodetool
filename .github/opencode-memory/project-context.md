@@ -160,6 +160,23 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Menu Keyboard Navigation Enhancement (2026-01-12)
+
+**What**: Enhanced keyboard navigation in the Node Menu to show visual focus indicator on nodes when navigating with arrow keys.
+
+**Why**: The NodeMenu already had keyboard navigation infrastructure (arrow keys, enter, escape) but the regular node list didn't show visual feedback when items were keyboard-selected, while search results already had this working.
+
+**Implementation**:
+- Modified `RenderNodes.tsx` to subscribe to `selectedIndex` from `NodeMenuStore` and pass `isKeyboardSelected` state to `NodeItem` components
+- Added keyboard selection styling to `NodeItem.tsx` using the existing `.focused` CSS class
+- Nodes now display focused visual state (highlighted background and border) when selected via keyboard
+
+**Files**: 
+- `web/src/components/node_menu/RenderNodes.tsx`
+- `web/src/components/node_menu/NodeItem.tsx`
+
+---
+
 ### Test Distribution Functions Fix (2026-01-12)
 
 **What**: Fixed failing tests in `useSelectionActions.test.ts` by correcting expected values for distributeHorizontal and distributeVertical functions.

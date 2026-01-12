@@ -26,6 +26,7 @@ Last updated: 2026-01-12
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
+- **Node Keyboard Navigation**: Navigate and select nodes using arrow keys with visual focus indicator
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)

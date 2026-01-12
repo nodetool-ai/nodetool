@@ -80,6 +80,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedPath: state.selectedPath.join(".")
   }));
 
+  const { selectedIndex, groupedSearchResults } = useNodeMenuStore((state) => ({
+    selectedIndex: state.selectedIndex,
+    groupedSearchResults: state.groupedSearchResults
+  }));
+
   const searchNodes = useMemo(() => {
     if (searchTerm && groupedSearchResults.length > 0) {
       return groupedSearchResults.flatMap((group) => group.nodes);
@@ -88,20 +93,26 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   }, [searchTerm, groupedSearchResults]);
 
   const elements = useMemo(() => {
+    // Flatten all nodes to calculate keyboard selection index
+    const allNodesFlat = Object.entries(groupNodes(nodes)).flatMap(
+      ([, nodesInNamespace]) => nodesInNamespace
+    );
+
     // If we're searching, render flat ranked results with SearchResultItem
     if (searchTerm && groupedSearchResults.length > 0) {
       // Flatten all results from groups (now just one "Results" group)
-      const allSearchNodes = groupedSearchResults.flatMap(
+      const flatSearchNodes = groupedSearchResults.flatMap(
         (group) => group.nodes
       );
 
-      return allSearchNodes.map((node) => (
+      return flatSearchNodes.map((node, index) => (
         <SearchResultItem
           key={node.node_type}
           node={node}
           onDragStart={handleDragStart(node)}
           onDragEnd={handleDragEnd}
           onClick={() => handleCreateNode(node)}
+          isKeyboardSelected={index === selectedIndex}
         />
       ));
     }
@@ -150,22 +161,28 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           >
             {textForNamespaceHeader}
           </Typography>,
-            ...nodesInNamespace.map((node) => (
-            <div key={node.node_type}>
-              <NodeItem
-                key={node.node_type}
-                node={node}
-                onDragStart={handleDragStart(node)}
-                onClick={() => handleCreateNode(node)}
-                showCheckbox={showCheckboxes}
-                isSelected={selectedNodeTypes.includes(node.node_type)}
-                onToggleSelection={onToggleSelection}
-                showFavoriteButton={showFavoriteButton}
-              />
-            </div>
-          ))
+            ...nodesInNamespace.map((node) => {
+              // Calculate the index of this node in the flattened list for keyboard selection
+              const nodeIndex = allNodesFlat.findIndex(
+                (n) => n.node_type === node.node_type
+              );
+              return (
+                <div key={node.node_type}>
+                  <NodeItem
+                    key={node.node_type}
+                    node={node}
+                    onDragStart={handleDragStart(node)}
+                    onClick={() => handleCreateNode(node)}
+                    showCheckbox={showCheckboxes}
+                    isSelected={selectedNodeTypes.includes(node.node_type)}
+                    isKeyboardSelected={nodeIndex === selectedIndex}
+                    onToggleSelection={onToggleSelection}
+                    showFavoriteButton={showFavoriteButton}
+                  />
+                </div>
+              );
+            })
         );
-        return elements;
       }
     );
   }, [
@@ -173,6 +190,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     nodes,
     groupedSearchResults,
     selectedPath,
+    selectedIndex,
     handleDragStart,
     handleDragEnd,
     handleCreateNode,
