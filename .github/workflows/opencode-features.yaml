@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches to enable merging and conflict resolution
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -63,7 +65,18 @@ jobs:
             - Data: TanStack Query for API state
             - Testing: Jest + React Testing Library + Playwright
 
-            ## Step 1: Learn from Memory (REQUIRED)
+            ## Step 1: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with similar names or purposes
+            3. **Avoid creating duplicate branches** for the same feature
+            4. If a branch exists for similar work:
+               - Review what's already done
+               - Consider if you should continue that work
+               - Don't duplicate efforts
+            
+            ## Step 2: Learn from Memory (REQUIRED)
 
             **Read these files FIRST** to avoid redundant work:
             1. **`.github/opencode-memory/features.md`** - **COMPREHENSIVE FEATURE LIST (READ FIRST!)**
@@ -75,7 +88,7 @@ jobs:
 
             **CRITICAL**: Check `features.md` to ensure your feature doesn't already exist!
 
-            ## Step 2: Explore and Plan
+            ## Step 3: Explore and Plan
 
             1. **Check for duplicates**: Search `features.md` for similar functionality
             2. **Read documentation**: `/AGENTS.md`, `/web/README.md`, `/.github/copilot-instructions.md`
@@ -165,6 +178,12 @@ jobs:
             2. **`.github/opencode-memory/insights.md`** - Document new patterns or discoveries
             3. **`.github/opencode-memory/common-issues.md`** - Add any tricky problems you solved
             4. **`.github/opencode-memory/project-context.md`** - Add entry to "Recent Changes"
+
+            **After updating memory files, COMPACT THEM**:
+            ```bash
+            python scripts/compact-memory.py
+            ```
+            This removes duplicates and keeps memory files manageable. Commit the compacted files.
 
             **Format for features.md**:
             ```markdown

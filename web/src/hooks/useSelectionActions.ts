@@ -19,9 +19,6 @@ interface SelectionActionsReturn {
 }
 
 const NODE_WIDTH = 280;
-const NODE_HEIGHT = 50;
-const HORIZONTAL_SPACING = 40;
-const VERTICAL_SPACING = 20;
 
 export const useSelectionActions = (): SelectionActionsReturn => {
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
@@ -185,15 +182,13 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     });
 
     const leftMostX = Math.min(...sortedByX.map((n) => n.position.x));
+    const rightMostX = Math.max(...sortedByX.map((n) => n.position.x));
+    const count = sortedByX.length;
 
-    // Create position map with fixed spacing (like arrange shortcut)
     const positionMap = new Map<string, number>();
-    let currentX = leftMostX;
-
-    sortedByX.forEach((node) => {
-      positionMap.set(node.id, currentX);
-      const nodeWidth = node.measured?.width ?? NODE_WIDTH;
-      currentX += nodeWidth + HORIZONTAL_SPACING;
+    sortedByX.forEach((node, index) => {
+      const newX = leftMostX + (index * (rightMostX - leftMostX)) / (count - 1);
+      positionMap.set(node.id, newX);
     });
 
     reactFlow.setNodes((currentNodes) =>
@@ -222,15 +217,13 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     });
 
     const topMostY = Math.min(...sortedByY.map((n) => n.position.y));
+    const bottomMostY = Math.max(...sortedByY.map((n) => n.position.y));
+    const count = sortedByY.length;
 
-    // Create position map with fixed spacing (like arrange shortcut)
     const positionMap = new Map<string, number>();
-    let currentY = topMostY;
-
-    sortedByY.forEach((node) => {
-      positionMap.set(node.id, currentY);
-      const nodeHeight = node.measured?.height ?? NODE_HEIGHT;
-      currentY += nodeHeight + VERTICAL_SPACING;
+    sortedByY.forEach((node, index) => {
+      const newY = topMostY + (index * (bottomMostY - topMostY)) / (count - 1);
+      positionMap.set(node.id, newY);
     });
 
     reactFlow.setNodes((currentNodes) =>

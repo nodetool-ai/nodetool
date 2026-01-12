@@ -59,5 +59,5 @@ export default {
     "!src/index.tsx"
   ],
   coveragePathIgnorePatterns: ["/node_modules/", "/coverage/", "/dist/"],
-  testPathIgnorePatterns: ["/node_modules/", "/dist/", "/tests/e2e/"]
+  testPathIgnorePatterns: ["/node_modules/", "/dist/", "tests/e2e/"]
 };

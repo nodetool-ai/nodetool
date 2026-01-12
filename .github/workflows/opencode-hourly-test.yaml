@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches to enable merging and conflict resolution
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -53,6 +55,17 @@ jobs:
             - **Tech Stack**: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
             - **Quality Tools**: TypeScript, ESLint, Jest, React Testing Library, Playwright
+
+            ## Step 0: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with similar test fixes or quality work
+            3. **Avoid creating duplicate branches** for the same issues
+            4. If a branch exists for similar work:
+               - Review what's already done
+               - Consider if you should continue that work
+               - Don't duplicate efforts
 
             ## Step 1: Check Memory (REQUIRED)
 
@@ -264,6 +277,12 @@ jobs:
 
             4. **`.github/opencode-memory/features.md`** (if relevant):
                - Update if test fixes reveal missing or broken features
+
+            **After updating memory files, COMPACT THEM**:
+            ```bash
+            python scripts/compact-memory.py
+            ```
+            This removes duplicates and keeps memory files manageable. Commit the compacted files.
 
             **Format**:
             ```markdown
