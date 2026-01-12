@@ -44,8 +44,13 @@ interface ChatThreadViewProps {
   scrollContainer?: HTMLDivElement | null;
 }
 
-const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
-const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
+// Scroll state machine constants
+// Threshold in pixels for determining if user is "near bottom"
+const NEAR_BOTTOM_THRESHOLD_PX = 100;
+// Offset from top when scrolling user message into view (so it's not glued to edge)
+const USER_MESSAGE_TOP_OFFSET_PX = 16;
+// Minimum time after user scroll before auto-scroll can resume
+const USER_SCROLL_COOLDOWN_MS = 300;
 
 // Dynamic scroll spacer component that adapts to content and viewport
 interface DynamicScrollSpacerProps {
@@ -312,6 +317,23 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
 );
 MemoizedMessageListContent.displayName = "MemoizedMessageListContent";
 
+/**
+ * Scroll State Machine
+ * 
+ * This component implements a state machine approach to scrolling with two distinct behaviors:
+ * 
+ * 1. USER MESSAGE ANCHORING: When a user sends a message, scroll it to the top of the viewport
+ *    with an offset so it's not glued to the edge.
+ * 
+ * 2. ASSISTANT AUTO-SCROLL: Only auto-scroll new assistant content when the user is "near bottom".
+ *    If the user has scrolled away, show "Jump to bottom" button instead.
+ * 
+ * Scroll Ownership:
+ * - SYSTEM: When auto-scrolling for streaming content or after user message
+ * - USER: When user has manually scrolled away from bottom
+ * 
+ * The key insight is that scrolling should never fight the user's intent.
+ */
 const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   messages,
   status,
@@ -333,23 +355,25 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
-  const userHasScrolledUpRef = useRef(false);
+  
+  // === SCROLL STATE MACHINE REFS ===
+  // Track if user has manually scrolled away from bottom (user owns scroll)
+  const userOwnsScrollRef = useRef(false);
+  // Track if user is near bottom for auto-scroll eligibility
   const isNearBottomRef = useRef(true);
-  const lastUserScrollTimeRef = useRef<number>(0);
-  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Track when we've scrolled to a user message - prevents auto-scroll to bottom from overriding.
-  // Lifecycle:
-  // - Set to true: when scrollToLastUserMessage() is called (user submits a message)
-  // - Set to false: when user manually scrolls, or when streaming ends
-  // - Checked: in auto-scroll effect to skip scrollToBottom during streaming
-  const scrolledToUserMessageRef = useRef(false);
-  const [showScrollToBottomButton, setShowScrollToBottomButton] =
-    useState(false);
+  // Timestamp of last user scroll event for cooldown detection
+  const lastUserScrollTimeRef = useRef<number>(Date.now());
+  // Flag to prevent auto-scroll to bottom right after anchoring to user message
+  const anchoredToUserMessageRef = useRef(false);
+  // requestAnimationFrame ID for streaming scroll batching
+  const rafIdRef = useRef<number | null>(null);
+  // Track if RAF scroll is already scheduled (prevents jitter)
+  const rafScheduledRef = useRef(false);
+  
+  const [showScrollToBottomButton, setShowScrollToBottomButton] = useState(false);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
   const previousStatusRef = useRef(status);
   const previousMessageCountRef = useRef(messages.length);
-
-  const SCROLL_THRESHOLD = 50;
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
@@ -357,21 +381,18 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const map: Record<string, { name?: string | null; content: any }> = {};
     for (const m of messages) {
       // Tool result messages carry tool_call_id to link back to the originating tool call
-      const anyMsg: any = m as any;
+      const anyMsg = m as { tool_call_id?: string; name?: string | null };
       if (m.role === "tool" && anyMsg.tool_call_id) {
         map[String(anyMsg.tool_call_id)] = {
           name: anyMsg.name ?? undefined,
-          content: m.content as any
+          content: m.content
         };
       }
     }
     return map;
   }, [messages]);
 
-  useEffect(() => {
-    lastUserScrollTimeRef.current = Date.now();
-  }, []);
-
+  // Set up scroll host
   useEffect(() => {
     if (scrollContainer) {
       setScrollHost(scrollContainer);
@@ -380,169 +401,207 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     }
   }, [scrollContainer]);
 
+  /**
+   * Compute whether user is near bottom of scroll container.
+   * Used to determine if auto-scroll should occur.
+   */
+  const computeIsNearBottom = useCallback((element: HTMLElement): boolean => {
+    return (
+      element.scrollHeight - element.scrollTop - element.clientHeight <
+      NEAR_BOTTOM_THRESHOLD_PX
+    );
+  }, []);
+
+  /**
+   * Handle scroll events - track user intent and update scroll ownership.
+   */
   const handleScroll = useCallback(() => {
-    lastUserScrollTimeRef.current = Date.now();
-    // User manually scrolling clears the "scrolled to user message" state
-    scrolledToUserMessageRef.current = false;
     const element = scrollHost;
     if (!element) { return; }
 
-    const calculatedIsNearBottom =
-      element.scrollHeight - element.scrollTop - element.clientHeight <
-      SCROLL_THRESHOLD;
-
-    const previousUserHasScrolledUp = userHasScrolledUpRef.current;
-    if (!calculatedIsNearBottom && !userHasScrolledUpRef.current) {
-      userHasScrolledUpRef.current = true;
-    } else if (calculatedIsNearBottom && userHasScrolledUpRef.current) {
-      userHasScrolledUpRef.current = false;
+    const now = Date.now();
+    lastUserScrollTimeRef.current = now;
+    
+    // User scrolling clears the anchored-to-user-message state
+    anchoredToUserMessageRef.current = false;
+    
+    const nearBottom = computeIsNearBottom(element);
+    isNearBottomRef.current = nearBottom;
+    
+    // Update scroll ownership based on position
+    if (!nearBottom) {
+      // User scrolled away from bottom - they own the scroll now
+      userOwnsScrollRef.current = true;
+    } else {
+      // User scrolled back to bottom - system can take over
+      userOwnsScrollRef.current = false;
     }
+    
+    // Update "Jump to bottom" button visibility
+    const shouldShowButton = !nearBottom && userOwnsScrollRef.current;
+    setShowScrollToBottomButton(shouldShowButton);
+  }, [scrollHost, computeIsNearBottom]);
 
-    if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
-      const shouldBeVisible =
-        !isNearBottomRef.current && userHasScrolledUpRef.current;
-      if (shouldBeVisible !== showScrollToBottomButton) {
-        setShowScrollToBottomButton(shouldBeVisible);
-      }
-    }
-  }, [showScrollToBottomButton, scrollHost]);
-
+  // Attach scroll listener
   useEffect(() => {
-    if (!scrollHost) {
-      return;
-    }
-    const handleScrollEvent = () => handleScroll();
-    scrollHost.addEventListener("scroll", handleScrollEvent);
+    if (!scrollHost) { return; }
+    scrollHost.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
-      scrollHost.removeEventListener("scroll", handleScrollEvent);
+      scrollHost.removeEventListener("scroll", handleScroll);
     };
   }, [scrollHost, handleScroll]);
 
+  /**
+   * Scroll to bottom using requestAnimationFrame batching.
+   * This prevents jitter during streaming by coalescing multiple scroll requests.
+   */
+  const scheduleScrollToBottom = useCallback(() => {
+    if (rafScheduledRef.current) { return; }
+    rafScheduledRef.current = true;
+    
+    rafIdRef.current = requestAnimationFrame(() => {
+      const el = bottomRef.current;
+      if (el && scrollHost) {
+        scrollHost.scrollTop = scrollHost.scrollHeight;
+      }
+      rafScheduledRef.current = false;
+    });
+  }, [scrollHost]);
+
+  /**
+   * Smooth scroll to bottom (for user-initiated "Jump to bottom" action).
+   */
   const scrollToBottom = useCallback(() => {
     const el = bottomRef.current;
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
-      userHasScrolledUpRef.current = false;
+      // System takes ownership after user clicks "Jump to bottom"
+      userOwnsScrollRef.current = false;
+      setShowScrollToBottomButton(false);
     }
   }, []);
 
-  // Scroll to align the last user message at the top of the viewport
+  /**
+   * Scroll to align the last user message at the top of the viewport with offset.
+   * This anchors the conversation around the user's last input.
+   */
   const scrollToLastUserMessage = useCallback(() => {
     const el = lastUserMessageRef.current;
-    if (el) {
-      // Calculate the exact position to scroll to for precise top alignment
-      const elementRect = el.getBoundingClientRect();
-      const scrollHostRect = scrollHost?.getBoundingClientRect();
-      
-      if (scrollHostRect) {
-        const currentScrollTop = scrollHost?.scrollTop || 0;
-        const targetScrollTop = currentScrollTop + elementRect.top - scrollHostRect.top;
-        
-        scrollHost?.scrollTo({
-          top: targetScrollTop,
-          behavior: 'smooth'
-        });
-      } else {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      
-      userHasScrolledUpRef.current = false;
-      // Set flag to prevent auto-scroll to bottom during streaming
-      scrolledToUserMessageRef.current = true;
-    }
+    if (!el || !scrollHost) { return; }
+    
+    // Calculate target scroll position with offset so message isn't glued to top
+    const elementRect = el.getBoundingClientRect();
+    const scrollHostRect = scrollHost.getBoundingClientRect();
+    const currentScrollTop = scrollHost.scrollTop;
+    
+    // Target: message top should be USER_MESSAGE_TOP_OFFSET_PX from viewport top
+    const targetScrollTop = 
+      currentScrollTop + 
+      elementRect.top - 
+      scrollHostRect.top - 
+      USER_MESSAGE_TOP_OFFSET_PX;
+    
+    scrollHost.scrollTo({
+      top: Math.max(0, targetScrollTop),
+      behavior: 'smooth'
+    });
+    
+    // Mark that we're anchored to user message to prevent immediate auto-scroll
+    anchoredToUserMessageRef.current = true;
+    // System owns scroll during this anchoring phase
+    userOwnsScrollRef.current = false;
+    setShowScrollToBottomButton(false);
   }, [scrollHost]);
 
+  // Clean up RAF on unmount
   useEffect(() => {
-    const scrollElement = scrollHost;
-    const bottomElement = bottomRef.current;
-    if (!scrollElement || !bottomElement) { return; }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const wasNearBottom = isNearBottomRef.current;
-        isNearBottomRef.current = entry.isIntersecting;
-
-        if (isNearBottomRef.current !== wasNearBottom) {
-          const shouldBeVisible =
-            !isNearBottomRef.current && userHasScrolledUpRef.current;
-          if (shouldBeVisible !== showScrollToBottomButton) {
-            setShowScrollToBottomButton(shouldBeVisible);
-          }
-        }
-      },
-      { root: scrollElement, threshold: 0.1 }
-    );
-
-    observer.observe(bottomElement);
     return () => {
-      observer.disconnect();
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
     };
-  }, [scrollHost, showScrollToBottomButton]);
+  }, []);
 
+  /**
+   * Effect: Handle streaming status changes.
+   * When streaming ends, clear the anchored flag.
+   */
   useEffect(() => {
     if (previousStatusRef.current === "streaming" && status !== "streaming") {
-      // Don't force scroll to bottom when streaming ends to preserve user position
-      // The auto-scroll logic in the next effect will handle this appropriately
-      scrolledToUserMessageRef.current = false;
+      anchoredToUserMessageRef.current = false;
     }
     previousStatusRef.current = status;
   }, [status]);
 
+  /**
+   * Effect: Handle new messages - anchor to user message or auto-scroll assistant content.
+   */
   useEffect(() => {
-    if (messages.length <= previousMessageCountRef.current) {
-      previousMessageCountRef.current = messages.length;
+    const prevCount = previousMessageCountRef.current;
+    const currentCount = messages.length;
+    
+    if (currentCount <= prevCount) {
+      previousMessageCountRef.current = currentCount;
       return;
     }
-    previousMessageCountRef.current = messages.length;
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
+    
+    previousMessageCountRef.current = currentCount;
+    const lastMessage = messages[messages.length - 1];
+    
     if (lastMessage?.role === "user") {
-      scrollToLastUserMessage();
-      
-      // Clear the flag after a short delay to allow the scroll to complete
-      // but still prevent immediate auto-scroll during streaming
+      // Anchor to user message at top of viewport
+      // Use setTimeout to ensure DOM has updated with the new message
       setTimeout(() => {
-        scrolledToUserMessageRef.current = false;
-      }, 1000);
+        scrollToLastUserMessage();
+      }, 0);
     }
   }, [messages, scrollToLastUserMessage]);
 
+  /**
+   * Effect: Auto-scroll during streaming if conditions are met.
+   * Uses requestAnimationFrame batching to prevent jitter.
+   */
   useEffect(() => {
-    if (autoScrollTimeoutRef.current) {
-      clearTimeout(autoScrollTimeoutRef.current);
-    }
-
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
+    if (status !== "streaming") { return; }
+    
+    // Don't auto-scroll if:
+    // - User owns scroll (has scrolled away)
+    // - We just anchored to a user message
+    // - User scrolled recently (within cooldown)
+    const userIsIdle = Date.now() - lastUserScrollTimeRef.current > USER_SCROLL_COOLDOWN_MS;
+    
     if (
-      status === "streaming" ||
-      (lastMessage && lastMessage.role !== "user")
+      !userOwnsScrollRef.current &&
+      !anchoredToUserMessageRef.current &&
+      userIsIdle &&
+      isNearBottomRef.current
     ) {
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        const userIsIdle =
-          Date.now() - lastUserScrollTimeRef.current >
-          USER_SCROLL_IDLE_THRESHOLD_MS;
-
-        // Only auto-scroll if the user hasn't manually scrolled and we know they're at the bottom
-        // This preserves the user's scroll position when they've scrolled to see a specific message
-        if (
-          !userHasScrolledUpRef.current &&
-          userIsIdle &&
-          isNearBottomRef.current &&
-          // Additional check: only auto-scroll if we didn't just scroll to a user message
-          !scrolledToUserMessageRef.current
-        ) {
-          scrollToBottom();
-        }
-      }, ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS);
+      scheduleScrollToBottom();
     }
+  }, [messages, status, scheduleScrollToBottom]);
 
-    return () => {
-      if (autoScrollTimeoutRef.current) {
-        clearTimeout(autoScrollTimeoutRef.current);
-      }
-    };
-  }, [messages, status, scrollToBottom]);
+  /**
+   * Effect: Also trigger auto-scroll when message content updates (for streaming tokens).
+   * This watches the last message's content changes.
+   */
+  useEffect(() => {
+    if (status !== "streaming") { return; }
+    
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role === "user") { return; }
+    
+    const userIsIdle = Date.now() - lastUserScrollTimeRef.current > USER_SCROLL_COOLDOWN_MS;
+    
+    if (
+      !userOwnsScrollRef.current &&
+      !anchoredToUserMessageRef.current &&
+      userIsIdle &&
+      isNearBottomRef.current
+    ) {
+      scheduleScrollToBottom();
+    }
+    // Include lastMessage.content in deps to trigger on content updates
+  }, [messages, status, scheduleScrollToBottom]);
 
   const handleToggleThought = useCallback((key: string) => {
     setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
