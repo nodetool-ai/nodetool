@@ -23,7 +23,11 @@ export const findMatchingNodesInWorkflows = (
   fuseThreshold: number = FUSE_THRESHOLD,
   fuseMinMatchCharLengthFactor: number = FUSE_MIN_MATCH_FACTOR
 ): SearchResult[] => {
-  if (!searchQuery.trim() || !workflows || workflows.length === 0) {
+  if (!workflows || workflows.length === 0) {
+    return [];
+  }
+
+  if (!searchQuery.trim()) {
     return workflows.map((workflow) => ({
       workflow,
       fuseScore: 1,
