@@ -18,6 +18,7 @@ interface SelectedNodeInfo {
   id: string;
   label: string;
   type: string;
+  namespace: string;
   description: string | undefined;
   position: { x: number; y: number };
   connections: NodeConnectionInfo;
@@ -94,6 +95,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
         id: node.id,
         label: getNodeDisplayName(node, metadataStore),
         type: node.type ?? "unknown",
+        namespace: metadata?.namespace ?? node.type ?? "",
         description: metadata?.description,
         position: node.position,
         connections: {

@@ -1,12 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { memo, useCallback, useMemo } from "react";
+import useLogsStore from "../../stores/LogStore";
+import { memo, useCallback, useMemo, useState } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { Badge, IconButton, Tooltip } from "@mui/material";
+import ListAltIcon from "@mui/icons-material/ListAlt";
+import { NodeLogsDialog } from "./NodeLogs";
 
 export interface NodeHeaderProps {
   id: string;
@@ -19,6 +23,7 @@ export interface NodeHeaderProps {
   iconType?: string;
   iconBaseColor?: string;
   showIcon?: boolean;
+  workflowId?: string;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -30,10 +35,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   iconType,
   iconBaseColor,
   showIcon = true,
-  data
+  data,
+  workflowId
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
+  const nodeWorkflowId = useNodes((state) => state.workflow?.id);
+  const logs = useLogsStore((state) => state.getLogs(workflowId || nodeWorkflowId || "", id));
+  const [logsDialogOpen, setLogsDialogOpen] = useState(false);
+
+  const logCount = logs?.length || 0;
 
   const headerCss = useMemo(
     () =>
@@ -180,7 +191,30 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
+        {logCount > 0 && (
+          <Tooltip title={`${logCount} logs`} arrow>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLogsDialogOpen(true);
+              }}
+              sx={{ padding: "4px" }}
+            >
+              <Badge badgeContent={logCount} color="warning" max={99}>
+                <ListAltIcon sx={{ fontSize: "1rem" }} />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        )}
       </div>
+
+      <NodeLogsDialog
+        id={id}
+        workflowId={workflowId || nodeWorkflowId || ""}
+        open={logsDialogOpen}
+        onClose={() => setLogsDialogOpen(false)}
+      />
     </div>
   );
 };

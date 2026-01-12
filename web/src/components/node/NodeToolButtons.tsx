@@ -1,12 +1,10 @@
 import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { Toolbar, IconButton, Tooltip } from "@mui/material";
-import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
-import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useNodes } from "../../contexts/NodeContext";
@@ -21,16 +19,10 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
   const deleteNode = useNodes((state) => state.deleteNode);
   const node = nodeId !== null ? getNode(nodeId) : null;
-  const { handleCopy } = useCopyPaste();
   const duplicateNodes = useDuplicateNodes();
   const openDocumentation = useNodeMenuStore(
     (state) => state.openDocumentation
   );
-  const handleCopyClicked = useCallback(() => {
-    if (nodeId) {
-      handleCopy(nodeId);
-    }
-  }, [handleCopy, nodeId]);
 
   const handleDelete = useCallback(() => {
     if (nodeId !== null) {
@@ -93,20 +85,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           tabIndex={-1}
         >
           <RemoveCircleIcon />
-        </IconButton>
-      </Tooltip>
-
-      <Tooltip
-        title={
-          <span>
-            Add Node{" "}
-            <span className="shortcut">{getShortcutTooltip("add-node")}</span>
-          </span>
-        }
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton className="nodrag" onClick={handleCopyClicked} tabIndex={-1}>
-          <QueueIcon />
         </IconButton>
       </Tooltip>
 

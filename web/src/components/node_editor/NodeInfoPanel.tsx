@@ -19,6 +19,37 @@ import ErrorIcon from "@mui/icons-material/Error";
 import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
 import { useReactFlow } from "@xyflow/react";
 import { useSelectedNodesInfo } from "../../hooks/useSelectedNodesInfo";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+
+const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
+  const parts = namespace.split(".");
+  let prefix = "";
+  return (
+    <div className="pretty-namespace">
+      {parts.map((part) => {
+        prefix = prefix ? `${prefix}.${part}` : part;
+        const isLast = prefix === namespace;
+        return (
+          <Typography
+            key={prefix}
+            component="span"
+            className={isLast ? "namespace-part-last" : undefined}
+            sx={{
+              fontWeight: isLast ? 500 : 300,
+              color: isLast ? "var(--palette-grey-400)" : "inherit"
+            }}
+          >
+            {part.replace("huggingface", "HF").replace("nodetool", "NT")}
+            {!isLast && "."}
+          </Typography>
+        );
+      })}
+    </div>
+  );
+});
+
+PrettyNamespace.displayName = "PrettyNamespace";
 
 interface NodeConnectionInfo {
   totalInputs: number;
@@ -31,6 +62,7 @@ interface SelectedNodeInfo {
   id: string;
   label: string;
   type: string;
+  namespace: string;
   description: string | undefined;
   position: { x: number; y: number };
   connections: NodeConnectionInfo;
@@ -234,6 +266,30 @@ const styles = (theme: Theme) =>
     },
     "& .empty-text": {
       fontSize: "13px"
+    },
+    "& .namespace-button": {
+      display: "block",
+      margin: "0 -4px",
+      padding: "2px 8px",
+      borderRadius: "4px",
+      backgroundColor: "transparent",
+      color: "var(--palette-grey-400)",
+      fontSize: "9px",
+      textTransform: "uppercase",
+      textAlign: "left",
+      flexGrow: 1,
+      overflow: "hidden",
+      letterSpacing: "0.05em",
+      fontWeight: 500,
+      minWidth: 0,
+      "& .pretty-namespace": { display: "inline-block" },
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        color: "var(--palette-primary-main)"
+      },
+      "&:hover .pretty-namespace span": {
+        color: "var(--palette-primary-main) !important"
+      }
     }
   });
 
@@ -384,6 +440,39 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = memo(({ onClose }) => {
           <>
             <Box className="node-info-section">
               <Typography className="node-name">{firstNode.label}</Typography>
+              <Tooltip
+                title={
+                  <span>
+                    <Typography
+                      component="span"
+                      sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
+                    >
+                      {firstNode.namespace}
+                    </Typography>
+                    <Typography component="span" sx={{ display: "block" }}>
+                      Click to show in NodeMenu
+                    </Typography>
+                  </span>
+                }
+                placement="bottom-start"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+              >
+                <Button
+                  tabIndex={1}
+                  className="namespace-button"
+                  onClick={() => {
+                    const metadata = { namespace: firstNode.namespace };
+                    useNodeMenuStore.getState().openNodeMenu({
+                      x: 500,
+                      y: 200,
+                      dropType: metadata.namespace,
+                      selectedPath: metadata.namespace.split(".")
+                    });
+                  }}
+                >
+                  <PrettyNamespace namespace={firstNode.namespace} />
+                </Button>
+              </Tooltip>
               {firstNode.description && (
                 <Typography className="node-description">
                   {firstNode.description}
