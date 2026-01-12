@@ -26,6 +26,7 @@ import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
+import { useTemplateDialogStore } from "../stores/TemplateDialogStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -487,6 +488,13 @@ export const useNodeEditorShortcuts = (
       deleteSelected: {
         callback: selectionActions.deleteSelected,
         active: selectedNodes.length > 0
+      },
+      saveTemplate: {
+        callback: () => useTemplateDialogStore.getState().openSaveDialog(),
+        active: selectedNodes.length > 0
+      },
+      applyTemplate: {
+        callback: () => useTemplateDialogStore.getState().openApplyDialog()
       }
     };
 
