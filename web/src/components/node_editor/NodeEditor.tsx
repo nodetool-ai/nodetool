@@ -44,6 +44,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import { useNodes } from "../../contexts/NodeContext";
+import HoverToolbar from "../node/HoverToolbar";
 
 declare global {
   interface Window {
@@ -61,6 +62,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const hoveredNodeId = useNodes((state) => state.hoveredNodes[0] || null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -146,6 +148,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 2}
               />
+              <HoverToolbar nodeId={hoveredNodeId} />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
