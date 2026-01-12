@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useDocumentationPanelStore from "../../stores/DocumentationPanelStore";
 //css
 import "../../styles/base.css";
 import "../../styles/nodes.css";
@@ -44,6 +45,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import { useNodes } from "../../contexts/NodeContext";
+import WorkflowDocumentationPanel from "../content/WorkflowDocumentationPanel";
 
 declare global {
   interface Window {
@@ -82,6 +84,25 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active) {
         setCommandMenuOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Documentation Panel (Meta/Ctrl + Shift + D)
+  const docPanelCombo = isMac() ? ["meta", "shift", "d"] : ["control", "shift", "d"];
+  const { actions: docPanelActions, isVisible: isDocPanelVisible } = useDocumentationPanelStore(
+    (state) => ({
+      actions: state.actions,
+      isVisible: state.isVisible
+    })
+  );
+  useCombo(
+    docPanelCombo,
+    () => {
+      if (active) {
+        docPanelActions.toggle();
       }
     },
     true,
@@ -155,6 +176,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              {isDocPanelVisible && (
+                <WorkflowDocumentationPanel workflowId={workflowId} />
+              )}
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

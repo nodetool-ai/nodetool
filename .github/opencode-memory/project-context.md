@@ -192,6 +192,22 @@ test('handles user interaction', async () => {
 **What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
 **Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
 
+### Workflow Documentation Feature (2026-01-12)
+
+**What**: Added workflow documentation feature with two components:
+- `WorkflowDocumentationPanel`: Collapsible panel in node editor for editing workflow descriptions with rich text (Lexical) editor
+- `WorkflowDocNode`: Special node type for adding inline documentation to canvas with rich text editing
+
+**Keyboard Shortcut**: Ctrl/Cmd + Shift + D toggles the documentation panel
+
+**Files**:
+- `web/src/components/content/WorkflowDocumentationPanel.tsx`
+- `web/src/components/node_types/WorkflowDocNode.tsx`
+- `web/src/stores/DocumentationPanelStore.ts`
+- `web/src/stores/__tests__/DocumentationPanelStore.test.ts`
+- `web/src/components/node_editor/NodeEditor.tsx`
+- `web/src/config/shortcuts.ts`
+
 ### Selection Action Toolbar (2026-01-10)
 
 **What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected

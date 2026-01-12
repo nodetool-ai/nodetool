@@ -37,7 +37,9 @@ Last updated: 2026-01-12
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
 
 ### Workflow Management
-- **Workflow Creation**: Create new workflows from scratch or templates
+
+- **Workflow Documentation Panel**: Collapsible panel for editing workflow descriptions with rich text editor (Lexical), includes save/cancel actions
+- **Workflow Documentation Node**: Special node type for adding inline documentation to canvas with rich text editing
 - **Workflow Saving**: Auto-save and manual save workflows
 - **Workflow Loading**: Load and open existing workflows
 - **Workflow Templates**: Pre-built workflow templates for common tasks
