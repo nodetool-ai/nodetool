@@ -399,19 +399,6 @@ export const handleUpdate = (
       if (update.result) {
         setResult(workflow.id, update.node_id, update.result);
       }
-
-      appendLog({
-        workflowId: workflow.id,
-        workflowName: workflow.name,
-        nodeId: update.node_id,
-        nodeName: update.node_name || update.node_id,
-        content: `${update.node_name || update.node_id} status: ${
-          update.status
-        }`,
-        severity: "info",
-        timestamp: Date.now(),
-        data: update.result
-      });
     }
 
     // if (update.properties) {

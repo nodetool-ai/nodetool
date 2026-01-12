@@ -29,7 +29,6 @@ import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
 import { hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
-import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -436,6 +435,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         hasParent={hasParent}
         iconType={metadata?.outputs?.[0]?.type?.type}
         iconBaseColor={baseColor}
+        workflowId={workflow_id}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
@@ -476,17 +476,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       {chunk && <ChunkDisplay chunk={chunk} />}
       {task && <TaskView task={task} />}
-      {meta.showFooter && (
-        <NodeFooter
-          id={id}
-          nodeNamespace={meta.nodeNamespace}
-          metadata={metadata}
-          nodeType={type}
-          data={data}
-          workflowId={workflow_id}
-          status={status}
-        />
-      )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
     </Container>
