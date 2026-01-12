@@ -300,3 +300,22 @@ Last updated: 2026-01-12
 ---
 
 **Note**: This list represents the current state of NodeTool. Check git history and recent PRs for the most up-to-date information on new features.
+
+---
+
+### Documentation Port Consistency Fix (2026-01-12)
+
+**Issue**: Development-focused documentation incorrectly referenced port 8000 instead of 7777 for the local NodeTool server.
+
+**Affected Files Fixed**:
+- `mobile/QUICKSTART.md` - Updated 5 port references to 7777
+- `web/src/stores/BASE_URL.ts` - Fixed comment to reference correct port
+- `web/.env.example` - Updated VITE_API_URL to use port 7777
+
+**Key Distinction**:
+- **Development**: `nodetool serve` defaults to port 7777
+- **Production**: `nodetool serve --production` and `nodetool worker` default to port 8000
+
+**Impact**: Developers following documentation will now correctly connect to the development server on port 7777.
+
+---
