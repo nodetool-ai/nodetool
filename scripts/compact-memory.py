@@ -38,19 +38,35 @@ class MemoryCompactor:
 
     def compact_all_files(self) -> None:
         """Compact all memory files in the directory."""
-        # Files to compact (excluding README and IMPLEMENTATION)
-        files_to_compact = [
+        # Legacy flat files to compact (excluding README and IMPLEMENTATION)
+        legacy_files = [
             "features.md",
             "common-issues.md",
             "insights.md",
             "project-context.md",
         ]
 
-        for filename in files_to_compact:
+        for filename in legacy_files:
             file_path = self.memory_dir / filename
             if file_path.exists():
                 print(f"\nProcessing {filename}...")
                 self._compact_file(file_path)
+                self.stats["files_processed"] += 1
+
+        # Also process files in issues/ and insights/ subdirectories
+        for subdir in ["issues", "insights"]:
+            subdir_path = self.memory_dir / subdir
+            if subdir_path.exists() and subdir_path.is_dir():
+                self._compact_directory(subdir_path)
+
+    def _compact_directory(self, dir_path: Path) -> None:
+        """Recursively compact markdown files in a directory."""
+        for item in sorted(dir_path.iterdir()):
+            if item.is_dir():
+                self._compact_directory(item)
+            elif item.is_file() and item.suffix == ".md" and item.name != "README.md":
+                print(f"\nProcessing {item.relative_to(self.memory_dir)}...")
+                self._compact_file(item)
                 self.stats["files_processed"] += 1
 
     def _compact_file(self, file_path: Path) -> None:

@@ -69,10 +69,14 @@ jobs:
 
             ## Step 1: Check Memory (REQUIRED)
 
-            **Read these files FIRST** to avoid redundant work:
+            **Read these files and folders FIRST** to avoid redundant work:
             1. **`.github/opencode-memory/features.md`** - Complete feature list
-            2. `.github/opencode-memory/common-issues.md` - Known issues (don't re-solve!)
+            2. **`.github/opencode-memory/issues/`** - List folders to see known issues by topic
+               - Check relevant topic folders (e.g., `issues/typescript/`, `issues/testing/`)
+               - Read specific issue files if your problem matches
             3. `.github/opencode-memory/project-context.md` - Recent changes
+
+            **Example**: If fixing a TypeScript issue, list `issues/typescript/` first to see if it's documented.
 
             **Check if this issue has been addressed before!**
 
@@ -205,13 +209,22 @@ jobs:
 
             ## Step 4: Update Memory
 
-            **After fixing issues**, update memory files concisely:
+            **After fixing issues**, add a new file to the appropriate issues folder:
 
-            1. **`.github/opencode-memory/common-issues.md`** - Document the problem and solution:
+            1. **`.github/opencode-memory/issues/<topic>/`** - Create a new file:
+               - Use kebab-case naming: `your-issue-title.md`
+               - Choose the right topic folder (typescript, testing, etc.)
+               - Format:
                ```markdown
-               ### Issue Title
+               # Issue Title
+
                **Problem**: One sentence describing the issue
+
                **Solution**: One sentence or brief code snippet
+
+               **Files**: List affected files
+
+               **Date**: YYYY-MM-DD
                ```
 
             2. **`.github/opencode-memory/project-context.md`** - ONLY for significant fixes:

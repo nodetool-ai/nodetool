@@ -64,8 +64,8 @@ jobs:
 
             **Read these files FIRST**:
             1. **`.github/opencode-memory/features.md`** - Understand UI features
-            2. `.github/opencode-memory/common-issues.md` - Known a11y issues
-            3. `.github/opencode-memory/insights.md` - A11y learnings
+            2. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known a11y issues
+            3. `.github/opencode-memory/insights/` (list folders to see insights by topic) - A11y learnings
             4. `.github/opencode-memory/project-context.md` - Architecture
 
             ## Step 2: Accessibility Audit Areas
@@ -439,10 +439,10 @@ jobs:
 
             **After accessibility improvements**, update memory files:
 
-            1. **`.github/opencode-memory/common-issues.md`**:
+            1. **`.github/opencode-memory/issues/` (list folders to see issues by topic)**:
                - Document a11y issues found and fixed
 
-            2. **`.github/opencode-memory/insights.md`**:
+            2. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
                - Share accessibility patterns that work
                - Document a11y best practices
 
