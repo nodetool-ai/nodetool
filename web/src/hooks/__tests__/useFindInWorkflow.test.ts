@@ -546,4 +546,213 @@ describe("useFindInWorkflow", () => {
       expect(result.current.totalCount).toBe(result.current.results.length);
     });
   });
+
+  describe("comment search functionality", () => {
+    it("should find nodes by comment content", () => {
+      const nodesWithComment: Node<NodeData>[] = [
+        {
+          id: "comment-node-1",
+          type: "nodetool.workflows.base_node.Comment",
+          position: { x: 0, y: 0 },
+          data: {
+            ...createMockNodeData(),
+            properties: {
+              comment: "This is a workflow for text processing"
+            }
+          }
+        }
+      ];
+
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: nodesWithComment, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("text processing");
+      });
+
+      expect(result.current.results.length).toBe(1);
+      expect(result.current.results[0].node.id).toBe("comment-node-1");
+      expect(result.current.results[0].matchType).toBe("comment");
+    });
+
+    it("should find nodes by comment content with case insensitive search", () => {
+      const nodesWithComment: Node<NodeData>[] = [
+        {
+          id: "comment-node-2",
+          type: "nodetool.workflows.base_node.Comment",
+          position: { x: 0, y: 0 },
+          data: {
+            ...createMockNodeData(),
+            properties: {
+              comment: "IMPORTANT: Remember to validate the model output"
+            }
+          }
+        }
+      ];
+
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: nodesWithComment, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("validate");
+      });
+
+      expect(result.current.results.length).toBe(1);
+      expect(result.current.results[0].matchType).toBe("comment");
+    });
+
+    it("should include match context for comment matches", () => {
+      const nodesWithComment: Node<NodeData>[] = [
+        {
+          id: "comment-node-3",
+          type: "nodetool.workflows.base_node.Comment",
+          position: { x: 0, y: 0 },
+          data: {
+            ...createMockNodeData(),
+            properties: {
+              comment: "This is a very long workflow for processing images with the AI model"
+            }
+          }
+        }
+      ];
+
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: nodesWithComment, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("AI model");
+      });
+
+      expect(result.current.results.length).toBe(1);
+      expect(result.current.results[0].matchContext).toBeDefined();
+      expect(result.current.results[0].matchContext).toContain("AI model");
+    });
+
+    it("should return comment match with empty context for short comments", () => {
+      const nodesWithShortComment: Node<NodeData>[] = [
+        {
+          id: "comment-node-4",
+          type: "nodetool.workflows.base_node.Comment",
+          position: { x: 0, y: 0 },
+          data: {
+            ...createMockNodeData(),
+            properties: {
+              comment: "TODO: fix this"
+            }
+          }
+        }
+      ];
+
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: nodesWithShortComment, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("fix");
+      });
+
+      expect(result.current.results.length).toBe(1);
+      expect(result.current.results[0].matchType).toBe("comment");
+    });
+
+    it("should search both name and comment content", () => {
+      const mixedNodes: Node<NodeData>[] = [
+        {
+          id: "node-with-name",
+          type: "input.text",
+          position: { x: 0, y: 0 },
+          data: {
+            ...createMockNodeData(),
+            properties: { name: "Text Source" }
+          }
+        },
+        {
+          id: "comment-with-text",
+          type: "nodetool.workflows.base_node.Comment",
+          position: { x: 100, y: 0 },
+          data: {
+            ...createMockNodeData(),
+            properties: {
+              comment: "This is the text processing node"
+            }
+          }
+        }
+      ];
+
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mixedNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("text");
+      });
+
+      expect(result.current.results.length).toBe(2);
+      expect(result.current.results.map((r) => r.node.id)).toContain("node-with-name");
+      expect(result.current.results.map((r) => r.node.id)).toContain("comment-with-text");
+    });
+
+    it("should handle nodes with Lexical editor state format", () => {
+      const nodesWithLexicalComment: Node<NodeData>[] = [
+        {
+          id: "lexical-comment-node",
+          type: "nodetool.workflows.base_node.Comment",
+          position: { x: 0, y: 0 },
+          data: {
+            ...createMockNodeData(),
+            properties: {
+              comment: {
+                root: {
+                  children: [
+                    {
+                      type: "paragraph",
+                      children: [{ text: "This is a paragraph with important notes" }]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ];
+
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: nodesWithLexicalComment, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("important notes");
+      });
+
+      expect(result.current.results.length).toBe(1);
+      expect(result.current.results[0].matchType).toBe("comment");
+    });
+  });
 });

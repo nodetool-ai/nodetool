@@ -2,9 +2,13 @@ import { create } from "zustand";
 import { Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";
 
+export type MatchType = "name" | "type" | "id" | "comment";
+
 export interface FindResult {
   node: Node<NodeData>;
   matchIndex: number;
+  matchType?: MatchType;
+  matchContext?: string;
 }
 
 interface FindInWorkflowState {

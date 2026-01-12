@@ -5,6 +5,7 @@ import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import { getNodeDisplayName, searchNodes } from "../utils/findInWorkflowUtils";
 
 export const useFindInWorkflow = () => {
   const {
@@ -27,50 +28,6 @@ export const useFindInWorkflow = () => {
   const metadataStore = useMetadataStore();
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getNodeDisplayName = useCallback(
-    (node: Node<NodeData>): string => {
-      const title = node.data?.properties?.name;
-      if (title && typeof title === "string" && title.trim()) {
-        return title;
-      }
-      const nodeType = node.type ?? "";
-      const metadata = metadataStore.getMetadata(nodeType);
-      if (metadata?.title) {
-        return metadata.title;
-      }
-      return nodeType.split(".").pop() || node.id;
-    },
-    [metadataStore]
-  );
-
-  const searchNodes = useCallback(
-    (term: string, nodeList: Node<NodeData>[]): Node<NodeData>[] => {
-      if (!term.trim()) {
-        return [];
-      }
-
-      const normalizedTerm = term.toLowerCase().trim();
-      const results: Node<NodeData>[] = [];
-
-      for (const node of nodeList) {
-        const displayName = getNodeDisplayName(node).toLowerCase();
-        const nodeType = (node.type ?? "").toLowerCase();
-        const nodeId = node.id.toLowerCase();
-
-        if (
-          displayName.includes(normalizedTerm) ||
-          nodeType.includes(normalizedTerm) ||
-          nodeId.includes(normalizedTerm)
-        ) {
-          results.push(node);
-        }
-      }
-
-      return results;
-    },
-    [getNodeDisplayName]
-  );
-
   const performSearch = useCallback(
     (term: string) => {
       if (!term.trim()) {
@@ -78,12 +35,12 @@ export const useFindInWorkflow = () => {
         return;
       }
 
-      const matchingNodes = searchNodes(term, nodes);
-      setResults(
-        matchingNodes.map((node, index) => ({ node, matchIndex: index }))
+      const matchingResults = searchNodes(term, nodes, (node) =>
+        getNodeDisplayName(node, metadataStore)
       );
+      setResults(matchingResults);
     },
-    [nodes, searchNodes, setResults]
+    [nodes, metadataStore, setResults]
   );
 
   const debouncedSearch = useCallback(
@@ -165,6 +122,6 @@ export const useFindInWorkflow = () => {
     navigatePrevious,
     clearSearch,
     selectNode,
-    getNodeDisplayName
+    getNodeDisplayName: (node: Node<NodeData>) => getNodeDisplayName(node, metadataStore)
   };
 };

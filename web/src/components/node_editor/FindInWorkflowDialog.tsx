@@ -132,6 +132,25 @@ const styles = (theme: Theme) =>
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
+    "& .result-match-context": {
+      fontSize: "11px",
+      color: theme.vars.palette.text.disabled,
+      marginLeft: "8px",
+      fontStyle: "italic",
+      maxWidth: "150px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    "& .comment-badge": {
+      fontSize: "10px",
+      padding: "2px 6px",
+      borderRadius: "4px",
+      backgroundColor: theme.vars.palette.warning.light,
+      color: theme.vars.palette.warning.contrastText,
+      marginLeft: "6px",
+      fontWeight: 500
+    },
     "& .navigation-buttons": {
       display: "flex",
       gap: "4px",
@@ -345,6 +364,14 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                   <Typography className="result-type" variant="caption">
                     {formatNodeType(result.node.type ?? "")}
                   </Typography>
+                  {result.matchType === "comment" && (
+                    <span className="comment-badge">comment</span>
+                  )}
+                  {result.matchContext && (
+                    <Typography className="result-match-context" variant="caption">
+                      {result.matchContext}
+                    </Typography>
+                  )}
                 </ListItemButton>
               </ListItem>
             ))}
