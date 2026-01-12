@@ -78,10 +78,13 @@ jobs:
             
             ## Step 2: Learn from Memory (REQUIRED)
 
-            **Read these files FIRST** to avoid redundant work:
+            **Read these files and folders FIRST** to avoid redundant work:
             1. **`.github/opencode-memory/features.md`** - Complete feature list (MUST READ!)
-            2. `.github/opencode-memory/common-issues.md` - Known issues and solutions
-            3. `.github/opencode-memory/project-context.md` - Recent changes
+            2. **`.github/opencode-memory/issues/`** - List folders to see known issues by topic
+               - Check `issues/typescript/`, `issues/testing/`, etc. as relevant
+            3. **`.github/opencode-memory/insights/`** - List folders to learn best practices
+               - Check `insights/architecture/`, `insights/performance/`, etc.
+            4. `.github/opencode-memory/project-context.md` - Recent changes
 
             **CRITICAL**: Check `features.md` to ensure your feature doesn't already exist!
 
@@ -166,7 +169,7 @@ jobs:
 
             ## Step 4: Document and Update Memory
 
-            **After completing your feature**, update memory files concisely:
+            **After completing your feature**, update memory:
 
             1. **`.github/opencode-memory/features.md`** - Add ONE line describing your feature:
                ```markdown
@@ -180,11 +183,30 @@ jobs:
                **Files**: List main files changed
                ```
             
-            3. **`.github/opencode-memory/common-issues.md`** - ONLY if you solved a tricky problem:
+            3. **`.github/opencode-memory/issues/<topic>/`** - ONLY if you solved a tricky problem:
+               - Create a new file with kebab-case name (e.g., `my-issue-fix.md`)
+               - Format:
                ```markdown
-               ### Issue Title
+               # Issue Title
+
                **Problem**: One sentence
+
                **Solution**: One sentence or brief code snippet
+
+               **Date**: YYYY-MM-DD
+               ```
+            
+            4. **`.github/opencode-memory/insights/<topic>/`** - ONLY for significant learnings:
+               - Create a new file with kebab-case name (e.g., `my-insight.md`)
+               - Format:
+               ```markdown
+               # Insight Title
+
+               **Insight**: What was learned
+
+               **Example**: Code example (if applicable)
+
+               **Date**: YYYY-MM-DD
                ```
 
             **Keep it minimal** - Only write truly important information that will help future agents avoid redundant work.

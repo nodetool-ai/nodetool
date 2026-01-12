@@ -12,12 +12,40 @@ All memory files are stored in `.github/opencode-memory/`:
 
 ```
 .github/opencode-memory/
-├── README.md              # Memory system documentation
-├── project-context.md     # Architecture and patterns
-├── build-test-lint.md     # Quality requirements
-├── tech-stack.md          # Technologies and versions
-├── common-issues.md       # Known issues and solutions
-└── insights.md            # Important learnings
+├── README.md                    # Memory system documentation
+├── features.md                  # Complete feature list
+├── project-context.md           # Architecture and patterns
+├── build-test-lint.md           # Quality requirements
+├── tech-stack.md                # Technologies and versions
+│
+├── issues/                      # Known issues organized by topic
+│   ├── README.md                # How to add new issues
+│   ├── typescript/              # TypeScript type errors
+│   ├── build/                   # Build and bundling issues
+│   ├── testing/                 # Test failures and configs
+│   ├── linting/                 # ESLint and type check issues
+│   ├── state-management/        # Zustand and React state
+│   ├── ui-styling/              # MUI, ReactFlow, styling
+│   ├── api-backend/             # WebSocket, CORS, API
+│   ├── dependencies/            # npm and package issues
+│   ├── git-ci/                  # Git, CI/CD, workflows
+│   └── electron/                # Electron-specific issues
+│
+├── insights/                    # Best practices by topic
+│   ├── README.md                # How to add new insights
+│   ├── architecture/            # Architectural patterns
+│   ├── performance/             # Performance optimizations
+│   ├── testing/                 # Testing strategies
+│   ├── code-quality/            # Code quality practices
+│   ├── ui-ux/                   # UI/UX patterns
+│   ├── api-backend/             # API integration patterns
+│   ├── build-system/            # Build tooling
+│   ├── deployment/              # Deployment and distribution
+│   └── future/                  # Future considerations
+│
+└── (legacy flat files)
+    ├── common-issues.md         # Deprecated - use issues/
+    └── insights.md              # Deprecated - use insights/
 ```
 
 ## Memory Files Purpose
@@ -60,26 +88,21 @@ All memory files are stored in `.github/opencode-memory/`:
 - **For**: Understanding what's available and constraints
 - **Updates**: When dependencies are updated
 
-### 5. common-issues.md
-- **Purpose**: Known problems and solutions
-  - TypeScript issues
-  - Build issues
-  - Testing issues
-  - Lint/type check issues
-  - State management issues
-  - UI/styling issues
+### 5. issues/ folder (replaces common-issues.md)
+- **Purpose**: Known problems and solutions organized by topic
+  - Each topic has its own subfolder
+  - Each issue is a separate markdown file
+  - Files have descriptive names (e.g., `jest-module-not-found.md`)
 - **For**: Avoiding redundant debugging
-- **Updates**: Frequently (whenever new issues are solved)
+- **Updates**: Create new files when issues are solved
 
-### 6. insights.md
-- **Purpose**: Important discoveries
-  - Architectural insights
-  - Performance optimizations
-  - Testing insights
-  - Code quality insights
-  - UI/UX insights
+### 6. insights/ folder (replaces insights.md)
+- **Purpose**: Important discoveries organized by topic
+  - Each topic has its own subfolder
+  - Each insight is a separate markdown file
+  - Files have descriptive names (e.g., `zustand-selective-subscriptions.md`)
 - **For**: Learning from past experiences
-- **Updates**: When significant learnings occur
+- **Updates**: Create new files when significant learnings occur
 
 ## How Workflows Use Memory
 
@@ -87,12 +110,12 @@ All memory files are stored in `.github/opencode-memory/`:
 
 Each workflow prompt instructs the agent to:
 
-1. **Read memory files first** (in priority order):
+1. **Read memory files and folders first** (in priority order):
    - `build-test-lint.md` (for test/quality workflows)
-   - `common-issues.md` (check if issue already solved)
+   - `issues/<topic>/` (list folders, check if issue already solved)
    - `project-context.md` (understand architecture)
    - `tech-stack.md` (know available tools)
-   - `insights.md` (learn from past experiences)
+   - `insights/<topic>/` (learn from past experiences)
 
 2. **Check for previous work**:
    - Has this issue been solved before?
@@ -103,18 +126,19 @@ Each workflow prompt instructs the agent to:
 
 Workflows are instructed to:
 
-1. **Update relevant memory files**:
-   - `common-issues.md`: Add new solutions
-   - `insights.md`: Document important learnings
+1. **Create new files in appropriate folders**:
+   - `issues/<topic>/your-issue.md`: Add new solutions
+   - `insights/<topic>/your-insight.md`: Document important learnings
    - `project-context.md`: Add to "Recent Changes"
 
-2. **Use this format**:
+2. **Use this format for issue files**:
    ```markdown
-   ### [Topic] (YYYY-MM-DD)
+   # Issue Title
 
-   **Issue/Insight**: Description
-   **Solution/Why**: Details
-   **Files Affected**: List
+   **Problem**: Description
+   **Solution**: Details
+   **Files**: List
+   **Date**: YYYY-MM-DD
    ```
 
 ## Workflow-Specific Memory Usage

@@ -99,9 +99,9 @@ jobs:
 
             **Read these files FIRST**:
             1. **`.github/opencode-memory/features.md`** - Understand security-sensitive features
-            2. `.github/opencode-memory/common-issues.md` - Known security issues
+            2. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known security issues
             3. `.github/opencode-memory/project-context.md` - Architecture
-            4. `.github/opencode-memory/insights.md` - Security learnings
+            4. `.github/opencode-memory/insights/` (list folders to see insights by topic) - Security learnings
 
             ## Step 2: Security Audit Areas
 
@@ -350,11 +350,11 @@ jobs:
 
             **After fixing security issues**, update memory files:
 
-            1. **`.github/opencode-memory/common-issues.md`**:
+            1. **`.github/opencode-memory/issues/` (list folders to see issues by topic)**:
                - Document vulnerabilities found and fixed
                - Add patterns to avoid in future
 
-            2. **`.github/opencode-memory/insights.md`**:
+            2. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
                - Share security best practices learned
                - Document secure coding patterns
 

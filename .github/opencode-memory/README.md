@@ -1,72 +1,117 @@
 # OpenCode Long-Term Memory
 
-This directory contains persistent knowledge for OpenCode workflows to avoid solving the same problems repeatedly.
+This directory contains persistent knowledge for OpenCode workflows to avoid solving the same problems repeatedly. Content is organized into **folders by topic**, with **individual files for each issue/insight** to prevent merge conflicts and keep context focused.
 
-## Files
+## Directory Structure
 
-**Primary files** (update these):
-- `features.md` - Complete list of existing features (READ FIRST!)
-- `common-issues.md` - Known issues and their solutions
-- `project-context.md` - Recent changes and core architecture
-
-**Reference files** (rarely updated):
-- `build-test-lint.md` - Commands and quality requirements
-- `tech-stack.md` - Technologies and versions
-- `insights.md` - Architectural insights
+```
+opencode-memory/
+├── README.md              # This file - overview and usage
+├── features.md            # Complete list of existing features
+├── project-context.md     # Core architecture and recent changes
+├── build-test-lint.md     # Quality requirements and commands
+├── tech-stack.md          # Technologies and versions
+│
+├── issues/                # Known issues organized by topic
+│   ├── README.md          # How to add new issues
+│   ├── typescript/        # TypeScript type errors
+│   ├── build/             # Build and bundling issues
+│   ├── testing/           # Test failures and configs
+│   ├── linting/           # ESLint and type check issues
+│   ├── state-management/  # Zustand and React state
+│   ├── ui-styling/        # MUI, ReactFlow, styling
+│   ├── api-backend/       # WebSocket, CORS, API
+│   ├── dependencies/      # npm and package issues
+│   ├── git-ci/            # Git, CI/CD, workflows
+│   └── electron/          # Electron-specific issues
+│
+└── insights/              # Best practices organized by topic
+    ├── README.md          # How to add new insights
+    ├── architecture/      # Architectural patterns
+    ├── performance/       # Performance optimizations
+    ├── testing/           # Testing strategies
+    ├── code-quality/      # Code quality practices
+    ├── ui-ux/             # UI/UX patterns
+    ├── api-backend/       # API integration patterns
+    ├── build-system/      # Build tooling
+    ├── deployment/        # Deployment and distribution
+    └── future/            # Future considerations
+```
 
 ## How to Use
 
-### For OpenCode Workflows
+### Before Making Changes
 
-1. **Before making changes**: 
-   - **READ `features.md` FIRST** to check for existing features
-   - Check `common-issues.md` for known solutions
-   - Review `project-context.md` for recent changes
+1. **Check `features.md`** - Ensure your feature doesn't already exist
+2. **List `issues/<topic>/`** - Check if your problem is already solved
+3. **List `insights/<topic>/`** - Learn from existing best practices
+4. **Read `project-context.md`** - Understand recent changes
 
-2. **After completing work**: 
-   - Add ONE line to `features.md` if you added a user-facing feature
-   - Add ONE entry to `common-issues.md` if you solved a tricky problem
-   - Add ONE entry to `project-context.md` for significant changes
+### After Completing Work
 
-### Update Format
+1. **New feature?** → Add ONE line to `features.md`
+2. **Solved a tricky problem?** → Create a file in `issues/<topic>/`
+3. **Discovered a best practice?** → Create a file in `insights/<topic>/`
+4. **Significant change?** → Add entry to `project-context.md`
 
-**features.md** - One line per feature:
+## File Naming Convention
+
+Use **descriptive, kebab-case names** that summarize the content:
+- `issues/typescript/reactflow-node-type-mismatches.md`
+- `issues/testing/jest-e2e-test-exclusion.md`
+- `insights/performance/zustand-selective-subscriptions.md`
+
+**Why?** Agents can list a folder to get an overview of topics, then read specific files for details.
+
+## File Format
+
+### Issue Files (`issues/<topic>/*.md`)
+
 ```markdown
-- **Feature Name**: Brief description (max 10 words)
-```
+# Issue Title
 
-**common-issues.md** - Concise problem/solution:
-```markdown
-### Issue Title
-**Problem**: One sentence
+**Problem**: One sentence describing the issue
+
 **Solution**: One sentence or brief code snippet
+
+**Why**: Brief explanation (optional)
+
+**Files**: Related files (optional)
+
+**Date**: YYYY-MM-DD
 ```
 
-**project-context.md** - Minimal change log:
+### Insight Files (`insights/<topic>/*.md`)
+
 ```markdown
-### Feature/Fix Name (YYYY-MM-DD)
-**What**: One sentence
-**Files**: Main files changed
+# Insight Title
+
+**Insight**: What was learned or discovered
+
+**Rationale**: Why it matters
+
+**Example**: Code example (if applicable)
+
+**Impact**: Measurable benefit (if known)
+
+**Files**: Related files (optional)
+
+**Date**: YYYY-MM-DD
 ```
 
-## Keep It Concise
+## Benefits of File-Based Structure
 
-✅ **DO write:**
-- One-line feature descriptions
-- Brief problem/solution pairs
-- Minimal change summaries
-
-❌ **DON'T write:**
-- Long explanations or rationale
-- Implementation details
-- Code examples (unless critical)
-- Duplicate information
+✅ **Fewer merge conflicts** - Each issue/insight is a separate file
+✅ **Focused context** - Agents read only what they need
+✅ **Better discoverability** - List folders to see topics at a glance
+✅ **Easy to update** - Add/remove files without editing large documents
+✅ **Version control friendly** - Git diffs are cleaner
 
 ## Maintenance
 
-The `scripts/compact-memory.py` script can remove duplicates and old entries:
+The `scripts/compact-memory.py` script handles cleanup for legacy flat files.
 
-```bash
-python scripts/compact-memory.py --dry-run  # Preview changes
-python scripts/compact-memory.py             # Clean up files
-```
+For the folder-based structure:
+- Remove outdated files when issues are no longer relevant
+- Consolidate similar files if they overlap
+- Use `git log` to see when files were last updated

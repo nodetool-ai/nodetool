@@ -70,8 +70,8 @@ jobs:
             **Read these files FIRST**:
             1. **`.github/opencode-memory/features.md`** - Understand all features to document
             2. `.github/opencode-memory/project-context.md` - Architecture and patterns
-            3. `.github/opencode-memory/insights.md` - Important learnings
-            4. `.github/opencode-memory/common-issues.md` - Known documentation gaps
+            3. `.github/opencode-memory/insights/` (list folders to see insights by topic) - Important learnings
+            4. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known documentation gaps
 
             ## Step 2: Documentation Audit Areas
 
@@ -247,10 +247,10 @@ jobs:
 
             **After improving documentation**, update memory files:
 
-            1. **`.github/opencode-memory/common-issues.md`**:
+            1. **`.github/opencode-memory/issues/` (list folders to see issues by topic)**:
                - Document documentation gaps you found and fixed
 
-            2. **`.github/opencode-memory/insights.md`**:
+            2. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
                - Share patterns for good documentation
                - Note areas that commonly lack docs
 

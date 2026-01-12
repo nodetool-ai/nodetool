@@ -81,30 +81,28 @@ jobs:
 
             ## Memory System
 
-            **Before making changes**, read these files to avoid redundant work:
+            **Before making changes**, read these files and folders to avoid redundant work:
             - **`.github/opencode-memory/features.md`** - Complete feature list (MUST READ!)
-            - `.github/opencode-memory/common-issues.md` - Known issues and solutions
+            - **`.github/opencode-memory/issues/`** - List folders to see known issues by topic
+              - Check relevant topic folders (e.g., `issues/typescript/`, `issues/testing/`)
+            - **`.github/opencode-memory/insights/`** - List folders for best practices
             - `.github/opencode-memory/project-context.md` - Recent changes
 
-            **After completing work**, update memory files if needed:
+            **After completing work**, update memory:
             - **Add ONE LINE to features.md** if you added a user-facing feature
-            - **Add ONE ENTRY to common-issues.md** if you solved a tricky problem
+            - **Create a file in issues/<topic>/`** if you solved a tricky problem
+            - **Create a file in insights/<topic>/`** if you discovered a best practice
             - **Add ONE ENTRY to project-context.md** under "Recent Changes" for significant changes
             
-            **Format for updates** (be concise):
+            **Format for new issue files** (create in `issues/<topic>/your-issue.md`):
             ```markdown
-            # features.md - single line per feature:
-            - **Feature Name**: Brief description (max 10 words)
-            
-            # common-issues.md - brief entry:
-            ### Issue Title
+            # Issue Title
+
             **Problem**: One sentence
+
             **Solution**: One sentence or code snippet
-            
-            # project-context.md - under "Recent Changes":
-            ### Feature Name (YYYY-MM-DD)
-            **What**: One sentence
-            **Files**: List main files
+
+            **Date**: YYYY-MM-DD
             ```
             
             **Keep it minimal** - Only write truly important information that will help future work.

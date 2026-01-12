@@ -69,9 +69,10 @@ jobs:
 
             ## Step 1: Check Memory (REQUIRED)
 
-            **Read these files FIRST**:
+            **Read these files and folders FIRST**:
             1. **`.github/opencode-memory/features.md`** - Understand what exists before testing
-            2. `.github/opencode-memory/common-issues.md` - Known issues and solutions
+            2. **`.github/opencode-memory/issues/`** - List folders to see known issues by topic
+               - Check `issues/testing/`, `issues/linting/`, etc. for relevant solutions
             3. `.github/opencode-memory/project-context.md` - Recent changes
 
             **Check if similar fixes have been attempted before!**
@@ -258,13 +259,22 @@ jobs:
 
             ## Step 5: Update Memory
 
-            **After fixing issues**, update memory files concisely:
+            **After fixing issues**, add a new file to the appropriate issues folder:
 
-            1. **`.github/opencode-memory/common-issues.md`** - Document new issues and solutions:
+            1. **`.github/opencode-memory/issues/<topic>/`** - Create a new file:
+               - Use kebab-case naming: `your-issue-fix.md`
+               - Choose the right topic folder (testing, linting, typescript, etc.)
+               - Format:
                ```markdown
-               ### Issue Title
+               # Issue Title
+
                **Problem**: One sentence describing what was broken
+
                **Solution**: One sentence explaining the fix
+
+               **Files**: List affected files
+
+               **Date**: YYYY-MM-DD
                ```
 
             2. **`.github/opencode-memory/project-context.md`** - ONLY for major test fixes:
