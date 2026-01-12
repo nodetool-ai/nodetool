@@ -284,3 +284,125 @@ export const autoLayout = async (
 
   return [...updatedNonCommentNodes, ...commentNodes];
 };
+
+export interface WorkflowStats {
+  nodeCount: number;
+  edgeCount: number;
+  nodeCountsByType: Record<string, number>;
+  nodeCountsByCategory: Record<string, number>;
+  workflowDepth: number;
+  hasCycles: boolean;
+  sourceNodes: number;
+  sinkNodes: number;
+  branchingFactor: number;
+}
+
+export interface NodeTypeInfo {
+  type: string;
+  category: string;
+  displayName: string;
+}
+
+const NODE_CATEGORY_PATTERNS: Record<string, RegExp[]> = {
+  "Inputs": [/^nodetool\.input\./],
+  "Outputs": [/^nodetool\.output\./],
+  "Processing": [/^nodetool\.processing\./],
+  "Control Flow": [/^nodetool\.control\./, /nodetool\.workflows\./],
+  "Models": [/^nodetool\.models\./, /model$/],
+};
+
+const getNodeCategory = (nodeType: string): string => {
+  for (const [category, patterns] of Object.entries(NODE_CATEGORY_PATTERNS)) {
+    if (patterns.some((pattern) => pattern.test(nodeType))) {
+      return category;
+    }
+  }
+  return "Other";
+};
+
+const getNodeDisplayName = (nodeType: string): string => {
+  const parts = nodeType.split(".");
+  const lastPart = parts[parts.length - 1];
+  return lastPart
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (str) => str.toUpperCase())
+    .trim();
+};
+
+export const getNodeTypeInfo = (nodeType: string): NodeTypeInfo => ({
+  type: nodeType,
+  category: getNodeCategory(nodeType),
+  displayName: getNodeDisplayName(nodeType)
+});
+
+export const calculateWorkflowStats = (
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): WorkflowStats => {
+  const nodeCountsByType: Record<string, number> = {};
+  const nodeCountsByCategory: Record<string, number> = {};
+  const indegree: Record<string, number> = {};
+  const outdegree: Record<string, number> = {};
+
+  nodes.forEach((node) => {
+    const info = getNodeTypeInfo(node.type ?? "");
+    nodeCountsByType[info.displayName] = (nodeCountsByType[info.displayName] || 0) + 1;
+    nodeCountsByCategory[info.category] = (nodeCountsByCategory[info.category] || 0) + 1;
+    indegree[node.id] = 0;
+    outdegree[node.id] = 0;
+  });
+
+  edges.forEach((edge) => {
+    if (indegree[edge.target] !== undefined) {
+      indegree[edge.target]++;
+    }
+    if (outdegree[edge.source] !== undefined) {
+      outdegree[edge.source]++;
+    }
+  });
+
+  const sourceNodes = nodes.filter((node) => indegree[node.id] === 0).length;
+  const sinkNodes = nodes.filter((node) => outdegree[node.id] === 0).length;
+
+  const topologicalLayers = topologicalSort(edges, nodes);
+  const hasCycles = topologicalLayers.flat().length < nodes.length;
+  const workflowDepth = topologicalLayers.length;
+
+  const totalOutDegree = Object.values(outdegree).reduce((sum, val) => sum + val, 0);
+  const branchingFactor = nodes.length > 0 ? totalOutDegree / nodes.length : 0;
+
+  return {
+    nodeCount: nodes.length,
+    edgeCount: edges.length,
+    nodeCountsByType,
+    nodeCountsByCategory,
+    workflowDepth,
+    hasCycles,
+    sourceNodes,
+    sinkNodes,
+    branchingFactor: Math.round(branchingFactor * 100) / 100
+  };
+};
+
+export const getWorkflowComplexityLevel = (stats: WorkflowStats): "simple" | "moderate" | "complex" => {
+  if (stats.nodeCount <= 10 && stats.workflowDepth <= 5) {
+    return "simple";
+  }
+  if (stats.nodeCount > 50) {
+    return "complex";
+  }
+  return "moderate";
+};
+
+export const getWorkflowComplexityDescription = (level: "simple" | "moderate" | "complex"): string => {
+  switch (level) {
+    case "simple":
+      return "This workflow has a straightforward structure with few nodes and dependencies.";
+    case "moderate":
+      return "This workflow has moderate complexity with branching and multiple processing steps.";
+    case "complex":
+      return "This is a complex workflow with many nodes and potential for parallel execution.";
+    default:
+      return "";
+  }
+};

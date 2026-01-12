@@ -1,11 +1,11 @@
-import { subgraph, topologicalSort } from "../graph";
+import { subgraph, topologicalSort, calculateWorkflowStats, getWorkflowComplexityLevel, getNodeTypeInfo } from "../graph";
 import type { Edge, Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 
 // Helper function to create a test node
-const createNode = (id: string): Node<NodeData> => ({
+const createNode = (id: string, type = "test-node"): Node<NodeData> => ({
   id,
-  type: "test-node",
+  type,
   position: { x: 0, y: 0 },
   data: {
     properties: {},
@@ -227,6 +227,204 @@ describe("graph utilities", () => {
       expect(result[0]).toEqual(["A"]);
       expect(result[1].sort()).toEqual(["B", "C"]); // B and C can be processed in parallel
       expect(result[2]).toEqual(["D"]);
+    });
+  });
+
+  describe("calculateWorkflowStats", () => {
+    it("returns correct stats for empty workflow", () => {
+      const nodes: Node<NodeData>[] = [];
+      const edges: Edge[] = [];
+
+      const result = calculateWorkflowStats(nodes, edges);
+
+      expect(result.nodeCount).toBe(0);
+      expect(result.edgeCount).toBe(0);
+      expect(result.workflowDepth).toBe(1);
+      expect(result.hasCycles).toBe(false);
+      expect(result.sourceNodes).toBe(0);
+      expect(result.sinkNodes).toBe(0);
+    });
+
+    it("calculates correct stats for simple linear workflow", () => {
+      const nodes = [
+        createNode("A"),
+        createNode("B"),
+        createNode("C")
+      ];
+      const edges = [createEdge("A", "B"), createEdge("B", "C")];
+
+      const result = calculateWorkflowStats(nodes, edges);
+
+      expect(result.nodeCount).toBe(3);
+      expect(result.edgeCount).toBe(2);
+      expect(result.workflowDepth).toBe(3);
+      expect(result.hasCycles).toBe(false);
+      expect(result.sourceNodes).toBe(1);
+      expect(result.sinkNodes).toBe(1);
+    });
+
+    it("calculates correct stats for branching workflow", () => {
+      const nodes = [
+        createNode("A"),
+        createNode("B"),
+        createNode("C"),
+        createNode("D")
+      ];
+      const edges = [
+        createEdge("A", "B"),
+        createEdge("A", "C"),
+        createEdge("B", "D"),
+        createEdge("C", "D")
+      ];
+
+      const result = calculateWorkflowStats(nodes, edges);
+
+      expect(result.nodeCount).toBe(4);
+      expect(result.edgeCount).toBe(4);
+      expect(result.workflowDepth).toBe(3);
+      expect(result.hasCycles).toBe(false);
+      expect(result.sourceNodes).toBe(1);
+      expect(result.sinkNodes).toBe(1);
+      expect(result.branchingFactor).toBe(1);
+    });
+
+    it("detects cycles in workflow", () => {
+      const nodes = [
+        createNode("A"),
+        createNode("B"),
+        createNode("C")
+      ];
+      const edges = [
+        createEdge("A", "B"),
+        createEdge("B", "C"),
+        createEdge("C", "A")
+      ];
+
+      const result = calculateWorkflowStats(nodes, edges);
+
+      expect(result.hasCycles).toBe(true);
+    });
+
+    it("groups nodes by type correctly", () => {
+      const nodes = [
+        createNode("A", "nodetool.input.StringInput"),
+        createNode("B", "nodetool.input.StringInput"),
+        createNode("C", "nodetool.output.StringOutput")
+      ];
+      const edges = [
+        createEdge("A", "C"),
+        createEdge("B", "C")
+      ];
+
+      const result = calculateWorkflowStats(nodes, edges);
+
+      expect(result.nodeCountsByType["String Input"]).toBe(2);
+      expect(result.nodeCountsByType["String Output"]).toBe(1);
+    });
+
+    it("groups nodes by category correctly", () => {
+      const nodes = [
+        createNode("A", "nodetool.input.StringInput"),
+        createNode("B", "nodetool.output.StringOutput"),
+        createNode("C", "nodetool.processing.StringProcessor")
+      ];
+      const edges = [
+        createEdge("A", "C"),
+        createEdge("C", "B")
+      ];
+
+      const result = calculateWorkflowStats(nodes, edges);
+
+      expect(result.nodeCountsByCategory["Inputs"]).toBe(1);
+      expect(result.nodeCountsByCategory["Outputs"]).toBe(1);
+      expect(result.nodeCountsByCategory["Processing"]).toBe(1);
+    });
+
+    it("calculates branching factor correctly", () => {
+      const nodes = [
+        createNode("A"),
+        createNode("B"),
+        createNode("C"),
+        createNode("D")
+      ];
+      const edges = [
+        createEdge("A", "B"),
+        createEdge("A", "C"),
+        createEdge("A", "D")
+      ];
+
+      const result = calculateWorkflowStats(nodes, edges);
+
+      expect(result.branchingFactor).toBe(0.75);
+    });
+  });
+
+  describe("getNodeTypeInfo", () => {
+    it("categorizes input nodes correctly", () => {
+      const info = getNodeTypeInfo("nodetool.input.StringInput");
+
+      expect(info.category).toBe("Inputs");
+      expect(info.displayName).toBe("String Input");
+    });
+
+    it("categorizes output nodes correctly", () => {
+      const info = getNodeTypeInfo("nodetool.output.ImageOutput");
+
+      expect(info.category).toBe("Outputs");
+      expect(info.displayName).toBe("Image Output");
+    });
+
+    it("categorizes processing nodes correctly", () => {
+      const info = getNodeTypeInfo("nodetool.processing.ImageProcessor");
+
+      expect(info.category).toBe("Processing");
+      expect(info.displayName).toBe("Image Processor");
+    });
+
+    it("categorizes control flow nodes correctly", () => {
+      const info = getNodeTypeInfo("nodetool.control.If");
+
+      expect(info.category).toBe("Control Flow");
+      expect(info.displayName).toBe("If");
+    });
+
+    it("categorizes unknown node types as Other", () => {
+      const info = getNodeTypeInfo("custom.unknown.NodeType");
+
+      expect(info.category).toBe("Other");
+      expect(info.displayName).toBe("Node Type");
+    });
+  });
+
+  describe("getWorkflowComplexityLevel", () => {
+    it("returns simple for small, shallow workflows", () => {
+      const nodes = [createNode("A"), createNode("B")];
+      const edges = [createEdge("A", "B")];
+      const stats = calculateWorkflowStats(nodes, edges);
+
+      expect(getWorkflowComplexityLevel(stats)).toBe("simple");
+    });
+
+    it("returns complex for large, deep workflows", () => {
+      const nodes = Array.from({ length: 60 }, (_, i) => createNode(String(i)));
+      const edges: Edge[] = [];
+      for (let i = 0; i < nodes.length - 1; i++) {
+        edges.push(createEdge(String(i), String(i + 1)));
+      }
+      const stats = calculateWorkflowStats(nodes, edges);
+
+      expect(getWorkflowComplexityLevel(stats)).toBe("complex");
+    });
+
+    it("returns moderate for medium workflows", () => {
+      const nodes = Array.from({ length: 30 }, (_, i) => createNode(String(i)));
+      const edges: Edge[] = [];
+      for (let i = 0; i < nodes.length - 1; i++) {
+        edges.push(createEdge(String(i), String(i + 1)));
+      }
+      const stats = calculateWorkflowStats(nodes, edges);
+
+      expect(getWorkflowComplexityLevel(stats)).toBe("moderate");
     });
   });
 });

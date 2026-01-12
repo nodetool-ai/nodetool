@@ -27,6 +27,8 @@ import PanelResizeButton from "./PanelResizeButton";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
+import WorkflowStatsPanel from "./WorkflowStatsPanel";
+import AnalyticsIcon from "@mui/icons-material/Analytics";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 const HEADER_HEIGHT = 77;
@@ -118,6 +120,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle,
   handleWorkspaceToggle,
   handleVersionsToggle,
+  handleStatsToggle,
   activeView,
   panelVisible
 }: {
@@ -126,7 +129,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle: () => void;
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions";
+  handleStatsToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "stats";
   panelVisible: boolean;
 }) {
   return (
@@ -247,6 +251,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <HistoryIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Stats Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Stats</div>
+            <div className="tooltip-key">
+              <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleStatsToggle}
+          className={
+            activeView === "stats" && panelVisible
+              ? "stats active"
+              : "stats"
+          }
+        >
+          <AnalyticsIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -339,6 +369,7 @@ const PanelRight: React.FC = () => {
             handleLogsToggle={() => handlePanelToggle("logs")}
             handleWorkspaceToggle={() => handlePanelToggle("workspace")}
             handleVersionsToggle={() => handlePanelToggle("versions")}
+            handleStatsToggle={() => handlePanelToggle("stats")}
             activeView={activeView}
             panelVisible={isVisible}
           />
@@ -365,6 +396,13 @@ const PanelRight: React.FC = () => {
                       onClose={() => handlePanelToggle("versions")}
                     />
                   ) : null
+                ) : activeView === "stats" ? (
+                  activeNodeStore && (
+                    <NodeContext.Provider value={activeNodeStore}>
+                      <ContextMenus />
+                      <WorkflowStatsPanel />
+                    </NodeContext.Provider>
+                  )
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>

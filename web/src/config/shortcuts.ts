@@ -619,6 +619,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Reset zoom to 100% (default scale)",
     registerCombo: true
+  },
+  {
+    title: "Toggle Stats",
+    slug: "toggleStats",
+    keyCombo: ["Control", "Shift", "S"],
+    category: "panel" as const,
+    description: "Show or hide Workflow Stats panel",
+    registerCombo: false
   }
 ] as Shortcut[];
 

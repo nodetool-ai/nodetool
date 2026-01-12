@@ -44,6 +44,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import { useNodes } from "../../contexts/NodeContext";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
 
 declare global {
   interface Window {
@@ -85,6 +86,22 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       }
     },
     true,
+    active
+  );
+
+  // Keyboard shortcut for Stats panel (Ctrl+Shift+S or Meta+Shift+S)
+  const handleStatsToggle = useRightPanelStore(
+    (state: ReturnType<typeof useRightPanelStore.getState>) => state.handleViewChange
+  );
+  const statsCombo = isMac() ? ["meta", "shift", "s"] : ["control", "shift", "s"];
+  useCombo(
+    statsCombo,
+    () => {
+      if (active) {
+        handleStatsToggle("stats");
+      }
+    },
+    false,
     active
   );
 
