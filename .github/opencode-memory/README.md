@@ -83,3 +83,34 @@ Memory files should be reviewed and cleaned up periodically (every ~50 workflow 
 - Consolidate similar entries
 - Update with new findings
 - Keep files under 500 lines
+
+### Automatic Compaction
+
+Use the memory compaction script to automatically remove duplicates and old entries:
+
+```bash
+# See what would be compacted
+python scripts/compact-memory.py --dry-run
+
+# Compact the memory files
+python scripts/compact-memory.py
+
+# Compact with custom age limit (e.g., 90 days instead of default 180)
+python scripts/compact-memory.py --max-age-days 90
+```
+
+**OpenCode workflows are instructed to run this script after updating memory files.**
+
+The script:
+- Removes duplicate entries (same content)
+- Filters old entries (older than specified days)
+- Cleans excessive whitespace
+- Maintains proper formatting
+
+### Manual Review
+
+Periodically (every 2-3 months) manually review memory files to:
+- Update information after major dependency upgrades
+- Reorganize sections if needed
+- Archive very old but still relevant information
+- Verify accuracy of documented solutions
