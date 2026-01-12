@@ -1,6 +1,8 @@
 # Important Insights and Learnings
 
-This file captures important discoveries, architectural decisions, and best practices learned during development.
+This file captures important architectural decisions and best practices. **Most updates should go to common-issues.md instead.**
+
+**Only add entries here for significant architectural insights that aren't covered elsewhere.**
 
 ## Architecture Insights
 
