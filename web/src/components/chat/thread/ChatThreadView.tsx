@@ -255,7 +255,11 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const isNearBottomRef = useRef(true);
   const lastUserScrollTimeRef = useRef<number>(0);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Track when we've scrolled to a user message - prevents auto-scroll to bottom from overriding
+  // Track when we've scrolled to a user message - prevents auto-scroll to bottom from overriding.
+  // Lifecycle:
+  // - Set to true: when scrollToLastUserMessage() is called (user submits a message)
+  // - Set to false: when user manually scrolls, or when streaming ends
+  // - Checked: in auto-scroll effect to skip scrollToBottom during streaming
   const scrolledToUserMessageRef = useRef(false);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
