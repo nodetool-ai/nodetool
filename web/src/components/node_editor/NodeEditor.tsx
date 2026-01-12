@@ -44,6 +44,8 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import { useNodes } from "../../contexts/NodeContext";
+import QuickNodePalette from "../node_menu/QuickNodePalette";
+import { useQuickNodePalette } from "../../hooks/useQuickNodePalette";
 
 declare global {
   interface Window {
@@ -87,6 +89,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     true,
     active
   );
+
+  // Quick Node Palette keyboard shortcut (Ctrl+P / Cmd+P)
+  useQuickNodePalette();
 
   // OPEN NODE MENU
   const {
@@ -154,6 +159,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 redo={() => nodeHistory.redo()}
                 reactFlowWrapper={reactFlowWrapperRef}
               />
+              <QuickNodePalette active={active} />
               <FindInWorkflowDialog workflowId={workflowId} />
               <Modal
                 open={showShortcuts}

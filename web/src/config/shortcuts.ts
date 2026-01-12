@@ -619,6 +619,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Reset zoom to 100% (default scale)",
     registerCombo: true
+  },
+  {
+    title: "Quick Node Palette",
+    slug: "quickNodePalette",
+    keyCombo: ["Control", "P"],
+    keyComboMac: ["Meta", "P"],
+    category: "editor" as const,
+    description: "Open quick node search palette for fast node insertion",
+    registerCombo: true
   }
 ] as Shortcut[];
 

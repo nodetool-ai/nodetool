@@ -160,6 +160,26 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Quick Node Palette Feature (2026-01-12)
+
+**What**: Added a keyboard-driven Quick Node Palette feature for rapid node insertion. Press Ctrl+P (or Cmd+P on Mac) to open a searchable dialog that allows quick finding and inserting of nodes into the workflow.
+
+**Key Features**:
+- Fuzzy search across node names, descriptions, types, and namespaces
+- Keyboard navigation (Arrow keys to navigate, Enter to select, Escape to close)
+- Virtualized list rendering for performance with many nodes
+- Recent searches memory
+- Always accessible from anywhere in the editor
+
+**Files**:
+- `web/src/stores/QuickNodePaletteStore.ts` - Zustand store for palette state
+- `web/src/components/node_menu/QuickNodePalette.tsx` - Palette component
+- `web/src/hooks/useQuickNodePalette.ts` - Keyboard shortcut hook
+- `web/src/config/shortcuts.ts` - Added Quick Node Palette shortcut
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated palette into editor
+
+---
+
 ### Test Distribution Functions Fix (2026-01-12)
 
 **What**: Fixed failing tests in `useSelectionActions.test.ts` by correcting expected values for distributeHorizontal and distributeVertical functions.
