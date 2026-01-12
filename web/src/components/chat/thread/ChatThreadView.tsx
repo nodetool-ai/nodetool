@@ -255,6 +255,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const isNearBottomRef = useRef(true);
   const lastUserScrollTimeRef = useRef<number>(0);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track when we've scrolled to a user message - prevents auto-scroll to bottom from overriding
+  const scrolledToUserMessageRef = useRef(false);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
@@ -294,6 +296,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
   const handleScroll = useCallback(() => {
     lastUserScrollTimeRef.current = Date.now();
+    // User manually scrolling clears the "scrolled to user message" state
+    scrolledToUserMessageRef.current = false;
     const element = scrollHost;
     if (!element) { return; }
 
@@ -342,6 +346,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       userHasScrolledUpRef.current = false;
+      // Set flag to prevent auto-scroll to bottom during streaming
+      scrolledToUserMessageRef.current = true;
     }
   }, []);
 
@@ -374,6 +380,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
   useEffect(() => {
     if (previousStatusRef.current === "streaming" && status !== "streaming") {
+      // Clear the user message scroll flag when streaming ends
+      scrolledToUserMessageRef.current = false;
       scrollToBottom();
     }
     previousStatusRef.current = status;
@@ -408,8 +416,11 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           Date.now() - lastUserScrollTimeRef.current >
           USER_SCROLL_IDLE_THRESHOLD_MS;
 
+        // Don't auto-scroll to bottom if we just scrolled to user message
+        // This prevents the response from pushing the user message out of view
         if (
           !userHasScrolledUpRef.current &&
+          !scrolledToUserMessageRef.current &&
           userIsIdle &&
           isNearBottomRef.current
         ) {
