@@ -6,7 +6,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { Box, List, Typography, Button } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
-import RenderNodes from "./RenderNodes";
+import VirtualizedNodeList from "./VirtualizedNodeList";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
@@ -474,7 +474,18 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           selectedOutputType ? (
           <>
             <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
-              <RenderNodes nodes={searchResults} />
+              {searchTerm ? (
+                <VirtualizedNodeList
+                  nodes={searchResults}
+                  isSearchResults={true}
+                />
+              ) : (
+                <VirtualizedNodeList
+                  nodes={searchResults}
+                  isSearchResults={false}
+                  showFavoriteButton={true}
+                />
+              )}
             </List>
             {/* Only show NodeInfo when not searching */}
             {!searchTerm && (

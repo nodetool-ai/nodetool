@@ -160,6 +160,16 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Virtualized Node List (2026-01-12)
+
+**What**: Added virtual scrolling to the node menu using @tanstack/react-virtual for improved performance with large node libraries.
+
+**Why**: Node menus with 100+ nodes were rendering all items in the DOM, causing slowdowns. Virtualization only renders visible items.
+
+**Files**: `web/src/components/node_menu/VirtualizedNodeList.tsx`, `web/src/components/node_menu/NamespaceList.tsx`, `web/src/components/node_menu/__tests__/VirtualizedNodeList.test.tsx`
+
+---
+
 ### Test Distribution Functions Fix (2026-01-12)
 
 **What**: Fixed failing tests in `useSelectionActions.test.ts` by correcting expected values for distributeHorizontal and distributeVertical functions.
