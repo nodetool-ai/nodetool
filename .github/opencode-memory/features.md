@@ -2,7 +2,9 @@
 
 This document lists all existing features in NodeTool to help OpenCode agents avoid creating redundant functionality. **Always read this file before planning new features.**
 
-Last updated: 2026-01-10
+**When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
+
+Last updated: 2026-01-12
 
 ---
 

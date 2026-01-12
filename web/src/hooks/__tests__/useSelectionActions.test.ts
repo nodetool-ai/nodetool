@@ -250,11 +250,12 @@ describe("useSelectionActions", () => {
       const updatedNodes = updateFn(currentNodes);
       const byId = Object.fromEntries(updatedNodes.map((n: any) => [n.id, n]));
 
-      // With 3 nodes width=100 in sequential placement (width + spacing = 140)
-      // Positions: 0, 0+140=140, 140+140=280
+      // With 3 nodes at positions 0, 200, 400 using equal distribution algorithm:
+      // Formula: leftMostX + (index * (rightMostX - leftMostX)) / (count - 1)
+      // Positions: 0 + (0 * 400) / 2 = 0, 0 + (1 * 400) / 2 = 200, 0 + (2 * 400) / 2 = 400
       expect(byId.input.position.x).toBe(0);
-      expect(byId.A.position.x).toBe(140);
-      expect(byId.B.position.x).toBe(280);
+      expect(byId.A.position.x).toBe(200);
+      expect(byId.B.position.x).toBe(400);
     });
 
     it("distributes with 2 nodes", () => {
@@ -352,11 +353,12 @@ describe("useSelectionActions", () => {
       const updatedNodes = updateFn(currentNodes);
       const byId = Object.fromEntries(updatedNodes.map((n: any) => [n.id, n]));
 
-      // With 3 nodes height=50 in sequential placement (height + spacing = 70)
-      // Positions: 0, 0+70=70, 70+70=140
+      // With 3 nodes at positions 0, 200, 400 using equal distribution algorithm:
+      // Formula: topMostY + (index * (bottomMostY - topMostY)) / (count - 1)
+      // Positions: 0 + (0 * 400) / 2 = 0, 0 + (1 * 400) / 2 = 200, 0 + (2 * 400) / 2 = 400
       expect(byId.input.position.y).toBe(0);
-      expect(byId.A.position.y).toBe(70);
-      expect(byId.B.position.y).toBe(140);
+      expect(byId.A.position.y).toBe(200);
+      expect(byId.B.position.y).toBe(400);
     });
 
     it("distributes with 2 nodes", () => {
