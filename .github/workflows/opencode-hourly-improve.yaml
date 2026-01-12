@@ -68,12 +68,9 @@ jobs:
             ## Step 1: Check Memory (REQUIRED)
 
             **Read these files FIRST** to avoid redundant work:
-            1. **`.github/opencode-memory/features.md`** - **Complete feature list (understand what exists!)**
-            2. `.github/opencode-memory/project-context.md` - Architecture and patterns
-            3. `.github/opencode-memory/build-test-lint.md` - Quality standards
-            4. `.github/opencode-memory/tech-stack.md` - Technologies and versions
-            5. `.github/opencode-memory/common-issues.md` - Known issues (don't re-solve!)
-            6. `.github/opencode-memory/insights.md` - Important learnings
+            1. **`.github/opencode-memory/features.md`** - Complete feature list
+            2. `.github/opencode-memory/common-issues.md` - Known issues (don't re-solve!)
+            3. `.github/opencode-memory/project-context.md` - Recent changes
 
             **Check if this issue has been addressed before!**
 
@@ -206,38 +203,23 @@ jobs:
 
             ## Step 4: Update Memory
 
-            **After fixing issues**, update memory files:
+            **After fixing issues**, update memory files concisely:
 
-            1. **`.github/opencode-memory/common-issues.md`**:
-               - Document the problem and solution
-               - Help prevent recurrence
+            1. **`.github/opencode-memory/common-issues.md`** - Document the problem and solution:
+               ```markdown
+               ### Issue Title
+               **Problem**: One sentence describing the issue
+               **Solution**: One sentence or brief code snippet
+               ```
 
-            2. **`.github/opencode-memory/insights.md`**:
-               - Share learnings about code quality
-               - Document patterns that work well
+            2. **`.github/opencode-memory/project-context.md`** - ONLY for significant fixes:
+               ```markdown
+               ### Fix Title (YYYY-MM-DD)
+               **What**: One sentence
+               **Files**: List affected files
+               ```
 
-            3. **`.github/opencode-memory/project-context.md`**:
-               - Add entry to "Recent Changes"
-
-            4. **`.github/opencode-memory/features.md`** (if relevant):
-               - Update feature descriptions if behavior changed
-               - Add to "Features NOT Yet Implemented" if removing placeholder
-
-            **After updating memory files, COMPACT THEM**:
-            ```bash
-            python scripts/compact-memory.py
-            ```
-            This removes duplicates and keeps memory files manageable. Commit the compacted files.
-
-            **Format**:
-            ```markdown
-            ### [Issue Type] Fixed (2026-01-10)
-
-            **Issue**: Brief description of the problem
-            **Solution**: What you changed
-            **Why**: Rationale for the fix
-            **Files Affected**: List of changed files
-            ```
+            **Keep it minimal** - Only write truly important information.
 
             ## Common Improvement Areas
 

@@ -69,11 +69,8 @@ jobs:
 
             **Read these files FIRST**:
             1. **`.github/opencode-memory/features.md`** - Understand what exists before testing
-            2. `.github/opencode-memory/build-test-lint.md` - Quality requirements (CRITICAL!)
-            3. `.github/opencode-memory/common-issues.md` - Known issues and solutions
-            4. `.github/opencode-memory/project-context.md` - Project architecture
-            5. `.github/opencode-memory/tech-stack.md` - Technologies used
-            6. `.github/opencode-memory/insights.md` - Important learnings
+            2. `.github/opencode-memory/common-issues.md` - Known issues and solutions
+            3. `.github/opencode-memory/project-context.md` - Recent changes
 
             **Check if similar fixes have been attempted before!**
 
@@ -259,38 +256,23 @@ jobs:
 
             ## Step 5: Update Memory
 
-            **After fixing issues**, update memory files:
+            **After fixing issues**, update memory files concisely:
 
-            1. **`.github/opencode-memory/common-issues.md`**:
-               - Document new issues and solutions
-               - Update existing entries if needed
+            1. **`.github/opencode-memory/common-issues.md`** - Document new issues and solutions:
+               ```markdown
+               ### Issue Title
+               **Problem**: One sentence describing what was broken
+               **Solution**: One sentence explaining the fix
+               ```
 
-            2. **`.github/opencode-memory/build-test-lint.md`**:
-               - Add new quality patterns discovered
-               - Update command documentation if changed
+            2. **`.github/opencode-memory/project-context.md`** - ONLY for major test fixes:
+               ```markdown
+               ### Fix Title (YYYY-MM-DD)
+               **What**: One sentence
+               **Files**: List affected files
+               ```
 
-            3. **`.github/opencode-memory/insights.md`**:
-               - Share learnings about the codebase
-               - Document patterns that prevent issues
-
-            4. **`.github/opencode-memory/features.md`** (if relevant):
-               - Update if test fixes reveal missing or broken features
-
-            **After updating memory files, COMPACT THEM**:
-            ```bash
-            python scripts/compact-memory.py
-            ```
-            This removes duplicates and keeps memory files manageable. Commit the compacted files.
-
-            **Format**:
-            ```markdown
-            ### [Issue Type] (2026-01-10)
-
-            **Issue**: Description of what was broken
-            **Solution**: How it was fixed
-            **Why**: Root cause and prevention
-            **Files**: List of affected files
-            ```
+            **Keep it minimal** - Only write truly important information.
 
             ## Best Practices
 
