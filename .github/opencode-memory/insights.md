@@ -449,3 +449,23 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Node Menu Virtualization Implementation (2026-01-12)
+
+**Insight**: Virtualized namespace-based node lists improve performance when displaying large numbers of nodes in the NodeMenu.
+
+**Challenge**: The original RenderNodes component used `.flatMap()` to render all nodes at once, which could cause performance issues with many nodes. Search results already used virtualization via SearchResultsPanel.tsx, but namespace-based browsing did not.
+
+**Solution**: Created VirtualizedNamespaceNodes.tsx using `react-window` with `VariableSizeList`:
+- Groups nodes by namespace dynamically
+- Calculates variable heights based on namespace group content
+- Uses `react-virtualized-auto-sizer` for responsive container sizing
+- Integrates seamlessly with existing NodeMenu component structure
+
+**Pattern**: Follows the same virtualization approach used in SearchResultsPanel.tsx and other virtualized lists in the codebase.
+
+**Files**: `web/src/components/node_menu/VirtualizedNamespaceNodes.tsx`, `web/src/components/node_menu/RenderNodes.tsx`
+
+**Date**: 2026-01-12

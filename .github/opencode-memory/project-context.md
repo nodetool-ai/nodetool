@@ -179,4 +179,19 @@ test('handles user interaction', async () => {
 
 ---
 
-_No entries yet - this memory system is new as of 2026-01-10_
+### Node Menu Virtualization (2026-01-12)
+
+**What**: Added virtualization to the node menu's namespace-based node list for improved performance when browsing large numbers of nodes.
+
+**Why**: The node menu previously rendered all nodes at once, which could cause performance issues when there are many nodes in a namespace. Virtualization ensures only visible nodes are rendered.
+
+**Implementation**:
+- Created `VirtualizedNamespaceNodes.tsx` component using `react-window` with `VariableSizeList` for efficient virtualization
+- Grouped nodes by namespace with dynamic height calculations
+- Used `react-virtualized-auto-sizer` for responsive container sizing
+- Updated `RenderNodes.tsx` to use the new virtualized component for namespace-based rendering
+- Search results already used virtualization via `SearchResultsPanel.tsx`
+
+**Files Changed**:
+- `web/src/components/node_menu/VirtualizedNamespaceNodes.tsx` - New virtualized node list component
+- `web/src/components/node_menu/RenderNodes.tsx` - Updated to use virtualization
