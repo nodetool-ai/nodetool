@@ -13,13 +13,32 @@ import {
   Button
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
 import { useReactFlow } from "@xyflow/react";
 import { useSelectedNodesInfo } from "../../hooks/useSelectedNodesInfo";
+
+interface NodeConnectionInfo {
+  totalInputs: number;
+  connectedInputs: number;
+  totalOutputs: number;
+  connectedOutputs: number;
+}
+
+interface SelectedNodeInfo {
+  id: string;
+  label: string;
+  type: string;
+  description: string | undefined;
+  position: { x: number; y: number };
+  connections: NodeConnectionInfo;
+  hasError: boolean;
+  errorMessage: string | undefined;
+  executionStatus: "pending" | "running" | "completed" | "error" | undefined;
+  lastExecutedAt: string | undefined;
+}
 
 const styles = (theme: Theme) =>
   css({
@@ -234,12 +253,72 @@ const formatPosition = (x: number, y: number): string => {
   return `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
 };
 
-const formatConnections = (connected: number, total: number): string => {
-  if (total === 0) {
-    return "N/A";
+const getStatusIcon = (status: string | undefined) => {
+  switch (status) {
+    case "completed":
+      return <CheckCircleIcon fontSize="small" className="status-icon completed" />;
+    case "error":
+      return <ErrorIcon fontSize="small" className="status-icon error" />;
+    case "running":
+      return <CircleOutlinedIcon fontSize="small" className="status-icon pending" />;
+    default:
+      return <CircleOutlinedIcon fontSize="small" className="status-icon pending" />;
   }
-  return `${connected}/${total}`;
 };
+
+const NodeCard: React.FC<{ nodeInfo: SelectedNodeInfo }> = memo(({ nodeInfo }) => {
+  const theme = useTheme();
+  const { setCenter } = useReactFlow();
+
+  const handleFocusNode = useCallback(() => {
+    setCenter(nodeInfo.position.x, nodeInfo.position.y, { zoom: 1.5, duration: 300 });
+  }, [setCenter, nodeInfo.position.x, nodeInfo.position.y]);
+
+  return (
+    <Box
+      className="node-card"
+      sx={{
+        p: 2,
+        mb: 1.5,
+        bgcolor: "action.hover",
+        borderRadius: 2,
+        border: 1,
+        borderColor: "divider",
+        "&:last-child": { mb: 0 }
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+        <Typography className="node-name" sx={{ fontSize: "14px", fontWeight: 600 }}>
+          {nodeInfo.label}
+        </Typography>
+        {getStatusIcon(nodeInfo.executionStatus)}
+      </Box>
+
+      {nodeInfo.description && (
+        <Typography className="node-description" sx={{ fontSize: "12px", mb: 1 }}>
+          {nodeInfo.description}
+        </Typography>
+      )}
+
+      {nodeInfo.hasError && (
+        <Box className="error-message">
+          <Typography className="error-text">{nodeInfo.errorMessage}</Typography>
+        </Box>
+      )}
+
+      <Button
+        size="small"
+        startIcon={<OpenInNewIcon fontSize="small" />}
+        onClick={handleFocusNode}
+        sx={{ mt: 1, fontSize: "11px" }}
+      >
+        Focus
+      </Button>
+    </Box>
+  );
+});
+
+NodeCard.displayName = "NodeCard";
 
 const NodeInfoPanel: React.FC<NodeInfoPanelProps> = memo(({ onClose }) => {
   const theme = useTheme();
@@ -291,153 +370,25 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = memo(({ onClose }) => {
 
       <Box className="panel-content">
         {hasMultipleNodes ? (
-          <Box className="node-info-section">
-            <Typography className="section-title">Selected Nodes</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {totalSelected} nodes selected
+          <Box>
+            <Typography className="section-title" sx={{ mb: 2 }}>
+              Selected Nodes ({totalSelected})
             </Typography>
-            <Box sx={{ mt: 1, maxHeight: 200, overflowY: "auto" }}>
+            <Box sx={{ maxHeight: "calc(100vh - 280px)", overflowY: "auto" }}>
               {nodesInfo.map((node) => (
-                <Box
-                  key={node.id}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    py: 0.5,
-                    px: 1,
-                    borderRadius: 1,
-                    "&:hover": { bgcolor: "action.hover" }
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      flex: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap"
-                    }}
-                  >
-                    {node.label}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {formatNodeType(node.type)}
-                  </Typography>
-                </Box>
+                <NodeCard key={node.id} nodeInfo={node} />
               ))}
             </Box>
           </Box>
         ) : hasSingleNode ? (
           <>
             <Box className="node-info-section">
-              <Typography className="section-title">Node Name</Typography>
               <Typography className="node-name">{firstNode.label}</Typography>
-              <Typography className="node-type">
-                {formatNodeType(firstNode.type)}
-              </Typography>
               {firstNode.description && (
                 <Typography className="node-description">
                   {firstNode.description}
                 </Typography>
               )}
-              <Typography
-                className="position-text"
-                sx={{ mt: 1 }}
-              >{`Position: ${formatPosition(firstNode.position.x, firstNode.position.y)}`}</Typography>
-            </Box>
-
-            <Divider className="divider" />
-
-            <Box className="node-info-section">
-              <Typography className="section-title">Connections</Typography>
-              <Box className="connections-grid">
-                <Box className="connection-item">
-                  <Box className="connection-text">
-                    <Typography className="connection-count">
-                      {formatConnections(
-                        firstNode.connections.connectedInputs,
-                        firstNode.connections.totalInputs
-                      )}
-                    </Typography>
-                    <Typography className="connection-label">Inputs</Typography>
-                  </Box>
-                </Box>
-                <Box className="connection-item">
-                  <Box className="connection-text">
-                    <Typography className="connection-count">
-                      {formatConnections(
-                        firstNode.connections.connectedOutputs,
-                        firstNode.connections.totalOutputs
-                      )}
-                    </Typography>
-                    <Typography className="connection-label">Outputs</Typography>
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
-
-            <Divider className="divider" />
-
-            <Box className="node-info-section">
-              <Typography className="section-title">Status</Typography>
-              <Box className="status-row">
-                {firstNode.executionStatus === "completed" && (
-                  <CheckCircleIcon className="status-icon completed" />
-                )}
-                {firstNode.executionStatus === "error" && (
-                  <ErrorIcon className="status-icon error" />
-                )}
-                {!firstNode.executionStatus && (
-                  <CircleOutlinedIcon className="status-icon pending" />
-                )}
-                <Typography className="status-text">
-                  {firstNode.executionStatus === "completed"
-                    ? "Executed successfully"
-                    : firstNode.executionStatus === "error"
-                    ? "Execution failed"
-                    : "Not yet executed"}
-                </Typography>
-              </Box>
-              {firstNode.hasError && firstNode.errorMessage && (
-                <Box className="error-message">
-                  <Typography className="error-text">
-                    {firstNode.errorMessage}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-
-            <Divider className="divider" />
-
-            <Box className="node-info-section">
-              <Typography className="section-title">Actions</Typography>
-              <Box className="actions-row">
-                <Tooltip title="Copy Node ID" arrow>
-                  <Button
-                    className="action-button"
-                    variant="outlined"
-                    size="small"
-                    startIcon={<ContentCopyIcon fontSize="small" />}
-                    onClick={() => handleCopyNodeId(firstNode.id)}
-                  >
-                    Copy ID
-                  </Button>
-                </Tooltip>
-                <Tooltip title="Focus on Node" arrow>
-                  <Button
-                    className="action-button"
-                    variant="outlined"
-                    size="small"
-                    startIcon={<OpenInNewIcon fontSize="small" />}
-                    onClick={() =>
-                      handleFocusNode(firstNode.position.x, firstNode.position.y)
-                    }
-                  >
-                    Focus
-                  </Button>
-                </Tooltip>
-              </Box>
             </Box>
           </>
         ) : null}
