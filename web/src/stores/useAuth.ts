@@ -135,11 +135,12 @@ export const useAuth = create<LoginStore>((set, get) => ({
 
       // Store subscription reference for cleanup
       set({ _authSubscription: subscription });
-    } catch (error: any) {
-      log.info("Auth: Initialization error", error);
+    } catch (error: unknown) {
+      const errorMessage = createErrorMessage(error, "Auth initialization failed");
+      log.info("Auth: Initialization error", errorMessage);
       set({
         state: "error",
-        error: createErrorMessage(error, "Auth initialization failed").message,
+        error: errorMessage.message,
         session: null,
         user: null,
         _authSubscription: null
@@ -166,12 +167,12 @@ export const useAuth = create<LoginStore>((set, get) => ({
       });
       if (error) {throw error;}
       // State update (to 'logged_in') is handled by the onAuthStateChange listener.
-    } catch (error: any) {
-      log.info(`Auth: Sign in with ${provider} error`, error);
+    } catch (error: unknown) {
+      const errorMessage = createErrorMessage(error, `Failed to sign in with ${provider}`);
+      log.info(`Auth: Sign in with ${provider} error`, errorMessage);
       set({
         state: "error",
-        error: createErrorMessage(error, `Failed to sign in with ${provider}`)
-          .message
+        error: errorMessage.message
       });
     }
   },
@@ -190,12 +191,13 @@ export const useAuth = create<LoginStore>((set, get) => ({
       // Explicitly set state to logged_out here, although onAuthStateChange
       // will also fire and update the state.
       set({ session: null, user: null, state: "logged_out", error: null });
-    } catch (error: any) {
-      log.info("Auth: Sign out error", error);
+    } catch (error: unknown) {
+      const errorMessage = createErrorMessage(error, "Failed to sign out");
+      log.info("Auth: Sign out error", errorMessage);
       // If sign-out fails, remain in an error state but clear session/user
       set({
         state: "error",
-        error: createErrorMessage(error, "Failed to sign out").message,
+        error: errorMessage.message,
         session: null,
         user: null
       });
