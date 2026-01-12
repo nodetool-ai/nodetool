@@ -243,4 +243,34 @@ test('handles user interaction', async () => {
 
 ---
 
+### Security Audit Fixes (2026-01-12)
+
+**What**: Comprehensive security audit and vulnerability patching across web and electron packages.
+
+**Why**: Multiple critical and high severity vulnerabilities were identified in dependencies:
+- DOMPurify XSS (CVE in GHSA-vhxf-7vqr-mrjg)
+- React Router XSS/CSRF (multiple CVEs in GHSA-h5cw, GHSA-2w69, GHSA-8v8x, GHSA-3cgp)
+- React Syntax Highlighter XSS (CVE in GHSA-x7hr-w5r2-h6wg)
+- Express/Qs DoS vulnerability (CVE in GHSA-6rw7-vpxm-498p)
+- Missing Content Security Policy
+
+**Implementation**:
+- Updated `dompurify` from `^3.2.3` to `^3.2.4` in web/package.json
+- Updated `react-router-dom` from `^7.6.0` to `^7.12.0` in web/package.json
+- Updated `react-syntax-highlighter` from `^15.6.1` to `^16.1.0` in web/package.json
+- Added `overrides` for `qs`, `express`, `body-parser` in electron/package.json
+- Added CSP meta tag to web/index.html
+
+**Results**:
+- Web: Reduced from 8 vulnerabilities (2 high) to 2 (1 high, 1 low)
+- Electron: Reduced from 12 vulnerabilities (3 high) to 0
+- All quality checks pass (typecheck, lint)
+
+**Files Changed**:
+- `web/package.json` - Dependency updates
+- `electron/package.json` - Added overrides
+- `web/index.html` - Added CSP meta tag
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
