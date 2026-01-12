@@ -64,6 +64,12 @@ describe("highlightText utilities", () => {
       expect(hexToRgb("#AbCdEf")).toBe("171, 205, 239");
     });
 
+    it("trims whitespace around hex values", () => {
+      expect(hexToRgb("  #ff0000")).toBe("255, 0, 0");
+      expect(hexToRgb("#00ff00  ")).toBe("0, 255, 0");
+      expect(hexToRgb("  0000ff  ")).toBe("0, 0, 255");
+    });
+
     it("returns null for invalid hex formats", () => {
       expect(hexToRgb("invalid")).toBeNull();
       expect(hexToRgb("#fff")).toBeNull(); // 3-digit not supported
