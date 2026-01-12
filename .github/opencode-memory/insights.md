@@ -423,6 +423,40 @@ on:
 
 ---
 
+### Node Annotations Implementation (2026-01-12)
+
+**Insight**: Using Zustand stores for modal dialog state management works better than context when the dialog needs to be triggered from hooks.
+
+**Challenge**: The annotation dialog needed to be triggered from the `useNodeContextMenu` hook (which is a React hook and can't directly render components).
+
+**Solution**: Created a Zustand store (`AnnotationDialogStore`) to manage the dialog state, allowing the hook to call `openAnnotationDialog()` which updates the store. The `ContextMenus` component subscribes to this store and renders the dialog when needed.
+
+**Pattern**:
+```typescript
+// Store for dialog state
+const useAnnotationDialogStore = create<AnnotationDialogState>((set) => ({
+  isOpen: false,
+  nodeId: null,
+  initialAnnotation: "",
+  openAnnotationDialog: (nodeId, initialAnnotation) => set({ isOpen: true, nodeId, initialAnnotation }),
+  closeAnnotationDialog: () => set({ isOpen: false, nodeId: null })
+}));
+
+// In ContextMenus.tsx - render dialog based on store state
+const annotationDialogState = useAnnotationDialogStore.getState();
+<AnnotationDialog
+  open={annotationDialogState.isOpen}
+  onClose={annotationDialogState.closeAnnotationDialog}
+  onSave={handleSaveAnnotation}
+/>
+```
+
+**Files**: `web/src/stores/AnnotationDialogStore.ts`, `web/src/components/dialogs/AnnotationDialog.tsx`, `web/src/components/context_menus/ContextMenus.tsx`
+
+**Date**: 2026-01-12
+
+---
+
 ### Quality Assurance Verification (2026-01-10)
 
 **Insight**: All quality checks (typecheck, lint, test) pass successfully when mobile dependencies are properly installed.

@@ -18,6 +18,7 @@ jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../core/graph");
 jest.mock("../../../utils/edgeValue");
 jest.mock("../../../utils/NodeTypeMapping");
+jest.mock("../../../stores/AnnotationDialogStore");
 
 jest.mock("../../../components/properties/TextEditorModal", () => ({
   default: () => null
@@ -61,6 +62,7 @@ import { subgraph } from "../../../core/graph";
 import { resolveExternalEdgeValue } from "../../../utils/edgeValue";
 import { constantToInputType, inputToConstantType } from "../../../utils/NodeTypeMapping";
 import { useReactFlow } from "@xyflow/react";
+import useAnnotationDialogStore from "../../../stores/AnnotationDialogStore";
 
 const mockedUseContextMenuStore = useContextMenuStore as jest.Mock;
 const mockedUseNodes = useNodes as jest.Mock;
@@ -75,6 +77,7 @@ const mockedResolveExternalEdgeValue = resolveExternalEdgeValue as jest.Mock;
 const mockedConstantToInputType = constantToInputType as jest.Mock;
 const mockedInputToConstantType = inputToConstantType as jest.Mock;
 const mockedUseReactFlow = useReactFlow as jest.Mock;
+const mockedUseAnnotationDialogStore = useAnnotationDialogStore as unknown as jest.Mock;
 
 describe("useNodeContextMenu", () => {
   const mockCloseContextMenu = jest.fn();
@@ -91,6 +94,8 @@ describe("useNodeContextMenu", () => {
   const mockRemoveFromGroup = jest.fn();
   const mockGetMetadata = jest.fn();
   const mockFindNode = jest.fn();
+  const mockOpenAnnotationDialog = jest.fn();
+  const mockCloseAnnotationDialog = jest.fn();
 
   const mockNode = {
     id: "node-1",
@@ -168,6 +173,18 @@ describe("useNodeContextMenu", () => {
       return selector(state);
     });
 
+    mockedUseAnnotationDialogStore.mockImplementation((selector) => {
+      const state = {
+        openAnnotationDialog: mockOpenAnnotationDialog,
+        closeAnnotationDialog: mockCloseAnnotationDialog,
+        isOpen: false,
+        nodeId: null,
+        initialAnnotation: "",
+        nodeTitle: undefined
+      };
+      return selector(state);
+    });
+
     mockGetMetadata.mockReturnValue({ title: "String Constant" });
     mockedConstantToInputType.mockReturnValue("nodetool.input.StringInput");
     mockedInputToConstantType.mockReturnValue("nodetool.constant.String");
@@ -187,6 +204,7 @@ describe("useNodeContextMenu", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       expect(result.current.handlers).toBeDefined();
+      expect(typeof result.current.handlers.handleToggleAnnotation).toBe("function");
       expect(typeof result.current.handlers.handleToggleComment).toBe("function");
       expect(typeof result.current.handlers.handleRunFromHere).toBe("function");
       expect(typeof result.current.handlers.handleToggleBypass).toBe("function");
@@ -201,12 +219,170 @@ describe("useNodeContextMenu", () => {
     it("returns all condition booleans", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
+      expect(result.current.conditions.hasAnnotation).toBe(false);
       expect(result.current.conditions.hasCommentTitle).toBe(false);
       expect(result.current.conditions.isBypassed).toBe(false);
       expect(result.current.conditions.canConvertToInput).toBe(true);
       expect(result.current.conditions.canConvertToConstant).toBe(true);
       expect(result.current.conditions.isWorkflowRunning).toBe(false);
       expect(result.current.conditions.isInGroup).toBe(false);
+    });
+  });
+
+  describe("handleToggleAnnotation", () => {
+    it("opens annotation dialog with initial annotation", () => {
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleToggleAnnotation();
+      });
+
+      expect(mockOpenAnnotationDialog).toHaveBeenCalledWith(
+        "node-1",
+        "",
+        undefined
+      );
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("opens annotation dialog with existing annotation", () => {
+      const nodeWithAnnotation = {
+        ...mockNode,
+        data: { ...mockNode.data, annotation: "Test note", properties: { name: "test_node" } }
+      };
+
+      mockedUseNodes.mockImplementation((selector) => {
+        const state = {
+          updateNodeData: mockUpdateNodeData,
+          updateNode: mockUpdateNode,
+          selectNodesByType: mockSelectNodesByType,
+          deleteNode: mockDeleteNode,
+          getSelectedNodes: mockGetSelectedNodes,
+          toggleBypass: mockToggleBypass,
+          nodes: [nodeWithAnnotation, ...mockNodes.slice(1)],
+          edges: mockEdges,
+          workflow: mockWorkflow,
+          findNode: mockFindNode
+        };
+        return selector(state);
+      });
+
+      mockedUseReactFlow.mockImplementation(() => ({
+        getNode: jest.fn((id) => {
+          const nodes = [nodeWithAnnotation, ...mockNodes.slice(1)];
+          return nodes.find((n: { id: string }) => n.id === id) || null;
+        }),
+        getNodes: jest.fn(() => [nodeWithAnnotation, ...mockNodes.slice(1)]),
+        getEdges: jest.fn(() => mockEdges)
+      }));
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(true);
+
+      act(() => {
+        result.current.handlers.handleToggleAnnotation();
+      });
+
+      expect(mockOpenAnnotationDialog).toHaveBeenCalledWith(
+        "node-1",
+        "Test note",
+        "test_node"
+      );
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("does nothing when nodeId is null", () => {
+      mockedUseContextMenuStore.mockImplementation((selector) => {
+        const state = {
+          menuPosition: null,
+          closeContextMenu: mockCloseContextMenu,
+          nodeId: null
+        };
+        return selector(state);
+      });
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleToggleAnnotation();
+      });
+
+      expect(mockOpenAnnotationDialog).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("hasAnnotation condition", () => {
+    it("returns hasAnnotation as true when node has annotation", () => {
+      const nodeWithAnnotation = {
+        ...mockNode,
+        data: { ...mockNode.data, annotation: "My annotation" }
+      };
+
+      mockedUseNodes.mockImplementation((selector) => {
+        const state = {
+          updateNodeData: mockUpdateNodeData,
+          updateNode: mockUpdateNode,
+          selectNodesByType: mockSelectNodesByType,
+          deleteNode: mockDeleteNode,
+          getSelectedNodes: mockGetSelectedNodes,
+          toggleBypass: mockToggleBypass,
+          nodes: [nodeWithAnnotation, ...mockNodes.slice(1)],
+          edges: mockEdges,
+          workflow: mockWorkflow,
+          findNode: mockFindNode
+        };
+        return selector(state);
+      });
+
+      mockedUseReactFlow.mockImplementation(() => ({
+        getNode: jest.fn((id) => {
+          if (id === "node-1") {return nodeWithAnnotation;}
+          return null;
+        }),
+        getNodes: jest.fn(() => [nodeWithAnnotation, ...mockNodes.slice(1)]),
+        getEdges: jest.fn(() => mockEdges)
+      }));
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(true);
+    });
+
+    it("returns hasAnnotation as false when node has empty annotation", () => {
+      const nodeWithEmptyAnnotation = {
+        ...mockNode,
+        data: { ...mockNode.data, annotation: "   " }
+      };
+
+      mockedUseNodes.mockImplementation((selector) => {
+        const state = {
+          updateNodeData: mockUpdateNodeData,
+          updateNode: mockUpdateNode,
+          selectNodesByType: mockSelectNodesByType,
+          deleteNode: mockDeleteNode,
+          getSelectedNodes: mockGetSelectedNodes,
+          toggleBypass: mockToggleBypass,
+          nodes: [nodeWithEmptyAnnotation, ...mockNodes.slice(1)],
+          edges: mockEdges,
+          workflow: mockWorkflow,
+          findNode: mockFindNode
+        };
+        return selector(state);
+      });
+
+      mockedUseReactFlow.mockImplementation(() => ({
+        getNode: jest.fn((id) => {
+          if (id === "node-1") {return nodeWithEmptyAnnotation;}
+          return null;
+        }),
+        getNodes: jest.fn(() => [nodeWithEmptyAnnotation, ...mockNodes.slice(1)]),
+        getEdges: jest.fn(() => mockEdges)
+      }));
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(false);
     });
   });
 

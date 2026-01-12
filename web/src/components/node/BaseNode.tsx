@@ -39,7 +39,8 @@ import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
 
 import { getIsElectronDetails } from "../../utils/browser";
-import { Box } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
+import NotesIcon from "@mui/icons-material/Notes";
 
 
 // Node sizing constants
@@ -486,6 +487,34 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           status={status}
         />
+      )}
+
+      {data.annotation && (
+        <Tooltip title={data.annotation} arrow placement="bottom">
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: -4,
+              right: 8,
+              bgcolor: "warning.main",
+              borderRadius: "50%",
+              width: 16,
+              height: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10,
+              boxShadow: 1
+            }}
+          >
+            <NotesIcon
+              sx={{
+                fontSize: 10,
+                color: "warning.contrastText"
+              }}
+            />
+          </Box>
+        </Tooltip>
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}

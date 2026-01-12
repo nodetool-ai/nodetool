@@ -179,4 +179,39 @@ test('handles user interaction', async () => {
 
 ---
 
+### Node Annotations (2026-01-12)
+
+**What**: Added ability to add custom notes/annotations to any node in the workflow editor.
+
+**Why**: Users need a way to document their workflows, explain complex node configurations, and add context to specific nodes for themselves and team members.
+
+**Implementation**:
+- Added `annotation` field to `NodeData` type in `web/src/stores/NodeData.ts`
+- Created `AnnotationDialog` component for editing annotations (`web/src/components/dialogs/AnnotationDialog.tsx`)
+- Created `AnnotationDialogStore` for managing dialog state (`web/src/stores/AnnotationDialogStore.ts`)
+- Added `handleToggleAnnotation` handler to `useNodeContextMenu` hook
+- Added annotation menu item to `NodeContextMenu` component
+- Added visual annotation indicator to `BaseNode` component (yellow icon at bottom-right)
+- Integrated annotation dialog into `ContextMenus` component
+- Added comprehensive unit tests for the annotation feature
+
+**Files Changed**:
+- `web/src/stores/NodeData.ts` - Added annotation field to NodeData type
+- `web/src/stores/AnnotationDialogStore.ts` - New store for annotation dialog state
+- `web/src/components/dialogs/AnnotationDialog.tsx` - New dialog component
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added annotation menu option
+- `web/src/components/context_menus/ContextMenus.tsx` - Integrated annotation dialog
+- `web/src/components/node/BaseNode.tsx` - Added visual annotation indicator
+- `web/src/hooks/nodes/useNodeContextMenu.ts` - Added annotation handler
+- `web/src/hooks/nodes/__tests__/useNodeContextMenu.test.ts` - Added annotation tests
+
+**Usage**:
+1. Right-click on any node to open the context menu
+2. Select "Add Note" to create a new annotation
+3. Select "Edit Note" to modify an existing annotation
+4. Hover over the yellow note icon to see the annotation tooltip
+5. Clear the annotation field and save to remove the note
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
