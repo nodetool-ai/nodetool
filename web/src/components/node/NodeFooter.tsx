@@ -22,7 +22,8 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import useLogsStore from "../../stores/LogStore";
 import { NodeLogsDialog } from "./NodeLogs";
-import { ProcessTimer } from "./ProcessTimer";
+import { ProcessTimerEnhanced } from "./ProcessTimer.enhanced";
+import NodeMetrics from "./NodeMetrics";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -67,6 +68,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   id,
   nodeNamespace,
   metadata,
+  nodeType,
   data,
   workflowId,
   status
@@ -235,7 +237,15 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
             <PrettyNamespace namespace={nodeNamespace} />
           </Button>
         </Tooltip>
-        {status && <ProcessTimer status={status} />}
+        {status && (
+          <ProcessTimerEnhanced
+            status={status}
+            nodeType={nodeType}
+            workflowId={workflowId}
+            nodeId={id}
+          />
+        )}
+        <NodeMetrics nodeType={nodeType} />
       </div>
 
       <div className="footer-right">

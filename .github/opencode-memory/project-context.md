@@ -179,4 +179,25 @@ test('handles user interaction', async () => {
 
 ---
 
+### Node Performance Metrics (2026-01-12)
+
+**What**: Added performance tracking and display for workflow nodes, showing execution times, averages, and performance trends.
+
+**Why**: Helps users identify performance bottlenecks in their workflows by providing visibility into how long each node type takes to execute, comparing current vs historical performance.
+
+**Implementation**:
+- Created `PerformanceMetricsStore` with localStorage persistence for tracking execution metrics per node type
+- Created `ProcessTimerEnhanced` component that records execution times when nodes complete
+- Created `NodeMetrics` component that displays average execution time, min/max, and performance trend (faster/slower/normal)
+- Updated `NodeFooter` to show performance metrics alongside the timer
+- Data is persisted across sessions to build up historical performance data
+
+**Files Changed**:
+- `web/src/stores/PerformanceMetricsStore.ts` - New store for performance metrics
+- `web/src/components/node/ProcessTimer.enhanced.tsx` - Enhanced timer with recording
+- `web/src/components/node/NodeMetrics.tsx` - New component for displaying metrics
+- `web/src/components/node/NodeFooter.tsx` - Integrated metrics display
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
