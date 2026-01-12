@@ -26,6 +26,7 @@ import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
+import { COMMENT_NODE_METADATA } from "../utils/nodeUtils";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -42,7 +43,9 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    createNode: state.createNode,
+    addNode: state.addNode
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -132,6 +135,17 @@ export const useNodeEditorShortcuts = (
       selectConnectedOutputs.selectConnected();
     }
   }, [selectedNodes.length, selectConnectedOutputs]);
+
+  const handleAddComment = useCallback(() => {
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const position = reactFlow.screenToFlowPosition({ x: centerX, y: centerY });
+    const newNode = nodesStore.createNode(COMMENT_NODE_METADATA, position);
+    newNode.width = 150;
+    newNode.height = 100;
+    newNode.style = { width: 150, height: 100 };
+    nodesStore.addNode(newNode);
+  }, [reactFlow, nodesStore]);
 
   const handleZoomIn = useCallback(() => {
     reactFlow.zoomIn({ duration: 200 });
@@ -317,6 +331,9 @@ export const useNodeEditorShortcuts = (
         case "group":
           handleGroup();
           break;
+        case "addComment":
+          handleAddComment();
+          break;
         case "switchToTab":
           handleSwitchToTab(data.index);
           break;
@@ -324,7 +341,7 @@ export const useNodeEditorShortcuts = (
           break;
       }
     },
-    [
+      [
       active,
       handleCopy,
       handlePaste,
@@ -341,6 +358,7 @@ export const useNodeEditorShortcuts = (
       duplicateNodes,
       duplicateNodesVertical,
       handleGroup,
+      handleAddComment,
       handleSwitchToTab
     ]
   );
@@ -484,6 +502,7 @@ export const useNodeEditorShortcuts = (
         callback: selectionActions.distributeVertical,
         active: selectedNodes.length > 1
       },
+      addComment: { callback: handleAddComment },
       deleteSelected: {
         callback: selectionActions.deleteSelected,
         active: selectedNodes.length > 0
@@ -511,6 +530,7 @@ export const useNodeEditorShortcuts = (
     duplicateNodesVertical,
     handleOpenNodeMenu,
     handleGroup,
+    handleAddComment,
     handleInspectorToggle,
     handleShowKeyboardShortcuts,
     handleSave,
