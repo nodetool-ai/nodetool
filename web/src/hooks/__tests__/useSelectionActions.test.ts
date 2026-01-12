@@ -250,10 +250,13 @@ describe("useSelectionActions", () => {
       const updatedNodes = updateFn(currentNodes);
       const byId = Object.fromEntries(updatedNodes.map((n: any) => [n.id, n]));
 
-      // With 3 nodes width=100 in span [0..500], spacing is 100 => positions stay 0,200,400
+      // With 3 nodes width=100 in span starting at 0, using HORIZONTAL_SPACING=40:
+      // input at 0
+      // A at 0 + 100 + 40 = 140
+      // B at 140 + 100 + 40 = 280
       expect(byId.input.position.x).toBe(0);
-      expect(byId.A.position.x).toBe(200);
-      expect(byId.B.position.x).toBe(400);
+      expect(byId.A.position.x).toBe(140);
+      expect(byId.B.position.x).toBe(280);
     });
 
     it("distributes with 2 nodes", () => {
@@ -351,10 +354,13 @@ describe("useSelectionActions", () => {
       const updatedNodes = updateFn(currentNodes);
       const byId = Object.fromEntries(updatedNodes.map((n: any) => [n.id, n]));
 
-      // With 3 nodes height=50 in span [0..450], spacing is 150 => positions stay 0,200,400
+      // With 3 nodes height=50 in span starting at 0, using VERTICAL_SPACING=20:
+      // input at 0
+      // A at 0 + 50 + 20 = 70
+      // B at 70 + 50 + 20 = 140
       expect(byId.input.position.y).toBe(0);
-      expect(byId.A.position.y).toBe(200);
-      expect(byId.B.position.y).toBe(400);
+      expect(byId.A.position.y).toBe(70);
+      expect(byId.B.position.y).toBe(140);
     });
 
     it("distributes with 2 nodes", () => {

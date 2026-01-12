@@ -1,4 +1,3 @@
-
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -11,7 +10,7 @@ import {
   ListItemIcon,
   List,
   ListItemButton,
-  Tooltip,
+  Tooltip
 } from "@mui/material";
 
 import StarIcon from "@mui/icons-material/Star"; // Favorite
@@ -74,12 +73,8 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const isIconOnly = true;
 
-  const {
-    providers,
-    filteredModels,
-    favoriteModels,
-    recentModels,
-  } = useModelMenuData<TModel>(models || [], storeHook);
+  const { providers, filteredModels, favoriteModels, recentModels } =
+    useModelMenuData<TModel>(models || [], storeHook);
 
   // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
@@ -87,12 +82,14 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   // Determine the base list of models to display
   const baseModels = useMemo(() => {
-    if (customView === "favorites") { return favoriteModels; }
-    if (customView === "recent") { return recentModels; }
+    if (customView === "favorites") {
+      return favoriteModels;
+    }
+    if (customView === "recent") {
+      return recentModels;
+    }
     return filteredModels; // Respects provider selection
   }, [customView, favoriteModels, recentModels, filteredModels]);
-
-
 
   const filteredModelsAdvanced = useMemo(() => {
     const result = applyAdvancedModelFilters<TModel>(baseModels, {
@@ -169,8 +166,8 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         paper: {
           elevation: 24,
           style: {
-            width: "420px",
-            height: "420px",
+            width: "520px",
+            height: "500px",
             maxHeight: "90vh",
             maxWidth: "100vw", // Allow shrinkage
             borderRadius: theme.vars.rounded.dialog,
@@ -209,8 +206,6 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           </Box>
           <ModelFiltersBar />
         </Box>
-
-
       </Box>
 
       {/* Main Content Grid */}
@@ -224,15 +219,15 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             display: "flex",
             flexDirection: "column",
             bgcolor: theme.vars.palette.background.default,
-            alignItems: isIconOnly ? 'center' : 'stretch',
+            alignItems: isIconOnly ? "center" : "stretch"
           }}
         >
-          <List dense sx={{ py: 1, width: '100%', px: isIconOnly ? 0.5 : 0 }}>
+          <List dense sx={{ py: 1, width: "100%", px: isIconOnly ? 0.5 : 0 }}>
             <ListItemButton
               disableRipple
-              selected={customView === 'favorites'}
+              selected={customView === "favorites"}
               onClick={() => {
-                setCustomView('favorites');
+                setCustomView("favorites");
                 setSelectedProvider(null);
               }}
               sx={{
@@ -240,55 +235,97 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 borderRadius: 1,
                 mx: isIconOnly ? 0 : 1,
                 mb: 0.5,
-                justifyContent: isIconOnly ? 'center' : 'flex-start',
-                minHeight: isIconOnly ? 40 : 'auto',
+                justifyContent: isIconOnly ? "center" : "flex-start",
+                minHeight: isIconOnly ? 40 : "auto",
                 px: isIconOnly ? 0 : 2
               }}
             >
               {isIconOnly ? (
                 <Tooltip title="Favorites" placement="right">
-                  <StarIcon fontSize="small" sx={{ fontSize: "1.2rem", color: customView === 'favorites' ? "primary.main" : "text.secondary" }} />
+                  <StarIcon
+                    fontSize="small"
+                    sx={{
+                      fontSize: "1.2rem",
+                      color:
+                        customView === "favorites"
+                          ? "primary.main"
+                          : "text.secondary"
+                    }}
+                  />
                 </Tooltip>
               ) : (
                 <>
                   <ListItemIcon sx={{ minWidth: 32 }}>
-                    <StarIcon fontSize="small" sx={{ fontSize: "1.1rem", color: customView === 'favorites' ? "primary.main" : "text.secondary" }} />
+                    <StarIcon
+                      fontSize="small"
+                      sx={{
+                        fontSize: "1.1rem",
+                        color:
+                          customView === "favorites"
+                            ? "primary.main"
+                            : "text.secondary"
+                      }}
+                    />
                   </ListItemIcon>
                   <ListItemText
                     primary="Favorites"
-                    primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: customView === 'favorites' ? 600 : 400 }}
+                    primaryTypographyProps={{
+                      fontSize: "0.85rem",
+                      fontWeight: customView === "favorites" ? 600 : 400
+                    }}
                   />
                 </>
               )}
             </ListItemButton>
             <ListItemButton
               disableRipple
-              selected={customView === 'recent'}
+              selected={customView === "recent"}
               onClick={() => {
-                setCustomView('recent');
+                setCustomView("recent");
                 setSelectedProvider(null);
               }}
               sx={{
                 py: isIconOnly ? 1 : 0.5,
                 borderRadius: 1,
                 mx: isIconOnly ? 0 : 1,
-                justifyContent: isIconOnly ? 'center' : 'flex-start',
-                minHeight: isIconOnly ? 40 : 'auto',
+                justifyContent: isIconOnly ? "center" : "flex-start",
+                minHeight: isIconOnly ? 40 : "auto",
                 px: isIconOnly ? 0 : 2
               }}
             >
               {isIconOnly ? (
                 <Tooltip title="Recent" placement="right">
-                  <HistoryIcon fontSize="small" sx={{ fontSize: "1.2rem", color: customView === 'recent' ? "primary.main" : "text.secondary" }} />
+                  <HistoryIcon
+                    fontSize="small"
+                    sx={{
+                      fontSize: "1.2rem",
+                      color:
+                        customView === "recent"
+                          ? "primary.main"
+                          : "text.secondary"
+                    }}
+                  />
                 </Tooltip>
               ) : (
                 <>
                   <ListItemIcon sx={{ minWidth: 32 }}>
-                    <HistoryIcon fontSize="small" sx={{ fontSize: "1.1rem", color: customView === 'recent' ? "primary.main" : "text.secondary" }} />
+                    <HistoryIcon
+                      fontSize="small"
+                      sx={{
+                        fontSize: "1.1rem",
+                        color:
+                          customView === "recent"
+                            ? "primary.main"
+                            : "text.secondary"
+                      }}
+                    />
                   </ListItemIcon>
                   <ListItemText
                     primary="Recent"
-                    primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: customView === 'recent' ? 600 : 400 }}
+                    primaryTypographyProps={{
+                      fontSize: "0.85rem",
+                      fontWeight: customView === "recent" ? 600 : 400
+                    }}
                   />
                 </>
               )}
@@ -298,15 +335,27 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           <Divider sx={{ mx: 2, mb: 1, opacity: 0.6 }} />
 
           {!isIconOnly && (
-            <Box sx={{ px: 2, pb: 0.5, fontSize: "0.75rem", fontWeight: 600, color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <Box
+              sx={{
+                px: 2,
+                pb: 0.5,
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                color: "text.secondary",
+                textTransform: "uppercase",
+                letterSpacing: 0.5
+              }}
+            >
               Providers
             </Box>
           )}
           <Box
-            sx={{ flex: 1, overflow: "hidden", width: '100%' }}
+            sx={{ flex: 1, overflow: "hidden", width: "100%" }}
             onClickCapture={() => {
               // If user clicks anywhere in provider list, we assume they want to stick to filtered view
-              if (customView) { setCustomView(null); }
+              if (customView) {
+                setCustomView(null);
+              }
             }}
           >
             <ProviderList

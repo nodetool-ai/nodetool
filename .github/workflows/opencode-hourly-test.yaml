@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches to enable merging and conflict resolution
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -54,15 +56,23 @@ jobs:
             - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
             - **Quality Tools**: TypeScript, ESLint, Jest, React Testing Library, Playwright
 
+            ## Step 0: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with similar test fixes or quality work
+            3. **Avoid creating duplicate branches** for the same issues
+            4. If a branch exists for similar work:
+               - Review what's already done
+               - Consider if you should continue that work
+               - Don't duplicate efforts
+
             ## Step 1: Check Memory (REQUIRED)
 
             **Read these files FIRST**:
             1. **`.github/opencode-memory/features.md`** - Understand what exists before testing
-            2. `.github/opencode-memory/build-test-lint.md` - Quality requirements (CRITICAL!)
-            3. `.github/opencode-memory/common-issues.md` - Known issues and solutions
-            4. `.github/opencode-memory/project-context.md` - Project architecture
-            5. `.github/opencode-memory/tech-stack.md` - Technologies used
-            6. `.github/opencode-memory/insights.md` - Important learnings
+            2. `.github/opencode-memory/common-issues.md` - Known issues and solutions
+            3. `.github/opencode-memory/project-context.md` - Recent changes
 
             **Check if similar fixes have been attempted before!**
 
@@ -248,32 +258,23 @@ jobs:
 
             ## Step 5: Update Memory
 
-            **After fixing issues**, update memory files:
+            **After fixing issues**, update memory files concisely:
 
-            1. **`.github/opencode-memory/common-issues.md`**:
-               - Document new issues and solutions
-               - Update existing entries if needed
+            1. **`.github/opencode-memory/common-issues.md`** - Document new issues and solutions:
+               ```markdown
+               ### Issue Title
+               **Problem**: One sentence describing what was broken
+               **Solution**: One sentence explaining the fix
+               ```
 
-            2. **`.github/opencode-memory/build-test-lint.md`**:
-               - Add new quality patterns discovered
-               - Update command documentation if changed
+            2. **`.github/opencode-memory/project-context.md`** - ONLY for major test fixes:
+               ```markdown
+               ### Fix Title (YYYY-MM-DD)
+               **What**: One sentence
+               **Files**: List affected files
+               ```
 
-            3. **`.github/opencode-memory/insights.md`**:
-               - Share learnings about the codebase
-               - Document patterns that prevent issues
-
-            4. **`.github/opencode-memory/features.md`** (if relevant):
-               - Update if test fixes reveal missing or broken features
-
-            **Format**:
-            ```markdown
-            ### [Issue Type] (2026-01-10)
-
-            **Issue**: Description of what was broken
-            **Solution**: How it was fixed
-            **Why**: Root cause and prevention
-            **Files**: List of affected files
-            ```
+            **Keep it minimal** - Only write truly important information.
 
             ## Best Practices
 

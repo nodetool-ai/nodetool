@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches to enable merging and conflict resolution
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -68,22 +70,44 @@ jobs:
             - **Testing**: Jest 29 + React Testing Library 16 + Playwright 1.57 for E2E
             - **Type Safety**: TypeScript strict mode, no `any` types
 
+            ## Avoiding Duplicate Work
+
+            **CRITICAL - Check existing branches FIRST**:
+            1. Run `git branch -a` to see all existing branches
+            2. Check if there's already a branch for this issue/feature
+            3. If a similar branch exists, review its changes first
+            4. Don't create duplicate branches for the same work
+            5. Consider continuing work on an existing branch if appropriate
+
             ## Memory System
 
             **Before making changes**, read these files to avoid redundant work:
-            - **`.github/opencode-memory/features.md`** - **Complete feature list (MUST READ!)**
-            - `.github/opencode-memory/project-context.md` - Architecture and patterns
-            - `.github/opencode-memory/build-test-lint.md` - Quality requirements
-            - `.github/opencode-memory/tech-stack.md` - Technologies and versions
+            - **`.github/opencode-memory/features.md`** - Complete feature list (MUST READ!)
             - `.github/opencode-memory/common-issues.md` - Known issues and solutions
-            - `.github/opencode-memory/insights.md` - Important learnings
+            - `.github/opencode-memory/project-context.md` - Recent changes
 
-            **After completing work**, update memory files with:
-            - **New features added** (update features.md - REQUIRED!)
-            - New solutions to tricky problems
-            - Architectural decisions and rationale
-            - Patterns that work well
-            - Issues to avoid in the future
+            **After completing work**, update memory files if needed:
+            - **Add ONE LINE to features.md** if you added a user-facing feature
+            - **Add ONE ENTRY to common-issues.md** if you solved a tricky problem
+            - **Add ONE ENTRY to project-context.md** under "Recent Changes" for significant changes
+            
+            **Format for updates** (be concise):
+            ```markdown
+            # features.md - single line per feature:
+            - **Feature Name**: Brief description (max 10 words)
+            
+            # common-issues.md - brief entry:
+            ### Issue Title
+            **Problem**: One sentence
+            **Solution**: One sentence or code snippet
+            
+            # project-context.md - under "Recent Changes":
+            ### Feature Name (YYYY-MM-DD)
+            **What**: One sentence
+            **Files**: List main files
+            ```
+            
+            **Keep it minimal** - Only write truly important information that will help future work.
 
             ## Mandatory Requirements
 

@@ -188,6 +188,7 @@ const DownloadManagerDialog: React.FC = () => {
       </DialogContent>
       <DialogActions className="download-actions">
         <Typography
+          component="div"
           variant="body1"
           sx={{
             padding: "0 1.5em .5em 1em",
