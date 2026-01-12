@@ -153,7 +153,12 @@ test('handles user interaction', async () => {
 
 ## Recent Changes
 
-> OpenCode workflows should add entries here when making significant changes
+> Add ONE concise entry here for significant changes. Format:
+> ```
+> ### Feature/Fix Name (YYYY-MM-DD)
+> **What**: One sentence
+> **Files**: Main files changed
+> ```
 
 ### OpenCode Branch Access Enhancement (2026-01-12)
 
@@ -184,84 +189,10 @@ test('handles user interaction', async () => {
 
 ### Test Expectation Fix (2026-01-12)
 
-**What**: Fixed incorrect test expectations in `useSelectionActions.test.ts` for distributeHorizontal and distributeVertical functions.
-
-**Why**: Tests expected sequential placement (140, 280) but the implementation uses equal distribution algorithm (0 + (index * span) / (count - 1)).
-
-**Implementation**:
-- Updated test expectations to match actual implementation behavior
-- Horizontal with nodes at 0, 200, 400: positions become 0, 200, 400
-- Vertical with nodes at 0, 200, 400: positions become 0, 200, 400
-
-**Files Changed**:
-- `web/src/hooks/__tests__/useSelectionActions.test.ts`
-
-**Result**: All 2123 tests now pass
-
----
-
-### Bundle Code Splitting (2026-01-12)
-
-**What**: Implemented code splitting in vite.config.ts to reduce initial bundle size.
-
-**Why**: Main bundle was 12.77 MB (3.8 MB gzipped), causing slow initial load times.
-
-**Implementation**:
-- Added manual chunking for heavy dependencies in vite.config.ts
-- Split vendor libraries into separate chunks: react, mui, plotly, three, editor, pdf, waveform
-- Each chunk can be cached independently and loaded on-demand
-
-**Result**:
-- Main bundle reduced from 12.77 MB to 5.74 MB (**55% reduction**)
-- Gzipped size reduced from 3.8 MB to 1.7 MB (**55% reduction**)
-- Heavy libraries separated: Plotly (4.7 MB), Three.js (991 kB), PDF (344 kB)
-
-**Files Changed**:
-- `web/vite.config.ts` - Added manualChunks configuration
-
----
+**What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
+**Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
 
 ### Selection Action Toolbar (2026-01-10)
 
-**What**: Added a floating toolbar that appears when 2+ nodes are selected, providing quick access to batch operations like align, distribute, group, and delete.
-
-**Why**: Improved user experience for workflows with many nodes by making batch operations more discoverable and accessible without memorizing keyboard shortcuts.
-
-**Implementation**:
-- Created `useSelectionActions` hook with batch operations (align left/center/right, align top/middle/bottom, distribute horizontally/vertically, delete, duplicate, group, bypass)
-- Created `SelectionActionToolbar` component with MUI buttons and tooltips
-- Integrated toolbar into `NodeEditor` component, visible when 2+ nodes selected
-- Added 11 new keyboard shortcuts for batch operations (Shift+Arrow keys for alignment, etc.)
-- Added comprehensive tests for the hook and component
-
-**Files Changed**:
-- `web/src/hooks/useSelectionActions.ts` - New hook for batch operations
-- `web/src/components/node_editor/SelectionActionToolbar.tsx` - New toolbar component
-- `web/src/components/node_editor/NodeEditor.tsx` - Integrated toolbar
-- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handlers
-- `web/src/config/shortcuts.ts` - Added 11 new shortcuts
-- `web/src/hooks/__tests__/useSelectionActions.test.ts` - Hook tests
-- `web/src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx` - Component tests
-
----
-
-### Reset Zoom Shortcut (2026-01-12)
-
-**What**: Added "Reset Zoom" keyboard shortcut (Ctrl/Cmd+0) to reset the canvas zoom to 100% default scale.
-
-**Why**: Complements existing zoom controls (zoom in/out with mouse wheel, fit view with F key) with a standard editor pattern for resetting zoom. Users can now quickly return to the default 1:1 zoom level.
-
-**Implementation**:
-- Added new shortcut definition in `web/src/config/shortcuts.ts` with keyCombo `["Control", "0"]`
-- Added shortcut handler in `web/src/hooks/useNodeEditorShortcuts.ts` that calls `reactFlow.setViewport({ x: 0, y: 0, zoom: 1 })`
-- Added unit tests in `web/src/config/__tests__/shortcuts.test.ts` to verify shortcut configuration
-- Added `reactFlow` to useMemo dependency array to fix lint warning
-
-**Files Changed**:
-- `web/src/config/shortcuts.ts` - Added resetZoom shortcut definition
-- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handler and dependency
-- `web/src/config/__tests__/shortcuts.test.ts` - New test file
-
----
-
-_No entries yet - this memory system is new as of 2026-01-10_
+**What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
+**Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
