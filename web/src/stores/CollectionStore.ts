@@ -181,11 +181,11 @@ export const useCollectionStore = create<CollectionStore>()(
                   "Unknown error"
               });
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error(`Failed to index file ${file.name}:`, err);
             errors.push({
               file: file.name,
-              error: String(err?.message || err)
+              error: err instanceof Error ? err.message : String(err)
             });
           } finally {
             completed++;

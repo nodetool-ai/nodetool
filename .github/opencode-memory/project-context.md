@@ -259,6 +259,25 @@ test('handles user interaction', async () => {
 
 ---
 
+### TypeScript any Type Fixes in Error Handling (2026-01-12)
+
+**What**: Improved TypeScript type safety by replacing `any` types with `unknown` in error handling across multiple stores.
+
+**Why**: Using `any` reduces TypeScript's type checking capabilities and can mask potential runtime errors. Using `unknown` forces proper type guards and error checking.
+
+**Implementation**:
+- Updated `createErrorMessage` function to handle `unknown` type with proper type guards
+- Fixed catch blocks in `SecretsStore`, `useAuth`, and `CollectionStore` to use `unknown` with proper error type guards
+- Updated 7 catch blocks total to improve type safety
+
+**Files**:
+- `web/src/stores/SecretsStore.ts`
+- `web/src/stores/useAuth.ts`
+- `web/src/stores/CollectionStore.ts`
+- `web/src/utils/errorHandling.ts`
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
 ### Mobile TypeScript Type Errors (2026-01-12)
 
