@@ -155,6 +155,30 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Virtualized Node List (2026-01-12)
+
+**What**: Added virtualization to the node list in the Node Menu to improve performance when displaying many nodes.
+
+**Why**: The node menu can have hundreds of nodes when multiple node packs are installed. Rendering all nodes in the DOM caused performance issues.
+
+**Implementation**:
+- Created `VirtualizedNodeList` component using `react-window`'s `VariableSizeList`
+- Component groups nodes by namespace and includes API key validation headers
+- Automatically switches to virtualized rendering when 50+ nodes are present
+- Uses consistent height calculations (44px for nodes, 36px for headers, 40px for API key sections)
+- Updated `RenderNodes` component to use virtualization for large node sets
+
+**Files Changed**:
+- `web/src/components/node_menu/VirtualizedNodeList.tsx` - New virtualized list component
+- `web/src/components/node_menu/RenderNodes.tsx` - Integrated virtualized list for large node sets
+
+**Key Technical Decisions**:
+- Used `react-window` which is already used in `ModelListIndex.tsx`
+- Threshold of 50 nodes to switch to virtualization (enough for most use cases, not too aggressive)
+- Maintained all existing node interaction features (drag-to-create, favorites, etc.)
+
+---
+
 ### Selection Action Toolbar (2026-01-10)
 
 **What**: Added a floating toolbar that appears when 2+ nodes are selected, providing quick access to batch operations like align, distribute, group, and delete.

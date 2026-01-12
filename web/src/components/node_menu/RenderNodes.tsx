@@ -8,6 +8,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NodeItem from "./NodeItem";
 import SearchResultItem from "./SearchResultItem";
 import SearchResultsPanel from "./SearchResultsPanel";
+import VirtualizedNodeList from "./VirtualizedNodeList";
 import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
@@ -22,6 +23,8 @@ interface RenderNodesProps {
   onToggleSelection?: (nodeType: string) => void;
   showFavoriteButton?: boolean;
 }
+
+const NODE_THRESHOLD_FOR_VIRTUALIZATION = 50;
 
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
@@ -87,7 +90,15 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
+  const shouldVirtualize = useMemo(() => {
+    return nodes.length >= NODE_THRESHOLD_FOR_VIRTUALIZATION;
+  }, [nodes.length]);
+
   const elements = useMemo(() => {
+    if (shouldVirtualize && !searchTerm) {
+      return null;
+    }
+
     // If we're searching, render flat ranked results with SearchResultItem
     if (searchTerm && groupedSearchResults.length > 0) {
       // Flatten all results from groups (now just one "Results" group)
@@ -126,20 +137,13 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           );
         }
 
-        let textForNamespaceHeader = namespace; // Default to full namespace string
+        let textForNamespaceHeader = namespace;
 
         if (selectedPath && selectedPath === namespace) {
-          // If the current group of nodes IS the selected namespace, display its last part.
-          // e.g., selectedPath="A.B", namespace="A.B" -> display "B"
           textForNamespaceHeader = namespace.split(".").pop() || namespace;
         } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
-          // If the current group of nodes is a sub-namespace of the selected one, display the relative path.
-          // e.g., selectedPath="A", namespace="A.B.C" -> display "B.C"
           textForNamespaceHeader = namespace.substring(selectedPath.length + 1);
         }
-        // If selectedPath is empty (root is selected), textForNamespaceHeader remains the full 'namespace'.
-        // If namespace is not a child of selectedPath and not equal to selectedPath,
-        // it also remains the full 'namespace'.
 
         elements.push(
           <Typography
@@ -179,7 +183,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     showCheckboxes,
     onToggleSelection,
     selectedNodeTypes,
-    showFavoriteButton
+    showFavoriteButton,
+    shouldVirtualize
   ]);
 
   const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};
@@ -189,6 +194,17 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       {nodes.length > 0 ? (
         searchNodes ? (
           <SearchResultsPanel searchNodes={searchNodes} />
+        ) : shouldVirtualize ? (
+          <VirtualizedNodeList
+            nodes={nodes}
+            showCheckboxes={showCheckboxes}
+            selectedNodeTypes={selectedNodeTypes}
+            onToggleSelection={onToggleSelection}
+            showFavoriteButton={showFavoriteButton}
+            isSearchResults={false}
+            selectedPath={selectedPath}
+            height={700}
+          />
         ) : (
           elements
         )

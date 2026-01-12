@@ -263,7 +263,7 @@ Last updated: 2026-01-10
 
 *(Update this section when considering these features in the future)*
 
-- **Virtualized Lists**: Large list virtualization for performance
+- **Virtualized Node List**: Virtual scrolling for large node lists in the node menu using react-window (50+ node threshold)
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions

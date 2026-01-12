@@ -339,6 +339,39 @@ When documenting new insights:
 
 ---
 
+### Virtualized Node List Implementation (2026-01-12)
+
+**Insight**: React-window's `VariableSizeList` works well for virtualized lists but requires careful handling of item data and types.
+
+**Challenge**: The `ListChildComponentProps` type from react-window expects a specific `data` structure, and passing union types as items requires proper type guards.
+
+**Solution**: Created a `RowData` interface that wraps the items array along with callback functions, and used explicit type guards in the row renderer:
+```typescript
+interface RowData {
+  items: ListItem[];
+  isSearchResults: boolean;
+  onCreateNode: (node: NodeMetadata) => void;
+  onDragStart: (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => void;
+}
+
+const RowRenderer: React.FC<ListChildComponentProps<RowData>> = memo(
+  function RowRenderer({ index, style, data }) {
+    const { items, isSearchResults, onCreateNode, onDragStart } = data;
+    const item = items[index];
+    // Type guards for union type
+    if (item.type === "header") { ... }
+    if (item.type === "api-key") { ... }
+    return ...; // node item
+  }
+);
+```
+
+**Files**: `web/src/components/node_menu/VirtualizedNodeList.tsx`
+
+**Date**: 2026-01-12
+
+---
+
 ### Selection Action Toolbar Implementation (2026-01-10)
 
 **Insight**: TypeScript discriminated unions work well for rendering mixed content (buttons and dividers), but type guards need explicit function boundaries to properly narrow types.
