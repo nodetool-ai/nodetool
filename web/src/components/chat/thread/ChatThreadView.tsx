@@ -361,8 +361,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const userOwnsScrollRef = useRef(false);
   // Track if user is near bottom for auto-scroll eligibility
   const isNearBottomRef = useRef(true);
-  // Timestamp of last user scroll event for cooldown detection
-  const lastUserScrollTimeRef = useRef<number>(Date.now());
+  // Timestamp of last user scroll event for cooldown detection (using performance.now for monotonic time)
+  const lastUserScrollTimeRef = useRef<number>(performance.now());
   // Flag to prevent auto-scroll to bottom right after anchoring to user message
   const anchoredToUserMessageRef = useRef(false);
   // requestAnimationFrame ID for streaming scroll batching
@@ -419,7 +419,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const element = scrollHost;
     if (!element) { return; }
 
-    const now = Date.now();
+    const now = performance.now();
     lastUserScrollTimeRef.current = now;
     
     // User scrolling clears the anchored-to-user-message state
@@ -560,37 +560,30 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   /**
    * Effect: Auto-scroll during streaming if conditions are met.
    * Uses requestAnimationFrame batching to prevent jitter.
-   */
-  useEffect(() => {
-    if (status !== "streaming") { return; }
-    
-    // Don't auto-scroll if:
-    // - User owns scroll (has scrolled away)
-    // - We just anchored to a user message
-    // - User scrolled recently (within cooldown)
-    const userIsIdle = Date.now() - lastUserScrollTimeRef.current > USER_SCROLL_COOLDOWN_MS;
-    
-    if (
-      !userOwnsScrollRef.current &&
-      !anchoredToUserMessageRef.current &&
-      userIsIdle &&
-      isNearBottomRef.current
-    ) {
-      scheduleScrollToBottom();
-    }
-  }, [messages, status, scheduleScrollToBottom]);
-
-  /**
-   * Effect: Also trigger auto-scroll when message content updates (for streaming tokens).
-   * This watches the last message's content changes.
+   * 
+   * This effect triggers when:
+   * - messages array changes (new message added)
+   * - status changes to/from streaming
+   * 
+   * Auto-scroll only occurs when:
+   * - Currently streaming
+   * - User hasn't manually scrolled away (userOwnsScrollRef is false)
+   * - Not anchored to a user message
+   * - User hasn't scrolled recently (cooldown period)
+   * - User is near bottom of the container
    */
   useEffect(() => {
     if (status !== "streaming") { return; }
     
     const lastMessage = messages[messages.length - 1];
+    // Don't auto-scroll for user messages (they get anchored at top instead)
     if (!lastMessage || lastMessage.role === "user") { return; }
     
-    const userIsIdle = Date.now() - lastUserScrollTimeRef.current > USER_SCROLL_COOLDOWN_MS;
+    // Don't auto-scroll if:
+    // - User owns scroll (has scrolled away)
+    // - We just anchored to a user message
+    // - User scrolled recently (within cooldown)
+    const userIsIdle = performance.now() - lastUserScrollTimeRef.current > USER_SCROLL_COOLDOWN_MS;
     
     if (
       !userOwnsScrollRef.current &&
@@ -600,7 +593,6 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     ) {
       scheduleScrollToBottom();
     }
-    // Include lastMessage.content in deps to trigger on content updates
   }, [messages, status, scheduleScrollToBottom]);
 
   const handleToggleThought = useCallback((key: string) => {
