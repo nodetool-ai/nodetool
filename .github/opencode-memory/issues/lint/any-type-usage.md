@@ -1,13 +1,13 @@
-# `any` Type Usage
+### `any` Type Usage
 
-**Problem**: ESLint error `@typescript-eslint/no-explicit-any`.
+**Issue**: ESLint error `@typescript-eslint/no-explicit-any`.
 
 **Solution**: Use explicit types:
 ```typescript
-// ❌ Bad
+// Bad
 function process(data: any) { }
 
-// ✅ Good
+// Good
 interface Data {
   id: string;
   value: number;
@@ -21,5 +21,3 @@ function process(data: unknown) {
   }
 }
 ```
-
-**Date**: 2026-01-10

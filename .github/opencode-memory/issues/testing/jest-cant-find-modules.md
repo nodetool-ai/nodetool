@@ -1,6 +1,6 @@
-# Jest Can't Find Modules
+### Jest Can't Find Modules
 
-**Problem**: Jest tests fail with "Cannot find module" for TypeScript imports.
+**Issue**: Jest tests fail with "Cannot find module" for TypeScript imports.
 
 **Solution**: Ensure jest.config.js has proper transform:
 ```javascript
@@ -12,5 +12,3 @@ module.exports = {
   },
 };
 ```
-
-**Date**: 2026-01-10

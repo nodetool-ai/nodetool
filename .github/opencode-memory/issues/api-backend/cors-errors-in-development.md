@@ -1,6 +1,6 @@
-# CORS Errors in Development
+### CORS Errors in Development
 
-**Problem**: API calls fail with CORS errors in dev mode.
+**Issue**: API calls fail with CORS errors in dev mode.
 
 **Solution**: Vite proxy is configured in vite.config.ts:
 ```typescript
@@ -13,5 +13,3 @@ server: {
   },
 }
 ```
-
-**Date**: 2026-01-10

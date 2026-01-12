@@ -1,6 +1,6 @@
-# E2E Tests Failing to Connect
+### E2E Tests Failing to Connect
 
-**Problem**: E2E tests fail with "Cannot connect to backend".
+**Issue**: E2E tests fail with "Cannot connect to backend".
 
 **Solution**: Ensure Playwright config is starting servers correctly:
 ```typescript
@@ -28,5 +28,3 @@ nodetool serve --port 7777
 # Terminal 2
 cd web && npm start
 ```
-
-**Date**: 2026-01-10

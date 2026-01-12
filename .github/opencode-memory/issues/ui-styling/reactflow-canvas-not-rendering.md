@@ -1,6 +1,6 @@
-# ReactFlow Canvas Not Rendering
+### ReactFlow Canvas Not Rendering
 
-**Problem**: ReactFlow shows blank or tiny canvas.
+**Issue**: ReactFlow shows blank or tiny canvas.
 
 **Solution**: Ensure container has explicit height:
 ```typescript
@@ -8,5 +8,3 @@
   <ReactFlow nodes={nodes} edges={edges} />
 </Box>
 ```
-
-**Date**: 2026-01-10

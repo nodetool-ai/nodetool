@@ -1,14 +1,12 @@
-# MUI Theme Not Applied
+### MUI Theme Not Applied
 
-**Problem**: Components don't use theme colors/spacing.
+**Issue**: Components don't use theme colors/spacing.
 
 **Solution**: Always use theme values:
 ```typescript
-// ❌ Bad
+// Bad
 <Box sx={{ padding: '16px', backgroundColor: '#1976d2' }}>
 
-// ✅ Good
+// Good
 <Box sx={{ p: 2, bgcolor: 'primary.main' }}>
 ```
-
-**Date**: 2026-01-10

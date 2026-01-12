@@ -1,14 +1,20 @@
-# Unnecessary Re-renders from Zustand Store Subscriptions
+### Unnecessary Re-renders from Zustand Store Subscriptions (2026-01-11)
 
-**Problem**: Components subscribing to entire Zustand stores instead of selective state slices, causing unnecessary re-renders.
+**Issue**: Components subscribing to entire Zustand stores instead of selective state slices, causing unnecessary re-renders.
+
+**Problem Files**:
+- `web/src/components/panels/WorkflowAssistantChat.tsx` - Used `useGlobalChatStore()` without selector
+- `web/src/components/panels/AppHeader.tsx` - `ChatButton` used `useGlobalChatStore()` without selector
+- `web/src/components/dashboard/WelcomePanel.tsx` - Used `useSettingsStore()` without selector
+- `web/src/components/content/Welcome/Welcome.tsx` - Used `useSettingsStore()` without selector
 
 **Solution**: Use selective Zustand selectors:
 
 ```typescript
-// ❌ Bad - subscribes to entire store
+// Bad - subscribes to entire store
 const { settings, updateSettings } = useSettingsStore();
 
-// ✅ Good - subscribes only to needed state
+// Good - subscribes only to needed state
 const settings = useSettingsStore((state) => state.settings);
 const updateSettings = useSettingsStore((state) => state.updateSettings);
 ```
@@ -17,10 +23,8 @@ const updateSettings = useSettingsStore((state) => state.updateSettings);
 
 **Impact**: Significant reduction in unnecessary re-renders, especially in the chat and workflow assistant components.
 
-**Files**:
+**Files Fixed**:
 - `web/src/components/panels/WorkflowAssistantChat.tsx`
 - `web/src/components/panels/AppHeader.tsx`
 - `web/src/components/dashboard/WelcomePanel.tsx`
 - `web/src/components/content/Welcome/Welcome.tsx`
-
-**Date**: 2026-01-11
