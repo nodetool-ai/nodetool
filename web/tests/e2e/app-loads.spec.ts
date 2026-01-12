@@ -28,12 +28,12 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
       
-      // Try to navigate to workflows page
-      await page.goto("/workflows");
+      // Try to navigate to dashboard page
+      await page.goto("/dashboard");
       await page.waitForLoadState("networkidle");
       
       // Check URL changed
-      await expect(page).toHaveURL(/\/workflows/);
+      await expect(page).toHaveURL(/\/dashboard/);
     });
 
     test("should connect to backend API", async ({ page }) => {

@@ -29,25 +29,18 @@ if (process.env.CI === "true") {
     page
   }) => {
     // Enable performance monitoring
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/dashboard", { waitUntil: "networkidle" });
+
+    // Navigate to editor via the AppHeader button to create a workflow if needed
+    const editorButton = page.locator(".editor-button");
+    await expect(editorButton).toBeVisible({ timeout: 30000 });
+    await editorButton.click();
+    await page.waitForLoadState("networkidle");
 
     // Wait for the editor to load
-    await page.waitForSelector('[data-testid="workflow-editor"]', {
-      timeout: 30000
-    });
+    await page.waitForSelector(".react-flow__pane", { timeout: 30000 });
 
     console.log("Editor loaded, creating workflow...");
-
-    // Create a new workflow or use existing
-    const workflowsLink = page.locator('a[href*="/workflows"]');
-    if (await workflowsLink.isVisible()) {
-      await workflowsLink.click();
-      await page.waitForLoadState("networkidle");
-    }
-
-    // Navigate to editor
-    await page.goto("/editor", { waitUntil: "networkidle" });
-    await page.waitForTimeout(2000);
 
     // Get the React Flow pane
     const reactFlowPane = page.locator(".react-flow__pane");
