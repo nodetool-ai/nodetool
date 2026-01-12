@@ -47,6 +47,90 @@ interface ChatThreadViewProps {
 const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
 const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
 
+// Dynamic scroll spacer component that adapts to content and viewport
+interface DynamicScrollSpacerProps {
+  lastUserMessageRef: React.RefObject<HTMLDivElement>;
+  scrollHost: HTMLElement | null;
+}
+
+const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
+  lastUserMessageRef,
+  scrollHost
+}) => {
+  const [spacerHeight, setSpacerHeight] = useState(200);
+
+  useEffect(() => {
+    const calculateOptimalSpacerHeight = () => {
+      if (!scrollHost || !lastUserMessageRef.current) {
+        setSpacerHeight(200);
+        return;
+      }
+
+      const lastUserMessage = lastUserMessageRef.current;
+      const lastUserMessageRect = lastUserMessage.getBoundingClientRect();
+      const scrollHostRect = scrollHost.getBoundingClientRect();
+
+      // Calculate the exact space needed to bring the user message to the top
+      const currentOffset = lastUserMessageRect.top - scrollHostRect.top;
+      
+      // If message is already at or near top, use minimal spacer
+      if (currentOffset <= 0) {
+        setSpacerHeight(150);
+        return;
+      }
+      
+      // Calculate precise height needed: current offset + small buffer for smooth scrolling
+      const preciseSpacerHeight = currentOffset + 20; // 20px buffer for smooth scrolling
+      
+      // Constrain to reasonable bounds
+      const optimalHeight = Math.max(150, Math.min(400, preciseSpacerHeight));
+      
+      setSpacerHeight(optimalHeight);
+    };
+
+    // Calculate initial height
+    calculateOptimalSpacerHeight();
+
+    // Use MutationObserver to watch for content changes that might affect layout
+    const mutationObserver = new MutationObserver(() => {
+      // Small delay to ensure DOM has updated
+      setTimeout(calculateOptimalSpacerHeight, 0);
+    });
+
+    // Watch for changes in the message list
+    if (lastUserMessageRef.current) {
+      mutationObserver.observe(lastUserMessageRef.current.parentElement || lastUserMessageRef.current, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    // Recalculate on resize
+    const resizeObserver = new ResizeObserver(() => {
+      setTimeout(calculateOptimalSpacerHeight, 0);
+    });
+
+    if (scrollHost) {
+      resizeObserver.observe(scrollHost);
+    }
+
+    return () => {
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+    };
+  }, [scrollHost, lastUserMessageRef]);
+
+  return (
+    <div
+      className="scroll-spacer"
+      style={{
+        height: `${spacerHeight}px`,
+        flexShrink: 0
+      }}
+    />
+  );
+};
+
 // Define props for the memoized list content component
 interface MemoizedMessageListContentProps
   extends Omit<ChatThreadViewProps, "scrollContainer"> {
@@ -58,6 +142,7 @@ interface MemoizedMessageListContentProps
   toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
   theme: Theme;
   runningToolMessage?: string | null;
+  scrollHost: HTMLElement | null;
 }
 
 const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
@@ -78,7 +163,8 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     componentStyles,
     onInsertCode,
     toolResultsByCallId,
-    theme
+    theme,
+    scrollHost
   }) => {
     const hasAgentExecutionMessages = messages.some(
       (msg) => msg.role === "agent_execution"
@@ -215,14 +301,10 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
           </li>
         )}
         <div ref={bottomRef} style={{ height: 1 }} />
-        {/* Spacer to allow scrolling the last user message to the top of the viewport */}
-        <div
-          className="scroll-spacer"
-          style={{
-            height: 'calc(100vh - 200px)',
-            minHeight: '400px',
-            flexShrink: 0
-          }}
+        {/* Dynamic spacer that adapts based on viewport and content needs */}
+        <DynamicScrollSpacer 
+          lastUserMessageRef={lastUserMessageRef}
+          scrollHost={scrollHost}
         />
       </ul>
     );
@@ -255,6 +337,12 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const isNearBottomRef = useRef(true);
   const lastUserScrollTimeRef = useRef<number>(0);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track when we've scrolled to a user message - prevents auto-scroll to bottom from overriding.
+  // Lifecycle:
+  // - Set to true: when scrollToLastUserMessage() is called (user submits a message)
+  // - Set to false: when user manually scrolls, or when streaming ends
+  // - Checked: in auto-scroll effect to skip scrollToBottom during streaming
+  const scrolledToUserMessageRef = useRef(false);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
@@ -294,6 +382,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
   const handleScroll = useCallback(() => {
     lastUserScrollTimeRef.current = Date.now();
+    // User manually scrolling clears the "scrolled to user message" state
+    scrolledToUserMessageRef.current = false;
     const element = scrollHost;
     if (!element) { return; }
 
@@ -340,10 +430,27 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const scrollToLastUserMessage = useCallback(() => {
     const el = lastUserMessageRef.current;
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Calculate the exact position to scroll to for precise top alignment
+      const elementRect = el.getBoundingClientRect();
+      const scrollHostRect = scrollHost?.getBoundingClientRect();
+      
+      if (scrollHostRect) {
+        const currentScrollTop = scrollHost?.scrollTop || 0;
+        const targetScrollTop = currentScrollTop + elementRect.top - scrollHostRect.top;
+        
+        scrollHost?.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      
       userHasScrolledUpRef.current = false;
+      // Set flag to prevent auto-scroll to bottom during streaming
+      scrolledToUserMessageRef.current = true;
     }
-  }, []);
+  }, [scrollHost]);
 
   useEffect(() => {
     const scrollElement = scrollHost;
@@ -374,10 +481,12 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
   useEffect(() => {
     if (previousStatusRef.current === "streaming" && status !== "streaming") {
-      scrollToBottom();
+      // Don't force scroll to bottom when streaming ends to preserve user position
+      // The auto-scroll logic in the next effect will handle this appropriately
+      scrolledToUserMessageRef.current = false;
     }
     previousStatusRef.current = status;
-  }, [status, scrollToBottom]);
+  }, [status]);
 
   useEffect(() => {
     if (messages.length <= previousMessageCountRef.current) {
@@ -389,6 +498,12 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       messages.length > 0 ? messages[messages.length - 1] : null;
     if (lastMessage?.role === "user") {
       scrollToLastUserMessage();
+      
+      // Clear the flag after a short delay to allow the scroll to complete
+      // but still prevent immediate auto-scroll during streaming
+      setTimeout(() => {
+        scrolledToUserMessageRef.current = false;
+      }, 1000);
     }
   }, [messages, scrollToLastUserMessage]);
 
@@ -408,10 +523,14 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           Date.now() - lastUserScrollTimeRef.current >
           USER_SCROLL_IDLE_THRESHOLD_MS;
 
+        // Only auto-scroll if the user hasn't manually scrolled and we know they're at the bottom
+        // This preserves the user's scroll position when they've scrolled to see a specific message
         if (
           !userHasScrolledUpRef.current &&
           userIsIdle &&
-          isNearBottomRef.current
+          isNearBottomRef.current &&
+          // Additional check: only auto-scroll if we didn't just scroll to a user message
+          !scrolledToUserMessageRef.current
         ) {
           scrollToBottom();
         }
@@ -458,6 +577,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           onInsertCode={onInsertCode}
           toolResultsByCallId={toolResultsByCallId}
           theme={theme}
+          scrollHost={scrollHost}
         />
       </div>
       <ScrollToBottomButton
