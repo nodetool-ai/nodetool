@@ -458,6 +458,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true,
     altKeyCombos: [["Backspace"]]
   },
+  {
+    title: "Node Info",
+    slug: "nodeInfo",
+    keyCombo: ["Control", "I"],
+    category: "editor",
+    description: "Show/hide node information panel",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {

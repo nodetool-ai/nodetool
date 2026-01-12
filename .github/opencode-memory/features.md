@@ -28,6 +28,7 @@ Last updated: 2026-01-12
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
+- **Node Info Panel**: Contextual panel showing selected node details (type, description, connections, status, quick actions)
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)
 - **Node Tooltips**: Hover tooltips showing node handle information
 - **Node Documentation**: Inline documentation for each node type

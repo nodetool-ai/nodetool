@@ -12,7 +12,8 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit
+  CallSplit,
+  Info
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
@@ -21,6 +22,8 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 interface SelectionActionToolbarProps {
   visible: boolean;
   onClose?: () => void;
+  showNodeInfo?: boolean;
+  onToggleNodeInfo: () => void;
 }
 
 interface ActionButton {
@@ -42,7 +45,7 @@ const isDividerButton = (button: ButtonItem): button is DividerButton => {
   return button.divider === true;
 };
 
-const renderButton = (button: ActionButton, index: number): React.ReactNode => (
+const renderButton = (button: ActionButton, index: number, active?: boolean): React.ReactNode => (
   <Tooltip
     key={`${button.slug}-${index}`}
     title={getShortcutTooltip(button.slug, "both", "full", true)}
@@ -55,11 +58,12 @@ const renderButton = (button: ActionButton, index: number): React.ReactNode => (
         aria-label={button.label}
         onClick={button.action}
         disabled={button.disabled}
+        color={active ? "primary" : "default"}
         sx={{
           width: 32,
           height: 32,
           "&:hover": {
-            bgcolor: "action.hover"
+            bgcolor: active ? "primary.main" : "action.hover"
           },
           "&.Mui-disabled": {
             opacity: 0.4
@@ -83,7 +87,9 @@ const renderDivider = (index: number): React.ReactNode => (
 
 const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   visible,
-  onClose
+  onClose,
+  showNodeInfo,
+  onToggleNodeInfo
 }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const selectionActions = useSelectionActions();
@@ -173,6 +179,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   const actionButtons: ButtonItem[] = useMemo(
     () => [
       {
+        icon: <Info fontSize="small" />,
+        label: "Node Info",
+        slug: "nodeInfo",
+        action: onToggleNodeInfo,
+        disabled: selectedNodes.length === 0
+      },
+      {
         icon: <ContentCopy fontSize="small" />,
         label: "Duplicate",
         slug: "duplicate",
@@ -199,7 +212,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions]
+    [canGroup, selectionActions, selectedNodes.length, showNodeInfo]
   );
 
   if (!visible) {
@@ -244,7 +257,8 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         }
 
         const actionButton = button as ActionButton;
-        return renderButton(actionButton, index);
+        const isActive = button.slug === "nodeInfo" && showNodeInfo;
+        return renderButton(actionButton, index, isActive);
       })}
     </Box>
   );

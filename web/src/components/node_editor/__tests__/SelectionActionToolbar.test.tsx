@@ -44,18 +44,18 @@ describe("SelectionActionToolbar", () => {
   });
 
   it("renders when visible with 2+ nodes selected", () => {
-    render(<SelectionActionToolbar visible={true} />);
+    render(<SelectionActionToolbar visible={true} onToggleNodeInfo={jest.fn()} />);
     const toolbar = screen.getByRole("region", { name: /selection action toolbar/i });
     expect(toolbar).toBeInTheDocument();
   });
 
   it("does not render when not visible", () => {
-    const { container } = render(<SelectionActionToolbar visible={false} />);
+    const { container } = render(<SelectionActionToolbar visible={false} onToggleNodeInfo={jest.fn()} />);
     expect(container.querySelector(".selection-action-toolbar")).toBeNull();
   });
 
   it("contains multiple action buttons", () => {
-    render(<SelectionActionToolbar visible={true} />);
+    render(<SelectionActionToolbar visible={true} onToggleNodeInfo={jest.fn()} />);
     const buttons = screen.getAllByRole("button");
     expect(buttons.length).toBeGreaterThan(5);
   });

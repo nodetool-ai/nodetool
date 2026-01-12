@@ -160,6 +160,19 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Info Panel (2026-01-12)
+
+**What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).
+
+**Files**: `web/src/components/node_editor/NodeInfoPanel.tsx`, `web/src/hooks/useSelectedNodesInfo.ts`, `web/src/components/node_editor/NodeEditor.tsx`
+
+**Implementation**:
+- Created `useSelectedNodesInfo` hook to gather node metadata, connection info, and execution status
+- Built `NodeInfoPanel` component with MUI styling showing node details when nodes are selected
+- Integrated panel into NodeEditor alongside SelectionActionToolbar for cohesive selection UX
+
+---
+
 ### Test Distribution Functions Fix (2026-01-12)
 
 **What**: Fixed failing tests in `useSelectionActions.test.ts` by correcting expected values for distributeHorizontal and distributeVertical functions.
