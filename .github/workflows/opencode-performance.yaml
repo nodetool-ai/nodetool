@@ -75,8 +75,8 @@ jobs:
 
             **Read these files FIRST**:
             1. **`.github/opencode-memory/features.md`** - Understand what features exist
-            2. `.github/opencode-memory/insights.md` - **Existing performance optimizations**
-            3. `.github/opencode-memory/common-issues.md` - Known performance problems
+            2. `.github/opencode-memory/insights/` (list folders to see insights by topic) - **Existing performance optimizations**
+            3. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known performance problems
             4. `.github/opencode-memory/project-context.md` - Architecture
 
             ## Step 2: Performance Audit Areas
@@ -389,12 +389,12 @@ jobs:
 
             **After performance optimizations**, update memory files:
 
-            1. **`.github/opencode-memory/insights.md`**:
+            1. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
                - **Document optimization techniques used**
                - Note performance improvements measured
                - Add patterns that work well
 
-            2. **`.github/opencode-memory/common-issues.md`**:
+            2. **`.github/opencode-memory/issues/` (list folders to see issues by topic)**:
                - Document performance bottlenecks found and fixed
 
             3. **`.github/opencode-memory/project-context.md`**:

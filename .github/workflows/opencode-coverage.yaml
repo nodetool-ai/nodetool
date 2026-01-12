@@ -76,8 +76,8 @@ jobs:
             **Read these files FIRST**:
             1. **`.github/opencode-memory/features.md`** - Understand what needs testing
             2. `.github/opencode-memory/build-test-lint.md` - Testing requirements
-            3. `.github/opencode-memory/common-issues.md` - Known testing issues
-            4. `.github/opencode-memory/insights.md` - Testing patterns
+            3. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known testing issues
+            4. `.github/opencode-memory/insights/` (list folders to see insights by topic) - Testing patterns
 
             ## Step 2: Analyze Coverage
 
@@ -419,11 +419,11 @@ jobs:
                - Document testing patterns used
                - Update coverage status
 
-            2. **`.github/opencode-memory/insights.md`**:
+            2. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
                - Share effective testing patterns
                - Document mock strategies
 
-            3. **`.github/opencode-memory/common-issues.md`**:
+            3. **`.github/opencode-memory/issues/` (list folders to see issues by topic)**:
                - Document testing challenges solved
 
             **After updating memory files, COMPACT THEM**:

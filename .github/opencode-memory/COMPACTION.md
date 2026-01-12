@@ -69,12 +69,16 @@ Run compaction manually when:
 
 The script processes these files:
 - `features.md` - Feature list (no age filtering, only duplicates)
-- `common-issues.md` - Known issues with solutions (age filtered)
-- `insights.md` - Important learnings (age filtered)
+- `common-issues.md` - Legacy known issues (age filtered) - **deprecated**
+- `insights.md` - Legacy learnings (age filtered) - **deprecated**
 - `project-context.md` - Project architecture and patterns (age filtered)
 
+It also recursively processes files in:
+- `issues/` - Individual issue files organized by topic
+- `insights/` - Individual insight files organized by topic
+
 It does **not** modify:
-- `README.md` - System documentation
+- `README.md` files - System documentation
 - `IMPLEMENTATION.md` - Implementation guide
 - `build-test-lint.md` - Quality standards (rarely changes)
 - `tech-stack.md` - Technology list (rarely changes)

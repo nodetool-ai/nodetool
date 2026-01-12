@@ -73,9 +73,9 @@ jobs:
 
             **Read these files FIRST**:
             1. **`.github/opencode-memory/features.md`** - **COMPLETE FEATURE LIST (CRITICAL!)**
-            2. `.github/opencode-memory/insights.md` - Learnings and patterns
+            2. `.github/opencode-memory/insights/` (list folders to see insights by topic) - Learnings and patterns
             3. `.github/opencode-memory/project-context.md` - Architecture and philosophy
-            4. `.github/opencode-memory/common-issues.md` - Known limitations
+            4. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known limitations
 
             **CRITICAL**: Ensure your feature doesn't already exist!
 
@@ -310,7 +310,7 @@ jobs:
                - **ADD NEW FEATURE (REQUIRED!)**
                - Mark as "Experimental" or "Research"
 
-            2. **`.github/opencode-memory/insights.md`**:
+            2. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
                - Document technical learnings
                - Share implementation patterns
 
