@@ -1,6 +1,6 @@
-# Performance Test Flakiness
+### Performance Test Flakiness (2026-01-12)
 
-**Problem**: Performance test `nodeComponentsPerformance.test.tsx` fails with timing assertion error.
+**Issue**: Performance test `nodeComponentsPerformance.test.tsx` fails with timing assertion error.
 
 **Root Cause**: The test expects memoized operations to be at least 5x faster, but timing varies significantly in CI environments:
 - Expected: < 0.10ms (5x faster than baseline)

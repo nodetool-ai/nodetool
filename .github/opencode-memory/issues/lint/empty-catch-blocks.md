@@ -1,6 +1,6 @@
-# Empty Catch Blocks
+### Empty Catch Blocks
 
-**Problem**: ESLint error `no-empty` for empty catch blocks.
+**Issue**: ESLint error `no-empty` for empty catch blocks.
 
 **Solution**: Add comment explaining why catch is empty:
 ```typescript
@@ -11,5 +11,3 @@ try {
   return jsonString;
 }
 ```
-
-**Date**: 2026-01-10

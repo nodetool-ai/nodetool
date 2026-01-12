@@ -154,12 +154,12 @@ Workflows are instructed to:
 - **Focus**: Feature development
 
 ### opencode-hourly-improve.yaml (Scheduled)
-- **Reads**: common-issues.md, insights.md
+- **Reads**: issues/, insights/
 - **Updates**: Very frequently (each fix documents solution)
 - **Focus**: Code quality improvements
 
 ### opencode-hourly-test.yaml (Scheduled)
-- **Reads**: build-test-lint.md, common-issues.md
+- **Reads**: build-test-lint.md, issues/testing/
 - **Updates**: Frequently (documents test failures)
 - **Focus**: Quality assurance
 
