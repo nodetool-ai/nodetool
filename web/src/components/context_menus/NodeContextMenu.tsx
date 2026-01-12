@@ -11,10 +11,13 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import BookmarksIcon from "@mui/icons-material/Bookmarks";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useMetadataStore from "../../stores/MetadataStore";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -25,6 +28,31 @@ const NodeContextMenu: React.FC = () => {
     conditions
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
+  const openSaveSnippetDialog = useNodeMenuStore((state) => state.openSaveSnippetDialog);
+  const metadataByType = useMetadataStore((state) => state.metadata);
+
+  const handleSaveAsSnippet = React.useCallback(() => {
+    if (!node) {
+      return;
+    }
+
+    const nodeData = node.data as NodeData;
+    const nodeType = nodeData.originalType ?? node.type;
+    if (!nodeType) {
+      return;
+    }
+
+    const metadata = metadataByType[nodeType];
+
+    openSaveSnippetDialog({
+      mode: 'create',
+      nodeType: nodeType,
+      nodeLabel: metadata?.title ?? nodeType,
+      properties: nodeData.properties,
+    });
+
+    closeContextMenu();
+  }, [node, metadataByType, openSaveSnippetDialog, closeContextMenu]);
 
   const menuItems = [
     conditions.isInGroup && (
@@ -103,6 +131,15 @@ const NodeContextMenu: React.FC = () => {
       IconComponent={<FilterListIcon />}
       tooltip="Select all nodes of the same type"
     />,
+    <Divider key="snippet-divider" />,
+    <ContextMenuItem
+      key="save-as-snippet"
+      onClick={handleSaveAsSnippet}
+      label="Save as Snippet"
+      IconComponent={<BookmarksIcon />}
+      tooltip="Save this node's configuration as a reusable snippet"
+    />,
+    <Divider key="delete-divider" />,
     <ContextMenuItem
       key="delete-node"
       onClick={handlers.handleDeleteNode}

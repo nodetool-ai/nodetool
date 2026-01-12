@@ -21,6 +21,8 @@ Last updated: 2026-01-10
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 
+- **Node Snippets**: Save frequently used node configurations as reusable templates with custom names and descriptions. Snippets persist in localStorage and can be quickly inserted into workflows from the node menu.
+
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)

@@ -10,6 +10,8 @@ import { Box } from "@mui/material";
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import { SnippetTilesContainer } from "./SnippetTiles";
+import { SaveSnippetDialog } from "../dialogs/SaveSnippetDialog";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -158,7 +160,12 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setMenuSize,
     moveSelectionUp,
     moveSelectionDown,
-    getSelectedNode
+    getSelectedNode,
+    saveSnippetDialogOpen,
+    saveSnippetDialogMode,
+    saveSnippetDialogData,
+    saveSnippetDialogSnippet,
+    closeSaveSnippetDialog
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -175,7 +182,12 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setMenuSize: state.setMenuSize,
       moveSelectionUp: state.moveSelectionUp,
       moveSelectionDown: state.moveSelectionDown,
-      getSelectedNode: state.getSelectedNode
+      getSelectedNode: state.getSelectedNode,
+      saveSnippetDialogOpen: state.saveSnippetDialogOpen,
+      saveSnippetDialogMode: state.saveSnippetDialogMode,
+      saveSnippetDialogData: state.saveSnippetDialogData,
+      saveSnippetDialogSnippet: state.saveSnippetDialogSnippet,
+      closeSaveSnippetDialog: state.closeSaveSnippetDialog
     }),
     isEqual
   );
@@ -288,7 +300,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 <SearchInput
                   focusSearchInput={focusSearchInput}
                   focusOnTyping={true}
-                  placeholder="Search for nodes..."
+                  placeholder="Search for nodes or snippets..."
                   debounceTime={80}
                   width={500}
                   maxWidth={"600px"}
@@ -308,6 +320,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 setSelectedOutputType={setSelectedOutputType}
               />
             </Box>
+            <SnippetTilesContainer searchTerm={searchTerm} />
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}
@@ -315,6 +328,13 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
           </div>
         </Box>
       </Box>
+      <SaveSnippetDialog
+        open={saveSnippetDialogOpen}
+        onClose={closeSaveSnippetDialog}
+        mode={saveSnippetDialogMode}
+        initialData={saveSnippetDialogData ?? undefined}
+        snippet={saveSnippetDialogSnippet ?? undefined}
+      />
     </Draggable>
   );
 };
