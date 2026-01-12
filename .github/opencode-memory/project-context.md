@@ -179,4 +179,30 @@ test('handles user interaction', async () => {
 
 ---
 
-_No entries yet - this memory system is new as of 2026-01-10_
+### Performance Profiling (2026-01-11)
+
+**What**: Added a built-in Performance Profiler tool for tracking workflow execution metrics, helping users identify bottlenecks and optimize their workflows.
+
+**Why**: Complex workflows with many nodes can be difficult to optimize. This feature provides visibility into execution times per node, making it easy to identify slow nodes and optimize workflows.
+
+**Implementation**:
+- Created `PerformanceStore` Zustand store for tracking node execution metrics (duration, status, output size, error messages)
+- Created `usePerformanceProfiler` hook for integrating profiling with workflow execution
+- Created `PerformanceProfiler` component with detailed metrics table, expandable rows, and visual duration bars
+- Added "performance" view to bottom panel alongside terminal
+- Added Performance toggle to FloatingToolbar actions menu
+- Added keyboard shortcut (Ctrl+P) for quick access to performance panel
+- Added profiling summary with completion progress and total execution time
+
+**Files Changed**:
+- `web/src/stores/PerformanceStore.ts` - New store for tracking execution metrics
+- `web/src/hooks/usePerformanceProfiler.ts` - New hook for profiling integration
+- `web/src/components/node_editor/PerformanceProfiler.tsx` - New profiler component
+- `web/src/components/panels/PanelBottom.tsx` - Added performance panel view
+- `web/src/components/panels/FloatingToolBar.tsx` - Added performance toggle to menu
+- `web/src/stores/BottomPanelStore.ts` - Added "performance" as valid panel view
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added Ctrl+P shortcut handler
+- `web/src/config/shortcuts.ts` - Added togglePerformance shortcut
+- `web/src/stores/__tests__/PerformanceStore.test.ts` - Store tests
+
+---

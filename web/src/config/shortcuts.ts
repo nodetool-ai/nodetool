@@ -611,6 +611,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Find and navigate to nodes in the current workflow",
     registerCombo: true
+  },
+
+  // ---------- PERFORMANCE PROFILER -------------------------------------------
+  {
+    title: "Performance Panel",
+    slug: "togglePerformance",
+    keyCombo: ["Control", "P"],
+    category: "panel" as const,
+    description: "Toggle Performance Profiler panel",
+    registerCombo: true
   }
 ] as Shortcut[];
 

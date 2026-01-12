@@ -21,6 +21,7 @@ import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
+import { useBottomPanelStore } from "../stores/BottomPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
@@ -378,6 +379,11 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handlePerformanceToggle = useCallback(() => {
+    const { handleViewChange } = useBottomPanelStore.getState();
+    handleViewChange("performance");
+  }, []);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -414,6 +420,7 @@ export const useNodeEditorShortcuts = (
       openNodeMenu: { callback: handleOpenNodeMenu },
       groupSelected: { callback: handleGroup },
       toggleInspector: { callback: handleInspectorToggle },
+      togglePerformance: { callback: handlePerformanceToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
@@ -504,6 +511,7 @@ export const useNodeEditorShortcuts = (
     handleOpenNodeMenu,
     handleGroup,
     handleInspectorToggle,
+    handlePerformanceToggle,
     handleShowKeyboardShortcuts,
     handleSave,
     handleSaveExample,

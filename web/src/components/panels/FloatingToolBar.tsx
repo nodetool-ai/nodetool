@@ -32,6 +32,7 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import SpeedIcon from "@mui/icons-material/Speed";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
@@ -457,6 +458,10 @@ const FloatingToolBar: React.FC<{
     toggleBottomPanel("terminal");
   }, [toggleBottomPanel]);
 
+  const handleTogglePerformance = useCallback(() => {
+    toggleBottomPanel("performance");
+  }, [toggleBottomPanel]);
+
   const handleToggleInstantUpdate = useCallback(() => {
     setInstantUpdate(!instantUpdate);
   }, [instantUpdate, setInstantUpdate]);
@@ -608,6 +613,19 @@ const FloatingToolBar: React.FC<{
           </ListItemIcon>
           <ListItemText
             primary={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
+          />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleTogglePerformance();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <SpeedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Performance"
           />
         </MenuItem>
         <MenuItem
