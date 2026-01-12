@@ -449,3 +449,17 @@ cd mobile && npm install
 **Files**: `Makefile`, `mobile/package.json`
 
 **Date**: 2026-01-10
+
+---
+
+### Node Performance Metrics Implementation (2026-01-12)
+
+**Insight**: Using Zustand's persist middleware with localStorage provides a simple way to persist performance data across sessions without backend changes.
+
+**Challenge**: Mocking zustand stores in Jest tests with ESM configuration (ts-jest/presets/default-esm) requires careful module path handling.
+
+**Solution**: For component tests with mocked stores, use the full module path in jest.mock() and provide a simple mock implementation. The ESM preset affects how module resolution works.
+
+**Files**: `web/src/stores/PerformanceMetricsStore.ts`, `web/src/components/node/NodeMetrics.tsx`, `web/src/components/node/ProcessTimer.enhanced.tsx`
+
+**Date**: 2026-01-12

@@ -234,6 +234,7 @@ Last updated: 2026-01-10
 - **useMemo**: Memoized expensive calculations
 - **Selective Zustand Subscriptions**: Subscribe only to needed state slices
 - **Virtualization Ready**: Structure supports virtualized lists (not yet implemented)
+- **Node Performance Metrics**: Tracks and displays execution times per node type with performance trends
 
 ---
 
