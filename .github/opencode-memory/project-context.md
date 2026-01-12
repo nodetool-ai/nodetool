@@ -153,7 +153,12 @@ test('handles user interaction', async () => {
 
 ## Recent Changes
 
-> OpenCode workflows should add entries here when making significant changes
+> Add ONE concise entry here for significant changes. Format:
+> ```
+> ### Feature/Fix Name (YYYY-MM-DD)
+> **What**: One sentence
+> **Files**: Main files changed
+> ```
 
 ### OpenCode Branch Access Enhancement (2026-01-12)
 
@@ -184,63 +189,10 @@ test('handles user interaction', async () => {
 
 ### Test Expectation Fix (2026-01-12)
 
-**What**: Fixed incorrect test expectations in `useSelectionActions.test.ts` for distributeHorizontal and distributeVertical functions.
-
-**Why**: Tests expected even distribution (positions 0, 200, 400) but the implementation uses sequential placement (0, 140, 280) based on node dimensions and spacing constants (NODE_WIDTH=280, HORIZONTAL_SPACING=40).
-
-**Implementation**:
-- Updated test expectations to match actual implementation behavior
-- Changed horizontal test from expecting [0, 200, 400] to [0, 140, 280]
-- Changed vertical test from expecting [0, 200, 400] to [0, 70, 140]
-
-**Files Changed**:
-- `web/src/hooks/__tests__/useSelectionActions.test.ts`
-
-**Result**: All 2112 tests now pass
-
----
+**What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
+**Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
 
 ### Selection Action Toolbar (2026-01-10)
 
-**What**: Added a floating toolbar that appears when 2+ nodes are selected, providing quick access to batch operations like align, distribute, group, and delete.
-
-**Why**: Improved user experience for workflows with many nodes by making batch operations more discoverable and accessible without memorizing keyboard shortcuts.
-
-**Implementation**:
-- Created `useSelectionActions` hook with batch operations (align left/center/right, align top/middle/bottom, distribute horizontally/vertically, delete, duplicate, group, bypass)
-- Created `SelectionActionToolbar` component with MUI buttons and tooltips
-- Integrated toolbar into `NodeEditor` component, visible when 2+ nodes selected
-- Added 11 new keyboard shortcuts for batch operations (Shift+Arrow keys for alignment, etc.)
-- Added comprehensive tests for the hook and component
-
-**Files Changed**:
-- `web/src/hooks/useSelectionActions.ts` - New hook for batch operations
-- `web/src/components/node_editor/SelectionActionToolbar.tsx` - New toolbar component
-- `web/src/components/node_editor/NodeEditor.tsx` - Integrated toolbar
-- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handlers
-- `web/src/config/shortcuts.ts` - Added 11 new shortcuts
-- `web/src/hooks/__tests__/useSelectionActions.test.ts` - Hook tests
-- `web/src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx` - Component tests
-
----
-
-### Reset Zoom Shortcut (2026-01-12)
-
-**What**: Added "Reset Zoom" keyboard shortcut (Ctrl/Cmd+0) to reset the canvas zoom to 100% default scale.
-
-**Why**: Complements existing zoom controls (zoom in/out with mouse wheel, fit view with F key) with a standard editor pattern for resetting zoom. Users can now quickly return to the default 1:1 zoom level.
-
-**Implementation**:
-- Added new shortcut definition in `web/src/config/shortcuts.ts` with keyCombo `["Control", "0"]`
-- Added shortcut handler in `web/src/hooks/useNodeEditorShortcuts.ts` that calls `reactFlow.setViewport({ x: 0, y: 0, zoom: 1 })`
-- Added unit tests in `web/src/config/__tests__/shortcuts.test.ts` to verify shortcut configuration
-- Added `reactFlow` to useMemo dependency array to fix lint warning
-
-**Files Changed**:
-- `web/src/config/shortcuts.ts` - Added resetZoom shortcut definition
-- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handler and dependency
-- `web/src/config/__tests__/shortcuts.test.ts` - New test file
-
----
-
-_No entries yet - this memory system is new as of 2026-01-10_
+**What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
+**Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
