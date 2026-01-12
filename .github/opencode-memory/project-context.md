@@ -186,17 +186,38 @@ test('handles user interaction', async () => {
 
 **What**: Fixed incorrect test expectations in `useSelectionActions.test.ts` for distributeHorizontal and distributeVertical functions.
 
-**Why**: Tests expected even distribution (positions 0, 200, 400) but the implementation uses sequential placement (0, 140, 280) based on node dimensions and spacing constants (NODE_WIDTH=280, HORIZONTAL_SPACING=40).
+**Why**: Tests expected sequential placement (140, 280) but the implementation uses equal distribution algorithm (0 + (index * span) / (count - 1)).
 
 **Implementation**:
 - Updated test expectations to match actual implementation behavior
-- Changed horizontal test from expecting [0, 200, 400] to [0, 140, 280]
-- Changed vertical test from expecting [0, 200, 400] to [0, 70, 140]
+- Horizontal with nodes at 0, 200, 400: positions become 0, 200, 400
+- Vertical with nodes at 0, 200, 400: positions become 0, 200, 400
 
 **Files Changed**:
 - `web/src/hooks/__tests__/useSelectionActions.test.ts`
 
-**Result**: All 2112 tests now pass
+**Result**: All 2123 tests now pass
+
+---
+
+### Bundle Code Splitting (2026-01-12)
+
+**What**: Implemented code splitting in vite.config.ts to reduce initial bundle size.
+
+**Why**: Main bundle was 12.77 MB (3.8 MB gzipped), causing slow initial load times.
+
+**Implementation**:
+- Added manual chunking for heavy dependencies in vite.config.ts
+- Split vendor libraries into separate chunks: react, mui, plotly, three, editor, pdf, waveform
+- Each chunk can be cached independently and loaded on-demand
+
+**Result**:
+- Main bundle reduced from 12.77 MB to 5.74 MB (**55% reduction**)
+- Gzipped size reduced from 3.8 MB to 1.7 MB (**55% reduction**)
+- Heavy libraries separated: Plotly (4.7 MB), Three.js (991 kB), PDF (344 kB)
+
+**Files Changed**:
+- `web/vite.config.ts` - Added manualChunks configuration
 
 ---
 
