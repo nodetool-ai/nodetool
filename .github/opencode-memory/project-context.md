@@ -160,6 +160,32 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Templates Feature (2026-01-12)
+
+**What**: Added Node Templates feature that allows users to save selected nodes with their configurations as reusable templates.
+
+**Files**: 
+- `web/src/stores/NodeTemplatesStore.ts` - Zustand store for managing templates (persisted to localStorage)
+- `web/src/hooks/useNodeTemplates.ts` - Hook for template operations
+- `web/src/components/dialogs/SaveTemplateDialog.tsx` - Dialog for saving templates
+- `web/src/components/dialogs/ApplyTemplateDialog.tsx` - Dialog for applying templates
+- `web/src/components/node_editor/TemplateDialogs.tsx` - Container for template dialogs
+- `web/src/stores/TemplateDialogStore.ts` - Store for managing dialog state
+- `web/src/components/node_editor/SelectionActionToolbar.tsx` - Added template buttons
+- `web/src/config/shortcuts.ts` - Added keyboard shortcuts (Ctrl+Shift+T for save, Ctrl+T for apply)
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handlers
+- `web/src/stores/__tests__/NodeTemplatesStore.test.ts` - Unit tests
+
+**Key Features**:
+- Save selected nodes as named templates with optional descriptions
+- Templates store node configurations and relative positions
+- Apply templates to quickly create node groups
+- Templates persist to localStorage across sessions
+- Keyboard shortcuts for quick access (Ctrl+Shift+T to save, Ctrl+T to apply)
+- Integrated into the selection action toolbar
+
+---
+
 ### Test Distribution Functions Fix (2026-01-12)
 
 **What**: Fixed failing tests in `useSelectionActions.test.ts` by correcting expected values for distributeHorizontal and distributeVertical functions.

@@ -12,11 +12,14 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit
+  CallSplit,
+  BookmarkAdd,
+  Bookmark
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { useTemplateDialogStore } from "../../stores/TemplateDialogStore";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -87,10 +90,12 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
 }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const selectionActions = useSelectionActions();
+  const { openSaveDialog, openApplyDialog } = useTemplateDialogStore();
 
   const canAlign = selectedNodes.length >= 2;
   const canDistribute = selectedNodes.length >= 2;
   const canGroup = selectedNodes.length >= 2;
+  const canSaveTemplate = selectedNodes.length >= 1;
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -179,6 +184,20 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.duplicateSelected
       },
       {
+        icon: <BookmarkAdd fontSize="small" />,
+        label: "Save as Template",
+        slug: "saveTemplate",
+        action: openSaveDialog,
+        disabled: !canSaveTemplate
+      },
+      {
+        icon: <Bookmark fontSize="small" />,
+        label: "Apply Template",
+        slug: "applyTemplate",
+        action: openApplyDialog
+      },
+      { divider: true },
+      {
         icon: <Layers fontSize="small" />,
         label: "Group",
         slug: "groupSelected",
@@ -199,7 +218,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions]
+    [canGroup, canSaveTemplate, openSaveDialog, openApplyDialog, selectionActions]
   );
 
   if (!visible) {

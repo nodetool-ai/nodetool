@@ -459,6 +459,24 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     altKeyCombos: [["Backspace"]]
   },
 
+  // ---------- TEMPLATES -------------------------------------------------------
+  {
+    title: "Save as Template",
+    slug: "saveTemplate",
+    keyCombo: ["Control", "Shift", "T"],
+    category: "editor",
+    description: "Save selected nodes as a template",
+    registerCombo: true
+  },
+  {
+    title: "Apply Template",
+    slug: "applyTemplate",
+    keyCombo: ["Control", "T"],
+    category: "editor",
+    description: "Open template dialog to apply a saved template",
+    registerCombo: true
+  },
+
   // ---------- PANEL -------------------------------------------------------
   {
     title: "Open Node Menu",

@@ -43,6 +43,7 @@ import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
+import TemplateDialogs from "./TemplateDialogs";
 import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
@@ -220,6 +221,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </Button>
         </DialogActions>
       </Dialog>
+      <TemplateDialogs />
     </>
   );
 };
