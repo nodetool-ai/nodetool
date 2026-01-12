@@ -44,6 +44,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
@@ -75,7 +76,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
 
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
-  const [showNodeInfo, setShowNodeInfo] = useState(false);
+  const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -96,7 +97,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     nodeInfoCombo,
     () => {
       if (active && selectedNodes.length > 0) {
-        setShowNodeInfo((v) => !v);
+        toggleInspectedNode(selectedNodes[0].id);
       }
     },
     true,
@@ -160,10 +161,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <RunAsAppFab workflowId={workflowId} />
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 1}
-                showNodeInfo={showNodeInfo}
-                onToggleNodeInfo={() => setShowNodeInfo((v) => !v)}
               />
-              {showNodeInfo && <NodeInfoPanel onClose={() => setShowNodeInfo(false)} />}
+              <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}

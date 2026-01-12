@@ -22,8 +22,6 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 interface SelectionActionToolbarProps {
   visible: boolean;
   onClose?: () => void;
-  showNodeInfo?: boolean;
-  onToggleNodeInfo: () => void;
 }
 
 interface ActionButton {
@@ -88,8 +86,6 @@ const renderDivider = (index: number): React.ReactNode => (
 const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   visible,
   onClose,
-  showNodeInfo,
-  onToggleNodeInfo
 }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const selectionActions = useSelectionActions();
@@ -179,13 +175,6 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   const actionButtons: ButtonItem[] = useMemo(
     () => [
       {
-        icon: <Info fontSize="small" />,
-        label: "Node Info",
-        slug: "nodeInfo",
-        action: onToggleNodeInfo,
-        disabled: selectedNodes.length === 0
-      },
-      {
         icon: <ContentCopy fontSize="small" />,
         label: "Duplicate",
         slug: "duplicate",
@@ -212,7 +201,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions, selectedNodes.length, showNodeInfo]
+    [canGroup, selectionActions, selectedNodes.length]
   );
 
   if (!visible) {
@@ -257,8 +246,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         }
 
         const actionButton = button as ActionButton;
-        const isActive = button.slug === "nodeInfo" && showNodeInfo;
-        return renderButton(actionButton, index, isActive);
+        return renderButton(actionButton, index);
       })}
     </Box>
   );

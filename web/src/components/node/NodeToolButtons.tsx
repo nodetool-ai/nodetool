@@ -3,6 +3,7 @@ import { useReactFlow } from "@xyflow/react";
 import { Toolbar, IconButton, Tooltip } from "@mui/material";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
+import InfoIcon from "@mui/icons-material/Info";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -10,6 +11,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { useNodes } from "../../contexts/NodeContext";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 
 interface NodeToolbarProps {
   nodeId: string | null;
@@ -23,6 +25,8 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const openDocumentation = useNodeMenuStore(
     (state) => state.openDocumentation
   );
+  const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
+  const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   const handleDelete = useCallback(() => {
     if (nodeId !== null) {
@@ -44,7 +48,15 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     });
   }, [node?.type, openDocumentation]);
 
+  const handleToggleInfo = useCallback(() => {
+    if (nodeId !== null) {
+      toggleInspectedNode(nodeId);
+    }
+  }, [nodeId, toggleInspectedNode]);
+
   if (!nodeId) {return null;}
+
+  const isInspected = inspectedNodeId === nodeId;
 
   return (
     <Toolbar
@@ -52,6 +64,24 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       className="node-toolbar"
       sx={{ backgroundColor: "transparent" }}
     >
+      <Tooltip
+        title={
+          <span>
+            Info
+          </span>
+        }
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          className="nodrag"
+          onClick={handleToggleInfo}
+          tabIndex={-1}
+          color={isInspected ? "primary" : "default"}
+        >
+          <InfoIcon />
+        </IconButton>
+      </Tooltip>
+
       <Tooltip
         title={
           <span>
