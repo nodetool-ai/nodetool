@@ -26,11 +26,14 @@ import {
   Close as CloseIcon,
   Compare as CompareIcon,
   History as HistoryIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  ViewColumn as ViewColumnIcon,
+  ViewModule as ViewModuleIcon
 } from "@mui/icons-material";
 import { VersionListItem } from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
+import { SideBySideVersionDiff } from "./SideBySideVersionDiff";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
@@ -81,6 +84,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [versionToDelete, setVersionToDelete] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"compact" | "side-by-side">("compact");
 
   const versions: Array<WorkflowVersion & { save_type: SaveType; size_bytes: number }> = useMemo(() => {
     if (!apiVersions?.versions) {
@@ -314,18 +318,48 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             mb: 1
           }}
         >
-          <Tooltip title="Compare versions">
-            <ToggleButton
-              value="compare"
-              selected={isCompareMode}
-              onChange={handleToggleCompareMode}
-              size="small"
-              sx={{ px: 1 }}
-            >
-              <CompareIcon fontSize="small" sx={{ mr: 0.5 }} />
-              Compare
-            </ToggleButton>
-          </Tooltip>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Tooltip title="Compare versions">
+              <ToggleButton
+                value="compare"
+                selected={isCompareMode}
+                onChange={handleToggleCompareMode}
+                size="small"
+                sx={{ px: 1 }}
+              >
+                <CompareIcon fontSize="small" sx={{ mr: 0.5 }} />
+                Compare
+              </ToggleButton>
+            </Tooltip>
+
+            {isCompareMode && versions.length >= 2 && (
+              <Tooltip title="Side-by-side view">
+                <Button
+                  size="small"
+                  variant={viewMode === "side-by-side" ? "contained" : "outlined"}
+                  onClick={() => setViewMode("side-by-side")}
+                  startIcon={<ViewColumnIcon />}
+                  sx={{ px: 1 }}
+                >
+                  Split
+                </Button>
+              </Tooltip>
+            )}
+
+            {isCompareMode && (viewMode as string) === "side-by-side" && (
+              <Tooltip title="Compact view">
+                <Button
+                  size="small"
+                  variant={(viewMode as string) === "compact" ? "contained" : "outlined"}
+                  onClick={() => setViewMode("compact")}
+                  startIcon={<ViewModuleIcon />}
+                  sx={{ px: 1 }}
+                >
+                  Compact
+                </Button>
+              </Tooltip>
+            )}
+          </Box>
 
           {isCompareMode && (selectedVersionId || compareVersionId) && (
             <Button size="small" onClick={handleClearComparison}>
@@ -371,44 +405,57 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </Box>
       )}
 
-      {diff && selectedVersion && compareVersion && (
-        <Box
-          sx={{
-            borderBottom: 1,
-            borderColor: "divider"
-          }}
-        >
-          <Box sx={{ p: 1, bgcolor: "rgba(2, 136, 209, 0.05)" }}>
-            <Typography variant="caption" color="text.secondary" fontWeight="medium">
-              Visual Preview
-            </Typography>
-            <GraphVisualDiff
-              diff={diff}
-              oldGraph={compareVersion.version < selectedVersion.version ? compareVersion.graph : selectedVersion.graph}
-              newGraph={compareVersion.version < selectedVersion.version ? selectedVersion.graph : compareVersion.graph}
+      {isCompareMode && selectedVersionId && compareVersionId && (
+        <Box sx={{ p: 1, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+          {viewMode === "side-by-side" ? (
+            <SideBySideVersionDiff
+              versions={versions}
+              initialLeftVersionId={selectedVersionId}
+              initialRightVersionId={compareVersionId}
+              onRestore={handleRestore}
               width={280}
-              height={140}
+              height={320}
             />
-          </Box>
-          <Box
-            sx={{
-              p: 1,
-              maxHeight: 200,
-              overflow: "auto"
-            }}
-          >
-            <VersionDiff
-              diff={diff}
-              oldVersionNumber={Math.min(
-                selectedVersion.version,
-                compareVersion.version
-              )}
-              newVersionNumber={Math.max(
-                selectedVersion.version,
-                compareVersion.version
-              )}
-            />
-          </Box>
+          ) : diff && selectedVersion && compareVersion ? (
+            <Box
+              sx={{
+                borderBottom: 1,
+                borderColor: "divider"
+              }}
+            >
+              <Box sx={{ p: 1, bgcolor: "rgba(2, 136, 209, 0.05)" }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="medium">
+                  Visual Preview
+                </Typography>
+                <GraphVisualDiff
+                  diff={diff}
+                  oldGraph={compareVersion.version < selectedVersion.version ? compareVersion.graph : selectedVersion.graph}
+                  newGraph={compareVersion.version < selectedVersion.version ? selectedVersion.graph : compareVersion.graph}
+                  width={280}
+                  height={140}
+                />
+              </Box>
+              <Box
+                sx={{
+                  p: 1,
+                  maxHeight: 200,
+                  overflow: "auto"
+                }}
+              >
+                <VersionDiff
+                  diff={diff}
+                  oldVersionNumber={Math.min(
+                    selectedVersion.version,
+                    compareVersion.version
+                  )}
+                  newVersionNumber={Math.max(
+                    selectedVersion.version,
+                    compareVersion.version
+                  )}
+                />
+              </Box>
+            </Box>
+          ) : null}
         </Box>
       )}
 

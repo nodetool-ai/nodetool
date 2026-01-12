@@ -243,4 +243,24 @@ test('handles user interaction', async () => {
 
 ---
 
+### Side-by-Side Version Comparison View Research (2026-01-12)
+
+**What**: Enhanced the existing workflow version history with a new side-by-side comparison view for visual diff analysis.
+
+**Why**: The existing version history had a compact mini-diff view, but users needed a more detailed side-by-side comparison to understand workflow changes.
+
+**Implementation**:
+- Created `SideBySideVersionDiff` component with two graph views
+- Added version selectors, zoom controls, and swap button
+- Integrated into `VersionHistoryPanel` with "Split View" toggle
+- Color-coded nodes (green=added, red=removed, orange=modified)
+
+**Files Changed**:
+- `web/src/components/version/SideBySideVersionDiff.tsx` (new)
+- `web/src/components/version/__tests__/SideBySideVersionDiff.test.tsx` (new)
+- `web/src/components/version/VersionHistoryPanel.tsx` (modified)
+- `web/src/components/version/index.ts` (modified)
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

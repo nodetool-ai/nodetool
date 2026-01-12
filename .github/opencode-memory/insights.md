@@ -509,3 +509,21 @@ cd mobile && npm install
 ## Last Updated
 
 2026-01-12 - Added Jest path pattern and node distribution algorithm insights
+
+---
+
+### Side-by-Side Version Comparison Implementation (2026-01-12)
+
+**Insight**: Enhancing existing version history with side-by-side comparison required careful state management to avoid TypeScript type narrowing issues.
+
+**Challenge**: When conditionally rendering components based on state, TypeScript narrows union types, causing "no overlap" errors when comparing the same state variable in different branches.
+
+**Solution**: Used explicit type casting (`as string`) for state comparisons in conditional rendering, or restructured the condition to avoid narrow type assumptions.
+
+**Files**: 
+- `web/src/components/version/SideBySideVersionDiff.tsx`
+- `web/src/components/version/VersionHistoryPanel.tsx`
+
+**Test Results**: 2130 tests pass (3 failures in unrelated tests)
+
+**Date**: 2026-01-12
