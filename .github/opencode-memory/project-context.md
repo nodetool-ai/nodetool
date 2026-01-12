@@ -240,6 +240,30 @@ test('handles user interaction', async () => {
 ---
 
 _No entries yet - this memory system is new as of 2026-01-10_
+### Workflow Statistics Panel (2026-01-12)
+
+**What**: Added a new Workflow Statistics panel that displays real-time metrics about the current workflow including node counts by type and category, connection count, workflow depth, source/sink nodes, complexity level, and cycle detection.
+
+**Features**:
+- Overview statistics (total nodes, connections, depth, branching factor)
+- Structure analysis (source nodes, sink nodes, cycle detection)
+- Complexity classification (simple/moderate/complex) with descriptions
+- Nodes grouped by category (Inputs, Outputs, Processing, Control Flow)
+- Top node types visualization with progress bars
+
+**Files**:
+- `web/src/core/graph.ts` - Added workflow stats calculation functions
+- `web/src/components/panels/WorkflowStatsPanel.tsx` - New stats panel component
+- `web/src/stores/RightPanelStore.ts` - Added "stats" panel type
+- `web/src/components/panels/PanelRight.tsx` - Integrated stats panel with toolbar
+- `web/src/components/node_editor/NodeEditor.tsx` - Added Ctrl+Shift+S shortcut
+- `web/src/config/shortcuts.ts` - Added toggleStats shortcut
+- `web/src/core/__tests__/graph.test.ts` - Added unit tests for stats functions
+
+**Keyboard Shortcut**: Ctrl+Shift+S (or Cmd+Shift+S on Mac) to toggle the stats panel
+
+---
+
 ### Test Expectation Fix (2026-01-12)
 
 **What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
