@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { Box, List, Typography, Button } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
@@ -12,9 +12,11 @@ import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
 import FavoritesTiles from "./FavoritesTiles";
+import PresetsTiles from "./PresetsTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
+import { SaveNodePresetDialog } from "../../components/dialogs/SaveNodePresetDialog";
 
 type NamespaceTree = {
   [key: string]: {
@@ -435,6 +437,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedOutputType: state.selectedOutputType
   }));
 
+  const [savePresetDialogOpen, setSavePresetDialogOpen] = useState(false);
+  const [savePresetNodeType, setSavePresetNodeType] = useState<string>("");
+  const [savePresetProperties, setSavePresetProperties] = useState<Record<string, unknown>>({});
+
   const allMetadata = useMetadataStore((state) => state.metadata);
 
   const selectedPathString = useMemo(
@@ -453,6 +459,12 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const totalNodes = useMemo(() => {
     return Object.values(allMetadata).length;
   }, [allMetadata]);
+
+  const handleSavePreset = useCallback((nodeType: string, properties: Record<string, unknown>) => {
+    setSavePresetNodeType(nodeType);
+    setSavePresetProperties(properties);
+    setSavePresetDialogOpen(true);
+  }, []);
 
   return (
     <div
@@ -491,6 +503,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
               minSearchTermLength={minSearchTermLength}
             />
             <div className="quick-action-tiles-container">
+              <PresetsTiles onSavePreset={handleSavePreset} />
               <FavoritesTiles />
               <RecentNodesTiles />
               <QuickActionTiles />
@@ -506,6 +519,12 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         allSearchMatches={allSearchMatches}
         metadata={metadata}
         totalNodes={totalNodes}
+      />
+      <SaveNodePresetDialog
+        open={savePresetDialogOpen}
+        onClose={() => setSavePresetDialogOpen(false)}
+        nodeType={savePresetNodeType}
+        nodeProperties={savePresetProperties}
       />
     </div>
   );

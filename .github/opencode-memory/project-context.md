@@ -179,4 +179,29 @@ test('handles user interaction', async () => {
 
 ---
 
+### Node Presets Feature (2026-01-12)
+
+**What**: Added ability to save node configurations as reusable presets for quick access. Presets appear in the node menu alongside favorites and recent nodes.
+
+**Why**: Users often configure nodes with the same settings repeatedly (e.g., LLM nodes with specific model, temperature, etc.). Presets bridge the gap between "favorite nodes" (quick access) and full workflow templates.
+
+**Implementation**:
+- Created `NodePresetsStore` (Zustand with persistence) for managing presets
+- Created `SaveNodePresetDialog` component for saving node configurations
+- Created `PresetsTiles` component for displaying presets in the node menu
+- Modified `useCreateNode` hook to support creating nodes from presets
+- Added "Save as Preset" button in the node Inspector panel
+- Added preset management (duplicate, delete) via context menu
+
+**Files Changed**:
+- `web/src/stores/NodePresetsStore.ts` - New store for preset management
+- `web/src/stores/__tests__/NodePresetsStore.test.ts` - Store tests
+- `web/src/components/dialogs/SaveNodePresetDialog.tsx` - Dialog for saving presets
+- `web/src/components/node_menu/PresetsTiles.tsx` - Tile display in node menu
+- `web/src/components/node_menu/NamespaceList.tsx` - Integrated presets into menu
+- `web/src/components/Inspector.tsx` - Added save preset button
+- `web/src/hooks/useCreateNode.ts` - Support preset properties on node creation
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_
