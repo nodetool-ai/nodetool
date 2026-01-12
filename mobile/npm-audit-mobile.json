@@ -1,0 +1,294 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "highlight.js": {
+      "name": "highlight.js",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1086450,
+          "name": "highlight.js",
+          "dependency": "highlight.js",
+          "title": "ReDOS vulnerabities: multiple grammars",
+          "url": "https://github.com/advisories/GHSA-7wwv-vh3v-89cq",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-20",
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=9.0.0 <10.4.1"
+        },
+        {
+          "source": 1090060,
+          "name": "highlight.js",
+          "dependency": "highlight.js",
+          "title": "Prototype Pollution in highlight.js",
+          "url": "https://github.com/advisories/GHSA-vfrc-7r7c-w9mx",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-471"
+          ],
+          "cvss": {
+            "score": 5.8,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:C/C:N/I:H/A:N"
+          },
+          "range": "<9.18.2"
+        }
+      ],
+      "effects": [
+        "lowlight",
+        "react-syntax-highlighter"
+      ],
+      "range": "<=10.4.0",
+      "nodes": [
+        "node_modules/react-native-syntax-highlighter/node_modules/highlight.js"
+      ],
+      "fixAvailable": false
+    },
+    "lowlight": {
+      "name": "lowlight",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "highlight.js"
+      ],
+      "effects": [
+        "react-syntax-highlighter"
+      ],
+      "range": "<=1.16.0",
+      "nodes": [
+        "node_modules/react-native-syntax-highlighter/node_modules/lowlight"
+      ],
+      "fixAvailable": false
+    },
+    "markdown-it": {
+      "name": "markdown-it",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1092663,
+          "name": "markdown-it",
+          "dependency": "markdown-it",
+          "title": "Uncontrolled Resource Consumption in markdown-it",
+          "url": "https://github.com/advisories/GHSA-6vfc-qv3f-vr6c",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-400",
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+          },
+          "range": "<12.3.2"
+        }
+      ],
+      "effects": [
+        "react-native-markdown-display"
+      ],
+      "range": "<12.3.2",
+      "nodes": [
+        "node_modules/markdown-it"
+      ],
+      "fixAvailable": false
+    },
+    "prismjs": {
+      "name": "prismjs",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1087445,
+          "name": "prismjs",
+          "dependency": "prismjs",
+          "title": "Cross-Site Scripting in Prism",
+          "url": "https://github.com/advisories/GHSA-wvhm-4hhf-97x9",
+          "severity": "high",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 7.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:L"
+          },
+          "range": ">=1.1.0 <1.21.0"
+        },
+        {
+          "source": 1089189,
+          "name": "prismjs",
+          "dependency": "prismjs",
+          "title": "prismjs Regular Expression Denial of Service vulnerability",
+          "url": "https://github.com/advisories/GHSA-hqhp-5p83-hx96",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H"
+          },
+          "range": "<1.25.0"
+        },
+        {
+          "source": 1089716,
+          "name": "prismjs",
+          "dependency": "prismjs",
+          "title": "Regular Expression Denial of Service (ReDoS) in Prism",
+          "url": "https://github.com/advisories/GHSA-gj77-59wh-66hg",
+          "severity": "high",
+          "cwe": [
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 7.4,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:N/I:N/A:H"
+          },
+          "range": "<1.24.0"
+        },
+        {
+          "source": 1090424,
+          "name": "prismjs",
+          "dependency": "prismjs",
+          "title": "Cross-site Scripting in Prism",
+          "url": "https://github.com/advisories/GHSA-3949-f494-cm99",
+          "severity": "high",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:H/I:L/A:L"
+          },
+          "range": ">=1.14.0 <1.27.0"
+        },
+        {
+          "source": 1093292,
+          "name": "prismjs",
+          "dependency": "prismjs",
+          "title": "Denial of service in prismjs",
+          "url": "https://github.com/advisories/GHSA-h4hr-7fg3-h35w",
+          "severity": "high",
+          "cwe": [
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<1.23.0"
+        },
+        {
+          "source": 1105770,
+          "name": "prismjs",
+          "dependency": "prismjs",
+          "title": "PrismJS DOM Clobbering vulnerability",
+          "url": "https://github.com/advisories/GHSA-x7hr-w5r2-h6wg",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79",
+            "CWE-94"
+          ],
+          "cvss": {
+            "score": 4.9,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:L/I:L/A:N"
+          },
+          "range": "<1.30.0"
+        }
+      ],
+      "effects": [
+        "refractor"
+      ],
+      "range": "<=1.29.0",
+      "nodes": [
+        "node_modules/react-native-syntax-highlighter/node_modules/prismjs"
+      ],
+      "fixAvailable": false
+    },
+    "react-native-markdown-display": {
+      "name": "react-native-markdown-display",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "markdown-it"
+      ],
+      "effects": [],
+      "range": "*",
+      "nodes": [
+        "node_modules/react-native-markdown-display"
+      ],
+      "fixAvailable": false
+    },
+    "react-native-syntax-highlighter": {
+      "name": "react-native-syntax-highlighter",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "react-syntax-highlighter"
+      ],
+      "effects": [],
+      "range": "*",
+      "nodes": [
+        "node_modules/react-native-syntax-highlighter"
+      ],
+      "fixAvailable": false
+    },
+    "react-syntax-highlighter": {
+      "name": "react-syntax-highlighter",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "highlight.js",
+        "lowlight",
+        "refractor"
+      ],
+      "effects": [
+        "react-native-syntax-highlighter"
+      ],
+      "range": "<=12.2.1",
+      "nodes": [
+        "node_modules/react-native-syntax-highlighter/node_modules/react-syntax-highlighter"
+      ],
+      "fixAvailable": false
+    },
+    "refractor": {
+      "name": "refractor",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "prismjs"
+      ],
+      "effects": [
+        "react-syntax-highlighter"
+      ],
+      "range": "<=3.4.0 || 4.0.0 - 4.1.1",
+      "nodes": [
+        "node_modules/react-native-syntax-highlighter/node_modules/refractor"
+      ],
+      "fixAvailable": false
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 7,
+      "high": 1,
+      "critical": 0,
+      "total": 8
+    },
+    "dependencies": {
+      "prod": 787,
+      "dev": 605,
+      "optional": 43,
+      "peer": 79,
+      "peerOptional": 0,
+      "total": 1409
+    }
+  }
+}
