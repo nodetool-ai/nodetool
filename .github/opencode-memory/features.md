@@ -35,6 +35,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Virtualized Node List**: Virtual scrolling for node menu to handle large node libraries efficiently
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates
