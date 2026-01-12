@@ -3,7 +3,6 @@ import { memo, useState, useRef } from "react";
 import {
   Box,
   CircularProgress,
-  Modal,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -34,9 +33,8 @@ import NodeMenu from "../node_menu/NodeMenu";
 import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
-import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
-import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 import CommandMenu from "../menus/CommandMenu";
+import KeyboardShortcutsDialog from "../dialogs/KeyboardShortcutsDialog";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
@@ -153,37 +151,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 undo={() => nodeHistory.undo()}
                 redo={() => nodeHistory.redo()}
                 reactFlowWrapper={reactFlowWrapperRef}
+                onOpenShortcuts={() => setShowShortcuts(true)}
+              />
+              <KeyboardShortcutsDialog
+                open={showShortcuts}
+                onClose={() => setShowShortcuts(false)}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
-              <Modal
-                open={showShortcuts}
-                onClose={(event, reason) => {
-                  if (reason === "backdropClick") {
-                    setShowShortcuts(false);
-                  }
-                }}
-                closeAfterTransition
-              >
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: "250px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "80vw",
-                    maxWidth: "1400px",
-                    padding: 4,
-                    backgroundColor: theme.vars.palette.grey[800],
-                    boxShadow: 24,
-                    borderRadius: 2,
-                    border: 0,
-                    outline: 0,
-                    overflow: "hidden"
-                  }}
-                >
-                  <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
-                </Box>
-              </Modal>
             </>
           )}
         </Box>

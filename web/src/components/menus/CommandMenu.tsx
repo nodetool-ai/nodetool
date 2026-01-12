@@ -28,6 +28,7 @@ type CommandMenuProps = {
   undo: (steps?: number | undefined) => void;
   redo: (steps?: number | undefined) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
+  onOpenShortcuts?: () => void;
 };
 
 const styles = () =>
@@ -169,6 +170,24 @@ const ViewCommands = memo(function ViewCommands() {
   );
 });
 
+interface HelpCommandsProps {
+  onOpenShortcuts: () => void;
+}
+
+const HelpCommands = memo(function HelpCommands({
+  onOpenShortcuts
+}: HelpCommandsProps) {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+
+  return (
+    <Command.Group heading="Help">
+      <Command.Item onSelect={() => executeAndClose(onOpenShortcuts)}>
+        Keyboard Shortcuts
+      </Command.Item>
+    </Command.Group>
+  );
+});
+
 const NodeCommands = memo(function NodeCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const reactFlowWrapper = useCommandMenu((state) => state.reactFlowWrapper);
@@ -282,7 +301,8 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   setOpen,
   undo,
   redo,
-  reactFlowWrapper
+  reactFlowWrapper,
+  onOpenShortcuts
 }) => {
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const input = useRef<HTMLInputElement>(null);
@@ -334,6 +354,9 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
           <UndoCommands undo={undo} redo={redo} />
           <LayoutCommands />
           <ViewCommands />
+          {onOpenShortcuts && (
+            <HelpCommands onOpenShortcuts={onOpenShortcuts} />
+          )}
           <NodeCommands />
           <ExampleCommands />
         </Command.List>

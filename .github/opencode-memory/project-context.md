@@ -249,3 +249,21 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 **What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
 **Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
+
+---
+
+### Keyboard Shortcuts Dialog (2026-01-12)
+
+**What**: Added a dedicated Keyboard Shortcuts dialog accessible via Command Menu (Ctrl+K) → Help → Keyboard Shortcuts. The dialog displays all available shortcuts in an interactive visual keyboard layout with OS toggle (macOS/Windows), language layout options, and category filters.
+
+**Why**: Keyboard shortcuts were previously only discoverable through tooltips. Users now have a centralized place to browse and learn all shortcuts, improving accessibility and power user workflows.
+
+**Implementation**:
+- Created `KeyboardShortcutsDialog.tsx` - A MUI Dialog wrapper for the existing `KeyboardShortcutsView` component
+- Updated `CommandMenu.tsx` to include a "Help" group with "Keyboard Shortcuts" option
+- Updated `NodeEditor.tsx` to integrate the new dialog and pass the callback to CommandMenu
+
+**Files Changed**:
+- `web/src/components/dialogs/KeyboardShortcutsDialog.tsx` (new)
+- `web/src/components/menus/CommandMenu.tsx`
+- `web/src/components/node_editor/NodeEditor.tsx`
