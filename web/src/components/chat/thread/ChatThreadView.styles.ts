@@ -18,7 +18,7 @@ export const createStyles = (theme: Theme) => ({
     justifyContent: "flex-start",
     alignItems: "center",
     overflowY: "auto",
-    padding: "2em .5em 8em",
+    padding: ".5em",
     marginTop: ".2em",
     position: "relative",
 
@@ -64,7 +64,8 @@ export const createStyles = (theme: Theme) => ({
       margin: "4em 0 2em auto",
       padding: "0.2em",
       color: theme.vars.palette.grey[100],
-      background: "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
+      background:
+        "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
       border: "1px solid rgba(255, 255, 255, 0.08)",
       opacity: 0.9,
       borderRadius: "16px 16px 4px 16px",

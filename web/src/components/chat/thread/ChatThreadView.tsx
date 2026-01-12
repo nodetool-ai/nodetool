@@ -9,7 +9,12 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Message, PlanningUpdate, TaskUpdate, LogUpdate } from "../../../stores/ApiTypes";
+import {
+  Message,
+  PlanningUpdate,
+  TaskUpdate,
+  LogUpdate
+} from "../../../stores/ApiTypes";
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
@@ -22,15 +27,15 @@ import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 interface ChatThreadViewProps {
   messages: Message[];
   status:
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "loading"
-  | "error"
-  | "streaming"
-  | "reconnecting"
-  | "disconnecting"
-  | "failed";
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "loading"
+    | "error"
+    | "streaming"
+    | "reconnecting"
+    | "disconnecting"
+    | "failed";
   progress: number;
   total: number;
   progressMessage: string | null;
@@ -44,8 +49,15 @@ interface ChatThreadViewProps {
   scrollContainer?: HTMLDivElement | null;
 }
 
-const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
-const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
+// Scroll state machine constants
+// Threshold in pixels for determining if user is "near bottom"
+const NEAR_BOTTOM_THRESHOLD_PX = 100;
+// Offset from top when scrolling user message into view (so it's not glued to edge)
+const USER_MESSAGE_TOP_OFFSET_PX = 16;
+// Minimum time after user scroll before auto-scroll can resume
+const USER_SCROLL_COOLDOWN_MS = 300;
+// Debounce delay for spacer height recalculation (ms)
+const SPACER_RECALC_DEBOUNCE_MS = 100;
 
 // Dynamic scroll spacer component that adapts to content and viewport
 interface DynamicScrollSpacerProps {
@@ -60,6 +72,8 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
   const [spacerHeight, setSpacerHeight] = useState(200);
 
   useEffect(() => {
+    let recalcTimeoutId: number | null = null;
+
     const calculateOptimalSpacerHeight = () => {
       if (!scrollHost || !lastUserMessageRef.current) {
         setSpacerHeight(200);
@@ -70,45 +84,59 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
       const lastUserMessageRect = lastUserMessage.getBoundingClientRect();
       const scrollHostRect = scrollHost.getBoundingClientRect();
 
+      // If there's enough content to scroll (scrollHeight > clientHeight), no spacer needed
+      if (scrollHost.scrollHeight > scrollHost.clientHeight) {
+        setSpacerHeight(0);
+        return;
+      }
+
       // Calculate the exact space needed to bring the user message to the top
       const currentOffset = lastUserMessageRect.top - scrollHostRect.top;
-      
+
       // If message is already at or near top, use minimal spacer
       if (currentOffset <= 0) {
         setSpacerHeight(150);
         return;
       }
-      
+
       // Calculate precise height needed: current offset + small buffer for smooth scrolling
       const preciseSpacerHeight = currentOffset + 20; // 20px buffer for smooth scrolling
-      
+
       // Constrain to reasonable bounds
       const optimalHeight = Math.max(150, Math.min(400, preciseSpacerHeight));
-      
+
       setSpacerHeight(optimalHeight);
+    };
+
+    const scheduleRecalculation = () => {
+      if (recalcTimeoutId !== null) {
+        clearTimeout(recalcTimeoutId);
+      }
+      recalcTimeoutId = window.setTimeout(() => {
+        calculateOptimalSpacerHeight();
+        recalcTimeoutId = null;
+      }, SPACER_RECALC_DEBOUNCE_MS);
     };
 
     // Calculate initial height
     calculateOptimalSpacerHeight();
 
     // Use MutationObserver to watch for content changes that might affect layout
-    const mutationObserver = new MutationObserver(() => {
-      // Small delay to ensure DOM has updated
-      setTimeout(calculateOptimalSpacerHeight, 0);
-    });
+    const mutationObserver = new MutationObserver(scheduleRecalculation);
 
     // Watch for changes in the message list
     if (lastUserMessageRef.current) {
-      mutationObserver.observe(lastUserMessageRef.current.parentElement || lastUserMessageRef.current, {
-        childList: true,
-        subtree: true
-      });
+      mutationObserver.observe(
+        lastUserMessageRef.current.parentElement || lastUserMessageRef.current,
+        {
+          childList: true,
+          subtree: true
+        }
+      );
     }
 
     // Recalculate on resize
-    const resizeObserver = new ResizeObserver(() => {
-      setTimeout(calculateOptimalSpacerHeight, 0);
-    });
+    const resizeObserver = new ResizeObserver(scheduleRecalculation);
 
     if (scrollHost) {
       resizeObserver.observe(scrollHost);
@@ -117,6 +145,9 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
     return () => {
       mutationObserver.disconnect();
       resizeObserver.disconnect();
+      if (recalcTimeoutId !== null) {
+        clearTimeout(recalcTimeoutId);
+      }
     };
   }, [scrollHost, lastUserMessageRef]);
 
@@ -172,7 +203,9 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     const executionMessagesById = useMemo(() => {
       const map = new Map<string, Message[]>();
       for (const msg of messages) {
-        if (msg.role !== "agent_execution" || !msg.agent_execution_id) { continue; }
+        if (msg.role !== "agent_execution" || !msg.agent_execution_id) {
+          continue;
+        }
         const list = map.get(msg.agent_execution_id) || [];
         list.push(msg);
         map.set(msg.agent_execution_id, list);
@@ -192,66 +225,70 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
 
     return (
       <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
-        {filteredMessages
-          .map((msg, index) => {
-            if (msg.role === "agent_execution" && msg.agent_execution_id) {
-              const executionMessages =
-                executionMessagesById.get(msg.agent_execution_id);
-              if (executionMessages && executionMessages[0] !== msg) {
-                return null;
-              }
-            }
-            const isLastUserMessage = index === lastUserMessageIndex;
-            // Use message id as key, with fallback to index-based key for rare cases where id is missing
-            const messageKey = msg.id || `msg-${index}`;
-            const messageElement = (
-              <MessageView
-                key={messageKey}
-                message={msg}
-                expandedThoughts={expandedThoughts}
-                onToggleThought={onToggleThought}
-                onInsertCode={onInsertCode}
-                toolResultsByCallId={toolResultsByCallId}
-                componentStyles={componentStyles}
-                executionMessagesById={executionMessagesById}
-              />
+        {filteredMessages.map((msg, index) => {
+          if (msg.role === "agent_execution" && msg.agent_execution_id) {
+            const executionMessages = executionMessagesById.get(
+              msg.agent_execution_id
             );
-            // Wrap the last user message in a div with ref for scroll-to-top behavior
-            if (isLastUserMessage) {
-              return (
-                <div key={`wrapper-${messageKey}`} ref={lastUserMessageRef}>
-                  {messageElement}
-                </div>
-              );
+            if (executionMessages && executionMessages[0] !== msg) {
+              return null;
             }
-            return messageElement;
-          })}
-        {status === "loading" && progress === 0 && !hasAgentExecutionMessages && (
-          <li key="loading-indicator" className="chat-message-list-item">
-            <LoadingIndicator />
-          </li>
-        )}
+          }
+          const isLastUserMessage = index === lastUserMessageIndex;
+          // Use message id as key, with fallback to index-based key for rare cases where id is missing
+          const messageKey = msg.id || `msg-${index}`;
+          const messageElement = (
+            <MessageView
+              key={messageKey}
+              message={msg}
+              expandedThoughts={expandedThoughts}
+              onToggleThought={onToggleThought}
+              onInsertCode={onInsertCode}
+              toolResultsByCallId={toolResultsByCallId}
+              componentStyles={componentStyles}
+              executionMessagesById={executionMessagesById}
+            />
+          );
+          // Wrap the last user message in a div with ref for scroll-to-top behavior
+          if (isLastUserMessage) {
+            return (
+              <div key={`wrapper-${messageKey}`} ref={lastUserMessageRef}>
+                {messageElement}
+              </div>
+            );
+          }
+          return messageElement;
+        })}
+        {status === "loading" &&
+          progress === 0 &&
+          !hasAgentExecutionMessages && (
+            <li key="loading-indicator" className="chat-message-list-item">
+              <LoadingIndicator />
+            </li>
+          )}
         {progress > 0 && !hasAgentExecutionMessages && (
           <li key="progress-indicator" className="chat-message-list-item">
             <Progress progress={progress} total={total} />
           </li>
         )}
         {/* Hide global progress message if a tool call is running */}
-        {progressMessage && !runningToolCallId && !hasAgentExecutionMessages && (
-          <li
-            key="progress-message"
-            className="node-status chat-message-list-item"
-          >
-            <span
-              css={css`
-                display: inline;
-                animation: ${textPulse} 1.8s ease-in-out infinite;
-              `}
+        {progressMessage &&
+          !runningToolCallId &&
+          !hasAgentExecutionMessages && (
+            <li
+              key="progress-message"
+              className="node-status chat-message-list-item"
             >
-              {progressMessage}
-            </span>
-          </li>
-        )}
+              <span
+                css={css`
+                  display: inline;
+                  animation: ${textPulse} 1.8s ease-in-out infinite;
+                `}
+              >
+                {progressMessage}
+              </span>
+            </li>
+          )}
         {/* Reserve area for future non-animated hints when a tool is running, if needed */}
         {!hasAgentExecutionMessages && currentPlanningUpdate && (
           <li key="planning-update" className="chat-message-list-item">
@@ -266,35 +303,47 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
         {!hasAgentExecutionMessages && currentLogUpdate && (
           <li key="log-update" className="chat-message-list-item">
             <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
-              <div style={{
-                position: "absolute",
-                left: "4px",
-                top: "10px",
-                bottom: "10px",
-                width: "2px",
-                background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
-                borderRadius: "1px"
-              }} />
-              <div style={{
-                position: "absolute",
-                left: "-21px",
-                top: "12px",
-                width: "10px",
-                height: "10px",
-                borderRadius: "50%",
-                backgroundColor: theme.vars.palette.primary.main,
-                border: `2px solid ${theme.vars.palette.background.default}`,
-                boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
-                zIndex: 2
-              }} />
-              <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
-                fontSize: "0.8rem",
-                padding: "0.5rem 0.75rem",
-                borderRadius: "8px",
-                backgroundColor: "rgba(30, 35, 40, 0.4)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
-              }}>
+              <div
+                style={{
+                  position: "absolute",
+                  left: "4px",
+                  top: "10px",
+                  bottom: "10px",
+                  width: "2px",
+                  background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
+                  borderRadius: "1px"
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "-21px",
+                  top: "12px",
+                  width: "10px",
+                  height: "10px",
+                  borderRadius: "50%",
+                  backgroundColor: theme.vars.palette.primary.main,
+                  border: `2px solid ${theme.vars.palette.background.default}`,
+                  boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
+                  zIndex: 2
+                }}
+              />
+              <div
+                className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`}
+                style={{
+                  fontSize: "0.8rem",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(30, 35, 40, 0.4)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  color:
+                    currentLogUpdate.severity === "error"
+                      ? theme.vars.palette.error.light
+                      : currentLogUpdate.severity === "warning"
+                        ? theme.vars.palette.warning.light
+                        : "grey.300"
+                }}
+              >
                 {currentLogUpdate.content}
               </div>
             </div>
@@ -302,7 +351,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
         )}
         <div ref={bottomRef} style={{ height: 1 }} />
         {/* Dynamic spacer that adapts based on viewport and content needs */}
-        <DynamicScrollSpacer 
+        <DynamicScrollSpacer
           lastUserMessageRef={lastUserMessageRef}
           scrollHost={scrollHost}
         />
@@ -312,6 +361,23 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
 );
 MemoizedMessageListContent.displayName = "MemoizedMessageListContent";
 
+/**
+ * Scroll State Machine
+ *
+ * This component implements a state machine approach to scrolling with two distinct behaviors:
+ *
+ * 1. USER MESSAGE ANCHORING: When a user sends a message, scroll it to the top of the viewport
+ *    with an offset so it's not glued to the edge.
+ *
+ * 2. ASSISTANT AUTO-SCROLL: Only auto-scroll new assistant content when the user is "near bottom".
+ *    If the user has scrolled away, show "Jump to bottom" button instead.
+ *
+ * Scroll Ownership:
+ * - SYSTEM: When auto-scrolling for streaming content or after user message
+ * - USER: When user has manually scrolled away from bottom
+ *
+ * The key insight is that scrolling should never fight the user's intent.
+ */
 const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   messages,
   status,
@@ -333,23 +399,28 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
-  const userHasScrolledUpRef = useRef(false);
+
+  // === SCROLL STATE MACHINE REFS ===
+  // Track if user has manually scrolled away from bottom (user owns scroll)
+  const userOwnsScrollRef = useRef(false);
+  // Track if user is near bottom for auto-scroll eligibility
   const isNearBottomRef = useRef(true);
-  const lastUserScrollTimeRef = useRef<number>(0);
-  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Track when we've scrolled to a user message - prevents auto-scroll to bottom from overriding.
-  // Lifecycle:
-  // - Set to true: when scrollToLastUserMessage() is called (user submits a message)
-  // - Set to false: when user manually scrolls, or when streaming ends
-  // - Checked: in auto-scroll effect to skip scrollToBottom during streaming
-  const scrolledToUserMessageRef = useRef(false);
+  // Timestamp of last user scroll event for cooldown detection (using performance.now for monotonic time)
+  const lastUserScrollTimeRef = useRef<number>(performance.now());
+  // Flag to prevent auto-scroll to bottom right after anchoring to user message
+  const anchoredToUserMessageRef = useRef(false);
+  // Timestamp when we started a smooth scroll (from scrollToLastUserMessage)
+  const smoothScrollStartTimeRef = useRef<number>(0);
+  // requestAnimationFrame ID for streaming scroll batching
+  const rafIdRef = useRef<number | null>(null);
+  // Track if RAF scroll is already scheduled (prevents jitter)
+  const rafScheduledRef = useRef(false);
+
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
   const previousStatusRef = useRef(status);
   const previousMessageCountRef = useRef(messages.length);
-
-  const SCROLL_THRESHOLD = 50;
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
@@ -357,21 +428,18 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const map: Record<string, { name?: string | null; content: any }> = {};
     for (const m of messages) {
       // Tool result messages carry tool_call_id to link back to the originating tool call
-      const anyMsg: any = m as any;
+      const anyMsg = m as { tool_call_id?: string; name?: string | null };
       if (m.role === "tool" && anyMsg.tool_call_id) {
         map[String(anyMsg.tool_call_id)] = {
           name: anyMsg.name ?? undefined,
-          content: m.content as any
+          content: m.content
         };
       }
     }
     return map;
   }, [messages]);
 
-  useEffect(() => {
-    lastUserScrollTimeRef.current = Date.now();
-  }, []);
-
+  // Set up scroll host
   useEffect(() => {
     if (scrollContainer) {
       setScrollHost(scrollContainer);
@@ -380,169 +448,237 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     }
   }, [scrollContainer]);
 
-  const handleScroll = useCallback(() => {
-    lastUserScrollTimeRef.current = Date.now();
-    // User manually scrolling clears the "scrolled to user message" state
-    scrolledToUserMessageRef.current = false;
-    const element = scrollHost;
-    if (!element) { return; }
-
-    const calculatedIsNearBottom =
+  /**
+   * Compute whether user is near bottom of scroll container.
+   * Used to determine if auto-scroll should occur.
+   */
+  const computeIsNearBottom = useCallback((element: HTMLElement): boolean => {
+    return (
       element.scrollHeight - element.scrollTop - element.clientHeight <
-      SCROLL_THRESHOLD;
+      NEAR_BOTTOM_THRESHOLD_PX
+    );
+  }, []);
 
-    const previousUserHasScrolledUp = userHasScrolledUpRef.current;
-    if (!calculatedIsNearBottom && !userHasScrolledUpRef.current) {
-      userHasScrolledUpRef.current = true;
-    } else if (calculatedIsNearBottom && userHasScrolledUpRef.current) {
-      userHasScrolledUpRef.current = false;
+  /**
+   * Handle scroll events - track user intent and update scroll ownership.
+   */
+  const handleScroll = useCallback(() => {
+    const element = scrollHost;
+    if (!element) {
+      return;
     }
 
-    if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
-      const shouldBeVisible =
-        !isNearBottomRef.current && userHasScrolledUpRef.current;
-      if (shouldBeVisible !== showScrollToBottomButton) {
-        setShowScrollToBottomButton(shouldBeVisible);
-      }
-    }
-  }, [showScrollToBottomButton, scrollHost]);
+    const now = performance.now();
+    lastUserScrollTimeRef.current = now;
 
+    // User scrolling clears the anchored-to-user-message state
+    anchoredToUserMessageRef.current = false;
+
+    const nearBottom = computeIsNearBottom(element);
+    isNearBottomRef.current = nearBottom;
+
+    // Update scroll ownership based on position
+    if (!nearBottom) {
+      // User scrolled away from bottom - they own the scroll now
+      userOwnsScrollRef.current = true;
+    } else {
+      // User scrolled back to bottom - system can take over
+      userOwnsScrollRef.current = false;
+    }
+
+    // Update "Jump to bottom" button visibility
+    const shouldShowButton = !nearBottom && userOwnsScrollRef.current;
+    setShowScrollToBottomButton(shouldShowButton);
+  }, [scrollHost, computeIsNearBottom]);
+
+  // Attach scroll listener
   useEffect(() => {
     if (!scrollHost) {
       return;
     }
-    const handleScrollEvent = () => handleScroll();
-    scrollHost.addEventListener("scroll", handleScrollEvent);
+    scrollHost.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
-      scrollHost.removeEventListener("scroll", handleScrollEvent);
+      scrollHost.removeEventListener("scroll", handleScroll);
     };
   }, [scrollHost, handleScroll]);
 
+  /**
+   * Scroll to bottom using requestAnimationFrame batching.
+   * This prevents jitter during streaming by coalescing multiple scroll requests.
+   * Cancels any pending scroll operation to prevent scroll fights.
+   */
+  const scheduleScrollToBottom = useCallback(() => {
+    // Cancel any existing pending scroll operation
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    rafScheduledRef.current = true;
+
+    rafIdRef.current = requestAnimationFrame(() => {
+      const el = bottomRef.current;
+      if (el && scrollHost) {
+        // Use direct scrollTop assignment for instant scroll during streaming
+        // This prevents the jitter from smooth animation conflicts
+        scrollHost.scrollTop = scrollHost.scrollHeight;
+      }
+      rafScheduledRef.current = false;
+      rafIdRef.current = null;
+    });
+  }, [scrollHost]);
+
+  /**
+   * Smooth scroll to bottom (for user-initiated "Jump to bottom" action).
+   */
   const scrollToBottom = useCallback(() => {
     const el = bottomRef.current;
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
-      userHasScrolledUpRef.current = false;
+      // System takes ownership after user clicks "Jump to bottom"
+      userOwnsScrollRef.current = false;
+      setShowScrollToBottomButton(false);
     }
   }, []);
 
-  // Scroll to align the last user message at the top of the viewport
+  /**
+   * Scroll to align the last user message at the top of the viewport with offset.
+   * This anchors the conversation around the user's last input.
+   * Cancels any pending auto-scroll to prevent scroll fights.
+   */
   const scrollToLastUserMessage = useCallback(() => {
     const el = lastUserMessageRef.current;
-    if (el) {
-      // Calculate the exact position to scroll to for precise top alignment
-      const elementRect = el.getBoundingClientRect();
-      const scrollHostRect = scrollHost?.getBoundingClientRect();
-      
-      if (scrollHostRect) {
-        const currentScrollTop = scrollHost?.scrollTop || 0;
-        const targetScrollTop = currentScrollTop + elementRect.top - scrollHostRect.top;
-        
-        scrollHost?.scrollTo({
-          top: targetScrollTop,
-          behavior: 'smooth'
-        });
-      } else {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      
-      userHasScrolledUpRef.current = false;
-      // Set flag to prevent auto-scroll to bottom during streaming
-      scrolledToUserMessageRef.current = true;
+    if (!el || !scrollHost) {
+      return;
     }
+
+    // Cancel any pending RAF scroll to prevent conflicts
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    rafScheduledRef.current = false;
+
+    // Track that we're starting a smooth scroll to prevent auto-scroll interference
+    smoothScrollStartTimeRef.current = performance.now();
+
+    // Calculate target scroll position with offset so message isn't glued to top
+    const elementRect = el.getBoundingClientRect();
+    const scrollHostRect = scrollHost.getBoundingClientRect();
+    const currentScrollTop = scrollHost.scrollTop;
+
+    // Target: message top should be USER_MESSAGE_TOP_OFFSET_PX from viewport top
+    const targetScrollTop =
+      currentScrollTop +
+      elementRect.top -
+      scrollHostRect.top -
+      USER_MESSAGE_TOP_OFFSET_PX;
+
+    scrollHost.scrollTo({
+      top: Math.max(0, targetScrollTop),
+      behavior: "smooth"
+    });
+
+    // Mark that we're anchored to user message to prevent immediate auto-scroll
+    anchoredToUserMessageRef.current = true;
+    // System owns scroll during this anchoring phase
+    userOwnsScrollRef.current = false;
+    setShowScrollToBottomButton(false);
   }, [scrollHost]);
 
+  // Clean up RAF on unmount
   useEffect(() => {
-    const scrollElement = scrollHost;
-    const bottomElement = bottomRef.current;
-    if (!scrollElement || !bottomElement) { return; }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const wasNearBottom = isNearBottomRef.current;
-        isNearBottomRef.current = entry.isIntersecting;
-
-        if (isNearBottomRef.current !== wasNearBottom) {
-          const shouldBeVisible =
-            !isNearBottomRef.current && userHasScrolledUpRef.current;
-          if (shouldBeVisible !== showScrollToBottomButton) {
-            setShowScrollToBottomButton(shouldBeVisible);
-          }
-        }
-      },
-      { root: scrollElement, threshold: 0.1 }
-    );
-
-    observer.observe(bottomElement);
     return () => {
-      observer.disconnect();
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
     };
-  }, [scrollHost, showScrollToBottomButton]);
+  }, []);
 
+  /**
+   * Effect: Handle streaming status changes.
+   * When streaming ends, clear the anchored flag and smooth scroll tracking.
+   */
   useEffect(() => {
     if (previousStatusRef.current === "streaming" && status !== "streaming") {
-      // Don't force scroll to bottom when streaming ends to preserve user position
-      // The auto-scroll logic in the next effect will handle this appropriately
-      scrolledToUserMessageRef.current = false;
+      anchoredToUserMessageRef.current = false;
+      smoothScrollStartTimeRef.current = 0;
     }
     previousStatusRef.current = status;
   }, [status]);
 
+  /**
+   * Effect: Handle new messages - anchor to user message or auto-scroll assistant content.
+   */
   useEffect(() => {
-    if (messages.length <= previousMessageCountRef.current) {
-      previousMessageCountRef.current = messages.length;
+    const prevCount = previousMessageCountRef.current;
+    const currentCount = messages.length;
+
+    if (currentCount <= prevCount) {
+      previousMessageCountRef.current = currentCount;
       return;
     }
-    previousMessageCountRef.current = messages.length;
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
+
+    previousMessageCountRef.current = currentCount;
+    const lastMessage = messages[messages.length - 1];
+
     if (lastMessage?.role === "user") {
-      scrollToLastUserMessage();
-      
-      // Clear the flag after a short delay to allow the scroll to complete
-      // but still prevent immediate auto-scroll during streaming
-      setTimeout(() => {
-        scrolledToUserMessageRef.current = false;
-      }, 1000);
+      // Anchor to user message at top of viewport
+      // Use requestAnimationFrame for more predictable timing than setTimeout(..., 0)
+      requestAnimationFrame(() => {
+        scrollToLastUserMessage();
+      });
     }
   }, [messages, scrollToLastUserMessage]);
 
+  /**
+   * Effect: Auto-scroll during streaming if conditions are met.
+   * Uses requestAnimationFrame batching to prevent jitter.
+   *
+   * This effect triggers when:
+   * - messages array changes (new message added)
+   * - status changes to/from streaming
+   *
+   * Auto-scroll only occurs when:
+   * - Currently streaming
+   * - User hasn't manually scrolled away (userOwnsScrollRef is false)
+   * - Not anchored to a user message
+   * - Not in the middle of a smooth scroll animation
+   * - User hasn't scrolled recently (cooldown period)
+   * - User is near bottom of the container
+   */
   useEffect(() => {
-    if (autoScrollTimeoutRef.current) {
-      clearTimeout(autoScrollTimeoutRef.current);
+    if (status !== "streaming") {
+      return;
     }
 
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
+    const lastMessage = messages[messages.length - 1];
+    // Don't auto-scroll for user messages (they get anchored at top instead)
+    if (!lastMessage || lastMessage.role === "user") {
+      return;
+    }
+
+    // Don't auto-scroll if:
+    // - User owns scroll (has scrolled away)
+    // - We just anchored to a user message
+    // - We're in the middle of a smooth scroll (prevent scroll fights)
+    // - User scrolled recently (within cooldown)
+    const userIsIdle =
+      performance.now() - lastUserScrollTimeRef.current >
+      USER_SCROLL_COOLDOWN_MS;
+    const smoothScrollInProgress =
+      performance.now() - smoothScrollStartTimeRef.current < 500; // Typical smooth scroll duration
+
     if (
-      status === "streaming" ||
-      (lastMessage && lastMessage.role !== "user")
+      !userOwnsScrollRef.current &&
+      !anchoredToUserMessageRef.current &&
+      !smoothScrollInProgress &&
+      userIsIdle &&
+      isNearBottomRef.current
     ) {
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        const userIsIdle =
-          Date.now() - lastUserScrollTimeRef.current >
-          USER_SCROLL_IDLE_THRESHOLD_MS;
-
-        // Only auto-scroll if the user hasn't manually scrolled and we know they're at the bottom
-        // This preserves the user's scroll position when they've scrolled to see a specific message
-        if (
-          !userHasScrolledUpRef.current &&
-          userIsIdle &&
-          isNearBottomRef.current &&
-          // Additional check: only auto-scroll if we didn't just scroll to a user message
-          !scrolledToUserMessageRef.current
-        ) {
-          scrollToBottom();
-        }
-      }, ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS);
+      scheduleScrollToBottom();
     }
-
-    return () => {
-      if (autoScrollTimeoutRef.current) {
-        clearTimeout(autoScrollTimeoutRef.current);
-      }
-    };
-  }, [messages, status, scrollToBottom]);
+  }, [messages, status, scheduleScrollToBottom]);
 
   const handleToggleThought = useCallback((key: string) => {
     setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
