@@ -160,6 +160,20 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Search in Comments (2026-01-12)
+
+**What**: Enhanced Find in Workflow feature to search inside comment node content, with visual indicators showing which results matched in comments and match context preview.
+
+**Files**: `web/src/utils/findInWorkflowUtils.ts`, `web/src/hooks/useFindInWorkflow.ts`, `web/src/components/node_editor/FindInWorkflowDialog.tsx`, `web/src/stores/FindInWorkflowStore.ts`, `web/src/utils/__tests__/findInWorkflowUtils.test.ts`, `web/src/hooks/__tests__/useFindInWorkflow.test.ts`
+
+**Implementation**:
+- Added `findInWorkflowUtils.ts` with functions to extract text from Lexical editor state and search comment content
+- Updated `FindInWorkflowStore` to include `matchType` and `matchContext` in results
+- Enhanced `FindInWorkflowDialog` to show "comment" badge and match context for comment matches
+- Added comprehensive tests for comment search functionality including Lexical state parsing
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).
