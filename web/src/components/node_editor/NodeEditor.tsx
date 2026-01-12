@@ -43,6 +43,7 @@ import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
+import NodeInfoPanel from "./NodeInfoPanel";
 import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
@@ -146,6 +147,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 2}
               />
+              <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
