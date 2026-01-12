@@ -22,6 +22,7 @@ import {
   filterNodesUtil,
   SearchResultGroup
 } from "../utils/nodeSearch";
+import { NodeSnippet } from "./SnippetsStore";
 
 export interface SplitNodeDescription {
   description: string;
@@ -72,13 +73,31 @@ export type NodeMenuStore = {
   selectedNodeType: string | null;
   setSelectedNodeType: (nodeType: string | null) => void;
   documentationPosition: { x: number; y: number };
-  setDocumentationPosition: (position: { x: number; y: number }) => void;
+  setDocumentationPosition: (position: { x: number, y: number }) => void;
   showDocumentation: boolean;
   openDocumentation: (
     nodeType: string,
     position: { x: number; y: number }
   ) => void;
   closeDocumentation: () => void;
+
+  // Snippet dialog state
+  saveSnippetDialogOpen: boolean;
+  saveSnippetDialogMode: 'create' | 'edit';
+  saveSnippetDialogData: {
+    nodeType?: string;
+    nodeLabel?: string;
+    properties?: Record<string, unknown>;
+  } | null;
+  saveSnippetDialogSnippet: NodeSnippet | null;
+  openSaveSnippetDialog: (params: {
+    mode: 'create' | 'edit';
+    snippet?: NodeSnippet;
+    nodeType?: string;
+    nodeLabel?: string;
+    properties?: Record<string, unknown>;
+  }) => void;
+  closeSaveSnippetDialog: () => void;
 
   clickPosition: { x: number; y: number };
 
@@ -560,7 +579,32 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
         if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
         return allNodes[selectedIndex];
-      }
+      },
+
+      // Snippet dialog state management
+      saveSnippetDialogOpen: false,
+      saveSnippetDialogMode: 'create',
+      saveSnippetDialogData: null,
+      saveSnippetDialogSnippet: null,
+      openSaveSnippetDialog: (params) => {
+        set({
+          saveSnippetDialogOpen: true,
+          saveSnippetDialogMode: params.mode,
+          saveSnippetDialogData: params.mode === 'create' ? {
+            nodeType: params.nodeType,
+            nodeLabel: params.nodeLabel,
+            properties: params.properties,
+          } : null,
+          saveSnippetDialogSnippet: params.mode === 'edit' ? params.snippet ?? null : null,
+        });
+      },
+      closeSaveSnippetDialog: () => {
+        set({
+          saveSnippetDialogOpen: false,
+          saveSnippetDialogData: null,
+          saveSnippetDialogSnippet: null,
+        });
+      },
     };
   });
 

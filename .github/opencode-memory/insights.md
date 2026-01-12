@@ -339,6 +339,22 @@ When documenting new insights:
 
 ---
 
+### Node Snippets Implementation (2026-01-12)
+
+**Insight**: The MetadataStore uses `metadata` not `metadataByType` for storing node metadata. When accessing metadata by node type, use `getMetadata(nodeType)` method instead of direct property access.
+
+**Key Learnings**:
+1. `NodeMetadata` type uses `title` property, not `name`, for the node's display name
+2. uuidv4 from npm package may return Promise in newer versions; using the local `uuidv4.ts` utility is more reliable
+3. MUI Select component requires values to match available options or empty string for controlled components
+4. TypeScript discriminated unions work well for rendering but need explicit type guards inside callbacks
+
+**Files**: `web/src/stores/MetadataStore.ts`, `web/src/components/dialogs/SaveSnippetDialog.tsx`
+
+**Date**: 2026-01-12
+
+---
+
 ### Selection Action Toolbar Implementation (2026-01-10)
 
 **Insight**: TypeScript discriminated unions work well for rendering mixed content (buttons and dividers), but type guards need explicit function boundaries to properly narrow types.

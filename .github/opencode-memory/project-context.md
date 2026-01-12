@@ -155,6 +155,35 @@ test('handles user interaction', async () => {
 
 > OpenCode workflows should add entries here when making significant changes
 
+### Node Snippets Feature (2026-01-12)
+
+**What**: Added a Node Snippets feature that allows users to save frequently used node configurations as reusable templates.
+
+**Why**: Users often configure similar nodes repeatedly (e.g., the same LLM prompt template, image processing settings). Snippets save time by allowing quick insertion of pre-configured nodes.
+
+**Implementation**:
+- Created `SnippetsStore.ts` - Zustand store with persistence for storing snippets in localStorage
+- Created `SaveSnippetDialog.tsx` - Dialog component for creating and editing snippets
+- Created `SnippetTiles.tsx` - UI component for displaying snippets in the node menu
+- Updated `NodeMenuStore.ts` - Added state management for the snippet dialog
+- Updated `NodeContextMenu.tsx` - Added "Save as Snippet" option to right-click menu
+- Updated `useCreateNode.ts` - Added `createNodeFromSnippet` function for creating nodes from saved snippets
+- Updated `NodeMenu.tsx` - Integrated SnippetTiles into the node menu UI
+- Added comprehensive tests for the store and dialog components
+
+**Files Changed**:
+- `web/src/stores/SnippetsStore.ts` - New store for snippet management
+- `web/src/components/dialogs/SaveSnippetDialog.tsx` - New dialog for snippet creation/editing
+- `web/src/components/dialogs/__tests__/SaveSnippetDialog.test.tsx` - Tests for dialog
+- `web/src/components/node_menu/SnippetTiles.tsx` - New snippet tiles component
+- `web/src/stores/NodeMenuStore.ts` - Added snippet dialog state management
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added "Save as Snippet" menu item
+- `web/src/hooks/useCreateNode.ts` - Added snippet creation support
+- `web/src/components/node_menu/NodeMenu.tsx` - Integrated snippet tiles
+- `web/src/stores/__tests__/SnippetsStore.test.ts` - Tests for snippets store
+
+---
+
 ### Selection Action Toolbar (2026-01-10)
 
 **What**: Added a floating toolbar that appears when 2+ nodes are selected, providing quick access to batch operations like align, distribute, group, and delete.
