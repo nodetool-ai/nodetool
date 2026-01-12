@@ -1045,11 +1045,15 @@ export const createNodeStore = (
               metadata.node_type === "nodetool.workflows.base_node.Preview";
             const isCompareImagesNode =
               metadata.node_type === "nodetool.compare.CompareImages";
+            const isAnnotationNode =
+              metadata.node_type === "nodetool.annotation";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
             } else if (isCompareImagesNode) {
               defaultStyle = { width: 450, height: 350 };
+            } else if (isAnnotationNode) {
+              defaultStyle = { width: 250, height: 150 };
             } else {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
             }

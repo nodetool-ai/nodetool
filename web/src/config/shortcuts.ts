@@ -612,12 +612,21 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Find and navigate to nodes in the current workflow",
     registerCombo: true
   },
-  {
+   {
     title: "Reset Zoom",
     slug: "resetZoom",
     keyCombo: ["Control", "0"],
     category: "editor" as const,
     description: "Reset zoom to 100% (default scale)",
+    registerCombo: true
+  },
+  // ---------- ANNOTATIONS ----------------------------------------------------
+  {
+    title: "Add Annotation",
+    slug: "addAnnotation",
+    keyCombo: ["N"],
+    category: "editor" as const,
+    description: "Add a new annotation node at the center of the view",
     registerCombo: true
   }
 ] as Shortcut[];

@@ -42,7 +42,9 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    createNode: state.createNode,
+    addNode: state.addNode
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -378,6 +380,44 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleAddAnnotation = useCallback(() => {
+    const { createNode, addNode } = nodesStore;
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const flowPosition = reactFlow.screenToFlowPosition({ x: centerX, y: centerY });
+
+    const annotationMetadata: import("../stores/ApiTypes").NodeMetadata = {
+      title: "Annotation",
+      description: "Add a sticky note to document your workflow",
+      namespace: "utilities",
+      node_type: "nodetool.annotation",
+      layout: "annotation",
+      basic_fields: [],
+      is_dynamic: false,
+      properties: [
+        {
+          name: "annotation",
+          type: { type: "string", optional: true, type_args: [] },
+          required: false
+        },
+        {
+          name: "color",
+          type: { type: "string", optional: true, type_args: [] },
+          required: false
+        }
+      ],
+      outputs: [],
+      the_model_info: {},
+      recommended_models: [],
+      expose_as_tool: false,
+      supports_dynamic_outputs: false,
+      is_streaming_output: false
+    };
+
+    const newNode = createNode(annotationMetadata, flowPosition);
+    addNode(newNode);
+  }, [nodesStore, reactFlow]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -487,7 +527,8 @@ export const useNodeEditorShortcuts = (
       deleteSelected: {
         callback: selectionActions.deleteSelected,
         active: selectedNodes.length > 0
-      }
+      },
+      addAnnotation: { callback: handleAddAnnotation }
     };
 
     // Switch-to-tab (1-9)
@@ -534,11 +575,12 @@ export const useNodeEditorShortcuts = (
     selectionActions.alignTop,
     selectionActions.alignMiddle,
     selectionActions.alignBottom,
-    selectionActions.distributeHorizontal,
-    selectionActions.distributeVertical,
-    selectionActions.deleteSelected,
-    reactFlow
-  ]);
+      selectionActions.distributeHorizontal,
+      selectionActions.distributeVertical,
+      selectionActions.deleteSelected,
+      handleAddAnnotation,
+      reactFlow
+    ]);
 
   // useEffect for shortcut registration
   useEffect(() => {

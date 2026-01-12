@@ -1,9 +1,12 @@
 import { NodeTypes } from "@xyflow/react";
 import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
+import AnnotationNode from "../components/node_types/AnnotationNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
+
+const ANNOTATION_NODE_TYPE = "nodetool.annotation";
 
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {
@@ -31,6 +34,41 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false
+  },
+  [ANNOTATION_NODE_TYPE]: {
+    title: "Annotation",
+    description: "Add a sticky note to document your workflow",
+    namespace: "utilities",
+    node_type: ANNOTATION_NODE_TYPE,
+    layout: "annotation",
+    basic_fields: [],
+    is_dynamic: false,
+    properties: [
+      {
+        name: "annotation",
+        type: {
+          type: "string",
+          optional: true,
+          type_args: []
+        },
+        required: false
+      },
+      {
+        name: "color",
+        type: {
+          type: "string",
+          optional: true,
+          type_args: []
+        },
+        required: false
+      }
+    ],
+    outputs: [],
+    the_model_info: {},
+    recommended_models: [],
+    expose_as_tool: false,
+    supports_dynamic_outputs: false,
+    is_streaming_output: false
   }
 };
 
@@ -42,6 +80,7 @@ export const loadMetadata = async () => {
   }
 
   const nodeTypes: NodeTypes = {};
+  nodeTypes[ANNOTATION_NODE_TYPE] = AnnotationNode;
   const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata };
   
   data.forEach((md: NodeMetadata) => {

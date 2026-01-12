@@ -160,6 +160,24 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Workflow Annotation Feature (2026-01-12)
+
+**What**: Added ability to add sticky note annotations to workflows for documentation purposes. Press N to quickly add an annotation node at the center of the view.
+
+**Features**:
+- Create annotation nodes via N keyboard shortcut or Node Menu
+- Editable text with multiline support
+- 5 color options (Yellow, Blue, Green, Pink, Gray)
+- Click to edit, Enter to save, Escape to cancel
+- Annotations are stored in workflow and persist across sessions
+
+**Files**:
+- `web/src/components/node_types/AnnotationNode.tsx` - New annotation node component
+- `web/src/serverState/useMetadata.ts` - Added annotation metadata and node type
+- `web/src/stores/NodeStore.ts` - Added default size for annotation nodes
+- `web/src/config/shortcuts.ts` - Added N key shortcut for creating annotations
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Implemented annotation creation handler
+
 ### OpenCode Branch Access Enhancement (2026-01-12)
 
 **What**: Updated all OpenCode workflow files to fetch full git history, enabling access to all branches including main.
