@@ -411,6 +411,14 @@ export const useNodeEditorShortcuts = (
       duplicate: { callback: duplicateNodes },
       duplicateVertical: { callback: duplicateNodesVertical },
       fitView: { callback: () => handleFitView({ padding: 0.4 }) },
+      resetZoom: {
+        callback: () =>
+          reactFlow.setViewport({
+            x: 0,
+            y: 0,
+            zoom: 1
+          })
+      },
       openNodeMenu: { callback: handleOpenNodeMenu },
       groupSelected: { callback: handleGroup },
       toggleInspector: { callback: handleInspectorToggle },
@@ -528,7 +536,8 @@ export const useNodeEditorShortcuts = (
     selectionActions.alignBottom,
     selectionActions.distributeHorizontal,
     selectionActions.distributeVertical,
-    selectionActions.deleteSelected
+    selectionActions.deleteSelected,
+    reactFlow
   ]);
 
   // useEffect for shortcut registration

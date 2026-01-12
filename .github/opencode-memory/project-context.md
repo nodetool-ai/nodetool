@@ -160,6 +160,33 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### OpenCode Branch Access Enhancement (2026-01-12)
+
+**What**: Updated all OpenCode workflow files to fetch full git history, enabling access to all branches including main.
+
+**Why**: OpenCode agents need to access other branches (not just the current one) to perform operations like merging main branch and resolving merge conflicts. The default shallow clone with `fetch-depth: 1` only provides access to the current branch.
+
+**Implementation**:
+- Added `fetch-depth: 0` parameter to `actions/checkout@v4` in all four OpenCode workflows
+- This fetches complete git history for all branches and tags
+- Enables agents to run `git merge origin/main` and resolve conflicts
+- Allows agents to see and access any branch in the repository
+
+**Files Changed**:
+- `.github/workflows/opencode.yml` - Interactive OpenCode triggered by comments
+- `.github/workflows/opencode-features.yaml` - Scheduled autonomous feature development
+- `.github/workflows/opencode-hourly-test.yaml` - Scheduled quality assurance workflow
+- `.github/workflows/opencode-hourly-improve.yaml` - Scheduled code quality improvement workflow
+
+**Impact**: OpenCode agents can now:
+- View all branches with `git branch -a`
+- Merge changes from main branch
+- Resolve merge conflicts automatically
+- Check out other branches if needed
+- Access full commit history for better context
+
+---
+
 ### Test Expectation Fix (2026-01-12)
 
 **What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
