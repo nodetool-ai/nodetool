@@ -619,6 +619,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Reset zoom to 100% (default scale)",
     registerCombo: true
+  },
+  {
+    title: "Add Comment",
+    slug: "addComment",
+    keyCombo: ["Shift", "C"],
+    category: "editor" as const,
+    description: "Add a comment node at the center of the viewport",
+    registerCombo: true
   }
 ] as Shortcut[];
 

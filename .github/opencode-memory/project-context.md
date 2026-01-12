@@ -275,3 +275,23 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 **What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
 **Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
+
+---
+
+### Comment Node Keyboard Shortcut (2026-01-12)
+
+**What**: Added keyboard shortcut (Shift+C) for quickly adding comment nodes to the workflow canvas at the center of the viewport.
+
+**Why**: Previously, users had to right-click on the canvas and select "Add Comment" from the context menu. The new keyboard shortcut enables faster workflow documentation.
+
+**Implementation**:
+- Added `addComment` shortcut definition to `NODE_EDITOR_SHORTCUTS` in `web/src/config/shortcuts.ts`
+- Implemented `handleAddComment` callback in `web/src/hooks/useNodeEditorShortcuts.ts`
+- Uses `screenToFlowPosition` with viewport center coordinates for consistent positioning
+- Creates a new CommentNode with default dimensions (150x100)
+
+**Files Changed**:
+- `web/src/config/shortcuts.ts` - Added Shift+C shortcut definition
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handler and registration
+
+**Impact**: Users can now quickly add documentation to workflows using Shift+C keyboard shortcut.
