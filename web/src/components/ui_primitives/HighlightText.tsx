@@ -6,7 +6,10 @@ import type { Theme } from "@mui/material/styles";
 
 // Convert hex color to RGB values
 const hexToRgb = (hex: string) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const normalizedHex = hex.trim();
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
+    normalizedHex
+  );
   if (!result) {return null;}
   return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
     result[3],

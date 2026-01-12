@@ -19,6 +19,13 @@ interface SelectionActionsReturn {
 }
 
 const NODE_WIDTH = 280;
+const HORIZONTAL_SPACING = 40;
+const VERTICAL_SPACING = 20;
+
+const getNodeWidth = (node: { measured?: { width?: number } }) =>
+  node.measured?.width ?? NODE_WIDTH;
+const getNodeHeight = (node: { measured?: { height?: number } }) =>
+  node.measured?.height ?? 0;
 
 export const useSelectionActions = (): SelectionActionsReturn => {
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
@@ -182,13 +189,12 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     });
 
     const leftMostX = Math.min(...sortedByX.map((n) => n.position.x));
-    const rightMostX = Math.max(...sortedByX.map((n) => n.position.x));
-    const count = sortedByX.length;
 
     const positionMap = new Map<string, number>();
-    sortedByX.forEach((node, index) => {
-      const newX = leftMostX + (index * (rightMostX - leftMostX)) / (count - 1);
-      positionMap.set(node.id, newX);
+    let currentX = leftMostX;
+    sortedByX.forEach((node) => {
+      positionMap.set(node.id, currentX);
+      currentX += getNodeWidth(node) + HORIZONTAL_SPACING;
     });
 
     reactFlow.setNodes((currentNodes) =>
@@ -217,13 +223,12 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     });
 
     const topMostY = Math.min(...sortedByY.map((n) => n.position.y));
-    const bottomMostY = Math.max(...sortedByY.map((n) => n.position.y));
-    const count = sortedByY.length;
 
     const positionMap = new Map<string, number>();
-    sortedByY.forEach((node, index) => {
-      const newY = topMostY + (index * (bottomMostY - topMostY)) / (count - 1);
-      positionMap.set(node.id, newY);
+    let currentY = topMostY;
+    sortedByY.forEach((node) => {
+      positionMap.set(node.id, currentY);
+      currentY += getNodeHeight(node) + VERTICAL_SPACING;
     });
 
     reactFlow.setNodes((currentNodes) =>
