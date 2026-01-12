@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches to enable merging and conflict resolution
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
