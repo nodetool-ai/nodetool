@@ -197,4 +197,23 @@ test('handles user interaction', async () => {
 
 ---
 
+### Reset Zoom Shortcut (2026-01-12)
+
+**What**: Added "Reset Zoom" keyboard shortcut (Ctrl/Cmd+0) to reset the canvas zoom to 100% default scale.
+
+**Why**: Complements existing zoom controls (zoom in/out with mouse wheel, fit view with F key) with a standard editor pattern for resetting zoom. Users can now quickly return to the default 1:1 zoom level.
+
+**Implementation**:
+- Added new shortcut definition in `web/src/config/shortcuts.ts` with keyCombo `["Control", "0"]`
+- Added shortcut handler in `web/src/hooks/useNodeEditorShortcuts.ts` that calls `reactFlow.setViewport({ x: 0, y: 0, zoom: 1 })`
+- Added unit tests in `web/src/config/__tests__/shortcuts.test.ts` to verify shortcut configuration
+- Added `reactFlow` to useMemo dependency array to fix lint warning
+
+**Files Changed**:
+- `web/src/config/shortcuts.ts` - Added resetZoom shortcut definition
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handler and dependency
+- `web/src/config/__tests__/shortcuts.test.ts` - New test file
+
+---
+
 _No entries yet - this memory system is new as of 2026-01-10_

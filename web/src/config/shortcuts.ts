@@ -611,6 +611,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Find and navigate to nodes in the current workflow",
     registerCombo: true
+  },
+  {
+    title: "Reset Zoom",
+    slug: "resetZoom",
+    keyCombo: ["Control", "0"],
+    category: "editor" as const,
+    description: "Reset zoom to 100% (default scale)",
+    registerCombo: true
   }
 ] as Shortcut[];
 
