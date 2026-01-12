@@ -12,6 +12,7 @@ export function useNodeEvents() {
 
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
+      console.log(`[useNodeEvents] handleNodeContextMenu triggered for node.id=${node.id}, node.type=${node.type}`);
       event.preventDefault();
       event.stopPropagation();
       openContextMenu(

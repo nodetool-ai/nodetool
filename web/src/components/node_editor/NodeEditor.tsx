@@ -44,6 +44,8 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import { useNodes } from "../../contexts/NodeContext";
+import SubgraphBreadcrumb from "../navigation/SubgraphBreadcrumb";
+import { useSubgraphNavigation } from "../../hooks/nodes/useSubgraphNavigation";
 
 declare global {
   interface Window {
@@ -61,6 +63,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
+
+  // Sync subgraph navigation with displayed nodes/edges
+  useSubgraphNavigation();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -139,13 +144,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <CircularProgress /> Uploading assets...
             </div>
           )}
+          <SubgraphBreadcrumb />
           <ReactFlowWrapper workflowId={workflowId} active={active} />
           {active && (
             <>
               <RunAsAppFab workflowId={workflowId} />
-              <SelectionActionToolbar
-                visible={selectedNodes.length >= 2}
-              />
+              <SelectionActionToolbar visible={selectedNodes.length >= 2} />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}

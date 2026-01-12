@@ -80,6 +80,12 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
   const node = rawNode as Node<NodeData> | null;
   const nodeData = node?.data;
+  
+  // Debug logging for context menu node lookup
+  if (nodeId) {
+    console.log(`[useNodeContextMenu] Looking up nodeId=${nodeId}, found=${!!rawNode}, node.type=${rawNode?.type}, nodes.length=${nodes.length}`);
+  }
+  
   const metadata = useMetadataStore((state) =>
     state.getMetadata(node?.type ?? "")
   );
