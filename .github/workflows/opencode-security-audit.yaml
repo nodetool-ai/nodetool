@@ -1,0 +1,459 @@
+name: OpenCode Security Audit
+
+on:
+  schedule:
+    - cron: "0 10 * * 3" # Weekly on Wednesdays at 10 AM UTC
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  opencode-security:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm ci
+
+      - name: Install mobile dependencies
+        run: |
+          cd mobile
+          npm ci
+
+      - name: Run npm audit (web)
+        id: npm-audit-web
+        continue-on-error: true
+        run: |
+          cd web
+          npm audit --json > npm-audit-web.json || true
+          cat npm-audit-web.json
+
+      - name: Run npm audit (electron)
+        id: npm-audit-electron
+        continue-on-error: true
+        run: |
+          cd electron
+          npm audit --json > npm-audit-electron.json || true
+          cat npm-audit-electron.json
+
+      - name: Run npm audit (mobile)
+        id: npm-audit-mobile
+        continue-on-error: true
+        run: |
+          cd mobile
+          npm audit --json > npm-audit-mobile.json || true
+          cat npm-audit-mobile.json
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+        with:
+          model: minimax/MiniMax-M2.1
+          prompt: |
+            # NodeTool Security Audit
+
+            You are an autonomous security agent auditing NodeTool for security vulnerabilities and improving security practices.
+
+            ## Your Mission
+
+            **Find and fix security vulnerabilities** in dependencies, code, and configurations. Prioritize user safety and data protection.
+
+            ## Project Context
+
+            **NodeTool** is a React/TypeScript visual AI workflow builder handling user data and API keys.
+            - **Tech Stack**: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
+            - **Security Concerns**: API keys, user data, file uploads, code execution
+
+            ## Step 0: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with security fixes
+            3. **Avoid creating duplicate branches** for the same vulnerabilities
+
+            ## Step 1: Check Memory (REQUIRED)
+
+            **Read these files FIRST**:
+            1. **`.github/opencode-memory/features.md`** - Understand security-sensitive features
+            2. `.github/opencode-memory/common-issues.md` - Known security issues
+            3. `.github/opencode-memory/project-context.md` - Architecture
+            4. `.github/opencode-memory/insights.md` - Security learnings
+
+            ## Step 2: Security Audit Areas
+
+            ### Dependency Vulnerabilities
+
+            Check `npm audit` results that were run in previous steps:
+            - `web/npm-audit-web.json`
+            - `electron/npm-audit-electron.json`
+            - `mobile/npm-audit-mobile.json`
+
+            **Priority levels**:
+            1. **Critical**: Remote code execution, authentication bypass
+            2. **High**: SQL injection, XSS, CSRF, data exposure
+            3. **Moderate**: DoS, information disclosure
+            4. **Low**: Minor issues with limited impact
+
+            **Fixing dependencies**:
+            ```bash
+            # Update specific package
+            cd web
+            npm update package-name
+
+            # Or update to specific version
+            npm install package-name@version
+
+            # Verify fix
+            npm audit
+            ```
+
+            ### Code Security Issues
+
+            **Input Validation & Sanitization**:
+            - User input properly sanitized?
+            - File uploads validated (type, size, content)?
+            - API responses validated?
+            - Query parameters sanitized?
+
+            **Authentication & Authorization**:
+            - Secrets stored securely (not in code)?
+            - API keys encrypted at rest?
+            - Session management secure?
+            - Protected routes properly guarded?
+
+            **XSS Prevention**:
+            - User content sanitized before rendering?
+            - `dangerouslySetInnerHTML` used safely?
+            - External data escaped properly?
+
+            **Data Protection**:
+            - Sensitive data not logged?
+            - PII handled appropriately?
+            - Local storage used safely?
+            - Network requests use HTTPS?
+
+            **Electron Security**:
+            - Context isolation enabled?
+            - Node integration disabled in renderer?
+            - Remote module disabled?
+            - CSP headers configured?
+            - IPC communication validated?
+
+            ## Step 3: Security Scanning
+
+            ### Check for Common Vulnerabilities
+
+            **Secrets in Code**:
+            ```bash
+            # Search for potential secrets (API keys, tokens, passwords)
+            grep -r "api_key\|apiKey\|password\|secret\|token" --include="*.ts" --include="*.tsx" web/src | grep -v "\.test\."
+            
+            # Check for hardcoded credentials
+            grep -r "password.*=.*['\"]" --include="*.ts" --include="*.tsx" web/src
+            ```
+
+            **Dangerous Patterns**:
+            ```bash
+            # Check for dangerouslySetInnerHTML
+            grep -r "dangerouslySetInnerHTML" --include="*.tsx" web/src
+
+            # Check for eval or Function constructor
+            grep -r "eval\(|new Function" --include="*.ts" --include="*.tsx" web/src
+
+            # Check for disabled security features
+            grep -r "nodeIntegration: true" electron/
+            ```
+
+            **Insecure Dependencies**:
+            ```bash
+            # Run security audit
+            npm audit --production
+
+            # Check for outdated packages with known vulnerabilities
+            npm outdated
+            ```
+
+            ### Security Best Practices Check
+
+            **TypeScript strict mode enabled?**
+            - Check `tsconfig.json` has `"strict": true`
+
+            **Content Security Policy configured?**
+            - Check Electron CSP headers
+            - Check web app CSP meta tags
+
+            **Environment variables used for secrets?**
+            - No hardcoded API keys
+            - Use `.env` files (not committed)
+
+            ## Step 4: Fix Security Issues
+
+            ### Dependency Updates
+
+            **Update vulnerable packages**:
+            ```bash
+            # For direct dependencies
+            cd web
+            npm update vulnerable-package
+
+            # For transitive dependencies, update parent
+            npm update parent-package
+
+            # Or update to specific secure version
+            npm install package-name@secure-version
+
+            # Verify fix
+            npm audit
+            ```
+
+            **Breaking changes**:
+            - Test after updating major versions
+            - Check migration guides
+            - Update code if API changed
+
+            ### Code Security Fixes
+
+            **Sanitize user input**:
+            ```typescript
+            // ❌ Dangerous - XSS vulnerability
+            <div dangerouslySetInnerHTML={{ __html: userInput }} />
+
+            // ✅ Safe - sanitize first
+            import DOMPurify from 'dompurify';
+            const clean = DOMPurify.sanitize(userInput);
+            <div dangerouslySetInnerHTML={{ __html: clean }} />
+
+            // ✅ Better - avoid dangerouslySetInnerHTML
+            <div>{userInput}</div>
+            ```
+
+            **Validate file uploads**:
+            ```typescript
+            // ✅ Good - validate file type and size
+            const validateFile = (file: File): boolean => {
+              const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+              const maxSize = 10 * 1024 * 1024; // 10MB
+
+              if (!allowedTypes.includes(file.type)) {
+                throw new Error('Invalid file type');
+              }
+
+              if (file.size > maxSize) {
+                throw new Error('File too large');
+              }
+
+              return true;
+            };
+            ```
+
+            **Store secrets securely**:
+            ```typescript
+            // ❌ Bad - hardcoded API key
+            const apiKey = "sk-1234567890abcdef";
+
+            // ✅ Good - use environment variable
+            const apiKey = process.env.REACT_APP_API_KEY;
+
+            // ✅ Better - use secure storage
+            import { getSecureStorage } from './secureStorage';
+            const apiKey = await getSecureStorage().get('apiKey');
+            ```
+
+            **Electron security**:
+            ```typescript
+            // ✅ Good - secure Electron configuration
+            const mainWindow = new BrowserWindow({
+              webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                sandbox: true,
+                webSecurity: true,
+                allowRunningInsecureContent: false,
+                preload: path.join(__dirname, 'preload.js')
+              }
+            });
+            ```
+
+            ### Configuration Fixes
+
+            **TypeScript strict mode**:
+            ```json
+            // tsconfig.json
+            {
+              "compilerOptions": {
+                "strict": true,
+                "noImplicitAny": true,
+                "strictNullChecks": true,
+                "strictFunctionTypes": true,
+                "noUnusedLocals": true,
+                "noUnusedParameters": true
+              }
+            }
+            ```
+
+            **Content Security Policy**:
+            ```html
+            <!-- Add to index.html -->
+            <meta http-equiv="Content-Security-Policy" 
+                  content="default-src 'self'; 
+                           script-src 'self'; 
+                           style-src 'self' 'unsafe-inline'; 
+                           img-src 'self' data: https:;">
+            ```
+
+            ## Step 5: Verify Fixes
+
+            **After making security fixes**:
+
+            1. **Re-run security scans**:
+            ```bash
+            npm audit
+            make typecheck
+            make lint
+            make test
+            ```
+
+            2. **Test affected functionality**:
+               - Ensure fixes don't break features
+               - Test with both valid and malicious input
+               - Verify error handling works
+
+            3. **Check for regressions**:
+               - Run full test suite
+               - Manual testing of affected features
+
+            ## Step 6: Update Memory
+
+            **After fixing security issues**, update memory files:
+
+            1. **`.github/opencode-memory/common-issues.md`**:
+               - Document vulnerabilities found and fixed
+               - Add patterns to avoid in future
+
+            2. **`.github/opencode-memory/insights.md`**:
+               - Share security best practices learned
+               - Document secure coding patterns
+
+            3. **`.github/opencode-memory/project-context.md`**:
+               - Note security improvements made
+
+            **After updating memory files, COMPACT THEM**:
+            ```bash
+            python scripts/compact-memory.py
+            ```
+            Commit the compacted files with your changes.
+
+            **Format**:
+            ```markdown
+            ### Security Fixes (2026-01-12)
+
+            **Vulnerabilities Fixed**: List of CVEs or issues
+            **Severity**: Critical/High/Moderate/Low
+            **Impact**: What was at risk
+            **Solution**: How it was fixed
+            **Files**: List of affected files
+            ```
+
+            ## Security Issue Examples
+
+            ### Example 1: XSS Vulnerability
+            ```typescript
+            // ❌ BEFORE: Vulnerable to XSS
+            const renderContent = (content: string) => (
+              <div dangerouslySetInnerHTML={{ __html: content }} />
+            );
+
+            // ✅ AFTER: Sanitized
+            import DOMPurify from 'dompurify';
+            const renderContent = (content: string) => (
+              <div dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(content) 
+              }} />
+            );
+            ```
+
+            ### Example 2: Insecure Storage
+            ```typescript
+            // ❌ BEFORE: API key in localStorage
+            localStorage.setItem('apiKey', userApiKey);
+
+            // ✅ AFTER: Encrypted storage
+            import { encryptData } from './crypto';
+            const encrypted = encryptData(userApiKey);
+            localStorage.setItem('apiKey', encrypted);
+            ```
+
+            ### Example 3: Dependency Vulnerability
+            ```bash
+            # ❌ BEFORE: Vulnerable version
+            "axios": "0.21.1"  # Has CVE-2021-3749
+
+            # ✅ AFTER: Patched version
+            "axios": "1.6.0"  # Vulnerability fixed
+            ```
+
+            ## Priority Guidelines
+
+            **Fix immediately**:
+            - Critical/High severity vulnerabilities
+            - Known exploits in the wild
+            - Issues affecting production
+            - Data exposure risks
+
+            **Fix soon**:
+            - Moderate severity issues
+            - Potential DoS vulnerabilities
+            - Authentication weaknesses
+
+            **Fix when convenient**:
+            - Low severity issues
+            - Theoretical vulnerabilities
+            - Best practice violations
+
+            ## Best Practices
+
+            1. **Fix dependencies first**: Easiest to address
+            2. **Test thoroughly**: Security fixes can break functionality
+            3. **Document changes**: Explain what was fixed and why
+            4. **Check transitive deps**: Update parent packages if needed
+            5. **Verify the fix**: Ensure vulnerability is actually resolved
+            6. **Don't skip tests**: Run full test suite after security fixes
+
+            ## If No Critical Issues Found
+
+            If no critical security issues are found:
+            1. Document clean audit in memory
+            2. Optionally improve security hardening
+            3. Optionally add security tests
+            4. Optionally update dependencies to latest secure versions
+            5. Don't make unnecessary changes
+
+            ## Remember
+
+            Security is paramount. Users trust NodeTool with their data and API keys. Every vulnerability fixed protects users. Be thorough, test carefully, and document your findings.
+
+            Now, secure NodeTool! 🔒
