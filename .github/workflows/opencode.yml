@@ -82,24 +82,32 @@ jobs:
             ## Memory System
 
             **Before making changes**, read these files to avoid redundant work:
-            - **`.github/opencode-memory/features.md`** - **Complete feature list (MUST READ!)**
-            - `.github/opencode-memory/project-context.md` - Architecture and patterns
-            - `.github/opencode-memory/build-test-lint.md` - Quality requirements
-            - `.github/opencode-memory/tech-stack.md` - Technologies and versions
+            - **`.github/opencode-memory/features.md`** - Complete feature list (MUST READ!)
             - `.github/opencode-memory/common-issues.md` - Known issues and solutions
-            - `.github/opencode-memory/insights.md` - Important learnings
+            - `.github/opencode-memory/project-context.md` - Recent changes
 
-            **After completing work**, update memory files with:
-            - **New features added** (update features.md - REQUIRED!)
-            - New solutions to tricky problems
-            - Architectural decisions and rationale
-            - Patterns that work well
-            - Issues to avoid in the future
+            **After completing work**, update memory files if needed:
+            - **Add ONE LINE to features.md** if you added a user-facing feature
+            - **Add ONE ENTRY to common-issues.md** if you solved a tricky problem
+            - **Add ONE ENTRY to project-context.md** under "Recent Changes" for significant changes
             
-            **Keep memory files compact**:
-            - After updating memory files, run: `python scripts/compact-memory.py`
-            - This removes duplicates and keeps context manageable
-            - Commit the compacted files with your changes
+            **Format for updates** (be concise):
+            ```markdown
+            # features.md - single line per feature:
+            - **Feature Name**: Brief description (max 10 words)
+            
+            # common-issues.md - brief entry:
+            ### Issue Title
+            **Problem**: One sentence
+            **Solution**: One sentence or code snippet
+            
+            # project-context.md - under "Recent Changes":
+            ### Feature Name (YYYY-MM-DD)
+            **What**: One sentence
+            **Files**: List main files
+            ```
+            
+            **Keep it minimal** - Only write truly important information that will help future work.
 
             ## Mandatory Requirements
 

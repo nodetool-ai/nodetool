@@ -2,6 +2,13 @@
 
 This file tracks recurring problems and their solutions to avoid redundant debugging.
 
+**When adding entries**: Use concise format:
+```markdown
+### Issue Title
+**Problem**: One sentence describing the issue
+**Solution**: One sentence or brief code snippet
+```
+
 ## TypeScript Issues
 
 ### ReactFlow Node Type Mismatches

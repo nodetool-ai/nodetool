@@ -79,12 +79,9 @@ jobs:
             ## Step 2: Learn from Memory (REQUIRED)
 
             **Read these files FIRST** to avoid redundant work:
-            1. **`.github/opencode-memory/features.md`** - **COMPREHENSIVE FEATURE LIST (READ FIRST!)**
-            2. `.github/opencode-memory/project-context.md` - Architecture, patterns, data flow
-            3. `.github/opencode-memory/build-test-lint.md` - Quality requirements and commands
-            4. `.github/opencode-memory/tech-stack.md` - Technologies and versions
-            5. `.github/opencode-memory/common-issues.md` - Known issues and solutions
-            6. `.github/opencode-memory/insights.md` - Important discoveries
+            1. **`.github/opencode-memory/features.md`** - Complete feature list (MUST READ!)
+            2. `.github/opencode-memory/common-issues.md` - Known issues and solutions
+            3. `.github/opencode-memory/project-context.md` - Recent changes
 
             **CRITICAL**: Check `features.md` to ensure your feature doesn't already exist!
 
@@ -169,36 +166,28 @@ jobs:
 
             ## Step 4: Document and Update Memory
 
-            **After completing your feature**, update memory files:
+            **After completing your feature**, update memory files concisely:
 
-            1. **`.github/opencode-memory/features.md`** - **ADD YOUR NEW FEATURE (REQUIRED!)**
-               - Add to appropriate section
-               - Use **bold** for feature name
-               - Keep description concise (1-2 lines)
-            2. **`.github/opencode-memory/insights.md`** - Document new patterns or discoveries
-            3. **`.github/opencode-memory/common-issues.md`** - Add any tricky problems you solved
-            4. **`.github/opencode-memory/project-context.md`** - Add entry to "Recent Changes"
+            1. **`.github/opencode-memory/features.md`** - Add ONE line describing your feature:
+               ```markdown
+               - **Feature Name**: Brief description (max 10 words)
+               ```
+            
+            2. **`.github/opencode-memory/project-context.md`** - Add ONE entry under "Recent Changes":
+               ```markdown
+               ### Feature Name (YYYY-MM-DD)
+               **What**: One sentence describing the feature
+               **Files**: List main files changed
+               ```
+            
+            3. **`.github/opencode-memory/common-issues.md`** - ONLY if you solved a tricky problem:
+               ```markdown
+               ### Issue Title
+               **Problem**: One sentence
+               **Solution**: One sentence or brief code snippet
+               ```
 
-            **After updating memory files, COMPACT THEM**:
-            ```bash
-            python scripts/compact-memory.py
-            ```
-            This removes duplicates and keeps memory files manageable. Commit the compacted files.
-
-            **Format for features.md**:
-            ```markdown
-            - **Feature Name**: Brief description of what it does
-            ```
-
-            **Format for project-context.md**:
-            ```markdown
-            ### [Feature Name] (2026-01-10)
-
-            **What**: Brief description of feature
-            **Why**: Rationale for adding it
-            **Implementation**: Key technical decisions
-            **Files**: Main files changed
-            ```
+            **Keep it minimal** - Only write truly important information that will help future agents avoid redundant work.
 
             ## Best Practices for Autonomous Work
 
