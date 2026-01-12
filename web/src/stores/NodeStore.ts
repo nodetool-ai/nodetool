@@ -139,6 +139,7 @@ export interface NodeStoreState {
   setViewport: (viewport: Viewport) => void;
   hoveredNodes: string[];
   setHoveredNodes: (ids: string[]) => void;
+  setHoveredNodeId: (id: string | null) => void;
   edges: Edge[];
   edgeUpdateSuccessful: boolean;
   missingModelFiles: RepoPath[];
@@ -325,6 +326,8 @@ export const createNodeStore = (
           setConnectionAttempted: (value: boolean): void =>
             set({ connectionAttempted: value }),
           setHoveredNodes: (ids: string[]): void => set({ hoveredNodes: ids }),
+          setHoveredNodeId: (id: string | null): void =>
+            set({ hoveredNodes: id ? [id] : [] }),
           generateNodeId: (): string => {
             return generateUUID();
           },

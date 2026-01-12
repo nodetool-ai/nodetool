@@ -315,6 +315,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const {
     handleNodeContextMenu,
+    handleNodeMouseEnter,
+    handleNodeMouseLeave,
     handleNodesChange
   } = useNodeEvents();
 
@@ -508,6 +510,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         onNodeContextMenu={handleNodeContextMenu}
+        onNodeMouseEnter={handleNodeMouseEnter}
+        onNodeMouseLeave={handleNodeMouseLeave}
         onPaneClick={handlePaneClick}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}

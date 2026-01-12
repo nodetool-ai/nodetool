@@ -22,6 +22,7 @@ Last updated: 2026-01-12
 - **Find in Workflow**: Search for nodes by name, type, or properties
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
+- **Node Hover Quick Actions**: Floating toolbar with quick actions (comment, duplicate, bypass, add node, delete) when hovering over nodes
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search

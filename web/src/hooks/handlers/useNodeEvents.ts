@@ -9,6 +9,7 @@ export function useNodeEvents() {
   const { close: closeSelect } = useSelect();
 
   const onNodesChange = useNodes((state) => state.onNodesChange);
+  const setHoveredNodeId = useNodes((state) => state.setHoveredNodeId);
 
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
@@ -26,6 +27,20 @@ export function useNodeEvents() {
     [openContextMenu, closeSelect]
   );
 
+  const handleNodeMouseEnter = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      setHoveredNodeId(node.id);
+    },
+    [setHoveredNodeId]
+  );
+
+  const handleNodeMouseLeave = useCallback(
+    (_event: React.MouseEvent, _node: Node) => {
+      setHoveredNodeId(null);
+    },
+    [setHoveredNodeId]
+  );
+
   const handleNodesChange = useCallback(
     (changes: any[]) => {
       onNodesChange(changes);
@@ -35,6 +50,8 @@ export function useNodeEvents() {
 
   return {
     handleNodeContextMenu,
+    handleNodeMouseEnter,
+    handleNodeMouseLeave,
     handleNodesChange
   };
 }

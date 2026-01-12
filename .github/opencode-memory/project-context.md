@@ -275,3 +275,18 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 **What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
 **Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
+
+---
+
+### Node Hover Quick Actions (2026-01-12)
+
+**What**: Added floating toolbar with quick actions (comment, duplicate, bypass, add node, delete) that appears when hovering over nodes in the workflow editor.
+
+**Why**: Enhances mouse-based workflow editing by providing quick access to common node operations without needing keyboard shortcuts or context menus.
+
+**Files**:
+- `web/src/components/node/HoverToolbar.tsx` - New component for the hover toolbar
+- `web/src/hooks/handlers/useNodeEvents.ts` - Added hover event handlers
+- `web/src/stores/NodeStore.ts` - Added `setHoveredNodeId` function
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated hover toolbar
+- `web/src/components/node/ReactFlowWrapper.tsx` - Connected hover events to ReactFlow
