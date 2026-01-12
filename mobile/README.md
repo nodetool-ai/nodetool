@@ -37,7 +37,7 @@ npm install
 
 The app requires a running NodeTool server. You can configure the server URL in the Settings screen within the app.
 
-Default server URL: `http://localhost:8000`
+Default server URL: `http://localhost:7777`
 
 ## Running the App
 
@@ -128,7 +128,7 @@ mobile/
 The app stores the server URL in AsyncStorage. You can:
 - Set it in the Settings screen
 - Test the connection before saving
-- The default value is `http://localhost:8000`
+- The default value is `http://localhost:7777`
 
 For local development with a device/emulator:
 - iOS Simulator: Use `http://localhost:8000`
