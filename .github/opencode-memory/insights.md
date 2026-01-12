@@ -475,4 +475,61 @@ cd mobile && npm install
 
 ---
 
-### Quality Assurance Verification (2026-01-10)
+### Node Distribution Algorithms (2026-01-12)
+
+**Insight**: There are multiple valid approaches to distributing nodes in a visual editor:
+
+1. **Fixed Spacing**: Place nodes with constant distance between them (e.g., 40px)
+   - Pros: Predictable, consistent gaps
+   - Cons: May not fill available space
+
+2. **Equal Distribution**: Spread nodes evenly across the total span
+   - Formula: `position = min + index * (max - min) / (count - 1)`
+   - Pros: Fills available space, visually balanced
+   - Cons: Spacing varies based on total span
+
+**Decision**: The Selection Action Toolbar uses Equal Distribution to maximize space utilization and create visually balanced layouts.
+
+**Files**: `web/src/hooks/useSelectionActions.ts`
+
+**Date**: 2026-01-12
+
+---
+
+### Performance Optimization: Bundle Code Splitting (2026-01-12)
+
+**Issue**: Main bundle was 12.77 MB (3.8 MB gzipped) with no code splitting, causing slow initial load times.
+
+**Solution**: Added manual chunking to vite.config.ts to split heavy dependencies into separate chunks:
+
+```typescript
+rollupOptions: {
+  output: {
+    manualChunks: {
+      'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+      'vendor-mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+      'vendor-plotly': ['react-plotly.js'],
+      'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
+      'vendor-editor': ['@monaco-editor/react', 'lexical'],
+      'vendor-pdf': ['react-pdf'],
+      'vendor-waveform': ['wavesurfer.js'],
+    }
+  }
+}
+```
+
+**Impact**: 
+- Main bundle reduced from 12.77 MB to 5.74 MB (**55% reduction**)
+- Gzipped size reduced from 3.8 MB to 1.7 MB (**55% reduction**)
+- Heavy libraries now load on-demand and can be cached independently
+- Plotly (4.7 MB), Three.js (991 kB), PDF (344 kB) separated into dedicated chunks
+
+**Files**: `web/vite.config.ts`
+
+**Date**: 2026-01-12
+
+---
+
+## Last Updated
+
+2026-01-12 - Added bundle code splitting performance optimization
