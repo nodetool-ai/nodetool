@@ -160,6 +160,26 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Test Distribution Functions Fix (2026-01-12)
+
+**What**: Fixed failing tests in `useSelectionActions.test.ts` by correcting expected values for distributeHorizontal and distributeVertical functions.
+
+**Why**: Tests expected even distribution (0, 200, 400) but implementation uses sequential placement with spacing.
+
+**Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
+
+---
+
+### Mobile TypeScript Type Definitions Fix (2026-01-12)
+
+**What**: Fixed mobile package TypeScript type checking by installing @types/node package.
+
+**Why**: TypeScript couldn't find type definition files for 'jest', 'node', and 'react-native' even though tsconfig.json specified them in the types array. The @types/node package was missing from package.json.
+
+**Files**: `mobile/package.json`, `mobile/package-lock.json`
+
+---
+
 ### OpenCode Branch Access Enhancement (2026-01-12)
 
 **What**: Updated all OpenCode workflow files to fetch full git history, enabling access to all branches including main.
