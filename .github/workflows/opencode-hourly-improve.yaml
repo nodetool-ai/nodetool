@@ -54,6 +54,17 @@ jobs:
             - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
             - **Backend**: Separate Python repository (not in this codebase)
 
+            ## Step 0: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with similar improvements or fixes
+            3. **Avoid creating duplicate branches** for the same issues
+            4. If a branch exists for similar work:
+               - Review what's already done
+               - Consider if you should continue that work
+               - Don't duplicate efforts
+
             ## Step 1: Check Memory (REQUIRED)
 
             **Read these files FIRST** to avoid redundant work:
@@ -211,6 +222,12 @@ jobs:
             4. **`.github/opencode-memory/features.md`** (if relevant):
                - Update feature descriptions if behavior changed
                - Add to "Features NOT Yet Implemented" if removing placeholder
+
+            **After updating memory files, COMPACT THEM**:
+            ```bash
+            python scripts/compact-memory.py
+            ```
+            This removes duplicates and keeps memory files manageable. Commit the compacted files.
 
             **Format**:
             ```markdown

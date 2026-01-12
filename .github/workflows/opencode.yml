@@ -68,6 +68,15 @@ jobs:
             - **Testing**: Jest 29 + React Testing Library 16 + Playwright 1.57 for E2E
             - **Type Safety**: TypeScript strict mode, no `any` types
 
+            ## Avoiding Duplicate Work
+
+            **CRITICAL - Check existing branches FIRST**:
+            1. Run `git branch -a` to see all existing branches
+            2. Check if there's already a branch for this issue/feature
+            3. If a similar branch exists, review its changes first
+            4. Don't create duplicate branches for the same work
+            5. Consider continuing work on an existing branch if appropriate
+
             ## Memory System
 
             **Before making changes**, read these files to avoid redundant work:
@@ -84,6 +93,11 @@ jobs:
             - Architectural decisions and rationale
             - Patterns that work well
             - Issues to avoid in the future
+            
+            **Keep memory files compact**:
+            - After updating memory files, run: `python scripts/compact-memory.py`
+            - This removes duplicates and keeps context manageable
+            - Commit the compacted files with your changes
 
             ## Mandatory Requirements
 
