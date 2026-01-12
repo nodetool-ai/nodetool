@@ -68,25 +68,23 @@ const containerStyles = css({
  * currently active workflow and with help mode enabled by default.
  */
 const WorkflowAssistantChat: React.FC = () => {
-  const {
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    error,
-    stopGeneration,
-    getCurrentMessagesSync,
-    createNewThread,
-    currentThreadId,
-    threads,
-    switchThread,
-    deleteThread,
-    messageCache,
-    currentRunningToolCallId,
-    currentToolMessage,
-    selectedModel,
-    setSelectedModel
-  } = useGlobalChatStore();
+  const status = useGlobalChatStore((state) => state.status);
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const error = useGlobalChatStore((state) => state.error);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const threads = useGlobalChatStore((state) => state.threads);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
+  const messageCache = useGlobalChatStore((state) => state.messageCache);
+  const currentRunningToolCallId = useGlobalChatStore((state) => state.currentRunningToolCallId);
+  const currentToolMessage = useGlobalChatStore((state) => state.currentToolMessage);
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
 
   const {
     currentWorkflowId,

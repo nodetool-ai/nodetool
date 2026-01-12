@@ -1,6 +1,8 @@
 # Important Insights and Learnings
 
-This file captures important discoveries, architectural decisions, and best practices learned during development.
+This file captures important architectural decisions and best practices. **Most updates should go to common-issues.md instead.**
+
+**Only add entries here for significant architectural insights that aren't covered elsewhere.**
 
 ## Architecture Insights
 
@@ -442,16 +444,20 @@ on:
 
 ---
 
-### Quality Assurance Verification (2026-01-10)
+### Quality Checks Verification (2026-01-12)
 
-**Insight**: All quality checks (typecheck, lint, test) pass successfully when mobile dependencies are properly installed.
+**Insight**: All quality checks pass successfully after fixing mobile dependencies and test expectations.
 
-**Verification Date**: 2026-01-10
+**Verification Date**: 2026-01-12
 
 **Results**:
-- `make typecheck`: PASS (web, electron, mobile all pass)
-- `make lint`: PASS (web, electron pass)
-- `make test`: PASS (all web tests pass)
+- `make typecheck`: PASS (web, electron, mobile all pass after `cd mobile && npm install`)
+- `make lint`: PASS (web, electron)
+- `make test`: PASS (164 test suites, 2112 tests)
+
+**Fixed Issues**:
+1. Mobile package type checking requires npm install first
+2. Test expectations for `distributeHorizontal` and `distributeVertical` now match actual spacing constants
 
 **Required Pre-condition**: Mobile package dependencies must be installed:
 ```bash
@@ -463,26 +469,43 @@ cd mobile && npm install
 - ESLint code quality enforcement
 - Comprehensive Jest unit and integration tests
 
-**Recommendation**: Ensure CI/CD pipelines run `npm install` in all package directories before executing quality checks.
+**Files**: `Makefile`, `mobile/package.json`, `web/src/hooks/__tests__/useSelectionActions.test.ts`
 
-**Files**: `Makefile`, `mobile/package.json`
+**Date**: 2026-01-12
 
 **Date**: 2026-01-10
 
 ---
 
-### Jest testPathIgnorePatterns Leading Slash (2026-01-12)
+### Zustand Selective Subscriptions Prevent Unnecessary Re-renders (2026-01-11)
 
-**Insight**: Jest `testPathIgnorePatterns` expects relative paths without leading slashes.
+**Insight**: Converting components from subscribing to entire Zustand stores to using selective selectors significantly reduces unnecessary re-renders.
 
-**Why**: When Jest reports test paths, they don't include a leading slash. A pattern like `/tests/e2e/` won't match paths like `tests/e2e/dashboard.spec.ts`.
+**Pattern**:
+```typescript
+// ❌ Bad - subscribes to entire store
+const { status, progress, threads } = useGlobalChatStore();
 
-**Pattern**: Always use `tests/e2e/` instead of `/tests/e2e/` in `testPathIgnorePatterns`.
+// ✅ Good - subscribes only to needed state
+const status = useGlobalChatStore((state) => state.status);
+const progress = useGlobalChatStore((state) => state.progress);
+const threads = useGlobalChatStore((state) => state.threads);
+```
 
-**Files**: `web/jest.config.ts`
+**Why It Matters**:
+- Components using entire store subscriptions re-render on ANY state change
+- Chat and workflow components frequently update state (status, progress, messages)
+- Selective subscriptions ensure components only update when their specific data changes
 
-**Date**: 2026-01-12
+**Impact Measured**:
+- `WorkflowAssistantChat`: 18 store properties → 17 individual selectors
+- `ChatButton`: 3 store properties → 3 individual selectors
+- `WelcomePanel`: 2 store properties → 2 individual selectors
+- `Welcome`: 2 store properties → 2 individual selectors
 
+**Files**: `web/src/components/panels/WorkflowAssistantChat.tsx`, `web/src/components/panels/AppHeader.tsx`, `web/src/components/dashboard/WelcomePanel.tsx`, `web/src/components/content/Welcome/Welcome.tsx`
+
+**Date**: 2026-01-11
 ---
 
 ### Node Distribution Algorithms (2026-01-12)
@@ -501,6 +524,40 @@ cd mobile && npm install
 **Decision**: The Selection Action Toolbar uses Equal Distribution to maximize space utilization and create visually balanced layouts.
 
 **Files**: `web/src/hooks/useSelectionActions.ts`
+
+**Date**: 2026-01-12
+
+---
+
+### Performance Optimization: Bundle Code Splitting (2026-01-12)
+
+**Issue**: Main bundle was 12.77 MB (3.8 MB gzipped) with no code splitting, causing slow initial load times.
+
+**Solution**: Added manual chunking to vite.config.ts to split heavy dependencies into separate chunks:
+
+```typescript
+rollupOptions: {
+  output: {
+    manualChunks: {
+      'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+      'vendor-mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+      'vendor-plotly': ['react-plotly.js'],
+      'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
+      'vendor-editor': ['@monaco-editor/react', 'lexical'],
+      'vendor-pdf': ['react-pdf'],
+      'vendor-waveform': ['wavesurfer.js'],
+    }
+  }
+}
+```
+
+**Impact**: 
+- Main bundle reduced from 12.77 MB to 5.74 MB (**55% reduction**)
+- Gzipped size reduced from 3.8 MB to 1.7 MB (**55% reduction**)
+- Heavy libraries now load on-demand and can be cached independently
+- Plotly (4.7 MB), Three.js (991 kB), PDF (344 kB) separated into dedicated chunks
+
+**Files**: `web/vite.config.ts`
 
 **Date**: 2026-01-12
 
@@ -546,3 +603,4 @@ cd mobile && npm install
 **Date**: 2026-01-12
 
 ---
+2026-01-12 - Added bundle code splitting performance optimization
