@@ -104,14 +104,6 @@ All memory files are stored in `.github/opencode-memory/`:
 - **For**: Learning from past experiences
 - **Updates**: Create new files when significant learnings occur
 
-### 6. insights/ folder (replaces insights.md)
-- **Purpose**: Important discoveries organized by topic
-  - Each topic has its own subfolder
-  - Each insight is a separate markdown file
-  - Files have descriptive names (e.g., `zustand-selective-subscriptions.md`)
-- **For**: Learning from past experiences
-- **Updates**: Create new files when significant learnings occur
-
 ## How Workflows Use Memory
 
 ### Before Making Changes

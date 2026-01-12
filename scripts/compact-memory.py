@@ -61,10 +61,13 @@ class MemoryCompactor:
 
     def _compact_directory(self, dir_path: Path) -> None:
         """Recursively compact markdown files in a directory."""
+        # Files to skip in subdirectories
+        skip_files = {"README.md", "IMPLEMENTATION.md", "COMPACTION.md"}
+        
         for item in sorted(dir_path.iterdir()):
             if item.is_dir():
                 self._compact_directory(item)
-            elif item.is_file() and item.suffix == ".md" and item.name != "README.md":
+            elif item.is_file() and item.suffix == ".md" and item.name not in skip_files:
                 print(f"\nProcessing {item.relative_to(self.memory_dir)}...")
                 self._compact_file(item)
                 self.stats["files_processed"] += 1
