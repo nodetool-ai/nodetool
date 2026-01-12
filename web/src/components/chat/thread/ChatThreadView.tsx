@@ -46,6 +46,7 @@ interface ChatThreadViewProps {
 
 const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
 const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
+const SPACER_RECALC_DEBOUNCE_MS = 100;
 
 // Dynamic scroll spacer component that adapts to content and viewport
 interface DynamicScrollSpacerProps {
@@ -60,6 +61,8 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
   const [spacerHeight, setSpacerHeight] = useState(200);
 
   useEffect(() => {
+    let recalcTimeoutId: number | null = null;
+
     const calculateOptimalSpacerHeight = () => {
       if (!scrollHost || !lastUserMessageRef.current) {
         setSpacerHeight(200);
@@ -70,32 +73,45 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
       const lastUserMessageRect = lastUserMessage.getBoundingClientRect();
       const scrollHostRect = scrollHost.getBoundingClientRect();
 
+      // If there's enough content to scroll (scrollHeight > clientHeight), no spacer needed
+      if (scrollHost.scrollHeight > scrollHost.clientHeight) {
+        setSpacerHeight(0);
+        return;
+      }
+
       // Calculate the exact space needed to bring the user message to the top
       const currentOffset = lastUserMessageRect.top - scrollHostRect.top;
-      
+
       // If message is already at or near top, use minimal spacer
       if (currentOffset <= 0) {
         setSpacerHeight(150);
         return;
       }
-      
+
       // Calculate precise height needed: current offset + small buffer for smooth scrolling
       const preciseSpacerHeight = currentOffset + 20; // 20px buffer for smooth scrolling
-      
+
       // Constrain to reasonable bounds
       const optimalHeight = Math.max(150, Math.min(400, preciseSpacerHeight));
-      
+
       setSpacerHeight(optimalHeight);
+    };
+
+    const scheduleRecalculation = () => {
+      if (recalcTimeoutId !== null) {
+        clearTimeout(recalcTimeoutId);
+      }
+      recalcTimeoutId = window.setTimeout(() => {
+        calculateOptimalSpacerHeight();
+        recalcTimeoutId = null;
+      }, SPACER_RECALC_DEBOUNCE_MS);
     };
 
     // Calculate initial height
     calculateOptimalSpacerHeight();
 
     // Use MutationObserver to watch for content changes that might affect layout
-    const mutationObserver = new MutationObserver(() => {
-      // Small delay to ensure DOM has updated
-      setTimeout(calculateOptimalSpacerHeight, 0);
-    });
+    const mutationObserver = new MutationObserver(scheduleRecalculation);
 
     // Watch for changes in the message list
     if (lastUserMessageRef.current) {
@@ -106,9 +122,7 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
     }
 
     // Recalculate on resize
-    const resizeObserver = new ResizeObserver(() => {
-      setTimeout(calculateOptimalSpacerHeight, 0);
-    });
+    const resizeObserver = new ResizeObserver(scheduleRecalculation);
 
     if (scrollHost) {
       resizeObserver.observe(scrollHost);
@@ -117,6 +131,9 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
     return () => {
       mutationObserver.disconnect();
       resizeObserver.disconnect();
+      if (recalcTimeoutId !== null) {
+        clearTimeout(recalcTimeoutId);
+      }
     };
   }, [scrollHost, lastUserMessageRef]);
 
