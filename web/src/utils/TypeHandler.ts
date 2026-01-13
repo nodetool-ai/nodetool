@@ -36,24 +36,6 @@ export const Slugify = (input: string): string => {
 };
 
 /**
- * Checks if a type is connectable to a union type. This is the case if the type
- * is connectable to at least one of the type arguments of the union type.
- *
- * @param the_type The type.
- * @param union_type The union type.
- */
-
-// const isConnectableToUnion = (
-//   the_type: TypeMetadata,
-//   union_type: TypeMetadata
-// ): boolean => {
-//   if (union_type.type_args) {
-//     return union_type.type_args.some((t) => isConnectable(the_type, t));
-//   }
-//   return false;
-// };
-
-/**
  * Checks if two types are equal. This is the case if they have the same type
  * and the same type arguments.
  */
