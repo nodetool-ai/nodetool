@@ -767,56 +767,6 @@ describe("GlobalChatStore", () => {
       expect(Object.keys(store.getState().threads)).toHaveLength(1);
     });
 
-    it("sendMessage auto-generates title from first user message", async () => {
-      store.setState({ currentThreadId: null } as any);
-
-      const message: Message = {
-        role: "user",
-        type: "message",
-        content:
-          "This is a long message that should be truncated for the title because it exceeds fifty characters"
-      } as Message;
-      await store.getState().sendMessage(message);
-
-      const threadId = store.getState().currentThreadId!;
-      const thread = store.getState().threads[threadId];
-      expect(thread.title).toBe(
-        "This is a long message that should be truncated fo..."
-      );
-    });
-
-    it("sendMessage handles array content for title generation", async () => {
-      store.setState({ currentThreadId: null } as any);
-
-      const message: Message = {
-        role: "user",
-        type: "message",
-        content: [{ type: "text", text: "Hello world" }]
-      } as Message;
-      await store.getState().sendMessage(message);
-
-      const threadId = store.getState().currentThreadId!;
-      const thread = store.getState().threads[threadId];
-      expect(thread.title).toBe("Hello world");
-    });
-
-    it("sendMessage uses fallback title for non-text content", async () => {
-      store.setState({ currentThreadId: null } as any);
-
-      const message: Message = {
-        role: "user",
-        type: "message",
-        content: [
-          { type: "image_url", image: { type: "image", uri: "test.jpg" } }
-        ]
-      } as Message;
-      await store.getState().sendMessage(message);
-
-      const threadId = store.getState().currentThreadId!;
-      const thread = store.getState().threads[threadId];
-      expect(thread.title).toBe("New conversation");
-    });
-
     it("sendMessage does nothing when socket is not connected", async () => {
       store.getState().disconnect();
       mockGlobalWebSocketManager.disconnect();

@@ -494,45 +494,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           data: chatMessageData
         };
 
-        // Check if this is the first user message BEFORE adding to cache
-        const existingMessages = get().messageCache[threadId] || [];
-        const userMessageCount = existingMessages.filter(
-          (msg) => msg.role === "user"
-        ).length;
-        const isFirstUserMessage =
-          message.role === "user" && userMessageCount === 0;
         // Add message to cache optimistically
         get().addMessageToCache(threadId, messageForCache);
-
-        // Auto-generate title from first user message if not set
-        if (isFirstUserMessage) {
-          const state = get();
-          const thread = state.threads[threadId];
-          if (thread) {
-            let contentText = "";
-            if (typeof message.content === "string") {
-              contentText = message.content as string;
-            } else if (Array.isArray(message.content)) {
-              const firstText = (message.content as any[]).find(
-                (c: any) => c?.type === "text" && typeof c.text === "string"
-              );
-              contentText = firstText?.text || "";
-            }
-            const titleBase = contentText || "New conversation";
-            const newTitle =
-              titleBase.substring(0, 50) + (titleBase.length > 50 ? "..." : "");
-            set((s) => ({
-              threads: {
-                ...s.threads,
-                [threadId]: {
-                  ...s.threads[threadId],
-                  title: newTitle,
-                  updated_at: new Date().toISOString()
-                }
-              }
-            }));
-          }
-        }
 
         set({ status: "loading" }); // Waiting for response
 
@@ -776,14 +739,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
       loadMessages: async (threadId: string, cursor?: string) => {
         const { messageCache, isLoadingMessages } = get();
 
-        // If already loading, return cached messages
         if (isLoadingMessages) {
           return messageCache[threadId] || [];
-        }
-
-        // If no cursor provided and we have cached messages, return them
-        if (!cursor && messageCache[threadId]) {
-          return messageCache[threadId];
         }
 
         set({ isLoadingMessages: true, error: null });
