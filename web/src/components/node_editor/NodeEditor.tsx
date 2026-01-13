@@ -160,7 +160,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             <>
               <RunAsAppFab workflowId={workflowId} />
               <SelectionActionToolbar
-                visible={selectedNodes.length >= 1}
+                visible={selectedNodes.length >= 2}
               />
               <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
