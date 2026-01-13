@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useNodeBookmarks } from "./useNodeBookmarks";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -78,6 +79,7 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const nodeBookmarks = useNodeBookmarks();
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -512,6 +514,13 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      toggleBookmark: {
+        callback: nodeBookmarks.toggleBookmarkForSelected,
+        active: selectedNodes.length > 0
+      },
+      showBookmarks: {
+        callback: nodeBookmarks.toggleBookmarksPanel
       }
     };
 
@@ -575,7 +584,9 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    nodeBookmarks.toggleBookmarkForSelected,
+    nodeBookmarks.toggleBookmarksPanel
   ]);
 
   // useEffect for shortcut registration
@@ -623,6 +634,9 @@ export const useNodeEditorShortcuts = (
     packageNameInput,
     setPackageNameInput,
     handleSaveExampleConfirm,
-    handleSaveExampleCancel
+    handleSaveExampleCancel,
+    showBookmarksPanel: nodeBookmarks.showBookmarksPanel,
+    setShowBookmarksPanel: nodeBookmarks.setShowBookmarksPanel,
+    bookmarksWorkflowId: nodeBookmarks.workflowId
   };
 };

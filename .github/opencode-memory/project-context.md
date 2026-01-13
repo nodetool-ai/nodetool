@@ -160,6 +160,21 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Bookmarks (2026-01-13)
+
+**What**: Added node bookmarking feature to mark and quickly navigate to important nodes within workflows using Ctrl+B to toggle bookmarks and Ctrl+Shift+B to show bookmarks panel.
+
+**Files**:
+- `web/src/stores/NodeBookmarkStore.ts` - Zustand store for bookmark state with localStorage persistence
+- `web/src/hooks/useNodeBookmarks.ts` - Hook providing bookmark toggle and panel visibility
+- `web/src/components/node_editor/NodeBookmarksPanel.tsx` - Panel component listing bookmarked nodes
+- `web/src/config/shortcuts.ts` - Added keyboard shortcuts for bookmarks
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Integrated bookmark actions
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated bookmarks panel
+- `web/src/components/node/BaseNode.tsx` - Added bookmark indicator icon on nodes
+
+---
+
 ### Node Execution Time Display (2026-01-13)
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
