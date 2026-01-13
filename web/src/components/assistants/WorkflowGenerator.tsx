@@ -103,6 +103,7 @@ const WorkflowGenerator: React.FC = () => {
                   type="submit"
                   disabled={isLoading || !prompt.trim()}
                   sx={{ mr: 0.5 }}
+                  aria-label="Generate workflow"
                 >
                   <SendIcon
                     color={isLoading || !prompt.trim() ? "disabled" : "primary"}

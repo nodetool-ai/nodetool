@@ -96,6 +96,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
             onClick={handleClick}
             disabled={disabled || isPicking}
             size="small"
+            aria-label={isPicking ? "Picking color..." : "Pick color from screen"}
           >
             {isPicking ? (
               <CircularProgress size={18} />

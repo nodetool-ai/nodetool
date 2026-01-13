@@ -231,6 +231,7 @@ const ColorInputs: React.FC<ColorInputsProps> = ({
               value={hexInput}
               onChange={handleHexChange}
               size="small"
+              label="Hex Color"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">#</InputAdornment>
@@ -244,6 +245,7 @@ const ColorInputs: React.FC<ColorInputsProps> = ({
               onChange={handleAlphaChange}
               type="number"
               size="small"
+              label="Opacity"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">%</InputAdornment>

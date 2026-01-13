@@ -57,6 +57,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
             onClick={handleClick}
             size="small"
             tabIndex={-1}
+            aria-label="Upload files"
             sx={{
               color: theme.vars.palette.grey[400]
             }}

@@ -165,7 +165,11 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           <Typography className="section-title">Recent</Typography>
           {recentColors.length > 0 && (
             <Tooltip title="Clear recent colors">
-              <IconButton size="small" onClick={clearRecentColors}>
+              <IconButton
+                size="small"
+                onClick={clearRecentColors}
+                aria-label="Clear recent colors"
+              >
                 <DeleteIcon sx={{ fontSize: 14 }} />
               </IconButton>
             </Tooltip>
@@ -179,6 +183,15 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
                   className="color-swatch"
                   style={{ backgroundColor: color }}
                   onClick={() => onColorSelect(color)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onColorSelect(color);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select color ${color}`}
                 />
               </Tooltip>
             ))
@@ -193,19 +206,40 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
         <div className="section-header">
           <Typography className="section-title">Saved</Typography>
         </div>
-        <div className="color-grid">
-          {swatches.map((swatch) => (
-            <Tooltip key={swatch.id} title={swatch.name || swatch.color}>
-              <div
-                className="color-swatch"
-                style={{ backgroundColor: swatch.color }}
-                onClick={() => onColorSelect(swatch.color)}
-                onContextMenu={(e) => handleSwatchContextMenu(e, swatch.id)}
-              />
-            </Tooltip>
-          ))}
+          <div className="color-grid">
+            {swatches.map((swatch) => (
+              <Tooltip key={swatch.id} title={swatch.name || swatch.color}>
+                <div
+                  className="color-swatch"
+                  style={{ backgroundColor: swatch.color }}
+                  onClick={() => onColorSelect(swatch.color)}
+                  onContextMenu={(e) => handleSwatchContextMenu(e, swatch.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onColorSelect(swatch.color);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select color ${swatch.name || swatch.color}`}
+                />
+              </Tooltip>
+            ))}
           <Tooltip title="Save current color">
-            <div className="add-swatch-button" onClick={handleAddSwatch}>
+            <div
+              className="add-swatch-button"
+              onClick={handleAddSwatch}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleAddSwatch();
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-label="Save current color"
+            >
               <AddIcon sx={{ fontSize: 16 }} />
             </div>
           </Tooltip>
@@ -222,21 +256,34 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
             <div key={palette.id} className="palette-section">
               <div className="palette-header">
                 <Typography className="palette-name">{palette.name}</Typography>
-                <IconButton size="small" onClick={() => removePalette(palette.id)}>
+                <IconButton
+                  size="small"
+                  onClick={() => removePalette(palette.id)}
+                  aria-label={`Remove palette ${palette.name}`}
+                >
                   <DeleteIcon sx={{ fontSize: 12 }} />
                 </IconButton>
               </div>
-              <div className="color-grid">
-                {palette.colors.map((color, index) => (
-                  <Tooltip key={index} title={color}>
-                    <div
-                      className="color-swatch"
-                      style={{ backgroundColor: color }}
-                      onClick={() => onColorSelect(color)}
-                    />
-                  </Tooltip>
-                ))}
-              </div>
+                <div className="color-grid">
+                  {palette.colors.map((color, index) => (
+                    <Tooltip key={index} title={color}>
+                      <div
+                        className="color-swatch"
+                        style={{ backgroundColor: color }}
+                        onClick={() => onColorSelect(color)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onColorSelect(color);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Select color ${color}`}
+                      />
+                    </Tooltip>
+                  ))}
+                </div>
             </div>
           ))}
         </div>
