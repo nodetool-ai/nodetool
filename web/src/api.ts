@@ -1772,6 +1772,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Workspaces
+         * @description List all configured workspaces for the current user.
+         *
+         *     Returns a list of workspaces with a calculated `is_accessible` boolean
+         *     indicating whether the path exists and is writable.
+         */
+        get: operations["list_workspaces_api_workspaces_get"];
+        put?: never;
+        /**
+         * Create Workspace
+         * @description Create a new workspace.
+         *
+         *     Validation:
+         *     - Rejects relative paths
+         *     - Rejects paths that are not writable by the NodeTool service user
+         *     - If `is_default` is true, sets all other user workspaces to `is_default = false`
+         */
+        post: operations["create_workspace_api_workspaces_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workspace
+         * @description Get a specific workspace by ID.
+         */
+        get: operations["get_workspace_api_workspaces__workspace_id__get"];
+        /**
+         * Update Workspace
+         * @description Update a workspace.
+         */
+        put: operations["update_workspace_api_workspaces__workspace_id__put"];
+        post?: never;
+        /**
+         * Delete Workspace
+         * @description Delete a workspace.
+         *
+         *     Returns 400 Bad Request if any workflows are currently linked to this workspace ID.
+         */
+        delete: operations["delete_workspace_api_workspaces__workspace_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Default Workspace
+         * @description Get the default workspace for the current user.
+         */
+        get: operations["get_default_workspace_api_workspaces_default_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/storage/{key}": {
         parameters: {
             query?: never;
@@ -2140,6 +2222,156 @@ export interface paths {
          * @description Delete a secret.
          */
         delete: operations["delete_secret_api_settings_secrets__key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Memory Stats
+         * @description Get current memory statistics.
+         *
+         *     Returns RAM usage, GPU memory usage, cache stats, and loaded model info.
+         */
+        get: operations["get_memory_stats_api_memory_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Loaded Models
+         * @description List all loaded models with their memory usage.
+         *
+         *     Returns a list of all models currently held in memory with
+         *     their type, device, memory usage, and offload status.
+         */
+        get: operations["list_loaded_models_api_memory_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory/models/{model_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unload Model
+         * @description Unload a specific model by its ID.
+         *
+         *     Args:
+         *         model_id: The ID of the model to unload
+         *         force: If True, unload even if the model is in use
+         *
+         *     Returns:
+         *         Result indicating success and memory freed
+         *
+         *     Raises:
+         *         404: Model not found
+         *         409: Model is in use (unless force=True)
+         */
+        delete: operations["unload_model_api_memory_models__model_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory/models/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear All Models
+         * @description Unload all loaded models.
+         *
+         *     Args:
+         *         force: If True, unload even models that are in use
+         *
+         *     Returns:
+         *         Result indicating success and resources freed
+         */
+        post: operations["clear_all_models_api_memory_models_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory/gpu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear Gpu Cache
+         * @description Clear GPU (CUDA) cache only.
+         *
+         *     This frees unused GPU memory without unloading models.
+         */
+        post: operations["clear_gpu_cache_api_memory_gpu_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Full Memory Cleanup
+         * @description Perform a full memory cleanup.
+         *
+         *     This includes:
+         *     - Unloading all models (respects in_use flag unless force=True)
+         *     - Clearing the memory URI cache
+         *     - Clearing GPU cache
+         *     - Running garbage collection
+         */
+        post: operations["full_memory_cleanup_api_memory_all_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2842,6 +3074,8 @@ export interface components {
             node_id?: string | null;
             /** Thread Id */
             thread_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
             /**
              * Content Type
              * @default text
@@ -3179,6 +3413,10 @@ export interface components {
             type: "error";
             /** Message */
             message: string;
+            /** Thread Id */
+            thread_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
         };
         /**
          * ExecutionStrategy
@@ -3235,7 +3473,26 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** FontRef */
+        /**
+         * FontRef
+         * @description Reference to a font for text rendering.
+         *
+         *     Supports three sources:
+         *     - system: Local system fonts (default, backwards compatible)
+         *     - google_fonts: Google Fonts that are auto-downloaded and cached
+         *     - url: Custom URL to a TTF/OTF font file
+         *
+         *     Examples:
+         *         # System font (default behavior)
+         *         FontRef(name="Arial")
+         *
+         *         # Google Font
+         *         FontRef(name="Roboto", source=FontSource.GOOGLE_FONTS)
+         *         FontRef(name="Open Sans", source=FontSource.GOOGLE_FONTS, weight="bold")
+         *
+         *         # Custom URL
+         *         FontRef(name="CustomFont", source=FontSource.URL, url="https://example.com/font.ttf")
+         */
         FontRef: {
             /**
              * Type
@@ -3248,12 +3505,30 @@ export interface components {
              * @default
              */
             name: string;
+            /** @default system */
+            source: components["schemas"]["FontSource"];
+            /**
+             * Url
+             * @default
+             */
+            url: string;
+            /**
+             * Weight
+             * @default regular
+             */
+            weight: string;
         };
         /** FontResponse */
         FontResponse: {
             /** Fonts */
             fonts: string[];
         };
+        /**
+         * FontSource
+         * @description Source of a font file.
+         * @enum {string}
+         */
+        FontSource: "system" | "google_fonts" | "url";
         /**
          * GitHubUserResponse
          * @description Response for GitHub user endpoint.
@@ -4817,6 +5092,57 @@ export interface components {
             };
         };
         /**
+         * LoadedModel
+         * @description Information about a loaded model/pipeline.
+         */
+        LoadedModel: {
+            /**
+             * Id
+             * @description Unique identifier (typically node_id)
+             */
+            id: string;
+            /**
+             * Type
+             * @description Model/pipeline type name (e.g., 'StableDiffusionXLPipeline')
+             */
+            type: string;
+            /**
+             * Memory Mb
+             * @description Estimated memory usage in MB
+             */
+            memory_mb: number;
+            /**
+             * Device
+             * @description Device location (cuda, cpu, mps)
+             */
+            device: string;
+            /**
+             * Offloaded
+             * @description Whether CPU offload is enabled
+             * @default false
+             */
+            offloaded: boolean;
+            /**
+             * Model Id
+             * @description HuggingFace model ID if applicable
+             */
+            model_id?: string | null;
+        };
+        /**
+         * LoadedModelsResponse
+         * @description Response for listing loaded models.
+         */
+        LoadedModelsResponse: {
+            /** Models */
+            models?: components["schemas"]["LoadedModel"][];
+            /**
+             * Total Memory Mb
+             * @description Total memory used by all models
+             * @default 0
+             */
+            total_memory_mb: number;
+        };
+        /**
          * LogEntry
          * @description A log entry for a step.
          */
@@ -4869,6 +5195,91 @@ export interface components {
              * @enum {string}
              */
             severity: "info" | "warning" | "error";
+            /** Workflow Id */
+            workflow_id?: string | null;
+        };
+        /**
+         * MemoryCleanupResult
+         * @description Result of a memory cleanup operation.
+         */
+        MemoryCleanupResult: {
+            /**
+             * Success
+             * @default true
+             */
+            success: boolean;
+            /**
+             * Message
+             * @default Cleanup completed
+             */
+            message: string;
+            /**
+             * Ram Freed Mb
+             * @description RAM freed in MB
+             * @default 0
+             */
+            ram_freed_mb: number;
+            /**
+             * Models Unloaded
+             * @description Number of models unloaded
+             * @default 0
+             */
+            models_unloaded: number;
+            /**
+             * Cache Items Cleared
+             * @description Cache items cleared
+             * @default 0
+             */
+            cache_items_cleared: number;
+        };
+        /**
+         * MemoryStats
+         * @description Current memory statistics.
+         */
+        MemoryStats: {
+            /**
+             * Ram Mb
+             * @description Process RAM usage in MB
+             */
+            ram_mb: number;
+            /**
+             * Ram Total Mb
+             * @description Total system RAM in MB
+             */
+            ram_total_mb?: number | null;
+            /**
+             * Gpu Allocated Mb
+             * @description GPU memory allocated in MB
+             */
+            gpu_allocated_mb?: number | null;
+            /**
+             * Gpu Reserved Mb
+             * @description GPU memory reserved in MB
+             */
+            gpu_reserved_mb?: number | null;
+            /**
+             * Gpu Total Mb
+             * @description Total GPU memory in MB
+             */
+            gpu_total_mb?: number | null;
+            /**
+             * Memory Cache Count
+             * @description Items in memory URI cache
+             * @default 0
+             */
+            memory_cache_count: number;
+            /**
+             * Loaded Models Count
+             * @description Number of loaded models
+             * @default 0
+             */
+            loaded_models_count: number;
+            /**
+             * Loaded Models Memory Mb
+             * @description Total memory used by loaded models
+             * @default 0
+             */
+            loaded_models_memory_mb: number;
         };
         /**
          * Message
@@ -4903,7 +5314,7 @@ export interface components {
             /** Content */
             content?: string | {
                 [key: string]: unknown;
-            } | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
+            } | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"] | components["schemas"]["MessageThoughtContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Collections */
@@ -4958,7 +5369,7 @@ export interface components {
             /** Content */
             content?: string | {
                 [key: string]: unknown;
-            } | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
+            } | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"] | components["schemas"]["MessageThoughtContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Created At */
@@ -5028,6 +5439,32 @@ export interface components {
              * @default
              */
             text: string;
+        };
+        /**
+         * MessageThoughtContent
+         * @description A message content type for storing Gemini thinking/thought content.
+         *
+         *     When Gemini's thinking mode is enabled, the model returns thought parts
+         *     with a cryptographic signature. This signature must be preserved and
+         *     passed back to the API for multi-turn conversations to verify the
+         *     authenticity of the thought content.
+         *
+         *     See: https://ai.google.dev/gemini-api/docs/thought-signatures
+         */
+        MessageThoughtContent: {
+            /**
+             * Type
+             * @default thought
+             * @constant
+             */
+            type: "thought";
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /** Thought Signature */
+            thought_signature?: string | null;
         };
         /** MessageVideoContent */
         MessageVideoContent: {
@@ -5144,6 +5581,33 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * ModelUnloadResult
+         * @description Result of unloading a specific model.
+         */
+        ModelUnloadResult: {
+            /**
+             * Success
+             * @default true
+             */
+            success: boolean;
+            /**
+             * Model Id
+             * @description ID of the model that was unloaded
+             */
+            model_id: string;
+            /**
+             * Message
+             * @default Model unloaded successfully
+             */
+            message: string;
+            /**
+             * Memory Freed Mb
+             * @description Estimated memory freed in MB
+             * @default 0
+             */
+            memory_freed_mb: number;
         };
         /** NPArray */
         NPArray: {
@@ -5339,6 +5803,8 @@ export interface components {
              * @default
              */
             chunk: string;
+            /** Workflow Id */
+            workflow_id?: string | null;
         };
         /** NodeRef */
         NodeRef: {
@@ -5386,6 +5852,8 @@ export interface components {
             properties?: {
                 [key: string]: unknown;
             } | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
         };
         /**
          * Notification
@@ -5407,6 +5875,8 @@ export interface components {
              * @enum {string}
              */
             severity: "info" | "warning" | "error";
+            /** Workflow Id */
+            workflow_id?: string | null;
         };
         /**
          * OAuthRefreshResponse
@@ -5521,6 +5991,8 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             };
+            /** Workflow Id */
+            workflow_id?: string | null;
         };
         /** PackageAsset */
         PackageAsset: {
@@ -5557,6 +6029,10 @@ export interface components {
             type: "planning_update";
             /** Node Id */
             node_id?: string | null;
+            /** Thread Id */
+            thread_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
             /** Phase */
             phase: string;
             /** Status */
@@ -5741,7 +6217,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
         /**
          * ProviderAggregateResponse
          * @description Response model for provider-level aggregation.
@@ -6139,6 +6615,10 @@ export interface components {
              * @default false
              */
             is_task_result: boolean;
+            /** Thread Id */
+            thread_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
         };
         /** SystemStats */
         SystemStats: {
@@ -6287,6 +6767,10 @@ export interface components {
             type: "task_update";
             /** Node Id */
             node_id?: string | null;
+            /** Thread Id */
+            thread_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
             task: components["schemas"]["Task"];
             step?: components["schemas"]["Step"] | null;
             event: components["schemas"]["TaskUpdateEvent"];
@@ -6418,6 +6902,10 @@ export interface components {
             type: "tool_call_update";
             /** Node Id */
             node_id?: string | null;
+            /** Thread Id */
+            thread_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
             /** Tool Call Id */
             tool_call_id?: string | null;
             /** Name */
@@ -6446,6 +6934,10 @@ export interface components {
             type: "tool_result_update";
             /** Node Id */
             node_id: string;
+            /** Thread Id */
+            thread_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
             /** Result */
             result: {
                 [key: string]: unknown;
@@ -6812,6 +7304,28 @@ export interface components {
             /** Versions */
             versions: components["schemas"]["WorkflowVersion"][];
         };
+        /**
+         * WorkspaceCreateRequest
+         * @description Request model for creating a workspace.
+         */
+        WorkspaceCreateRequest: {
+            /**
+             * Name
+             * @description Display name for the workspace
+             */
+            name: string;
+            /**
+             * Path
+             * @description Absolute path to the workspace directory
+             */
+            path: string;
+            /**
+             * Is Default
+             * @description Set as default workspace
+             * @default false
+             */
+            is_default: boolean;
+        };
         /** WorkspaceInfo */
         WorkspaceInfo: {
             /** Workspace Id */
@@ -6828,6 +7342,65 @@ export interface components {
             created_at: string;
             /** Modified At */
             modified_at: string;
+        };
+        /**
+         * WorkspaceListResponse
+         * @description Response model for listing workspaces.
+         */
+        WorkspaceListResponse: {
+            /** Workspaces */
+            workspaces: components["schemas"]["WorkspaceResponse"][];
+            /**
+             * Next Cursor
+             * @default
+             */
+            next_cursor: string;
+        };
+        /**
+         * WorkspaceResponse
+         * @description Response model for a workspace.
+         */
+        WorkspaceResponse: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Is Default */
+            is_default: boolean;
+            /**
+             * Is Accessible
+             * @description Whether the path exists and is writable
+             */
+            is_accessible: boolean;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /**
+         * WorkspaceUpdateRequest
+         * @description Request model for updating a workspace.
+         */
+        WorkspaceUpdateRequest: {
+            /**
+             * Name
+             * @description Display name for the workspace
+             */
+            name?: string | null;
+            /**
+             * Path
+             * @description Absolute path to the workspace directory
+             */
+            path?: string | null;
+            /**
+             * Is Default
+             * @description Set as default workspace
+             */
+            is_default?: boolean | null;
         };
     };
     responses: never;
@@ -9509,6 +10082,186 @@ export interface operations {
             };
         };
     };
+    list_workspaces_api_workspaces_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_workspace_api_workspaces_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workspace_api_workspaces__workspace_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_workspace_api_workspaces__workspace_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_workspace_api_workspaces__workspace_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_default_workspace_api_workspaces_default_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"] | null;
+                };
+            };
+        };
+    };
     get_api_storage__key__get: {
         parameters: {
             query?: never;
@@ -10184,6 +10937,161 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_memory_stats_api_memory_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryStats"];
+                };
+            };
+        };
+    };
+    list_loaded_models_api_memory_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadedModelsResponse"];
+                };
+            };
+        };
+    };
+    unload_model_api_memory_models__model_id__delete: {
+        parameters: {
+            query?: {
+                force?: boolean;
+            };
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelUnloadResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_all_models_api_memory_models_clear_post: {
+        parameters: {
+            query?: {
+                force?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryCleanupResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_gpu_cache_api_memory_gpu_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryCleanupResult"];
+                };
+            };
+        };
+    };
+    full_memory_cleanup_api_memory_all_post: {
+        parameters: {
+            query?: {
+                force?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryCleanupResult"];
                 };
             };
             /** @description Validation Error */
