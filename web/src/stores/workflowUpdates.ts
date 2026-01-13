@@ -19,6 +19,7 @@ import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
+import useNodeTimingStore from "./NodeTimingStore";
 import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
@@ -119,6 +120,7 @@ export const handleUpdate = (
   const setEdge = useResultsStore.getState().setEdge;
   const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
+  const clearTimings = useNodeTimingStore.getState().clearTimings;
 
   if (window.__UPDATES__ === undefined) {
     window.__UPDATES__ = [];
@@ -287,6 +289,7 @@ export const handleUpdate = (
         clearEdges(workflow.id);
         clearProgress(workflow.id);
         clearOutputResults(workflow.id);
+        clearTimings(workflow.id);
         break;
       case "failed":
       case "timed_out":
@@ -300,6 +303,7 @@ export const handleUpdate = (
         clearEdges(workflow.id);
         clearProgress(workflow.id);
         clearOutputResults(workflow.id);
+        clearTimings(workflow.id);
         break;
       case "queued":
         runnerStore.setState({
@@ -364,10 +368,23 @@ export const handleUpdate = (
   if (data.type === "node_update") {
     const update = data as NodeUpdate;
     const currentState = runnerStore.getState().state;
+    const startNode = useNodeTimingStore.getState().startNode;
+    const endNode = useNodeTimingStore.getState().endNode;
 
     // Don't update node status if workflow is cancelled
     if (currentState === "cancelled") {
       return;
+    }
+
+    // Track node execution timing
+    if (update.status === "running" || update.status === "starting") {
+      startNode(workflow.id, update.node_id);
+    } else if (
+      update.status === "completed" ||
+      update.status === "error" ||
+      update.status === "failed"
+    ) {
+      endNode(workflow.id, update.node_id);
     }
 
     if (update.error) {

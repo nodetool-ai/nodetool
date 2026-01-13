@@ -11,6 +11,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { NodeLogsDialog } from "./NodeLogs";
+import NodeExecutionTime from "./NodeExecutionTime";
 
 export interface NodeHeaderProps {
   id: string;
@@ -191,6 +192,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
+        <NodeExecutionTime
+          workflowId={workflowId || nodeWorkflowId || ""}
+          nodeId={id}
+        />
         {logCount > 0 && (
           <Tooltip title={`${logCount} logs`} arrow>
             <IconButton
