@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Virtualized Node List (2026-01-13)
+
+**What**: Added VirtualizedNodeList component to improve performance when browsing namespaces with many nodes. Uses react-window to render only visible nodes.
+
+**Files**: `web/src/components/node_menu/VirtualizedNodeList.tsx`, `web/src/components/node_menu/RenderNodes.tsx`
+
+**Implementation**:
+- Created `VirtualizedNodeList` component using `react-window` FixedSizeList with AutoSizer for responsive sizing
+- Updated `RenderNodes` to use virtualization when viewing a single namespace with 50+ nodes
+- Maintains keyboard navigation support with scroll-to-item functionality
+- Leverages existing react-window and react-virtualized-auto-sizer dependencies
+
+**Impact**: Improved performance when browsing large node namespaces (50+ nodes) in the node menu by only rendering visible items.
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).
