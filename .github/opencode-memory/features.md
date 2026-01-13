@@ -121,6 +121,7 @@ Last updated: 2026-01-12
 - **Color Palettes**: Predefined color palettes for themes
 - **Responsive Design**: Mobile-responsive interface
 - **Logo Component**: Application branding
+- **Grid Customization**: Customize canvas grid pattern (dots, lines, cross, none)
 
 ### Panels & Layout
 - **Left Panel**: Collapsible left sidebar with node menu

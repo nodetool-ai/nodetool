@@ -3,7 +3,6 @@ import { useRef, useEffect, useMemo, memo, useState } from "react";
 import {
   useReactFlow,
   Background,
-  BackgroundVariant,
   ReactFlow,
   SelectionMode,
   ConnectionMode,
@@ -48,6 +47,7 @@ import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
+import { useGridSettingsStore, getBackgroundVariant } from "../../stores/GridSettingsStore";
 
 const fitViewOptions = {
   maxZoom: MAX_ZOOM,
@@ -230,6 +230,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const settings = useSettingsStore((state) => state.settings);
+
+  const gridSettings = useGridSettingsStore((state) => ({
+    visible: state.visible,
+    pattern: state.pattern,
+    gap: state.gap,
+    size: state.size,
+    color: state.color
+  }));
 
   const { onDrop, onDragOver } = useDropHandler();
 
@@ -516,16 +524,18 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         panActivationKeyCode=""
         deleteKeyCode={["Delete", "Backspace"]}
       >
-        <Background
-          id={workflowId}
-          gap={100}
-          offset={4}
-          size={8}
-          color={theme.vars.palette.c_editor_grid_color}
-          lineWidth={1}
-          style={backgroundStyle}
-          variant={BackgroundVariant.Cross}
-        />
+        {gridSettings.visible && (
+          <Background
+            id={workflowId}
+            gap={gridSettings.gap}
+            offset={4}
+            size={gridSettings.size}
+            color={gridSettings.color || theme.vars.palette.c_editor_grid_color}
+            lineWidth={1}
+            style={backgroundStyle}
+            variant={getBackgroundVariant(gridSettings.pattern)}
+          />
+        )}
         <AxisMarker />
         <ContextMenus />
         <ConnectableNodes />

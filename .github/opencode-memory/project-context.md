@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Canvas Grid Customization (2026-01-13)
+
+**What**: Added customizable canvas grid pattern settings allowing users to choose between dots, lines, cross patterns or hide the grid entirely. Includes gap and size controls with keyboard shortcut (G) to toggle grid visibility.
+
+**Files**: 
+- `web/src/stores/GridSettingsStore.ts` - New Zustand store for grid settings with persistence
+- `web/src/components/panels/GridSettings.tsx` - Grid settings panel component
+- `web/src/components/panels/PanelRight.tsx` - Added settings view to right panel
+- `web/src/components/node/ReactFlowWrapper.tsx` - Integrated grid settings with ReactFlow Background component
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added keyboard shortcut for grid toggle
+- `web/src/config/shortcuts.ts` - Added toggleGrid shortcut definition
+
+**Implementation**: Grid settings are persisted in localStorage via Zustand middleware. Users can access grid settings through a new button in the right panel toolbar. The grid pattern, gap, and size can be adjusted. Press 'G' to quickly toggle grid visibility.
+
+---
+
 ### Zustand Store Subscription Optimization (2026-01-13)
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.

@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useGridSettingsStore } from "../stores/GridSettingsStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -384,6 +385,10 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleGridToggle = useCallback(() => {
+    useGridSettingsStore.getState().toggleVisibility();
+  }, []);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -512,7 +517,8 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
-      }
+      },
+      toggleGrid: { callback: handleGridToggle }
     };
 
     // Switch-to-tab (1-9)
@@ -573,10 +579,11 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusUp,
     nodeFocus.focusDown,
     nodeFocus.focusLeft,
-    nodeFocus.focusRight,
-    nodeFocus.goBack,
-    nodeFocus.focusHistory.length
-  ]);
+      nodeFocus.focusRight,
+      nodeFocus.goBack,
+      nodeFocus.focusHistory.length,
+      handleGridToggle
+    ]);
 
   // useEffect for shortcut registration
   useEffect(() => {
