@@ -218,14 +218,14 @@ describe("useNodeContextMenu", () => {
         result.current.handlers.handleToggleComment();
       });
 
-      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { title: "comment" });
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { comment: "" });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
 
     it("removes comment when hasCommentTitle is true", () => {
       const nodeWithComment = {
         ...mockNode,
-        data: { ...mockNode.data, title: "my comment" }
+        data: { ...mockNode.data, comment: "my comment" }
       };
 
       mockedUseNodes.mockImplementation((selector) => {
@@ -261,7 +261,7 @@ describe("useNodeContextMenu", () => {
         result.current.handlers.handleToggleComment();
       });
 
-      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { title: "" });
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { comment: undefined });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
   });

@@ -268,6 +268,7 @@ Last updated: 2026-01-12
 *(Update this section when considering these features in the future)*
 
 - **Virtualized Lists**: Large list virtualization for performance
+- **Node Comments**: Add inline annotations to nodes for workflow documentation
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
