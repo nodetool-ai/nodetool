@@ -133,8 +133,8 @@ export type MessageContent =
   | MessageAudioContent
   | MessageDocumentContent;
 export type RepoPath = components["schemas"]["RepoPath"];
-export type FileInfo = components["schemas"]["FileInfo"];
-export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
+export type FileInfo = components["schemas"]["nodetool__api__file__FileInfo"];
+export type WorkspaceFileInfo = components["schemas"]["nodetool__api__workspace__FileInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];

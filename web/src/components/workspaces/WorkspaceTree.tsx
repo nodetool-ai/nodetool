@@ -17,8 +17,8 @@ import {
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import DownloadIcon from "@mui/icons-material/Download";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 // Types
@@ -87,9 +87,9 @@ const treeViewStyles = (theme: Theme) => ({
     fontSize: "0.875rem"
   },
   ".MuiTreeItem-content:has(.MuiTreeItem-iconContainer svg) .MuiTreeItem-label":
-    {
-      fontWeight: 600
-    },
+  {
+    fontWeight: 600
+  },
   ".folder-item .MuiTreeItem-label": {
     color: theme.vars.palette.info.light
   },
@@ -137,14 +137,14 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => {
 };
 
 const fetchWorkspaceFiles = async (
-  workspaceId: string,
+  workflowId: string,
   path: string = "."
 ): Promise<TreeViewItem[]> => {
   const { data, error } = await client.GET(
-    "/api/files/workspaces/{workspace_id}/list",
+    "/api/workspaces/workflow/{workflow_id}/files",
     {
       params: {
-        path: { workspace_id: workspaceId },
+        path: { workflow_id: workflowId },
         query: { path }
       }
     }
@@ -163,10 +163,10 @@ const findItemInTree = (
   id: string
 ): TreeViewItem | undefined => {
   for (const item of items) {
-    if (item.id === id) {return item;}
+    if (item.id === id) { return item; }
     if (item.children) {
       const found = findItemInTree(item.children, id);
-      if (found) {return found;}
+      if (found) { return found; }
     }
   }
   return undefined;
@@ -212,16 +212,16 @@ const WorkspaceTree: React.FC = () => {
   }));
 
   const currentWorkflow = getCurrentWorkflow();
-  const workspaceId = currentWorkflow?.id;
+  const workflowId = currentWorkflow?.id;
 
   const {
     data: initialFiles,
     isLoading: isLoadingFiles,
     refetch: refetchFiles
   } = useQuery({
-    queryKey: ["workspace-files", workspaceId],
-    queryFn: () => fetchWorkspaceFiles(workspaceId!),
-    enabled: Boolean(workspaceId)
+    queryKey: ["workflow-workspace-files", workflowId],
+    queryFn: () => fetchWorkspaceFiles(workflowId!),
+    enabled: Boolean(workflowId)
   });
 
   // Update files when data loads
@@ -231,19 +231,22 @@ const WorkspaceTree: React.FC = () => {
 
   const handleItemClick = useCallback(
     async (event: React.MouseEvent, itemId: string) => {
-      if (!workspaceId) {return;}
+      if (!workflowId) { return; }
 
       setSelectedFilePath(itemId);
       try {
         const targetItem = findItemInTree(files, itemId);
         if (shouldLoadChildren(targetItem)) {
-          // Use itemId as the relative path
           const relativePath = itemId || ".";
 
-          const children = await fetchWorkspaceFiles(workspaceId, relativePath);
+          const children = await fetchWorkspaceFiles(workflowId, relativePath);
           setFiles((currentFiles) =>
             updateTreeWithChildren(currentFiles, itemId, children)
           );
+        } else if (targetItem && !targetItem.children) {
+          if (window.api?.shell?.openPath) {
+            await window.api.shell.openPath(itemId);
+          }
         }
       } catch (error) {
         log.error("Failed to load children:", error);
@@ -252,32 +255,29 @@ const WorkspaceTree: React.FC = () => {
         );
       }
     },
-    [files, workspaceId]
+    [files, workflowId]
   );
 
-  const handleDownload = useCallback(async () => {
-    if (!selectedFilePath || !workspaceId) {return;}
+  const handleOpenInFolder = useCallback(async () => {
+    if (!selectedFilePath) { return; }
 
-    try {
-      const url = `/api/files/workspaces/${workspaceId}/download/${selectedFilePath}`;
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      log.error("Failed to download file:", error);
+    if (window.api?.shell?.showItemInFolder) {
+      await window.api.shell.showItemInFolder(selectedFilePath);
     }
-  }, [selectedFilePath, workspaceId]);
+  }, [selectedFilePath]);
 
   const handleRefresh = useCallback(() => {
     refetchFiles();
   }, [refetchFiles]);
 
-  if (!workspaceId) {
+  if (!workflowId) {
     return (
       <Box css={workspaceTreeStyles(theme)}>
         <Typography variant="h6" className="workspace-header">
           Workspace Explorer
         </Typography>
         <Typography color="text.secondary">
-          No workspace available. Run a workflow to create a workspace.
+          No workflow selected. Open a workflow to access its workspace files.
         </Typography>
       </Box>
     );
@@ -301,10 +301,10 @@ const WorkspaceTree: React.FC = () => {
           <Button
             size="small"
             variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={handleDownload}
+            startIcon={<FolderOpenIcon />}
+            onClick={handleOpenInFolder}
           >
-            Download
+            Open in Folder
           </Button>
         </div>
       )}
