@@ -23,6 +23,7 @@ Last updated: 2026-01-12
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
+- **Connection Type Indicator**: Floating tooltip showing data type during connection dragging
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search

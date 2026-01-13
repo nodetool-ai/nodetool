@@ -160,6 +160,14 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Connection Type Indicator (2026-01-13)
+
+**What**: Added floating tooltip that shows the data type being connected while dragging connections in the node editor.
+
+**Files**: `web/src/components/node_editor/ConnectionTypeIndicator.tsx`, `web/src/components/node/ReactFlowWrapper.tsx`
+
+---
+
 ### Keyboard Node Navigation (2026-01-13)
 
 **What**: Added Tab-based keyboard navigation for the node editor, allowing users to navigate between nodes using keyboard shortcuts without mouse interaction.
