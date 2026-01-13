@@ -19,6 +19,7 @@ import { useTheme } from "@mui/material/styles";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
+import KeyboardIcon from "@mui/icons-material/Keyboard";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNavigate } from "react-router";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -41,6 +42,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
+import ShortcutCustomizer from "../dialogs/ShortcutCustomizer";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -109,6 +111,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const [closeBehavior, setCloseBehavior] = useState<
     "ask" | "quit" | "background"
   >("ask");
+  const [shortcutCustomizerOpen, setShortcutCustomizerOpen] = useState(false);
 
   // Load close behavior setting on mount (Electron only)
   useEffect(() => {
@@ -277,7 +280,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         { id: "autosave", label: "Autosave" },
         { id: "navigation", label: "Navigation" },
         { id: "grid", label: "Grid & Connections" },
-        { id: "appearance", label: "Appearance" }
+        { id: "appearance", label: "Appearance" },
+        { id: "shortcuts", label: "Keyboard Shortcuts" }
       ]
     }
   ];
@@ -817,33 +821,68 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       </div>
                     </div>
 
-                    <Typography variant="h3" id="appearance">
-                      Appearance
-                    </Typography>
-                    <div className="settings-section">
-                      <div className="settings-item">
-                        <FormControl>
-                          <InputLabel htmlFor={id}>Time Format</InputLabel>
-                          <Select
-                            id={id}
-                            labelId={id}
-                            value={settings.timeFormat}
-                            variant="standard"
-                            onChange={(e) =>
-                              setTimeFormat(
-                                e.target.value === "12h" ? "12h" : "24h"
-                              )
-                            }
+                      <Typography variant="h3" id="appearance">
+                        Appearance
+                      </Typography>
+                      <div className="settings-section">
+                        <div className="settings-item">
+                          <FormControl>
+                            <InputLabel htmlFor={id}>Time Format</InputLabel>
+                            <Select
+                              id={id}
+                              labelId={id}
+                              value={settings.timeFormat}
+                              variant="standard"
+                              onChange={(e) =>
+                                setTimeFormat(
+                                  e.target.value === "12h" ? "12h" : "24h"
+                                )
+                              }
+                            >
+                              <MenuItem value={"12h"}>12h</MenuItem>
+                              <MenuItem value={"24h"}>24h</MenuItem>
+                            </Select>
+                          </FormControl>
+                          <Typography className="description">
+                            Display time in 12h or 24h format.
+                          </Typography>
+                        </div>
+
+                        <div className="settings-item">
+                          <Button
+                            variant="outlined"
+                            startIcon={<KeyboardIcon />}
+                            onClick={() => setShortcutCustomizerOpen(true)}
+                            sx={{ mt: 1 }}
                           >
-                            <MenuItem value={"12h"}>12h</MenuItem>
-                            <MenuItem value={"24h"}>24h</MenuItem>
-                          </Select>
-                        </FormControl>
-                        <Typography className="description">
-                          Display time in 12h or 24h format.
-                        </Typography>
+                            Customize Keyboard Shortcuts
+                          </Button>
+                          <Typography className="description">
+                            View and customize keyboard shortcuts for the editor.
+                          </Typography>
+                        </div>
                       </div>
-                    </div>
+
+                      <Typography variant="h3" id="shortcuts">
+                        Keyboard Shortcuts
+                      </Typography>
+                      <div className="settings-section">
+                        <div className="settings-item">
+                          <Typography>
+                            Customize keyboard shortcuts to match your workflow. Click the button
+                            below to open the shortcut customizer where you can view all available
+                            shortcuts and assign custom key combinations.
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            startIcon={<KeyboardIcon />}
+                            onClick={() => setShortcutCustomizerOpen(true)}
+                            sx={{ mt: 2 }}
+                          >
+                            Open Shortcut Customizer
+                          </Button>
+                        </div>
+                      </div>
 
                     {user && (user as any).auth_token && (
                       <>
@@ -927,6 +966,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ShortcutCustomizer
+        open={shortcutCustomizerOpen}
+        onClose={() => setShortcutCustomizerOpen(false)}
+      />
     </div>
   );
 }

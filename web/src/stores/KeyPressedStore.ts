@@ -16,6 +16,8 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
 import { useRightPanelStore } from "./RightPanelStore";
+import { NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
+import { useCustomShortcutsStore } from "./CustomShortcutsStore";
 
 // Allowed key combinations for HTMLTextAreaElement
 const ALLOWED_TEXTAREA_COMBOS: Array<{
@@ -48,6 +50,20 @@ const unregisterComboCallback = (combo: string) => {
   comboCallbacks.delete(combo);
 };
 
+const getCustomComboForPressedKeys = (pressedKeysString: string): string | null => {
+  const { customShortcuts } = useCustomShortcutsStore.getState();
+  
+  for (const [slug, mapping] of Object.entries(customShortcuts)) {
+    if (mapping.useCustom) {
+      const customComboString = [...mapping.customCombo].sort().join("+").toLowerCase();
+      if (customComboString === pressedKeysString) {
+        return slug;
+      }
+    }
+  }
+  return null;
+};
+
 const executeComboCallbacks = (
   pressedKeys: Set<string>,
   event: KeyboardEvent | undefined
@@ -57,12 +73,21 @@ const executeComboCallbacks = (
   }
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   const activeElement = document.activeElement;
-  const options = comboCallbacks.get(pressedKeysString);
+  let options = comboCallbacks.get(pressedKeysString);
 
   if (!options?.callback || options.active === false) {
-    // No active callback for this combo, or combo is inactive.
-    // Default browser behavior (e.g., typing a character) will occur.
-    return;
+    const customSlug = getCustomComboForPressedKeys(pressedKeysString);
+    if (customSlug) {
+      const shortcut = NODE_EDITOR_SHORTCUTS.find(s => s.slug === customSlug);
+      if (shortcut) {
+        const defaultComboString = [...shortcut.keyCombo].sort().join("+").toLowerCase();
+        options = comboCallbacks.get(defaultComboString);
+      }
+    }
+    
+    if (!options?.callback || options.active === false) {
+      return;
+    }
   }
 
   // An active callback exists for the pressed keys.
