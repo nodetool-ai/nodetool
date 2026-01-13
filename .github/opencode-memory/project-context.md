@@ -160,6 +160,28 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Workflow Snippets (2026-01-13)
+
+**What**: Added Workflow Snippets feature - save and reuse groups of connected nodes as reusable snippets that can be inserted into workflows.
+
+**Files**: 
+- `web/src/stores/SnippetStore.ts` - Store for managing snippets (persisted to localStorage)
+- `web/src/components/node_editor/SaveSnippetDialog.tsx` - Dialog for saving selected nodes as a snippet
+- `web/src/components/node_editor/SnippetPanel.tsx` - Panel for viewing and inserting snippets
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated snippet functionality into the editor
+- `web/src/config/shortcuts.ts` - Added keyboard shortcuts for snippet operations
+- `web/src/stores/__tests__/SnippetStore.test.ts` - Tests for SnippetStore
+
+**Features**:
+- Save selected nodes and their connections as a named snippet with description and tags
+- Browse and search saved snippets in a panel
+- Insert snippets into workflows with automatic position offset
+- Duplicate and delete snippets
+- Keyboard shortcuts: Ctrl+Shift+S (open panel), Ctrl+Alt+S (save selection as snippet)
+- Persistent storage across sessions via localStorage
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).
