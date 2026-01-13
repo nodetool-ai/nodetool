@@ -4,7 +4,7 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-12
+Last updated: 2026-01-13
 
 ---
 
@@ -27,6 +27,7 @@ Last updated: 2026-01-12
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
+- **Node List Virtualization**: Virtualized node lists using react-window for smooth browsing of large node collections
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
 - **Node Info Panel**: Contextual panel showing selected node details (type, description, connections, status, quick actions)
