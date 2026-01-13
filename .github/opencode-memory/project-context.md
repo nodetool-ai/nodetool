@@ -173,6 +173,37 @@ test('handles user interaction', async () => {
 - Uses `useCallback` for stable callbacks and `useMemo` for computed values
 
 **Impact**: Improved performance when browsing large node collections in the node menu.
+### Viewport Status Indicator (2026-01-13)
+
+**What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
+
+**Files**: `web/src/components/node_editor/ViewportStatusIndicator.tsx`, `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx`, `web/src/components/node/ReactFlowWrapper.tsx`
+
+**Implementation**: Component positioned above minimap, displays zoom percentage (clickable to reset), node count with selection info, and fit view button. Uses ReactFlow's useViewport and useReactFlow hooks.
+
+---
+
+### Zustand Store Subscription Optimization (2026-01-13)
+
+**What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
+
+**Files**: `web/src/hooks/useChatService.ts`, `web/src/hooks/editor/useChatIntegration.ts`, `web/src/components/chat/containers/GlobalChat.tsx`, `web/src/components/chat/containers/StandaloneChat.tsx`
+
+**Implementation**: Converted components from destructuring entire stores to using individual Zustand selectors. Also updated test mocks to support the new selector pattern.
+
+**Impact**: Reduced unnecessary re-renders in chat-related components by ensuring they only update when their specific data changes.
+
+---
+
+### Test Mock Fixes for Selective Store Selectors (2026-01-13)
+
+**What**: Updated GlobalChat.test.tsx mocks to work with individual Zustand selectors.
+
+**Why**: When using individual selectors like `const status = useStore(s => s.status)`, the mock needs to handle selector functions properly instead of returning the entire mock state object.
+
+**Files**: `web/src/__tests__/components/chat/containers/GlobalChat.test.tsx`
+
+**Implementation**: Updated mock factory to check if selector is a function and return `selector(mockState)` for selective subscriptions.
 
 ---
 
@@ -338,3 +369,21 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 **What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
 **Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
+
+---
+
+### Dead Code Removal (2026-01-13)
+
+**What**: Removed commented-out dead code from TypeHandler.ts and NodeStore.ts.
+
+**Why**: Commented-out code clutters the codebase, making it harder to read and maintain. The removed code was not referenced anywhere else in the codebase.
+
+**Implementation**:
+- Removed commented-out `isConnectableToUnion` function and its JSDoc comment from `web/src/utils/TypeHandler.ts`
+- Removed commented-out model caching code block from `web/src/stores/NodeStore.ts`
+
+**Impact**: Cleaner codebase with less dead code to maintain.
+
+**Files Changed**:
+- `web/src/utils/TypeHandler.ts`
+- `web/src/stores/NodeStore.ts`
