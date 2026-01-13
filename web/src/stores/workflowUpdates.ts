@@ -25,6 +25,7 @@ import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
+import useExecutionTimeStore from "./ExecutionTimeStore";
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -107,6 +108,7 @@ export const handleUpdate = (
   const setOutputResult = useResultsStore.getState().setOutputResult;
   const clearOutputResults = useResultsStore.getState().clearOutputResults;
   const setStatus = useStatusStore.getState().setStatus;
+  const getStatus = useStatusStore.getState().getStatus;
   const clearStatuses = useStatusStore.getState().clearStatuses;
   const appendLog = useLogsStore.getState().appendLog;
   const setError = useErrorStore.getState().setError;
@@ -119,6 +121,9 @@ export const handleUpdate = (
   const setEdge = useResultsStore.getState().setEdge;
   const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
+  const startExecution = useExecutionTimeStore.getState().startExecution;
+  const endExecution = useExecutionTimeStore.getState().endExecution;
+  const clearTimings = useExecutionTimeStore.getState().clearTimings;
 
   if (window.__UPDATES__ === undefined) {
     window.__UPDATES__ = [];
@@ -276,6 +281,7 @@ export const handleUpdate = (
         });
         clearEdges(workflow.id);
         clearProgress(workflow.id);
+        clearTimings(workflow.id);
         break;
       case "cancelled":
         runner.addNotification({
@@ -287,6 +293,7 @@ export const handleUpdate = (
         clearEdges(workflow.id);
         clearProgress(workflow.id);
         clearOutputResults(workflow.id);
+        clearTimings(workflow.id);
         break;
       case "failed":
       case "timed_out":
@@ -300,6 +307,7 @@ export const handleUpdate = (
         clearEdges(workflow.id);
         clearProgress(workflow.id);
         clearOutputResults(workflow.id);
+        clearTimings(workflow.id);
         break;
       case "queued":
         runnerStore.setState({
@@ -378,6 +386,7 @@ export const handleUpdate = (
         content: update.error
       });
       runnerStore.setState({ state: "error" });
+      endExecution(workflow.id, update.node_id);
       setStatus(workflow.id, update.node_id, update.status);
       setError(workflow.id, update.node_id, update.error);
       appendLog({
@@ -393,6 +402,22 @@ export const handleUpdate = (
       runnerStore.setState({
         statusMessage: `${update.node_name} ${update.status}`
       });
+
+      // Track execution timing
+      const previousStatus = getStatus(workflow.id, update.node_id);
+      const isStarting = update.status === "running" ||
+                         update.status === "starting" ||
+                         update.status === "booting";
+      const isFinishing = update.status === "completed" ||
+                          update.status === "error";
+
+      if (isStarting && previousStatus !== "running" &&
+          previousStatus !== "starting" && previousStatus !== "booting") {
+        startExecution(workflow.id, update.node_id);
+      } else if (isFinishing) {
+        endExecution(workflow.id, update.node_id);
+      }
+
       setStatus(workflow.id, update.node_id, update.status);
 
       // Store result if present
