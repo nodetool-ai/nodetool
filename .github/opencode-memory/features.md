@@ -32,6 +32,7 @@ Last updated: 2026-01-12
 - **Node Info Panel**: Contextual panel showing selected node details (type, description, connections, status, quick actions)
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)
 - **Node Tooltips**: Hover tooltips showing node handle information
+- **Node Comments**: Add comments/annotations to nodes for workflow documentation with visual indicator in header
 - **Node Documentation**: Inline documentation for each node type
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
