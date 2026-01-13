@@ -160,6 +160,16 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Viewport Status Indicator (2026-01-13)
+
+**What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
+
+**Files**: `web/src/components/node_editor/ViewportStatusIndicator.tsx`, `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx`, `web/src/components/node/ReactFlowWrapper.tsx`
+
+**Implementation**: Component positioned above minimap, displays zoom percentage (clickable to reset), node count with selection info, and fit view button. Uses ReactFlow's useViewport and useReactFlow hooks.
+
+---
+
 ### Zustand Store Subscription Optimization (2026-01-13)
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
