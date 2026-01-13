@@ -292,6 +292,21 @@ test('handles user interaction', async () => {
 ---
 
 _No entries yet - this memory system is new as of 2026-01-10_
+### SelectionActionToolbar Code Quality Fixes (2026-01-13)
+
+**What**: Fixed TypeScript type errors and lint warnings in SelectionActionToolbar component.
+
+**Issues Fixed**:
+1. Removed unused `Info` import from @mui/icons-material
+2. Removed unnecessary `selectedNodes.length` dependency from useMemo (redundant with `canGroup`)
+3. Fixed tests passing non-existent `onToggleNodeInfo` prop
+
+**Files**:
+- `web/src/components/node_editor/SelectionActionToolbar.tsx`
+- `web/src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx`
+
+---
+
 ### Mobile TypeScript Type Errors (2026-01-12)
 
 **What**: Fixed mobile package TypeScript errors by updating tsconfig.json to include proper type definitions for React Native, Jest, and Node.js.
