@@ -94,7 +94,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     (state) => state.state === "running"
   );
   const getResult = useResultsStore((state) => state.getResult);
-  const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const hasCommentTitle = Boolean(nodeData?.comment?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
 
@@ -102,7 +102,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     if (!nodeId) {
       return;
     }
-    updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
+    updateNodeData(nodeId, { comment: hasCommentTitle ? undefined : "" });
     closeContextMenu();
   }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
 

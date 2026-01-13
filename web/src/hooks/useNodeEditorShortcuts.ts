@@ -43,7 +43,8 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    updateNodeData: state.updateNodeData
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -81,7 +82,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected, updateNodeData } =
     nodesStore;
   const {
     saveExample,
@@ -116,6 +117,26 @@ export const useNodeEditorShortcuts = (
       toggleBypassSelected();
     }
   }, [selectedNodes.length, toggleBypassSelected]);
+
+  const handleAddComment = useCallback(() => {
+    if (selectedNodes.length === 1) {
+      const node = selectedNodes[0];
+      const currentComment = node.data.comment;
+      const newComment = currentComment ? "" : "Add your comment here";
+      updateNodeData(node.id, { comment: newComment || undefined });
+      addNotification({
+        type: "info",
+        alert: false,
+        content: currentComment ? "Comment removed" : "Comment added - click to edit"
+      });
+    } else if (selectedNodes.length > 1) {
+      addNotification({
+        type: "info",
+        alert: false,
+        content: "Select only one node to add a comment"
+      });
+    }
+  }, [selectedNodes, addNotification, updateNodeData]);
 
   const handleSelectConnectedAll = useCallback(() => {
     if (selectedNodes.length > 0) {
@@ -446,6 +467,10 @@ export const useNodeEditorShortcuts = (
         callback: handleBypassSelected,
         active: selectedNodes.length > 0
       },
+      addComment: {
+        callback: handleAddComment,
+        active: selectedNodes.length === 1
+      },
       findInWorkflow: { callback: openFind },
       selectConnectedAll: {
         callback: handleSelectConnectedAll,
@@ -546,6 +571,7 @@ export const useNodeEditorShortcuts = (
     handleZoomIn,
     handleZoomOut,
     handleBypassSelected,
+    handleAddComment,
     handleFitView,
     handleSwitchTab,
     handleMoveNodes,

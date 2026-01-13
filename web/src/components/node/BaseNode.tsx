@@ -40,6 +40,8 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
+import NodeComment from "./NodeComment";
+import useNodeComment from "../../hooks/useNodeComment";
 
 
 // Node sizing constants
@@ -243,6 +245,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
+  const nodeComment = useNodeComment(id);
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -509,6 +512,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
+      {data.comment && (
+        <NodeComment
+          nodeId={id}
+          comment={data.comment}
+          onUpdateComment={nodeComment.updateComment}
+          onDeleteComment={nodeComment.deleteComment}
+        />
+      )}
     </Container>
   );
 };

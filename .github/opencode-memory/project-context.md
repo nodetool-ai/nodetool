@@ -160,6 +160,29 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Comments Feature (2026-01-13)
+
+**What**: Added workflow documentation feature allowing users to add inline comments/annotations to nodes.
+
+**Files**:
+- `web/src/stores/NodeData.ts` - Added `comment` field to NodeData type
+- `web/src/components/node/NodeComment.tsx` - New component for displaying/editing comments
+- `web/src/hooks/useNodeComment.ts` - New hook for managing node comments
+- `web/src/components/node/BaseNode.tsx` - Integrated comment display into BaseNode
+- `web/src/hooks/nodes/useNodeContextMenu.ts` - Updated to use new comment field
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added keyboard shortcut (M key)
+- `web/src/config/shortcuts.ts` - Added "Add Comment" shortcut definition
+- `web/src/hooks/nodes/__tests__/useNodeContextMenu.test.ts` - Updated tests
+
+**Features**:
+- Add comments via context menu or M keyboard shortcut
+- Edit comments inline with text field
+- Delete comments via context menu or edit interface
+- Comments persist with workflow data
+- Visual indicator (info icon) shows nodes have comments
+
+---
+
 ### Zustand Store Subscription Optimization (2026-01-13)
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
