@@ -175,6 +175,20 @@ test('handles user interaction', async () => {
 
 ---
 
+### Node Comment Enhancement (2026-01-13)
+
+**What**: Enhanced node comments with visual indicator in node header and improved UI text for better discoverability.
+
+**Files**: `web/src/components/node/NodeHeader.tsx`, `web/src/components/node/EditableTitle.tsx`
+
+**Implementation**:
+- Added CommentIcon indicator in node header when a node has a comment
+- Changed "Note" label to "Comment" for clarity
+- Improved placeholder text to "Add a comment to document this node..."
+- Updated remove button tooltip to "Remove comment"
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).

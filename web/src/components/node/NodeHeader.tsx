@@ -11,6 +11,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { NodeLogsDialog } from "./NodeLogs";
+import CommentIcon from "@mui/icons-material/Comment";
 
 export interface NodeHeaderProps {
   id: string;
@@ -190,6 +191,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         </span>
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
+        )}
+        {data.title && (
+          <Tooltip title="Node has a comment" arrow>
+            <IconButton
+              size="small"
+              sx={{ padding: "4px" }}
+            >
+              <CommentIcon sx={{ fontSize: "1rem", color: "primary.light" }} />
+            </IconButton>
+          </Tooltip>
         )}
         {logCount > 0 && (
           <Tooltip title={`${logCount} logs`} arrow>

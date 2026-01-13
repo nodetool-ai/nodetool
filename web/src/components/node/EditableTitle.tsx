@@ -267,13 +267,13 @@ const EditableTitle = memo(function EditableTitle({
       <div className="connector-dot" />
       <div className="comment-header">
         <ChatBubbleOutlineIcon className="icon" />
-        <span>Note</span>
+        <span>Comment</span>
       </div>
       {isEditing ? (
         <textarea
           defaultValue={title}
           autoFocus
-          placeholder="Add your note..."
+          placeholder="Add a comment to document this node..."
           onKeyDown={handleKeyDown}
           onInput={handleInput}
           onBlur={handleBlur}
@@ -285,7 +285,7 @@ const EditableTitle = memo(function EditableTitle({
           <button
             className="remove-title"
             onClick={handleRemoveTitle}
-            title="Remove note"
+            title="Remove comment"
           >
             <CloseIcon className="icon" />
           </button>
