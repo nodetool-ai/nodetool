@@ -58,6 +58,7 @@ Last updated: 2026-01-12
 - **Execution History**: View past workflow executions
 - **Cancel Execution**: Stop running workflows
 - **Audio Queue**: Queue and manage audio generation tasks
+- **Node Execution Timing**: Display execution duration on nodes after completion
 
 ### Asset Management
 - **Asset Explorer**: File browser for managing workflow assets

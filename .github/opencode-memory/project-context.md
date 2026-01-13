@@ -160,6 +160,14 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Execution Timing (2026-01-13)
+
+**What**: Added per-node execution timing display showing how long each node takes to execute during workflow runs.
+
+**Files**: `web/src/stores/NodeTimingStore.ts`, `web/src/components/node/NodeExecutionTime.tsx`, `web/src/stores/workflowUpdates.ts`, `web/src/components/node/NodeHeader.tsx`
+
+---
+
 ### Zustand Store Subscription Optimization (2026-01-13)
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
