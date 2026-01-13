@@ -36,6 +36,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Node Collapse/Expand**: Collapse nodes to show only header, reducing visual clutter in complex workflows
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

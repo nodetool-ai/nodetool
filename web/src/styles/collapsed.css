@@ -1,52 +1,52 @@
 /* COLLAPSED NODE */
-.node-body.collapsed {
+.react-flow__node.collapsed .node-body {
   height: 60px;
 }
-.node-body.collapsed .node-property {
+.react-flow__node.collapsed .node-body .node-property {
   height: 0;
   min-height: unset;
   margin-bottom: 0;
   margin-top: 0;
 }
-.node-body.collapsed .node-property * {
+.react-flow__node.collapsed .node-body .node-property * {
   font-size: 0 !important;
   line-height: 0 !important;
 }
-.node-body.collapsed .expand-button-container {
+.react-flow__node.collapsed .node-body .expand-button-container {
   display: none !important;
 }
-.node-body.collapsed .node-header {
+.react-flow__node.collapsed .node-body .node-header {
   height: 1.7em;
   min-height: unset;
 }
-.node-body.collapsed .node-title {
+.react-flow__node.collapsed .node-body .node-title {
   font-size: var(--fontSizeSmall);
 }
 
-.node-body.collapsed .node-property label,
-.node-body.collapsed .inner-property p {
+.react-flow__node.collapsed .node-body .node-property label,
+.react-flow__node.collapsed .node-body .inner-property p {
   font-size: var(--fontSizeTiny);
   top: 2px;
 }
 
-.node-body.collapsed .value {
+.react-flow__node.collapsed .node-body .value {
   font-size: var(--fontSizeTiny);
   top: 2px;
   height: 15px;
 }
 
-.node-body.collapsed .react-flow__handle-left {
+.react-flow__node.collapsed .node-body .react-flow__handle-left {
   top: 12px;
   height: 9px;
 }
 
-.node-body.collapsed .node-property .MuiSlider-root .MuiSlider-track {
+.react-flow__node.collapsed .node-body .node-property .MuiSlider-root .MuiSlider-track {
   border-bottom-width: 1px;
   top: -8px;
 }
 
-.node-body.collapsed .dropzone,
-.node-body.collapsed video {
+.react-flow__node.collapsed .node-body .dropzone,
+.react-flow__node.collapsed .node-body video {
   position: absolute;
   top: 2px;
   right: 2px;
@@ -58,52 +58,52 @@
   outline: 0 none;
 }
 
-.node-body.collapsed .dropzone p {
+.react-flow__node.collapsed .node-body .dropzone p {
   font-size: var(--fontSizeTiny);
   padding: 0 2px;
   margin: 0;
 }
 
-.node-body.collapsed .dropzone img {
+.react-flow__node.collapsed .node-body .dropzone img {
   padding: 0 2px;
   margin: 0;
   max-height: 12px;
 }
 
-.node-body.collapsed .MuiSlider-track {
+.react-flow__node.collapsed .node-body .MuiSlider-track {
   opacity: 0.6;
 }
-.node-body.collapsed .dataframe-editor {
+.react-flow__node.collapsed .node-body .dataframe-editor {
   height: 0;
   opacity: 0;
 }
 
-.node-body.collapsed .MuiInput-root,
-.node-body.collapsed .node-property textarea,
-.node-body.collapsed .node-property code,
-.node-body.collapsed .edge-property .value,
-.node-body.collapsed .MuiSwitch-switchBase,
-.node-body.collapsed .mui-select,
-.node-body.collapsed .audio-controls,
-.node-body.collapsed .video-controls,
-.node-body.collapsed .waverecorder,
-.node-body.collapsed .value.nodrag,
-.node-body.collapsed .process-timer,
-.node-body.collapsed .node-logs,
-.node-body.collapsed .audio-controls-container,
-.node-body.collapsed .node-property select,
-.node-body.collapsed .string-property input,
-.node-body.collapsed .string-property .expand-button,
-.node-body.collapsed .MuiSwitch-root {
+.react-flow__node.collapsed .node-body .MuiInput-root,
+.react-flow__node.collapsed .node-body .node-property textarea,
+.react-flow__node.collapsed .node-body .node-property code,
+.react-flow__node.collapsed .node-body .edge-property .value,
+.react-flow__node.collapsed .node-body .MuiSwitch-switchBase,
+.react-flow__node.collapsed .node-body .mui-select,
+.react-flow__node.collapsed .node-body .audio-controls,
+.react-flow__node.collapsed .node-body .video-controls,
+.react-flow__node.collapsed .node-body .waverecorder,
+.react-flow__node.collapsed .node-body .value.nodrag,
+.react-flow__node.collapsed .node-body .process-timer,
+.react-flow__node.collapsed .node-body .node-logs,
+.react-flow__node.collapsed .node-body .audio-controls-container,
+.react-flow__node.collapsed .node-body .node-property select,
+.react-flow__node.collapsed .node-body .string-property input,
+.react-flow__node.collapsed .node-body .string-property .expand-button,
+.react-flow__node.collapsed .node-body .MuiSwitch-root {
   visibility: hidden;
   display: none;
 }
 
-.node-body.collapsed .edit-value {
+.react-flow__node.collapsed .node-body .edit-value {
   top: -1px;
 }
 
-.node-body.collapsed .edit-value .MuiInput-root {
+.react-flow__node.collapsed .node-body .edit-value .MuiInput-root {
   visibility: visible;
   display: block;
 }
