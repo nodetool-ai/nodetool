@@ -160,6 +160,30 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Zustand Store Subscription Optimization (2026-01-13)
+
+**What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
+
+**Files**: `web/src/hooks/useChatService.ts`, `web/src/hooks/editor/useChatIntegration.ts`, `web/src/components/chat/containers/GlobalChat.tsx`, `web/src/components/chat/containers/StandaloneChat.tsx`
+
+**Implementation**: Converted components from destructuring entire stores to using individual Zustand selectors. Also updated test mocks to support the new selector pattern.
+
+**Impact**: Reduced unnecessary re-renders in chat-related components by ensuring they only update when their specific data changes.
+
+---
+
+### Test Mock Fixes for Selective Store Selectors (2026-01-13)
+
+**What**: Updated GlobalChat.test.tsx mocks to work with individual Zustand selectors.
+
+**Why**: When using individual selectors like `const status = useStore(s => s.status)`, the mock needs to handle selector functions properly instead of returning the entire mock state object.
+
+**Files**: `web/src/__tests__/components/chat/containers/GlobalChat.test.tsx`
+
+**Implementation**: Updated mock factory to check if selector is a function and return `selector(mockState)` for selective subscriptions.
+
+---
+
 ### Keyboard Node Navigation (2026-01-13)
 
 **What**: Added Tab-based keyboard navigation for the node editor, allowing users to navigate between nodes using keyboard shortcuts without mouse interaction.

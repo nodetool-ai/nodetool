@@ -27,18 +27,16 @@ export function useChatIntegration(params: {
     currentText
   } = params;
 
-  const {
-    sendMessage: sendMessageFn,
-    progress,
-    statusMessage,
-    getCurrentMessagesSync,
-    selectedModel,
-    setSelectedModel,
-    selectedTools,
-    selectedCollections,
-    stopGeneration,
-    createNewThread
-  } = useGlobalChatStore();
+  const sendMessageFn = useGlobalChatStore((state) => state.sendMessage);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
+  const selectedTools = useGlobalChatStore((state) => state.selectedTools);
+  const selectedCollections = useGlobalChatStore((state) => state.selectedCollections);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
 
   const sendMessage = useCallback(
     async (message: Message) => {
