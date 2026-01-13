@@ -393,10 +393,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     (workspaceId: string | undefined) => {
       setLocalWorkflow((prev: Workflow) => ({
         ...prev,
-        settings: {
-          ...(prev.settings || {}),
-          workspace_id: workspaceId || null
-        }
+        workspace_id: workspaceId || null
       }));
     },
     []
@@ -522,7 +519,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
         <Typography className="section-title">Advanced</Typography>
         
         <WorkspaceSelect
-          value={localWorkflow.settings?.workspace_id as string | undefined}
+          value={localWorkflow.workspace_id ?? undefined}
           onChange={handleWorkspaceChange}
           helperText="Associate a workspace folder with this workflow for agent access"
         />
