@@ -160,23 +160,19 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Node Execution Time Display (2026-01-13)
+### Node Bookmarking Feature (2026-01-13)
 
-**What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
+**What**: Added node bookmarking feature that allows users to bookmark specific nodes in workflows for quick navigation. Includes bookmark panel, keyboard shortcut (M), and persistent storage.
 
 **Files**:
-- `web/src/stores/ExecutionTimeStore.ts` - New store for tracking node execution timing
-- `web/src/components/node/NodeExecutionTime.tsx` - New component displaying execution duration
-- `web/src/stores/workflowUpdates.ts` - Updated to record timing when status changes
-- `web/src/components/node/BaseNode.tsx` - Integrated NodeExecutionTime component
-- `web/src/stores/__tests__/ExecutionTimeStore.test.ts` - Tests for the timing store
-- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Tests for the component
+- `web/src/stores/NodeBookmarkStore.ts` - New store for managing node bookmarks
+- `web/src/components/node_editor/NodeBookmarkPanel.tsx` - Panel showing bookmarked nodes
+- `web/src/components/node/NodeToolButtons.tsx` - Added bookmark button to node toolbar
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added keyboard shortcut handler
+- `web/src/config/shortcuts.ts` - Added "M" shortcut for bookmarking
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated bookmark panel
 
-**Implementation**:
-- `ExecutionTimeStore` tracks start and end times for each node execution
-- `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
-- `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
-- Timings are cleared when workflow completes, cancels, or fails
+**Implementation**: Bookmarks are stored per-workflow using Zustand with persistence. Clicking a bookmark jumps to the node in the editor. Bookmarks can be toggled via button or keyboard shortcut (M).
 ### Viewport Status Indicator (2026-01-13)
 
 **What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.

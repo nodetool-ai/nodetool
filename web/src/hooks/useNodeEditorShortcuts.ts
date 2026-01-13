@@ -27,6 +27,8 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useNodeBookmarkStore } from "../stores/NodeBookmarkStore";
+import useMetadataStore from "../stores/MetadataStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -116,6 +118,25 @@ export const useNodeEditorShortcuts = (
       toggleBypassSelected();
     }
   }, [selectedNodes.length, toggleBypassSelected]);
+
+  const toggleBookmark = useNodeBookmarkStore((state) => state.toggleBookmark);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+
+  const handleBookmarkSelected = useCallback(() => {
+    const currentWorkflow = getCurrentWorkflow();
+    if (selectedNodes.length > 0 && currentWorkflow) {
+      selectedNodes.forEach((node) => {
+        const typedNode = node as Node<NodeData>;
+        const metadata = getMetadata(node.type || "");
+        const label =
+          typedNode.data?.title ||
+          metadata?.title ||
+          node.type?.split(".").pop() ||
+          "";
+        toggleBookmark(currentWorkflow.id, node.id, node.type || "", label);
+      });
+    }
+  }, [selectedNodes, getCurrentWorkflow, getMetadata, toggleBookmark]);
 
   const handleSelectConnectedAll = useCallback(() => {
     if (selectedNodes.length > 0) {
@@ -446,6 +467,10 @@ export const useNodeEditorShortcuts = (
         callback: handleBypassSelected,
         active: selectedNodes.length > 0
       },
+      bookmarkNode: {
+        callback: handleBookmarkSelected,
+        active: selectedNodes.length > 0
+      },
       findInWorkflow: { callback: openFind },
       selectConnectedAll: {
         callback: handleSelectConnectedAll,
@@ -546,6 +571,7 @@ export const useNodeEditorShortcuts = (
     handleZoomIn,
     handleZoomOut,
     handleBypassSelected,
+    handleBookmarkSelected,
     handleFitView,
     handleSwitchTab,
     handleMoveNodes,

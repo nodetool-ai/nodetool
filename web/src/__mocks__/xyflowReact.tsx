@@ -46,6 +46,7 @@ module.exports = {
   onConnect: jest.fn(),
   useNodesState: jest.fn(),
   useEdgesState: jest.fn(),
+  useViewport: () => ({ x: 0, y: 0, zoom: 1 }),
   Controls: function MockControls() { return null; },
   Background: function MockBackground() { return null; },
   MiniMap: function MockMiniMap() { return null; },
