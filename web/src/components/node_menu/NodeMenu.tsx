@@ -13,6 +13,7 @@ import NamespaceList from "./NamespaceList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useEdgeInsertionStore from "../../stores/EdgeInsertionStore";
 
 // utils
 import Draggable from "react-draggable";
@@ -142,6 +143,15 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     (state) => state.isMenuOpen,
     Object.is
   );
+
+  const isInsertionMode = useEdgeInsertionStore((state) => state.targetEdge !== null);
+  const cancelInsertion = useEdgeInsertionStore((state) => state.cancelInsertion);
+
+  useEffect(() => {
+    if (!isMenuOpen && isInsertionMode) {
+      cancelInsertion();
+    }
+  }, [isMenuOpen, isInsertionMode, cancelInsertion]);
 
   // Use lazy initialization for the rest of the state
   const {

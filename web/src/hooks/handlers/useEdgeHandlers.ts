@@ -2,6 +2,8 @@ import { useCallback, MouseEvent as ReactMouseEvent } from "react";
 import { Edge } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
+import useEdgeInsertionStore from "../../stores/EdgeInsertionStore";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 export default function useEdgeHandlers() {
   const {
@@ -19,6 +21,8 @@ export default function useEdgeHandlers() {
   }));
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const startInsertion = useEdgeInsertionStore((state) => state.startInsertion);
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
 
   /* EDGE HOVER */
   const onEdgeMouseEnter = useCallback(
@@ -109,12 +113,28 @@ export default function useEdgeHandlers() {
     [deleteEdge]
   );
 
+  const onEdgeDoubleClick = useCallback(
+    (event: ReactMouseEvent, edge: Edge) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      startInsertion(edge, { x: event.clientX, y: event.clientY });
+
+      openNodeMenu({
+        x: event.clientX,
+        y: event.clientY
+      });
+    },
+    [startInsertion, openNodeMenu]
+  );
+
   return {
     onEdgeMouseEnter,
     onEdgeMouseLeave,
     onEdgeContextMenu,
     onEdgeUpdateStart,
     onEdgeUpdateEnd,
-    onEdgeClick
+    onEdgeClick,
+    onEdgeDoubleClick
   };
 }

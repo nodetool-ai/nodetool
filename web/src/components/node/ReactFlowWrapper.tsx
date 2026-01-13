@@ -322,7 +322,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onEdgeContextMenu,
     onEdgeUpdateEnd,
     onEdgeUpdateStart,
-    onEdgeClick
+    onEdgeClick,
+    onEdgeDoubleClick
   } = useEdgeHandlers();
 
   const {
@@ -497,6 +498,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onEdgesChange={onEdgesChange}
         onEdgeContextMenu={onEdgeContextMenu}
         onEdgeClick={onEdgeClick}
+        onEdgeDoubleClick={onEdgeDoubleClick}
         connectionMode={ConnectionMode.Strict}
         onConnect={handleOnConnect}
         onConnectStart={onConnectStart}

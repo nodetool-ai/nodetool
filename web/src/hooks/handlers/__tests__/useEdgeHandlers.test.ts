@@ -8,6 +8,26 @@ import useContextMenuStore from "../../../stores/ContextMenuStore";
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/ContextMenuStore");
 
+jest.mock("../../../stores/EdgeInsertionStore", () => ({
+  __esModule: true,
+  default: jest.fn((selector) => {
+    if (selector) {
+      return selector({ startInsertion: jest.fn() });
+    }
+    return { startInsertion: jest.fn() };
+  })
+}));
+
+jest.mock("../../../stores/NodeMenuStore", () => ({
+  __esModule: true,
+  default: jest.fn((selector) => {
+    if (selector) {
+      return selector({ openNodeMenu: jest.fn() });
+    }
+    return { openNodeMenu: jest.fn() };
+  })
+}));
+
 describe("useEdgeHandlers", () => {
   const mockFindEdge = jest.fn();
   const mockUpdateEdge = jest.fn();
@@ -66,6 +86,63 @@ describe("useEdgeHandlers", () => {
     );
 
     expect(mockDeleteEdge).not.toHaveBeenCalled();
+  });
+
+  describe("onEdgeDoubleClick", () => {
+    it("opens insertion mode and node menu when edge is double-clicked", () => {
+      const { result } = renderHook(() => useEdgeHandlers());
+      const edge: Edge = {
+        id: "edge-1",
+        source: "node-a",
+        target: "node-b",
+        sourceHandle: "output",
+        targetHandle: "input"
+      };
+      const preventDefault = jest.fn();
+      const stopPropagation = jest.fn();
+
+      expect(() => {
+        result.current.onEdgeDoubleClick(
+          {
+            button: 0,
+            preventDefault,
+            stopPropagation,
+            clientX: 150,
+            clientY: 200
+          } as unknown as ReactMouseEvent,
+          edge
+        );
+      }).not.toThrow();
+
+      expect(preventDefault).toHaveBeenCalled();
+      expect(stopPropagation).toHaveBeenCalled();
+    });
+
+    it("handles double-click with all edge properties", () => {
+      const { result } = renderHook(() => useEdgeHandlers());
+      const edge: Edge = {
+        id: "test-edge",
+        source: "source-node",
+        target: "target-node",
+        sourceHandle: "out-1",
+        targetHandle: "in-1",
+        label: "test connection",
+        animated: true
+      };
+
+      expect(() => {
+        result.current.onEdgeDoubleClick(
+          {
+            button: 0,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+            clientX: 300,
+            clientY: 400
+          } as unknown as ReactMouseEvent,
+          edge
+        );
+      }).not.toThrow();
+    });
   });
 });
 

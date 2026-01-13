@@ -160,6 +160,21 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Edge Insertion Feature (2026-01-13)
+
+**What**: Added ability to double-click on any edge to insert a node inline, automatically splitting the connection. The node menu opens at the click position, and selecting a node creates it between the source and target nodes with proper connections.
+
+**Files**: `web/src/stores/EdgeInsertionStore.ts`, `web/src/hooks/useCreateNode.ts`, `web/src/hooks/handlers/useEdgeHandlers.ts`, `web/src/components/node/ReactFlowWrapper.tsx`, `web/src/components/node_menu/NodeMenu.tsx`, `web/src/stores/__tests__/EdgeInsertionStore.test.ts`, `web/src/hooks/handlers/__tests__/useEdgeHandlers.test.ts`
+
+**Implementation**:
+- Created `EdgeInsertionStore` to track edge insertion mode and position
+- Modified `useCreateNode` hook to handle edge insertion when in insertion mode
+- Added `onEdgeDoubleClick` handler in `useEdgeHandlers` to start insertion mode
+- Wired double-click event to ReactFlow in `ReactFlowWrapper`
+- Added cleanup in `NodeMenu` to cancel insertion when menu closes
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).

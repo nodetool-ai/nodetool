@@ -22,6 +22,7 @@ Last updated: 2026-01-12
 - **Find in Workflow**: Search for nodes by name, type, or properties
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
+- **Edge Insertion**: Double-click on any edge to insert nodes inline, splitting the connection automatically
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
