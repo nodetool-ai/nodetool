@@ -346,3 +346,21 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 **What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
 **Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
+
+---
+
+### Dead Code Removal (2026-01-13)
+
+**What**: Removed commented-out dead code from TypeHandler.ts and NodeStore.ts.
+
+**Why**: Commented-out code clutters the codebase, making it harder to read and maintain. The removed code was not referenced anywhere else in the codebase.
+
+**Implementation**:
+- Removed commented-out `isConnectableToUnion` function and its JSDoc comment from `web/src/utils/TypeHandler.ts`
+- Removed commented-out model caching code block from `web/src/stores/NodeStore.ts`
+
+**Impact**: Cleaner codebase with less dead code to maintain.
+
+**Files Changed**:
+- `web/src/utils/TypeHandler.ts`
+- `web/src/stores/NodeStore.ts`

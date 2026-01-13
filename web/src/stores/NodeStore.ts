@@ -235,22 +235,6 @@ export const createNodeStore = (
         const metadata = useMetadataStore.getState().metadata;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
         const addNodeType = useMetadataStore.getState().addNodeType;
-        // const modelFiles = extractModelFiles(workflow.graph.nodes);
-        // setTimeout(() => {
-        //   tryCacheFiles(modelFiles).then((paths) => {
-        //     set({
-        //       missingModelFiles: paths.filter((m) => !m.downloaded)
-        //     });
-        //   });
-        //   const modelRepos = extractModelRepos(workflow.graph.nodes);
-        //   tryCacheRepos(modelRepos).then((repos) => {
-        //     set({
-        //       missingModelRepos: repos
-        //         .filter((r) => !r.downloaded)
-        //         .map((r) => r.repo_id)
-        //     });
-        //   });
-        // }, 1000);
 
         const unsanitizedNodes = workflow
           ? (workflow.graph?.nodes || []).map((n: GraphNode) =>
