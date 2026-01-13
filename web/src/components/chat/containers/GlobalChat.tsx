@@ -24,31 +24,29 @@ import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
-  const {
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    error,
-    currentThreadId,
-    threads,
-    getCurrentMessagesSync,
-    createNewThread,
-    switchThread,
-    fetchThread,
-    stopGeneration,
-    agentMode,
-    setAgentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentTaskUpdateThreadId,
-    lastTaskUpdatesByThread,
-    currentLogUpdate,
-    threadsLoaded,
-    workflowId,
-    deleteThread,
-    messageCache
-  } = useGlobalChatStore();
+  const status = useGlobalChatStore((s) => s.status);
+  const sendMessage = useGlobalChatStore((s) => s.sendMessage);
+  const progress = useGlobalChatStore((s) => s.progress);
+  const statusMessage = useGlobalChatStore((s) => s.statusMessage);
+  const error = useGlobalChatStore((s) => s.error);
+  const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
+  const threads = useGlobalChatStore((s) => s.threads);
+  const getCurrentMessagesSync = useGlobalChatStore((s) => s.getCurrentMessagesSync);
+  const createNewThread = useGlobalChatStore((s) => s.createNewThread);
+  const switchThread = useGlobalChatStore((s) => s.switchThread);
+  const fetchThread = useGlobalChatStore((s) => s.fetchThread);
+  const stopGeneration = useGlobalChatStore((s) => s.stopGeneration);
+  const agentMode = useGlobalChatStore((s) => s.agentMode);
+  const setAgentMode = useGlobalChatStore((s) => s.setAgentMode);
+  const currentPlanningUpdate = useGlobalChatStore((s) => s.currentPlanningUpdate);
+  const currentTaskUpdate = useGlobalChatStore((s) => s.currentTaskUpdate);
+  const currentTaskUpdateThreadId = useGlobalChatStore((s) => s.currentTaskUpdateThreadId);
+  const lastTaskUpdatesByThread = useGlobalChatStore((s) => s.lastTaskUpdatesByThread);
+  const currentLogUpdate = useGlobalChatStore((s) => s.currentLogUpdate);
+  const threadsLoaded = useGlobalChatStore((s) => s.threadsLoaded);
+  const workflowId = useGlobalChatStore((s) => s.workflowId);
+  const deleteThread = useGlobalChatStore((s) => s.deleteThread);
+  const messageCache = useGlobalChatStore((s) => s.messageCache);
 
   // Get connection state from WebSocket manager directly
   const [connectionState, setConnectionState] = useState(

@@ -22,43 +22,97 @@ jest.mock("../../../../hooks/useEnsureChatConnected", () => ({
 }));
 
 // Mock stores with basic implementations
-jest.mock("../../../../stores/GlobalChatStore", () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    status: "connected",
-    sendMessage: jest.fn(),
-    progress: { current: 0, total: 0 },
-    statusMessage: null,
-    error: null,
-    currentThreadId: "thread-123",
-    threads: {},
-    getCurrentMessagesSync: jest.fn(() => []),
-    createNewThread: jest.fn(),
-    switchThread: jest.fn(),
-    fetchThread: jest.fn(),
-    stopGeneration: jest.fn(),
-    agentMode: false,
-    setAgentMode: jest.fn(),
-    currentPlanningUpdate: null,
-    currentTaskUpdate: null,
-    currentTaskUpdateThreadId: null,
-    lastTaskUpdatesByThread: {},
-    currentLogUpdate: null,
-    threadsLoaded: true,
-    selectedModel: { id: "gpt-4", name: "GPT-4" },
-    setSelectedModel: jest.fn(),
-    selectedTools: [],
-    setSelectedTools: jest.fn(),
-    selectedCollections: [],
-    setSelectedCollections: jest.fn(),
-    currentRunningToolCallId: null,
-    currentToolMessage: null
-  })),
-  useThreadsQuery: jest.fn(() => ({
-    isLoading: false,
-    error: null
-  }))
-}));
+const mockGetCurrentMessagesSync = jest.fn(() => []);
+
+jest.mock("../../../../stores/GlobalChatStore", () => {
+  return {
+    __esModule: true,
+    default: jest.fn((selector) => {
+      const mockState = {
+        status: "connected",
+        sendMessage: jest.fn(),
+        progress: { current: 0, total: 0 },
+        statusMessage: null,
+        error: null,
+        currentThreadId: "thread-123",
+        threads: {},
+        getCurrentMessagesSync: mockGetCurrentMessagesSync,
+        createNewThread: jest.fn(),
+        switchThread: jest.fn(),
+        fetchThread: jest.fn(),
+        stopGeneration: jest.fn(),
+        agentMode: false,
+        setAgentMode: jest.fn(),
+        currentPlanningUpdate: null,
+        currentTaskUpdate: null,
+        currentTaskUpdateThreadId: null,
+        lastTaskUpdatesByThread: {},
+        currentLogUpdate: null,
+        threadsLoaded: true,
+        selectedModel: { id: "gpt-4", name: "GPT-4" },
+        setSelectedModel: jest.fn(),
+        selectedTools: [],
+        setSelectedTools: jest.fn(),
+        selectedCollections: [],
+        setSelectedCollections: jest.fn(),
+        currentRunningToolCallId: null,
+        currentToolMessage: null,
+        deleteThread: jest.fn(),
+        workflowId: null,
+        messageCache: {},
+        threadWorkflowId: {}
+      };
+      if (typeof selector === 'function') {
+        return selector(mockState);
+      }
+      return mockState;
+    }),
+    useGlobalChatStore: jest.fn((selector) => {
+      const mockState = {
+        status: "connected",
+        sendMessage: jest.fn(),
+        progress: { current: 0, total: 0 },
+        statusMessage: null,
+        error: null,
+        currentThreadId: "thread-123",
+        threads: {},
+        getCurrentMessagesSync: mockGetCurrentMessagesSync,
+        createNewThread: jest.fn(),
+        switchThread: jest.fn(),
+        fetchThread: jest.fn(),
+        stopGeneration: jest.fn(),
+        agentMode: false,
+        setAgentMode: jest.fn(),
+        currentPlanningUpdate: null,
+        currentTaskUpdate: null,
+        currentTaskUpdateThreadId: null,
+        lastTaskUpdatesByThread: {},
+        currentLogUpdate: null,
+        threadsLoaded: true,
+        selectedModel: { id: "gpt-4", name: "GPT-4" },
+        setSelectedModel: jest.fn(),
+        selectedTools: [],
+        setSelectedTools: jest.fn(),
+        selectedCollections: [],
+        setSelectedCollections: jest.fn(),
+        currentRunningToolCallId: null,
+        currentToolMessage: null,
+        deleteThread: jest.fn(),
+        workflowId: null,
+        messageCache: {},
+        threadWorkflowId: {}
+      };
+      if (typeof selector === 'function') {
+        return selector(mockState);
+      }
+      return mockState;
+    }),
+    useThreadsQuery: jest.fn(() => ({
+      isLoading: false,
+      error: null
+    }))
+  };
+});
 
 jest.mock("../../../../stores/PanelStore", () => ({
   usePanelStore: jest.fn(() => ({
@@ -180,35 +234,77 @@ describe("GlobalChat", () => {
       const GlobalChatStore = await import("../../../../stores/GlobalChatStore");
       const useGlobalChatStore = GlobalChatStore.default;
       const { useThreadsQuery } = GlobalChatStore;
-      (useGlobalChatStore as unknown as jest.Mock).mockReturnValueOnce({
-        status: "failed",
-        sendMessage: jest.fn(),
-        progress: { current: 0, total: 0 },
-        statusMessage: null,
-        error: "Connection failed",
-        currentThreadId: "thread-123",
-        threads: {},
-        getCurrentMessagesSync: jest.fn(() => []),
-        createNewThread: jest.fn(),
-        switchThread: jest.fn(),
-        fetchThread: jest.fn(),
-        stopGeneration: jest.fn(),
-        agentMode: false,
-        setAgentMode: jest.fn(),
-        currentPlanningUpdate: null,
-        currentTaskUpdate: null,
-        currentTaskUpdateThreadId: null,
-        lastTaskUpdatesByThread: {},
-        currentLogUpdate: null,
-        threadsLoaded: true,
-        selectedModel: { id: "gpt-4", name: "GPT-4" },
-        setSelectedModel: jest.fn(),
-        selectedTools: [],
-        setSelectedTools: jest.fn(),
-        selectedCollections: [],
-        setSelectedCollections: jest.fn(),
-        currentRunningToolCallId: null,
-        currentToolMessage: null
+      (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
+        if (typeof selector === 'function') {
+          return selector({
+            status: "failed",
+            sendMessage: jest.fn(),
+            progress: { current: 0, total: 0 },
+            statusMessage: null,
+            error: "Connection failed",
+            currentThreadId: "thread-123",
+            threads: {},
+            getCurrentMessagesSync: jest.fn(() => []),
+            createNewThread: jest.fn(),
+            switchThread: jest.fn(),
+            fetchThread: jest.fn(),
+            stopGeneration: jest.fn(),
+            agentMode: false,
+            setAgentMode: jest.fn(),
+            currentPlanningUpdate: null,
+            currentTaskUpdate: null,
+            currentTaskUpdateThreadId: null,
+            lastTaskUpdatesByThread: {},
+            currentLogUpdate: null,
+            threadsLoaded: true,
+            selectedModel: { id: "gpt-4", name: "GPT-4" },
+            setSelectedModel: jest.fn(),
+            selectedTools: [],
+            setSelectedTools: jest.fn(),
+            selectedCollections: [],
+            setSelectedCollections: jest.fn(),
+            currentRunningToolCallId: null,
+            currentToolMessage: null,
+            deleteThread: jest.fn(),
+            workflowId: null,
+            messageCache: {},
+            threadWorkflowId: {}
+          });
+        }
+        return {
+          status: "failed",
+          sendMessage: jest.fn(),
+          progress: { current: 0, total: 0 },
+          statusMessage: null,
+          error: "Connection failed",
+          currentThreadId: "thread-123",
+          threads: {},
+          getCurrentMessagesSync: jest.fn(() => []),
+          createNewThread: jest.fn(),
+          switchThread: jest.fn(),
+          fetchThread: jest.fn(),
+          stopGeneration: jest.fn(),
+          agentMode: false,
+          setAgentMode: jest.fn(),
+          currentPlanningUpdate: null,
+          currentTaskUpdate: null,
+          currentTaskUpdateThreadId: null,
+          lastTaskUpdatesByThread: {},
+          currentLogUpdate: null,
+          threadsLoaded: true,
+          selectedModel: { id: "gpt-4", name: "GPT-4" },
+          setSelectedModel: jest.fn(),
+          selectedTools: [],
+          setSelectedTools: jest.fn(),
+          selectedCollections: [],
+          setSelectedCollections: jest.fn(),
+          currentRunningToolCallId: null,
+          currentToolMessage: null,
+          deleteThread: jest.fn(),
+          workflowId: null,
+          messageCache: {},
+          threadWorkflowId: {}
+        };
       });
       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
@@ -222,35 +318,77 @@ describe("GlobalChat", () => {
       const GlobalChatStore = await import("../../../../stores/GlobalChatStore");
       const useGlobalChatStore = GlobalChatStore.default;
       const { useThreadsQuery } = GlobalChatStore;
-      (useGlobalChatStore as unknown as jest.Mock).mockReturnValueOnce({
-        status: "reconnecting",
-        sendMessage: jest.fn(),
-        progress: { current: 0, total: 0 },
-        statusMessage: "Reconnecting...",
-        error: null,
-        currentThreadId: "thread-123",
-        threads: {},
-        getCurrentMessagesSync: jest.fn(() => []),
-        createNewThread: jest.fn(),
-        switchThread: jest.fn(),
-        fetchThread: jest.fn(),
-        stopGeneration: jest.fn(),
-        agentMode: false,
-        setAgentMode: jest.fn(),
-        currentPlanningUpdate: null,
-        currentTaskUpdate: null,
-        currentTaskUpdateThreadId: null,
-        lastTaskUpdatesByThread: {},
-        currentLogUpdate: null,
-        threadsLoaded: true,
-        selectedModel: { id: "gpt-4", name: "GPT-4" },
-        setSelectedModel: jest.fn(),
-        selectedTools: [],
-        setSelectedTools: jest.fn(),
-        selectedCollections: [],
-        setSelectedCollections: jest.fn(),
-        currentRunningToolCallId: null,
-        currentToolMessage: null
+      (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
+        if (typeof selector === 'function') {
+          return selector({
+            status: "reconnecting",
+            sendMessage: jest.fn(),
+            progress: { current: 0, total: 0 },
+            statusMessage: "Reconnecting...",
+            error: null,
+            currentThreadId: "thread-123",
+            threads: {},
+            getCurrentMessagesSync: jest.fn(() => []),
+            createNewThread: jest.fn(),
+            switchThread: jest.fn(),
+            fetchThread: jest.fn(),
+            stopGeneration: jest.fn(),
+            agentMode: false,
+            setAgentMode: jest.fn(),
+            currentPlanningUpdate: null,
+            currentTaskUpdate: null,
+            currentTaskUpdateThreadId: null,
+            lastTaskUpdatesByThread: {},
+            currentLogUpdate: null,
+            threadsLoaded: true,
+            selectedModel: { id: "gpt-4", name: "GPT-4" },
+            setSelectedModel: jest.fn(),
+            selectedTools: [],
+            setSelectedTools: jest.fn(),
+            selectedCollections: [],
+            setSelectedCollections: jest.fn(),
+            currentRunningToolCallId: null,
+            currentToolMessage: null,
+            deleteThread: jest.fn(),
+            workflowId: null,
+            messageCache: {},
+            threadWorkflowId: {}
+          });
+        }
+        return {
+          status: "reconnecting",
+          sendMessage: jest.fn(),
+          progress: { current: 0, total: 0 },
+          statusMessage: "Reconnecting...",
+          error: null,
+          currentThreadId: "thread-123",
+          threads: {},
+          getCurrentMessagesSync: jest.fn(() => []),
+          createNewThread: jest.fn(),
+          switchThread: jest.fn(),
+          fetchThread: jest.fn(),
+          stopGeneration: jest.fn(),
+          agentMode: false,
+          setAgentMode: jest.fn(),
+          currentPlanningUpdate: null,
+          currentTaskUpdate: null,
+          currentTaskUpdateThreadId: null,
+          lastTaskUpdatesByThread: {},
+          currentLogUpdate: null,
+          threadsLoaded: true,
+          selectedModel: { id: "gpt-4", name: "GPT-4" },
+          setSelectedModel: jest.fn(),
+          selectedTools: [],
+          setSelectedTools: jest.fn(),
+          selectedCollections: [],
+          setSelectedCollections: jest.fn(),
+          currentRunningToolCallId: null,
+          currentToolMessage: null,
+          deleteThread: jest.fn(),
+          workflowId: null,
+          messageCache: {},
+          threadWorkflowId: {}
+        };
       });
       (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
