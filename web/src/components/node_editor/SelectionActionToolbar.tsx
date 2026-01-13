@@ -12,8 +12,7 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit,
-  Info
+  CallSplit
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
@@ -201,7 +200,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions, selectedNodes.length]
+    [canGroup, selectionActions]
   );
 
   if (!visible) {
