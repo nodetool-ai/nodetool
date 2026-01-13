@@ -466,6 +466,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show/hide node information panel",
     registerCombo: true
   },
+  {
+    title: "Workflow Stats",
+    slug: "workflowStats",
+    keyCombo: ["Control", "Shift", "S"],
+    keyComboMac: ["Meta", "Shift", "S"],
+    category: "editor",
+    description: "Show/hide workflow statistics panel",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {

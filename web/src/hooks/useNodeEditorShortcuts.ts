@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useWorkflowStatsStore } from "../stores/WorkflowStatsStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -78,6 +79,7 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const toggleWorkflowStats = useWorkflowStatsStore((state) => state.togglePanel);
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -512,7 +514,8 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
-      }
+      },
+      workflowStats: { callback: toggleWorkflowStats }
     };
 
     // Switch-to-tab (1-9)
@@ -575,7 +578,8 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    toggleWorkflowStats
   ]);
 
   // useEffect for shortcut registration

@@ -519,7 +519,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
         <Typography className="section-title">Advanced</Typography>
         
         <WorkspaceSelect
-          value={localWorkflow.workspace_id ?? undefined}
+          value={(localWorkflow as { workspace_id?: string }).workspace_id ?? undefined}
           onChange={handleWorkspaceChange}
           helperText="Associate a workspace folder with this workflow for agent access"
         />
