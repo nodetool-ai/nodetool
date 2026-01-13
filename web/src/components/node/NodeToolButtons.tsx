@@ -1,14 +1,14 @@
 import React, { useCallback, useState } from "react";
 import { useReactFlow, Node } from "@xyflow/react";
-import { 
-  Toolbar, 
-  IconButton, 
-  Tooltip, 
-  Menu, 
-  MenuItem, 
-  ListItemIcon, 
+import {
+  Toolbar,
+  IconButton,
+  Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
   ListItemText,
-  Divider 
+  Divider
 } from "@mui/material";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
@@ -46,7 +46,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const selectNodesByType = useNodes((state) => state.selectNodesByType);
   const toggleBypass = useNodes((state) => state.toggleBypass);
-  
+
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData | undefined;
   const duplicateNodes = useDuplicateNodes();
@@ -56,12 +56,12 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   );
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
-  
+
   const { handlers, conditions } = useNodeContextMenu();
-  
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const dropdownOpen = Boolean(anchorEl);
-  
+
   const syncMode = nodeData?.sync_mode || "on_any";
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
@@ -92,31 +92,31 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       toggleInspectedNode(nodeId);
     }
   }, [nodeId, toggleInspectedNode]);
-  
+
   const handleToggleBypass = useCallback(() => {
     if (nodeId !== null) {
       toggleBypass(nodeId);
     }
   }, [nodeId, toggleBypass]);
-  
+
   const handleToggleComment = useCallback(() => {
     if (nodeId !== null) {
       updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
     }
   }, [nodeId, hasCommentTitle, updateNodeData]);
-  
+
   const handleRemoveFromGroup = useCallback(() => {
     if (node) {
       removeFromGroup([node as Node<NodeData>]);
     }
   }, [node, removeFromGroup]);
-  
+
   const handleSelectAllSameType = useCallback(() => {
     if (node?.type) {
       selectNodesByType(node.type);
     }
   }, [node?.type, selectNodesByType]);
-  
+
   const handleSelectSyncMode = useCallback((mode: "on_any" | "zip_all") => {
     if (nodeId !== null) {
       updateNodeData(nodeId, { sync_mode: mode });
@@ -132,7 +132,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     setAnchorEl(null);
   }, []);
 
-  if (!nodeId) {return null;}
+  if (!nodeId) { return null; }
 
   const isInspected = inspectedNodeId === nodeId;
 
@@ -144,21 +144,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         sx={{ backgroundColor: "transparent", gap: 0.5 }}
       >
         {/* Primary Actions - Always Visible */}
-        <Tooltip
-          title={<span>Info</span>}
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <IconButton
-            className="nodrag"
-            onClick={handleToggleInfo}
-            tabIndex={-1}
-            color={isInspected ? "primary" : "default"}
-            size="small"
-          >
-            <InfoIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
         <Tooltip
           title={
             <span>
@@ -254,6 +239,22 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             <RemoveCircleIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+
+        <Tooltip
+          title={<span>Info</span>}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <IconButton
+            className="nodrag"
+            onClick={handleToggleInfo}
+            tabIndex={-1}
+            color={isInspected ? "primary" : "default"}
+            size="small"
+          >
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
 
         {/* More Actions Dropdown */}
         <Tooltip
