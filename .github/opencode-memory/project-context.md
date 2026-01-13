@@ -160,6 +160,14 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Zoom Indicator (2026-01-13)
+
+**What**: Added a visual zoom indicator component to the node editor that displays current zoom level and provides quick zoom controls.
+
+**Files**: `web/src/components/node_editor/ZoomIndicator.tsx`, `web/src/components/node/ReactFlowWrapper.tsx`
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).

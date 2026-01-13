@@ -63,6 +63,7 @@ interface ReactFlowWrapperProps {
 
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
+import ZoomIndicator from "../node_editor/ZoomIndicator";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -533,6 +534,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           dataTypes={DATA_TYPES}
           activeGradientKeys={activeGradientKeysArray}
         />
+        <ZoomIndicator />
       </ReactFlow>
       {pendingNodeType && ghostPosition && (
         <GhostNode
