@@ -37,6 +37,7 @@ import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
+import NodeBookmarkIndicator from "./NodeBookmarkIndicator";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
@@ -436,6 +437,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     >
       {selected && <Toolbar id={id} selected={selected} />}
       {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />}
+      <NodeBookmarkIndicator nodeId={id} workflowId={workflow_id} />
       <NodeHeader
         id={id}
         selected={selected}

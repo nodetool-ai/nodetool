@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import useNodeBookmarkStore from "../stores/NodeBookmarkStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -36,6 +37,7 @@ export const useNodeEditorShortcuts = (
 ) => {
   const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
   const [packageNameInput, setPackageNameInput] = useState("");
+  const [bookmarkPanelOpen, setBookmarkPanelOpen] = useState(false);
 
   /* USE STORE */
   const nodeHistory = useTemporalNodes((state) => state);
@@ -78,6 +80,7 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const toggleBookmark = useNodeBookmarkStore((state) => state.toggleBookmark);
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -245,6 +248,28 @@ export const useNodeEditorShortcuts = (
       onShowShortcuts();
     }
   }, [onShowShortcuts]);
+
+  const handleToggleBookmark = useCallback(() => {
+    const workflow = getCurrentWorkflow();
+    if (workflow && selectedNodes.length === 1) {
+      toggleBookmark(workflow.id, selectedNodes[0].id);
+      addNotification({
+        content: useNodeBookmarkStore.getState().isBookmarked(workflow.id, selectedNodes[0].id)
+          ? "Node bookmarked"
+          : "Bookmark removed",
+        type: "info",
+        alert: true
+      });
+    }
+  }, [getCurrentWorkflow, selectedNodes, toggleBookmark, addNotification]);
+
+  const handleOpenBookmarkPanel = useCallback(() => {
+    setBookmarkPanelOpen(true);
+  }, []);
+
+  const handleCloseBookmarkPanel = useCallback(() => {
+    setBookmarkPanelOpen(false);
+  }, []);
 
   const handleMenuEvent = useCallback(
     (data: any) => {
@@ -512,7 +537,12 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
-      }
+      },
+      toggleBookmark: {
+        callback: handleToggleBookmark,
+        active: selectedNodes.length === 1
+      },
+      goToBookmark: { callback: handleOpenBookmarkPanel }
     };
 
     // Switch-to-tab (1-9)
@@ -575,7 +605,9 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    handleToggleBookmark,
+    handleOpenBookmarkPanel
   ]);
 
   // useEffect for shortcut registration
@@ -623,6 +655,8 @@ export const useNodeEditorShortcuts = (
     packageNameInput,
     setPackageNameInput,
     handleSaveExampleConfirm,
-    handleSaveExampleCancel
+    handleSaveExampleCancel,
+    bookmarkPanelOpen,
+    handleCloseBookmarkPanel
   };
 };

@@ -44,6 +44,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import NodeBookmarkPanel from "./NodeBookmarkPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -71,7 +72,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     packageNameInput,
     setPackageNameInput,
     handleSaveExampleConfirm,
-    handleSaveExampleCancel
+    handleSaveExampleCancel,
+    bookmarkPanelOpen,
+    handleCloseBookmarkPanel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
   // Undo/Redo for CommandMenu
@@ -172,6 +175,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <NodeBookmarkPanel
+                workflowId={workflowId}
+                isOpen={bookmarkPanelOpen}
+                onClose={handleCloseBookmarkPanel}
+              />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {
