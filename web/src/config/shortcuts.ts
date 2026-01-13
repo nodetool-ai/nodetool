@@ -509,6 +509,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Workflow Settings",
+    slug: "toggleWorkflowSettings",
+    keyCombo: ["W"],
+    category: "panel",
+    description: "Show or hide Workflow Settings panel",
+    registerCombo: true
+  },
+  {
     title: "Operator",
     slug: "toggleOperator",
     keyCombo: ["O"],
