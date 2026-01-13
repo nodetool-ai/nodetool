@@ -9,6 +9,7 @@ interface AppHeaderState {
 
   handleOpenHelp: () => void;
   handleCloseHelp: () => void;
+  handleOpenHelpAtShortcuts: () => void;
 }
 
 export const useAppHeaderStore = create<AppHeaderState>((set) => ({
@@ -18,6 +19,7 @@ export const useAppHeaderStore = create<AppHeaderState>((set) => ({
   setHelpOpen: (open) => set({ helpOpen: open }),
   setHelpIndex: (index) => set({ helpIndex: index }),
 
-  handleOpenHelp: () => set({ helpOpen: true }),
-  handleCloseHelp: () => set({ helpOpen: false })
+  handleOpenHelp: () => set({ helpOpen: true, helpIndex: 0 }),
+  handleCloseHelp: () => set({ helpOpen: false }),
+  handleOpenHelpAtShortcuts: () => set({ helpOpen: true, helpIndex: 0 })
 }));

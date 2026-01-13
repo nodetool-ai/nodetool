@@ -200,6 +200,13 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     setTooltipAnchorEl(null);
   };
 
+interface ButtonHandlers {
+  handleEnter: (event: MouseEvent) => void;
+  handleLeave: () => void;
+}
+
+const buttonHandlersMap = new WeakMap<HTMLButtonElement, ButtonHandlers>();
+
   // After render, attach title attributes to every button
   useEffect(() => {
     if (!containerRef.current) {return;}
@@ -208,7 +215,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     btns.forEach((btn) => {
       const key = btn.getAttribute("data-skbtn")?.toLowerCase();
       if (key && keyTitleMap[key]) {
-        // add hover listeners once
         const handleEnter = (event: MouseEvent) => {
           if (isKeyPressedRef.current) {return;}
           setHoverSlugs(keySlugMap[key]);
@@ -220,21 +226,22 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         };
         btn.addEventListener("mouseenter", handleEnter);
         btn.addEventListener("mouseleave", handleLeave);
-        // store cleanup handler
-        (btn as any)._hoverHandlers = { handleEnter, handleLeave };
+        buttonHandlersMap.set(btn, { handleEnter, handleLeave });
       }
     });
 
-    // cleanup on dependencies change
     return () => {
       btns.forEach((btn) => {
-        const handlers = (btn as any)._hoverHandlers;
+        const handlers = buttonHandlersMap.get(btn);
         if (handlers) {
           btn.removeEventListener("mouseenter", handlers.handleEnter);
           btn.removeEventListener("mouseleave", handlers.handleLeave);
+          buttonHandlersMap.delete(btn);
         }
       });
     };
+    // buttonHandlersMap is a module-level WeakMap, so it's stable and doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyTitleMap, keySlugMap]);
 
   const display = {

@@ -54,6 +54,9 @@ const RightSideButtons: React.FC = () => {
         title={
           <div style={{ textAlign: "center" }}>
             <Typography variant="inherit">Help</Typography>
+            <Typography variant="caption" display="block">
+              Press ?
+            </Typography>
           </div>
         }
       >

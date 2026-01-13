@@ -30,7 +30,7 @@ export interface Shortcut {
  * @param key The key to map.
  * @returns The mapped key for macOS.
  */
-const mapKeyForMac = (key: string): string => {
+export const mapKeyForMac = (key: string): string => {
   switch (key) {
     case "Alt":
       return "Option";
