@@ -9,7 +9,10 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  TextField
+  TextField,
+  Drawer,
+  IconButton,
+  Tooltip
 } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -44,8 +47,11 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import SaveSnippetDialog from "./SaveSnippetDialog";
+import SnippetPanel from "./SnippetPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { Folder, Bookmarks } from "@mui/icons-material";
 
 declare global {
   interface Window {
@@ -63,8 +69,17 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const selectedEdges = useNodes((state) => {
+    const edges = state.edges;
+    const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
+    return edges.filter(
+      (e) => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+    );
+  });
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [saveSnippetDialogOpen, setSaveSnippetDialogOpen] = useState(false);
+  const [snippetPanelOpen, setSnippetPanelOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -98,6 +113,32 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active && selectedNodes.length > 0) {
         toggleInspectedNode(selectedNodes[0].id);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Snippets Panel (Ctrl+Shift+S / Meta+Shift+S)
+  const snippetPanelCombo = isMac() ? ["meta", "shift", "s"] : ["control", "shift", "s"];
+  useCombo(
+    snippetPanelCombo,
+    () => {
+      if (active) {
+        setSnippetPanelOpen((v) => !v);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Save Snippet (Ctrl+Alt+S / Meta+Alt+S)
+  const saveSnippetCombo = isMac() ? ["meta", "alt", "s"] : ["control", "alt", "s"];
+  useCombo(
+    saveSnippetCombo,
+    () => {
+      if (active && selectedNodes.length > 0) {
+        setSaveSnippetDialogOpen(true);
       }
     },
     true,
@@ -162,6 +203,24 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 1}
               />
+              <Tooltip title="Snippets (Ctrl+Shift+S)" arrow>
+                <IconButton
+                  onClick={() => setSnippetPanelOpen(true)}
+                  sx={{
+                    position: "absolute",
+                    top: 8,
+                    left: 8,
+                    zIndex: 10,
+                    bgcolor: snippetPanelOpen ? "primary.main" : "background.paper",
+                    "&:hover": {
+                      bgcolor: snippetPanelOpen ? "primary.dark" : "action.hover"
+                    }
+                  }}
+                  size="small"
+                >
+                  <Bookmarks />
+                </IconButton>
+              </Tooltip>
               <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
@@ -172,6 +231,24 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <SaveSnippetDialog
+                open={saveSnippetDialogOpen}
+                onClose={() => setSaveSnippetDialogOpen(false)}
+                selectedNodes={selectedNodes}
+                selectedEdges={selectedEdges}
+              />
+              <Drawer
+                anchor="left"
+                open={snippetPanelOpen}
+                onClose={() => setSnippetPanelOpen(false)}
+                PaperProps={{
+                  sx: { width: 320 }
+                }}
+              >
+                <SnippetPanel
+                  onSaveSnippet={() => setSaveSnippetDialogOpen(true)}
+                />
+              </Drawer>
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

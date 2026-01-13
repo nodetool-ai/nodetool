@@ -627,6 +627,24 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Reset zoom to 100% (default scale)",
     registerCombo: true
+  },
+
+  // ---------- SNIPPETS --------------------------------------------------------
+  {
+    title: "Open Snippets Panel",
+    slug: "openSnippetsPanel",
+    keyCombo: ["Control", "Shift", "S"],
+    category: "panel" as const,
+    description: "Open snippets panel",
+    registerCombo: true
+  },
+  {
+    title: "Save Snippet",
+    slug: "saveSnippet",
+    keyCombo: ["Control", "Alt", "S"],
+    category: "editor" as const,
+    description: "Save selected nodes as a snippet",
+    registerCombo: true
   }
 ] as Shortcut[];
 

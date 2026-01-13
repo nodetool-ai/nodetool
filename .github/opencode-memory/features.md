@@ -35,6 +35,7 @@ Last updated: 2026-01-12
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
+- **Node Snippets**: Save and reuse groups of connected nodes as reusable snippets
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
 
 ### Workflow Management
