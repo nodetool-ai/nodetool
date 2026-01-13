@@ -17,6 +17,7 @@ import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 
 const AVAILABLE_TAGS = [
   "image",
@@ -388,6 +389,16 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     []
   );
 
+  const handleWorkspaceChange = useCallback(
+    (workspaceId: string | undefined) => {
+      setLocalWorkflow((prev: Workflow) => ({
+        ...prev,
+        workspace_id: workspaceId || null
+      }));
+    },
+    []
+  );
+
   return (
     <div css={styles(theme)} className="workflow-form">
       <div className="workflow-header">
@@ -507,6 +518,12 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
       <div className="settings-section">
         <Typography className="section-title">Advanced</Typography>
         
+        <WorkspaceSelect
+          value={localWorkflow.workspace_id ?? undefined}
+          onChange={handleWorkspaceChange}
+          helperText="Associate a workspace folder with this workflow for agent access"
+        />
+
         <FormControl fullWidth>
           <FormLabel htmlFor="tool_name">Tool Name</FormLabel>
           <OutlinedInput
