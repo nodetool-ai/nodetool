@@ -6,16 +6,21 @@ import { truncateString } from "../utils/truncateString";
 
 export const useChatService = (selectedModel: LanguageModel | null) => {
   const navigate = useNavigate();
-  const {
-    status,
-    sendMessage,
-    createNewThread,
-    switchThread,
-    threads,
-    messageCache,
-    currentThreadId,
-    ...rest
-  } = useGlobalChatStore();
+  const status = useGlobalChatStore((state) => state.status);
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const threads = useGlobalChatStore((state) => state.threads);
+  const messageCache = useGlobalChatStore((state) => state.messageCache);
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
+  const currentTaskUpdate = useGlobalChatStore((state) => state.currentTaskUpdate);
+  const lastTaskUpdatesByThread = useGlobalChatStore((state) => state.lastTaskUpdatesByThread);
+  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
@@ -124,6 +129,13 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
     getThreadPreview,
     threads,
     currentThreadId,
-    ...rest
+    deleteThread,
+    progress,
+    statusMessage,
+    stopGeneration,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    lastTaskUpdatesByThread,
+    currentLogUpdate
   };
 };
