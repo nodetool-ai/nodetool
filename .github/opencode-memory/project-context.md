@@ -160,6 +160,16 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Workflow Statistics Panel (2026-01-13)
+
+**What**: Added a workflow statistics panel showing node count, connections, depth, complexity score, and category breakdown with visual progress bars.
+
+**Files**: `web/src/stores/WorkflowStatsStore.ts`, `web/src/hooks/useWorkflowStats.ts`, `web/src/components/node_editor/WorkflowStatsPanel.tsx`, `web/src/config/shortcuts.ts`
+
+**Shortcut**: Ctrl+Shift+S (Cmd+Shift+S on Mac) toggles the panel
+
+---
+
 ### Keyboard Node Navigation (2026-01-13)
 
 **What**: Added Tab-based keyboard navigation for the node editor, allowing users to navigate between nodes using keyboard shortcuts without mouse interaction.
