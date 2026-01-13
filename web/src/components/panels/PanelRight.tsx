@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, Tooltip, IconButton, Box } from "@mui/material";
+import { Tooltip, IconButton, Box } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
@@ -24,71 +24,66 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
-import PanelResizeButton from "./PanelResizeButton";
+
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
 
-const PANEL_WIDTH_COLLAPSED = "52px";
+const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
 const styles = (theme: Theme) =>
   css({
-    position: "absolute",
-    right: "0",
-    ".panel-container": {
-      flexShrink: 0,
-      position: "absolute",
-      backgroundColor: theme.vars.palette.background.default
-    },
-    ".panel-right": {
-      boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
-      borderLeft: "none",
+    // Main container - fixed to right edge of viewport
+    position: "fixed",
+    right: 0,
+    top: `${HEADER_HEIGHT}px`,
+    height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+    display: "flex",
+    flexDirection: "row",
+    zIndex: 1100,
+
+    // Drawer content area (appears left of toolbar)
+    ".drawer-content": {
+      height: "100%",
       backgroundColor: theme.vars.palette.background.default,
-      position: "absolute",
+      borderLeft: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: "-4px 0 10px rgba(0, 0, 0, 0.15)",
       overflow: "hidden",
-      width: "100%",
-      padding: "0",
-      top: `${HEADER_HEIGHT}px`,
-      height: `calc(100vh - ${HEADER_HEIGHT}px)`
+      display: "flex",
+      flexDirection: "column"
     },
 
+    // Resize handle on left edge of drawer
     ".panel-button": {
-      width: "30px",
+      width: "6px",
       position: "absolute",
-      zIndex: 1200,
-      height: "calc(100vh - 83px)",
+      left: 0,
+      top: 0,
+      height: "100%",
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: "80px",
-      cursor: "e-resize",
-      transition: "background-color 0.3s ease",
-
-      "& svg": {
-        display: "block",
-        width: "18px",
-        height: "18px",
-        fontSize: "18px !important",
-        color: "var(--palette-grey-200)",
-        opacity: 0,
-        marginLeft: "1px",
-        transition: "all 0.5s ease"
-      },
+      cursor: "ew-resize",
+      zIndex: 10,
+      transition: "background-color 0.2s ease",
 
       "&:hover": {
-        backgroundColor: "var(--palette-grey-800)",
-        "& svg": {
-          opacity: 1
-        }
+        backgroundColor: theme.vars.palette.primary.main
       }
     },
+
+    // Fixed toolbar on the right edge
     ".vertical-toolbar": {
-      width: "50px",
+      width: `${TOOLBAR_WIDTH}px`,
+      flexShrink: 0,
       display: "flex",
       flexDirection: "column",
       gap: 0,
-      backgroundColor: "transparent",
+      backgroundColor: theme.vars.palette.background.default,
+      borderLeft: `1px solid ${theme.vars.palette.divider}`,
+      paddingTop: "8px",
+
       "& .MuiIconButton-root": {
         padding: "14px",
         borderRadius: "5px",
@@ -105,12 +100,13 @@ const styles = (theme: Theme) =>
         }
       }
     },
-    ".panel-content": {
+
+    // Inner content wrapper
+    ".panel-inner-content": {
       display: "flex",
       flex: 1,
       height: "100%",
-      marginTop: "10px",
-      border: "0"
+      overflow: "hidden"
     }
   });
 
@@ -331,49 +327,23 @@ const PanelRight: React.FC = () => {
   };
 
   return (
-    <div
-      css={styles(theme)}
-      className="panel-container"
-      style={{ width: isVisible ? `${panelSize}px` : "60px" }}
-    >
-      <PanelResizeButton
-        side="right"
-        isVisible={isVisible}
-        panelSize={panelSize}
-        onMouseDown={handleMouseDown}
-      />
-      <Drawer
-        className="panel-right-drawer"
-        PaperProps={{
-          ref: panelRef,
-          className: `panel panel-right ${isDragging ? "dragging" : ""}`,
-          style: {
-            width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
-            height: isVisible ? "calc(100vh - 80px)" : "220px",
-            backgroundColor: isVisible ? undefined : "transparent",
-            border: "none",
-            borderLeft: isVisible
-              ? `1px solid ${theme.vars.palette.divider}`
-              : "none",
-            boxShadow: isVisible ? "0 2px 16px rgba(0, 0, 0, 0.1)" : "none"
-          }
-        }}
-        variant="persistent"
-        anchor="right"
-        open={true}
-      >
-        <div className="panel-content">
-          <VerticalToolbar
-            handleInspectorToggle={() => handlePanelToggle("inspector")}
-            handleAssistantToggle={() => handlePanelToggle("assistant")}
-            handleLogsToggle={() => handlePanelToggle("logs")}
-            handleWorkspaceToggle={() => handlePanelToggle("workspace")}
-            handleVersionsToggle={() => handlePanelToggle("versions")}
-            handleWorkflowToggle={() => handlePanelToggle("workflow")}
-            activeView={activeView}
-            panelVisible={isVisible}
+    <div css={styles(theme)} className="panel-right-container">
+      {/* Drawer content - appears left of toolbar when visible */}
+      {isVisible && (
+        <div
+          ref={panelRef}
+          className={`drawer-content ${isDragging ? "dragging" : ""}`}
+          style={{ width: `${panelSize - TOOLBAR_WIDTH}px` }}
+        >
+          {/* Resize handle on left edge */}
+          <div
+            className="panel-button"
+            onMouseDown={handleMouseDown}
+            role="slider"
+            aria-label="Resize panel"
+            tabIndex={-1}
           />
-          {isVisible && (
+          <div className="panel-inner-content">
             <ContextMenuProvider>
               <ReactFlowProvider>
                 {activeView === "logs" ? (
@@ -422,9 +392,21 @@ const PanelRight: React.FC = () => {
                 )}
               </ReactFlowProvider>
             </ContextMenuProvider>
-          )}
+          </div>
         </div>
-      </Drawer>
+      )}
+
+      {/* Fixed toolbar - always on the right edge */}
+      <VerticalToolbar
+        handleInspectorToggle={() => handlePanelToggle("inspector")}
+        handleAssistantToggle={() => handlePanelToggle("assistant")}
+        handleLogsToggle={() => handlePanelToggle("logs")}
+        handleWorkspaceToggle={() => handlePanelToggle("workspace")}
+        handleVersionsToggle={() => handlePanelToggle("versions")}
+        handleWorkflowToggle={() => handlePanelToggle("workflow")}
+        activeView={activeView}
+        panelVisible={isVisible}
+      />
     </div>
   );
 };
