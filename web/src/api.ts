@@ -1854,6 +1854,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/workflow/{workflow_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Workflow Files
+         * @description List files and directories in the workspace associated with a workflow.
+         *
+         *     This endpoint resolves the workspace path by looking up the workflow's
+         *     associated workspace_id and using the workspace's configured path.
+         *
+         *     Args:
+         *         workflow_id: The ID of the workflow whose workspace files to list.
+         *         path: Relative path within the workspace (default: "." for root).
+         *         user: The authenticated user.
+         *
+         *     Returns:
+         *         List of FileInfo objects for files and directories in the workspace.
+         *
+         *     Raises:
+         *         404: If the workflow or workspace is not found.
+         *         403: If the requested path is outside the workspace root.
+         */
+        get: operations["list_workflow_files_api_workspaces_workflow__workflow_id__files_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/workflow/{workflow_id}/download/{file_path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Workflow File
+         * @description Download a file from a workflow's workspace.
+         *
+         *     Args:
+         *         workflow_id: The ID of the workflow whose workspace contains the file.
+         *         file_path: Relative path to the file within the workspace.
+         *         user: The authenticated user.
+         *
+         *     Returns:
+         *         StreamingResponse with the file contents.
+         *
+         *     Raises:
+         *         404: If the workflow, workspace, or file is not found.
+         *         403: If the requested path is outside the workspace root.
+         */
+        get: operations["download_workflow_file_api_workspaces_workflow__workflow_id__download__file_path__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/workflow/{workflow_id}/upload/{file_path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Workflow File
+         * @description Upload a file to a workflow's workspace.
+         *
+         *     Args:
+         *         workflow_id: The ID of the workflow whose workspace to upload to.
+         *         file_path: Relative path where the file should be saved within the workspace.
+         *         file: The file to upload.
+         *         user: The authenticated user.
+         *
+         *     Returns:
+         *         FileInfo for the uploaded file.
+         *
+         *     Raises:
+         *         404: If the workflow or workspace is not found.
+         *         403: If the requested path is outside the workspace root.
+         */
+        post: operations["upload_workflow_file_api_workspaces_workflow__workflow_id__upload__file_path__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/storage/{key}": {
         parameters: {
             query?: never;
@@ -2457,106 +2557,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/files/workspaces": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Workspaces
-         * @description List all workspaces in ~/.nodetool-workspaces
-         */
-        get: operations["list_workspaces_api_files_workspaces_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/files/workspaces/{workspace_id}/info": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Workspace Info
-         * @description Get information about a specific workspace
-         */
-        get: operations["get_workspace_info_api_files_workspaces__workspace_id__info_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/files/workspaces/{workspace_id}/list": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Workspace Files
-         * @description List files and directories in a workspace, including hidden entries.
-         */
-        get: operations["list_workspace_files_api_files_workspaces__workspace_id__list_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/files/workspaces/{workspace_id}/download/{file_path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Download Workspace File
-         * @description Download a file from a workspace
-         */
-        get: operations["download_workspace_file_api_files_workspaces__workspace_id__download__file_path__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/files/workspaces/{workspace_id}/upload/{file_path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload Workspace File
-         * @description Upload a file to a workspace
-         */
-        post: operations["upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/collections/": {
         parameters: {
             query?: never;
@@ -2980,8 +2980,8 @@ export interface components {
              */
             file: string;
         };
-        /** Body_upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post */
-        Body_upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post: {
+        /** Body_upload_workflow_file_api_workspaces_workflow__workflow_id__upload__file_path__post */
+        Body_upload_workflow_file_api_workspaces_workflow__workflow_id__upload__file_path__post: {
             /**
              * File
              * Format: binary
@@ -3424,19 +3424,6 @@ export interface components {
          * @enum {string}
          */
         ExecutionStrategy: "threaded" | "subprocess" | "docker";
-        /** FileInfo */
-        FileInfo: {
-            /** Name */
-            name: string;
-            /** Path */
-            path: string;
-            /** Size */
-            size: number;
-            /** Is Dir */
-            is_dir: boolean;
-            /** Modified At */
-            modified_at: string;
-        };
         /** FilePath */
         FilePath: {
             /**
@@ -7176,6 +7163,8 @@ export interface components {
             path?: string | null;
             /** Run Mode */
             run_mode?: string | null;
+            /** Workspace Id */
+            workspace_id?: string | null;
             /** Required Providers */
             required_providers?: string[] | null;
             /** Required Models */
@@ -7243,6 +7232,8 @@ export interface components {
             } | null;
             /** Run Mode */
             run_mode?: string | null;
+            /** Workspace Id */
+            workspace_id?: string | null;
         };
         /** WorkflowTool */
         WorkflowTool: {
@@ -7326,23 +7317,6 @@ export interface components {
              */
             is_default: boolean;
         };
-        /** WorkspaceInfo */
-        WorkspaceInfo: {
-            /** Workspace Id */
-            workspace_id: string;
-            /** Workflow Id */
-            workflow_id: string | null;
-            /** Path */
-            path: string;
-            /** Size */
-            size: number;
-            /** File Count */
-            file_count: number;
-            /** Created At */
-            created_at: string;
-            /** Modified At */
-            modified_at: string;
-        };
         /**
          * WorkspaceListResponse
          * @description Response model for listing workspaces.
@@ -7401,6 +7375,35 @@ export interface components {
              * @description Set as default workspace
              */
             is_default?: boolean | null;
+        };
+        /** FileInfo */
+        nodetool__api__file__FileInfo: {
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Size */
+            size: number;
+            /** Is Dir */
+            is_dir: boolean;
+            /** Modified At */
+            modified_at: string;
+        };
+        /**
+         * FileInfo
+         * @description Information about a file or directory.
+         */
+        nodetool__api__workspace__FileInfo: {
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Size */
+            size: number;
+            /** Is Dir */
+            is_dir: boolean;
+            /** Modified At */
+            modified_at: string;
         };
     };
     responses: never;
@@ -10262,6 +10265,107 @@ export interface operations {
             };
         };
     };
+    list_workflow_files_api_workspaces_workflow__workflow_id__files_get: {
+        parameters: {
+            query?: {
+                path?: string;
+            };
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["nodetool__api__workspace__FileInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_workflow_file_api_workspaces_workflow__workflow_id__download__file_path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+                file_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_workflow_file_api_workspaces_workflow__workflow_id__upload__file_path__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+                file_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_workflow_file_api_workspaces_workflow__workflow_id__upload__file_path__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_api_storage__key__get: {
         parameters: {
             query?: never;
@@ -11122,7 +11226,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FileInfo"][];
+                    "application/json": components["schemas"]["nodetool__api__file__FileInfo"][];
                 };
             };
             /** @description Validation Error */
@@ -11153,7 +11257,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FileInfo"];
+                    "application/json": components["schemas"]["nodetool__api__file__FileInfo"];
                 };
             };
             /** @description Validation Error */
@@ -11210,158 +11314,6 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_upload_file_api_files_upload__path__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_workspaces_api_files_workspaces_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceInfo"][];
-                };
-            };
-        };
-    };
-    get_workspace_info_api_files_workspaces__workspace_id__info_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workspace_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceInfo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_workspace_files_api_files_workspaces__workspace_id__list_get: {
-        parameters: {
-            query?: {
-                path?: string;
-            };
-            header?: never;
-            path: {
-                workspace_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileInfo"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_workspace_file_api_files_workspaces__workspace_id__download__file_path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workspace_id: string;
-                file_path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workspace_id: string;
-                file_path: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post"];
             };
         };
         responses: {
