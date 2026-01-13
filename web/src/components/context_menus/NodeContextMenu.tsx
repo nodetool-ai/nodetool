@@ -12,6 +12,8 @@ import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
@@ -68,6 +70,22 @@ const NodeContextMenu: React.FC = () => {
           </div>
           <div className="tooltip-key">
             <kbd>B</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
+      key="toggle-collapse"
+      onClick={handlers.handleToggleCollapse}
+      label={conditions.isCollapsed ? "Expand Node" : "Collapse Node"}
+      IconComponent={conditions.isCollapsed ? <UnfoldMoreIcon /> : <UnfoldLessIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">
+            {conditions.isCollapsed ? "Expand Node" : "Collapse Node"}
+          </div>
+          <div className="tooltip-key">
+            <kbd>H</kbd>
           </div>
         </div>
       }

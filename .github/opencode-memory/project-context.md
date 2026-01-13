@@ -160,6 +160,24 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Collapse/Expand (2026-01-13)
+
+**What**: Added Node Collapse/Expand feature - allows users to collapse nodes to show only the header, reducing visual clutter in complex workflows. Collapsed nodes can be expanded to reveal their full properties and inputs/outputs.
+
+**Files**: `web/src/hooks/nodes/useNodeContextMenu.ts`, `web/src/components/context_menus/NodeContextMenu.tsx`, `web/src/stores/NodeStore.ts`, `web/src/config/shortcuts.ts`, `web/src/hooks/useNodeEditorShortcuts.ts`, `web/src/styles/collapsed.css`
+
+**Implementation**:
+- Added toggleCollapse handler to context menu with UnfoldLess/UnfoldMore icons
+- Added toggleCollapse and toggleCollapseSelected functions to NodeStore
+- Added keyboard shortcut 'H' for collapsing/expanding selected nodes
+- Updated collapsed.css selectors to work with react-flow wrapper class pattern
+
+**Usage**:
+- Right-click node → "Collapse Node" / "Expand Node"
+- Select nodes and press `H` to toggle collapse state
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).

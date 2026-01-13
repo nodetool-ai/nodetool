@@ -29,6 +29,7 @@ interface UseNodeContextMenuReturn {
     handleToggleComment: () => void;
     handleRunFromHere: () => void;
     handleToggleBypass: () => void;
+    handleToggleCollapse: () => void;
     handleCopyMetadataToClipboard: () => void;
     handleFindTemplates: () => void;
     handleSelectAllSameType: () => void;
@@ -39,6 +40,7 @@ interface UseNodeContextMenuReturn {
   conditions: {
     hasCommentTitle: boolean;
     isBypassed: boolean;
+    isCollapsed: boolean;
     canConvertToInput: boolean;
     canConvertToConstant: boolean;
     isWorkflowRunning: boolean;
@@ -96,6 +98,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   const getResult = useResultsStore((state) => state.getResult);
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
+  const isCollapsed = Boolean(nodeData?.collapsed);
   const selectedNodes = getSelectedNodes();
 
   const handleToggleComment = useCallback(() => {
@@ -232,6 +235,14 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     closeContextMenu();
   }, [closeContextMenu, nodeId, toggleBypass]);
 
+  const handleToggleCollapse = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    updateNodeData(nodeId, { collapsed: !isCollapsed });
+    closeContextMenu();
+  }, [closeContextMenu, nodeId, isCollapsed, updateNodeData]);
+
   const handleCopyMetadataToClipboard = useCallback(() => {
     if (nodeId && nodeData) {
       log.info("Copying node data to clipboard", nodeData);
@@ -347,6 +358,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       handleToggleComment,
       handleRunFromHere,
       handleToggleBypass,
+      handleToggleCollapse,
       handleCopyMetadataToClipboard,
       handleFindTemplates,
       handleSelectAllSameType,
@@ -357,6 +369,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     conditions: {
       hasCommentTitle,
       isBypassed,
+      isCollapsed,
       canConvertToInput,
       canConvertToConstant,
       isWorkflowRunning,

@@ -360,6 +360,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Collapse Node",
+    slug: "collapseNode",
+    keyCombo: ["H"],
+    category: "editor",
+    description: "Collapse or expand selected nodes",
+    registerCombo: true
+  },
+  {
     title: "Select Connected (All)",
     slug: "selectConnectedAll",
     keyCombo: ["Shift", "C"],

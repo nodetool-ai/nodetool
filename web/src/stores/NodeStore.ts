@@ -208,6 +208,8 @@ export interface NodeStoreState {
   toggleBypass: (nodeId: string) => void;
   setBypass: (nodeId: string, bypassed: boolean) => void;
   toggleBypassSelected: () => void;
+  toggleCollapse: (nodeId: string) => void;
+  toggleCollapseSelected: () => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -1132,6 +1134,46 @@ export const createNodeStore = (
                       ...n, 
                       className: shouldBypass ? "bypassed" : undefined,
                       data: { ...n.data, bypassed: shouldBypass } 
+                    }
+                  : n
+              )
+            }));
+            get().setWorkflowDirty(true);
+          },
+          toggleCollapse: (nodeId: string): void => {
+            const node = get().findNode(nodeId);
+            if (node) {
+              const newCollapsed = !node.data.collapsed;
+              set((state) => ({
+                nodes: state.nodes.map((n) =>
+                  n.id === nodeId
+                    ? {
+                        ...n,
+                        className: newCollapsed ? "collapsed" : undefined,
+                        data: { ...n.data, collapsed: newCollapsed }
+                      }
+                    : n
+                )
+              }));
+              get().setWorkflowDirty(true);
+            }
+          },
+          toggleCollapseSelected: (): void => {
+            const selectedNodes = get().getSelectedNodes();
+            if (selectedNodes.length === 0) {
+              return;
+            }
+
+            const collapsedCount = selectedNodes.filter(n => n.data.collapsed).length;
+            const shouldCollapse = collapsedCount < selectedNodes.length / 2;
+
+            set((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.selected
+                  ? {
+                      ...n,
+                      className: shouldCollapse ? "collapsed" : undefined,
+                      data: { ...n.data, collapsed: shouldCollapse }
                     }
                   : n
               )
