@@ -8,6 +8,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NodeItem from "./NodeItem";
 import SearchResultItem from "./SearchResultItem";
 import SearchResultsPanel from "./SearchResultsPanel";
+import VirtualizedNodeList from "./VirtualizedNodeList";
 import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
@@ -38,6 +39,8 @@ const getServiceFromNamespace = (namespace: string): string => {
   const parts = namespace.split(".");
   return parts[0];
 };
+
+const VIRTUALIZATION_THRESHOLD = 50;
 
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
@@ -87,10 +90,35 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
+  const isSingleNamespaceSelected = useMemo(() => {
+    if (!selectedPath || nodes.length === 0) {
+      return false;
+    }
+    const groups = Object.keys(groupNodes(nodes));
+    if (groups.length !== 1) {
+      return false;
+    }
+    return groups[0] === selectedPath || groups[0].startsWith(selectedPath + ".");
+  }, [selectedPath, nodes]);
+
+  const shouldVirtualize = isSingleNamespaceSelected && nodes.length >= VIRTUALIZATION_THRESHOLD;
+
+  const renderVirtualizedNodes = useMemo(() => {
+    if (!shouldVirtualize) {
+      return null;
+    }
+
+    return (
+      <VirtualizedNodeList
+        nodes={nodes}
+        style={{ height: "100%", width: "100%" }}
+      />
+    );
+  }, [nodes, shouldVirtualize]);
+
   const elements = useMemo(() => {
     // If we're searching, render flat ranked results with SearchResultItem
     if (searchTerm && groupedSearchResults.length > 0) {
-      // Flatten all results from groups (now just one "Results" group)
       const allSearchNodes = groupedSearchResults.flatMap(
         (group) => group.nodes
       );
@@ -104,6 +132,12 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           onClick={() => handleCreateNode(node)}
         />
       ));
+    }
+
+    // If we're in a single namespace with many nodes and should virtualize, skip rendering elements
+    // The VirtualizedNodeList component will handle rendering
+    if (shouldVirtualize) {
+      return null;
     }
 
     // Otherwise use the original namespace-based grouping
@@ -126,20 +160,13 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           );
         }
 
-        let textForNamespaceHeader = namespace; // Default to full namespace string
+        let textForNamespaceHeader = namespace;
 
         if (selectedPath && selectedPath === namespace) {
-          // If the current group of nodes IS the selected namespace, display its last part.
-          // e.g., selectedPath="A.B", namespace="A.B" -> display "B"
           textForNamespaceHeader = namespace.split(".").pop() || namespace;
         } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
-          // If the current group of nodes is a sub-namespace of the selected one, display the relative path.
-          // e.g., selectedPath="A", namespace="A.B.C" -> display "B.C"
           textForNamespaceHeader = namespace.substring(selectedPath.length + 1);
         }
-        // If selectedPath is empty (root is selected), textForNamespaceHeader remains the full 'namespace'.
-        // If namespace is not a child of selectedPath and not equal to selectedPath,
-        // it also remains the full 'namespace'.
 
         elements.push(
           <Typography
@@ -179,16 +206,19 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     showCheckboxes,
     onToggleSelection,
     selectedNodeTypes,
-    showFavoriteButton
+    showFavoriteButton,
+    shouldVirtualize
   ]);
 
-  const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};
+  const style = searchNodes || shouldVirtualize ? { height: "100%", overflow: "hidden" } : {};
 
   return (
     <div className="nodes" style={style}>
       {nodes.length > 0 ? (
         searchNodes ? (
           <SearchResultsPanel searchNodes={searchNodes} />
+        ) : shouldVirtualize ? (
+          renderVirtualizedNodes
         ) : (
           elements
         )
