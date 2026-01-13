@@ -41,7 +41,6 @@ import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import { Workflow } from "../../stores/ApiTypes";
 import { cn } from "../editor_ui/editorUtils";
 
 interface ToolbarButtonProps {
@@ -249,9 +248,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const FloatingToolBar: React.FC<{
-  setWorkflowToEdit: (workflow: Workflow) => void;
-}> = memo(function FloatingToolBar({ setWorkflowToEdit }) {
+const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const theme = useTheme();
   const location = useLocation();
   const path = location.pathname;
@@ -262,10 +259,11 @@ const FloatingToolBar: React.FC<{
   const [advancedMenuAnchor, setAdvancedMenuAnchor] =
     useState<null | HTMLElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
+  const { isRightPanelVisible, rightPanelSize, toggleWorkflowPanel } = useRightPanelStore(
     (state) => ({
       isRightPanelVisible: state.panel.isVisible,
-      rightPanelSize: state.panel.panelSize
+      rightPanelSize: state.panel.panelSize,
+      toggleWorkflowPanel: () => state.handleViewChange("workflow")
     })
   );
   const bottomPanelVisible = useBottomPanelStore(
@@ -297,7 +295,6 @@ const FloatingToolBar: React.FC<{
       workflowJSON: state.workflowJSON
     })
   );
-  const getCurrentWorkflow = useNodes((state) => state.getWorkflow);
 
   const { run, isWorkflowRunning, isPaused, isSuspended, cancel, pause, resume } = useWebsocketRunner(
     (state) => ({
@@ -395,8 +392,8 @@ const FloatingToolBar: React.FC<{
   }, [navigate, path]);
 
   const handleEditWorkflow = useCallback(() => {
-    setWorkflowToEdit(getCurrentWorkflow());
-  }, [getCurrentWorkflow, setWorkflowToEdit]);
+    toggleWorkflowPanel();
+  }, [toggleWorkflowPanel]);
 
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
