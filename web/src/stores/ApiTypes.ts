@@ -168,3 +168,9 @@ export type Job = JobResponse;
 
 // Model Pack - curated bundle of models that work together
 export type ModelPack = components["schemas"]["ModelPack"];
+
+// Workspace types - for managing workspace folders
+export type WorkspaceResponse = components["schemas"]["WorkspaceResponse"];
+export type WorkspaceListResponse = components["schemas"]["WorkspaceListResponse"];
+export type WorkspaceCreateRequest = components["schemas"]["WorkspaceCreateRequest"];
+export type WorkspaceUpdateRequest = components["schemas"]["WorkspaceUpdateRequest"];
