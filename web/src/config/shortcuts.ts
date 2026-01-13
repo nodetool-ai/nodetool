@@ -627,6 +627,81 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Reset zoom to 100% (default scale)",
     registerCombo: true
+  },
+
+  // ---------- NODE NAVIGATION ---------------------------------------------
+  {
+    title: "Navigate Next Node",
+    slug: "navigateNextNode",
+    keyCombo: ["Tab"],
+    category: "editor" as const,
+    description: "Navigate focus to next node in the canvas",
+    registerCombo: true
+  },
+  {
+    title: "Navigate Previous Node",
+    slug: "navigatePrevNode",
+    keyCombo: ["Shift", "Tab"],
+    category: "editor" as const,
+    description: "Navigate focus to previous node in the canvas",
+    registerCombo: true
+  },
+  {
+    title: "Select Focused Node",
+    slug: "selectFocusedNode",
+    keyCombo: ["Enter"],
+    category: "editor" as const,
+    description: "Select the currently focused node",
+    registerCombo: true
+  },
+  {
+    title: "Exit Navigation Mode",
+    slug: "exitNavigationMode",
+    keyCombo: ["Escape"],
+    category: "editor" as const,
+    description: "Exit keyboard navigation mode",
+    registerCombo: true
+  },
+  {
+    title: "Focus Node Above",
+    slug: "focusNodeUp",
+    keyCombo: ["Alt", "ArrowUp"],
+    category: "editor" as const,
+    description: "Move focus to the nearest node above current",
+    registerCombo: true
+  },
+  {
+    title: "Focus Node Below",
+    slug: "focusNodeDown",
+    keyCombo: ["Alt", "ArrowDown"],
+    category: "editor" as const,
+    description: "Move focus to the nearest node below current",
+    registerCombo: true
+  },
+  {
+    title: "Focus Node Left",
+    slug: "focusNodeLeft",
+    keyCombo: ["Alt", "ArrowLeft"],
+    category: "editor" as const,
+    description: "Move focus to the nearest node to the left",
+    registerCombo: true
+  },
+  {
+    title: "Focus Node Right",
+    slug: "focusNodeRight",
+    keyCombo: ["Alt", "ArrowRight"],
+    category: "editor" as const,
+    description: "Move focus to the nearest node to the right",
+    registerCombo: true
+  },
+  {
+    title: "Go Back",
+    slug: "goBack",
+    keyCombo: ["Alt", "ArrowLeft"],
+    altKeyCombos: [["Control", "ArrowLeft"]],
+    category: "editor" as const,
+    description: "Go back to previously focused node",
+    registerCombo: true
   }
 ] as Shortcut[];
 

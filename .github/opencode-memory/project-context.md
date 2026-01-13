@@ -160,6 +160,21 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Keyboard Node Navigation (2026-01-13)
+
+**What**: Added Tab-based keyboard navigation for the node editor, allowing users to navigate between nodes using keyboard shortcuts without mouse interaction.
+
+**Files**: `web/src/stores/NodeFocusStore.ts`, `web/src/hooks/useNodeFocus.ts`, `web/src/config/shortcuts.ts`, `web/src/hooks/useNodeEditorShortcuts.ts`, `web/src/components/node/BaseNode.tsx`
+
+**Implementation**:
+- Created `NodeFocusStore` to track focused node state and navigation mode
+- Created `useNodeFocus` hook providing navigation functions (focusNext, focusPrev, focusUp, focusDown, focusLeft, focusRight)
+- Added keyboard shortcuts: Tab/Shift+Tab for sequential navigation, Alt+Arrows for directional navigation, Enter to select focused node
+- Added visual focus indicator to BaseNode with dashed outline and "FOCUSED" badge
+- Navigation history tracking for "go back" functionality (Alt+ArrowLeft or Ctrl+ArrowLeft)
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).
