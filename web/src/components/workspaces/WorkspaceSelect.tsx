@@ -3,10 +3,8 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
 import {
   FormControl,
-  FormLabel,
   Select,
   MenuItem,
-  FormHelperText,
   CircularProgress,
   Box,
   Typography
@@ -22,31 +20,62 @@ import FolderIcon from "@mui/icons-material/Folder";
 const styles = (theme: Theme) =>
   css({
     ".workspace-select": {
+      backgroundColor: theme.vars.palette.grey[800],
+      borderRadius: "6px",
       "& .MuiSelect-select": {
         display: "flex",
         alignItems: "center",
-        gap: theme.spacing(1)
+        gap: theme.spacing(1.5),
+        padding: "10px 14px"
+      },
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.vars.palette.grey[600],
+        transition: "border-color 0.2s ease"
+      },
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.vars.palette.primary.main
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.vars.palette.primary.main,
+        borderWidth: "1px"
       }
     },
     ".workspace-option": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1)
+      gap: theme.spacing(1.5),
+      width: "100%"
     },
     ".workspace-icon": {
-      color: theme.vars.palette.primary.main,
-      fontSize: "1.2rem"
+      color: theme.vars.palette.primary.light,
+      fontSize: "1.25rem",
+      flexShrink: 0
     },
     ".workspace-details": {
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      overflow: "hidden"
     },
     ".workspace-name": {
-      fontSize: "0.875rem"
+      fontSize: "0.875rem",
+      fontWeight: 500,
+      color: theme.vars.palette.text.primary,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
     },
     ".workspace-path": {
       fontSize: "0.7rem",
-      color: theme.vars.palette.text.secondary
+      color: theme.vars.palette.text.secondary,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      fontFamily: "monospace"
+    },
+    ".none-option": {
+      color: theme.vars.palette.text.secondary,
+      fontStyle: "italic",
+      fontSize: "0.875rem"
     }
   });
 
@@ -73,8 +102,6 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
   function WorkspaceSelect({
     value,
     onChange,
-    label = "Workspace",
-    helperText = "Select a workspace folder for this workflow",
     fullWidth = true
   }) {
     const theme = useTheme();
@@ -92,41 +119,112 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
       [onChange]
     );
 
+    // Find the selected workspace for display
+    const selectedWorkspace = workspaces?.find((w) => w.id === value);
+
     if (isLoading) {
       return (
-        <FormControl fullWidth={fullWidth}>
-          <FormLabel>{label}</FormLabel>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
-            <CircularProgress size={20} />
-            <Typography variant="body2" color="text.secondary">
-              Loading workspaces...
-            </Typography>
-          </Box>
-        </FormControl>
+        <Box css={styles(theme)} sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
+          <CircularProgress size={18} />
+          <Typography variant="body2" color="text.secondary">
+            Loading...
+          </Typography>
+        </Box>
       );
     }
 
     if (error) {
       return (
-        <FormControl fullWidth={fullWidth} error>
-          <FormLabel>{label}</FormLabel>
-          <FormHelperText>Failed to load workspaces</FormHelperText>
-        </FormControl>
+        <Box css={styles(theme)}>
+          <Typography variant="body2" color="error">
+            Failed to load workspaces
+          </Typography>
+        </Box>
       );
     }
 
+    const renderSelectedValue = () => {
+      if (!selectedWorkspace) {
+        return <span className="none-option">No workspace selected</span>;
+      }
+      return (
+        <div className="workspace-option">
+          <FolderIcon className="workspace-icon" />
+          <div className="workspace-details">
+            <span className="workspace-name">{selectedWorkspace.name}</span>
+            <span className="workspace-path">{selectedWorkspace.path}</span>
+          </div>
+        </div>
+      );
+    };
+
     return (
       <FormControl fullWidth={fullWidth} css={styles(theme)}>
-        <FormLabel>{label}</FormLabel>
         <Select
           className="workspace-select"
           value={value || ""}
           onChange={handleChange}
           displayEmpty
           size="small"
+          renderValue={renderSelectedValue}
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                backgroundColor: theme.vars.palette.grey[800],
+                border: `1px solid ${theme.vars.palette.grey[600]}`,
+                borderRadius: "6px",
+                mt: 0.5,
+                "& .workspace-option": {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%"
+                },
+                "& .workspace-icon": {
+                  color: theme.vars.palette.primary.light,
+                  fontSize: "1.25rem",
+                  flexShrink: 0
+                },
+                "& .workspace-details": {
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden"
+                },
+                "& .workspace-name": {
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  color: theme.vars.palette.text.primary
+                },
+                "& .workspace-path": {
+                  fontSize: "0.7rem",
+                  color: theme.vars.palette.text.secondary,
+                  fontFamily: "monospace"
+                },
+                "& .none-option": {
+                  color: theme.vars.palette.text.secondary,
+                  fontStyle: "italic",
+                  fontSize: "0.875rem"
+                },
+                "& .MuiMenuItem-root": {
+                  padding: "10px 14px",
+                  borderRadius: "4px",
+                  margin: "2px 4px",
+                  "&:hover": {
+                    backgroundColor: theme.vars.palette.grey[700]
+                  },
+                  "&.Mui-selected": {
+                    backgroundColor: `${theme.vars.palette.primary.main}22`,
+                    "&:hover": {
+                      backgroundColor: `${theme.vars.palette.primary.main}33`
+                    }
+                  }
+                }
+              }
+            }
+          }}
         >
           <MenuItem value="">
-            <em>None</em>
+            <span className="none-option">None</span>
           </MenuItem>
           {workspaces?.map((workspace) => (
             <MenuItem key={workspace.id} value={workspace.id}>
@@ -140,7 +238,6 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
             </MenuItem>
           ))}
         </Select>
-        {helperText && <FormHelperText>{helperText}</FormHelperText>}
       </FormControl>
     );
   }
@@ -149,3 +246,4 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
 WorkspaceSelect.displayName = "WorkspaceSelect";
 
 export default WorkspaceSelect;
+
