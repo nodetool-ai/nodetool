@@ -96,6 +96,9 @@ const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
+const HTMLBuilderPanel = React.lazy(
+  () => import("./components/panels/HTMLBuilderPanel")
+);
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
@@ -292,6 +295,16 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <ModelListIndex />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "html-builder",
+      element: (
+        <ProtectedRoute>
+          <PanelLeft />
+          <HTMLBuilderPanel />
+          <PanelBottom />
         </ProtectedRoute>
       )
     }
