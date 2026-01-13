@@ -7,6 +7,7 @@ import AssetViewer from "../assets/AssetViewer";
 import { ImageEditorModal } from "./image_editor";
 import { isElectron } from "../../utils/browser";
 import { createImageUrl } from "../../utils/imageUtils";
+import { useDraggable } from "../../lib/dragdrop";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -24,6 +25,25 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
     blobUrlRef.current = result.blobUrl;
     return result.url || undefined;
   }, [source]);
+
+  // Set up draggable for the image with preview
+  const dragData = useMemo(() => ({
+    type: "output-image" as const,
+    payload: {
+      url: imageUrl || "",
+      contentType: "image/png"
+    }
+  }), [imageUrl]);
+
+  const draggableOptions = useMemo(() => ({
+    disabled: !imageUrl,
+    dragImage: imageUrl ? {
+      thumbnailUrl: imageUrl,
+      maxSize: 100
+    } : undefined
+  }), [imageUrl]);
+
+  const dragProps = useDraggable(dragData, draggableOptions);
 
   const handleCopyToClipboard = useCallback(async () => {
     if (!imageUrl) {return;}
@@ -142,6 +162,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
         )}
       </div>
       <img
+        {...dragProps}
         src={imageUrl}
         alt=""
         style={{
@@ -150,7 +171,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
           maxHeight: "400px",
           objectFit: "contain",
           borderRadius: "4px",
-          cursor: "pointer"
+          cursor: "grab"
         }}
         onDoubleClick={() => setOpenViewer(true)}
       />

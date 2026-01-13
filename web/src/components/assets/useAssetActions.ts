@@ -7,7 +7,8 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import {
   serializeDragData,
   deserializeDragData,
-  createDragCountBadge
+  createDragCountBadge,
+  createDragImagePreview
 } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 
@@ -75,7 +76,11 @@ export const useAssetActions = (asset: Asset) => {
         {
           type: "assets-multiple",
           payload: assetIds,
-          metadata: { count: assetIds.length, sourceId: asset.id }
+          metadata: {
+            count: assetIds.length,
+            sourceId: asset.id,
+            thumbnailUrl: asset.get_url ?? undefined
+          }
         },
         e.dataTransfer
       );
@@ -84,8 +89,21 @@ export const useAssetActions = (asset: Asset) => {
       // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
-      // Create and set drag image using the unified utility
-      const dragImage = createDragCountBadge(assetIds.length);
+      // Create and set drag image - use image preview for images, count badge for others
+      const isImage = asset.content_type?.startsWith("image/");
+      const isVideo = asset.content_type?.startsWith("video/");
+      const hasVisualPreview = (isImage || isVideo) && asset.get_url;
+
+      let dragImage: HTMLElement;
+      if (hasVisualPreview && asset.get_url) {
+        dragImage = createDragImagePreview(
+          asset.get_url,
+          assetIds.length > 1 ? assetIds.length : undefined
+        );
+      } else {
+        dragImage = createDragCountBadge(assetIds.length);
+      }
+
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 25, 30);
       setTimeout(() => document.body.removeChild(dragImage), 0);
@@ -94,7 +112,11 @@ export const useAssetActions = (asset: Asset) => {
       setActiveDrag({
         type: "assets-multiple",
         payload: assetIds,
-        metadata: { count: assetIds.length, sourceId: asset.id }
+        metadata: {
+          count: assetIds.length,
+          sourceId: asset.id,
+          thumbnailUrl: asset.get_url ?? undefined
+        }
       });
     },
     [selectedAssetIds, setSelectedAssetIds, asset, setActiveDrag]

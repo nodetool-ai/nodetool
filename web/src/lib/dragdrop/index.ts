@@ -13,7 +13,8 @@ export type {
   DropZoneConfig,
   DraggableOptions,
   DragImageConfig,
-  DragDropState
+  DragDropState,
+  OutputImageData
 } from "./types";
 
 // Store
@@ -30,5 +31,6 @@ export {
   hasExternalFiles,
   extractFiles,
   createDragCountBadge,
+  createDragImagePreview,
   DRAG_DATA_MIME
 } from "./serialization";

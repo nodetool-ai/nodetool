@@ -22,6 +22,16 @@
  *   );
  *   return <div {...dragProps}>{asset.name}</div>;
  * };
+ *
+ * @example
+ * // With thumbnail preview for images
+ * const ImageItem = ({ asset }: Props) => {
+ *   const dragProps = useDraggable(
+ *     { type: 'asset', payload: asset },
+ *     { dragImage: { thumbnailUrl: asset.get_url } }
+ *   );
+ *   return <div {...dragProps}><img src={asset.get_url} /></div>;
+ * };
  */
 
 import { useCallback, useMemo, useRef } from "react";
@@ -32,7 +42,11 @@ import type {
   DraggableOptions,
   DragImageConfig
 } from "./types";
-import { serializeDragData, createDragCountBadge } from "./serialization";
+import {
+  serializeDragData,
+  createDragCountBadge,
+  createDragImagePreview
+} from "./serialization";
 
 export function useDraggable<T extends DragDataType>(
   data: DragData<T>,
@@ -64,7 +78,14 @@ export function useDraggable<T extends DragDataType>(
         } else {
           // DragImageConfig
           const config = options.dragImage as DragImageConfig;
-          if (config.count !== undefined) {
+          if (config.thumbnailUrl) {
+            // Use thumbnail preview with optional count badge
+            imageElement = createDragImagePreview(
+              config.thumbnailUrl,
+              config.count,
+              config.maxSize
+            );
+          } else if (config.count !== undefined) {
             imageElement = createDragCountBadge(config.count);
           } else if (config.content) {
             imageElement = document.createElement("div");

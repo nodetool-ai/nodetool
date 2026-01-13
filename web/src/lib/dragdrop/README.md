@@ -72,6 +72,49 @@ const AssetItem = ({ asset, selectedCount }) => {
 };
 ```
 
+### With Image Preview
+
+Display a thumbnail preview while dragging images:
+
+```tsx
+const ImageAssetItem = ({ asset }) => {
+  const dragProps = useDraggable(
+    { type: "asset", payload: asset },
+    { 
+      dragImage: { 
+        thumbnailUrl: asset.get_url,
+        count: selectedCount > 1 ? selectedCount : undefined,
+        maxSize: 120 // Maximum thumbnail size in pixels
+      } 
+    }
+  );
+
+  return <div {...dragProps}><img src={asset.get_url} /></div>;
+};
+```
+
+### Dragging Output Images
+
+Make output images from nodes draggable:
+
+```tsx
+import { useDraggable } from "@/lib/dragdrop";
+
+const OutputImage = ({ imageUrl }) => {
+  const dragProps = useDraggable(
+    { 
+      type: "output-image", 
+      payload: { url: imageUrl, contentType: "image/png" }
+    },
+    { 
+      dragImage: { thumbnailUrl: imageUrl, maxSize: 100 }
+    }
+  );
+
+  return <img {...dragProps} src={imageUrl} style={{ cursor: "grab" }} />;
+};
+```
+
 ### Accessing Global Drag State
 
 ```tsx
@@ -123,6 +166,24 @@ interface DragPayloadMap {
   "assets-multiple": string[];
   file: File;
   tab: string;
+  "output-image": OutputImageData; // { url: string, contentType?: string }
+}
+```
+
+### DragImageConfig Options
+
+```typescript
+interface DragImageConfig {
+  /** Badge showing count (for multiple items) */
+  count?: number;
+  /** Custom text content to show */
+  content?: string;
+  /** Position offset for the drag image */
+  offset?: { x: number; y: number };
+  /** Thumbnail URL for image preview */
+  thumbnailUrl?: string;
+  /** Maximum size for thumbnail preview (default: 120px) */
+  maxSize?: number;
 }
 ```
 
