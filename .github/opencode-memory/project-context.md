@@ -160,6 +160,20 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Canvas Notes Feature (2026-01-13)
+
+**What**: Added quick-access canvas notes feature with toolbar button and keyboard shortcut (Shift+C) to make adding sticky notes to workflows more discoverable and accessible.
+
+**Files**: `web/src/components/node_editor/AddNoteButton.tsx`, `web/src/components/node_editor/NodeEditor.tsx`, `web/src/config/shortcuts.ts`, `web/src/hooks/useNodeEditorShortcuts.ts`
+
+**Implementation**:
+- Created `AddNoteButton` component with MUI FAB styling, positioned in editor toolbar
+- Added keyboard shortcut (Shift+C) for quick note creation at viewport center
+- Integrated button into NodeEditor UI alongside RunAsAppFab
+- Tooltip shows keyboard shortcut for user discoverability
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).

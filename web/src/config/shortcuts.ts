@@ -627,6 +627,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Reset zoom to 100% (default scale)",
     registerCombo: true
+  },
+  {
+    title: "Add Note",
+    slug: "addNote",
+    keyCombo: ["Shift", "C"],
+    category: "editor" as const,
+    description: "Add a sticky note to the canvas",
+    registerCombo: true
   }
 ] as Shortcut[];
 
