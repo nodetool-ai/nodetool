@@ -41,6 +41,8 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
+import { useNodeBookmarkStore } from "../../stores/NodeBookmarkStore";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
 
 
 // Node sizing constants
@@ -241,6 +243,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { workflow_id, title } = data;
   const { focusedNodeId } = useNodeFocus();
   const isFocused = focusedNodeId === id;
+  const isBookmarked = useNodeBookmarkStore((state) =>
+    state.isBookmarked(workflow_id, id)
+  );
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -510,6 +515,24 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </Box>
       )}
 
+      {isBookmarked && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 4,
+            right: 4,
+            color: theme.vars.palette.warning.main,
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))"
+          }}
+        >
+          <BookmarkIcon fontSize="small" />
+        </Box>
+      )}
+
       {title && <EditableTitle nodeId={id} title={title} />}
     </Container>
   );
@@ -518,11 +541,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 export default memo(BaseNode, (prevProps, nextProps) => {
   const prevFocused = useNodeFocusStore.getState().focusedNodeId === prevProps.id;
   const nextFocused = useNodeFocusStore.getState().focusedNodeId === nextProps.id;
+  const prevWorkflowId = prevProps.data.workflow_id as string;
+  const nextWorkflowId = nextProps.data.workflow_id as string;
+  const prevBookmarked = useNodeBookmarkStore.getState().isBookmarked(prevWorkflowId, prevProps.id);
+  const nextBookmarked = useNodeBookmarkStore.getState().isBookmarked(nextWorkflowId, nextProps.id);
   return (
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
     prevFocused === nextFocused &&
+    prevBookmarked === nextBookmarked &&
     prevProps.parentId === nextProps.parentId &&
     isEqual(prevProps.data, nextProps.data)
   );
