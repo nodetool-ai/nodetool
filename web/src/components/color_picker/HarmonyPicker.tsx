@@ -120,6 +120,7 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
               <IconButton
                 size="small"
                 onClick={() => handleCopyAll(harmony.colors)}
+                aria-label="Copy all harmony colors to clipboard"
               >
                 <ContentCopyIcon sx={{ fontSize: 14 }} />
               </IconButton>
@@ -142,6 +143,18 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
                         onHarmonyChange(harmony.type);
                       }
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onColorSelect(harmonyColor);
+                        if (onHarmonyChange) {
+                          onHarmonyChange(harmony.type);
+                        }
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Use color ${harmonyColor}`}
                   >
                     <span className="color-hex" style={{ color: textHex }}>
                       {harmonyColor.replace("#", "")}

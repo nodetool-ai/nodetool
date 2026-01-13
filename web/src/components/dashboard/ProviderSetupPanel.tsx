@@ -309,7 +309,11 @@ const ProviderSetupPanel: React.FC = () => {
                 {configuredCount}/{PROVIDERS.length} configured
               </span>
             </div>
-            <IconButton size="small">
+            <IconButton
+              size="small"
+              aria-label={isExpanded ? "Collapse provider setup" : "Expand provider setup"}
+              aria-expanded={isExpanded}
+            >
               {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           </div>

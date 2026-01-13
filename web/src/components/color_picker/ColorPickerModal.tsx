@@ -349,7 +349,11 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
             <div className="header-actions">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <Tooltip title="Close (Esc)">
-                <IconButton size="small" onClick={handleApply}>
+                <IconButton
+                  size="small"
+                  onClick={handleApply}
+                  aria-label="Close color picker"
+                >
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -395,6 +399,15 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                   <div
                     className="preview-swatch"
                     onClick={() => copyColor("hex")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        copyColor("hex");
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Copy color ${color} to clipboard`}
                   >
                     <div className="preview-swatch-bg" />
                     <div

@@ -334,6 +334,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
               size="small"
               onClick={() => removeStop(selectedStopIndex)}
               disabled={gradient.stops.length <= 2}
+              aria-label="Remove gradient stop"
             >
               <DeleteIcon fontSize="small" />
             </IconButton>

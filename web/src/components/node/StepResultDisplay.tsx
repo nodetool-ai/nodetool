@@ -184,7 +184,20 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
 
   return (
     <div className="step-result-container" css={styles(theme)}>
-      <div className="step-result-header" onClick={handleToggle}>
+      <div
+        className="step-result-header"
+        onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-expanded={expanded}
+        aria-label="Toggle step result details"
+      >
         <CheckCircleOutlineIcon className="step-result-icon" />
         <Typography className="step-result-title">
           Step Completed
@@ -192,6 +205,7 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
         <IconButton
           size="small"
           className={`expand-button ${expanded ? "expanded" : ""}`}
+          aria-hidden="true"
         >
           <ExpandMoreIcon fontSize="small" />
         </IconButton>
