@@ -16,6 +16,7 @@ import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import ModelsButton from "../hugging_face/ModelsButton";
+import WorkspacesButton from "../workspaces/WorkspacesButton";
 import { IconForType } from "../../config/data_types";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { getIsElectronDetails } from "../../utils/browser";
@@ -394,6 +395,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
             <ChatButton isActive={path.startsWith("/chat")} />
             <AssetsButton isActive={path.startsWith("/assets")} />
             {(getIsElectronDetails().isElectron || !isProduction) && <ModelsButton />}
+            {(getIsElectronDetails().isElectron || !isProduction) && <WorkspacesButton />}
             <TemplatesButton isActive={path.startsWith("/templates")} />
             <CollectionsButton isActive={path.startsWith("/collections")} />
             <DashboardButton isActive={path.startsWith("/dashboard")} />
