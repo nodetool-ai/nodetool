@@ -17,7 +17,9 @@ import {
   Button,
   TextField,
   CircularProgress,
-  Chip
+  Chip,
+  FormControlLabel,
+  Checkbox
 } from "@mui/material";
 import React, { useCallback, useState, useEffect } from "react";
 import CloseIcon from "@mui/icons-material/Close";
@@ -599,6 +601,16 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                       Browse
                     </Button>
                   </div>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isDefault}
+                        onChange={(e) => setIsDefault(e.target.checked)}
+                        size="small"
+                      />
+                    }
+                    label="Set as default workspace"
+                  />
                   <Box
                     sx={{
                       display: "flex",
