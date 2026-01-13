@@ -36,7 +36,7 @@ Last updated: 2026-01-12
 - **Node Documentation**: Inline documentation for each node type
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
-- **Node Groups**: Group related nodes together (Loop nodes)
+- **Node Bookmarking**: Bookmark nodes in workflows for quick navigation with keyboard shortcut (M) and floating panel
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
 
 ### Workflow Management
