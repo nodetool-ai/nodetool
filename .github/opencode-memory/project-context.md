@@ -160,6 +160,19 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Virtualized Node List (2026-01-13)
+
+**What**: Added virtualization to the Node Menu for smooth rendering when displaying 50+ nodes using @tanstack/react-virtual.
+
+**Files**: `web/src/components/node_menu/VirtualizedNodeList.tsx`, `web/src/components/node_menu/RenderNodes.tsx`, `web/src/components/node_menu/__tests__/VirtualizedNodeList.test.tsx`
+
+**Implementation**:
+- Created `VirtualizedNodeList` component with @tanstack/react-virtual for efficient list rendering
+- Updated `RenderNodes.tsx` to use virtualization when node count exceeds threshold (50 nodes)
+- Virtualized list only renders visible items, dramatically improving performance for large node sets
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).

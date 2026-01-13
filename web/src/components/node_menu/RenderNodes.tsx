@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useRef, useEffect, useState } from "react";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -14,6 +14,7 @@ import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import VirtualizedNodeList from "./VirtualizedNodeList";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -22,6 +23,8 @@ interface RenderNodesProps {
   onToggleSelection?: (nodeType: string) => void;
   showFavoriteButton?: boolean;
 }
+
+const VIRTUALIZATION_THRESHOLD = 50;
 
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
@@ -46,6 +49,9 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   onToggleSelection,
   showFavoriteButton = true
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(0);
+
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
       setDragToCreate: state.setDragToCreate,
@@ -59,14 +65,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   const handleDragStart = useCallback(
     (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
       setDragToCreate(true);
-      // Use unified drag serialization
       serializeDragData(
         { type: "create-node", payload: node },
         event.dataTransfer
       );
       event.dataTransfer.effectAllowed = "move";
-
-      // Update global drag state
       setActiveDrag({ type: "create-node", payload: node });
     },
     [setDragToCreate, setActiveDrag]
@@ -80,6 +83,23 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedPath: state.selectedPath.join(".")
   }));
 
+  useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const { height } = containerRef.current.getBoundingClientRect();
+        setContainerHeight(height);
+      }
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   const searchNodes = useMemo(() => {
     if (searchTerm && groupedSearchResults.length > 0) {
       return groupedSearchResults.flatMap((group) => group.nodes);
@@ -87,10 +107,14 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
+  const shouldVirtualize = nodes.length > VIRTUALIZATION_THRESHOLD;
+
   const elements = useMemo(() => {
-    // If we're searching, render flat ranked results with SearchResultItem
+    if (shouldVirtualize) {
+      return null;
+    }
+
     if (searchTerm && groupedSearchResults.length > 0) {
-      // Flatten all results from groups (now just one "Results" group)
       const allSearchNodes = groupedSearchResults.flatMap(
         (group) => group.nodes
       );
@@ -106,7 +130,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       ));
     }
 
-    // Otherwise use the original namespace-based grouping
     const seenServices = new Set<string>();
 
     return Object.entries(groupNodes(nodes)).flatMap(
@@ -126,20 +149,13 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           );
         }
 
-        let textForNamespaceHeader = namespace; // Default to full namespace string
+        let textForNamespaceHeader = namespace;
 
         if (selectedPath && selectedPath === namespace) {
-          // If the current group of nodes IS the selected namespace, display its last part.
-          // e.g., selectedPath="A.B", namespace="A.B" -> display "B"
           textForNamespaceHeader = namespace.split(".").pop() || namespace;
         } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
-          // If the current group of nodes is a sub-namespace of the selected one, display the relative path.
-          // e.g., selectedPath="A", namespace="A.B.C" -> display "B.C"
           textForNamespaceHeader = namespace.substring(selectedPath.length + 1);
         }
-        // If selectedPath is empty (root is selected), textForNamespaceHeader remains the full 'namespace'.
-        // If namespace is not a child of selectedPath and not equal to selectedPath,
-        // it also remains the full 'namespace'.
 
         elements.push(
           <Typography
@@ -169,6 +185,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       }
     );
   }, [
+    shouldVirtualize,
     searchTerm,
     nodes,
     groupedSearchResults,
@@ -185,10 +202,24 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};
 
   return (
-    <div className="nodes" style={style}>
+    <div className="nodes" style={style} ref={containerRef}>
       {nodes.length > 0 ? (
         searchNodes ? (
-          <SearchResultsPanel searchNodes={searchNodes} />
+          shouldVirtualize && containerHeight > 0 ? (
+            <VirtualizedNodeList
+              nodes={searchNodes}
+              isSearchResults={true}
+              containerRef={containerRef}
+            />
+          ) : (
+            <SearchResultsPanel searchNodes={searchNodes} />
+          )
+        ) : shouldVirtualize && containerHeight > 0 ? (
+          <VirtualizedNodeList
+            nodes={nodes}
+            isSearchResults={false}
+            containerRef={containerRef}
+          />
         ) : (
           elements
         )
