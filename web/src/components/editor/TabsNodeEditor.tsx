@@ -7,7 +7,7 @@ import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
-import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
+import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 
@@ -15,7 +15,6 @@ import TabsBar from "./TabsBar";
 import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
-import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -300,8 +299,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   // const platform = window.navigator.platform;
   // const normalizedPlatform = platform.toLowerCase();
 
-  const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
-
   // Determine tab ids: storage open ids + currently loaded ones + active id
   // Seed from localStorage on mount to show placeholders during hydration,
   // then keep this in sync with store updates so UI reflects removals immediately.
@@ -399,13 +396,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
 
   return (
     <>
-      {workflowToEdit && (
-        <WorkflowFormModal
-          open={!!workflowToEdit}
-          onClose={() => setWorkflowToEdit(null)}
-          workflow={workflowToEdit}
-        />
-      )}
       <div
         css={styles(theme)}
         className="tabs-node-editor"
@@ -461,9 +451,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                             />
                           </div>
 
-                          <FloatingToolBar
-                            setWorkflowToEdit={(wf) => setWorkflowToEdit(wf)}
-                          />
+                          <FloatingToolBar />
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
                     </ContextMenuProvider>
