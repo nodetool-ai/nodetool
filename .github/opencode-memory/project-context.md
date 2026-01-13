@@ -160,15 +160,15 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Zustand Store Subscription Optimization (2026-01-13)
+### Mobile Package TypeScript Type Definitions Fix (2026-01-13)
 
-**What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
+**What**: Fixed mobile package type checking by adding `npm install` to the Makefile's `typecheck-mobile` target.
 
-**Files**: `web/src/hooks/useChatService.ts`, `web/src/hooks/editor/useChatIntegration.ts`, `web/src/components/chat/containers/GlobalChat.tsx`, `web/src/components/chat/containers/StandaloneChat.tsx`
+**Why**: TypeScript couldn't find type definition files for 'jest', 'node', and 'react-native' because node_modules wasn't installed.
 
-**Implementation**: Converted components from destructuring entire stores to using individual Zustand selectors. Also updated test mocks to support the new selector pattern.
+**Files**: `Makefile`, `mobile/package.json`, `mobile/tsconfig.json`
 
-**Impact**: Reduced unnecessary re-renders in chat-related components by ensuring they only update when their specific data changes.
+**Impact**: Type checking now automatically installs dependencies before running, preventing failures in CI/CD pipelines.
 
 ---
 
