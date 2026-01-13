@@ -39,6 +39,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
+import { useNodeFocus } from "../../hooks/useNodeFocus";
 
 
 // Node sizing constants
@@ -237,6 +238,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isDarkMode = useIsDarkMode();
   const { id, type, data, selected, parentId } = props;
   const { workflow_id, title } = data;
+  const { focusedNodeId } = useNodeFocus();
+  const isFocused = focusedNodeId === id;
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -393,7 +396,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         }),
         boxShadow: selected
           ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
+          : isFocused
+            ? `0 0 0 2px ${theme.vars.palette.warning.main}`
+            : "none",
+        outline: isFocused
+          ? `2px dashed ${theme.vars.palette.warning.main}`
           : "none",
+        outlineOffset: "-2px",
         backgroundColor:
           hasParent && !isLoading
             ? parentColor
@@ -477,17 +486,44 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {chunk && <ChunkDisplay chunk={chunk} />}
       {task && <TaskView task={task} />}
 
+      {isFocused && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: -20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            bgcolor: theme.vars.palette.warning.main,
+            color: theme.vars.palette.warning.contrastText,
+            px: 1,
+            py: 0.25,
+            borderRadius: 1,
+            fontSize: "0.7rem",
+            fontWeight: "bold",
+            zIndex: 1000,
+            boxShadow: 2
+          }}
+        >
+          FOCUSED
+        </Box>
+      )}
+
       {title && <EditableTitle nodeId={id} title={title} />}
     </Container>
   );
 };
 
 export default memo(BaseNode, (prevProps, nextProps) => {
+  const prevFocused = useNodeFocusStore.getState().focusedNodeId === prevProps.id;
+  const nextFocused = useNodeFocusStore.getState().focusedNodeId === nextProps.id;
   return (
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
+    prevFocused === nextFocused &&
     prevProps.parentId === nextProps.parentId &&
     isEqual(prevProps.data, nextProps.data)
   );
 });
+
+import { useNodeFocusStore } from "../../stores/NodeFocusStore";
