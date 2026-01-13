@@ -26,6 +26,7 @@ import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
+import { useNodeFocus } from "./useNodeFocus";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -76,6 +77,7 @@ export const useNodeEditorShortcuts = (
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
+  const nodeFocus = useNodeFocus();
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -487,6 +489,24 @@ export const useNodeEditorShortcuts = (
       deleteSelected: {
         callback: selectionActions.deleteSelected,
         active: selectedNodes.length > 0
+      },
+      navigateNextNode: { callback: nodeFocus.focusNext },
+      navigatePrevNode: { callback: nodeFocus.focusPrev },
+      selectFocusedNode: {
+        callback: nodeFocus.selectFocused,
+        active: nodeFocus.focusedNodeId !== null
+      },
+      exitNavigationMode: {
+        callback: nodeFocus.exitNavigationMode,
+        active: nodeFocus.isNavigationMode
+      },
+      focusNodeUp: { callback: nodeFocus.focusUp },
+      focusNodeDown: { callback: nodeFocus.focusDown },
+      focusNodeLeft: { callback: nodeFocus.focusLeft },
+      focusNodeRight: { callback: nodeFocus.focusRight },
+      goBack: {
+        callback: nodeFocus.goBack,
+        active: nodeFocus.focusHistory.length > 1
       }
     };
 
@@ -537,7 +557,19 @@ export const useNodeEditorShortcuts = (
     selectionActions.distributeHorizontal,
     selectionActions.distributeVertical,
     selectionActions.deleteSelected,
-    reactFlow
+    reactFlow,
+    nodeFocus.focusNext,
+    nodeFocus.focusPrev,
+    nodeFocus.focusedNodeId,
+    nodeFocus.selectFocused,
+    nodeFocus.isNavigationMode,
+    nodeFocus.exitNavigationMode,
+    nodeFocus.focusUp,
+    nodeFocus.focusDown,
+    nodeFocus.focusLeft,
+    nodeFocus.focusRight,
+    nodeFocus.goBack,
+    nodeFocus.focusHistory.length
   ]);
 
   // useEffect for shortcut registration
