@@ -17,7 +17,18 @@ export type DragDataType =
   | "assets-multiple" // Multiple assets (maps to existing "selectedAssetIds" key)
   | "file" // External file from OS
   | "tab" // Editor tab reordering
-  | "collection-file"; // File being added to collection
+  | "collection-file" // File being added to collection
+  | "output-image"; // Image from node output (ImageView)
+
+/**
+ * Output image data for dragging from ImageView
+ */
+export interface OutputImageData {
+  /** URL of the image (can be blob URL or server URL) */
+  url: string;
+  /** Optional content type */
+  contentType?: string;
+}
 
 /**
  * Type-safe payload definitions for each drag type
@@ -29,6 +40,7 @@ export interface DragPayloadMap {
   file: File;
   tab: string; // Workflow ID
   "collection-file": File;
+  "output-image": OutputImageData;
 }
 
 /**
@@ -104,6 +116,10 @@ export interface DragImageConfig {
   content?: string;
   /** Position offset */
   offset?: { x: number; y: number };
+  /** Thumbnail URL for image preview */
+  thumbnailUrl?: string;
+  /** Maximum size for thumbnail preview */
+  maxSize?: number;
 }
 
 /**

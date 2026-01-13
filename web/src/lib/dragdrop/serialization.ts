@@ -17,7 +17,8 @@ const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   "assets-multiple": "selectedAssetIds",
   file: "", // External files don't use custom keys
   tab: "text/plain",
-  "collection-file": ""
+  "collection-file": "",
+  "output-image": "output-image"
 };
 
 /**
@@ -97,6 +98,19 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
     }
   }
 
+  // Check for output-image type
+  const outputImage = dataTransfer.getData("output-image");
+  if (outputImage) {
+    try {
+      return {
+        type: "output-image",
+        payload: JSON.parse(outputImage)
+      };
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
   // Check for external files (will be handled separately in drop zone)
   if (hasExternalFiles(dataTransfer)) {
     return null;
@@ -149,4 +163,82 @@ export function createDragCountBadge(count: number): HTMLElement {
     font-weight: bold;
   `;
   return dragImage;
+}
+
+/**
+ * Default maximum size for drag preview images
+ */
+const DEFAULT_PREVIEW_MAX_SIZE = 120;
+
+/**
+ * Create an image preview drag element
+ *
+ * Creates a styled container with an image thumbnail for drag preview.
+ * Supports optional count badge for multiple items.
+ *
+ * @param thumbnailUrl - URL of the image to display as preview
+ * @param count - Optional count badge to show (for multiple items)
+ * @param maxSize - Maximum width/height in pixels (default: 120)
+ * @returns HTMLElement to use as drag image
+ */
+export function createDragImagePreview(
+  thumbnailUrl: string,
+  count?: number,
+  maxSize: number = DEFAULT_PREVIEW_MAX_SIZE
+): HTMLElement {
+  const container = document.createElement("div");
+  container.className = "drag-preview-container";
+  container.style.cssText = `
+    position: absolute;
+    top: -99999px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(34, 34, 34, 0.95);
+    border: 2px solid rgba(100, 100, 100, 0.8);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  `;
+
+  // Create the image element
+  const img = document.createElement("img");
+  img.src = thumbnailUrl;
+  img.style.cssText = `
+    max-width: ${maxSize}px;
+    max-height: ${maxSize}px;
+    width: auto;
+    height: auto;
+    border-radius: 4px;
+    object-fit: contain;
+  `;
+  img.alt = "Drag preview";
+  container.appendChild(img);
+
+  // Add count badge if multiple items
+  if (count !== undefined && count > 1) {
+    const badge = document.createElement("div");
+    badge.textContent = count.toString();
+    badge.style.cssText = `
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: var(--palette-primary-main, #6366f1);
+      color: white;
+      border-radius: 50%;
+      min-width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 0 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    `;
+    container.appendChild(badge);
+  }
+
+  return container;
 }

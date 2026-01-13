@@ -11,9 +11,12 @@ import { useNodes } from "../../contexts/NodeContext";
 import {
   deserializeDragData,
   hasExternalFiles,
-  extractFiles
+  extractFiles,
+  OutputImageData
 } from "../../lib/dragdrop";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 // Node spacing when dropping multiple assets
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -46,9 +49,10 @@ export const useDropHandler = () => {
   const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile } =
     useFileHandlers();
   const reactFlow = useReactFlow();
-  const { addNode, createNode } = useNodes((state) => ({
+  const { addNode, createNode, workflow } = useNodes((state) => ({
     addNode: state.addNode,
-    createNode: state.createNode
+    createNode: state.createNode,
+    workflow: state.workflow
   }));
   const getAsset = useAssetStore((state) => state.get);
   const { user } = useAuth();
@@ -57,6 +61,8 @@ export const useDropHandler = () => {
   );
   const addNodeFromAsset = useAddNodeFromAsset();
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
+  const { uploadAsset } = useAssetUpload();
+  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -116,6 +122,37 @@ export const useDropHandler = () => {
             addNodeFromAsset(fetchedAsset, position);
           });
           return;
+        } else if (dragData.type === "output-image") {
+          // Handle output image drop - convert image URL to asset
+          const imageData = dragData.payload as OutputImageData;
+          if (imageData.url && user) {
+            try {
+              // Fetch the image and convert to a File
+              const response = await fetch(imageData.url);
+              const blob = await response.blob();
+              const fileName = `output-image-${Date.now()}.png`;
+              const file = new File([blob], fileName, {
+                type: imageData.contentType || "image/png"
+              });
+
+              // Upload as asset and create node
+              await uploadAsset({
+                file,
+                workflow_id: workflow.id,
+                parent_id: currentFolderId || user.id,
+                onCompleted: (uploadedAsset: Asset) => {
+                  addNodeFromAsset(uploadedAsset, position);
+                }
+              });
+            } catch (_error) {
+              addNotification({
+                type: "error",
+                content: "Failed to process output image",
+                alert: true
+              });
+            }
+          }
+          return;
         }
       }
 
@@ -159,6 +196,8 @@ export const useDropHandler = () => {
       user,
       createNode,
       addNode,
+      workflow.id,
+      currentFolderId,
       getAsset,
       addNodeFromAsset,
       addRecentNode,
@@ -166,7 +205,8 @@ export const useDropHandler = () => {
       handleJsonFile,
       handleCsvFile,
       handleGenericFile,
-      addNotification
+      addNotification,
+      uploadAsset
     ]
   );
 

@@ -4,6 +4,7 @@ import {
   hasExternalFiles,
   extractFiles,
   createDragCountBadge,
+  createDragImagePreview,
   DRAG_DATA_MIME
 } from "../serialization";
 import type { DragData } from "../types";
@@ -245,6 +246,118 @@ describe("serialization", () => {
       const badge = createDragCountBadge(1);
 
       expect(badge.textContent).toBe("1");
+    });
+  });
+
+  describe("createDragImagePreview", () => {
+    it("should create a container with an image element", () => {
+      const preview = createDragImagePreview("https://example.com/image.png");
+
+      expect(preview.tagName).toBe("DIV");
+      expect(preview.className).toBe("drag-preview-container");
+      expect(preview.style.position).toBe("absolute");
+
+      const img = preview.querySelector("img");
+      expect(img).toBeTruthy();
+      expect(img?.src).toBe("https://example.com/image.png");
+      expect(img?.alt).toBe("Drag preview");
+    });
+
+    it("should include count badge for multiple items", () => {
+      const preview = createDragImagePreview(
+        "https://example.com/image.png",
+        3
+      );
+
+      // Find the badge (second child after image)
+      const children = Array.from(preview.children);
+      expect(children.length).toBe(2);
+
+      const badge = children[1] as HTMLElement;
+      expect(badge.textContent).toBe("3");
+      expect(badge.style.position).toBe("absolute");
+    });
+
+    it("should not include badge for single item", () => {
+      const preview = createDragImagePreview(
+        "https://example.com/image.png",
+        1
+      );
+
+      // Should only have the image, no badge
+      const children = Array.from(preview.children);
+      expect(children.length).toBe(1);
+    });
+
+    it("should not include badge when count is undefined", () => {
+      const preview = createDragImagePreview("https://example.com/image.png");
+
+      const children = Array.from(preview.children);
+      expect(children.length).toBe(1);
+    });
+
+    it("should respect maxSize parameter", () => {
+      const preview = createDragImagePreview(
+        "https://example.com/image.png",
+        undefined,
+        200
+      );
+
+      const img = preview.querySelector("img");
+      expect(img?.style.maxWidth).toBe("200px");
+      expect(img?.style.maxHeight).toBe("200px");
+    });
+
+    it("should use default maxSize when not provided", () => {
+      const preview = createDragImagePreview("https://example.com/image.png");
+
+      const img = preview.querySelector("img");
+      expect(img?.style.maxWidth).toBe("120px");
+      expect(img?.style.maxHeight).toBe("120px");
+    });
+  });
+
+  describe("output-image type", () => {
+    it("should deserialize output-image type from legacy key", () => {
+      const mockDataTransfer = {
+        getData: jest.fn((key: string) => {
+          if (key === "output-image") {
+            return JSON.stringify({ url: "https://example.com/output.png" });
+          }
+          return "";
+        }),
+        items: [],
+        files: { length: 0 }
+      } as unknown as DataTransfer;
+
+      const result = deserializeDragData(mockDataTransfer);
+
+      expect(result?.type).toBe("output-image");
+      expect((result?.payload as any).url).toBe(
+        "https://example.com/output.png"
+      );
+    });
+
+    it("should serialize output-image data correctly", () => {
+      const mockDataTransfer = {
+        setData: jest.fn()
+      } as unknown as DataTransfer;
+
+      const data: DragData<"output-image"> = {
+        type: "output-image",
+        payload: { url: "https://example.com/output.png", contentType: "image/png" }
+      };
+
+      serializeDragData(data, mockDataTransfer);
+
+      expect(mockDataTransfer.setData).toHaveBeenCalledWith(
+        DRAG_DATA_MIME,
+        expect.any(String)
+      );
+      expect(mockDataTransfer.setData).toHaveBeenCalledWith(
+        "output-image",
+        JSON.stringify({ url: "https://example.com/output.png", contentType: "image/png" })
+      );
     });
   });
 });
