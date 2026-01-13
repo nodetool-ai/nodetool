@@ -140,6 +140,32 @@ const updateThreadTimestamp = (
   }
 });
 
+const generateTitleFromFirstUserMessage = (
+  threadId: string,
+  state: GlobalChatState
+): string | null => {
+  const thread = state.threads[threadId];
+  if (!thread) { return null; }
+  if (thread.title) { return null; }
+
+  const messages = state.messageCache[threadId] || [];
+  const firstUserMessage = messages.find((msg) => msg.role === "user");
+  if (!firstUserMessage) { return null; }
+
+  let contentText = "";
+  if (typeof firstUserMessage.content === "string") {
+    contentText = firstUserMessage.content;
+  } else if (Array.isArray(firstUserMessage.content)) {
+    const firstText = (firstUserMessage.content as any[]).find(
+      (c: any) => c?.type === "text" && typeof c.text === "string"
+    );
+    contentText = firstText?.text || "";
+  }
+
+  const titleBase = contentText || "New conversation";
+  return titleBase.substring(0, 50) + (titleBase.length > 50 ? "..." : "");
+};
+
 const applyJobUpdate = (
   state: GlobalChatState,
   update: JobUpdate
@@ -266,11 +292,22 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   }
 
   const postAction = (get: ChatStateGetter) => {
-    const { selectedModel, summarizeThread } = get();
+    const { selectedModel, summarizeThread, updateThreadTitle } = get();
     const messagesAfterUpdate = get().messageCache[threadId] || [];
     if (messagesAfterUpdate.length === 2) {
       log.debug("Triggering thread summarization for thread:", threadId);
     }
+
+    const assistantMessages = messagesAfterUpdate.filter(
+      (msg) => msg.role === "assistant"
+    );
+    if (assistantMessages.length === 1 && !get().threads[threadId]?.title) {
+      const newTitle = generateTitleFromFirstUserMessage(threadId, get());
+      if (newTitle) {
+        updateThreadTitle(threadId, newTitle);
+      }
+    }
+
     if (selectedModel.provider && selectedModel.id) {
       summarizeThread(
         threadId,
@@ -600,42 +637,58 @@ const applyAssistantMessage = (
 
   const streamPlaceholderIndex = findStreamPlaceholderIndex();
 
+  const isNewAssistantMessage = streamPlaceholderIndex < 0 &&
+    (messages.length === 0 || messages[messages.length - 1]?.role !== "assistant");
+
+  const updatedMessages = (() => {
+    if (streamPlaceholderIndex >= 0) {
+      const existing = messages[streamPlaceholderIndex];
+      const replacement: Message = {
+        ...existing,
+        ...msg,
+        content: msg.content ?? existing.content
+      };
+      return [
+        ...messages.slice(0, streamPlaceholderIndex),
+        replacement,
+        ...messages.slice(streamPlaceholderIndex + 1)
+      ];
+    }
+
+    const currentLast = messages[messages.length - 1];
+    if (currentLast?.role === "assistant") {
+      const currentLastNormalized = normalizeTextForComparison(
+        extractTextContent(currentLast)
+      );
+      if (currentLastNormalized && currentLastNormalized === incomingNormalized) {
+        return messages;
+      }
+    }
+
+    return [...messages, msg];
+  })();
+
+  const postAction = isNewAssistantMessage ? (get: ChatStateGetter) => {
+    const { updateThreadTitle } = get();
+    if (!get().threads[threadId]?.title) {
+      const newTitle = generateTitleFromFirstUserMessage(threadId, get());
+      if (newTitle) {
+        updateThreadTitle(threadId, newTitle);
+      }
+    }
+  } : undefined;
+
   return {
     update: {
       messageCache: {
         ...state.messageCache,
-        [threadId]: (() => {
-          if (streamPlaceholderIndex >= 0) {
-            const existing = messages[streamPlaceholderIndex];
-            const replacement: Message = {
-              ...existing,
-              ...msg,
-              content: msg.content ?? existing.content
-            };
-            return [
-              ...messages.slice(0, streamPlaceholderIndex),
-              replacement,
-              ...messages.slice(streamPlaceholderIndex + 1)
-            ];
-          }
-
-          const currentLast = messages[messages.length - 1];
-          if (currentLast?.role === "assistant") {
-            const currentLastNormalized = normalizeTextForComparison(
-              extractTextContent(currentLast)
-            );
-            if (currentLastNormalized && currentLastNormalized === incomingNormalized) {
-              return messages;
-            }
-          }
-
-          return [...messages, msg];
-        })()
+        [threadId]: updatedMessages
       },
       threads: state.threads[threadId]
         ? updateThreadTimestamp(threadId, state.threads)
         : state.threads
-    }
+    },
+    postAction
   };
 };
 
