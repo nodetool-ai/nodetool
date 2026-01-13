@@ -175,6 +175,20 @@ test('handles user interaction', async () => {
 
 ---
 
+### Zoom Level Indicator (2026-01-13)
+
+**What**: Added a floating zoom level indicator in the node editor showing current zoom percentage with quick preset buttons and zoom controls.
+
+**Files**: `web/src/components/node_editor/ZoomLevelIndicator.tsx`, `web/src/components/node/ReactFlowWrapper.tsx`, `web/src/components/node_editor/__tests__/ZoomLevelIndicator.test.tsx`
+
+**Implementation**:
+- Created `ZoomLevelIndicator` component with zoom percentage display, zoom in/out buttons, preset buttons (50%, 100%, 150%, 200%), and fit-to-view button
+- Added smooth zoom animations (100ms for in/out, 200ms for presets)
+- Integrated indicator into ReactFlowWrapper alongside MiniMapNavigator
+- Uses ReactFlow's `useViewport` and `useReactFlow` hooks for zoom management
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).

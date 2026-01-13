@@ -23,6 +23,7 @@ Last updated: 2026-01-12
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
+- **Zoom Level Indicator**: Floating indicator showing zoom percentage with quick presets (50%, 100%, 150%, 200%) and zoom in/out/fit controls
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
