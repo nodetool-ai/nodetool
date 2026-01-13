@@ -710,6 +710,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  {
+    title: "Toggle Grid",
+    slug: "toggleGrid",
+    keyCombo: ["G"],
+    category: "editor" as const,
+    description: "Toggle canvas grid visibility",
+    registerCombo: true
   }
 ] as Shortcut[];
 
