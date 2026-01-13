@@ -565,6 +565,34 @@ Key takeaways:
 - **MCP Server**: Use `export_workflow_digraph` to visualize workflows
 - **Node Search**: Use `search_nodes` to discover nodes
 - **Documentation**: Check node descriptions with `get_node_info`
+- **Agent CLI**: Run autonomous agents from command line - see [Agent CLI Documentation](agent-cli.md)
+
+### Automation with Agent CLI
+
+For headless execution and automation, use the `nodetool agent` command to run autonomous agents from the command line:
+
+```bash
+# Run research agent
+nodetool agent \
+  --config examples/agents/research-agent.yaml \
+  --prompt "Research latest AI trends"
+
+# Automate content generation
+nodetool agent \
+  --config examples/agents/content-creator.yaml \
+  --prompt "Write blog post about NodeTool workflows" \
+  --output blog-post.md
+
+# Interactive agent session
+nodetool agent \
+  --config examples/agents/code-assistant.yaml \
+  --interactive
+```
+
+**See Also:**
+- [Agent CLI Documentation](agent-cli.md) — Complete CLI reference
+- [Agent Configuration Examples](examples/agents/) — Sample YAML configurations
+- [Global Chat & Agents](global-chat-agents.md) — Agent system overview
 
 ______________________________________________________________________
 
