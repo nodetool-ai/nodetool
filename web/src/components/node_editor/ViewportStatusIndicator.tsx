@@ -49,20 +49,12 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         display: "flex",
         alignItems: "center",
         gap: 0.5,
-        backgroundColor: theme.palette.mode === "dark"
-          ? "rgba(15, 23, 42, 0.85)"
-          : "rgba(255, 255, 255, 0.9)",
+        backgroundColor: theme.vars.palette.Paper.paper,
         backdropFilter: "blur(8px)",
         borderRadius: "8px",
-        border: `1px solid ${
-          theme.palette.mode === "dark"
-            ? "rgba(148, 163, 184, 0.15)"
-            : "rgba(0, 0, 0, 0.08)"
-        }`,
+        border: `1px solid ${theme.vars.palette.divider}`,
         padding: "4px 8px",
-        boxShadow: theme.palette.mode === "dark"
-          ? "0 4px 12px rgba(0, 0, 0, 0.3)"
-          : "0 2px 8px rgba(0, 0, 0, 0.08)",
+        boxShadow: theme.shadows[4],
         userSelect: "none",
         pointerEvents: "auto"
       }}
@@ -82,18 +74,14 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
             fontFamily: "JetBrains Mono, monospace",
             fontSize: "0.75rem",
             fontWeight: 500,
-            color: theme.palette.mode === "dark"
-              ? "rgba(148, 163, 184, 0.9)"
-              : "rgba(71, 85, 105, 0.9)",
+            color: theme.vars.palette.text.secondary,
             minWidth: "48px",
             textAlign: "center",
             padding: "2px 6px",
             borderRadius: "4px",
             transition: "all 0.15s ease",
             "&:hover": {
-              backgroundColor: theme.palette.mode === "dark"
-                ? "rgba(148, 163, 184, 0.1)"
-                : "rgba(0, 0, 0, 0.05)",
+              backgroundColor: theme.vars.palette.action.hover,
               color: theme.palette.primary.main
             }
           }}
@@ -106,43 +94,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         sx={{
           width: "1px",
           height: "16px",
-          backgroundColor: theme.palette.mode === "dark"
-            ? "rgba(148, 163, 184, 0.2)"
-            : "rgba(0, 0, 0, 0.1)"
-        }}
-      />
-
-      <Tooltip
-        title={
-          selectedCount > 0
-            ? `${selectedCount} of ${nodeCount} nodes selected`
-            : `${nodeCount} nodes in workflow`
-        }
-        placement="top"
-        arrow
-      >
-        <Typography
-          sx={{
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: "0.75rem",
-            fontWeight: 500,
-            color: theme.palette.mode === "dark"
-              ? "rgba(148, 163, 184, 0.9)"
-              : "rgba(71, 85, 105, 0.9)",
-            padding: "2px 6px"
-          }}
-        >
-          {selectedCount > 0 ? `${selectedCount}/${nodeCount}` : nodeCount}
-        </Typography>
-      </Tooltip>
-
-      <Box
-        sx={{
-          width: "1px",
-          height: "16px",
-          backgroundColor: theme.palette.mode === "dark"
-            ? "rgba(148, 163, 184, 0.2)"
-            : "rgba(0, 0, 0, 0.1)"
+          backgroundColor: theme.vars.palette.divider
         }}
       />
 
@@ -156,13 +108,9 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           size="small"
           sx={{
             padding: "2px",
-            color: theme.palette.mode === "dark"
-              ? "rgba(148, 163, 184, 0.9)"
-              : "rgba(71, 85, 105, 0.9)",
+            color: theme.vars.palette.text.secondary,
             "&:hover": {
-              backgroundColor: theme.palette.mode === "dark"
-                ? "rgba(148, 163, 184, 0.1)"
-                : "rgba(0, 0, 0, 0.05)",
+              backgroundColor: theme.vars.palette.action.hover,
               color: theme.palette.primary.main
             }
           }}
