@@ -298,10 +298,21 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 **Files**: `mobile/tsconfig.json`
 
-### Test Expectation Fix (2026-01-12)
+### Quality Assurance Fixes (2026-01-13)
 
-**What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
-**Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
+**What**: Fixed TypeScript type errors and lint warnings in SelectionActionToolbar component and mobile package type definitions.
+
+**Issues Fixed**:
+1. Removed non-existent `onToggleNodeInfo` prop from SelectionActionToolbar tests
+2. Removed unused `Info` import from SelectionActionToolbar.tsx  
+3. Removed unnecessary `selectedNodes.length` dependency from useMemo
+4. Installed missing @types/jest and @types/node packages for mobile
+
+**Files**:
+- web/src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx
+- web/src/components/node_editor/SelectionActionToolbar.tsx
+- mobile/package.json
+- mobile/package-lock.json
 
 ### Selection Action Toolbar (2026-01-10)
 
