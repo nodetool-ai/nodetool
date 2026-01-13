@@ -63,6 +63,7 @@ interface ReactFlowWrapperProps {
 
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
+import ZoomLevelIndicator from "../node_editor/ZoomLevelIndicator";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -543,6 +544,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         />
       )}
       <MiniMapNavigator />
+      <ZoomLevelIndicator />
     </div>
   );
 };
