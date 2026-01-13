@@ -100,6 +100,8 @@ describe("useNodeContextMenu", () => {
       title: "",
       bypassed: false
     },
+    position: { x: 100, y: 100 },
+    width: 280,
     parentId: null
   };
 
@@ -201,7 +203,7 @@ describe("useNodeContextMenu", () => {
     it("returns all condition booleans", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
-      expect(result.current.conditions.hasCommentTitle).toBe(false);
+      expect(result.current.conditions.hasCommentNode).toBe(false);
       expect(result.current.conditions.isBypassed).toBe(false);
       expect(result.current.conditions.canConvertToInput).toBe(true);
       expect(result.current.conditions.canConvertToConstant).toBe(true);
@@ -211,21 +213,54 @@ describe("useNodeContextMenu", () => {
   });
 
   describe("handleToggleComment", () => {
-    it("adds comment when hasCommentTitle is false", () => {
+    it("adds comment when hasCommentNode is false", () => {
+      const mockCreateNode = jest.fn().mockReturnValue({
+        id: "comment-node-1",
+        type: "nodetool.workflows.base_node.Comment",
+        position: { x: 400, y: 100 },
+        data: { properties: {} }
+      });
+      const mockAddNode = jest.fn();
+
+      const mockNodeWithWidth = {
+        ...mockNode,
+        width: 280
+      };
+
+      mockedUseNodes.mockImplementation((selector) => {
+        const state = {
+          updateNodeData: mockUpdateNodeData,
+          updateNode: mockUpdateNode,
+          selectNodesByType: mockSelectNodesByType,
+          deleteNode: mockDeleteNode,
+          getSelectedNodes: mockGetSelectedNodes,
+          toggleBypass: mockToggleBypass,
+          nodes: [mockNodeWithWidth, ...mockNodes.slice(1)],
+          edges: mockEdges,
+          workflow: mockWorkflow,
+          findNode: mockFindNode,
+          createNode: mockCreateNode,
+          addNode: mockAddNode
+        };
+        return selector(state);
+      });
+
       const { result } = renderHook(() => useNodeContextMenu());
 
       act(() => {
         result.current.handlers.handleToggleComment();
       });
 
-      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { title: "comment" });
+      expect(mockCreateNode).toHaveBeenCalled();
+      expect(mockAddNode).toHaveBeenCalled();
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { comment_node_id: "comment-node-1" });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
 
-    it("removes comment when hasCommentTitle is true", () => {
+    it("removes comment when hasCommentNode is true", () => {
       const nodeWithComment = {
         ...mockNode,
-        data: { ...mockNode.data, title: "my comment" }
+        data: { ...mockNode.data, comment_node_id: "comment-node-1" }
       };
 
       mockedUseNodes.mockImplementation((selector) => {
@@ -239,29 +274,23 @@ describe("useNodeContextMenu", () => {
           nodes: [nodeWithComment, ...mockNodes.slice(1)],
           edges: mockEdges,
           workflow: mockWorkflow,
-          findNode: mockFindNode
+          findNode: mockFindNode,
+          createNode: jest.fn(),
+          addNode: jest.fn()
         };
         return selector(state);
       });
 
-      mockedUseReactFlow.mockImplementation(() => ({
-        getNode: jest.fn((id) => {
-          const nodes = [nodeWithComment, ...mockNodes.slice(1)];
-          return nodes.find((n: { id: string }) => n.id === id) || null;
-        }),
-        getNodes: jest.fn(() => [nodeWithComment, ...mockNodes.slice(1)]),
-        getEdges: jest.fn(() => mockEdges)
-      }));
-
       const { result } = renderHook(() => useNodeContextMenu());
 
-      expect(result.current.conditions.hasCommentTitle).toBe(true);
+      expect(result.current.conditions.hasCommentNode).toBe(true);
 
       act(() => {
         result.current.handlers.handleToggleComment();
       });
 
-      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { title: "" });
+      expect(mockDeleteNode).toHaveBeenCalledWith("comment-node-1");
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { comment_node_id: undefined });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
   });

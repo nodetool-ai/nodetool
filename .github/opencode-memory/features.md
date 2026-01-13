@@ -36,6 +36,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Inline Comments**: Add rich text comment nodes to document workflows with visual indicators and keyboard shortcuts (Ctrl+Shift+C)
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

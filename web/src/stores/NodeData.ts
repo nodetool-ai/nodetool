@@ -11,6 +11,7 @@ export type NodeData = {
   color?: string;
   collapsed?: boolean;
   bypassed?: boolean; // When true, node is bypassed and passes inputs through to outputs
+  comment_node_id?: string; // ID of associated CommentNode for inline documentation
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
   originalType?: string;
   size?: {
