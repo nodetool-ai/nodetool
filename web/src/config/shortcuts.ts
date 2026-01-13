@@ -466,6 +466,22 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show/hide node information panel",
     registerCombo: true
   },
+  {
+    title: "Toggle Bookmark",
+    slug: "toggleBookmark",
+    keyCombo: ["Control", "M"],
+    category: "editor",
+    description: "Bookmark or unbookmark selected node for quick navigation",
+    registerCombo: true
+  },
+  {
+    title: "Go to Bookmark",
+    slug: "goToBookmark",
+    keyCombo: ["Control", "Shift", "M"],
+    category: "editor",
+    description: "Show bookmarked nodes list for quick navigation",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {

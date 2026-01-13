@@ -177,6 +177,26 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
+### Node Bookmarks Feature (2026-01-13)
+
+**What**: Added Node Bookmarks feature for quick navigation in complex workflows. Users can bookmark important nodes and quickly jump to them using keyboard shortcuts or a bookmark panel.
+
+**Files**:
+- `web/src/stores/NodeBookmarkStore.ts` - New store for managing bookmarked nodes per workflow
+- `web/src/components/node/NodeBookmarkIndicator.tsx` - Visual indicator on bookmarked nodes
+- `web/src/components/node_editor/NodeBookmarkPanel.tsx` - Panel showing list of bookmarked nodes
+- `web/src/components/node/BaseNode.tsx` - Integrated bookmark indicator
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added bookmark shortcuts (Ctrl+M, Ctrl+Shift+M)
+- `web/src/config/shortcuts.ts` - Added shortcut definitions
+- `web/src/stores/__tests__/NodeBookmarkStore.test.ts` - Tests for the bookmark store
+
+**Implementation**:
+- `NodeBookmarkStore` uses Zustand with persistence to save bookmarks to localStorage
+- Bookmarks persist across sessions and include optional custom labels
+- Ctrl+M toggles bookmark on selected node with notification feedback
+- Ctrl+Shift+M opens a panel listing all bookmarked nodes with quick navigation
+- Clicking a bookmark navigates to the node and selects it
+- Bookmarks are workflow-scoped (different bookmarks per workflow)
 ### Viewport Status Indicator (2026-01-13)
 
 **What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
