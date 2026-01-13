@@ -303,6 +303,23 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
 **Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
 
+### SelectionActionToolbar Type and Lint Fixes (2026-01-13)
+
+**What**: Fixed TypeScript errors and lint warnings in SelectionActionToolbar component and tests.
+
+**Why**: Test file was passing non-existent `onToggleNodeInfo` prop, and component had unused import with unnecessary useMemo dependency.
+
+**Files**:
+- `web/src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx`
+- `web/src/components/node_editor/SelectionActionToolbar.tsx`
+
+**Implementation**:
+- Removed invalid `onToggleNodeInfo` prop from 3 test cases
+- Removed unused `Info` icon import
+- Removed unnecessary `selectedNodes.length` dependency from useMemo array
+
+---
+
 ### Selection Action Toolbar (2026-01-10)
 
 **What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
