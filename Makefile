@@ -152,7 +152,7 @@ typecheck-electron:
 
 typecheck-mobile:
 	@echo "Type checking mobile package..."
-	cd mobile && npm run typecheck
+	cd mobile && npm install && npm run typecheck
 
 # Check target (run all checks)
 check: typecheck lint test
