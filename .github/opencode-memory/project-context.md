@@ -160,6 +160,26 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Execution Time Display (2026-01-13)
+
+**What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
+
+**Files**:
+- `web/src/stores/ExecutionTimeStore.ts` - New store for tracking node execution timing
+- `web/src/components/node/NodeExecutionTime.tsx` - New component displaying execution duration
+- `web/src/stores/workflowUpdates.ts` - Updated to record timing when status changes
+- `web/src/components/node/BaseNode.tsx` - Integrated NodeExecutionTime component
+- `web/src/stores/__tests__/ExecutionTimeStore.test.ts` - Tests for the timing store
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Tests for the component
+
+**Implementation**:
+- `ExecutionTimeStore` tracks start and end times for each node execution
+- `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
+- `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
+- Timings are cleared when workflow completes, cancels, or fails
+
+---
+
 ### Keyboard Node Navigation (2026-01-13)
 
 **What**: Added Tab-based keyboard navigation for the node editor, allowing users to navigate between nodes using keyboard shortcuts without mouse interaction.
