@@ -18,7 +18,7 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import { useFitView } from "./useFitView";
 import { useMenuHandler } from "./useIpcRenderer";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, XYPosition } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
@@ -26,6 +26,7 @@ import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
+import { COMMENT_NODE_METADATA } from "../utils/nodeUtils";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -42,7 +43,10 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    createNode: state.createNode,
+    addNode: state.addNode,
+    updateNodeData: state.updateNodeData
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -79,7 +83,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected, createNode, addNode, updateNodeData } =
     nodesStore;
   const {
     saveExample,
@@ -114,6 +118,26 @@ export const useNodeEditorShortcuts = (
       toggleBypassSelected();
     }
   }, [selectedNodes.length, toggleBypassSelected]);
+
+  const handleAddComment = useCallback(() => {
+    if (selectedNodes.length === 1) {
+      const targetNode = selectedNodes[0];
+      if (!targetNode.data.comment_node_id) {
+        const commentPosition: XYPosition = {
+          x: targetNode.position.x + (targetNode.width ?? 280) + 20,
+          y: targetNode.position.y
+        };
+        const commentNode = createNode(COMMENT_NODE_METADATA, commentPosition, {
+          comment: {
+            root: { children: [], direction: "ltr", format: "", indent: 0, type: "root", version: 1 }
+          },
+          comment_color: "#ffffff"
+        });
+        addNode(commentNode);
+        updateNodeData(targetNode.id, { comment_node_id: commentNode.id });
+      }
+    }
+  }, [selectedNodes, createNode, addNode, updateNodeData]);
 
   const handleSelectConnectedAll = useCallback(() => {
     if (selectedNodes.length > 0) {
@@ -439,6 +463,10 @@ export const useNodeEditorShortcuts = (
         callback: handleBypassSelected,
         active: selectedNodes.length > 0
       },
+      addComment: {
+        callback: handleAddComment,
+        active: selectedNodes.length === 1
+      },
       findInWorkflow: { callback: openFind },
       selectConnectedAll: {
         callback: handleSelectConnectedAll,
@@ -520,6 +548,7 @@ export const useNodeEditorShortcuts = (
     handleZoomIn,
     handleZoomOut,
     handleBypassSelected,
+    handleAddComment,
     handleFitView,
     handleSwitchTab,
     handleMoveNodes,

@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { useNavigate } from "react-router-dom";
-import { Node } from "@xyflow/react";
+import { Node, XYPosition } from "@xyflow/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -18,6 +18,8 @@ import {
   constantToInputType,
   inputToConstantType
 } from "../../utils/NodeTypeMapping";
+import { COMMENT_NODE_METADATA } from "../../utils/nodeUtils";
+import { DEFAULT_NODE_WIDTH } from "../../stores/NodeStore";
 
 interface UseNodeContextMenuReturn {
   menuPosition: { x: number; y: number } | null;
@@ -37,7 +39,7 @@ interface UseNodeContextMenuReturn {
     handleConvertToConstant: () => void;
   };
   conditions: {
-    hasCommentTitle: boolean;
+    hasCommentNode: boolean;
     isBypassed: boolean;
     canConvertToInput: boolean;
     canConvertToConstant: boolean;
@@ -63,7 +65,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     nodes,
     edges,
     workflow,
-    findNode
+    findNode,
+    createNode,
+    addNode
   } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode,
@@ -74,7 +78,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     nodes: state.nodes,
     edges: state.edges,
     workflow: state.workflow,
-    findNode: state.findNode
+    findNode: state.findNode,
+    createNode: state.createNode,
+    addNode: state.addNode
   }));
 
   const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
@@ -94,17 +100,45 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     (state) => state.state === "running"
   );
   const getResult = useResultsStore((state) => state.getResult);
-  const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const hasCommentNode = Boolean(nodeData?.comment_node_id);
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
 
   const handleToggleComment = useCallback(() => {
-    if (!nodeId) {
+    if (!nodeId || !node) {
       return;
     }
-    updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
+
+    if (hasCommentNode) {
+      const commentNodeId = nodeData?.comment_node_id as string;
+      deleteNode(commentNodeId);
+      updateNodeData(nodeId, { comment_node_id: undefined });
+    } else {
+      const commentPosition: XYPosition = {
+        x: node.position.x + (node.width ?? DEFAULT_NODE_WIDTH) + 20,
+        y: node.position.y
+      };
+      const commentNode = createNode(COMMENT_NODE_METADATA, commentPosition, {
+        comment: {
+          root: { children: [], direction: "ltr", format: "", indent: 0, type: "root", version: 1 }
+        },
+        comment_color: "#ffffff"
+      });
+      addNode(commentNode);
+      updateNodeData(nodeId, { comment_node_id: commentNode.id });
+    }
     closeContextMenu();
-  }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
+  }, [
+    closeContextMenu,
+    hasCommentNode,
+    nodeId,
+    node,
+    nodeData,
+    createNode,
+    addNode,
+    updateNodeData,
+    deleteNode
+  ]);
 
   const handleRunFromHere = useCallback(() => {
     if (!node || !nodeId || isWorkflowRunning) {
@@ -355,7 +389,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       handleConvertToConstant
     },
     conditions: {
-      hasCommentTitle,
+      hasCommentNode,
       isBypassed,
       canConvertToInput,
       canConvertToConstant,

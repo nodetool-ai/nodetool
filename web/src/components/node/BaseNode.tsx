@@ -15,7 +15,8 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Container } from "@mui/material";
+import { Container, Box } from "@mui/material";
+import CommentIcon from "@mui/icons-material/Comment";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -38,7 +39,6 @@ import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
 
 import { getIsElectronDetails } from "../../utils/browser";
-import { Box } from "@mui/material";
 
 
 // Node sizing constants
@@ -437,6 +437,20 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         iconBaseColor={baseColor}
         workflowId={workflow_id}
       />
+      {data.comment_node_id && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: "4px",
+            right: "40px",
+            color: "warning.main",
+            zIndex: 1
+          }}
+          title="Node has an associated comment"
+        >
+          <CommentIcon sx={{ fontSize: 16 }} />
+        </Box>
+      )}
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
       {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (

@@ -360,6 +360,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Add Comment",
+    slug: "addComment",
+    keyCombo: ["Control", "Shift", "C"],
+    keyComboMac: ["Meta", "Shift", "C"],
+    category: "editor",
+    description: "Add a comment to the selected node",
+    registerCombo: true
+  },
+  {
     title: "Select Connected (All)",
     slug: "selectConnectedAll",
     keyCombo: ["Shift", "C"],

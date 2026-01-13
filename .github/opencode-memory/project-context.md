@@ -160,6 +160,25 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Enhanced Workflow Documentation System (2026-01-13)
+
+**What**: Implemented a comprehensive workflow documentation system with:
+- Fixed "Add Comment" context menu to create proper CommentNode instead of just setting a title
+- Added keyboard shortcut (Ctrl+Shift/Cmd+Shift+C) for quick comment insertion
+- Added visual comment indicator (yellow comment icon) on nodes with associated comments
+- Comment nodes are now properly linked to source nodes via `comment_node_id` property
+
+**Files**:
+- `web/src/hooks/nodes/useNodeContextMenu.ts` - Fixed handleToggleComment to create/remove CommentNodes
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added keyboard shortcut for comment insertion
+- `web/src/components/node/BaseNode.tsx` - Added visual comment indicator
+- `web/src/stores/NodeData.ts` - Added `comment_node_id` property to NodeData type
+- `web/src/config/shortcuts.ts` - Added `addComment` shortcut definition
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Updated to use hasCommentNode condition
+- `web/src/hooks/nodes/__tests__/useNodeContextMenu.test.ts` - Updated tests for new behavior
+
+---
+
 ### Node Info Panel (2026-01-12)
 
 **What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).
