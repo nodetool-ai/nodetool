@@ -26,6 +26,7 @@ import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
+import { COMMENT_NODE_METADATA } from "../utils/nodeUtils";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -42,7 +43,9 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    createNode: state.createNode,
+    addNode: state.addNode
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -79,8 +82,14 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
-    nodesStore;
+  const {
+    selectedNodes,
+    selectAllNodes,
+    setNodes,
+    toggleBypassSelected,
+    createNode,
+    addNode
+  } = nodesStore;
   const {
     saveExample,
     removeWorkflow,
@@ -378,6 +387,20 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleAddNote = useCallback(() => {
+    const position = reactFlow.screenToFlowPosition({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
+    });
+
+    const metadata = COMMENT_NODE_METADATA;
+    const newNode = createNode(metadata, position);
+    newNode.width = 150;
+    newNode.height = 100;
+    newNode.style = { width: 150, height: 100 };
+    addNode(newNode);
+  }, [createNode, addNode, reactFlow]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -487,7 +510,8 @@ export const useNodeEditorShortcuts = (
       deleteSelected: {
         callback: selectionActions.deleteSelected,
         active: selectedNodes.length > 0
-      }
+      },
+      addNote: { callback: handleAddNote }
     };
 
     // Switch-to-tab (1-9)
@@ -537,7 +561,8 @@ export const useNodeEditorShortcuts = (
     selectionActions.distributeHorizontal,
     selectionActions.distributeVertical,
     selectionActions.deleteSelected,
-    reactFlow
+    reactFlow,
+    handleAddNote
   ]);
 
   // useEffect for shortcut registration

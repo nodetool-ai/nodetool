@@ -46,6 +46,7 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import AddNoteButton from "./AddNoteButton";
 
 declare global {
   interface Window {
@@ -159,6 +160,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           {active && (
             <>
               <RunAsAppFab workflowId={workflowId} />
+              <AddNoteButton size="small" />
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 1}
               />
