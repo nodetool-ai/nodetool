@@ -24,10 +24,16 @@ import {
   ShoppingCart,
   Analytics,
   Work,
-  Add
+  Add,
+  Description,
+  EditNote,
+  Folder
 } from "@mui/icons-material";
 
 const AVAILABLE_TOOLS = [
+  "read_file",
+  "write_file",
+  "list_directory",
   "search_email",
   "google_search",
   "google_news",
@@ -42,6 +48,9 @@ const AVAILABLE_TOOLS = [
 ];
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
+  read_file: "Read file in workspace",
+  write_file: "Write file in workspace",
+  list_directory: "List files in workspace",
   search_email: "Search for emails",
   google_search: "Search Google",
   google_news: "Search Google News",
@@ -56,6 +65,9 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 };
 
 const TOOL_ICONS: Record<string, JSX.Element> = {
+  read_file: <Description fontSize="small" sx={{ mr: 0.5 }} />,
+  write_file: <EditNote fontSize="small" sx={{ mr: 0.5 }} />,
+  list_directory: <Folder fontSize="small" sx={{ mr: 0.5 }} />,
   google_search: <Search fontSize="small" sx={{ mr: 0.5 }} />,
   google_news: <Newspaper fontSize="small" sx={{ mr: 0.5 }} />,
   google_images: <ImageSearch fontSize="small" sx={{ mr: 0.5 }} />,
