@@ -160,6 +160,19 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Virtualized Node List (2026-01-13)
+
+**What**: Added VirtualizedNodeList component for improved performance when browsing node menus with many nodes. Uses react-window to virtualize the node list rendering, only rendering visible items instead of all nodes at once.
+
+**Files**: `web/src/components/node_menu/VirtualizedNodeList.tsx`, `web/src/components/node_menu/RenderNodes.tsx`
+
+**Implementation**:
+- Created `VirtualizedNodeList` component using `react-window`'s `FixedSizeList` with `react-virtualized-auto-sizer` for responsive sizing
+- Handles namespace grouping, API key validation banners, and node items with consistent 40px row height
+- Updated `RenderNodes` to use `VirtualizedNodeList` for non-search mode (search mode already had virtualization via `SearchResultsPanel`)
+- Uses `useCallback` for stable callbacks and `useMemo` for computed values
+
+**Impact**: Improved performance when browsing large node collections in the node menu.
 ### Viewport Status Indicator (2026-01-13)
 
 **What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
