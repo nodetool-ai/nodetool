@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Quality Assurance Fixes (2026-01-14)
+
+**What**: Fixed lint warning in NodeExecutionTime.test.tsx and mobile package type checking issues.
+
+**Lint Fix**: Removed unused `formatDuration` function that was causing ESLint warning about unused variables.
+
+**Mobile Type Fix**: Installed mobile dependencies properly to resolve TypeScript type definition errors for 'jest' and 'react-native'.
+
+**Files**:
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused function
+- `mobile/package.json`, `mobile/package-lock.json` - Dependencies installed correctly
+
+**Verification**: All three quality checks now pass (typecheck, lint, test).
+
+---
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
