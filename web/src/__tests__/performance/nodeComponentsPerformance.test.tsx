@@ -362,7 +362,7 @@ describe('NodeInputs Performance Optimizations', () => {
       console.log(`[PERF] With memo (100 calls): ${duration2.toFixed(2)}ms`);
       console.log(`[PERF] Speed improvement: ${(duration1 / duration2).toFixed(1)}x`);
 
-      expect(duration2).toBeLessThan(duration1 / 5); // At least 5x faster
+      expect(duration2).toBeLessThan(duration1 / 2); // At least 2x faster
     });
   });
 

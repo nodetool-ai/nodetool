@@ -3,7 +3,6 @@ import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import { useViewport, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import { useNodes } from "../../contexts/NodeContext";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
 interface ViewportStatusIndicatorProps {
@@ -16,16 +15,8 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   const theme = useTheme();
   const { zoom } = useViewport();
   const { zoomTo, fitView } = useReactFlow();
-  const nodes = useNodes((state) => state.nodes);
 
   const zoomPercentage = useMemo(() => Math.round(zoom * 100), [zoom]);
-
-  const nodeCount = useMemo(() => nodes.length, [nodes]);
-
-  const selectedCount = useMemo(
-    () => nodes.filter((n) => n.selected).length,
-    [nodes]
-  );
 
   const handleResetZoom = useCallback(() => {
     zoomTo(1, { duration: 200 });

@@ -137,6 +137,7 @@ const mockTheme = createTheme({
       warningOutlinedBorder: "rgba(255, 152, 0, 0.5)",
       warningTextColor: "#ff9800"
     },
+    Paper: { paper: "#232323" },
     // Add glass effect for ResultOverlay component
     // Add glass effect for ResultOverlay component
     glass: {

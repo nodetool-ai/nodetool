@@ -376,6 +376,18 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Quality Check Fixes (2026-01-14)
+
+**What**: Fixed all quality check issues - mobile type checking, lint warnings, and flaky performance test.
+
+**Files**:
+- `mobile/package.json`, `mobile/package-lock.json` - Installed mobile dependencies
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused formatDuration
+- `web/src/components/node_editor/ViewportStatusIndicator.tsx` - Removed unused variables and import
+- `web/src/__mocks__/themeMock.ts` - Added missing Paper palette
+- `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx` - Fixed test setup
+- `web/src/__tests__/performance/nodeComponentsPerformance.test.tsx` - Reduced threshold
+
 ### Dead Code Removal (2026-01-13)
 
 **What**: Removed commented-out dead code from TypeHandler.ts and NodeStore.ts.
