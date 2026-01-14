@@ -98,6 +98,28 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         }}
       />
 
+      <Typography
+        sx={{
+          fontFamily: "JetBrains Mono, monospace",
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          color: theme.vars.palette.text.secondary,
+          minWidth: "32px",
+          textAlign: "center",
+          padding: "2px 6px"
+        }}
+      >
+        {selectedCount > 0 ? `${selectedCount}/${nodeCount}` : `${nodeCount}`}
+      </Typography>
+
+      <Box
+        sx={{
+          width: "1px",
+          height: "16px",
+          backgroundColor: theme.vars.palette.divider
+        }}
+      />
+
       <Tooltip
         title={getShortcutTooltip("fitView")}
         placement="top"

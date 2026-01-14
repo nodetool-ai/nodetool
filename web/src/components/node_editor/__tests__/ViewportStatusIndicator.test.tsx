@@ -1,7 +1,9 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ThemeProvider } from "@mui/material/styles";
 import ViewportStatusIndicator from "../ViewportStatusIndicator";
+import mockTheme from "../../../__mocks__/themeMock";
 
 jest.mock("@xyflow/react", () => {
   const actual = jest.requireActual("@xyflow/react");
@@ -22,6 +24,10 @@ jest.mock("../../../config/shortcuts", () => ({
 
 import { useNodes } from "../../../contexts/NodeContext";
 import { useViewport, useReactFlow } from "@xyflow/react";
+
+const renderWithTheme = (component: React.ReactElement) => {
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+};
 
 const mockZoom = 1.25;
 const mockZoomTo = jest.fn();
@@ -53,12 +59,12 @@ describe("ViewportStatusIndicator", () => {
   });
 
   it("displays zoom percentage", () => {
-    render(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByText("125%")).toBeInTheDocument();
   });
 
   it("displays selected/total count when nodes are selected", () => {
-    render(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByText("1/2")).toBeInTheDocument();
   });
 
@@ -71,26 +77,26 @@ describe("ViewportStatusIndicator", () => {
         ]
       })
     );
-    render(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
   it("calls zoomTo with 1 when reset zoom button is clicked", async () => {
-    render(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     const zoomButton = screen.getByText("125%");
     await userEvent.click(zoomButton);
     expect(mockZoomTo).toHaveBeenCalledWith(1, { duration: 200 });
   });
 
   it("calls fitView when fit view button is clicked", async () => {
-    render(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     const fitViewButton = screen.getByTestId("CenterFocusStrongIcon");
     await userEvent.click(fitViewButton.closest("button") as HTMLElement);
     expect(mockFitView).toHaveBeenCalledWith({ padding: 0.2, duration: 200 });
   });
 
   it("hides when visible prop is false", () => {
-    const { container } = render(<ViewportStatusIndicator visible={false} />);
+    const { container } = renderWithTheme(<ViewportStatusIndicator visible={false} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -98,7 +104,7 @@ describe("ViewportStatusIndicator", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 2.5
     }));
-    render(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByText("250%")).toBeInTheDocument();
   });
 
@@ -111,7 +117,7 @@ describe("ViewportStatusIndicator", () => {
         ]
       })
     );
-    render(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
@@ -121,7 +127,7 @@ describe("ViewportStatusIndicator", () => {
         nodes: [{ id: "1", position: { x: 0, y: 0 }, selected: false }]
       })
     );
-    render(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByText("1")).toBeInTheDocument();
   });
 });
