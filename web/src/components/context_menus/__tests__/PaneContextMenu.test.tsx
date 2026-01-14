@@ -1,5 +1,6 @@
 import { act } from "@testing-library/react";
 import { useFavoriteNodesStore } from "../../../stores/FavoriteNodesStore";
+import { useRecentNodesStore } from "../../../stores/RecentNodesStore";
 import useMetadataStore from "../../../stores/MetadataStore";
 
 // Test the integration of favorites with context menu logic
@@ -157,6 +158,137 @@ describe("PaneContextMenu favorites integration", () => {
     };
 
     expect(getNodeDisplayName("nodetool.test.MyNode")).toBe("MyNode");
+  });
+});
+
+describe("PaneContextMenu recent nodes integration", () => {
+  beforeEach(() => {
+    act(() => {
+      useFavoriteNodesStore.setState({ favorites: [] });
+      useRecentNodesStore.setState({ recentNodes: [] });
+      useMetadataStore.setState({ metadata: {} });
+    });
+    localStorage.removeItem("nodetool-favorite-nodes");
+    localStorage.removeItem("nodetool-recent-nodes");
+  });
+
+  it("recent nodes store provides correct data for context menu", () => {
+    act(() => {
+      useMetadataStore.setState({
+        metadata: {
+          "nodetool.test.RecentNode": {
+            title: "Recent Node",
+            node_type: "nodetool.test.RecentNode",
+            namespace: "nodetool.test",
+            properties: [],
+            layout: "default",
+            outputs: [],
+            description: "",
+            the_model_info: {},
+            recommended_models: [],
+            basic_fields: [],
+            is_dynamic: false,
+            is_streaming_output: false,
+            expose_as_tool: false,
+            supports_dynamic_outputs: false
+          }
+        }
+      });
+      useRecentNodesStore.getState().addRecentNode("nodetool.test.RecentNode");
+    });
+
+    const recentNodes = useRecentNodesStore.getState().recentNodes;
+    expect(recentNodes).toHaveLength(1);
+    expect(recentNodes[0].nodeType).toBe("nodetool.test.RecentNode");
+  });
+
+  it("returns empty recent nodes when none are used", () => {
+    const recentNodes = useRecentNodesStore.getState().recentNodes;
+    expect(recentNodes).toHaveLength(0);
+  });
+
+  it("recent nodes are ordered by most recently used first", () => {
+    act(() => {
+      useMetadataStore.setState({
+        metadata: {
+          "nodetool.test.First": {
+            title: "First Node",
+            node_type: "nodetool.test.First",
+            namespace: "nodetool.test",
+            properties: [],
+            layout: "default",
+            outputs: [],
+            description: "",
+            the_model_info: {},
+            recommended_models: [],
+            basic_fields: [],
+            is_dynamic: false,
+            is_streaming_output: false,
+            expose_as_tool: false,
+            supports_dynamic_outputs: false
+          },
+          "nodetool.test.Second": {
+            title: "Second Node",
+            node_type: "nodetool.test.Second",
+            namespace: "nodetool.test",
+            properties: [],
+            layout: "default",
+            outputs: [],
+            description: "",
+            the_model_info: {},
+            recommended_models: [],
+            basic_fields: [],
+            is_dynamic: false,
+            is_streaming_output: false,
+            expose_as_tool: false,
+            supports_dynamic_outputs: false
+          }
+        }
+      });
+      useRecentNodesStore.getState().addRecentNode("nodetool.test.First");
+      useRecentNodesStore.getState().addRecentNode("nodetool.test.Second");
+    });
+
+    const recentNodes = useRecentNodesStore.getState().recentNodes;
+    expect(recentNodes).toHaveLength(2);
+    expect(recentNodes[0].nodeType).toBe("nodetool.test.Second");
+    expect(recentNodes[1].nodeType).toBe("nodetool.test.First");
+  });
+
+  it("recent nodes limits to MAX_RECENT_NODES (12)", () => {
+    act(() => {
+      for (let i = 1; i <= 15; i++) {
+        useRecentNodesStore.getState().addRecentNode(`nodetool.test.Node${i}`);
+      }
+    });
+
+    const recentNodes = useRecentNodesStore.getState().recentNodes;
+    expect(recentNodes).toHaveLength(12);
+    expect(recentNodes[0].nodeType).toBe("nodetool.test.Node15");
+  });
+
+  it("duplicate recent nodes move to front", () => {
+    act(() => {
+      useRecentNodesStore.getState().addRecentNode("nodetool.test.Node1");
+      useRecentNodesStore.getState().addRecentNode("nodetool.test.Node2");
+      useRecentNodesStore.getState().addRecentNode("nodetool.test.Node1");
+    });
+
+    const recentNodes = useRecentNodesStore.getState().recentNodes;
+    expect(recentNodes).toHaveLength(2);
+    expect(recentNodes[0].nodeType).toBe("nodetool.test.Node1");
+    expect(recentNodes[1].nodeType).toBe("nodetool.test.Node2");
+  });
+
+  it("clearRecentNodes removes all recent nodes", () => {
+    act(() => {
+      useRecentNodesStore.getState().addRecentNode("nodetool.test.Node1");
+      useRecentNodesStore.getState().addRecentNode("nodetool.test.Node2");
+      useRecentNodesStore.getState().clearRecentNodes();
+    });
+
+    const recentNodes = useRecentNodesStore.getState().recentNodes;
+    expect(recentNodes).toHaveLength(0);
   });
 });
 

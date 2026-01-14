@@ -7,12 +7,14 @@ import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
+import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 //icons
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import StarIcon from "@mui/icons-material/Star";
+import HistoryIcon from "@mui/icons-material/History";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
@@ -40,6 +42,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   );
   const fitView = useFitView();
   const favorites = useFavoriteNodesStore((state) => state.favorites);
+  const recentNodes = useRecentNodesStore((state) => state.recentNodes);
+  const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const { createNode, addNode } = useNodes((state) => ({
@@ -48,7 +52,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   }));
 
   const addComment = (event: React.MouseEvent) => {
-    // Fake metadata for comments
     const metadata = COMMENT_NODE_METADATA;
     const newNode = createNode(
       metadata,
@@ -61,11 +64,11 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     newNode.height = 100;
     newNode.style = { width: 150, height: 100 };
     addNode(newNode);
+    addRecentNode(metadata.node_type);
   };
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
-      // Use the imported constant
       const metadata = GROUP_NODE_METADATA;
       const position = reactFlowInstance.screenToFlowPosition({
         x: menuPosition?.x || event.clientX,
@@ -73,9 +76,10 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       });
       const newNode = createNode(metadata, position);
       addNode(newNode);
+      addRecentNode(metadata.node_type);
       closeContextMenu();
     },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu, addRecentNode]
   );
 
   const addFavoriteNode = useCallback(
@@ -91,10 +95,31 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         });
         const newNode = createNode(metadata, position);
         addNode(newNode);
+        addRecentNode(nodeType);
       }
       closeContextMenu();
     },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu, getMetadata]
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu, getMetadata, addRecentNode]
+  );
+
+  const addRecentNodeToCanvas = useCallback(
+    (nodeType: string, event: React.MouseEvent | undefined) => {
+      if (!event) {
+        return;
+      }
+      const metadata = getMetadata(nodeType);
+      if (metadata) {
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: menuPosition?.x || event.clientX,
+          y: menuPosition?.y || event.clientY
+        });
+        const newNode = createNode(metadata, position);
+        addNode(newNode);
+        addRecentNode(nodeType);
+      }
+      closeContextMenu();
+    },
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu, getMetadata, addRecentNode]
   );
 
   const getNodeDisplayName = useCallback(
@@ -200,6 +225,45 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
                 IconComponent={
                   <StarIcon
                     sx={{ fontSize: "1rem", color: "warning.main", opacity: 0.7 }}
+                  />
+                }
+                tooltip={`Add ${displayName} node`}
+              />
+            );
+          })}
+        </>
+      )}
+      {recentNodes.length > 0 && (
+        <>
+          <Divider />
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5em",
+              padding: "4px 16px",
+              color: "text.secondary",
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px"
+            }}
+          >
+            <HistoryIcon
+              sx={{ fontSize: "0.85rem", color: "info.main" }}
+            />
+            <Typography variant="inherit">Recent</Typography>
+          </Box>
+          {recentNodes.map((recent) => {
+            const displayName = getNodeDisplayName(recent.nodeType);
+            return (
+              <ContextMenuItem
+                key={recent.nodeType}
+                onClick={(e) => addRecentNodeToCanvas(recent.nodeType, e)}
+                label={displayName}
+                IconComponent={
+                  <HistoryIcon
+                    sx={{ fontSize: "1rem", color: "info.main", opacity: 0.7 }}
                   />
                 }
                 tooltip={`Add ${displayName} node`}

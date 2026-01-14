@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Recent Nodes in Context Menu (2026-01-14)
+
+**What**: Added "Recent" section to PaneContextMenu showing recently used nodes, complementing the existing Favorites section. Automatically tracks node usage when adding nodes from favorites, recent list, comments, or groups.
+
+**Files**:
+- `web/src/components/context_menus/PaneContextMenu.tsx` - Added Recent Nodes section and tracking logic
+- `web/src/components/context_menus/__tests__/PaneContextMenu.test.tsx` - Added tests for recent nodes integration
+
+**Implementation**:
+- Integrated `useRecentNodesStore` to display recently used nodes in the canvas context menu
+- Added tracking of nodes when added from any source (favorites, recent, comments, groups)
+- Uses existing `RecentNodesStore` that was already implemented but unused
+- Recent nodes appear after favorites in the context menu with History icon
+
+---
+
 ### Node Execution Time Display (2026-01-13)
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
