@@ -114,7 +114,7 @@ Last updated: 2026-01-12
 - **File Upload Button**: Button component for file uploads
 - **Infinite Scroll**: Load content incrementally on scroll
 - **Context Menus**: Right-click menus for various elements (nodes, edges, pane, properties)
-- **Keyboard Shortcuts**: Configurable keyboard shortcuts system including undo/redo, copy/paste, align, distribute, find, and reset zoom
+- **Node Menu Quick Navigation**: Enhanced keyboard navigation with j/k for up/down, / to focus search, visual feedback for keyboard selection
 - **Close Button**: Consistent close button component
 - **Delete Button**: Consistent delete button component
 

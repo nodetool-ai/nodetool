@@ -113,6 +113,13 @@ export type NodeMenuStore = {
   moveSelectionUp: () => void;
   moveSelectionDown: () => void;
   getSelectedNode: () => NodeMetadata | null;
+
+  // Section-based keyboard navigation for NodeMenu
+  navigationSection: "favorites" | "recent" | "results" | "browse";
+  setNavigationSection: (section: "favorites" | "recent" | "results" | "browse") => void;
+  moveSelectionToNextSection: () => void;
+  moveSelectionToPrevSection: () => void;
+  getSelectedNodeWithSection: () => { node: NodeMetadata | null; section: string; index: number } | null;
 };
 
 type NodeMenuStoreOptions = {
@@ -429,7 +436,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             selectedOutputType: "",
             showDocumentation: false,
             selectedNodeType: null,
-            selectedIndex: -1
+            selectedIndex: -1,
+            navigationSection: "browse"
           });
         }
       },
@@ -521,7 +529,9 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
               ? params.dropType
               : "",
           menuWidth: 950,
-          menuHeight: 900
+          menuHeight: 900,
+          navigationSection: params.searchTerm ? "results" : "browse",
+          selectedIndex: -1
         });
 
         // debug: after state set
@@ -560,6 +570,44 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
         if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
         return allNodes[selectedIndex];
+      },
+
+      // Section-based keyboard navigation for NodeMenu
+      navigationSection: "browse",
+      setNavigationSection: (section) => set({ navigationSection: section }),
+      moveSelectionToNextSection: () => {
+        const { navigationSection } = get();
+        const sections: Array<"favorites" | "recent" | "results" | "browse"> = [
+          "favorites",
+          "recent",
+          "results",
+          "browse"
+        ];
+        const currentIndex = sections.indexOf(navigationSection);
+        const nextIndex = currentIndex >= sections.length - 1 ? 0 : currentIndex + 1;
+        set({ navigationSection: sections[nextIndex] });
+      },
+      moveSelectionToPrevSection: () => {
+        const { navigationSection } = get();
+        const sections: Array<"favorites" | "recent" | "results" | "browse"> = [
+          "favorites",
+          "recent",
+          "results",
+          "browse"
+        ];
+        const currentIndex = sections.indexOf(navigationSection);
+        const prevIndex = currentIndex <= 0 ? sections.length - 1 : currentIndex - 1;
+        set({ navigationSection: sections[prevIndex] });
+      },
+      getSelectedNodeWithSection: () => {
+        const { selectedIndex, groupedSearchResults, navigationSection } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
+        return {
+          node: allNodes[selectedIndex],
+          section: navigationSection,
+          index: selectedIndex
+        };
       }
     };
   });

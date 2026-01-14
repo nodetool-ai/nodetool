@@ -160,6 +160,27 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Menu Quick Navigation (2026-01-14)
+
+**What**: Added enhanced keyboard navigation to the NodeMenu with vim-style shortcuts (j/k for up/down), / to focus search, and visual feedback showing keyboard-selected nodes with an outline and background highlight.
+
+**Files**:
+- `web/src/stores/NodeMenuStore.ts` - Added section-based navigation state and methods (moveSelectionToNextSection, moveSelectionToPrevSection)
+- `web/src/components/node_menu/NodeMenu.tsx` - Added keyboard handlers for j, k, /, Ctrl+Tab, Ctrl+Shift+Tab shortcuts
+- `web/src/components/node_menu/NodeItem.tsx` - Added isKeyboardSelected prop with visual feedback styles
+- `web/src/components/node_menu/RenderNodesSelectable.tsx` - Added keyboard selection tracking and isKeyboardSelected prop passing
+- `web/src/config/shortcuts.ts` - Added new shortcuts for NodeMenu navigation (nodeMenuDown, nodeMenuUp, nodeMenuFocusSearch, nodeMenuNextSection, nodeMenuPrevSection)
+
+**Implementation**:
+- Added keyboard navigation with visual feedback (primary-colored outline and background highlight)
+- Added vim-style j/k shortcuts for moving up/down through node results
+- Added / shortcut to focus the search input
+- Added Ctrl+Tab/Ctrl+Shift+Tab for navigating between menu sections
+- Updated NodeMenuStore to track selectedIndex and navigationSection
+- Updated all NodeItem usages to pass isKeyboardSelected prop
+
+---
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

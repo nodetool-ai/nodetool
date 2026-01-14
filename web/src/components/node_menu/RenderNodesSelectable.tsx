@@ -72,6 +72,12 @@ const listStyles = (theme: Theme) =>
       borderLeftColor: "var(--palette-primary-main)",
       backgroundColor: theme.vars.palette.grey[800]
     },
+    ".node.keyboard-selected .node-button": {
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: "1px",
+      backgroundColor: theme.vars.palette.action.hover,
+      borderRadius: "4px"
+    },
     ".namespace-text": {
       color: theme.vars.palette.primary.main,
       fontSize: "0.95em",
@@ -150,9 +156,10 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   onSetSelection
 }) => {
   const theme = useTheme();
-  const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
+  const { groupedSearchResults, searchTerm, selectedIndex } = useNodeMenuStore((state) => ({
     groupedSearchResults: state.groupedSearchResults,
-    searchTerm: state.searchTerm
+    searchTerm: state.searchTerm,
+    selectedIndex: state.selectedIndex
   }));
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
@@ -282,20 +289,30 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         : namespace}
                     </Typography>
                   </Box>
-                  {nodesInNamespace.map((node) => (
-                    <div key={node.node_type}>
-                      <NodeItem
-                        key={node.node_type}
-                        node={node}
-                        onDragStart={handleDragStart(node)}
-                        onDragEnd={handleDragEnd}
-                        onClick={() => handleNodeClick(node)}
-                        showCheckbox={showCheckboxes}
-                        isSelected={selectedNodeTypes.includes(node.node_type)}
-                        onToggleSelection={onToggleSelection}
-                      />
-                    </div>
-                  ))}
+                  {nodesInNamespace.map((node, idx) => {
+                    const globalIndex = groupedSearchResults
+                      .slice(0, groupedSearchResults.indexOf(group))
+                      .reduce((acc, g) => acc + g.nodes.length, 0) +
+                      filteredNodes
+                        .slice(0, nodesInNamespace.indexOf(node))
+                        .reduce((acc) => acc + 1, 0) + idx;
+                    const isKeyboardSelected = globalIndex === selectedIndex;
+                    return (
+                      <div key={node.node_type}>
+                        <NodeItem
+                          key={node.node_type}
+                          node={node}
+                          onDragStart={handleDragStart(node)}
+                          onDragEnd={handleDragEnd}
+                          onClick={() => handleNodeClick(node)}
+                          showCheckbox={showCheckboxes}
+                          isSelected={selectedNodeTypes.includes(node.node_type)}
+                          isKeyboardSelected={isKeyboardSelected}
+                          onToggleSelection={onToggleSelection}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )
             )}
@@ -312,7 +329,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       onToggleSelection,
       handleNodeClick,
       computeNamespaceSelectionState,
-      toggleNamespace
+      toggleNamespace,
+      groupedSearchResults,
+      selectedIndex
     ]
   );
 
@@ -375,7 +394,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
               </Typography>
             </Box>
           );
-          nodesInNamespace.forEach((node) => {
+          nodesInNamespace.forEach((node, idx) => {
+            const globalIndex = idx;
+            const isKeyboardSelected = globalIndex === selectedIndex;
             selectedSection.push(
               <div key={`selected-${node.node_type}`}>
                 <NodeItem
@@ -386,6 +407,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                   onClick={() => handleNodeClick(node)}
                   showCheckbox={showCheckboxes}
                   isSelected={true}
+                  isKeyboardSelected={isKeyboardSelected}
                   onToggleSelection={onToggleSelection}
                 />
               </div>
@@ -449,20 +471,32 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
               </Typography>
             </Box>,
             ...nodesInNamespace.map(
-              (node): JSX.Element => (
-                <div key={node.node_type}>
-                  <NodeItem
-                    key={node.node_type}
-                    node={node}
-                    onDragStart={handleDragStart(node)}
-                    onDragEnd={handleDragEnd}
-                    onClick={() => handleNodeClick(node)}
-                    showCheckbox={showCheckboxes}
-                    isSelected={selectedNodeTypes.includes(node.node_type)}
-                    onToggleSelection={onToggleSelection}
-                  />
-                </div>
-              )
+              (node, idx): JSX.Element => {
+                const globalIndex = nodes
+                  .filter((n) => !selectedNodeTypes.includes(n.node_type))
+                  .slice(0, nodesInNamespace.indexOf(node))
+                  .reduce((acc) => acc + 1, 0) +
+                  (showCheckboxes && selectedNodes.length > 0
+                    ? selectedNodes.length
+                    : 0) +
+                  idx;
+                const isKeyboardSelected = globalIndex === selectedIndex;
+                return (
+                  <div key={node.node_type}>
+                    <NodeItem
+                      key={node.node_type}
+                      node={node}
+                      onDragStart={handleDragStart(node)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => handleNodeClick(node)}
+                      showCheckbox={showCheckboxes}
+                      isSelected={selectedNodeTypes.includes(node.node_type)}
+                      isKeyboardSelected={isKeyboardSelected}
+                      onToggleSelection={onToggleSelection}
+                    />
+                  </div>
+                );
+              }
             )
           ];
 
@@ -483,7 +517,8 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     selectedNodeTypes,
     onToggleSelection,
     computeNamespaceSelectionState,
-    toggleNamespace
+    toggleNamespace,
+    selectedIndex
   ]);
 
   return (

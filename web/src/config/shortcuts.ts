@@ -534,6 +534,48 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   //   registerCombo: true
   // },
 
+  // ---------- NODE MENU NAVIGATION -----------------------------------------
+  {
+    title: "Node Menu: Move Down",
+    slug: "nodeMenuDown",
+    keyCombo: ["j"],
+    category: "panel" as const,
+    description: "Move selection down in the Node Menu (vim-style)",
+    registerCombo: true
+  },
+  {
+    title: "Node Menu: Move Up",
+    slug: "nodeMenuUp",
+    keyCombo: ["k"],
+    category: "panel" as const,
+    description: "Move selection up in the Node Menu (vim-style)",
+    registerCombo: true
+  },
+  {
+    title: "Node Menu: Focus Search",
+    slug: "nodeMenuFocusSearch",
+    keyCombo: ["/"],
+    category: "panel" as const,
+    description: "Focus the search input in the Node Menu",
+    registerCombo: true
+  },
+  {
+    title: "Node Menu: Next Section",
+    slug: "nodeMenuNextSection",
+    keyCombo: ["Control", "Tab"],
+    category: "panel" as const,
+    description: "Navigate to the next section (Favorites, Recent, Results, Browse)",
+    registerCombo: true
+  },
+  {
+    title: "Node Menu: Previous Section",
+    slug: "nodeMenuPrevSection",
+    keyCombo: ["Control", "Shift", "Tab"],
+    category: "panel" as const,
+    description: "Navigate to the previous section (Favorites, Recent, Results, Browse)",
+    registerCombo: true
+  },
+
   // ---------- WORKFLOW ----------------------------------------------------
   {
     title: "Run Workflow",
