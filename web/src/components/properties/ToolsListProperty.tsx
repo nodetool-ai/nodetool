@@ -148,7 +148,7 @@ const ToolsListProperty = (props: PropertyProps) => {
                   color: "c_hl1"
                 },
                 "& svg": {
-                  fontSize: "12px"
+                  fontSize: "15px"
                 }
               }}
             >
@@ -170,7 +170,7 @@ const ToolsListProperty = (props: PropertyProps) => {
                 color: "palette-grey-100"
               },
               "& svg": {
-                fontSize: "12px"
+                fontSize: "15px"
               }
             }}
           >
