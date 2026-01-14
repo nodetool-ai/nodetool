@@ -636,6 +636,46 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Reset zoom to 100% (default scale)",
     registerCombo: true
   },
+  {
+    title: "Zoom In",
+    slug: "zoomIn",
+    keyCombo: ["Control", "="],
+    category: "editor" as const,
+    description: "Increase zoom level by 20%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom Out",
+    slug: "zoomOut",
+    keyCombo: ["Control", "-"],
+    category: "editor" as const,
+    description: "Decrease zoom level by 20%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom to 50%",
+    slug: "zoom50",
+    keyCombo: ["Control", "5", "0"],
+    category: "editor" as const,
+    description: "Set zoom to 50%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom to 100%",
+    slug: "zoom100",
+    keyCombo: ["Control", "1", "0", "0"],
+    category: "editor" as const,
+    description: "Set zoom to 100%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom to 200%",
+    slug: "zoom200",
+    keyCombo: ["Control", "2", "0", "0"],
+    category: "editor" as const,
+    description: "Set zoom to 200%",
+    registerCombo: true
+  },
 
   // ---------- NODE NAVIGATION ---------------------------------------------
   {

@@ -143,6 +143,13 @@ export const useNodeEditorShortcuts = (
     reactFlow.zoomOut({ duration: 200 });
   }, [reactFlow]);
 
+  const handleZoomToPreset = useCallback(
+    (preset: number) => {
+      reactFlow.zoomTo(preset, { duration: 200 });
+    },
+    [reactFlow]
+  );
+
   const handleAlign = useCallback(() => {
     alignNodes({ arrangeSpacing: false });
   }, [alignNodes]);
@@ -436,6 +443,9 @@ export const useNodeEditorShortcuts = (
       closeWorkflow: { callback: closeCurrentWorkflow },
       zoomIn: { callback: handleZoomIn },
       zoomOut: { callback: handleZoomOut },
+      zoom50: { callback: () => handleZoomToPreset(0.5) },
+      zoom100: { callback: () => handleZoomToPreset(1) },
+      zoom200: { callback: () => handleZoomToPreset(2) },
       prevTab: { callback: () => handleSwitchTab("prev") },
       nextTab: { callback: () => handleSwitchTab("next") },
       moveLeft: { callback: () => handleMoveNodes({ x: -10 }) },
@@ -545,6 +555,7 @@ export const useNodeEditorShortcuts = (
     closeCurrentWorkflow,
     handleZoomIn,
     handleZoomOut,
+    handleZoomToPreset,
     handleBypassSelected,
     handleFitView,
     handleSwitchTab,

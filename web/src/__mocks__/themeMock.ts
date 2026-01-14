@@ -69,6 +69,9 @@ const mockTheme = createTheme({
       secondary: "#bdbdbd",
       disabled: "#9e9e9e"
     },
+    Paper: {
+      paper: "#232323"
+    },
     background: {
       default: "#202020",
       paper: "#232323"

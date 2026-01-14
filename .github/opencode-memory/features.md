@@ -16,7 +16,8 @@ Last updated: 2026-01-12
 - **Undo/Redo**: Temporal middleware for undo/redo operations in workflows
 - **Auto-Layout**: Automatic node positioning algorithms for cleaner workflows
 - **Zoom & Pan**: Navigation controls for large workflows
-- **Viewport Status Indicator**: Real-time zoom percentage and node count display with reset zoom button
+- **Viewport Status Indicator**: Real-time zoom percentage with zoom presets (25%-200%), zoom in/out buttons, and fit view
+- **Zoom Presets**: Quick access to common zoom levels (25%, 50%, 75%, 100%, 150%, 200%) via dropdown menu and keyboard shortcuts
 - **Minimap**: Overview minimap for workflow navigation
 - **Multi-Select**: Select and manipulate multiple nodes simultaneously
 - **Copy/Paste**: Copy and paste nodes within and across workflows
