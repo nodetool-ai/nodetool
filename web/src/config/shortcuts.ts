@@ -750,6 +750,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+
+  // ---------- NOTES ---------------------------------------------------------
+  {
+    title: "Add Note",
+    slug: "addNote",
+    keyCombo: ["Control", "Shift", "N"],
+    category: "editor" as const,
+    description: "Add a new note to the canvas",
+    registerCombo: true
   }
 ] as Shortcut[];
 

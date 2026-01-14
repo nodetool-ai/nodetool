@@ -112,3 +112,34 @@
 /* Loading styles are handled by Emotion in BaseNode.tsx
    The animation uses dynamic colors from node metadata and requires
    mask properties for the ring effect that are better expressed in JS */
+
+/* --------------------------------------------- */
+/* Note nodes                                       */
+/* --------------------------------------------- */
+.react-flow__node.note-node {
+  cursor: move;
+}
+
+.react-flow__node.note-node .react-flow__resize-control {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.react-flow__node.note-node:hover .react-flow__resize-control,
+.react-flow__node.note-node.selected .react-flow__resize-control {
+  opacity: 1;
+}
+
+.react-flow__node.note-node.selected {
+  outline: 2px solid var(--palette-primary-main) !important;
+}
+
+.react-flow__node.note-node textarea {
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}

@@ -179,6 +179,26 @@ test('handles user interaction', async () => {
 - Added keyboard shortcuts for zoom control
 - Removed node count display as it was redundant with existing UI elements
 
+### Canvas Notes Feature (2026-01-14)
+
+**What**: Added canvas notes feature allowing users to add sticky notes to the workflow canvas for documentation and annotations.
+
+**Files**:
+- `web/src/stores/NotesStore.ts` - New store for managing workflow notes (add, update, delete, select)
+- `web/src/components/node_types/NoteNode.tsx` - New ReactFlow node component for rendering notes
+- `web/src/components/dialogs/AddNoteDialog.tsx` - Dialog for creating new notes with color selection
+- `web/src/hooks/useNotes.ts` - Hook for note operations
+- `web/src/styles/nodes.states.css` - CSS styles for note nodes
+- `web/src/config/shortcuts.ts` - Added Ctrl+Shift+N shortcut for adding notes
+- `web/src/stores/__tests__/NotesStore.test.ts` - Tests for the NotesStore
+
+**Implementation**:
+- Notes are persistent and stored in localStorage via Zustand persist middleware
+- Notes support 6 color options (yellow, blue, green, pink, purple, orange)
+- Notes can be resized, edited (double-click), and deleted
+- Keyboard shortcut Ctrl+Shift+N to add new notes
+- Notes persist with the workflow state
+
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
 
 **Files**:
