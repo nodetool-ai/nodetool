@@ -12,11 +12,13 @@ import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useNodes } from "../../contexts/NodeContext";
+import useNodeAnnotationStore from "../../stores/NodeAnnotationStore";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -28,12 +30,28 @@ const NodeContextMenu: React.FC = () => {
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
   const updateNodeData = useNodes((state) => state.updateNodeData);
+  const { openAnnotationDialog } = useNodeAnnotationStore();
 
   const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
 
   const handleSelectMode = (mode: "on_any" | "zip_all") => {
     if (node?.id) {
       updateNodeData(node.id, { sync_mode: mode });
+    }
+    closeContextMenu();
+  };
+
+  const handleEditAnnotation = () => {
+    if (node?.id) {
+      const currentAnnotation = (node.data as NodeData)?.annotation || "";
+      openAnnotationDialog(node.id, currentAnnotation);
+    }
+    closeContextMenu();
+  };
+
+  const handleClearAnnotation = () => {
+    if (node?.id) {
+      updateNodeData(node.id, { annotation: "" });
     }
     closeContextMenu();
   };
@@ -83,6 +101,32 @@ const NodeContextMenu: React.FC = () => {
           : "Add a comment to this node"
       }
     />,
+    (node?.data as NodeData)?.annotation ? (
+      <ContextMenuItem
+        key="edit-annotation"
+        onClick={handleEditAnnotation}
+        label="Edit Annotation"
+        IconComponent={<NoteAddIcon />}
+        tooltip="Edit the annotation on this node"
+      />
+    ) : (
+      <ContextMenuItem
+        key="add-annotation"
+        onClick={handleEditAnnotation}
+        label="Add Annotation"
+        IconComponent={<NoteAddIcon />}
+        tooltip="Add an annotation to this node"
+      />
+    ),
+    (node?.data as NodeData)?.annotation && (
+      <ContextMenuItem
+        key="clear-annotation"
+        onClick={handleClearAnnotation}
+        label="Clear Annotation"
+        IconComponent={<EditIcon />}
+        tooltip="Remove the annotation from this node"
+      />
+    ),
     conditions.canConvertToInput && (
       <ContextMenuItem
         key="convert-to-input"

@@ -38,6 +38,7 @@ Last updated: 2026-01-12
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
+- **Node Annotations**: Add notes and documentation to individual nodes for workflow clarity
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
 
 ### Workflow Management

@@ -750,6 +750,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  {
+    title: "Add/Edit Annotation",
+    slug: "editAnnotation",
+    keyCombo: ["Control", "N"],
+    category: "editor" as const,
+    description: "Add or edit annotation for selected node",
+    registerCombo: true
   }
 ] as Shortcut[];
 

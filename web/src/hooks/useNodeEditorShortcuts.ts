@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import useNodeAnnotationStore from "../stores/NodeAnnotationStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -78,6 +79,9 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const annotationStore = useNodeAnnotationStore((state) => ({
+    openAnnotationDialog: state.openAnnotationDialog
+  }));
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -94,6 +98,7 @@ export const useNodeEditorShortcuts = (
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
   const { openFind } = findInWorkflow;
+  const { openAnnotationDialog } = annotationStore;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
@@ -391,6 +396,14 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleEditAnnotation = useCallback(() => {
+    if (selectedNodes.length === 1) {
+      const node = selectedNodes[0];
+      const currentAnnotation = (node.data as NodeData)?.annotation || "";
+      openAnnotationDialog(node.id, currentAnnotation);
+    }
+  }, [selectedNodes, openAnnotationDialog]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -522,6 +535,10 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      editAnnotation: {
+        callback: handleEditAnnotation,
+        active: selectedNodes.length === 1
       }
     };
 
@@ -586,7 +603,8 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    handleEditAnnotation
   ]);
 
   // useEffect for shortcut registration

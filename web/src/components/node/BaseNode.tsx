@@ -37,6 +37,7 @@ import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
+import NodeAnnotation from "./NodeAnnotation";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
@@ -511,6 +512,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
+      <NodeAnnotation
+        nodeId={id}
+        annotation={data.annotation}
+        isSelected={selected}
+        isDarkMode={isDarkMode}
+      />
     </Container>
   );
 };

@@ -160,6 +160,30 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Annotations Feature (2026-01-14)
+
+**What**: Added the ability to add text annotations to workflow nodes for documentation and workflow clarity. Annotations appear as bubbles below selected nodes and can be edited via context menu or keyboard shortcut (Ctrl+N).
+
+**Files**:
+- `web/src/stores/NodeData.ts` - Added `annotation` field to NodeData type
+- `web/src/stores/NodeAnnotationStore.ts` - New Zustand store for annotation UI state
+- `web/src/components/node/NodeAnnotation.tsx` - New component for displaying and editing annotations
+- `web/src/components/node/BaseNode.tsx` - Integrated NodeAnnotation component
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added annotation menu options
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added Ctrl+N shortcut handler
+- `web/src/config/shortcuts.ts` - Added editAnnotation shortcut definition
+- `web/src/components/node/__tests__/NodeAnnotation.test.tsx` - Tests for NodeAnnotation component
+- `web/src/stores/__tests__/NodeAnnotationStore.test.ts` - Tests for NodeAnnotationStore
+
+**Implementation**:
+- Added optional `annotation` string field to NodeData for storing annotation text
+- Created NodeAnnotation component that displays annotations as styled bubbles below nodes
+- Annotations show edit button when node is selected
+- Inline editing with TextField, save/cancel buttons, and keyboard support (Enter to save, Escape to cancel)
+- Context menu options: "Add Annotation", "Edit Annotation", "Clear Annotation"
+- Keyboard shortcut Ctrl+N opens annotation dialog for selected node
+- Dark mode support with appropriate styling
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

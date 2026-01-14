@@ -21,4 +21,6 @@ export type NodeData = {
     x: number;
     y: number;
   };
+  // Annotation text for documenting node purpose
+  annotation?: string;
 };
