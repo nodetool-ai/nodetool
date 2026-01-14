@@ -160,7 +160,24 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Node Execution Time Display (2026-01-13)
+### Grid Customization Feature (2026-01-14)
+
+**What**: Added workflow canvas grid customization allowing users to toggle grid visibility, customize grid size, gap, color, and variant (dots/cross).
+
+**Files**:
+- `web/src/stores/GridSettingsStore.ts` - New store for managing grid preferences
+- `web/src/components/node_editor/GridCustomizationPanel.tsx` - New panel for grid settings
+- `web/src/components/node/ReactFlowWrapper.tsx` - Updated to use grid settings
+- `web/src/components/node_editor/ViewportStatusIndicator.tsx` - Added grid toggle and settings buttons
+- `web/src/stores/__tests__/GridSettingsStore.test.ts` - Tests for grid settings store
+
+**Implementation**:
+- `GridSettingsStore` persists grid preferences (visible, gap, size, color, variant) to localStorage
+- `GridCustomizationPanel` provides UI controls for adjusting grid settings
+- Background component in ReactFlowWrapper uses configurable grid settings
+- ViewportStatusIndicator now includes grid toggle and settings buttons
+
+**Note**: Some ViewportStatusIndicator tests are failing due to pre-existing theme configuration issues in the test environment.
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
 

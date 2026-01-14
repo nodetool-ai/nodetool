@@ -17,6 +17,7 @@ Last updated: 2026-01-12
 - **Auto-Layout**: Automatic node positioning algorithms for cleaner workflows
 - **Zoom & Pan**: Navigation controls for large workflows
 - **Viewport Status Indicator**: Real-time zoom percentage and node count display with reset zoom button
+- **Grid Customization**: Toggle grid visibility, customize grid size, gap, color, and variant (dots/cross)
 - **Minimap**: Overview minimap for workflow navigation
 - **Multi-Select**: Select and manipulate multiple nodes simultaneously
 - **Copy/Paste**: Copy and paste nodes within and across workflows

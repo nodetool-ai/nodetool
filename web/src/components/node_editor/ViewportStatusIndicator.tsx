@@ -3,8 +3,12 @@ import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import { useViewport, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import GridOffIcon from "@mui/icons-material/GridOff";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { useNodes } from "../../contexts/NodeContext";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { useGridSettingsStore } from "../../stores/GridSettingsStore";
 
 interface ViewportStatusIndicatorProps {
   visible?: boolean;
@@ -17,6 +21,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   const { zoom } = useViewport();
   const { zoomTo, fitView } = useReactFlow();
   const nodes = useNodes((state) => state.nodes);
+  const { gridSettings, setGridVisible, togglePanel } = useGridSettingsStore();
 
   const zoomPercentage = useMemo(() => Math.round(zoom * 100), [zoom]);
 
@@ -35,6 +40,14 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     fitView({ padding: 0.2, duration: 200 });
   }, [fitView]);
 
+  const handleToggleGrid = useCallback(() => {
+    setGridVisible(!gridSettings.visible);
+  }, [gridSettings.visible, setGridVisible]);
+
+  const handleOpenGridSettings = useCallback((_event: React.MouseEvent) => {
+    togglePanel();
+  }, [togglePanel]);
+
   if (!visible) {
     return null;
   }
@@ -49,7 +62,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         display: "flex",
         alignItems: "center",
         gap: 0.5,
-        backgroundColor: theme.vars.palette.Paper.paper,
+        backgroundColor: theme.vars.palette.background.paper,
         backdropFilter: "blur(8px)",
         borderRadius: "8px",
         border: `1px solid ${theme.vars.palette.divider}`,
@@ -98,11 +111,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         }}
       />
 
-      <Tooltip
-        title={getShortcutTooltip("fitView")}
-        placement="top"
-        arrow
-      >
+      <Tooltip title="Fit view" placement="top" arrow>
         <IconButton
           onClick={handleFitView}
           size="small"
@@ -116,6 +125,53 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           }}
         >
           <CenterFocusStrongIcon sx={{ fontSize: "1rem" }} />
+        </IconButton>
+      </Tooltip>
+
+      <Box
+        sx={{
+          width: "1px",
+          height: "16px",
+          backgroundColor: theme.vars.palette.divider
+        }}
+      />
+
+      <Tooltip title={gridSettings.visible ? "Hide grid" : "Show grid"} placement="top" arrow>
+        <IconButton
+          onClick={handleToggleGrid}
+          size="small"
+          sx={{
+            padding: "2px",
+            color: gridSettings.visible
+              ? theme.palette.primary.main
+              : theme.vars.palette.text.secondary,
+            "&:hover": {
+              backgroundColor: theme.vars.palette.action.hover
+            }
+          }}
+        >
+          {gridSettings.visible ? (
+            <GridOnIcon sx={{ fontSize: "1rem" }} />
+          ) : (
+            <GridOffIcon sx={{ fontSize: "1rem" }} />
+          )}
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Grid settings" placement="top" arrow>
+        <IconButton
+          onClick={handleOpenGridSettings}
+          size="small"
+          sx={{
+            padding: "2px",
+            color: theme.vars.palette.text.secondary,
+            "&:hover": {
+              backgroundColor: theme.vars.palette.action.hover,
+              color: theme.palette.primary.main
+            }
+          }}
+        >
+          <SettingsIcon sx={{ fontSize: "1rem" }} />
         </IconButton>
       </Tooltip>
     </Box>

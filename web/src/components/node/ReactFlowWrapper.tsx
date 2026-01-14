@@ -48,6 +48,7 @@ import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
+import { useGridSettingsStore } from "../../stores/GridSettingsStore";
 
 const fitViewOptions = {
   maxZoom: MAX_ZOOM,
@@ -64,6 +65,7 @@ interface ReactFlowWrapperProps {
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
+import GridCustomizationPanel from "../node_editor/GridCustomizationPanel";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -231,6 +233,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const settings = useSettingsStore((state) => state.settings);
+
+  const gridSettings = useGridSettingsStore((state) => state.gridSettings);
 
   const { onDrop, onDragOver } = useDropHandler();
 
@@ -517,16 +521,22 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         panActivationKeyCode=""
         deleteKeyCode={["Delete", "Backspace"]}
       >
-        <Background
-          id={workflowId}
-          gap={100}
-          offset={4}
-          size={8}
-          color={theme.vars.palette.c_editor_grid_color}
-          lineWidth={1}
-          style={backgroundStyle}
-          variant={BackgroundVariant.Cross}
-        />
+        {gridSettings.visible && (
+          <Background
+            id={workflowId}
+            gap={gridSettings.gap}
+            offset={4}
+            size={gridSettings.size}
+            color={gridSettings.color}
+            lineWidth={gridSettings.size}
+            style={backgroundStyle}
+            variant={
+              gridSettings.variant === "dots"
+                ? BackgroundVariant.Dots
+                : BackgroundVariant.Cross
+            }
+          />
+        )}
         <AxisMarker />
         <ContextMenus />
         <ConnectableNodes />
@@ -545,6 +555,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       )}
       <MiniMapNavigator />
       <ViewportStatusIndicator />
+      <GridCustomizationPanel />
     </div>
   );
 };
