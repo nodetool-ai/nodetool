@@ -18,6 +18,7 @@ interface NodeItemProps {
   onClick: () => void;
   showCheckbox?: boolean;
   isSelected?: boolean;
+  isKeyboardSelected?: boolean;
   onToggleSelection?: (nodeType: string) => void;
   showFavoriteButton?: boolean;
 }
@@ -32,6 +33,7 @@ const NodeItem = memo(
         onClick,
         showCheckbox = false,
         isSelected = false,
+        isKeyboardSelected = false,
         onToggleSelection,
         showFavoriteButton = true
       },
@@ -93,7 +95,7 @@ const NodeItem = memo(
           ref={ref}
           className={`node ${isHovered ? "hovered" : ""} ${
             showCheckbox && isSelected ? "selected" : ""
-          }`}
+          } ${isKeyboardSelected ? "keyboard-selected" : ""}`}
           draggable={!showCheckbox}
           onMouseEnter={onMouseEnter}
           onDragStart={(e) => {
@@ -112,7 +114,17 @@ const NodeItem = memo(
               alignItems: "center",
               flex: 1,
               gap: "0.5em",
-              position: "relative"
+              position: "relative",
+              outline: isKeyboardSelected
+                ? `2px solid ${theme.vars.palette.primary.main}`
+                : "none",
+              outlineOffset: isKeyboardSelected ? "1px" : "0",
+              backgroundColor: isKeyboardSelected
+                ? theme.vars.palette.action.hover
+                : "transparent",
+              borderRadius: "4px",
+              padding: isKeyboardSelected ? "2px 4px" : "2px 4px",
+              margin: isKeyboardSelected ? "-2px -4px" : "0"
             }}
           >
             {showCheckbox && (

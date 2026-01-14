@@ -158,7 +158,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setMenuSize,
     moveSelectionUp,
     moveSelectionDown,
-    getSelectedNode
+    getSelectedNode,
+    moveSelectionToNextSection,
+    moveSelectionToPrevSection
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -175,7 +177,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setMenuSize: state.setMenuSize,
       moveSelectionUp: state.moveSelectionUp,
       moveSelectionDown: state.moveSelectionDown,
-      getSelectedNode: state.getSelectedNode
+      getSelectedNode: state.getSelectedNode,
+      moveSelectionToNextSection: state.moveSelectionToNextSection,
+      moveSelectionToPrevSection: state.moveSelectionToPrevSection
     }),
     isEqual
   );
@@ -203,7 +207,37 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     }
   }, [getSelectedNode, handleCreateNode]);
 
+  // Enhanced keyboard navigation handlers
+  const handleJKey = useCallback(() => {
+    moveSelectionDown();
+  }, [moveSelectionDown]);
+
+  const handleKKey = useCallback(() => {
+    moveSelectionUp();
+  }, [moveSelectionUp]);
+
+  const handleSlashKey = useCallback(() => {
+    const searchInput = document.querySelector<HTMLInputElement>('.search-input-container input');
+    searchInput?.focus();
+    searchInput?.select();
+  }, []);
+
+  const handleNextSection = useCallback(() => {
+    moveSelectionToNextSection();
+  }, [moveSelectionToNextSection]);
+
+  const handlePrevSection = useCallback(() => {
+    moveSelectionToPrevSection();
+  }, [moveSelectionToPrevSection]);
+
   useCombo(["Escape"], closeNodeMenu);
+
+  // Register enhanced navigation shortcuts
+  useCombo(["j"], handleJKey);
+  useCombo(["k"], handleKKey);
+  useCombo(["/"], handleSlashKey);
+  useCombo(["Control", "Tab"], handleNextSection);
+  useCombo(["Control", "Shift", "Tab"], handlePrevSection);
 
   // Ensure search is performed after menu opens with a preset term
   useEffect(() => {
