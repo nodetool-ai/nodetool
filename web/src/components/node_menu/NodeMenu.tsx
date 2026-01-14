@@ -5,11 +5,12 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { Box } from "@mui/material";
+import { Box, Tabs, Tab } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import SnippetBrowser from "./SnippetBrowser";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -158,7 +159,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setMenuSize,
     moveSelectionUp,
     moveSelectionDown,
-    getSelectedNode
+    getSelectedNode,
+    activeTab,
+    setActiveTab
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -175,7 +178,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setMenuSize: state.setMenuSize,
       moveSelectionUp: state.moveSelectionUp,
       moveSelectionDown: state.moveSelectionDown,
-      getSelectedNode: state.getSelectedNode
+      getSelectedNode: state.getSelectedNode,
+      activeTab: state.activeTab,
+      setActiveTab: state.setActiveTab
     }),
     isEqual
   );
@@ -282,7 +287,26 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         <div className="draggable-header">
         </div>
         <Box className="node-menu-container">
-          <div className="main-content">
+          <Tabs
+            value={activeTab}
+            onChange={(_, newValue) => setActiveTab(newValue)}
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+              minHeight: 40,
+              "& .MuiTab-root": {
+                minHeight: 40,
+                minWidth: "auto",
+                px: 2,
+                textTransform: "none",
+                fontSize: "0.875rem"
+              }
+            }}
+          >
+            <Tab value="nodes" label="Nodes" />
+            <Tab value="snippets" label="Snippets" />
+          </Tabs>
+          <Box className="main-content" sx={{ display: activeTab === "snippets" ? "none" : "block" }}>
             <Box className="search-toolbar">
               <Box className="search-row">
                 <SearchInput
@@ -312,7 +336,15 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
               namespaceTree={namespaceTree}
               metadata={searchResults}
             />
-          </div>
+          </Box>
+          <Box sx={{ display: activeTab === "snippets" ? "block" : "none", height: "calc(100% - 40px)", overflow: "hidden" }}>
+            <SnippetBrowser
+              onInsertSnippet={() => {
+                closeNodeMenu();
+                setActiveTab("nodes");
+              }}
+            />
+          </Box>
         </Box>
       </Box>
     </Draggable>

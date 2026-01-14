@@ -160,6 +160,18 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Snippets Feature (2026-01-14)
+
+**What**: Added node snippets feature allowing users to save groups of connected nodes as reusable templates and insert them into workflows.
+
+**Files**:
+- `web/src/stores/SnippetStore.ts` - New store for managing snippets with persistence
+- `web/src/components/dialogs/SnippetSaveDialog.tsx` - Dialog for saving snippets with name and description
+- `web/src/components/node_menu/SnippetBrowser.tsx` - Browser UI for viewing and inserting snippets
+- `web/src/components/node_editor/SelectionActionToolbar.tsx` - Added "Save as Snippet" button
+- `web/src/components/node_menu/NodeMenu.tsx` - Added "Snippets" tab to node menu
+- `web/src/config/shortcuts.ts` - Added shortcuts for saveSnippet (Ctrl+Shift+S) and openSnippetBrowser (Ctrl+Shift+V)
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

@@ -39,6 +39,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Node Snippets**: Save and reuse groups of connected nodes as templates
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates
@@ -305,6 +306,29 @@ Last updated: 2026-01-12
 ---
 
 **Note**: This list represents the current state of NodeTool. Check git history and recent PRs for the most up-to-date information on new features.
+
+---
+
+### Node Snippets Feature (2026-01-14)
+
+**What**: Added node snippets feature allowing users to save groups of connected nodes as reusable snippets and insert them into workflows.
+
+**Files**:
+- `web/src/stores/SnippetStore.ts` - New store for managing snippets with persistence
+- `web/src/components/dialogs/SnippetSaveDialog.tsx` - Dialog for saving snippets with name and description
+- `web/src/components/node_menu/SnippetBrowser.tsx` - Browser UI for viewing and inserting snippets
+- `web/src/components/node_editor/SelectionActionToolbar.tsx` - Added "Save as Snippet" button
+- `web/src/components/node_menu/NodeMenu.tsx` - Added "Snippets" tab to node menu
+- `web/src/config/shortcuts.ts` - Added shortcuts for saveSnippet (Ctrl+Shift+S) and openSnippetBrowser (Ctrl+Shift+V)
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handlers for snippet shortcuts
+- `web/src/stores/NodeMenuStore.ts` - Added activeTab state for switching between nodes and snippets tabs
+- `web/src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx` - Updated tests for new button
+
+**Implementation**:
+- Snippets are persisted to localStorage with unique IDs
+- Each snippet stores nodes, edges, name, description, and timestamps
+- Snippets can be inserted at the current viewport center with new IDs
+- Tabbed interface in NodeMenu for switching between nodes and snippets
 
 ---
 

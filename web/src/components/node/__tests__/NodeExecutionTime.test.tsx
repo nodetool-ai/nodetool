@@ -52,7 +52,7 @@ describe("NodeExecutionTime", () => {
 
   it("should not render when status is running", () => {
     const formatDuration = (ms: number): string => {
-      if (ms < 1000) return `${ms}ms`;
+      if (ms < 1000) {return `${ms}ms`;}
       const seconds = Math.floor(ms / 1000);
       if (seconds < 60) {
         const remainderMs = ms % 1000;

@@ -1,5 +1,10 @@
-import React, { useCallback, useMemo } from "react";
-import { Box, IconButton, Tooltip, Divider } from "@mui/material";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  Box,
+  IconButton,
+  Tooltip,
+  Divider
+} from "@mui/material";
 import {
   AlignHorizontalLeft,
   AlignHorizontalCenter,
@@ -12,11 +17,13 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit
+  CallSplit,
+  Bookmark
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { SnippetSaveDialog } from "../dialogs/SnippetSaveDialog";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -87,7 +94,10 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   onClose,
 }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const edges = useNodes((state) => state.edges);
   const selectionActions = useSelectionActions();
+
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
   const canAlign = selectedNodes.length >= 2;
   const canDistribute = selectedNodes.length >= 2;
@@ -100,6 +110,19 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
       }
     },
     [onClose]
+  );
+
+  const selectedNodeIds = useMemo(
+    () => new Set(selectedNodes.map((n) => n.id)),
+    [selectedNodes]
+  );
+
+  const selectedEdges = useMemo(
+    () =>
+      edges.filter(
+        (e) => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+      ),
+    [edges, selectedNodeIds]
   );
 
   const alignmentButtons: ButtonItem[] = useMemo(
@@ -174,6 +197,14 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   const actionButtons: ButtonItem[] = useMemo(
     () => [
       {
+        icon: <Bookmark fontSize="small" />,
+        label: "Save as Snippet",
+        slug: "saveSnippet",
+        action: () => setIsSaveDialogOpen(true),
+        disabled: selectedNodes.length === 0
+      },
+      { divider: true },
+      {
         icon: <ContentCopy fontSize="small" />,
         label: "Duplicate",
         slug: "duplicate",
@@ -200,7 +231,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions]
+    [canGroup, selectionActions, selectedNodes.length]
   );
 
   if (!visible) {
@@ -216,38 +247,47 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   ];
 
   return (
-    <Box
-      className="selection-action-toolbar"
-      role="region"
-      aria-label="Selection Action Toolbar"
-      onKeyDown={handleKeyDown}
-      sx={{
-        position: "absolute",
-        bottom: "auto",
-        top: 80,
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        gap: 0.5,
-        padding: "6px 10px",
-        bgcolor: "background.paper",
-        borderRadius: 2,
-        boxShadow: 3,
-        border: 1,
-        borderColor: "divider"
-      }}
-    >
-      {allButtons.map((button, index) => {
-        if (isDividerButton(button)) {
-          return renderDivider(index);
-        }
+    <>
+      <Box
+        className="selection-action-toolbar"
+        role="region"
+        aria-label="Selection Action Toolbar"
+        onKeyDown={handleKeyDown}
+        sx={{
+          position: "absolute",
+          bottom: "auto",
+          top: 80,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          padding: "6px 10px",
+          bgcolor: "background.paper",
+          borderRadius: 2,
+          boxShadow: 3,
+          border: 1,
+          borderColor: "divider"
+        }}
+      >
+        {allButtons.map((button, index) => {
+          if (isDividerButton(button)) {
+            return renderDivider(index);
+          }
 
-        const actionButton = button as ActionButton;
-        return renderButton(actionButton, index);
-      })}
-    </Box>
+          const actionButton = button as ActionButton;
+          return renderButton(actionButton, index);
+        })}
+      </Box>
+
+      <SnippetSaveDialog
+        open={isSaveDialogOpen}
+        onClose={() => setIsSaveDialogOpen(false)}
+        nodes={selectedNodes}
+        edges={selectedEdges}
+      />
+    </>
   );
 };
 

@@ -40,10 +40,13 @@ export interface OpenNodeMenuParams {
   searchTerm?: string;
   selectedPath?: string[];
   centerOnScreen?: boolean;
+  initialTab?: "nodes" | "snippets";
 }
 
 export type NodeMenuStore = {
   isMenuOpen: boolean;
+  activeTab: "nodes" | "snippets";
+  setActiveTab: (tab: "nodes" | "snippets") => void;
   dragToCreate: boolean;
   setDragToCreate: (dragToCreate: boolean) => void;
   connectDirection: ConnectDirection;
@@ -166,6 +169,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
     return {
       // menu
       isMenuOpen: false,
+      activeTab: "nodes",
+      setActiveTab: (tab) => set({ activeTab: tab }),
       closeBlockUntil: 0,
       dropType: "",
       dragToCreate: false,
@@ -506,6 +511,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           : params.selectedPath || [];
         set({
           isMenuOpen: true,
+          activeTab: params.initialTab || "nodes",
           // ensure these are set before running the search
           searchTerm: params.searchTerm || "",
           selectedPath: initialSelectedPath,

@@ -750,6 +750,24 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+
+  // ---------- SNIPPETS -------------------------------------------------------
+  {
+    title: "Save Snippet",
+    slug: "saveSnippet",
+    keyCombo: ["Control", "Shift", "S"],
+    category: "editor" as const,
+    description: "Save selected nodes as a reusable snippet",
+    registerCombo: true
+  },
+  {
+    title: "Open Snippet Browser",
+    slug: "openSnippetBrowser",
+    keyCombo: ["Control", "Shift", "V"],
+    category: "editor" as const,
+    description: "Open snippet browser to insert saved snippets",
+    registerCombo: true
   }
 ] as Shortcut[];
 

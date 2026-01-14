@@ -105,6 +105,16 @@ export const useNodeEditorShortcuts = (
     });
   }, [openNodeMenu]);
 
+  const handleOpenSnippetBrowser = useCallback(() => {
+    const mousePos = getMousePosition();
+    openNodeMenu({
+      x: mousePos.x,
+      y: mousePos.y,
+      centerOnScreen: true,
+      initialTab: "snippets"
+    });
+  }, [openNodeMenu]);
+
   const handleGroup = useCallback(() => {
     if (selectedNodes.length) {
       surroundWithGroup({ selectedNodes });
@@ -433,6 +443,7 @@ export const useNodeEditorShortcuts = (
           })
       },
       openNodeMenu: { callback: handleOpenNodeMenu },
+      openSnippetBrowser: { callback: handleOpenSnippetBrowser },
       groupSelected: { callback: handleGroup },
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
@@ -545,6 +556,7 @@ export const useNodeEditorShortcuts = (
     duplicateNodes,
     duplicateNodesVertical,
     handleOpenNodeMenu,
+    handleOpenSnippetBrowser,
     handleGroup,
     handleInspectorToggle,
     handleWorkflowSettingsToggle,
