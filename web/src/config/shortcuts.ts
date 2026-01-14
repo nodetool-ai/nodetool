@@ -224,6 +224,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Clipboard History",
+    slug: "clipboardHistory",
+    keyCombo: ["Control", "Shift", "V"],
+    category: "editor",
+    description: "Open clipboard history to paste previously copied nodes",
+    registerCombo: true
+  },
+  {
     title: "Undo",
     slug: "undo",
     keyCombo: ["Control", "Z"],

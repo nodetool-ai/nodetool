@@ -44,6 +44,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import ClipboardHistoryPanel from "./ClipboardHistoryPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -65,6 +66,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [clipboardHistoryOpen, setClipboardHistoryOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -98,6 +100,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active && selectedNodes.length > 0) {
         toggleInspectedNode(selectedNodes[0].id);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Clipboard History (Ctrl+Shift+V / Meta+Shift+V)
+  const clipboardHistoryCombo = isMac() ? ["meta", "shift", "v"] : ["control", "shift", "v"];
+  useCombo(
+    clipboardHistoryCombo,
+    () => {
+      if (active) {
+        setClipboardHistoryOpen(true);
       }
     },
     true,
@@ -170,6 +185,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 undo={() => nodeHistory.undo()}
                 redo={() => nodeHistory.redo()}
                 reactFlowWrapper={reactFlowWrapperRef}
+              />
+              <ClipboardHistoryPanel
+                open={clipboardHistoryOpen}
+                onClose={() => setClipboardHistoryOpen(false)}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
               <Modal

@@ -21,6 +21,7 @@ import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
+import ClipboardHistoryPanel from "../node_editor/ClipboardHistoryPanel";
 
 type CommandMenuProps = {
   open: boolean;
@@ -169,6 +170,24 @@ const ViewCommands = memo(function ViewCommands() {
   );
 });
 
+interface ClipboardHistoryActions {
+  openClipboardHistory: () => void;
+}
+
+const ClipboardHistoryCommands = memo(function ClipboardHistoryCommands({
+  openClipboardHistory
+}: ClipboardHistoryActions) {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+
+  return (
+    <Command.Group heading="Clipboard">
+      <Command.Item onSelect={() => executeAndClose(openClipboardHistory)}>
+        Clipboard History
+      </Command.Item>
+    </Command.Group>
+  );
+});
+
 const NodeCommands = memo(function NodeCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const reactFlowWrapper = useCommandMenu((state) => state.reactFlowWrapper);
@@ -285,6 +304,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   reactFlowWrapper
 }) => {
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
+  const [clipboardHistoryOpen, setClipboardHistoryOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
   const executeAndClose = useCallback(
@@ -294,6 +314,10 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     },
     [setOpen]
   );
+
+  const openClipboardHistory = useCallback(() => {
+    setClipboardHistoryOpen(true);
+  }, []);
 
   // Set up command menu context
   useEffect(() => {
@@ -320,25 +344,33 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   }, [open, pastePosition]);
 
   return (
-    <Dialog
-      open={open}
-      onClose={() => setOpen(false)}
-      className="command-menu-dialog"
-      css={styles()}
-    >
-      <Command label="Command Menu" className="command-menu">
-        <CommandInput ref={input} />
-        <Command.List>
-          <Command.Empty>No results found.</Command.Empty>
-          <WorkflowCommands />
-          <UndoCommands undo={undo} redo={redo} />
-          <LayoutCommands />
-          <ViewCommands />
-          <NodeCommands />
-          <ExampleCommands />
-        </Command.List>
-      </Command>
-    </Dialog>
+    <>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        className="command-menu-dialog"
+        css={styles()}
+      >
+        <Command label="Command Menu" className="command-menu">
+          <CommandInput ref={input} />
+          <Command.List>
+            <Command.Empty>No results found.</Command.Empty>
+            <WorkflowCommands />
+            <UndoCommands undo={undo} redo={redo} />
+            <ClipboardHistoryCommands openClipboardHistory={openClipboardHistory} />
+            <LayoutCommands />
+            <ViewCommands />
+            <NodeCommands />
+            <ExampleCommands />
+          </Command.List>
+        </Command>
+      </Dialog>
+
+      <ClipboardHistoryPanel
+        open={clipboardHistoryOpen}
+        onClose={() => setClipboardHistoryOpen(false)}
+      />
+    </>
   );
 };
 

@@ -160,6 +160,25 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Clipboard History Feature (2026-01-14)
+
+**What**: Added a clipboard history (clipboard ring) feature that allows users to access previously copied nodes. Users can paste from clipboard history using Ctrl+Shift+V (or Cmd+Shift+V on Mac) to open a panel showing previously copied nodes. The history persists across sessions and shows preview of nodes with timestamps.
+
+**Files**:
+- `web/src/stores/ClipboardHistoryStore.ts` - New Zustand store for managing clipboard ring state
+- `web/src/hooks/handlers/useCopyPaste.tsx` - Modified to add items to clipboard history
+- `web/src/components/node_editor/ClipboardHistoryPanel.tsx` - New component for the clipboard history UI
+- `web/src/components/menus/CommandMenu.tsx` - Added clipboard history command to command menu
+- `web/src/config/shortcuts.ts` - Added Ctrl+Shift+V shortcut for clipboard history
+- `web/src/components/node_editor/NodeEditor.tsx` - Added clipboard history panel and keyboard shortcut
+
+**Implementation**:
+- ClipboardHistoryStore uses zustand persist middleware to save clipboard history to localStorage
+- Stores up to 10 clipboard entries with node count, edge count, and preview information
+- ClipboardHistoryPanel shows a dialog with list of clipboard items, timestamps, and preview nodes
+- Users can clear history, remove individual items, or paste from any history entry
+- Keyboard shortcut Ctrl+Shift+V opens the clipboard history panel
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

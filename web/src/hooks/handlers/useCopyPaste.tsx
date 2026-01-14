@@ -2,6 +2,7 @@
  * Custom hook that provides copy, cut, and paste functionality for nodes and edges in the flow editor.
  * Handles both single node and multi-node operations, preserves connections between copied nodes,
  * and supports both Electron clipboard API and localStorage fallback for data persistence.
+ * Also maintains a clipboard history (clipboard ring) for accessing previously copied items.
  */
 
 import { getMousePosition } from "../../utils/MousePosition";
@@ -12,6 +13,7 @@ import { NodeData } from "../../stores/NodeData";
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import useClipboardHistoryStore from "../../stores/ClipboardHistoryStore";
 
 const hasValidPosition = (position: any) =>
   !!position &&
@@ -32,6 +34,10 @@ export const useCopyPaste = () => {
       setClipboardData: state.setClipboardData,
       setIsClipboardValid: state.setIsClipboardValid
     })
+  );
+
+  const addToClipboardHistory = useClipboardHistoryStore(
+    (state) => state.addItem
   );
 
   const { nodes, edges, setNodes, setEdges, workflowId } = useNodes(
@@ -82,9 +88,15 @@ export const useCopyPaste = () => {
       setClipboardData(serializedData);
       setIsClipboardValid(true);
 
+      // Add to clipboard history
+      addToClipboardHistory({
+        nodes: nodesToCopy as Node<NodeData>[],
+        edges: connectedEdges
+      });
+
       return { nodesToCopy, connectedEdges };
     },
-    [nodes, edges, selectedNodes, setClipboardData, setIsClipboardValid]
+    [nodes, edges, selectedNodes, setClipboardData, setIsClipboardValid, addToClipboardHistory]
   );
 
   const handleCut = useCallback(
