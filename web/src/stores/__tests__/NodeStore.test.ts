@@ -154,6 +154,31 @@ describe("NodeStore node management", () => {
     expect(store.getState().nodes).toHaveLength(1);
   });
 
+  test("addCommentNode adds a comment node at specified position", () => {
+    const position = { x: 100, y: 200 };
+    store.getState().addCommentNode(position);
+
+    const nodes = store.getState().nodes;
+    expect(nodes).toHaveLength(1);
+
+    const commentNode = nodes[0];
+    expect(commentNode.type).toBe("nodetool.workflows.base_node.Comment");
+    expect(commentNode.position).toEqual(position);
+    expect(commentNode.data.properties).toHaveProperty("comment");
+    expect(commentNode.data.properties).toHaveProperty("comment_color");
+    expect(commentNode.data.selectable).toBe(true);
+    expect(store.getState().workflowIsDirty).toBe(true);
+  });
+
+  test("addCommentNode generates unique IDs", () => {
+    store.getState().addCommentNode({ x: 0, y: 0 });
+    store.getState().addCommentNode({ x: 100, y: 100 });
+
+    const nodes = store.getState().nodes;
+    expect(nodes).toHaveLength(2);
+    expect(nodes[0].id).not.toBe(nodes[1].id);
+  });
+
   test("updateNode and updateNodeData", () => {
     const node = makeNode("a", store.getState().workflow.id);
     store.getState().addNode(node);

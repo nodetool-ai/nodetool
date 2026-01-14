@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Comments Feature (2026-01-14)
+
+**What**: Added keyboard shortcut (Shift+C) to create comment nodes at the center of the viewport for documenting workflows. Comment nodes support rich text editing with color customization.
+
+**Files**:
+- `web/src/config/shortcuts.ts` - Added addComment shortcut (Shift+C)
+- `web/src/stores/NodeStore.ts` - Added addCommentNode method to interface and implementation
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handleAddComment callback
+- `web/src/stores/__tests__/NodeStore.test.ts` - Added tests for addCommentNode
+
+**Implementation**:
+- Created `addCommentNode` method in NodeStore that creates a comment node at specified position
+- Added Shift+C keyboard shortcut to create comment nodes at viewport center
+- Comment nodes use existing CommentNode component with type "nodetool.workflows.base_node.Comment"
+- Tests verify correct node type, position, and workflow dirty state
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

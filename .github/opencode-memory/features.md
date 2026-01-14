@@ -35,6 +35,7 @@ Last updated: 2026-01-12
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)
 - **Node Tooltips**: Hover tooltips showing node handle information
 - **Node Documentation**: Inline documentation for each node type
+- **Node Comments**: Add annotation notes to workflows using Shift+C shortcut
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)

@@ -208,6 +208,7 @@ export interface NodeStoreState {
   toggleBypass: (nodeId: string) => void;
   setBypass: (nodeId: string, bypassed: boolean) => void;
   toggleBypassSelected: () => void;
+  addCommentNode: (position: { x: number; y: number }) => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -1121,6 +1122,28 @@ export const createNodeStore = (
               )
             }));
             get().setWorkflowDirty(true);
+          },
+          addCommentNode: (position: { x: number; y: number }): void => {
+            const nodeId = get().generateNodeId();
+            const commentNode: Node<NodeData> = {
+              id: nodeId,
+              type: "nodetool.workflows.base_node.Comment",
+              position,
+              data: {
+                properties: {
+                  comment: "",
+                  comment_color: "#ffffff"
+                },
+                selectable: true,
+                workflow_id: get().workflow.id,
+                dynamic_properties: {}
+              },
+              style: {
+                width: 280,
+                height: 100
+              }
+            };
+            get().addNode(commentNode);
           },
           cleanup: () => {
             if (unsubscribeMetadata) {

@@ -50,6 +50,7 @@ export const useNodeEditorShortcuts = (
     saveExample: state.saveExample,
     removeWorkflow: state.removeWorkflow,
     getCurrentWorkflow: state.getCurrentWorkflow,
+    getNodeStore: state.getNodeStore,
     openWorkflows: state.openWorkflows,
     createNewWorkflow: state.createNew,
     saveWorkflow: state.saveWorkflow
@@ -391,6 +392,21 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleAddComment = useCallback(() => {
+    const viewport = reactFlow.getViewport();
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const centerX = -viewport.x / viewport.zoom + screenWidth / 2 / viewport.zoom;
+    const centerY = -viewport.y / viewport.zoom + screenHeight / 2 / viewport.zoom;
+    const workflow = getCurrentWorkflow();
+    if (workflow) {
+      const nodeStore = workflowManager.getNodeStore(workflow.id);
+      if (nodeStore) {
+        nodeStore.getState().addCommentNode({ x: centerX, y: centerY });
+      }
+    }
+  }, [reactFlow, getCurrentWorkflow, workflowManager]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -522,7 +538,8 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
-      }
+      },
+      addComment: { callback: handleAddComment }
     };
 
     // Switch-to-tab (1-9)
@@ -586,7 +603,9 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    handleAddComment,
+    workflowManager
   ]);
 
   // useEffect for shortcut registration
