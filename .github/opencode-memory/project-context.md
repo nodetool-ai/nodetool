@@ -160,7 +160,30 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Node Execution Time Display (2026-01-13)
+### Node Labels Feature (2026-01-14)
+
+**What**: Added custom node labels feature for workflow documentation and organization. Users can add color-coded labels/tags to any node, displayed as small badges on the node. Labels can be searched and filtered in the Find in Workflow dialog.
+
+**Files**:
+- `web/src/stores/NodeLabelStore.ts` - New store for managing per-workflow node labels
+- `web/src/components/node/NodeLabel/NodeLabelBadge.tsx` - Badge component displayed on nodes
+- `web/src/components/node/NodeLabel/NodeLabelDialog.tsx` - Dialog for adding/editing labels
+- `web/src/components/node_editor/NodeInfoPanel.tsx` - Integrated label management UI
+- `web/src/config/shortcuts.ts` - Added "L" keyboard shortcut for labels
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handler
+- `web/src/hooks/useFindInWorkflow.ts` - Added label search support
+- `web/src/components/node_editor/FindInWorkflowDialog.tsx` - Display label badges in search results
+- `web/src/components/node/BaseNode.tsx` - Integrated NodeLabelBadge component
+- `web/src/stores/__tests__/NodeLabelStore.test.ts` - Unit tests
+
+**Implementation**:
+- NodeLabelStore supports per-workflow label isolation with setCurrentWorkflowId
+- Each node can have up to 5 labels with auto-assigned or custom colors
+- Labels appear as small badges on nodes in the editor
+- Find in Workflow dialog shows labels and supports label-based search
+- Press "L" with a node selected to open the label dialog
+
+**Impact**: Users can now annotate workflows with meaningful labels for better organization and documentation.
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
 

@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useInspectedNodeStore } from "../stores/InspectedNodeStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -94,6 +95,7 @@ export const useNodeEditorShortcuts = (
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
   const { openFind } = findInWorkflow;
+  const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
@@ -512,6 +514,14 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      addNodeLabel: {
+        callback: () => {
+          if (selectedNodes.length === 1) {
+            toggleInspectedNode(selectedNodes[0].id);
+          }
+        },
+        active: selectedNodes.length === 1
       }
     };
 
@@ -575,7 +585,8 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    toggleInspectedNode
   ]);
 
   // useEffect for shortcut registration

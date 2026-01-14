@@ -3,12 +3,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useEffect, useRef } from "react";
-import { Box, Typography, List, ListItem, ListItemButton } from "@mui/material";
+import { Box, Typography, List, ListItem, ListItemButton, Chip } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import { useNodeLabelStore } from "../../components/node/NodeLabel";
 
 const styles = (theme: Theme) =>
   css({
@@ -174,6 +175,17 @@ const styles = (theme: Theme) =>
     },
     "& .empty-text": {
       fontSize: "13px"
+    },
+    "& .label-chips": {
+      display: "flex",
+      gap: "2px",
+      marginLeft: "8px",
+      flexWrap: "nowrap"
+    },
+    "& .label-chip": {
+      fontSize: "9px",
+      height: "16px",
+      minHeight: "16px"
     }
   });
 
@@ -201,6 +213,31 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       selectNode,
       getNodeDisplayName
     } = useFindInWorkflow();
+
+    const getNodeLabels = useNodeLabelStore((state) => state.getLabels);
+
+    const formatNodeType = (type: string): string => {
+      const parts = type.split(".");
+      if (parts.length > 1) {
+        return parts.slice(0, -1).join(".");
+      }
+      return type;
+    };
+
+    const getContrastColor = (hexColor: string): string => {
+      if (!hexColor) { return "#000000"; }
+      let hex = hexColor.replace("#", "");
+      if (hex.length === 3) {
+        hex = hex.split("").map((c) => c + c).join("");
+      }
+      if (hex.length !== 6) { return "#000000"; }
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      if (isNaN(r) || isNaN(g) || isNaN(b)) { return "#000000"; }
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.5 ? "#000000" : "#FFFFFF";
+    };
 
     useEffect(() => {
       if (isOpen) {
@@ -270,14 +307,6 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       inputRef.current?.focus();
     };
 
-    const formatNodeType = (type: string): string => {
-      const parts = type.split(".");
-      if (parts.length > 1) {
-        return parts.slice(0, -1).join(".");
-      }
-      return type;
-    };
-
     return (
       <Box className="find-dialog-container" css={styles(theme)}>
         <Box className="find-header">
@@ -333,21 +362,51 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
         {results.length > 0 ? (
           <List className="results-list" ref={listRef}>
-            {results.map((result, index) => (
-              <ListItem key={result.node.id} className="result-item" disablePadding>
-                <ListItemButton
-                  className={`result-button ${index === selectedIndex ? "selected" : ""}`}
-                  onClick={() => handleResultClick(index)}
-                >
-                  <Typography className="result-name" variant="body2">
-                    {getNodeDisplayName(result.node)}
-                  </Typography>
-                  <Typography className="result-type" variant="caption">
-                    {formatNodeType(result.node.type ?? "")}
-                  </Typography>
-                </ListItemButton>
-              </ListItem>
-            ))}
+            {results.map((result, index) => {
+              const labels = getNodeLabels(result.node.id);
+              return (
+                <ListItem key={result.node.id} className="result-item" disablePadding>
+                  <ListItemButton
+                    className={`result-button ${index === selectedIndex ? "selected" : ""}`}
+                    onClick={() => handleResultClick(index)}
+                  >
+                    <Typography className="result-name" variant="body2">
+                      {getNodeDisplayName(result.node)}
+                    </Typography>
+                    <Typography className="result-type" variant="caption">
+                      {formatNodeType(result.node.type ?? "")}
+                    </Typography>
+                    {labels.length > 0 && (
+                      <Box className="label-chips">
+                        {labels.slice(0, 3).map((label) => (
+                          <Chip
+                            key={label.id}
+                            label={label.text}
+                            size="small"
+                            className="label-chip"
+                            sx={{
+                              backgroundColor: label.color,
+                              color: getContrastColor(label.color),
+                            }}
+                          />
+                        ))}
+                        {labels.length > 3 && (
+                          <Chip
+                            label={`+${labels.length - 3}`}
+                            size="small"
+                            className="label-chip"
+                            sx={{
+                              backgroundColor: "action.hover",
+                              color: "text.secondary",
+                            }}
+                          />
+                        )}
+                      </Box>
+                    )}
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
           </List>
         ) : searchTerm ? (
           <Box className="empty-state">

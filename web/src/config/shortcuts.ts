@@ -710,6 +710,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+
+  // ---------- NODE LABELS ----------------------------------------------------
+  {
+    title: "Add Node Label",
+    slug: "addNodeLabel",
+    keyCombo: ["L"],
+    category: "editor" as const,
+    description: "Add a label to the selected node",
+    registerCombo: true
   }
 ] as Shortcut[];
 

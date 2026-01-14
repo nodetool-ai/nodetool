@@ -3,6 +3,7 @@ import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
 import { useNodes } from "../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
+import { useNodeLabelStore } from "../components/node/NodeLabel";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
@@ -25,6 +26,7 @@ export const useFindInWorkflow = () => {
   const nodes = useNodes((state) => state.nodes);
   const { setCenter, fitView } = useReactFlow();
   const metadataStore = useMetadataStore();
+  const getNodeLabels = useNodeLabelStore((state) => state.getLabels);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getNodeDisplayName = useCallback(
@@ -57,10 +59,14 @@ export const useFindInWorkflow = () => {
         const nodeType = (node.type ?? "").toLowerCase();
         const nodeId = node.id.toLowerCase();
 
+        const labels = getNodeLabels(node.id);
+        const labelTexts = labels.map((l) => l.text.toLowerCase()).join(" ");
+
         if (
           displayName.includes(normalizedTerm) ||
           nodeType.includes(normalizedTerm) ||
-          nodeId.includes(normalizedTerm)
+          nodeId.includes(normalizedTerm) ||
+          labelTexts.includes(normalizedTerm)
         ) {
           results.push(node);
         }
@@ -68,7 +74,7 @@ export const useFindInWorkflow = () => {
 
       return results;
     },
-    [getNodeDisplayName]
+    [getNodeDisplayName, getNodeLabels]
   );
 
   const performSearch = useCallback(

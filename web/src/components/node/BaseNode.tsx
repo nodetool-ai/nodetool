@@ -41,6 +41,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
+import { NodeLabelBadge } from "./NodeLabel";
 
 
 // Node sizing constants
@@ -450,6 +451,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
+      <NodeLabelBadge nodeId={id} />
       {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (
         <ModelRecommendations nodeType={type} />
       )}
