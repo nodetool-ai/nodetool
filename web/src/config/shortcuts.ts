@@ -750,6 +750,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  {
+    title: "Collapse/Expand Group",
+    slug: "collapseGroup",
+    keyCombo: ["C"],
+    category: "editor" as const,
+    description: "Collapse or expand selected group node",
+    registerCombo: true
   }
 ] as Shortcut[];
 

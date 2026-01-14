@@ -43,7 +43,8 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    toggleGroupCollapsed: state.toggleGroupCollapsed
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -81,7 +82,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected, toggleGroupCollapsed } =
     nodesStore;
   const {
     saveExample,
@@ -116,6 +117,17 @@ export const useNodeEditorShortcuts = (
       toggleBypassSelected();
     }
   }, [selectedNodes.length, toggleBypassSelected]);
+
+  const handleToggleCollapse = useCallback(() => {
+    const groupNodes = selectedNodes.filter(
+      (node) => node.type === "group" || node.data?.properties?.headline !== undefined
+    );
+    if (groupNodes.length > 0) {
+      groupNodes.forEach((node) => {
+        toggleGroupCollapsed(node.id);
+      });
+    }
+  }, [selectedNodes, toggleGroupCollapsed]);
 
   const handleSelectConnectedAll = useCallback(() => {
     if (selectedNodes.length > 0) {
@@ -456,6 +468,10 @@ export const useNodeEditorShortcuts = (
         callback: handleBypassSelected,
         active: selectedNodes.length > 0
       },
+      collapseGroup: {
+        callback: handleToggleCollapse,
+        active: selectedNodes.length > 0
+      },
       findInWorkflow: { callback: openFind },
       selectConnectedAll: {
         callback: handleSelectConnectedAll,
@@ -557,6 +573,7 @@ export const useNodeEditorShortcuts = (
     handleZoomOut,
     handleZoomToPreset,
     handleBypassSelected,
+    handleToggleCollapse,
     handleFitView,
     handleSwitchTab,
     handleMoveNodes,

@@ -204,6 +204,26 @@ test('handles user interaction', async () => {
 
 ---
 
+### Collapsible Node Groups (2026-01-14)
+
+**What**: Added collapse/expand functionality for group nodes, allowing users to hide complex nested node structures. Features include toggle button in group header, visual indicator showing child node count when collapsed, and keyboard shortcut (C key) for quick toggle.
+
+**Files**:
+- `web/src/stores/NodeStore.ts` - Added `toggleGroupCollapsed` and `setGroupCollapsed` functions
+- `web/src/components/node/GroupNode.tsx` - Added collapse/expand button, collapsed state styling, and child count indicator
+- `web/src/config/shortcuts.ts` - Added `collapseGroup` keyboard shortcut (C key)
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added `handleToggleCollapse` handler for keyboard shortcut
+
+**Implementation**:
+- Extended `NodeData` type's existing `collapsed` property with functional implementation
+- Added toggle button with arrow icons (up/down) in group node header
+- When collapsed, group node displays child node count (e.g., "5 nodes")
+- CSS styles handle collapsed state (reduced height, hidden child nodes container)
+- Keyboard shortcut (C) toggles collapse on selected group nodes
+- State persists in node data for workflow save/load compatibility
+
+---
+
 ### Zustand Store Subscription Optimization (2026-01-13)
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.

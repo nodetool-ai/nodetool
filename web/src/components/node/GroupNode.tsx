@@ -20,23 +20,30 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
-import { Tooltip } from "@mui/material";
+import { Tooltip, IconButton } from "@mui/material";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
 const GROUP_COLOR_OPACITY = 0.4;
 
-const styles = (theme: Theme, minWidth: number, minHeight: number) =>
+const styles = (theme: Theme, minWidth: number, minHeight: number, isCollapsed: boolean) =>
   css({
     "&": {
       boxShadow: "none",
       minWidth: minWidth + "px",
-      minHeight: minHeight + "px"
+      minHeight: isCollapsed ? "48px" : minHeight + "px",
+      transition: "min-height 0.2s ease"
     },
     "&.hovered.control-pressed": {
       border: "2px dashed black !important"
     },
-    height: "100%",
+    "&.collapsed": {
+      minHeight: "48px",
+      height: "48px"
+    },
+    height: isCollapsed ? "48px" : "100%",
     display: "flex",
     borderRadius: "5px",
     border: `1px solid ${theme.vars.palette.grey[600]}`,
@@ -49,18 +56,29 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       top: "0px",
       color: theme.vars.palette.grey[1000]
     },
-    ".info": {
+    ".collapsed-indicator": {
       position: "absolute",
-      top: ".5em",
-      right: "0",
-      left: "0",
+      bottom: "8px",
+      right: "8px",
+      padding: "4px 8px",
+      backgroundColor: theme.vars.palette.action.hover,
+      borderRadius: "4px",
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.grey[300]
+    },
+    ".collapsed-info": {
+      padding: "4px 12px",
+      backgroundColor: theme.vars.palette.action.hover,
+      borderRadius: "4px",
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.grey[300],
+      marginLeft: "auto",
+      marginRight: "8px"
+    },
+    ".child-nodes-container": {
+      display: isCollapsed ? "none" : "block",
       width: "100%",
-      textAlign: "center",
-      padding: ".5em",
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[1000],
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal
+      height: "100%"
     },
     // header
     ".node-header": {
@@ -151,12 +169,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const { workflow, updateNodeData, updateNode, setBypass } = useNodes(
+  const { workflow, updateNodeData, updateNode, setBypass, toggleGroupCollapsed } = useNodes(
     (state) => ({
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
       workflow: state.workflow,
-      setBypass: state.setBypass
+      setBypass: state.setBypass,
+      toggleGroupCollapsed: state.toggleGroupCollapsed
     })
   );
   const { nodes, edges } = useNodes((state) => ({
@@ -225,6 +244,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const [color, setColor] = useState(
     props.data.properties.group_color || theme.vars.palette.c_bg_group
   );
+
+  const isCollapsed = props.data.collapsed || false;
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
       const newWidth = event.x;
@@ -314,6 +335,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     // console.log("Node header clicked:", props.id, props.data);
   };
 
+  const handleToggleCollapse = useCallback(() => {
+    toggleGroupCollapsed(props.id);
+  }, [toggleGroupCollapsed, props.id]);
+
   useEffect(() => {
     // Selectable group nodes when control key is pressed
     // (enables the use of the selection rectangle inside group nodes)
@@ -326,10 +351,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <div
-      css={styles(theme, MIN_WIDTH, MIN_HEIGHT)}
+      css={styles(theme, MIN_WIDTH, MIN_HEIGHT, isCollapsed)}
       ref={nodeRef}
-      className={`group-node ${nodeHovered ? "hovered" : ""} 
-      }`}
+      className={`group-node ${nodeHovered ? "hovered" : ""} ${isCollapsed ? "collapsed" : ""}`}
       style={{
         ...(nodeHovered
           ? { border: `2px solid ${theme.vars.palette.primary.main}` }
@@ -353,7 +377,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             Hold CTRL or ⌘ key + click <br />
             <br />
             <b>EDIT GROUP TITLE:</b> <br />
-            Double click on header area
+            Double click on header area <br />
+            <br />
+            <b>COLLAPSE/GROUP:</b> <br />
+            Click arrow button in header
           </span>
         }
       >
@@ -374,6 +401,25 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             />
           </div>
           <div className="action-buttons">
+            <Tooltip title={isCollapsed ? "Expand group" : "Collapse group"}>
+              <IconButton
+                size="small"
+                onClick={handleToggleCollapse}
+                sx={{
+                  color: theme.vars.palette.grey[400],
+                  "&:hover": {
+                    color: theme.vars.palette.grey[100],
+                    bgcolor: theme.vars.palette.action.hover
+                  }
+                }}
+              >
+                {isCollapsed ? (
+                  <KeyboardArrowUpIcon fontSize="small" />
+                ) : (
+                  <KeyboardArrowDownIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
             <ColorPicker
               buttonSize={24}
               color={color || null}
@@ -393,6 +439,12 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </div>
         </div>
       </Tooltip>
+
+      {isCollapsed && (
+        <div className="collapsed-info">
+          {childNodes.length} node{childNodes.length !== 1 ? "s" : ""}
+        </div>
+      )}
 
       {/* Help text that appears when dragging nodes */}
       <div className={`help-text ${isDragging ? "visible" : "none"}`}>

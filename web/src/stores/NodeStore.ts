@@ -208,6 +208,8 @@ export interface NodeStoreState {
   toggleBypass: (nodeId: string) => void;
   setBypass: (nodeId: string, bypassed: boolean) => void;
   toggleBypassSelected: () => void;
+  toggleGroupCollapsed: (nodeId: string) => void;
+  setGroupCollapsed: (nodeId: string, collapsed: boolean) => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -1116,6 +1118,38 @@ export const createNodeStore = (
                       ...n, 
                       className: shouldBypass ? "bypassed" : undefined,
                       data: { ...n.data, bypassed: shouldBypass } 
+                    }
+                  : n
+              )
+            }));
+            get().setWorkflowDirty(true);
+          },
+          toggleGroupCollapsed: (nodeId: string): void => {
+            const node = get().findNode(nodeId);
+            if (node) {
+              const newCollapsed = !node.data.collapsed;
+              set((state) => ({
+                nodes: state.nodes.map((n) =>
+                  n.id === nodeId
+                    ? {
+                        ...n,
+                        className: newCollapsed ? "collapsed" : undefined,
+                        data: { ...n.data, collapsed: newCollapsed }
+                      }
+                    : n
+                )
+              }));
+              get().setWorkflowDirty(true);
+            }
+          },
+          setGroupCollapsed: (nodeId: string, collapsed: boolean): void => {
+            set((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.id === nodeId
+                  ? {
+                      ...n,
+                      className: collapsed ? "collapsed" : undefined,
+                      data: { ...n.data, collapsed }
                     }
                   : n
               )
