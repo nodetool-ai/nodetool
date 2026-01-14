@@ -64,6 +64,8 @@ interface ReactFlowWrapperProps {
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
+import ExecutionProgressPanel from "../node_editor/ExecutionProgressPanel";
+import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -177,6 +179,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const connecting = useConnectionStore((state) => state.connecting);
+  const isWorkflowRunning = useWebsocketRunner((state) => state.state === "running");
 
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
@@ -545,6 +548,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       )}
       <MiniMapNavigator />
       <ViewportStatusIndicator />
+      <ExecutionProgressPanel
+        workflowId={workflowId}
+        isExecuting={isWorkflowRunning}
+      />
     </div>
   );
 };

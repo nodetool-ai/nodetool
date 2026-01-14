@@ -160,6 +160,17 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Execution Progress Panel (2026-01-13)
+
+**What**: Added a workflow execution progress panel showing real-time execution summary with node status counts (running/completed/pending/failed), progress percentage, and elapsed time.
+
+**Files**:
+- `web/src/hooks/useWorkflowExecutionProgress.ts` - Hook for tracking execution progress
+- `web/src/components/node_editor/ExecutionProgressPanel.tsx` - UI component displaying progress
+- `web/src/components/node/ReactFlowWrapper.tsx` - Integrated progress panel
+
+---
+
 ### Node Execution Time Display (2026-01-13)
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
