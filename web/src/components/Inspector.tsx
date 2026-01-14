@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import PropertyField from "./node/PropertyField";
 import { Box, Button, IconButton, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
@@ -14,9 +14,11 @@ import { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import { typesAreEqual } from "../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
 import { EditorUiProvider } from "./editor_ui";
+import { SaveNodePresetDialog } from "./dialogs/SaveNodePresetDialog";
 
 const styles = (theme: Theme) =>
   css({
@@ -169,10 +171,22 @@ const styles = (theme: Theme) =>
       position: "absolute",
       right: "0.5em",
       top: "0.5em"
+    },
+    ".preset-button": {
+      position: "absolute",
+      right: "3em",
+      top: "0.5em",
+      color: theme.vars.palette.text.secondary,
+      "&:hover": {
+        color: "primary.main",
+        backgroundColor: theme.vars.palette.action.hover
+      }
     }
   });
 
 const Inspector: React.FC = () => {
+  const [savePresetDialogOpen, setSavePresetDialogOpen] = useState(false);
+
   const {
     selectedNodes,
     edges,
@@ -409,6 +423,17 @@ const Inspector: React.FC = () => {
           <Box className="top-content">
             <div className="inspector-header">
               <Typography variant="h5">Inspector</Typography>
+              <Tooltip title="Save as preset" placement="top-start">
+                <IconButton
+                  className="preset-button"
+                  aria-label="Save node as preset"
+                  size="small"
+                  onClick={() => setSavePresetDialogOpen(true)}
+                  sx={{ right: "3em" }}
+                >
+                  <BookmarkBorderIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
               <IconButton
                 className="close-button"
                 aria-label="Close inspector"
@@ -507,6 +532,13 @@ const Inspector: React.FC = () => {
           </Tooltip>
         </div>
       </Box>
+      <SaveNodePresetDialog
+        open={savePresetDialogOpen}
+        onClose={() => setSavePresetDialogOpen(false)}
+        nodeType={selectedNode.type as string}
+        nodeProperties={selectedNode.data.properties}
+        nodeId={selectedNode.id}
+      />
     </EditorUiProvider>
   );
 };
