@@ -2,13 +2,26 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useEffect, useRef } from "react";
-import { Box, Typography, List, ListItem, ListItemButton } from "@mui/material";
+import { memo, useEffect, useRef, useCallback } from "react";
+import {
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  IconButton,
+  Tooltip
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
+import HistoryIcon from "@mui/icons-material/History";
+import CloseIcon from "@mui/icons-material/Close";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import { useRecentSearchesStore } from "../../stores/RecentSearchesStore";
+import { useKeyPressed } from "../../stores/KeyPressedStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const styles = (theme: Theme) =>
   css({
@@ -16,8 +29,8 @@ const styles = (theme: Theme) =>
       position: "fixed",
       top: "60px",
       right: "20px",
-      width: "300px",
-      maxHeight: "400px",
+      width: "320px",
+      maxHeight: "450px",
       zIndex: 20000,
       display: "flex",
       flexDirection: "column",
@@ -174,6 +187,69 @@ const styles = (theme: Theme) =>
     },
     "& .empty-text": {
       fontSize: "13px"
+    },
+    "& .recent-searches-section": {
+      borderTop: `1px solid ${theme.vars.palette.divider}`
+    },
+    "& .recent-searches-header": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "8px 16px",
+      backgroundColor: theme.vars.palette.action.hover,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
+    },
+    "& .recent-searches-title": {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      fontSize: "12px",
+      fontWeight: 600,
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    "& .clear-recent-button": {
+      padding: "2px",
+      minWidth: "auto",
+      color: theme.vars.palette.text.disabled,
+      "&:hover": {
+        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.hover
+      }
+    },
+    "& .recent-search-item": {
+      display: "flex",
+      alignItems: "center",
+      padding: "8px 16px",
+      cursor: "pointer",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      }
+    },
+    "& .recent-search-term": {
+      flex: 1,
+      fontSize: "13px",
+      color: theme.vars.palette.text.primary
+    },
+    "& .recent-search-count": {
+      fontSize: "11px",
+      color: theme.vars.palette.text.disabled,
+      marginLeft: "8px"
+    },
+    "& .recent-search-remove": {
+      padding: "2px",
+      minWidth: "auto",
+      color: theme.vars.palette.text.disabled,
+      opacity: 0,
+      "&:hover": {
+        color: theme.vars.palette.error.main,
+        backgroundColor: "transparent"
+      }
+    },
+    "& .recent-search-item:hover .recent-search-remove": {
+      opacity: 1
     }
   });
 
@@ -202,11 +278,30 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       getNodeDisplayName
     } = useFindInWorkflow();
 
+    const { recentSearches, addSearch, removeSearch, clearSearches } =
+      useRecentSearchesStore((state) => ({
+        recentSearches: state.recentSearches,
+        addSearch: state.addSearch,
+        removeSearch: state.removeSearch,
+        clearSearches: state.clearSearches
+      }));
+
+    const shiftPressed = useKeyPressed((state) => state.isKeyPressed("shift"));
+
     useEffect(() => {
       if (isOpen) {
         setTimeout(() => inputRef.current?.focus(), 50);
       }
     }, [isOpen]);
+
+    const handleSearchExecuted = useCallback(
+      (term: string, count: number) => {
+        if (term.trim() && count > 0) {
+          addSearch(term, count);
+        }
+      },
+      [addSearch]
+    );
 
     useEffect(() => {
       if (!isOpen) {
@@ -224,7 +319,12 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           event.preventDefault();
           if (results.length > 0) {
             goToSelected();
+            handleSearchExecuted(searchTerm, results.length);
             closeFind();
+          } else if (shiftPressed && recentSearches.length > 0) {
+            navigatePrevious();
+          } else if (recentSearches.length > 0) {
+            navigateNext();
           }
           return;
         }
@@ -249,7 +349,18 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isOpen, closeFind, navigateNext, navigatePrevious, results.length, goToSelected]);
+    }, [
+      isOpen,
+      closeFind,
+      navigateNext,
+      navigatePrevious,
+      results.length,
+      goToSelected,
+      searchTerm,
+      shiftPressed,
+      recentSearches.length,
+      handleSearchExecuted
+    ]);
 
     if (!isOpen) {
       return null;
@@ -262,12 +373,30 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     const handleResultClick = (index: number) => {
       selectNode(index);
       goToSelected();
+      handleSearchExecuted(searchTerm, results.length);
       closeFind();
     };
 
     const handleClear = () => {
       clearSearch();
       inputRef.current?.focus();
+    };
+
+    const handleRecentSearchClick = (term: string) => {
+      performSearch(term);
+      setTimeout(() => inputRef.current?.focus(), 0);
+    };
+
+    const handleRemoveRecentSearch = (
+      e: React.MouseEvent,
+      term: string
+    ) => {
+      e.stopPropagation();
+      removeSearch(term);
+    };
+
+    const handleClearAllRecent = () => {
+      clearSearches();
     };
 
     const formatNodeType = (type: string): string => {
@@ -277,6 +406,9 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       }
       return type;
     };
+
+    const showRecentSearches =
+      !searchTerm.trim() && recentSearches.length > 0;
 
     return (
       <Box className="find-dialog-container" css={styles(theme)}>
@@ -292,37 +424,55 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               placeholder="Find nodes..."
               value={searchTerm}
               onChange={handleInputChange}
+              aria-label="Find nodes in workflow"
             />
             {searchTerm && (
-              <button className="clear-button" onClick={handleClear}>
+              <button
+                className="clear-button"
+                onClick={handleClear}
+                aria-label="Clear search"
+              >
                 <ClearIcon fontSize="small" />
               </button>
             )}
           </Box>
           <Box className="navigation-buttons">
-            <button
-              className="nav-button"
-              onClick={navigatePrevious}
-              disabled={results.length === 0}
+            <Tooltip
               title="Previous (Shift+Enter)"
+              placement="bottom"
+              enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <ArrowUpwardIcon fontSize="small" />
-            </button>
-            <button
-              className="nav-button"
-              onClick={navigateNext}
-              disabled={results.length === 0}
+              <button
+                className="nav-button"
+                onClick={shiftPressed ? navigatePrevious : navigateNext}
+                disabled={results.length === 0 && recentSearches.length === 0}
+                aria-label="Navigate to previous result"
+              >
+                <ArrowUpwardIcon fontSize="small" />
+              </button>
+            </Tooltip>
+            <Tooltip
               title="Next (Enter)"
+              placement="bottom"
+              enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <ArrowDownwardIcon fontSize="small" />
-            </button>
+              <button
+                className="nav-button"
+                onClick={navigateNext}
+                disabled={results.length === 0 && recentSearches.length === 0}
+                aria-label="Navigate to next result"
+              >
+                <ArrowDownwardIcon fontSize="small" />
+              </button>
+            </Tooltip>
           </Box>
         </Box>
 
         <Box className="results-count">
           {results.length > 0 ? (
             <>
-              {selectedIndex + 1} of {results.length} node{results.length !== 1 ? "s" : ""} found
+              {selectedIndex + 1} of {results.length} node
+              {results.length !== 1 ? "s" : ""} found
             </>
           ) : searchTerm ? (
             <>No nodes found</>
@@ -331,12 +481,67 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           )}
         </Box>
 
-        {results.length > 0 ? (
+        {showRecentSearches ? (
+          <Box className="recent-searches-section">
+            <Box className="recent-searches-header">
+              <Typography className="recent-searches-title">
+                <HistoryIcon fontSize="small" />
+                Recent Searches
+              </Typography>
+              <Tooltip title="Clear all recent searches" placement="top">
+                <IconButton
+                  className="clear-recent-button"
+                  size="small"
+                  onClick={handleClearAllRecent}
+                  aria-label="Clear all recent searches"
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+            <List className="results-list" dense>
+              {recentSearches.map((search) => (
+                <ListItem
+                  key={search.term}
+                  className="result-item"
+                  disablePadding
+                >
+                  <ListItemButton
+                    className="recent-search-item"
+                    onClick={() => handleRecentSearchClick(search.term)}
+                  >
+                    <Typography className="recent-search-term">
+                      {search.term}
+                    </Typography>
+                    <Typography className="recent-search-count">
+                      {search.resultCount} result
+                      {search.resultCount !== 1 ? "s" : ""}
+                    </Typography>
+                    <IconButton
+                      className="recent-search-remove"
+                      size="small"
+                      onClick={(e) => handleRemoveRecentSearch(e, search.term)}
+                      aria-label={`Remove "${search.term}" from recent searches`}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        ) : results.length > 0 ? (
           <List className="results-list" ref={listRef}>
             {results.map((result, index) => (
-              <ListItem key={result.node.id} className="result-item" disablePadding>
+              <ListItem
+                key={result.node.id}
+                className="result-item"
+                disablePadding
+              >
                 <ListItemButton
-                  className={`result-button ${index === selectedIndex ? "selected" : ""}`}
+                  className={`result-button ${
+                    index === selectedIndex ? "selected" : ""
+                  }`}
                   onClick={() => handleResultClick(index)}
                 >
                   <Typography className="result-name" variant="body2">

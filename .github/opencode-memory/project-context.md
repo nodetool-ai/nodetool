@@ -179,6 +179,25 @@ test('handles user interaction', async () => {
 - Added keyboard shortcuts for zoom control
 - Removed node count display as it was redundant with existing UI elements
 
+### Recent Searches for Find in Workflow (2026-01-14)
+
+**What**: Enhanced Find in Workflow dialog with recent search history feature, showing previously searched terms with result counts, clickable to re-execute, and options to remove individual searches or clear all.
+
+**Files**:
+- `web/src/stores/RecentSearchesStore.ts` - New store for managing recent searches with localStorage persistence (max 10 searches)
+- `web/src/components/node_editor/FindInWorkflowDialog.tsx` - Enhanced dialog with recent searches section, remove buttons, and clear all functionality
+- `web/src/components/node_editor/__tests__/FindInWorkflowDialog.test.tsx` - Comprehensive tests for dialog rendering, interactions, and accessibility
+- `web/src/stores/__tests__/RecentSearchesStore.test.ts` - Unit tests for the new store
+
+**Implementation**:
+- Added RecentSearchesStore with addSearch, removeSearch, clearSearches, and getSearches methods
+- Stores up to 10 recent searches with timestamps and result counts
+- Recent searches shown when search box is empty
+- Each recent search shows term, result count, and remove button
+- Clear all button to remove all recent searches
+- Search terms are normalized to lowercase and trimmed
+- localStorage persistence for cross-session memory
+
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
 
 **Files**:
