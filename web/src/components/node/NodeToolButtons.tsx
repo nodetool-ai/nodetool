@@ -63,7 +63,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const dropdownOpen = Boolean(anchorEl);
 
   const syncMode = nodeData?.sync_mode || "on_any";
-  const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const isInGroup = Boolean(node?.parentId);
 
@@ -98,12 +97,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       toggleBypass(nodeId);
     }
   }, [nodeId, toggleBypass]);
-
-  const handleToggleComment = useCallback(() => {
-    if (nodeId !== null) {
-      updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
-    }
-  }, [nodeId, hasCommentTitle, updateNodeData]);
 
   const handleRemoveFromGroup = useCallback(() => {
     if (node) {
@@ -186,16 +179,16 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         <Tooltip
           title={
             <span>
-              {hasCommentTitle ? "Remove Comment" : "Add Comment"}
+              {conditions.hasComment ? "Remove Comment" : "Add Comment"}
             </span>
           }
           enterDelay={TOOLTIP_ENTER_DELAY}
         >
           <IconButton
             className="nodrag"
-            onClick={handleToggleComment}
+            onClick={handlers.handleToggleComment}
             tabIndex={-1}
-            color={hasCommentTitle ? "primary" : "default"}
+            color={conditions.hasComment ? "primary" : "default"}
             size="small"
           >
             <EditIcon fontSize="small" />

@@ -41,6 +41,8 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
+import NodeComment from "./NodeComment";
+import { useNodes } from "../../contexts/NodeContext";
 
 
 // Node sizing constants
@@ -378,6 +380,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     setShowAdvancedFields(!showAdvancedFields);
   }, [showAdvancedFields]);
 
+  const updateNodeData = useNodes((state) => state.updateNodeData);
+  const handleCommentChange = useCallback(
+    (comment: string) => {
+      updateNodeData(id, { ...data, comment });
+    },
+    [id, data, updateNodeData]
+  );
+  const handleCommentRemove = useCallback(() => {
+    const { comment: _, ...restData } = data;
+    updateNodeData(id, restData);
+  }, [id, data, updateNodeData]);
+
   return (
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
@@ -487,6 +501,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       {chunk && <ChunkDisplay chunk={chunk} />}
       {task && <TaskView task={task} />}
+      <NodeComment
+        comment={data.comment}
+        onChange={handleCommentChange}
+        onRemove={handleCommentRemove}
+      />
 
       {isFocused && (
         <Box

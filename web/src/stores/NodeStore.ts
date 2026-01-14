@@ -208,6 +208,7 @@ export interface NodeStoreState {
   toggleBypass: (nodeId: string) => void;
   setBypass: (nodeId: string, bypassed: boolean) => void;
   toggleBypassSelected: () => void;
+  toggleCommentSelected: () => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -1116,6 +1117,31 @@ export const createNodeStore = (
                       ...n, 
                       className: shouldBypass ? "bypassed" : undefined,
                       data: { ...n.data, bypassed: shouldBypass } 
+                    }
+                  : n
+              )
+            }));
+            get().setWorkflowDirty(true);
+          },
+          toggleCommentSelected: (): void => {
+            const selectedNodes = get().getSelectedNodes();
+            if (selectedNodes.length === 0) {
+              return;
+            }
+            
+            const nodesWithCommentCount = selectedNodes.filter(n => n.data.comment).length;
+            const shouldRemove = nodesWithCommentCount >= selectedNodes.length / 2;
+            
+            set((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.selected
+                  ? {
+                      ...n,
+                      data: shouldRemove
+                        ? Object.fromEntries(
+                            Object.entries(n.data).filter(([key]) => key !== "comment")
+                          ) as NodeData
+                        : { ...n.data, comment: "" }
                     }
                   : n
               )

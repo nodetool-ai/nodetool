@@ -38,6 +38,7 @@ interface UseNodeContextMenuReturn {
   };
   conditions: {
     hasCommentTitle: boolean;
+    hasComment: boolean;
     isBypassed: boolean;
     canConvertToInput: boolean;
     canConvertToConstant: boolean;
@@ -95,6 +96,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   );
   const getResult = useResultsStore((state) => state.getResult);
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const hasComment = Boolean(nodeData?.comment?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
 
@@ -102,9 +104,14 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     if (!nodeId) {
       return;
     }
-    updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
+    if (hasComment) {
+      const { comment: _, ...restData } = nodeData || {};
+      updateNodeData(nodeId, restData);
+    } else {
+      updateNodeData(nodeId, { ...(nodeData || {}), comment: "" });
+    }
     closeContextMenu();
-  }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
+  }, [closeContextMenu, hasComment, nodeData, nodeId, updateNodeData]);
 
   const handleRunFromHere = useCallback(() => {
     if (!node || !nodeId || isWorkflowRunning) {
@@ -356,6 +363,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     },
     conditions: {
       hasCommentTitle,
+      hasComment,
       isBypassed,
       canConvertToInput,
       canConvertToConstant,

@@ -43,7 +43,8 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    toggleCommentSelected: state.toggleCommentSelected
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -81,7 +82,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected, toggleCommentSelected } =
     nodesStore;
   const {
     saveExample,
@@ -116,6 +117,12 @@ export const useNodeEditorShortcuts = (
       toggleBypassSelected();
     }
   }, [selectedNodes.length, toggleBypassSelected]);
+
+  const handleToggleCommentSelected = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      toggleCommentSelected();
+    }
+  }, [selectedNodes.length, toggleCommentSelected]);
 
   const handleSelectConnectedAll = useCallback(() => {
     if (selectedNodes.length > 0) {
@@ -456,6 +463,10 @@ export const useNodeEditorShortcuts = (
         callback: handleBypassSelected,
         active: selectedNodes.length > 0
       },
+      toggleComment: {
+        callback: handleToggleCommentSelected,
+        active: selectedNodes.length > 0
+      },
       findInWorkflow: { callback: openFind },
       selectConnectedAll: {
         callback: handleSelectConnectedAll,
@@ -557,6 +568,7 @@ export const useNodeEditorShortcuts = (
     handleZoomOut,
     handleZoomToPreset,
     handleBypassSelected,
+    handleToggleCommentSelected,
     handleFitView,
     handleSwitchTab,
     handleMoveNodes,

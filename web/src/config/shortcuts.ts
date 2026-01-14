@@ -360,6 +360,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Toggle Comment",
+    slug: "toggleComment",
+    keyCombo: ["Shift", "C"],
+    category: "editor" as const,
+    description: "Add or remove a comment from selected nodes",
+    registerCombo: true
+  },
+  {
     title: "Select Connected (All)",
     slug: "selectConnectedAll",
     keyCombo: ["Shift", "C"],

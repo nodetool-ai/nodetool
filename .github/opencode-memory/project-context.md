@@ -160,24 +160,46 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Zoom Presets Feature (2026-01-14)
+  ### Zoom Presets Feature (2026-01-14)
 
-**What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
+  **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
 
-**Files**:
-- `web/src/components/node_editor/ViewportStatusIndicator.tsx` - Enhanced with zoom presets dropdown and zoom in/out buttons
-- `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx` - Added tests for new zoom functionality
-- `web/src/config/shortcuts.ts` - Added zoom shortcuts (zoomIn, zoomOut, zoom50, zoom100, zoom200)
-- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handlers for new zoom shortcuts
-- `web/src/__mocks__/themeMock.ts` - Added Paper.paper to vars.palette for theme consistency
+  **Files**:
+  - `web/src/components/node_editor/ViewportStatusIndicator.tsx` - Enhanced with zoom presets dropdown and zoom in/out buttons
+  - `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx` - Added tests for new zoom functionality
+  - `web/src/config/shortcuts.ts` - Added zoom shortcuts (zoomIn, zoomOut, zoom50, zoom100, zoom200)
+  - `web/src/hooks/useNodeEditorShortcuts.ts` - Added handlers for new zoom shortcuts
+  - `web/src/__mocks__/themeMock.ts` - Added Paper.paper to vars.palette for theme consistency
 
-**Implementation**:
-- Extended ViewportStatusIndicator with zoom in/out buttons (+/- icons)
-- Added Popover menu with 6 zoom presets (25%, 50%, 75%, 100%, 150%, 200%)
-- Current zoom preset is highlighted in the dropdown
-- Zoom percentage button opens the presets menu
-- Added keyboard shortcuts for zoom control
-- Removed node count display as it was redundant with existing UI elements
+  **Implementation**:
+  - Extended ViewportStatusIndicator with zoom in/out buttons (+/- icons)
+  - Added Popover menu with 6 zoom presets (25%, 50%, 75%, 100%, 150%, 200%)
+  - Current zoom preset is highlighted in the dropdown
+  - Zoom percentage button opens the presets menu
+  - Added keyboard shortcuts for zoom control
+  - Removed node count display as it was redundant with existing UI elements
+
+  ### Node Comments Feature (2026-01-14)
+
+  **What**: Added rich text comment annotations to nodes, allowing users to document workflows directly on nodes. Features include inline editing with Enter to save/Esc to cancel, remove button, and Shift+C keyboard shortcut.
+
+  **Files**:
+  - `web/src/stores/NodeData.ts` - Added `comment` field to NodeData type
+  - `web/src/components/node/NodeComment.tsx` - New component for displaying/editing node comments
+  - `web/src/components/node/BaseNode.tsx` - Integrated NodeComment below node content
+  - `web/src/config/shortcuts.ts` - Added `toggleComment` shortcut (Shift+C)
+  - `web/src/hooks/useNodeEditorShortcuts.ts` - Added handler for comment toggle
+  - `web/src/stores/NodeStore.ts` - Added `toggleCommentSelected` action
+  - `web/src/hooks/nodes/useNodeContextMenu.ts` - Updated to use new comment field
+  - `web/src/components/context_menus/NodeContextMenu.tsx` - Updated comment menu item
+  - `web/src/components/node/NodeToolButtons.tsx` - Updated comment button to use new comment field
+
+  **Implementation**:
+  - Comment field added to NodeData for storing annotation text
+  - NodeComment component renders below node content with view/edit/remove modes
+  - Comments support inline editing with Enter to save, Escape to cancel
+  - Shift+C shortcut toggles comments on selected nodes
+  - Majority voting determines whether to add or remove comments on multiple selection
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
 
