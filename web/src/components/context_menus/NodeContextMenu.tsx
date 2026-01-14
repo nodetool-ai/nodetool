@@ -1,5 +1,5 @@
-import React from "react";
-import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
+import React, { useState } from "react";
+import { Menu, Divider, ListItemIcon, ListItemText, MenuItem, Box } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
@@ -12,11 +12,13 @@ import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
+import PaletteIcon from "@mui/icons-material/Palette";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useNodes } from "../../contexts/NodeContext";
+import { NODE_COLORS, NodeColor } from "../../components/node/NodeColorPicker";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -28,8 +30,10 @@ const NodeContextMenu: React.FC = () => {
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
   const updateNodeData = useNodes((state) => state.updateNodeData);
+  const [colorMenuAnchor, setColorMenuAnchor] = useState<HTMLElement | null>(null);
 
   const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
+  const currentColor = (node?.data as NodeData | undefined)?.color || "";
 
   const handleSelectMode = (mode: "on_any" | "zip_all") => {
     if (node?.id) {
@@ -37,6 +41,49 @@ const NodeContextMenu: React.FC = () => {
     }
     closeContextMenu();
   };
+
+  const handleSetColor = (color: NodeColor) => {
+    if (node?.id) {
+      updateNodeData(node.id, { color: color || undefined });
+    }
+    setColorMenuAnchor(null);
+    closeContextMenu();
+  };
+
+  const openColorMenu = (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    setColorMenuAnchor(event.currentTarget);
+  };
+
+  const closeColorMenu = () => {
+    setColorMenuAnchor(null);
+  };
+
+  const colorMenuItems = NODE_COLORS.slice(1).map((colorOption) => (
+    <MenuItem
+      key={colorOption.value}
+      onClick={() => handleSetColor(colorOption.value)}
+      selected={currentColor === colorOption.value}
+      sx={{ py: 0.5, minHeight: "unset" }}
+    >
+      <ListItemIcon sx={{ minWidth: 28 }}>
+        <Box
+          sx={{
+            width: 16,
+            height: 16,
+            borderRadius: 0.5,
+            bgcolor: colorOption.value,
+            border: "1px solid",
+            borderColor: "rgba(255,255,255,0.2)"
+          }}
+        />
+      </ListItemIcon>
+      <ListItemText
+        primary={colorOption.label}
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+      />
+    </MenuItem>
+  ));
 
   const menuItems = [
     conditions.isInGroup && (
@@ -83,6 +130,34 @@ const NodeContextMenu: React.FC = () => {
           : "Add a comment to this node"
       }
     />,
+    <MenuItem
+      key="node-color"
+      onClick={openColorMenu}
+      sx={{ py: 0.5, minHeight: "unset" }}
+    >
+      <ListItemIcon>
+        <PaletteIcon sx={{ fontSize: "1rem" }} />
+      </ListItemIcon>
+      <ListItemText
+        primary="Color Label"
+        secondary={currentColor ? "Change node color" : "Add color label"}
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+        secondaryTypographyProps={{ fontSize: "0.65rem" }}
+      />
+      {currentColor && (
+        <Box
+          sx={{
+            width: 16,
+            height: 16,
+            borderRadius: 0.5,
+            bgcolor: currentColor,
+            border: "1px solid",
+            borderColor: "rgba(255,255,255,0.3)",
+            ml: 1
+          }}
+        />
+      )}
+    </MenuItem>,
     conditions.canConvertToInput && (
       <ContextMenuItem
         key="convert-to-input"
@@ -177,25 +252,81 @@ const NodeContextMenu: React.FC = () => {
   ];
 
   return (
-    <Menu
-      className="context-menu node-context-menu"
-      open={menuPosition !== null}
-      onClose={closeContextMenu}
-      onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: "8px"
-          }
+    <>
+      <Menu
+        className="context-menu node-context-menu"
+        open={menuPosition !== null}
+        onClose={closeContextMenu}
+        onContextMenu={(event) => event.preventDefault()}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
         }
-      }}
-    >
-      {menuItems.filter(Boolean)}
-    </Menu>
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "8px"
+            }
+          }
+        }}
+      >
+        {menuItems.filter(Boolean)}
+      </Menu>
+
+      <Menu
+        open={Boolean(colorMenuAnchor)}
+        anchorEl={colorMenuAnchor}
+        onClose={closeColorMenu}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "8px",
+              minWidth: 180
+            }
+          }
+        }}
+      >
+        <MenuItem
+          key="color-default"
+          onClick={() => handleSetColor("")}
+          selected={currentColor === ""}
+          sx={{ py: 0.5, minHeight: "unset" }}
+        >
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <Box
+              sx={{
+                width: 16,
+                height: 16,
+                borderRadius: 0.5,
+                bgcolor: "grey.400",
+                border: "1px solid",
+                borderColor: "rgba(255,255,255,0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px"
+              }}
+            >
+              ∅
+            </Box>
+          </ListItemIcon>
+          <ListItemText
+            primary="Default"
+            primaryTypographyProps={{ fontSize: "0.75rem" }}
+          />
+        </MenuItem>
+        <Divider />
+        {colorMenuItems}
+      </Menu>
+    </>
   );
 };
 

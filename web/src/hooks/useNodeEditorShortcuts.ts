@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { NODE_COLORS } from "../components/node/NodeColorPicker";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -43,7 +44,8 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    updateNodeData: state.updateNodeData
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -81,7 +83,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected, updateNodeData } =
     nodesStore;
   const {
     saveExample,
@@ -116,6 +118,26 @@ export const useNodeEditorShortcuts = (
       toggleBypassSelected();
     }
   }, [selectedNodes.length, toggleBypassSelected]);
+
+  const handleClearNodeColor = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      selectedNodes.forEach((node) => {
+        updateNodeData(node.id, { color: undefined });
+      });
+    }
+  }, [selectedNodes, updateNodeData]);
+
+  const handleCycleNodeColor = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      const colorValues: string[] = NODE_COLORS.slice(1).map((c) => c.value);
+      selectedNodes.forEach((node) => {
+        const currentColor = (node.data.color as string) || "";
+        const currentIndex = colorValues.indexOf(currentColor);
+        const nextIndex = (currentIndex + 1) % colorValues.length;
+        updateNodeData(node.id, { color: colorValues[nextIndex] as string });
+      });
+    }
+  }, [selectedNodes, updateNodeData]);
 
   const handleSelectConnectedAll = useCallback(() => {
     if (selectedNodes.length > 0) {
@@ -522,6 +544,14 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      clearNodeColor: {
+        callback: handleClearNodeColor,
+        active: selectedNodes.length > 0
+      },
+      cycleNodeColor: {
+        callback: handleCycleNodeColor,
+        active: selectedNodes.length > 0
       }
     };
 
@@ -586,7 +616,9 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    handleClearNodeColor,
+    handleCycleNodeColor
   ]);
 
   // useEffect for shortcut registration

@@ -1,20 +1,15 @@
 import React, { useCallback, useMemo } from "react";
 import { Divider, Typography, MenuItem, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
-//store
 import useContextMenuStore from "../../stores/ContextMenuStore";
-//behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useSelectConnected } from "../../hooks/useSelectConnected";
-//icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
-// import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-// import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
@@ -50,12 +45,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     selectedNodes: state.getSelectedNodes()
   }));
 
-  // any has parent
   const anyHasParent = useMemo(() => {
     return selectedNodes.some((node) => node.parentId);
   }, [selectedNodes]);
 
-  // Check if majority of selected nodes are bypassed
   const majorityBypassed = useMemo(() => {
     if (selectedNodes.length === 0) {
       return false;
@@ -64,18 +57,15 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     return bypassedCount >= selectedNodes.length / 2;
   }, [selectedNodes]);
 
-  // bypass
   const handleToggleBypass = useCallback(() => {
     toggleBypassSelected();
     closeContextMenu();
   }, [toggleBypassSelected, closeContextMenu]);
 
-  //duplicate
   const handleDuplicateNodes = useCallback(() => {
     duplicateNodes();
   }, [duplicateNodes]);
 
-  //delete
   const handleDelete = useCallback(() => {
     if (selectedNodes?.length) {
       selectedNodes.forEach((node) => {
@@ -85,7 +75,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     closeContextMenu();
   }, [closeContextMenu, deleteNode, selectedNodes]);
 
-  //select connected
   const handleSelectConnectedAll = useCallback(() => {
     selectConnectedAll.selectConnected();
     closeContextMenu();
@@ -101,59 +90,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     closeContextMenu();
   }, [selectConnectedOutputs, closeContextMenu]);
 
-  //collapse
-  // const handleCollapseAll = useCallback(
-  //   (callAlignNodes: boolean) => {
-  //     if (selectedNodeIds?.length) {
-  //       selectedNodeIds.forEach((id) => {
-  //         const node = findNode(id);
-  //         if (node && node.data.properties) {
-  //           updateNodeData(id, {
-  //             properties: { ...node.data.properties },
-  //             collapsed: true,
-  //             workflow_id: node.data.workflow_id
-  //           });
-  //         }
-  //       });
-  //       // alignNodes
-  //       if (callAlignNodes && alignNodes) {
-  //         setTimeout(() => {
-  //           alignNodes({ arrangeSpacing: true, collapsed: true });
-  //         }, 10);
-  //       }
-  //     }
-  //   },
-  //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
-  // );
-
-  //expand
-  // const handleExpandAll = useCallback(
-  //   (callAlignNodes: boolean) => {
-  //     if (selectedNodeIds?.length) {
-  //       selectedNodeIds.forEach((id) => {
-  //         const node = findNode(id);
-  //         if (node && node.data.properties) {
-  //           updateNodeData(id, {
-  //             properties: { ...node.data.properties },
-  //             collapsed: false,
-  //             workflow_id: node.data.workflow_id
-  //           });
-  //         }
-  //       });
-  //       // alignNodes
-  //       if (callAlignNodes && alignNodes) {
-  //         setTimeout(() => {
-  //           alignNodes({ arrangeSpacing: true, collapsed: false });
-  //         }, 10);
-  //       }
-  //     }
-  //   },
-  //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
-  // );
-
   if (!menuPosition) {
     return null;
   }
+
   return (
     <Menu
       className="context-menu selection-context-menu"
@@ -204,18 +144,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           </div>
         }
       />
-      {/* <ContextMenuItem
-        onClick={() => handleCollapseAll(false)}
-        label="Collapse"
-        IconComponent={<UnfoldLessIcon />}
-        tooltip=""
-      />
-      <ContextMenuItem
-        onClick={() => handleExpandAll(false)}
-        label="Expand"
-        IconComponent={<UnfoldMoreIcon />}
-        tooltip=""
-      /> */}
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
           onClick={() => {

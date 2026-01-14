@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -12,11 +12,14 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import PaletteIcon from "@mui/icons-material/Palette";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
+import NodeColorPicker from "../../components/node/NodeColorPicker";
+import { ColorIndicator } from "../../components/node/NodeColorPicker";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -57,6 +60,7 @@ interface NodeInfo {
   hasError: boolean;
   errorMessage: string | undefined;
   executionStatus: "pending" | "running" | "completed" | "error" | undefined;
+  color: string | undefined;
 }
 
 const styles = (theme: Theme) =>
@@ -151,6 +155,22 @@ const styles = (theme: Theme) =>
       "& .MuiButton-startIcon": {
         marginRight: "4px"
       }
+    },
+    "& .color-section": {
+      marginTop: "12px",
+      paddingTop: "12px",
+      borderTop: `1px solid ${theme.vars.palette.divider}`
+    },
+    "& .color-button": {
+      width: "100%",
+      justifyContent: "flex-start",
+      padding: "8px 12px",
+      borderRadius: "6px",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      "&:hover": {
+        borderColor: theme.vars.palette.primary.main,
+        bgcolor: "action.hover"
+      }
     }
   });
 
@@ -159,6 +179,7 @@ const NodeInfoPanel: React.FC = memo(() => {
   const { getNode, setCenter } = useReactFlow();
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
+  const [colorAnchorEl, setColorAnchorEl] = useState<HTMLElement | null>(null);
 
   const nodeInfo = useMemo((): NodeInfo | null => {
     if (!inspectedNodeId) {
@@ -181,9 +202,18 @@ const NodeInfoPanel: React.FC = memo(() => {
       position: node.position,
       hasError: (node.data.hasError as boolean) || false,
       errorMessage: node.data.errorMessage as string | undefined,
-      executionStatus: node.data.executionStatus as "pending" | "running" | "completed" | "error" | undefined
+      executionStatus: node.data.executionStatus as "pending" | "running" | "completed" | "error" | undefined,
+      color: node.data.color as string | undefined
     };
   }, [getNode, inspectedNodeId]);
+
+  const handleOpenColorPicker = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setColorAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleCloseColorPicker = useCallback(() => {
+    setColorAnchorEl(null);
+  }, []);
 
   if (!nodeInfo) {
     return null;
@@ -193,7 +223,10 @@ const NodeInfoPanel: React.FC = memo(() => {
     <Box className="node-info-panel" css={styles(theme)}>
       <Box className="panel-content">
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-          <Typography className="node-name">{nodeInfo.label}</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <ColorIndicator color={nodeInfo.color || ""} size="medium" />
+            <Typography className="node-name">{nodeInfo.label}</Typography>
+          </Box>
           <Tooltip title="Close" arrow>
             <IconButton
               size="small"
@@ -249,15 +282,39 @@ const NodeInfoPanel: React.FC = memo(() => {
           </Box>
         )}
 
-        <Button
-          className="action-button"
-          size="small"
-          startIcon={<OpenInNewIcon fontSize="small" />}
-          onClick={() => setCenter(nodeInfo.position.x, nodeInfo.position.y, { zoom: 1.5, duration: 300 })}
-        >
-          Focus
-        </Button>
+        <Box sx={{ display: "flex", gap: 1, mt: 1.5 }}>
+          <Button
+            className="action-button"
+            size="small"
+            startIcon={<OpenInNewIcon fontSize="small" />}
+            onClick={() => setCenter(nodeInfo.position.x, nodeInfo.position.y, { zoom: 1.5, duration: 300 })}
+          >
+            Focus
+          </Button>
+        </Box>
+
+        <Box className="color-section">
+          <Button
+            className="color-button"
+            size="small"
+            onClick={handleOpenColorPicker}
+            startIcon={<PaletteIcon />}
+            sx={{ color: "text.primary" }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <ColorIndicator color={nodeInfo.color || ""} />
+              <span>Color Label</span>
+            </Box>
+          </Button>
+        </Box>
       </Box>
+
+      <NodeColorPicker
+        nodeId={nodeInfo.id}
+        currentColor={nodeInfo.color || ""}
+        anchorEl={colorAnchorEl}
+        onClose={handleCloseColorPicker}
+      />
     </Box >
   );
 });

@@ -11,6 +11,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { NodeLogsDialog } from "./NodeLogs";
+import { ColorIndicator } from "./NodeColorPicker";
 
 export interface NodeHeaderProps {
   id: string;
@@ -188,6 +189,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         >
           {metadataTitle}
         </span>
+        <ColorIndicator color={data.color || ""} size="small" />
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}

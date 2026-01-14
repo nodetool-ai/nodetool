@@ -742,13 +742,29 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Move focus to the nearest node to the right",
     registerCombo: true
   },
-  {
+   {
     title: "Go Back",
     slug: "goBack",
     keyCombo: ["Alt", "ArrowLeft"],
     altKeyCombos: [["Control", "ArrowLeft"]],
     category: "editor" as const,
     description: "Go back to previously focused node",
+    registerCombo: true
+  },
+  {
+    title: "Clear Node Color",
+    slug: "clearNodeColor",
+    keyCombo: ["Alt", "C"],
+    category: "editor" as const,
+    description: "Clear color label from selected nodes",
+    registerCombo: true
+  },
+  {
+    title: "Cycle Node Color",
+    slug: "cycleNodeColor",
+    keyCombo: ["Alt", "X"],
+    category: "editor" as const,
+    description: "Cycle through color labels on selected nodes",
     registerCombo: true
   }
 ] as Shortcut[];

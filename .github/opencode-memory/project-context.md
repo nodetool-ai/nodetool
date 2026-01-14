@@ -189,6 +189,26 @@ test('handles user interaction', async () => {
 - `web/src/stores/__tests__/ExecutionTimeStore.test.ts` - Tests for the timing store
 - `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Tests for the component
 
+### Node Color Labels (2026-01-14)
+
+**What**: Added ability to assign custom colors to nodes for visual organization and categorization. Users can set colors via the Node Info Panel, Node Context Menu, or keyboard shortcuts (Alt+C to clear, Alt+X to cycle).
+
+**Files**:
+- `web/src/components/node/NodeColorPicker.tsx` - New color picker component with 17 color options
+- `web/src/components/node_editor/NodeInfoPanel.tsx` - Added color picker and color indicator
+- `web/src/components/node/NodeHeader.tsx` - Added color indicator display
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added color submenu
+- `web/src/config/shortcuts.ts` - Added shortcuts (clearNodeColor, cycleNodeColor)
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handlers for color shortcuts
+
+**Implementation**:
+- Created NodeColorPicker component with 17 preset colors + default option
+- Added color indicator to node header showing assigned color
+- Integrated color picker into Node Info Panel
+- Added color submenu to Node Context Menu
+- Added keyboard shortcuts: Alt+C (clear color), Alt+X (cycle colors)
+- Color is stored in node.data.color and persisted with the workflow
+
 **Implementation**:
 - `ExecutionTimeStore` tracks start and end times for each node execution
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
