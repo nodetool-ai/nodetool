@@ -60,6 +60,7 @@ Last updated: 2026-01-12
 - **Cancel Execution**: Stop running workflows
 - **Audio Queue**: Queue and manage audio generation tasks
 - **Node Execution Time**: Display execution duration for completed nodes
+- **Execution Progress Panel**: Real-time workflow execution summary with node status counts
 
 ### Asset Management
 - **Asset Explorer**: File browser for managing workflow assets
