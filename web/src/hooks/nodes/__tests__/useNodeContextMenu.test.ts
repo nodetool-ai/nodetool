@@ -188,6 +188,7 @@ describe("useNodeContextMenu", () => {
 
       expect(result.current.handlers).toBeDefined();
       expect(typeof result.current.handlers.handleToggleComment).toBe("function");
+      expect(typeof result.current.handlers.handleToggleAnnotation).toBe("function");
       expect(typeof result.current.handlers.handleRunFromHere).toBe("function");
       expect(typeof result.current.handlers.handleToggleBypass).toBe("function");
       expect(typeof result.current.handlers.handleCopyMetadataToClipboard).toBe("function");
@@ -202,6 +203,7 @@ describe("useNodeContextMenu", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       expect(result.current.conditions.hasCommentTitle).toBe(false);
+      expect(result.current.conditions.hasAnnotation).toBe(false);
       expect(result.current.conditions.isBypassed).toBe(false);
       expect(result.current.conditions.canConvertToInput).toBe(true);
       expect(result.current.conditions.canConvertToConstant).toBe(true);
@@ -692,6 +694,108 @@ describe("useNodeContextMenu", () => {
 
       expect(result.current.nodeId).toBeNull();
       expect(result.current.node).toBeNull();
+    });
+  });
+
+  describe("handleToggleAnnotation", () => {
+    it("adds annotation when hasAnnotation is false", () => {
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(false);
+
+      act(() => {
+        result.current.handlers.handleToggleAnnotation();
+      });
+
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { annotation: "" });
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("removes annotation when hasAnnotation is true", () => {
+      const nodeWithAnnotation = {
+        ...mockNode,
+        data: { ...mockNode.data, annotation: "my annotation" }
+      };
+
+      mockedUseNodes.mockImplementation((selector) => {
+        const state = {
+          updateNodeData: mockUpdateNodeData,
+          updateNode: mockUpdateNode,
+          selectNodesByType: mockSelectNodesByType,
+          deleteNode: mockDeleteNode,
+          getSelectedNodes: mockGetSelectedNodes,
+          toggleBypass: mockToggleBypass,
+          nodes: [nodeWithAnnotation, ...mockNodes.slice(1)],
+          edges: mockEdges,
+          workflow: mockWorkflow,
+          findNode: mockFindNode
+        };
+        return selector(state);
+      });
+
+      mockedUseReactFlow.mockImplementation(() => ({
+        getNode: jest.fn((id) => {
+          const nodes = [nodeWithAnnotation, ...mockNodes.slice(1)];
+          return nodes.find((n: { id: string }) => n.id === id) || null;
+        }),
+        getNodes: jest.fn(() => [nodeWithAnnotation, ...mockNodes.slice(1)]),
+        getEdges: jest.fn(() => mockEdges)
+      }));
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(true);
+
+      act(() => {
+        result.current.handlers.handleToggleAnnotation();
+      });
+
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", { annotation: undefined });
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+  });
+
+  describe("annotation condition", () => {
+    it("returns hasAnnotation as true when node has annotation", () => {
+      const nodeWithAnnotation = {
+        ...mockNode,
+        data: { ...mockNode.data, annotation: "test annotation" }
+      };
+
+      mockedUseNodes.mockImplementation((selector) => {
+        const state = {
+          updateNodeData: mockUpdateNodeData,
+          updateNode: mockUpdateNode,
+          selectNodesByType: mockSelectNodesByType,
+          deleteNode: mockDeleteNode,
+          getSelectedNodes: mockGetSelectedNodes,
+          toggleBypass: mockToggleBypass,
+          nodes: [nodeWithAnnotation, ...mockNodes.slice(1)],
+          edges: mockEdges,
+          workflow: mockWorkflow,
+          findNode: mockFindNode
+        };
+        return selector(state);
+      });
+
+      mockedUseReactFlow.mockImplementation(() => ({
+        getNode: jest.fn((id) => {
+          const nodes = [nodeWithAnnotation, ...mockNodes.slice(1)];
+          return nodes.find((n: { id: string }) => n.id === id) || null;
+        }),
+        getNodes: jest.fn(() => [nodeWithAnnotation, ...mockNodes.slice(1)]),
+        getEdges: jest.fn(() => mockEdges)
+      }));
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(true);
+    });
+
+    it("returns hasAnnotation as false when node has no annotation", () => {
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      expect(result.current.conditions.hasAnnotation).toBe(false);
     });
   });
 });

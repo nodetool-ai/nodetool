@@ -16,6 +16,7 @@ Last updated: 2026-01-12
 - **Undo/Redo**: Temporal middleware for undo/redo operations in workflows
 - **Auto-Layout**: Automatic node positioning algorithms for cleaner workflows
 - **Zoom & Pan**: Navigation controls for large workflows
+- **Node Annotations**: Add persistent, collapsible rich text annotations to any node via context menu or keyboard shortcut (Shift+A)
 - **Viewport Status Indicator**: Real-time zoom percentage and node count display with reset zoom button
 - **Minimap**: Overview minimap for workflow navigation
 - **Multi-Select**: Select and manipulate multiple nodes simultaneously

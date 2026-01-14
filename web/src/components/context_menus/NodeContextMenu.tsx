@@ -5,6 +5,7 @@ import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
+import DescriptionIcon from "@mui/icons-material/Description";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
@@ -81,6 +82,17 @@ const NodeContextMenu: React.FC = () => {
         conditions.hasCommentTitle
           ? "Remove the comment from this node"
           : "Add a comment to this node"
+      }
+    />,
+    <ContextMenuItem
+      key="toggle-annotation"
+      onClick={handlers.handleToggleAnnotation}
+      label={conditions.hasAnnotation ? "Remove Annotation" : "Add Annotation"}
+      IconComponent={<DescriptionIcon />}
+      tooltip={
+        conditions.hasAnnotation
+          ? "Remove the annotation from this node"
+          : "Add an annotation to this node"
       }
     />,
     conditions.canConvertToInput && (

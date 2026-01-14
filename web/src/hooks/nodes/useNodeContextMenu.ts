@@ -27,6 +27,7 @@ interface UseNodeContextMenuReturn {
   nodeData: NodeData | undefined;
   handlers: {
     handleToggleComment: () => void;
+    handleToggleAnnotation: () => void;
     handleRunFromHere: () => void;
     handleToggleBypass: () => void;
     handleCopyMetadataToClipboard: () => void;
@@ -38,6 +39,7 @@ interface UseNodeContextMenuReturn {
   };
   conditions: {
     hasCommentTitle: boolean;
+    hasAnnotation: boolean;
     isBypassed: boolean;
     canConvertToInput: boolean;
     canConvertToConstant: boolean;
@@ -95,6 +97,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   );
   const getResult = useResultsStore((state) => state.getResult);
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
+  const hasAnnotation = Boolean(nodeData?.annotation?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
 
@@ -105,6 +108,18 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
     closeContextMenu();
   }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
+
+  const handleToggleAnnotation = useCallback(() => {
+    if (!nodeId) {
+      return;
+    }
+    if (hasAnnotation) {
+      updateNodeData(nodeId, { annotation: undefined });
+    } else {
+      updateNodeData(nodeId, { annotation: "" });
+    }
+    closeContextMenu();
+  }, [closeContextMenu, hasAnnotation, nodeId, updateNodeData]);
 
   const handleRunFromHere = useCallback(() => {
     if (!node || !nodeId || isWorkflowRunning) {
@@ -345,6 +360,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     nodeData,
     handlers: {
       handleToggleComment,
+      handleToggleAnnotation,
       handleRunFromHere,
       handleToggleBypass,
       handleCopyMetadataToClipboard,
@@ -356,6 +372,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     },
     conditions: {
       hasCommentTitle,
+      hasAnnotation,
       isBypassed,
       canConvertToInput,
       canConvertToConstant,

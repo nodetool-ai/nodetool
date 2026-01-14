@@ -160,6 +160,30 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Annotations (2026-01-14)
+
+**What**: Added a new Node Annotations feature allowing users to add persistent, collapsible rich text annotations to any node in the workflow editor. Annotations can be added via right-click context menu or keyboard shortcut (Shift+A), edited inline, and saved with the workflow.
+
+**Files**:
+- `web/src/stores/NodeData.ts` - Added `annotation` field to NodeData type
+- `web/src/components/node/NodeAnnotation.tsx` - New component for rendering and editing annotations
+- `web/src/components/node/BaseNode.tsx` - Integrated NodeAnnotation component into base node rendering
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added "Add/Remove Annotation" menu items
+- `web/src/hooks/nodes/useNodeContextMenu.ts` - Added annotation toggle handler and condition
+- `web/src/config/shortcuts.ts` - Added "Shift+A" keyboard shortcut for annotations
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added keyboard shortcut handler for annotations
+- `web/src/components/node/__tests__/NodeAnnotation.test.tsx` - Unit tests for NodeAnnotation component
+- `web/src/hooks/nodes/__tests__/useNodeContextMenu.test.ts` - Added annotation-related tests
+
+**Implementation**:
+- Annotations are stored as strings in the node's data property
+- Component supports collapsible view with expand/collapse functionality
+- Inline editing with save/cancel buttons and keyboard shortcuts (Ctrl+Enter to save, Escape to cancel)
+- Context menu integration with "Add Annotation" and "Remove Annotation" options
+- Keyboard shortcut (Shift+A) to quickly add/edit annotations on selected nodes
+- Visual indicators (expand/collapse chevron, edit and remove buttons) when annotation exists
+- Component is conditionally rendered - only shows when annotation property exists on node
+
 ### Node Execution Time Display (2026-01-13)
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").

@@ -32,6 +32,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
+import NodeAnnotation from "./NodeAnnotation";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
@@ -511,6 +512,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
+      {data.annotation !== undefined && <NodeAnnotation nodeId={id} annotation={data.annotation} />}
     </Container>
   );
 };
