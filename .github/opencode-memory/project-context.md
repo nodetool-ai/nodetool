@@ -160,6 +160,23 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Color Customization (2026-01-14)
+
+**What**: Added color picker to node header allowing users to customize individual node colors for better workflow organization. Includes preset colors, HSL sliders, and reset to default option.
+
+**Files**:
+- `web/src/components/node/NodeColorPicker.tsx` - New color picker component with preset colors and HSL sliders
+- `web/src/components/node/NodeHeader.tsx` - Integrated color picker in node header
+- `web/src/components/node/BaseNode.tsx` - Updated to use custom color for node styling
+- `web/src/components/node/__tests__/NodeColorPicker.test.tsx` - Tests for the color picker
+
+**Implementation**:
+- Custom color picker component with 8 preset colors and 12 hue colors
+- HSL sliders for fine-grained color control (Hue 0-360, Saturation 0-100, Lightness 0-100)
+- Reset button to restore default node color based on node type
+- Custom color stored in `data.color` field and persisted in workflow JSON
+- Custom color used in node header, border, and loading animation gradient
+
 ### Node Execution Time Display (2026-01-13)
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").

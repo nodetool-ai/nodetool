@@ -11,6 +11,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { NodeLogsDialog } from "./NodeLogs";
+import { NodeColorPicker } from "./NodeColorPicker";
 
 export interface NodeHeaderProps {
   id: string;
@@ -40,6 +41,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
   const nodeWorkflowId = useNodes((state) => state.workflow?.id);
   const logs = useLogsStore((state) => state.getLogs(workflowId || nodeWorkflowId || "", id));
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
@@ -67,7 +69,14 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           display: "flex",
           alignItems: "center",
           gap: "8px",
-          padding: "4px 4px"
+          padding: "4px 4px",
+          flexGrow: 1
+        },
+        ".header-right": {
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          flexShrink: 0
         },
         ".node-icon": {
           width: "28px",
@@ -207,6 +216,14 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             </IconButton>
           </Tooltip>
         )}
+      </div>
+
+      <div className="header-right">
+        <NodeColorPicker
+          color={data.color}
+          onColorChange={(color) => updateNodeData(id, { color })}
+          iconBaseColor={iconBaseColor}
+        />
       </div>
 
       <NodeLogsDialog

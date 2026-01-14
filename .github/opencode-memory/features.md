@@ -38,6 +38,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Node Color Customization**: Custom color picker for individual nodes with preset colors and HSL sliders
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

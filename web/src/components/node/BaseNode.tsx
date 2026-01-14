@@ -171,7 +171,17 @@ const getStyleProps = (
   };
 };
 
-const getNodeColors = (metadata: any): string[] => {
+const getNodeColors = (metadata: any, customColor?: string): string[] => {
+  if (customColor) {
+    return [
+      customColor,
+      adjustColor(customColor, 20),
+      adjustColor(customColor, 40),
+      adjustColor(customColor, 60),
+      adjustColor(customColor, 80)
+    ];
+  }
+
   const outputColors = [
     ...new Set(
       metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
@@ -197,11 +207,28 @@ const getNodeColors = (metadata: any): string[] => {
   return allColors.slice(0, 5) as string[];
 };
 
+function adjustColor(hex: string, percent: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, (num >> 16) + amt);
+  const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+  const B = Math.min(255, (num & 0x0000FF) + amt);
+  return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
 const getHeaderColors = (
   metadata: NodeMetadata,
   theme: Theme,
-  nodeType: string
+  nodeType: string,
+  customColor?: string
 ) => {
+  if (customColor) {
+    return {
+      headerColor: customColor,
+      baseColor: customColor
+    };
+  }
+
   // Override colors for input and output nodes
   if (nodeType.startsWith("nodetool.input.")) {
     const baseColor = theme.vars.palette.success.main;
@@ -342,11 +369,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Node metadata and properties
-  const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
+  const nodeColors = useMemo(() => getNodeColors(metadata, data.color), [metadata, data.color]);
 
   const { headerColor, baseColor } = useMemo(
-    () => getHeaderColors(metadata, theme, type),
-    [metadata, theme, type]
+    () => getHeaderColors(metadata, theme, type, data.color),
+    [metadata, theme, type, data.color]
   );
 
   const task = useResultsStore((state) => state.getTask(workflow_id, id));
