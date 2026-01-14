@@ -77,7 +77,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
       }
     } catch (error) {
       // User cancelled the eyedropper or an error occurred
-      console.log("Eyedropper cancelled or error:", error);
+      console.warn("Eyedropper cancelled or error:", error);
     } finally {
       setIsPicking(false);
     }

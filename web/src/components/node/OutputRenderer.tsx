@@ -346,7 +346,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
-              onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)}
+              onImageEdited={() => {}}
             />
           ));
         } else {
@@ -362,7 +362,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else {
             imageSource = "";
           }
-          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)} />;
+          return <ImageView source={imageSource} onImageEdited={() => {}} />;
         }
       case "audio": {
         // Handle different audio data formats

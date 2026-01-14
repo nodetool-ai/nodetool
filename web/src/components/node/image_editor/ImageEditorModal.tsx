@@ -162,8 +162,6 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   const theme = useTheme();
   const canvasRef = useRef<ImageEditorCanvasRef>(null);
 
-  console.log("imageUrl", imageUrl);
-
   // Editor state
   const [tool, setTool] = useState<EditTool>("select");
   const [brushSettings, setBrushSettings] = useState<BrushSettings>(DEFAULT_BRUSH_SETTINGS);

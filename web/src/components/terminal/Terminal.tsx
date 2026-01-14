@@ -84,11 +84,12 @@ export const Terminal: React.FC = () => {
   const lastMeasuredSizeRef = useRef<{ width: number; height: number } | null>(null);
   const resizeDebounceRef = useRef<number | null>(null);
   const logResize = (
-    label: string,
-    dims?: { cols: number; rows: number } | null,
-    prev?: { cols: number; rows: number } | null
+    _label: string,
+    _dims?: { cols: number; rows: number } | null,
+    _prev?: { cols: number; rows: number } | null
   ) => {
-    console.log("[Terminal] resize", label, { dims, prev });
+    // Debug logging for terminal resize events
+    // console.log("[Terminal] resize", label, { dims, prev });
   };
   const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
   const [error, setError] = useState<string | null>(null);
