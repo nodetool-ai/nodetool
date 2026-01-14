@@ -160,7 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Node Execution Time Display (2026-01-13)
+### Keyboard Shortcuts Reference Dialog (2026-01-14)
+
+**What**: Added a modal dialog that displays all available keyboard shortcuts organized by category, helping users discover and learn the powerful keyboard functionality in the node editor.
+
+**Files**:
+- `web/src/components/dialogs/KeyboardShortcutsDialog.tsx` - New dialog component with tabbed interface showing shortcuts by category
+- `web/src/components/dialogs/__tests__/KeyboardShortcutsDialog.test.tsx` - Comprehensive tests for the dialog
+- `web/src/components/panels/RightSideButtons.tsx` - Added keyboard shortcuts button to the header
+
+**Implementation**:
+- Tabbed dialog with categories: Node Editor, Workflows, Panels, Assets
+- Shows all shortcuts with Windows/Linux and macOS key combinations
+- Copy-to-clipboard functionality for individual shortcuts
+- Keyboard navigation support
+- Accessible design with proper ARIA attributes
+- Button in header for easy access to the shortcuts reference
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
 
