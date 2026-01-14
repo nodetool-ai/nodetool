@@ -4,7 +4,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type RightPanelView = "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow";
+export type RightPanelView = "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "stats";
 
 interface PanelState {
   panelSize: number;

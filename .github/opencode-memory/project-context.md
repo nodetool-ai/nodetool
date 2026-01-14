@@ -160,6 +160,23 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Workflow Statistics Panel (2026-01-14)
+
+**What**: Added a new Workflow Statistics Panel that displays real-time metrics about the current workflow including total nodes, connections, input/output nodes, comments, node categories with color-coded chips, and connection density. Accessible via a new "Stats" button in the right panel toolbar or keyboard shortcut (S).
+
+**Files**:
+- `web/src/components/panels/WorkflowStatsPanel.tsx` - New component displaying workflow statistics
+- `web/src/stores/RightPanelStore.ts` - Added "stats" view type
+- `web/src/components/panels/PanelRight.tsx` - Integrated WorkflowStatsPanel and added stats button to toolbar
+- `web/src/config/shortcuts.ts` - Added keyboard shortcut (S) for workflow statistics
+
+**Implementation**:
+- Panel shows node count by category (nodetool, comfy, inputNode, outputNode, comment, groupNode) with color-coded chips
+- Displays total nodes, connections, input/output/comment counts, selected nodes count
+- Shows connection density metric
+- Integrated into existing right panel system with resize support
+- Follows existing MUI theming patterns
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

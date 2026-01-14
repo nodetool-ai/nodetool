@@ -437,6 +437,7 @@ export const useNodeEditorShortcuts = (
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
+      workflowStats: { callback: () => inspectorToggle("stats") },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
       newWorkflow: { callback: handleNewWorkflow },
