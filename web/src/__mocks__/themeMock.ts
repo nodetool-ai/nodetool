@@ -146,6 +146,10 @@ const mockTheme = createTheme({
     Button: {
       inheritContainedBg: "rgba(255, 255, 255, 0.08)",
       inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)"
+    },
+    // Add Paper palette for ViewportStatusIndicator component
+    Paper: {
+      paper: "#232323"
     }
   },
   // Provide spacing variables expected by MUI components (e.g., Button)
