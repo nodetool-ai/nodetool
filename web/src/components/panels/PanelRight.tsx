@@ -21,6 +21,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
+import NotesIcon from "@mui/icons-material/Notes";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
@@ -29,6 +30,7 @@ import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
+import WorkflowNotesPanel from "../node_editor/WorkflowNotesPanel";
 
 const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
@@ -117,6 +119,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle,
   handleVersionsToggle,
   handleWorkflowToggle,
+  handleNotesToggle,
   activeView,
   panelVisible
 }: {
@@ -126,7 +129,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
   handleWorkflowToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow";
+  handleNotesToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "notes";
   panelVisible: boolean;
 }) {
   return (
@@ -273,6 +277,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <SettingsIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Notes Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Workflow Notes</div>
+            <div className="tooltip-key">
+              <kbd>N</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleNotesToggle}
+          className={
+            activeView === "notes" && panelVisible
+              ? "notes active"
+              : "notes"
+          }
+        >
+          <NotesIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -381,6 +411,21 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "notes" ? (
+                  currentWorkflowId ? (
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        overflow: "hidden"
+                      }}
+                    >
+                      <WorkflowNotesPanel
+                        workflowId={currentWorkflowId}
+                        onClose={() => handlePanelToggle("notes")}
+                      />
+                    </Box>
+                  ) : null
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -404,6 +449,7 @@ const PanelRight: React.FC = () => {
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
+        handleNotesToggle={() => handlePanelToggle("notes")}
         activeView={activeView}
         panelVisible={isVisible}
       />

@@ -160,6 +160,23 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Workflow Notes Panel (2026-01-14)
+
+**What**: Added a Workflow Notes panel for adding markdown-formatted documentation to workflows. Accessible via the right panel (Notes button) or keyboard shortcut (Shift+N). Notes are stored in the workflow's settings and persist with the workflow.
+
+**Files**:
+- `web/src/stores/WorkflowNotesStore.ts` - New store for managing notes state
+- `web/src/components/node_editor/WorkflowNotesPanel.tsx` - Notes panel component
+- `web/src/components/panels/PanelRight.tsx` - Integrated notes button and view
+- `web/src/config/shortcuts.ts` - Added Shift+N keyboard shortcut
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added notes toggle handler
+- `web/src/stores/RightPanelStore.ts` - Added "notes" view type
+- `web/src/stores/__tests__/WorkflowNotesStore.test.ts` - Tests for the store
+
+**Implementation**: Notes are stored in the workflow's `settings.notes` field, persisted when the workflow is saved. The panel provides a text area for markdown editing with save/clear actions and status indication.
+
+---
+
 ### Node Execution Time Display (2026-01-13)
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
