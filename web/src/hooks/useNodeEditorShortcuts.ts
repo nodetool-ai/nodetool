@@ -27,6 +27,8 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import useSnippetStore from "../stores/SnippetStore";
+import { useSnippetActions } from "./useSnippetActions";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -78,6 +80,11 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const snippetStore = useSnippetStore((state) => ({
+    openLibrary: state.openLibrary,
+    isOpen: state.isOpen
+  }));
+  const snippetActions = useSnippetActions();
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -252,6 +259,29 @@ export const useNodeEditorShortcuts = (
       onShowShortcuts();
     }
   }, [onShowShortcuts]);
+
+  const handleSaveSnippet = useCallback(() => {
+    const selectedNodes = nodesStore.selectedNodes;
+    if (selectedNodes.length === 0) {
+      addNotification({
+        content: "Select nodes to save as a snippet",
+        type: "info"
+      });
+      return;
+    }
+    // Open a dialog or focus the snippet library with save mode
+    // For now, just open the library
+    snippetStore.openLibrary();
+  }, [nodesStore.selectedNodes, addNotification, snippetStore]);
+
+  const handleOpenSnippetLibrary = useCallback(() => {
+    if (snippetStore.isOpen) {
+      // If already open, close it (toggle behavior)
+      useSnippetStore.getState().closeLibrary();
+    } else {
+      snippetStore.openLibrary();
+    }
+  }, [snippetStore]);
 
   const handleMenuEvent = useCallback(
     (data: any) => {
@@ -522,7 +552,12 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
-      }
+      },
+      saveSnippet: {
+        callback: handleSaveSnippet,
+        active: selectedNodes.length > 0
+      },
+      openSnippetLibrary: { callback: handleOpenSnippetLibrary }
     };
 
     // Switch-to-tab (1-9)
@@ -586,7 +621,9 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    handleSaveSnippet,
+    handleOpenSnippetLibrary
   ]);
 
   // useEffect for shortcut registration

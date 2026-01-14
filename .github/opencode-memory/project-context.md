@@ -160,6 +160,29 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Snippets Feature (2026-01-14)
+
+**What**: Added Node Snippets feature allowing users to save selected nodes as reusable snippets and paste them into workflows. Includes a floating SnippetLibraryPanel for browsing, searching, and managing snippets with import/export functionality.
+
+**Files**:
+- `web/src/stores/SnippetTypes.ts` - TypeScript interfaces for snippets
+- `web/src/stores/SnippetStore.ts` - Zustand store with localStorage persistence
+- `web/src/hooks/useSnippetActions.ts` - Hook for save/paste operations
+- `web/src/components/node_editor/SnippetLibraryPanel.tsx` - UI panel for snippet management
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated snippet panel into editor
+- `web/src/config/shortcuts.ts` - Added shortcuts (Ctrl+Shift+S save, Ctrl+Shift+V open library)
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handlers for snippet shortcuts
+- `web/src/stores/__tests__/SnippetStore.test.ts` - Unit tests for store
+- `web/src/components/node_editor/__tests__/SnippetLibraryPanel.test.tsx` - Tests for UI panel
+
+**Implementation**:
+- Snippets persist to localStorage with full CRUD operations (create, read, update, delete, duplicate)
+- Search and filter snippets by name, description, or node types
+- Import/export snippets as JSON files
+- Usage tracking for most-used snippets
+- Floating panel with insert, duplicate, and delete actions
+- Keyboard shortcuts for quick access
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

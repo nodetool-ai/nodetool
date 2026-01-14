@@ -39,6 +39,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Node Snippets**: Save and reuse groups of nodes as snippets with Ctrl+Shift+S, paste with Ctrl+Shift+V
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

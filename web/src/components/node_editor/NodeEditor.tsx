@@ -46,6 +46,8 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import SnippetLibraryPanel from "./SnippetLibraryPanel";
+import useSnippetStore from "../../stores/SnippetStore";
 
 declare global {
   interface Window {
@@ -77,6 +79,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+  const snippetStore = useSnippetStore((state) => ({
+    isOpen: state.isOpen,
+    closeLibrary: state.closeLibrary
+  }));
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -163,6 +169,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 visible={selectedNodes.length >= 2}
               />
               <NodeInfoPanel />
+              <SnippetLibraryPanel
+                visible={snippetStore.isOpen}
+                onClose={() => useSnippetStore.getState().closeLibrary()}
+              />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
