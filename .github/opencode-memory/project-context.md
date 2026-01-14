@@ -160,6 +160,42 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Lint Warnings Fix (2026-01-14)
+
+**What**: Fixed lint warnings across multiple files:
+- Removed unused variables in `ViewportStatusIndicator.tsx`
+- Fixed unused variable in `NodeExecutionTime.test.tsx`
+- Added missing ThemeProvider wrapper in `ViewportStatusIndicator.test.tsx`
+- Added Paper palette to mock theme
+
+**Files**:
+- `web/src/components/node_editor/ViewportStatusIndicator.tsx`
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx`
+- `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx`
+- `web/src/__mocks__/themeMock.ts`
+
+---
+
+### Mobile TypeScript Type Definitions (2026-01-14)
+
+**What**: Fixed mobile package type checking by installing missing type definition packages.
+
+**Why**: The mobile package was missing `@types/node` and other type definitions, causing typecheck to fail.
+
+**Files**: `mobile/package.json`, `mobile/tsconfig.json`
+
+---
+
+### TypeScript any Type Fix in workflowUpdates.ts (2026-01-14)
+
+**What**: Replaced `any` type with proper `MsgpackData` union type for WebSocket message handler.
+
+**Why**: The `subscribe` callback was using `any` instead of the already-defined `MsgpackData` type.
+
+**Files**: `web/src/stores/workflowUpdates.ts`
+
+---
+
 ### Node Execution Time Display (2026-01-13)
 
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").

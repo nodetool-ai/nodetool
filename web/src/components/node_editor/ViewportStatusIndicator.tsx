@@ -20,12 +20,16 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
 
   const zoomPercentage = useMemo(() => Math.round(zoom * 100), [zoom]);
 
-  const nodeCount = useMemo(() => nodes.length, [nodes]);
+  const totalCount = useMemo(() => nodes.length, [nodes]);
 
   const selectedCount = useMemo(
     () => nodes.filter((n) => n.selected).length,
     [nodes]
   );
+
+  const countDisplay = totalCount > 0 && selectedCount > 0
+    ? `${selectedCount}/${totalCount}`
+    : `${totalCount}`;
 
   const handleResetZoom = useCallback(() => {
     zoomTo(1, { duration: 200 });
@@ -89,6 +93,28 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           {zoomPercentage}%
         </Typography>
       </Tooltip>
+
+      <Box
+        sx={{
+          width: "1px",
+          height: "16px",
+          backgroundColor: theme.vars.palette.divider
+        }}
+      />
+
+      <Typography
+        sx={{
+          fontFamily: "JetBrains Mono, monospace",
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          color: theme.vars.palette.text.secondary,
+          minWidth: "32px",
+          textAlign: "center",
+          padding: "2px 4px"
+        }}
+      >
+        {countDisplay}
+      </Typography>
 
       <Box
         sx={{
