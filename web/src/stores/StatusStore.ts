@@ -1,9 +1,25 @@
 import { create } from "zustand";
 
+export type NodeStatus =
+  | "booting"
+  | "starting"
+  | "running"
+  | "completed"
+  | "failed"
+  | "queued"
+  | "timed_out"
+  | "cancelled"
+  | "suspended"
+  | "paused"
+  | "error"
+  | "pending";
+
+export type StatusValue = NodeStatus | { progress: number; message: string; timestamp: Date } | null;
+
 type StatusStore = {
-  statuses: Record<string, string>;
-  setStatus: (workflowId: string, nodeId: string, status: any) => void;
-  getStatus: (workflowId: string, nodeId: string) => any;
+  statuses: Record<string, StatusValue>;
+  setStatus: (workflowId: string, nodeId: string, status: StatusValue) => void;
+  getStatus: (workflowId: string, nodeId: string) => StatusValue;
   clearStatuses: (workflowId: string) => void;
 };
 
@@ -36,7 +52,7 @@ const useStatusStore = create<StatusStore>((set, get) => ({
    * @param nodeId The id of the node.
    * @param status The status to set.
    */
-  setStatus: (workflowId: string, nodeId: string, status: any) => {
+  setStatus: (workflowId: string, nodeId: string, status: StatusValue) => {
     const key = hashKey(workflowId, nodeId);
     set({ statuses: { ...get().statuses, [key]: status } });
   },
@@ -48,7 +64,7 @@ const useStatusStore = create<StatusStore>((set, get) => ({
    * @param nodeId The id of the node.
    * @returns The status for the node.
    */
-  getStatus: (workflowId: string, nodeId: string) => {
+  getStatus: (workflowId: string, nodeId: string): StatusValue => {
     const statuses = get().statuses;
     const key = hashKey(workflowId, nodeId);
     return statuses[key];

@@ -150,9 +150,9 @@ describe("StatusStore", () => {
     it("should handle empty strings as workflowId and nodeId", () => {
       const { setStatus, getStatus } = useStatusStore.getState();
 
-      setStatus("", "", "status");
+      setStatus("", "", "pending");
 
-      expect(getStatus("", "")).toBe("status");
+      expect(getStatus("", "")).toBe("pending");
       expect(hashKey("", "")).toBe(":");
     });
 
@@ -162,19 +162,17 @@ describe("StatusStore", () => {
       const workflowId = "workflow@#$%^&*()";
       const nodeId = "node@#$%^&*()";
 
-      setStatus(workflowId, nodeId, "status");
+      setStatus(workflowId, nodeId, "pending");
 
-      expect(getStatus(workflowId, nodeId)).toBe("status");
+      expect(getStatus(workflowId, nodeId)).toBe("pending");
     });
 
-    it("should handle null and undefined values", () => {
+    it("should handle null values", () => {
       const { setStatus, getStatus } = useStatusStore.getState();
 
       setStatus("workflow1", "node1", null);
-      setStatus("workflow1", "node2", undefined);
 
       expect(getStatus("workflow1", "node1")).toBeNull();
-      expect(getStatus("workflow1", "node2")).toBeUndefined();
     });
   });
 });

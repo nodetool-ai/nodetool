@@ -34,7 +34,7 @@ import {
 import type { GlobalChatState, StepToolCall } from "../../stores/GlobalChatStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import useResultsStore from "../../stores/ResultsStore";
-import useStatusStore from "../../stores/StatusStore";
+import useStatusStore, { type StatusValue } from "../../stores/StatusStore";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -222,11 +222,11 @@ const applyNodeUpdate = (
     // Sync with ResultsStore
     // If running, we might want to clear previous error or result?
     // For now, allow multiple updates.
-    
-    // Sync status 
+
+    // Sync status
     useStatusStore
       .getState()
-      .setStatus(workflowId, update.node_id, update.status);
+      .setStatus(workflowId, update.node_id, update.status as StatusValue);
 
     if (update.result) {
       useResultsStore

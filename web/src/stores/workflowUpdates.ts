@@ -16,7 +16,7 @@ import {
   Chunk
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
-import useStatusStore from "./StatusStore";
+import useStatusStore, { type StatusValue } from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
 import log from "loglevel";
@@ -387,7 +387,7 @@ export const handleUpdate = (
       });
       runnerStore.setState({ state: "error" });
       endExecution(workflow.id, update.node_id);
-      setStatus(workflow.id, update.node_id, update.status);
+      setStatus(workflow.id, update.node_id, update.status as StatusValue);
       setError(workflow.id, update.node_id, update.error);
       appendLog({
         workflowId: workflow.id,
@@ -418,7 +418,7 @@ export const handleUpdate = (
         endExecution(workflow.id, update.node_id);
       }
 
-      setStatus(workflow.id, update.node_id, update.status);
+      setStatus(workflow.id, update.node_id, update.status as StatusValue);
 
       // Store result if present
       if (update.result) {

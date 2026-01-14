@@ -160,7 +160,26 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Zoom Presets Feature (2026-01-14)
+### Code Quality Improvements (2026-01-14)
+
+**What**: Fixed multiple code quality issues across the codebase:
+
+1. **Lint Warnings**: Fixed 2 lint warnings in `NodeExecutionTime.test.ts` (unused variable, missing curly brace)
+2. **Mobile TypeScript Types**: Fixed mobile package typecheck by installing `@types/node`
+3. **StatusStore Type Safety**: Improved TypeScript type safety by replacing `any` with explicit `NodeStatus` and `StatusValue` types
+4. **Test Flakiness**: Fixed flaky timing test in `ExecutionTimeStore.test.ts`
+
+**Files**:
+- `web/src/components/node/__tests__/NodeExecutionTime.test.ts`
+- `mobile/package.json`, `mobile/package-lock.json`
+- `web/src/stores/StatusStore.ts`
+- `web/src/components/node/BaseNode.tsx`
+- `web/src/core/chat/chatProtocol.ts`
+- `web/src/stores/workflowUpdates.ts`
+- `web/src/stores/__tests__/StatusStore.test.ts`
+- `web/src/stores/__tests__/ExecutionTimeStore.test.ts`
+
+**Impact**: All quality checks now pass (typecheck, lint, test).
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
 

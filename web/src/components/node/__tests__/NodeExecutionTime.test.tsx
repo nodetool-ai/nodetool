@@ -51,18 +51,6 @@ describe("NodeExecutionTime", () => {
   });
 
   it("should not render when status is running", () => {
-    const formatDuration = (ms: number): string => {
-      if (ms < 1000) return `${ms}ms`;
-      const seconds = Math.floor(ms / 1000);
-      if (seconds < 60) {
-        const remainderMs = ms % 1000;
-        return remainderMs === 0 ? `${seconds}s` : `${seconds}s ${remainderMs}ms`;
-      }
-      const minutes = Math.floor(seconds / 60);
-      const remainderSeconds = seconds % 60;
-      return remainderSeconds === 0 ? `${minutes}m` : `${minutes}m ${remainderSeconds}s`;
-    };
-
     renderWithTheme(
       <NodeExecutionTime
         {...defaultProps}

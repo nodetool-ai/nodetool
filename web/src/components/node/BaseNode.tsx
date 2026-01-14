@@ -257,6 +257,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
   // Status
   const status = useStatusStore((state) => state.getStatus(workflow_id, id));
+  const statusString = typeof status === "string" ? status : "";
   const isLoading = useMemo(
     () => status === "running" || status === "starting" || status === "booting",
     [status]
@@ -448,8 +449,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
-      <NodeStatus status={status} />
-      <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
+      <NodeStatus status={statusString} />
+      <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={statusString} />
       {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (
         <ModelRecommendations nodeType={type} />
       )}
@@ -467,7 +468,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           showAdvancedFields={showAdvancedFields}
           onToggleAdvancedFields={onToggleAdvancedFields}
           basicFields={meta.nodeBasicFields}
-          status={status}
+          status={statusString}
           workflowId={workflow_id}
           showResultOverlay={showResultOverlay}
           result={result}
