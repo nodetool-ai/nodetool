@@ -17,6 +17,7 @@ import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
+import AnnotationNode from "../node_types/AnnotationNode";
 import RerouteNode from "../node/RerouteNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
@@ -225,6 +226,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.workflows.base_node.Preview": PreviewNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
       "nodetool.control.Reroute": RerouteNode,
+      "nodetool.annotation.Annotation": AnnotationNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]

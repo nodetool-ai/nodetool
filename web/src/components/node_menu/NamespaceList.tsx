@@ -10,6 +10,7 @@ import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
+import AnnotationTiles from "./AnnotationTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
 import FavoritesTiles from "./FavoritesTiles";
 import isEqual from "lodash/isEqual";
@@ -494,6 +495,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
               <FavoritesTiles />
               <RecentNodesTiles />
               <QuickActionTiles />
+              <AnnotationTiles />
             </div>
           </>
         )}

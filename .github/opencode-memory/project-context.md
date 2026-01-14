@@ -177,6 +177,26 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
+### Annotation Nodes Feature (2026-01-14)
+
+**What**: Added sticky note annotation nodes to the workflow editor for documenting workflows. Users can add colored notes (yellow, green, blue, pink, purple) to explain workflow logic, add context, or mark areas for review.
+
+**Files**:
+- `web/src/components/node_types/AnnotationNode.tsx` - New annotation node component with edit/delete functionality
+- `web/src/components/node_types/__tests__/AnnotationNode.test.tsx` - Tests for the annotation node
+- `web/src/hooks/useCreateAnnotationNode.ts` - Hook for creating annotation nodes
+- `web/src/components/node_menu/AnnotationTiles.tsx` - Color tile selector in node menu
+- `web/src/components/node/ReactFlowWrapper.tsx` - Registered annotation node type
+- `web/src/components/node_menu/NamespaceList.tsx` - Added annotation tiles to menu
+
+**Implementation**:
+- Annotation nodes are frontend-only nodes that don't execute
+- 5 color options: yellow, green, blue, pink, purple
+- Inline editing with save/cancel buttons
+- Enter to save, Escape to cancel
+- Delete button for removing annotations
+- Drag handle for positioning on canvas
+- Integrated into node menu alongside quick action tiles
 ### Viewport Status Indicator (2026-01-13)
 
 **What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
