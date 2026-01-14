@@ -3,6 +3,11 @@
   "version": "0.6.2-rc.21",
   "description": "React Native mobile app for NodeTool Mini Apps",
   "main": "index.ts",
+  "overrides": {
+    "prismjs": ">=1.30.0",
+    "highlight.js": ">=10.4.1",
+    "markdown-it": ">=12.3.2"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",

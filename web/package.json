@@ -141,7 +141,9 @@
     ]
   },
   "overrides": {
-    "react-is": "18.2.0"
+    "react-is": "18.2.0",
+    "glob": ">=10.5.0",
+    "@eslint/plugin-kit": ">=0.3.4"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",

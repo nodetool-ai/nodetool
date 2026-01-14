@@ -30,35 +30,6 @@
       ],
       "fixAvailable": true
     },
-    "dompurify": {
-      "name": "dompurify",
-      "severity": "moderate",
-      "isDirect": true,
-      "via": [
-        {
-          "source": 1105772,
-          "name": "dompurify",
-          "dependency": "dompurify",
-          "title": "DOMPurify allows Cross-site Scripting (XSS)",
-          "url": "https://github.com/advisories/GHSA-vhxf-7vqr-mrjg",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-79"
-          ],
-          "cvss": {
-            "score": 4.5,
-            "vectorString": "CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:C/C:L/I:L/A:N"
-          },
-          "range": "<3.2.4"
-        }
-      ],
-      "effects": [],
-      "range": "<3.2.4",
-      "nodes": [
-        "node_modules/dompurify"
-      ],
-      "fixAvailable": true
-    },
     "glob": {
       "name": "glob",
       "severity": "high",
@@ -87,208 +58,24 @@
         "node_modules/esbuild-style-plugin/node_modules/glob"
       ],
       "fixAvailable": true
-    },
-    "prismjs": {
-      "name": "prismjs",
-      "severity": "moderate",
-      "isDirect": false,
-      "via": [
-        {
-          "source": 1105770,
-          "name": "prismjs",
-          "dependency": "prismjs",
-          "title": "PrismJS DOM Clobbering vulnerability",
-          "url": "https://github.com/advisories/GHSA-x7hr-w5r2-h6wg",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-79",
-            "CWE-94"
-          ],
-          "cvss": {
-            "score": 4.9,
-            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:L/I:L/A:N"
-          },
-          "range": "<1.30.0"
-        }
-      ],
-      "effects": [
-        "refractor"
-      ],
-      "range": "<1.30.0",
-      "nodes": [
-        "node_modules/refractor/node_modules/prismjs"
-      ],
-      "fixAvailable": {
-        "name": "react-syntax-highlighter",
-        "version": "16.1.0",
-        "isSemVerMajor": true
-      }
-    },
-    "react-router": {
-      "name": "react-router",
-      "severity": "high",
-      "isDirect": false,
-      "via": [
-        {
-          "source": 1112051,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router has CSRF issue in Action/Server Action Request Processing",
-          "url": "https://github.com/advisories/GHSA-h5cw-625j-3rxh",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-346",
-            "CWE-352"
-          ],
-          "cvss": {
-            "score": 6.5,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:N"
-          },
-          "range": ">=7.0.0 <=7.11.0"
-        },
-        {
-          "source": 1112053,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router vulnerable to XSS via Open Redirects",
-          "url": "https://github.com/advisories/GHSA-2w69-qvjg-hvjx",
-          "severity": "high",
-          "cwe": [
-            "CWE-79"
-          ],
-          "cvss": {
-            "score": 8,
-            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:H/I:H/A:N"
-          },
-          "range": ">=7.0.0 <=7.11.0"
-        },
-        {
-          "source": 1112055,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router SSR XSS in ScrollRestoration",
-          "url": "https://github.com/advisories/GHSA-8v8x-cx79-35w7",
-          "severity": "high",
-          "cwe": [
-            "CWE-79"
-          ],
-          "cvss": {
-            "score": 8.2,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:L/A:N"
-          },
-          "range": ">=7.0.0 <7.12.0"
-        },
-        {
-          "source": 1112056,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router has unexpected external redirect via untrusted paths",
-          "url": "https://github.com/advisories/GHSA-9jcx-v3wj-wh4m",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-601"
-          ],
-          "cvss": {
-            "score": 6.5,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N"
-          },
-          "range": ">=7.0.0 <7.9.6"
-        },
-        {
-          "source": 1112062,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router has XSS Vulnerability",
-          "url": "https://github.com/advisories/GHSA-3cgp-3xvw-98x8",
-          "severity": "high",
-          "cwe": [
-            "CWE-79"
-          ],
-          "cvss": {
-            "score": 7.6,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:L/A:N"
-          },
-          "range": ">=7.0.0 <=7.8.2"
-        }
-      ],
-      "effects": [
-        "react-router-dom"
-      ],
-      "range": "7.0.0 - 7.12.0-pre.0",
-      "nodes": [
-        "node_modules/react-router"
-      ],
-      "fixAvailable": true
-    },
-    "react-router-dom": {
-      "name": "react-router-dom",
-      "severity": "moderate",
-      "isDirect": true,
-      "via": [
-        "react-router"
-      ],
-      "effects": [],
-      "range": "7.0.0-pre.0 - 7.11.0",
-      "nodes": [
-        "node_modules/react-router-dom"
-      ],
-      "fixAvailable": true
-    },
-    "react-syntax-highlighter": {
-      "name": "react-syntax-highlighter",
-      "severity": "moderate",
-      "isDirect": true,
-      "via": [
-        "refractor"
-      ],
-      "effects": [],
-      "range": "6.0.0 - 15.6.6",
-      "nodes": [
-        "node_modules/react-syntax-highlighter"
-      ],
-      "fixAvailable": {
-        "name": "react-syntax-highlighter",
-        "version": "16.1.0",
-        "isSemVerMajor": true
-      }
-    },
-    "refractor": {
-      "name": "refractor",
-      "severity": "moderate",
-      "isDirect": false,
-      "via": [
-        "prismjs"
-      ],
-      "effects": [
-        "react-syntax-highlighter"
-      ],
-      "range": "<=4.6.0",
-      "nodes": [
-        "node_modules/refractor"
-      ],
-      "fixAvailable": {
-        "name": "react-syntax-highlighter",
-        "version": "16.1.0",
-        "isSemVerMajor": true
-      }
     }
   },
   "metadata": {
     "vulnerabilities": {
       "info": 0,
       "low": 1,
-      "moderate": 5,
-      "high": 2,
+      "moderate": 0,
+      "high": 1,
       "critical": 0,
-      "total": 8
+      "total": 2
     },
     "dependencies": {
-      "prod": 637,
+      "prod": 913,
       "dev": 596,
       "optional": 78,
-      "peer": 331,
+      "peer": 43,
       "peerOptional": 0,
-      "total": 1639
+      "total": 1623
     }
   }
 }
