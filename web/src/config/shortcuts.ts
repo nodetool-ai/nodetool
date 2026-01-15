@@ -750,7 +750,17 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
-  }
+  },
+
+  // ---------- FAVORITE NODES -------------------------------------------------
+  ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
+    title: `Add Favorite Node ${n}`,
+    slug: `addFavorite${n}`,
+    keyCombo: ["Alt", `${n}`],
+    category: "editor" as const,
+    description: `Add the ${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"} favorite node to the canvas`,
+    registerCombo: true
+  }))
 ] as Shortcut[];
 
 /**

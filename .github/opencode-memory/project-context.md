@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Favorite Nodes Quick Access (2026-01-15)
+
+**What**: Added keyboard shortcuts (Alt+1 through Alt+9) and Command Palette integration for quick access to favorite nodes.
+
+**Files**:
+- `web/src/components/menus/FavoriteNodesCommands.tsx` - New component for Command Palette favorite nodes
+- `web/src/hooks/useFavoriteNodesShortcuts.ts` - New hook for Alt+1-9 keyboard shortcuts
+- `web/src/config/shortcuts.ts` - Added 9 new shortcuts for favorite nodes
+- `web/src/components/menus/CommandMenu.tsx` - Integrated FavoriteNodesCommands
+- `web/src/components/node_editor/NodeEditor.tsx` - Added useFavoriteNodesShortcuts hook
+
+**Implementation**:
+- Users can now press Alt+1 through Alt+9 to quickly add their favorite nodes to the canvas
+- Command Palette (Ctrl+K / Cmd+K) now includes a "Favorites" section showing all favorite nodes with shortcut hints
+- Builds on existing Favorite Nodes infrastructure (FavoriteNodesStore, FavoritesTiles)
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
