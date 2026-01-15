@@ -393,18 +393,15 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
-### Dead Code Removal (2026-01-13)
+### Code Quality Improvements (2026-01-15)
 
-**What**: Removed commented-out dead code from TypeHandler.ts and NodeStore.ts.
+**What**: Fixed Zustand store subscription optimization and TypeScript type safety issues.
 
-**Why**: Commented-out code clutters the codebase, making it harder to read and maintain. The removed code was not referenced anywhere else in the codebase.
+**Files**:
+- `web/src/index.tsx` - Converted useAuth() to selective selector
+- `web/src/hooks/useRunningJobs.ts` - Converted useAuth() to selective selector
+- `web/src/components/ProtectedRoute.tsx` - Converted useAuth() to selective selector
+- `web/src/hooks/handlers/dropHandlerUtils.ts` - Converted useAuth() to selective selector and replaced catch(error: any) with proper error handling using createErrorMessage
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
 
-**Implementation**:
-- Removed commented-out `isConnectableToUnion` function and its JSDoc comment from `web/src/utils/TypeHandler.ts`
-- Removed commented-out model caching code block from `web/src/stores/NodeStore.ts`
-
-**Impact**: Cleaner codebase with less dead code to maintain.
-
-**Files Changed**:
-- `web/src/utils/TypeHandler.ts`
-- `web/src/stores/NodeStore.ts`
+**Impact**: Reduced unnecessary re-renders in auth-related components by ensuring they only update when their specific state changes. Improved TypeScript type safety by using proper error handling with AppError type guards.
