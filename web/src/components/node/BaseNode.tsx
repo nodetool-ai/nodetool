@@ -200,8 +200,17 @@ const getNodeColors = (metadata: any): string[] => {
 const getHeaderColors = (
   metadata: NodeMetadata,
   theme: Theme,
-  nodeType: string
+  nodeType: string,
+  customColor: string | null | undefined
 ) => {
+  // If custom color is set, use it for both header and base color
+  if (customColor) {
+    return {
+      headerColor: customColor,
+      baseColor: customColor
+    };
+  }
+
   // Override colors for input and output nodes
   if (nodeType.startsWith("nodetool.input.")) {
     const baseColor = theme.vars.palette.success.main;
@@ -345,8 +354,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
   const { headerColor, baseColor } = useMemo(
-    () => getHeaderColors(metadata, theme, type),
-    [metadata, theme, type]
+    () => getHeaderColors(metadata, theme, type, data.color),
+    [metadata, theme, type, data.color]
   );
 
   const task = useResultsStore((state) => state.getTask(workflow_id, id));

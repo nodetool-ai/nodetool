@@ -194,7 +194,31 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
-### Viewport Status Indicator (2026-01-13)
+### Node Color Customization (2026-01-15)
+
+**What**: Added the ability to assign custom colors to nodes for visual organization in the workflow editor. Users can now right-click on any node, select a color from the palette in the context menu, and the node's header and border will reflect that color. This helps users visually categorize and group nodes in complex workflows.
+
+**Files**:
+- `web/src/components/node/NodeColorPicker.tsx` - New component providing a color picker UI with 11 preset colors plus a "no color" option to reset
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Integrated NodeColorPicker into the context menu
+- `web/src/components/node/BaseNode.tsx` - Updated `getHeaderColors` function to use custom color from node data
+- `web/src/stores/NodeData.ts` - Updated `color` property type to allow `null` for reset
+- `web/src/stores/NodeStore.ts` - Updated `NodeUIProperties.color` type to allow `null`
+- `web/src/components/node/__tests__/NodeColorPicker.test.tsx` - Comprehensive tests for the color picker component
+
+**Implementation**:
+- Created `NodeColorPicker` component with a color palette of 11 colors (red, orange, yellow, green, teal, cyan, blue, violet, purple, pink, gray) plus a "Default color" option to reset
+- Integrated the color picker into the NodeContextMenu under a "Node Color" menu item
+- Updated `getHeaderColors` function to accept and use custom color from node data, falling back to type-based colors when no custom color is set
+- Updated `NodeData` and `NodeUIProperties` types to allow `color` to be `string | null`
+- Custom colors are persisted in node data and workflow JSON
+
+**Usage**:
+1. Right-click on any node to open the context menu
+2. Click the color preview button in the "Node Color" section
+3. Select a color from the palette
+4. The node's header and border will update to the selected color
+5. Select "Default color" (✕) to remove the custom color and restore the default type-based color
 
 **What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
 

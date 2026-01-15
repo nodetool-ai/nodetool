@@ -1,5 +1,5 @@
 import React from "react";
-import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
+import { Menu, Divider, ListItemIcon, ListItemText, MenuItem, Box } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
@@ -17,6 +17,7 @@ import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useNodes } from "../../contexts/NodeContext";
+import NodeColorPicker from "../node/NodeColorPicker";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -115,6 +116,28 @@ const NodeContextMenu: React.FC = () => {
       IconComponent={<FilterListIcon />}
       tooltip="Select all nodes of the same type"
     />,
+    <MenuItem
+      key="node-color"
+      sx={{ py: 0.5, minHeight: "unset", cursor: "default" }}
+    >
+      <ListItemText
+        primary="Node Color"
+        secondary="Customize node appearance"
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+        secondaryTypographyProps={{ fontSize: "0.7rem" }}
+      />
+      <Box sx={{ ml: 1 }}>
+        <NodeColorPicker
+          currentColor={(node?.data as NodeData | undefined)?.color}
+          onColorChange={(color) => {
+            if (node?.id) {
+              updateNodeData(node.id, { color });
+            }
+          }}
+        />
+      </Box>
+    </MenuItem>,
+    <Divider key="divider-before-sync-mode" />,
     <MenuItem key="sync-mode" disabled sx={{ py: 0.5, minHeight: "unset" }}>
       <ListItemText
         primary="Sync Mode"

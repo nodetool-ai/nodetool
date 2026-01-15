@@ -33,6 +33,7 @@ Last updated: 2026-01-12
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
 - **Node Info Panel**: Contextual panel showing selected node details (type, description, connections, status, quick actions)
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)
+- **Node Color Customization**: Assign custom colors to nodes for visual organization via right-click context menu
 - **Node Tooltips**: Hover tooltips showing node handle information
 - **Node Documentation**: Inline documentation for each node type
 - **Favorite Nodes**: Mark frequently used nodes as favorites

@@ -117,7 +117,7 @@ export type NodeUIProperties = {
   height?: number;
   zIndex?: number;
   title?: string;
-  color?: string;
+  color?: string | null;
   bypassed?: boolean;
 };
 
