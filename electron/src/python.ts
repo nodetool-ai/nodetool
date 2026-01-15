@@ -169,6 +169,11 @@ async function updateCondaEnvironment(
       ...allPackages,
     ];
 
+    if (process.platform !== "darwin") {
+      installCommand.push("--extra-index-url");
+      installCommand.push("https://download.pytorch.org/whl/cu129");
+    }
+
     logMessage(`Running command: ${installCommand.join(" ")}`);
     await runCommand(installCommand);
 

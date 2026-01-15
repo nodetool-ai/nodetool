@@ -30,7 +30,6 @@ import {
   updatePackage,
   validateRepoId,
   searchNodes,
-  checkExpectedPackageVersions,
 } from "./packageManager";
 import { openModelDirectory, openPathInExplorer, openSystemDirectory } from "./fileExplorer";
 import { exportDebugBundle } from "./debug";
@@ -452,12 +451,6 @@ export function initializeIpcHandlers(): void {
       shell.openExternal(url);
     }
   );
-
-  // Package version check handler
-  createIpcMainHandler(IpcChannels.PACKAGE_VERSION_CHECK, async () => {
-    logMessage("Checking expected package versions");
-    return await checkExpectedPackageVersions();
-  });
 
   // Log viewer handlers
   createIpcMainHandler(IpcChannels.GET_LOGS, async () => {

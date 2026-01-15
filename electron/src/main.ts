@@ -46,7 +46,7 @@ import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
-import { checkForPackageUpdates, installExpectedPackages, checkExpectedPackageVersions } from "./packageManager";
+import { checkForPackageUpdates } from "./packageManager";
 import { IpcChannels } from "./types.d";
 import { readSettings, updateSetting } from "./settings";
 
@@ -110,56 +110,6 @@ async function notifyPackageUpdates(): Promise<void> {
   } catch (error: any) {
     logMessage(
       `Failed to notify package updates: ${error.message ?? String(error)}`,
-      "warn"
-    );
-  }
-}
-
-/**
- * Check and install expected package versions on startup
- */
-async function checkAndInstallExpectedPackages(): Promise<void> {
-  try {
-    logMessage("=== Starting Expected Package Version Check ===");
-
-    const packagesNeedingUpdate = await checkExpectedPackageVersions();
-
-    if (packagesNeedingUpdate.length === 0) {
-      logMessage("All expected packages are at correct versions");
-      return;
-    }
-
-    logMessage(
-      `Found ${packagesNeedingUpdate.length} package(s) needing update: ${packagesNeedingUpdate.map((p) => p.packageName).join(", ")}`
-    );
-
-    emitBootMessage(
-      `Updating ${packagesNeedingUpdate.length} package(s)...`
-    );
-
-    const result = await installExpectedPackages();
-
-    if (result.success) {
-      logMessage(
-        `Successfully updated ${result.packagesUpdated} of ${result.packagesChecked} expected packages`
-      );
-    } else {
-      logMessage(
-        `Failed to update ${result.failures.length} of ${result.packagesChecked} expected packages`,
-        "warn"
-      );
-      for (const failure of result.failures) {
-        logMessage(
-          `  - ${failure.packageName}: ${failure.error}`,
-          "warn"
-        );
-      }
-    }
-
-    logMessage("=== Expected Package Version Check Complete ===");
-  } catch (error: any) {
-    logMessage(
-      `Failed to check/install expected packages: ${error.message ?? String(error)}`,
       "warn"
     );
   }
@@ -280,9 +230,6 @@ async function initialize(): Promise<void> {
     }
 
     void notifyPackageUpdates();
-
-    // Check and install expected package versions
-    void checkAndInstallExpectedPackages();
 
     // Request notification permissions
     if (process.platform === "darwin") {
