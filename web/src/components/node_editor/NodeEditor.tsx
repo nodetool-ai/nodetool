@@ -9,7 +9,9 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  TextField
+  TextField,
+  IconButton,
+  Tooltip
 } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -44,8 +46,11 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import WorkflowNotesPanel from "./WorkflowNotesPanel";
+import { useWorkflowNotesPanelStore } from "../../stores/WorkflowNotesPanelStore";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import NotesIcon from "@mui/icons-material/Notes";
 
 declare global {
   interface Window {
@@ -77,6 +82,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+  const isNotesVisible = useWorkflowNotesPanelStore((state) => state.isVisible);
+  const toggleNotes = useWorkflowNotesPanelStore((state) => state.toggle);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -98,6 +105,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active && selectedNodes.length > 0) {
         toggleInspectedNode(selectedNodes[0].id);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Workflow Notes Panel (Ctrl+Shift+N / Meta+Shift+N)
+  const notesCombo = isMac() ? ["meta", "shift", "n"] : ["control", "shift", "n"];
+  useCombo(
+    notesCombo,
+    () => {
+      if (active) {
+        toggleNotes();
       }
     },
     true,
@@ -163,6 +183,28 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 visible={selectedNodes.length >= 2}
               />
               <NodeInfoPanel />
+              {isNotesVisible && (
+                <WorkflowNotesPanel onClose={() => useWorkflowNotesPanelStore.getState().setVisible(false)} />
+              )}
+              <Tooltip title="Workflow Notes (Ctrl+Shift+N)" placement="left" arrow>
+                <IconButton
+                  onClick={toggleNotes}
+                  sx={{
+                    position: "fixed",
+                    bottom: "20px",
+                    right: "70px",
+                    zIndex: 14000,
+                    backgroundColor: isNotesVisible ? "primary.main" : "background.paper",
+                    color: isNotesVisible ? "primary.contrastText" : "text.primary",
+                    boxShadow: 3,
+                    "&:hover": {
+                      backgroundColor: isNotesVisible ? "primary.dark" : "action.hover"
+                    }
+                  }}
+                >
+                  <NotesIcon />
+                </IconButton>
+              </Tooltip>
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}

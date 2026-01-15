@@ -408,3 +408,30 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Files Changed**:
 - `web/src/utils/TypeHandler.ts`
 - `web/src/stores/NodeStore.ts`
+
+---
+
+### Workflow Notes Feature (2026-01-15)
+
+**What**: Added Workflow Notes feature allowing users to add annotations and documentation to workflows directly in the editor.
+
+**Files**:
+- `web/src/stores/WorkflowNotesStore.ts` - Zustand store for persisting notes per workflow
+- `web/src/stores/WorkflowNotesPanelStore.ts` - Store for panel visibility state
+- `web/src/components/node_editor/WorkflowNotesPanel.tsx` - Panel component for viewing/editing notes
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated panel toggle and keyboard shortcut
+- `web/src/stores/__tests__/WorkflowNotesStore.test.ts` - Unit tests for the stores
+
+**Implementation**:
+- Notes are stored in localStorage keyed by workflow ID
+- Each note has content, creation timestamp, and update timestamp
+- Panel toggle button in bottom-right of editor (Notes icon)
+- Keyboard shortcut: Ctrl+Shift+N / Meta+Shift+N to toggle panel
+- Panel includes add, edit, delete, and clear note functionality
+- Notes persist across sessions and are independent per workflow
+
+**Usage**:
+1. Click the Notes icon button in the bottom-right of the editor
+2. Or use Ctrl+Shift+N (Meta+Shift+N on Mac) keyboard shortcut
+3. Add, edit, or delete notes as needed
+4. Notes are automatically saved and persist across sessions
