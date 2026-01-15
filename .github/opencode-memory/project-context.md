@@ -160,6 +160,23 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Quick Favorites Toolbar (2026-01-14)
+
+**What**: Added a compact persistent toolbar in the node editor showing favorite nodes for quick addition. Users can click star buttons to add favorite nodes directly to the canvas without opening the full node menu. Includes drag-and-drop support, right-click to remove from favorites, and an "+" button to open the node menu.
+
+**Files**:
+- `web/src/components/node_editor/QuickFavoritesToolbar.tsx` - New component with star icons for favorite nodes
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated toolbar into the editor
+- `web/src/components/node_editor/__tests__/QuickFavoritesToolbar.test.tsx` - Unit tests
+
+**Implementation**:
+- Uses existing FavoriteNodesStore for persistence
+- Displays up to 6 favorites with star icons
+- Shows "+" button to open full node menu
+- Right-click on favorite to remove from favorites
+- Drag-and-drop support for adding nodes to canvas
+- Styled with MUI theming matching the existing design
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
