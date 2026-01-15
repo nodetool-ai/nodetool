@@ -1,8 +1,10 @@
 import React, { useCallback } from "react";
-import { ListItem } from "@mui/material";
+import { ListItem, SvgIcon } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
+import { getNamespaceIcon } from "../../utils/namespaceIcons";
+import { useTheme } from "@mui/material/styles";
 
 interface NamespaceItemProps {
   namespace: string;
@@ -23,7 +25,12 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   hasChildren,
   tree
 }) => {
+  const theme = useTheme();
   const { setSelectedPath } = useNodeMenuStore();
+
+  const fullPath = path.join(".");
+  const IconConfig = getNamespaceIcon(fullPath);
+  const IconComponent = IconConfig.icon;
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLLIElement>) => {
@@ -36,6 +43,12 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
     [isSelected, path, setSelectedPath]
   );
 
+  const iconColor = isSelected
+    ? "var(--palette-primary-main)"
+    : isHighlighted
+      ? "var(--palette-primary-main)"
+      : theme.vars.palette.text.secondary;
+
   return (
     <>
       <ListItem
@@ -44,6 +57,14 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
         } ${isHighlighted ? "highlighted" : "no-highlight"}`}
         onClick={handleClick}
       >
+        <SvgIcon
+          component={IconComponent}
+          sx={{
+            mr: 1,
+            fontSize: "1.1rem",
+            color: iconColor
+          }}
+        />
         <div className="namespace-item">{namespace.replaceAll("_", " ")}</div>
       </ListItem>
       {hasChildren && isExpanded && (

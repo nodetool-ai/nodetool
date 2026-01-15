@@ -4,7 +4,7 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-12
+Last updated: 2026-01-15
 
 ---
 
@@ -39,6 +39,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Namespace Category Icons**: Visual icons for node categories in the node menu sidebar and namespace headers
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

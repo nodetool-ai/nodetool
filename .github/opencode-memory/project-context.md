@@ -393,7 +393,22 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
-### Console Log Removal (2026-01-15)
+### Namespace Category Icons (2026-01-15)
+
+**What**: Added visual category icons to namespace headers in the node menu sidebar and namespace sections in the node list, making navigation more intuitive and visually appealing. Icons are mapped to namespace prefixes (e.g., nodetool.input gets Input icon, anthropic gets AI icon).
+
+**Files**:
+- `web/src/utils/namespaceIcons.ts` - New utility mapping namespace prefixes to MUI icons
+- `web/src/components/node_menu/NamespaceItem.tsx` - Added category icons to namespace sidebar items
+- `web/src/components/node_menu/RenderNodes.tsx` - Added category icons to namespace headers in node list
+- `web/src/utils/__tests__/namespaceIcons.test.ts` - Tests for the namespace icons utility
+
+**Implementation**:
+- Created `getNamespaceIcon()` function that maps namespace prefixes to appropriate MUI icons
+- Supports nodetool.* namespaces (input, output, control, logic) with thematic icons
+- Supports AI provider namespaces (anthropic, openai, google, bedrock, groq, mistral, huggingface, ollama, replicate)
+- Falls back to default category icon for unknown namespaces
+- Icons display in the left sidebar namespace panel and in namespace headers when browsing nodes
 
 **What**: Removed debug console.log statements and replaced with proper loglevel logging.
 
