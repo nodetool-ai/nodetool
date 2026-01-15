@@ -15,6 +15,11 @@ import FavoritesTiles from "./FavoritesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
+import VirtualizedNodeList from "./VirtualizedNodeList";
+import VirtualizedSearchResults from "./VirtualizedSearchResults";
+import { useCreateNode } from "../../hooks/useCreateNode";
+import { serializeDragData } from "../../lib/dragdrop";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 
 type NamespaceTree = {
   [key: string]: {
@@ -437,6 +442,32 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   const allMetadata = useMetadataStore((state) => state.metadata);
 
+  const handleCreateNode = useCreateNode();
+  const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
+  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
+  const clearDrag = useDragDropStore((s) => s.clearDrag);
+
+  const handleDragStart = useCallback(
+    (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
+      setDragToCreate(true);
+      serializeDragData({ type: "create-node", payload: node }, event.dataTransfer);
+      event.dataTransfer.effectAllowed = "move";
+      setActiveDrag({ type: "create-node", payload: node });
+    },
+    [setDragToCreate, setActiveDrag]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    clearDrag();
+  }, [clearDrag]);
+
+  const handleNodeClick = useCallback(
+    (node: NodeMetadata) => {
+      handleCreateNode(node);
+    },
+    [handleCreateNode]
+  );
+
   const selectedPathString = useMemo(
     () => selectedPath.join("."),
     [selectedPath]
@@ -453,6 +484,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const totalNodes = useMemo(() => {
     return Object.values(allMetadata).length;
   }, [allMetadata]);
+
+  const showVirtualizedList = searchResults.length > 50 || (selectedPathString && searchResults.length > 20);
 
   return (
     <div
@@ -472,11 +505,30 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           searchTerm ||
           selectedInputType ||
           selectedOutputType ? (
-          <>
-            <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
-              <RenderNodes nodes={searchResults} />
-            </List>
-            {/* Only show NodeInfo when not searching */}
+            <>
+              <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
+                {searchTerm && searchResults.length > 0 ? (
+                  showVirtualizedList ? (
+                    <VirtualizedSearchResults
+                      nodes={searchResults}
+                      onNodeClick={handleNodeClick}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                    />
+                  ) : (
+                    <RenderNodes nodes={searchResults} />
+                  )
+                ) : (
+                  <VirtualizedNodeList
+                    nodes={searchResults}
+                    searchTerm={searchTerm}
+                    selectedPath={selectedPathString}
+                    onNodeClick={handleNodeClick}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  />
+                )}
+              </List>
             {!searchTerm && (
               <div className="node-info-container">
                 {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}

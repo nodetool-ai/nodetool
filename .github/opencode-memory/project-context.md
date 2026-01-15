@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Virtualized Node List (2026-01-15)
+
+**What**: Added virtualization to the NodeMenu node list using @tanstack/react-virtual for improved performance when displaying many nodes.
+
+**Files**:
+- `web/src/components/node_menu/VirtualizedNodeList.tsx` - New virtualized node list component for namespace browsing
+- `web/src/components/node_menu/VirtualizedSearchResults.tsx` - New virtualized search results component
+- `web/src/components/node_menu/NamespaceList.tsx` - Updated to use virtualized components when many nodes are displayed
+
+**Implementation**:
+- Created VirtualizedNodeList component using @tanstack/react-virtual for efficient rendering of large node lists
+- Created VirtualizedSearchResults component for search results with the same virtualization approach
+- Auto-switches to virtualized rendering when search results exceed 50 items (or 20 items in a specific namespace)
+- Keyboard navigation with scroll-to-index functionality for selected items
+- Compatible with existing NodeItem and SearchResultItem components
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
