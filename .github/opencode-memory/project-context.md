@@ -160,6 +160,25 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Color Labels Feature (2026-01-15)
+
+**What**: Added ability to assign custom colors to nodes for visual organization in large workflows via context menu color picker with 8 color options plus default.
+
+**Files**:
+- `web/src/config/nodeColors.ts` - New color palette configuration with 9 color options
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added color picker submenu to node context menu
+- `web/src/components/context_menus/ContextMenuItem.tsx` - Added submenu indicator support
+- `web/src/components/node/NodeHeader.tsx` - Added color indicator bar to node header
+- `web/src/config/__tests__/nodeColors.test.ts` - Unit tests for color palette
+
+**Implementation**:
+- Created `NODE_COLOR_LABELS` config with 8 preset colors (Red, Orange, Yellow, Green, Blue, Purple, Pink, Gray) plus Default option
+- Added "Node Color" option to node context menu with submenu showing color palette
+- Node header displays colored bar on left side when custom color is set
+- Colors stored in node data `color` property and persisted with workflow
+
+---
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

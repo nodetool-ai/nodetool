@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { ReactElement, ReactNode } from "react";
 import { Tooltip, MenuItem, Button, IconButton } from "@mui/material";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ContextMenuItemProps {
@@ -13,6 +14,7 @@ interface ContextMenuItemProps {
   tooltip?: ReactNode;
   addButtonClassName?: string;
   controlElement?: ReactElement;
+  submenu?: boolean;
 }
 
 const styles = (theme: Theme) =>
@@ -92,7 +94,8 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
   IconComponent,
   tooltip,
   addButtonClassName,
-  controlElement
+  controlElement,
+  submenu
 }) => {
   const theme = useTheme();
   return (
@@ -114,6 +117,9 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
               >
                 {IconComponent}
                 <span className="label">{label}</span>
+                {submenu && (
+                  <ArrowForwardIcon sx={{ fontSize: "1rem", ml: "auto" }} />
+                )}
               </Button>
             )}
           </MenuItem>
@@ -130,6 +136,9 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
             >
               {IconComponent}
               <span className="label">{label}</span>
+              {submenu && (
+                <ArrowForwardIcon sx={{ fontSize: "1rem", ml: "auto" }} />
+              )}
             </IconButton>
           )}
         </MenuItem>

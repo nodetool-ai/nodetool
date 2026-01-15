@@ -1,5 +1,13 @@
-import React from "react";
-import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
+import React, { useState } from "react";
+import {
+  Menu,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  MenuItem,
+  Box,
+  Popover
+} from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
@@ -12,11 +20,13 @@ import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
+import PaletteIcon from "@mui/icons-material/Palette";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useNodes } from "../../contexts/NodeContext";
+import { NODE_COLOR_OPTIONS, getNodeColorLabel } from "../../config/nodeColors";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -29,13 +39,39 @@ const NodeContextMenu: React.FC = () => {
   const removeFromGroup = useRemoveFromGroup();
   const updateNodeData = useNodes((state) => state.updateNodeData);
 
-  const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
+  const [colorMenuAnchor, setColorMenuAnchor] = useState<HTMLElement | null>(null);
+
+  const nodeData = node?.data as NodeData | undefined;
+  const currentColor = nodeData?.color;
+  const currentColorLabel = getNodeColorLabel(currentColor);
+  const syncMode = nodeData?.sync_mode || "on_any";
 
   const handleSelectMode = (mode: "on_any" | "zip_all") => {
     if (node?.id) {
       updateNodeData(node.id, { sync_mode: mode });
     }
     closeContextMenu();
+  };
+
+  const handleSelectColor = (color: string | undefined) => {
+    if (node?.id) {
+      updateNodeData(node.id, { color });
+    }
+    setColorMenuAnchor(null);
+    closeContextMenu();
+  };
+
+  const openColorMenu = (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.stopPropagation();
+      setColorMenuAnchor(event.currentTarget);
+    } else {
+      setColorMenuAnchor(null);
+    }
+  };
+
+  const closeColorMenu = () => {
+    setColorMenuAnchor(null);
   };
 
   const menuItems = [
@@ -155,6 +191,14 @@ const NodeContextMenu: React.FC = () => {
         secondaryTypographyProps={{ fontSize: "0.7rem" }}
       />
     </MenuItem>,
+    <ContextMenuItem
+      key="node-color"
+      onClick={openColorMenu}
+      label="Node Color"
+      IconComponent={<PaletteIcon />}
+      tooltip="Set a color label for this node"
+      submenu
+    />,
     <Divider key="divider-before-delete" />,
     <ContextMenuItem
       key="delete-node"
@@ -177,25 +221,88 @@ const NodeContextMenu: React.FC = () => {
   ];
 
   return (
-    <Menu
-      className="context-menu node-context-menu"
-      open={menuPosition !== null}
-      onClose={closeContextMenu}
-      onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: "8px"
-          }
+    <>
+      <Menu
+        className="context-menu node-context-menu"
+        open={menuPosition !== null}
+        onClose={closeContextMenu}
+        onContextMenu={(event) => event.preventDefault()}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
         }
-      }}
-    >
-      {menuItems.filter(Boolean)}
-    </Menu>
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "8px"
+            }
+          }
+        }}
+      >
+        {menuItems.filter(Boolean)}
+      </Menu>
+      <Popover
+        open={Boolean(colorMenuAnchor)}
+        anchorEl={colorMenuAnchor}
+        onClose={closeColorMenu}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "right"
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left"
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "8px",
+              p: 1,
+              minWidth: "180px"
+            }
+          }
+        }}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <ListItemText
+            primary="Node Color"
+            primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }}
+            sx={{ px: 1, pt: 0.5 }}
+          />
+          {NODE_COLOR_OPTIONS.map((colorOption) => (
+            <MenuItem
+              key={colorOption.key}
+              selected={colorOption.key === currentColorLabel}
+              onClick={() => handleSelectColor(colorOption.value)}
+              sx={{
+                py: 0.5,
+                minHeight: "unset",
+                display: "flex",
+                gap: 1
+              }}
+            >
+              <Box
+                sx={{
+                  width: "16px",
+                  height: "16px",
+                  borderRadius: "4px",
+                  backgroundColor: colorOption.value || "transparent",
+                  border: colorOption.value ? "none" : "1px solid",
+                  borderColor: "divider",
+                  flexShrink: 0
+                }}
+              />
+              <ListItemText
+                primary={colorOption.label}
+                secondary={colorOption.description}
+                primaryTypographyProps={{ fontSize: "0.8rem" }}
+                secondaryTypographyProps={{ fontSize: "0.65rem" }}
+              />
+            </MenuItem>
+          ))}
+        </Box>
+      </Popover>
+    </>
   );
 };
 

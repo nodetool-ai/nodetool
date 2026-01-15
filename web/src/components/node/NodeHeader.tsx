@@ -8,7 +8,7 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { Badge, IconButton, Tooltip } from "@mui/material";
+import { Badge, IconButton, Tooltip, Box } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { NodeLogsDialog } from "./NodeLogs";
 
@@ -97,6 +97,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           letterSpacing: "0.02em",
           padding: "2px 0",
           color: "var(--palette-text-primary)"
+        },
+        ".color-indicator": {
+          width: "4px",
+          height: "24px",
+          borderRadius: "2px",
+          flexShrink: 0
         }
       }),
     []
@@ -162,8 +168,14 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       onClick={handleHeaderClick}
       onContextMenu={handleHeaderContextMenu}
       style={headerStyle || { backgroundColor }}
-    >
+      >
       <div className="header-left">
+        {data.color && (
+          <Box
+            className="color-indicator"
+            sx={{ backgroundColor: data.color }}
+          />
+        )}
         {hasIcon && showIcon && (
           <div
             className="node-icon"
