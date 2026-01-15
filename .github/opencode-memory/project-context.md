@@ -408,3 +408,38 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Files Changed**:
 - `web/src/utils/TypeHandler.ts`
 - `web/src/stores/NodeStore.ts`
+
+---
+
+### Performance Profiling Feature (2026-01-15)
+
+**What**: Added comprehensive workflow performance profiler feature with multiple visualization components for analyzing execution timing and identifying bottlenecks.
+
+**Files Created**:
+- `web/src/stores/PerformanceProfilerStore.ts` - Aggregates timing data from ExecutionTimeStore, StatusStore, ErrorStore, and ResultsStore
+- `web/src/components/performance/PerformancePanel.tsx` - Dashboard showing execution metrics, bottlenecks, and node performance
+- `web/src/components/performance/PerformanceTimeline.tsx` - Gantt chart style timeline visualization
+- `web/src/components/performance/PerformanceHeatmapNode.tsx` - Custom ReactFlow node with color-coded execution time
+- `web/src/hooks/usePerformanceProfiler.ts` - Hook for easy access to performance data
+- `web/src/components/performance/index.ts` - Component exports
+- `web/src/components/performance/PerformanceDemo.tsx` - Demo component
+
+**Implementation**:
+- Leverages existing `ExecutionTimeStore` for timing data (no additional data collection needed)
+- Identifies bottlenecks by sorting nodes by execution time
+- Provides visual timeline with zoom controls
+- Color-codes nodes from green (fast) to red (slow)
+- Shows completion rate, error count, and result sizes
+- Integrates with existing workflow execution flow
+
+**Features**:
+- Total execution time tracking
+- Per-node execution duration
+- Bottleneck detection and display
+- Execution timeline visualization
+- Heatmap view of workflow graph
+- Error node highlighting
+- Result size analysis
+
+**Impact**: Users can now analyze workflow performance, identify slow nodes, and optimize their AI pipelines visually without any additional setup.
+

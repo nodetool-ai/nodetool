@@ -266,20 +266,29 @@ Last updated: 2026-01-12
 
 ---
 
+## Research & Experimental Features
+
+### Performance Profiling (Experimental - 2026-01-15)
+- **Performance Profiler Store**: Analyzes workflow execution timing, identifies bottlenecks
+- **Performance Panel**: Visual dashboard showing execution metrics, bottlenecks, and node performance
+- **Performance Timeline**: Gantt chart style visualization of node execution order and duration
+- **Performance Heatmap Nodes**: Color-coded nodes showing execution time relative to other nodes
+- **usePerformanceProfiler Hook**: Easy access to performance data and analysis functions
+
+---
+
 ## Features NOT Yet Implemented
 
-*(Update this section when considering these features in the future)*
+*(These features are still being researched or planned for future development)*
 
 - **Virtualized Lists**: Large list virtualization for performance
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
