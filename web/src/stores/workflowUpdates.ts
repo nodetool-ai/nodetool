@@ -47,7 +47,6 @@ export const subscribeToWorkflowUpdates = (
   const unsubscribe = globalWebSocketManager.subscribe(
     workflowId,
     (message: any) => {
-      console.log("workflowUpdates: Received message", message);
       handleUpdate(workflow, message, runnerStore);
     }
   );
