@@ -750,6 +750,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  {
+    title: "Add Comment",
+    slug: "addComment",
+    keyCombo: ["Shift", "C"],
+    category: "editor" as const,
+    description: "Add a new comment node at the center of the view",
+    registerCombo: true
   }
 ] as Shortcut[];
 

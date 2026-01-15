@@ -160,6 +160,23 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Quick Comment Creation Feature (2026-01-15)
+
+**What**: Added quick comment creation feature with Shift+C keyboard shortcut and floating comment button in the node editor.
+
+**Files**:
+- `web/src/hooks/useQuickComment.ts` - New hook for creating comment nodes at cursor position
+- `web/src/components/node_editor/CommentFab.tsx` - New floating comment button component
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated CommentFab component
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handler for Shift+C shortcut
+- `web/src/config/shortcuts.ts` - Added addComment shortcut configuration
+
+**Implementation**:
+- Created useQuickComment hook that creates comment nodes at the center of viewport or mouse position
+- Added floating CommentFab button near the RunAsAppFab button
+- Added Shift+C keyboard shortcut for quick comment creation
+- Comments are created with default formatting and ready for editing
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
