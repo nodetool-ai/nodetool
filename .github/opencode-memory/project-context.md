@@ -160,6 +160,25 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Execution Time Display (2026-01-15)
+
+**What**: Added workflow performance profiling feature including execution time tracking, performance statistics visualization, and performance indicators on nodes.
+
+**Files**:
+- `web/src/stores/ExecutionTimeStore.ts` - Extended store with history tracking, performance summary, and aggregated stats
+- `web/src/stores/workflowUpdates.ts` - Updated to pass node type/name to endExecution
+- `web/src/components/panels/PerformancePanel.tsx` - New panel for viewing performance statistics
+- `web/src/components/node/NodePerformanceIndicator.tsx` - New component showing historical performance on nodes
+- `web/src/components/node/BaseNode.tsx` - Integrated NodePerformanceIndicator component
+- `web/src/stores/__tests__/ExecutionTimeStore.test.ts` - Added tests for new functionality
+
+**Implementation**:
+- `ExecutionTimeStore` now tracks historical execution data with `history` array and `NodePerformanceRecord` type
+- Added methods: `getNodeHistory`, `getWorkflowHistory`, `getPerformanceSummary`, `getAggregatedStats`, `clearHistory`
+- `PerformancePanel` displays stats cards (avg duration, nodes executed, error rate, total runs), slowest nodes with progress bars, and recent execution history
+- `NodePerformanceIndicator` shows average duration, run count, and trend (faster/slower) on each node
+- Color-coded indicators: green for fast (<1s), yellow for moderate (1-5s), red for slow (>5s)
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

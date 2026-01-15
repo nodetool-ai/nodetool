@@ -386,7 +386,13 @@ export const handleUpdate = (
         content: update.error
       });
       runnerStore.setState({ state: "error" });
-      endExecution(workflow.id, update.node_id);
+      endExecution(
+        workflow.id,
+        update.node_id,
+        "error",
+        update.node_type,
+        update.node_name || update.node_id
+      );
       setStatus(workflow.id, update.node_id, update.status);
       setError(workflow.id, update.node_id, update.error);
       appendLog({
@@ -415,7 +421,13 @@ export const handleUpdate = (
           previousStatus !== "starting" && previousStatus !== "booting") {
         startExecution(workflow.id, update.node_id);
       } else if (isFinishing) {
-        endExecution(workflow.id, update.node_id);
+        endExecution(
+          workflow.id,
+          update.node_id,
+          update.status === "completed" ? "completed" : "error",
+          update.node_type,
+          update.node_name || update.node_id
+        );
       }
 
       setStatus(workflow.id, update.node_id, update.status);
