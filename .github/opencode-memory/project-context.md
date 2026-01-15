@@ -393,6 +393,38 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Console Log Removal (2026-01-15)
+
+**What**: Removed debug console.log statements and replaced with proper loglevel logging.
+
+**Why**: The codebase uses loglevel for logging, but some files had console.log statements that bypass this pattern.
+
+**Implementation**:
+- Removed 4 debug console.log statements from workflowUpdates.ts and GlobalChatStore.ts
+- Replaced console.log with log.debug in createAssetFile.ts
+
+**Files**:
+- `web/src/stores/workflowUpdates.ts`
+- `web/src/stores/GlobalChatStore.ts`
+- `web/src/utils/createAssetFile.ts`
+
+---
+
+### Lint Warning Fixes (2026-01-15)
+
+**What**: Fixed lint warnings in test files by removing unused variables and code.
+
+**Why**: Two lint warnings were found in NodeExecutionTime.test.tsx: unused variable and missing braces.
+
+**Implementation**:
+- Removed unused formatDuration function in test case
+- This was dead code that wasn't being used by the test
+
+**Files**:
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx`
+
+---
+
 ### Dead Code Removal (2026-01-13)
 
 **What**: Removed commented-out dead code from TypeHandler.ts and NodeStore.ts.
