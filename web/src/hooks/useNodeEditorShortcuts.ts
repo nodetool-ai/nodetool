@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useNodeLabelStore } from "../stores/NodeLabelStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -522,6 +523,33 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      labelNodes: {
+        callback: () => {
+          if (selectedNodes.length > 0) {
+            addNotification({
+              content: `Select ${selectedNodes.length} node(s) - use Node Info panel to manage labels`,
+              type: "info",
+              timeout: 3000
+            });
+          }
+        },
+        active: selectedNodes.length > 0
+      },
+      clearNodeLabels: {
+        callback: () => {
+          if (selectedNodes.length > 0) {
+            selectedNodes.forEach((node) => {
+              useNodeLabelStore.getState().clearLabels(node.id);
+            });
+            addNotification({
+              content: `Cleared labels from ${selectedNodes.length} node(s)`,
+              type: "success",
+              timeout: 2000
+            });
+          }
+        },
+        active: selectedNodes.length > 0
       }
     };
 
@@ -586,7 +614,9 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    selectedNodes,
+    addNotification
   ]);
 
   // useEffect for shortcut registration

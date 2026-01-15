@@ -194,6 +194,28 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
+### Node Color Labels Feature (2026-01-15)
+
+**What**: Added color-coded labels feature for organizing and visually distinguishing nodes in workflows. Users can assign labels like "Important", "Review", "Done", etc. to nodes for better workflow organization.
+
+**Files**:
+- `web/src/stores/NodeLabelStore.ts` - New store for managing node labels with persistence
+- `web/src/components/node/NodeLabelSelector.tsx` - UI component for managing node labels
+- `web/src/components/node/NodeLabelsDisplay.tsx` - Component to display labels on nodes
+- `web/src/components/node/BaseNode.tsx` - Integrated label display into BaseNode
+- `web/src/components/node_editor/NodeInfoPanel.tsx` - Added label management to Node Info Panel
+- `web/src/config/shortcuts.ts` - Added keyboard shortcuts (L for labels, Alt+L to clear)
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handlers for label shortcuts
+- `web/src/stores/__tests__/NodeLabelStore.test.ts` - Comprehensive tests for label store
+
+**Implementation**:
+- Created `NodeLabelStore` with persistent storage for labels and assignments
+- Pre-defined labels: Important (red), Review (orange), Warning (yellow), Done (green), Input (blue), Output (purple)
+- Users can create custom labels with any color
+- Labels displayed on nodes below execution time
+- Node Info Panel allows label management for selected nodes
+- Keyboard shortcuts: L to view labels, Alt+L to clear labels from selected nodes
+
 ### Viewport Status Indicator (2026-01-13)
 
 **What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.

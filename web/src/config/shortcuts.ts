@@ -750,6 +750,24 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+
+  // ---------- NODE LABELS ----------------------------------------------------
+  {
+    title: "Label Nodes",
+    slug: "labelNodes",
+    keyCombo: ["L"],
+    category: "editor" as const,
+    description: "Open label menu for selected nodes",
+    registerCombo: true
+  },
+  {
+    title: "Clear Node Labels",
+    slug: "clearNodeLabels",
+    keyCombo: ["Alt", "L"],
+    category: "editor" as const,
+    description: "Remove all labels from selected nodes",
+    registerCombo: true
   }
 ] as Shortcut[];
 

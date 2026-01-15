@@ -37,6 +37,7 @@ import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
+import NodeLabelsDisplay from "./NodeLabelsDisplay";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
@@ -450,6 +451,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
+      <NodeLabelsDisplay nodeId={id} />
       {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (
         <ModelRecommendations nodeType={type} />
       )}

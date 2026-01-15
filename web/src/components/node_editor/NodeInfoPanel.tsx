@@ -17,6 +17,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
+import { NodeLabelSelector } from "../node/NodeLabelSelector";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -257,6 +258,13 @@ const NodeInfoPanel: React.FC = memo(() => {
         >
           Focus
         </Button>
+
+        <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${theme.vars.palette.divider}` }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+            Labels
+          </Typography>
+          <NodeLabelSelector nodeId={nodeInfo.id} />
+        </Box>
       </Box>
     </Box >
   );
