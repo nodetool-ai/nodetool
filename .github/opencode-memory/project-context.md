@@ -410,6 +410,25 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Workflow Statistics Panel (2026-01-15)
+
+**What**: Added a new Workflow Statistics Panel that displays real-time workflow statistics including node count, connection count, node categories (inputs, outputs, processing, groups), and a complexity score.
+
+**Files**:
+- `web/src/stores/WorkflowStatsStore.ts` - New store for tracking workflow statistics
+- `web/src/components/node_editor/WorkflowStatsPanel.tsx` - New component displaying stats
+- `web/src/hooks/useWorkflowStats.ts` - Hook for updating stats on node/edge changes
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated the panel into the editor
+- `web/src/stores/__tests__/WorkflowStatsStore.test.ts` - Tests for the store
+- `web/src/components/node_editor/__tests__/WorkflowStatsPanel.test.tsx` - Tests for the component
+
+**Implementation**:
+- `WorkflowStatsStore` tracks statistics per workflow including node counts by type and category, connection counts, and complexity score
+- `WorkflowStatsPanel` displays a compact indicator showing node count, with a popover menu showing detailed statistics
+- `useWorkflowStats` hook automatically updates stats when nodes or edges change
+- Complexity score is calculated based on node count, edge count, and group nodes
+- Panel shows selection statistics when nodes are selected
+
 ### Lint Warning Fixes (2026-01-15)
 
 **What**: Fixed lint warnings in test files by removing unused variables and code.
