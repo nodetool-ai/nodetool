@@ -160,6 +160,20 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Virtualized Namespace Node List (2026-01-15)
+
+**What**: Added virtualization to the namespace-based node list in the node menu, improving performance when browsing large node collections (100+ nodes) using react-window VariableSizeList.
+
+**Files**:
+- `web/src/components/node_menu/VirtualizedNamespaceNodeList.tsx` - New virtualized component for namespace-grouped nodes
+- `web/src/components/node_menu/RenderNodes.tsx` - Updated to use virtualization for non-search views
+
+**Implementation**:
+- Created VirtualizedNamespaceNodeList using react-window's VariableSizeList with AutoSizer
+- Handles variable-height items: namespace headers (~52px), API key validation (~60px), node items (~44px)
+- Maintains the same visual structure as the original RenderNodes component
+- Uses existing react-window and react-virtualized-auto-sizer dependencies
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

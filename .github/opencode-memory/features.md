@@ -27,6 +27,7 @@ Last updated: 2026-01-12
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
 
 ### Node Management
+- **Virtualized Node List**: Efficient rendering of large node lists (100+ nodes) using react-window with variable-height items for namespace headers and nodes
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
