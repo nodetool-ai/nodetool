@@ -160,6 +160,27 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Color Labels Feature (2026-01-15)
+
+**What**: Added node color labels feature allowing users to assign custom colors to nodes for visual organization in large workflows. Includes color picker in node header and batch color assignment via selection toolbar.
+
+**Files**:
+- `web/src/config/nodeColors.ts` - Color palette constant with 20 colors
+- `web/src/components/node/NodeColorPicker.tsx` - Color picker component for individual nodes
+- `web/src/components/node_editor/NodeColorToolbar.tsx` - Color toolbar for batch selection
+- `web/src/components/node/NodeHeader.tsx` - Updated to show color indicator and picker
+- `web/src/components/node_editor/SelectionActionToolbar.tsx` - Added color toolbar
+- `web/src/hooks/useNodeColorActions.ts` - Hook for node color operations
+- `web/src/stores/NodeStore.ts` - Added `setNodeColor` and `setSelectedNodesColor` actions
+- `web/src/components/node/__tests__/NodeColorPicker.test.tsx` - Tests for color picker
+
+**Implementation**:
+- 20-color palette covering full spectrum (Red through Slate) plus Default option
+- Color shown as accent border in node header when set
+- Color picker in node header (visible when node is selected)
+- Color toolbar in selection action toolbar for batch operations
+- Color stored in node data's `color` property (already existed in NodeData)
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

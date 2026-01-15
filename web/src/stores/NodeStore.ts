@@ -208,6 +208,8 @@ export interface NodeStoreState {
   toggleBypass: (nodeId: string) => void;
   setBypass: (nodeId: string, bypassed: boolean) => void;
   toggleBypassSelected: () => void;
+  setNodeColor: (nodeId: string, color: string) => void;
+  setSelectedNodesColor: (color: string) => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -1117,6 +1119,30 @@ export const createNodeStore = (
                       className: shouldBypass ? "bypassed" : undefined,
                       data: { ...n.data, bypassed: shouldBypass } 
                     }
+                  : n
+              )
+            }));
+            get().setWorkflowDirty(true);
+          },
+          setNodeColor: (nodeId: string, color: string): void => {
+            set((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.id === nodeId
+                  ? { ...n, data: { ...n.data, color } }
+                  : n
+              )
+            }));
+            get().setWorkflowDirty(true);
+          },
+          setSelectedNodesColor: (color: string): void => {
+            const selectedNodes = get().getSelectedNodes();
+            if (selectedNodes.length === 0) {
+              return;
+            }
+            set((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.selected
+                  ? { ...n, data: { ...n.data, color } }
                   : n
               )
             }));

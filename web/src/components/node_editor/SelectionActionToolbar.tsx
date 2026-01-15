@@ -17,6 +17,7 @@ import {
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { NodeColorToolbar } from "./NodeColorToolbar";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -239,6 +240,8 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         borderColor: "divider"
       }}
     >
+      <NodeColorToolbar />
+      <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
       {allButtons.map((button, index) => {
         if (isDividerButton(button)) {
           return renderDivider(index);

@@ -11,6 +11,9 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { NodeLogsDialog } from "./NodeLogs";
+import { NodeColorPicker } from "./NodeColorPicker";
+import { useNodeColorActions } from "../../hooks/useNodeColorActions";
+import { NodeColorValue } from "../../config/nodeColors";
 
 export interface NodeHeaderProps {
   id: string;
@@ -141,6 +144,17 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       return { background: "transparent" } as React.CSSProperties;
     }
     const tint = backgroundColor || "var(--c_node_header_bg)";
+    const customColor = data.color;
+
+    if (customColor) {
+      return {
+        background: selected
+          ? hexToRgba(customColor, 0.3)
+          : `linear-gradient(90deg, ${hexToRgba(customColor, 0.15)}, ${hexToRgba(customColor, 0.1)})`,
+        borderLeft: `3px solid ${customColor}`
+      } as React.CSSProperties;
+    }
+
     return {
       background: selected
         ? backgroundColor
@@ -151,7 +165,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             0.15
           )})`
     } as React.CSSProperties;
-  }, [backgroundColor, selected]);
+  }, [backgroundColor, selected, data.color]);
+
+  const { setNodeColor } = useNodeColorActions();
+
+  const handleColorChange = useCallback(
+    (color: NodeColorValue) => {
+      setNodeColor(id, color);
+    },
+    [id, setNodeColor]
+  );
 
   return (
     <div
@@ -207,6 +230,14 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             </IconButton>
           </Tooltip>
         )}
+      </div>
+
+      <div className="header-right" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <NodeColorPicker
+          currentColor={data.color}
+          onColorChange={handleColorChange}
+          disabled={!selected}
+        />
       </div>
 
       <NodeLogsDialog
