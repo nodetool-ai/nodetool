@@ -10,6 +10,7 @@ import { Box } from "@mui/material";
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import NodeDocumentationTooltip from "./NodeDocumentationTooltip";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -22,6 +23,7 @@ import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useCreateNode } from "../../hooks/useCreateNode";
+import { NodeMetadata } from "../../stores/ApiTypes";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -134,6 +136,10 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     top: 0,
     bottom: 0
   });
+  const [hoveredNode, setHoveredNode] = useState<{
+    node: NodeMetadata;
+    element: HTMLElement;
+  } | null>(null);
   const BOTTOM_SAFE_MARGIN = 50;
 
   // Only subscribe to minimal state when closed
@@ -202,6 +208,14 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       handleCreateNode(selectedNode);
     }
   }, [getSelectedNode, handleCreateNode]);
+
+  const handleHoverNode = useCallback((node: NodeMetadata | null, element: HTMLElement | null) => {
+    if (node && element) {
+      setHoveredNode({ node, element });
+    } else {
+      setHoveredNode(null);
+    }
+  }, []);
 
   useCombo(["Escape"], closeNodeMenu);
 
@@ -311,10 +325,16 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}
+              onHoverNode={handleHoverNode}
             />
           </div>
         </Box>
       </Box>
+      <NodeDocumentationTooltip
+        node={hoveredNode?.node ?? null}
+        anchorElement={hoveredNode?.element ?? null}
+        onClose={() => setHoveredNode(null)}
+      />
     </Draggable>
   );
 };

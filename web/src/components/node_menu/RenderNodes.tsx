@@ -21,6 +21,7 @@ interface RenderNodesProps {
   selectedNodeTypes?: string[];
   onToggleSelection?: (nodeType: string) => void;
   showFavoriteButton?: boolean;
+  onHoverNode?: (node: NodeMetadata | null, element: HTMLElement | null) => void;
 }
 
 const groupNodes = (nodes: NodeMetadata[]) => {
@@ -44,7 +45,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   showCheckboxes = false,
   selectedNodeTypes = [],
   onToggleSelection,
-  showFavoriteButton = true
+  showFavoriteButton = true,
+  onHoverNode
 }) => {
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
@@ -161,6 +163,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
                 isSelected={selectedNodeTypes.includes(node.node_type)}
                 onToggleSelection={onToggleSelection}
                 showFavoriteButton={showFavoriteButton}
+                onHover={onHoverNode}
               />
             </div>
           ))
@@ -179,7 +182,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     showCheckboxes,
     onToggleSelection,
     selectedNodeTypes,
-    showFavoriteButton
+    showFavoriteButton,
+    onHoverNode
   ]);
 
   const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};

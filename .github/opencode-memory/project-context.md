@@ -160,7 +160,27 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Zoom Presets Feature (2026-01-14)
+### Node Documentation Tooltip (2026-01-15)
+
+**What**: Added hover documentation tooltip to the node menu that displays node description, inputs/outputs, and keyboard shortcut hints when hovering over nodes.
+
+**Files**:
+- `web/src/components/node_menu/NodeDocumentationTooltip.tsx` - New component for displaying node documentation in a tooltip
+- `web/src/components/node_menu/NodeItem.tsx` - Updated to track hover state and pass element reference
+- `web/src/components/node_menu/NodeMenu.tsx` - Integrated tooltip into the node menu
+- `web/src/components/node_menu/NamespaceList.tsx` - Passed hover callback to RenderNodes
+- `web/src/components/node_menu/RenderNodes.tsx` - Passed hover callback to NodeItem
+
+**Implementation**:
+- Created `NodeDocumentationTooltip` component using floating-ui for positioning
+- Updated `NodeItem` to track hover state and provide DOM element reference
+- Added tooltip that displays node title, description, namespace, inputs (from properties), outputs, and keyboard navigation hints
+- Tooltip appears after 300ms hover delay for better UX
+- Uses theme-aware styling with MUI theming system
+
+---
+
+
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
 

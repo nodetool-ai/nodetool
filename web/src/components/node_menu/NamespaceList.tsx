@@ -27,6 +27,7 @@ type NamespaceTree = {
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
   metadata: NodeMetadata[];
+  onHoverNode?: (node: NodeMetadata | null, element: HTMLElement | null) => void;
 }
 
 const namespaceStyles = (theme: Theme) =>
@@ -414,7 +415,8 @@ const InfoBox = memo(function InfoBox({
 
 const NamespaceList: React.FC<NamespaceListProps> = ({
   namespaceTree,
-  metadata
+  metadata,
+  onHoverNode
 }) => {
   const theme = useTheme();
   const {
@@ -474,7 +476,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           selectedOutputType ? (
           <>
             <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
-              <RenderNodes nodes={searchResults} />
+              <RenderNodes nodes={searchResults} onHoverNode={onHoverNode} />
             </List>
             {/* Only show NodeInfo when not searching */}
             {!searchTerm && (
