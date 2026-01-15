@@ -8,6 +8,7 @@ import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
+import { getTorchIndexUrl } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
@@ -157,18 +158,26 @@ async function updateCondaEnvironment(
 
     const allPackages = [...corePackages, ...additionalPackages];
 
+    // Get the torch platform index URL (e.g., cu128 for CUDA 12.8)
+    const torchIndexUrl = getTorchIndexUrl();
+
     const installCommand: string[] = [
       uvExecutable,
       "pip",
       "install",
       "--extra-index-url",
       PACKAGE_INDEX_URL,
+      // Add PyTorch index URL for the detected GPU platform
+      ...(torchIndexUrl ? ["--extra-index-url", torchIndexUrl] : []),
       "--index-strategy",
       "unsafe-best-match",
       "--system",
       ...allPackages,
     ];
 
+    if (torchIndexUrl) {
+      logMessage(`Using torch index URL: ${torchIndexUrl}`);
+    }
     logMessage(`Running command: ${installCommand.join(" ")}`);
     await runCommand(installCommand);
 
