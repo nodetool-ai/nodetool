@@ -408,3 +408,22 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Files Changed**:
 - `web/src/utils/TypeHandler.ts`
 - `web/src/stores/NodeStore.ts`
+
+---
+
+### Quality Checks Fixes (2026-01-15)
+
+**What**: Fixed all quality check issues - TypeScript type errors in mobile package and lint warnings in web package.
+
+**Implementation**:
+- Added `@types/react-native` dependency to mobile/package.json
+- Installed missing type definitions (@types/jest, @types/react-native) in mobile directory
+- Ran full npm install to install all mobile dependencies
+- Removed unused `formatDuration` variable and `container` destructuring in NodeExecutionTime.test.tsx
+
+**Impact**: All quality checks now pass (typecheck, lint, test) for all packages.
+
+**Files**:
+- `mobile/package.json`
+- `mobile/package-lock.json`
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx`
