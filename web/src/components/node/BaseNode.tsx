@@ -41,6 +41,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
+import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
 
 // Node sizing constants
@@ -241,6 +242,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { workflow_id, title } = data;
   const { focusedNodeId } = useNodeFocus();
   const isFocused = focusedNodeId === id;
+  const { highlightedNodeIds } = useFindInWorkflow();
+  const isHighlighted = useMemo(
+    () => highlightedNodeIds.has(id),
+    [highlightedNodeIds, id]
+  );
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -391,18 +397,28 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         minHeight: styleProps.minHeight,
         border: isLoading
           ? "none"
-          : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
+          : isHighlighted && !selected
+            ? `2px solid ${theme.vars.palette.warning.main}`
+            : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
         ...theme.applyStyles("dark", {
-          border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
+          border: isLoading
+            ? "none"
+            : isHighlighted && !selected
+              ? `2px solid ${theme.vars.palette.warning.main}`
+              : `1px solid ${baseColor || "#666"}`
         }),
         boxShadow: selected
           ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
           : isFocused
             ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-            : "none",
+            : isHighlighted && !selected
+              ? `0 0 8px ${hexToRgba(theme.vars.palette.warning.main, 0.4)}`
+              : "none",
         outline: isFocused
           ? `2px dashed ${theme.vars.palette.warning.main}`
-          : "none",
+          : isHighlighted && !selected
+            ? `1px dashed ${theme.vars.palette.warning.main}`
+            : "none",
         outlineOffset: "-2px",
         backgroundColor:
           hasParent && !isLoading
