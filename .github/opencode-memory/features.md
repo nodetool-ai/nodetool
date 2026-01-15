@@ -35,7 +35,7 @@ Last updated: 2026-01-12
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)
 - **Node Tooltips**: Hover tooltips showing node handle information
 - **Node Documentation**: Inline documentation for each node type
-- **Favorite Nodes**: Mark frequently used nodes as favorites
+- **Favorite Nodes**: Mark frequently used nodes as favorites with quick access via Alt+1-9 shortcuts and Command Palette
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect

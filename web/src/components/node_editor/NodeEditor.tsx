@@ -46,6 +46,7 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useFavoriteNodesShortcuts } from "../../hooks/useFavoriteNodesShortcuts";
 
 declare global {
   interface Window {
@@ -103,6 +104,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     true,
     active
   );
+
+  // Keyboard shortcuts for favorite nodes (Alt+1 through Alt+9)
+  useFavoriteNodesShortcuts({ enabled: active });
 
   // OPEN NODE MENU
   const {

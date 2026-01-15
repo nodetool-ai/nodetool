@@ -21,6 +21,7 @@ import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
+import FavoriteNodesCommands from "./FavoriteNodesCommands";
 
 type CommandMenuProps = {
   open: boolean;
@@ -269,7 +270,7 @@ const ExampleCommands = memo(function ExampleCommands() {
 });
 
 // Create a context/store for command menu state
-const useCommandMenu = create<{
+export const useCommandMenu = create<{
   executeAndClose: (action: () => void) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
 }>((_set) => ({
@@ -328,15 +329,16 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     >
       <Command label="Command Menu" className="command-menu">
         <CommandInput ref={input} />
-        <Command.List>
-          <Command.Empty>No results found.</Command.Empty>
-          <WorkflowCommands />
-          <UndoCommands undo={undo} redo={redo} />
-          <LayoutCommands />
-          <ViewCommands />
-          <NodeCommands />
-          <ExampleCommands />
-        </Command.List>
+          <Command.List>
+            <Command.Empty>No results found.</Command.Empty>
+            <WorkflowCommands />
+            <UndoCommands undo={undo} redo={redo} />
+            <LayoutCommands />
+            <ViewCommands />
+            <FavoriteNodesCommands />
+            <NodeCommands />
+            <ExampleCommands />
+          </Command.List>
       </Command>
     </Dialog>
   );
