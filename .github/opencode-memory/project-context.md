@@ -194,7 +194,17 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
-### Viewport Status Indicator (2026-01-13)
+### Workflow Comments Feature (2026-01-15)
+
+**What**: Added a Comments Panel to the right-side panel system for adding comments and notes to workflows. Includes a new CommentStore for persisting comments, a CommentsPanel component, integration into the right panel toolbar, and a keyboard shortcut (Ctrl+M) for quick access.
+
+**Files**:
+- `web/src/stores/CommentStore.ts` - New store for managing comments with persistence
+- `web/src/components/panels/CommentsPanel.tsx` - New panel component for viewing and managing comments
+- `web/src/stores/RightPanelStore.ts` - Added "comments" to RightPanelView type
+- `web/src/components/panels/PanelRight.tsx` - Integrated CommentsPanel and added toolbar button
+- `web/src/config/shortcuts.ts` - Added Ctrl+M keyboard shortcut for Comments Panel
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Registered the toggleComments shortcut handler
 
 **What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
 

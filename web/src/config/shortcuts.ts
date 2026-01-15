@@ -466,6 +466,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show/hide node information panel",
     registerCombo: true
   },
+  {
+    title: "Comments",
+    slug: "toggleComments",
+    keyCombo: ["Control", "M"],
+    category: "panel",
+    description: "Show/hide Comments panel",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {
