@@ -36,6 +36,7 @@ import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import { NodeUIProperties } from "../../stores/NodeStore";
+import log from "loglevel";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -173,7 +174,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
-      console.log("[handleRestore] Version to restore:", {
+      log.debug("[handleRestore] Version to restore:", {
         id: version.id,
         version: version.version,
         name: version.name,

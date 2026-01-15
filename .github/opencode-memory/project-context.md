@@ -440,3 +440,42 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Files Changed**:
 - `web/src/utils/TypeHandler.ts`
 - `web/src/stores/NodeStore.ts`
+
+---
+
+### Console.log to Loglevel Migration (2026-01-15)
+
+**What**: Replaced `console.log` statements with proper `loglevel` logging across multiple files to follow project conventions.
+
+**Why**: The codebase uses `loglevel` for logging, but some files had `console.log` statements that bypass this pattern.
+
+**Implementation**:
+- GlobalChatStore.ts:1104 - Changed thread fetch logging
+- EyedropperButton.tsx:80 - Changed eyedropper error logging
+- Terminal.tsx:91 - Changed terminal resize logging
+- VersionHistoryPanel.tsx:176 - Changed version restore logging
+- OutputRenderer.tsx:349,365 - Changed image edited logging
+
+**Files Changed**:
+- `web/src/stores/GlobalChatStore.ts`
+- `web/src/components/color_picker/EyedropperButton.tsx`
+- `web/src/components/terminal/Terminal.tsx`
+- `web/src/components/version/VersionHistoryPanel.tsx`
+- `web/src/components/node/OutputRenderer.tsx`
+
+---
+
+### Mobile Package TypeScript Type Definitions (2026-01-15)
+
+**What**: Fixed mobile package TypeScript type checking by installing missing @types packages.
+
+**Why**: The mobile package was failing typecheck with errors about missing type definitions for 'jest', 'node', and 'react-native'.
+
+**Implementation**:
+- Installed `@types/node`, `@types/jest`, and `@types/react-native` in mobile/package.json
+
+**Files Changed**:
+- `mobile/package.json`
+- `mobile/tsconfig.json`
+
+**Impact**: All three packages (web, electron, mobile) now pass typecheck successfully.

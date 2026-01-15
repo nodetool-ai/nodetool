@@ -24,6 +24,7 @@ import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
+import log from "loglevel";
 import { Container, List, ListItem, ListItemText } from "@mui/material";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
@@ -346,7 +347,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
-              onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)}
+              onImageEdited={(dataUrl, blob) => log.debug(dataUrl, blob)}
             />
           ));
         } else {
@@ -362,7 +363,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else {
             imageSource = "";
           }
-          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)} />;
+          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => log.debug(dataUrl, blob)} />;
         }
       case "audio": {
         // Handle different audio data formats

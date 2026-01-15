@@ -1101,7 +1101,7 @@ export const useThreadsQuery = () => {
           }
         }
       });
-      console.log("Threads fetched:", data);
+      log.debug("Threads fetched:", data);
       if (error) {
         throw new Error(error.detail?.[0]?.msg || "Failed to fetch threads");
       }
