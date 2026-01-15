@@ -160,7 +160,24 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Zoom Presets Feature (2026-01-14)
+### Node Bookmarks Feature (2026-01-15)
+
+**What**: Added ability to bookmark individual nodes within workflows for quick identification. Bookmarked nodes show a pin icon in the header and can be toggled via context menu or header button.
+
+**Files**:
+- `web/src/stores/NodeBookmarkStore.ts` - New store for tracking bookmarked nodes per workflow with localStorage persistence
+- `web/src/components/node/NodeHeader.tsx` - Added bookmark button with pin icon that toggles bookmark state
+- `web/src/hooks/nodes/useNodeContextMenu.ts` - Added bookmark toggle handler and isBookmarked condition
+- `web/src/components/context_menus/NodeContextMenu.tsx` - Added "Add/Remove Bookmark" menu item
+- `web/src/stores/__tests__/NodeBookmarkStore.test.ts` - Comprehensive tests for the bookmark store
+
+**Implementation**:
+- `NodeBookmarkStore` tracks bookmarks as `{nodeId, workflowId, timestamp}` objects with persistence
+- Bookmark button in NodeHeader shows filled pin for bookmarked nodes, outlined pin for unbookmarked
+- Context menu provides "Add Bookmark" / "Remove Bookmark" option
+- Bookmarks persist across sessions via localStorage
+
+---
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
 

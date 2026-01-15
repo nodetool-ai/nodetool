@@ -5,6 +5,7 @@ import { Node } from "@xyflow/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useNodeBookmarkStore from "../../stores/NodeBookmarkStore";
 import useResultsStore from "../../stores/ResultsStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../browser/useClipboard";
@@ -27,6 +28,7 @@ interface UseNodeContextMenuReturn {
   nodeData: NodeData | undefined;
   handlers: {
     handleToggleComment: () => void;
+    handleToggleBookmark: () => void;
     handleRunFromHere: () => void;
     handleToggleBypass: () => void;
     handleCopyMetadataToClipboard: () => void;
@@ -38,6 +40,7 @@ interface UseNodeContextMenuReturn {
   };
   conditions: {
     hasCommentTitle: boolean;
+    isBookmarked: boolean;
     isBypassed: boolean;
     canConvertToInput: boolean;
     canConvertToConstant: boolean;
@@ -98,6 +101,12 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
 
+  const workflowId = workflow?.id || "";
+  const isBookmarked = useNodeBookmarkStore((state) =>
+    state.isBookmarked(nodeId || "", workflowId)
+  );
+  const toggleBookmark = useNodeBookmarkStore((state) => state.toggleBookmark);
+
   const handleToggleComment = useCallback(() => {
     if (!nodeId) {
       return;
@@ -105,6 +114,14 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
     closeContextMenu();
   }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
+
+  const handleToggleBookmark = useCallback(() => {
+    if (!nodeId || !workflowId) {
+      return;
+    }
+    toggleBookmark(nodeId, workflowId);
+    closeContextMenu();
+  }, [closeContextMenu, nodeId, workflowId, toggleBookmark]);
 
   const handleRunFromHere = useCallback(() => {
     if (!node || !nodeId || isWorkflowRunning) {
@@ -345,6 +362,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     nodeData,
     handlers: {
       handleToggleComment,
+      handleToggleBookmark,
       handleRunFromHere,
       handleToggleBypass,
       handleCopyMetadataToClipboard,
@@ -356,6 +374,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     },
     conditions: {
       hasCommentTitle,
+      isBookmarked,
       isBypassed,
       canConvertToInput,
       canConvertToConstant,

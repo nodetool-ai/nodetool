@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useLogsStore from "../../stores/LogStore";
+import useNodeBookmarkStore from "../../stores/NodeBookmarkStore";
 import { memo, useCallback, useMemo, useState } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeData } from "../../stores/NodeData";
@@ -10,6 +11,8 @@ import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import { NodeLogsDialog } from "./NodeLogs";
 
 export interface NodeHeaderProps {
@@ -43,6 +46,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const nodeWorkflowId = useNodes((state) => state.workflow?.id);
   const logs = useLogsStore((state) => state.getLogs(workflowId || nodeWorkflowId || "", id));
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
+
+  const effectiveWorkflowId = workflowId || nodeWorkflowId || "";
+  const isBookmarked = useNodeBookmarkStore(
+    (state) => state.isBookmarked(id, effectiveWorkflowId)
+  );
+  const toggleBookmark = useNodeBookmarkStore((state) => state.toggleBookmark);
 
   const logCount = logs?.length || 0;
 
@@ -207,6 +216,33 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             </IconButton>
           </Tooltip>
         )}
+        <Tooltip title={isBookmarked ? "Remove bookmark" : "Add bookmark"} arrow>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleBookmark(id, effectiveWorkflowId);
+            }}
+            sx={{ padding: "4px" }}
+          >
+            {isBookmarked ? (
+              <PushPinIcon
+                sx={{
+                  fontSize: "1rem",
+                  color: "warning.main",
+                  transform: "rotate(-45deg)"
+                }}
+              />
+            ) : (
+              <PushPinOutlinedIcon
+                sx={{
+                  fontSize: "1rem",
+                  color: "action.active"
+                }}
+              />
+            )}
+          </IconButton>
+        </Tooltip>
       </div>
 
       <NodeLogsDialog

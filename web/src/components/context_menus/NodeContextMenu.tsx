@@ -12,6 +12,8 @@ import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
@@ -81,6 +83,17 @@ const NodeContextMenu: React.FC = () => {
         conditions.hasCommentTitle
           ? "Remove the comment from this node"
           : "Add a comment to this node"
+      }
+    />,
+    <ContextMenuItem
+      key="toggle-bookmark"
+      onClick={handlers.handleToggleBookmark}
+      label={conditions.isBookmarked ? "Remove Bookmark" : "Add Bookmark"}
+      IconComponent={conditions.isBookmarked ? <PushPinIcon /> : <PushPinOutlinedIcon />}
+      tooltip={
+        conditions.isBookmarked
+          ? "Remove bookmark from this node"
+          : "Add a bookmark to this node for quick access"
       }
     />,
     conditions.canConvertToInput && (
