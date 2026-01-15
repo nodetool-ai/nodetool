@@ -10,6 +10,7 @@ import { Box } from "@mui/material";
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import QuickFavoritesBar from "./QuickFavoritesBar";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -308,6 +309,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 setSelectedOutputType={setSelectedOutputType}
               />
             </Box>
+            <QuickFavoritesBar />
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}

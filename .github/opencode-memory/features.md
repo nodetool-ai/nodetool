@@ -36,6 +36,7 @@ Last updated: 2026-01-12
 - **Node Tooltips**: Hover tooltips showing node handle information
 - **Node Documentation**: Inline documentation for each node type
 - **Favorite Nodes**: Mark frequently used nodes as favorites
+- **Quick Favorites Bar**: Compact horizontal bar at top of node menu for instant drag-and-drop access to favorite nodes
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
