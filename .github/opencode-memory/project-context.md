@@ -194,13 +194,26 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
-### Viewport Status Indicator (2026-01-13)
+### Node Snippets Feature (2026-01-15)
 
-**What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
+**What**: Added Node Snippets feature that allows users to save groups of connected nodes as reusable snippets and quickly add them to any workflow.
 
-**Files**: `web/src/components/node_editor/ViewportStatusIndicator.tsx`, `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx`, `web/src/components/node/ReactFlowWrapper.tsx`
+**Files**:
+- `web/src/stores/SnippetStore.ts` - New store for managing node snippets with localStorage persistence
+- `web/src/components/node_editor/SnippetSaveDialog.tsx` - Dialog for saving snippets with name and description
+- `web/src/components/node_editor/SelectionActionToolbar.tsx` - Added "Save as Snippet" button to toolbar
+- `web/src/components/node_menu/SnippetsList.tsx` - Component for browsing and selecting saved snippets
+- `web/src/components/node_menu/NodeMenu.tsx` - Added "Snippets" tab to node menu
+- `web/src/hooks/useSnippetImport.ts` - Hook for importing snippets back to canvas with new node IDs
+- `web/src/stores/__tests__/SnippetStore.test.ts` - Tests for snippet utilities
 
-**Implementation**: Component positioned above minimap, displays zoom percentage (clickable to reset), node count with selection info, and fit view button. Uses ReactFlow's useViewport and useReactFlow hooks.
+**Implementation**:
+- Created `SnippetStore` with persistent storage for saving/loading snippets
+- Users can select 2+ connected nodes and click "Save as Snippet" to create a reusable snippet
+- Snippets are displayed in the "Snippets" tab of the NodeMenu
+- Clicking a snippet adds it to the canvas with new unique IDs
+- Tracks usage count to sort snippets by popularity
+- Supports deletion of snippets
 
 ---
 

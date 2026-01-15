@@ -12,7 +12,8 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit
+  CallSplit,
+  BookmarkAdd
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
@@ -21,6 +22,7 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 interface SelectionActionToolbarProps {
   visible: boolean;
   onClose?: () => void;
+  onSaveSnippet?: () => void;
 }
 
 interface ActionButton {
@@ -85,6 +87,7 @@ const renderDivider = (index: number): React.ReactNode => (
 const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   visible,
   onClose,
+  onSaveSnippet,
 }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const selectionActions = useSelectionActions();
@@ -92,6 +95,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   const canAlign = selectedNodes.length >= 2;
   const canDistribute = selectedNodes.length >= 2;
   const canGroup = selectedNodes.length >= 2;
+  const canSaveSnippet = selectedNodes.length >= 2 && onSaveSnippet;
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -174,6 +178,14 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   const actionButtons: ButtonItem[] = useMemo(
     () => [
       {
+        icon: <BookmarkAdd fontSize="small" />,
+        label: "Save as Snippet",
+        slug: "saveSnippet",
+        action: () => onSaveSnippet?.(),
+        disabled: !canSaveSnippet
+      },
+      { divider: true },
+      {
         icon: <ContentCopy fontSize="small" />,
         label: "Duplicate",
         slug: "duplicate",
@@ -200,7 +212,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions]
+    [canGroup, canSaveSnippet, onSaveSnippet, selectionActions]
   );
 
   if (!visible) {

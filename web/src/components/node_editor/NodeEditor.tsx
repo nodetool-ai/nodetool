@@ -46,6 +46,8 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useEdges } from "@xyflow/react";
+import SnippetSaveDialog from "./SnippetSaveDialog";
 
 declare global {
   interface Window {
@@ -65,7 +67,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [snippetDialogOpen, setSnippetDialogOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
+  const edges = useEdges();
   const {
     packageNameDialogOpen,
     packageNameInput,
@@ -161,6 +165,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <RunAsAppFab workflowId={workflowId} />
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 2}
+                onSaveSnippet={() => setSnippetDialogOpen(true)}
               />
               <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
@@ -172,6 +177,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <SnippetSaveDialog
+                open={snippetDialogOpen}
+                onClose={() => setSnippetDialogOpen(false)}
+                nodes={selectedNodes}
+                edges={edges}
+              />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

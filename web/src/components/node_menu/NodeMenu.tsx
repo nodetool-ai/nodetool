@@ -5,11 +5,12 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { Box } from "@mui/material";
+import { Box, Tabs, Tab } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import SnippetsList from "./SnippetsList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -22,6 +23,8 @@ import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useCreateNode } from "../../hooks/useCreateNode";
+import { useSnippetImport } from "../../hooks/useSnippetImport";
+import { Snippet } from "../../stores/SnippetStore";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -134,6 +137,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     top: 0,
     bottom: 0
   });
+  const [activeTab, setActiveTab] = useState(0);
   const BOTTOM_SAFE_MARGIN = 50;
 
   // Only subscribe to minimal state when closed
@@ -198,10 +202,21 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   const handleEnter = useCallback(() => {
     const selectedNode = getSelectedNode();
-    if (selectedNode) {
+    if (selectedNode && activeTab === 0) {
       handleCreateNode(selectedNode);
     }
-  }, [getSelectedNode, handleCreateNode]);
+  }, [getSelectedNode, handleCreateNode, activeTab]);
+
+  const handleTabChange = useCallback((_event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  }, []);
+
+  const { addSnippetToCanvas } = useSnippetImport();
+
+  const handleSelectSnippet = useCallback((snippet: Snippet) => {
+    addSnippetToCanvas(snippet);
+    closeNodeMenu();
+  }, [addSnippetToCanvas, closeNodeMenu]);
 
   useCombo(["Escape"], closeNodeMenu);
 
@@ -282,36 +297,50 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         <div className="draggable-header">
         </div>
         <Box className="node-menu-container">
+          <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+            <Tabs value={activeTab} onChange={handleTabChange} sx={{ minHeight: 40 }}>
+              <Tab label="Nodes" sx={{ minHeight: 40, minWidth: 120 }} />
+              <Tab label="Snippets" sx={{ minHeight: 40, minWidth: 120 }} />
+            </Tabs>
+          </Box>
           <div className="main-content">
-            <Box className="search-toolbar">
-              <Box className="search-row">
-                <SearchInput
-                  focusSearchInput={focusSearchInput}
-                  focusOnTyping={true}
-                  placeholder="Search for nodes..."
-                  debounceTime={80}
-                  width={500}
-                  maxWidth={"600px"}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  onPressEscape={closeNodeMenu}
-                  onPressArrowDown={handleArrowDown}
-                  onPressArrowUp={handleArrowUp}
-                  onPressEnter={handleEnter}
-                  searchResults={searchResults}
+            {activeTab === 0 ? (
+              <>
+                <Box className="search-toolbar">
+                  <Box className="search-row">
+                    <SearchInput
+                      focusSearchInput={focusSearchInput}
+                      focusOnTyping={true}
+                      placeholder="Search for nodes..."
+                      debounceTime={80}
+                      width={500}
+                      maxWidth={"600px"}
+                      searchTerm={searchTerm}
+                      onSearchChange={setSearchTerm}
+                      onPressEscape={closeNodeMenu}
+                      onPressArrowDown={handleArrowDown}
+                      onPressArrowUp={handleArrowUp}
+                      onPressEnter={handleEnter}
+                      searchResults={searchResults}
+                    />
+                  </Box>
+                  <TypeFilterChips
+                    selectedInputType={selectedInputType}
+                    selectedOutputType={selectedOutputType}
+                    setSelectedInputType={setSelectedInputType}
+                    setSelectedOutputType={setSelectedOutputType}
+                  />
+                </Box>
+                <NamespaceList
+                  namespaceTree={namespaceTree}
+                  metadata={searchResults}
                 />
+              </>
+            ) : (
+              <Box sx={{ maxHeight: "60vh", overflow: "auto" }}>
+                <SnippetsList onSelectSnippet={handleSelectSnippet} />
               </Box>
-              <TypeFilterChips
-                selectedInputType={selectedInputType}
-                selectedOutputType={selectedOutputType}
-                setSelectedInputType={setSelectedInputType}
-                setSelectedOutputType={setSelectedOutputType}
-              />
-            </Box>
-            <NamespaceList
-              namespaceTree={namespaceTree}
-              metadata={searchResults}
-            />
+            )}
           </div>
         </Box>
       </Box>
