@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import useAnnotationDialogStore from "../stores/AnnotationDialogStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -78,6 +79,9 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const openAnnotationDialog = useAnnotationDialogStore(
+    (state) => state.openAnnotationDialog
+  );
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -391,6 +395,12 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleAddAnnotation = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      openAnnotationDialog(selectedNodes[0].id);
+    }
+  }, [selectedNodes, openAnnotationDialog]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -522,6 +532,10 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      addAnnotation: {
+        callback: handleAddAnnotation,
+        active: selectedNodes.length > 0
       }
     };
 
@@ -586,7 +600,8 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    handleAddAnnotation
   ]);
 
   // useEffect for shortcut registration

@@ -179,6 +179,30 @@ test('handles user interaction', async () => {
 - Added keyboard shortcuts for zoom control
 - Removed node count display as it was redundant with existing UI elements
 
+### Node Annotations Feature (2026-01-15)
+
+**What**: Added ability to add inline annotations/notes to any node in the workflow editor. Annotations appear as a styled box below the node content and can be edited via a dialog.
+
+**Files**:
+- `web/src/components/node/NodeAnnotation.tsx` - New component for annotation editor and display
+- `web/src/components/node/NodeToolButtons.tsx` - Added annotation button to toolbar and context menu
+- `web/src/components/node/BaseNode.tsx` - Added annotation display below node content
+- `web/src/components/node_editor/NodeEditor.tsx` - Added AnnotationDialogContainer
+- `web/src/stores/NodeData.ts` - Added annotation field to NodeData type
+- `web/src/stores/AnnotationDialogStore.ts` - New store for annotation dialog state
+- `web/src/config/shortcuts.ts` - Added Ctrl+N shortcut for annotations
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handler for annotation shortcut
+- `web/src/components/node/__tests__/NodeAnnotation.test.tsx` - Tests for the store
+
+**Implementation**:
+- Added `annotation?: string` field to NodeData type
+- Created AnnotationDialogStore to manage dialog state globally
+- NodeAnnotationEditor component with dialog, text field, and quick action buttons
+- Annotation display in BaseNode with Note icon and styled box
+- Toolbar button with Note icon (primary color when annotation exists)
+- Context menu option to add/edit annotations
+- Keyboard shortcut Ctrl+N to open annotation dialog for selected node
+
 **What**: Added execution time display for completed nodes in the workflow editor, showing how long each node took to execute in a human-readable format (e.g., "1s 500ms", "2m 5s").
 
 **Files**:

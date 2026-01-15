@@ -39,8 +39,9 @@ import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
 
 import { getIsElectronDetails } from "../../utils/browser";
-import { Box } from "@mui/material";
+import { Box, Typography, Tooltip } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
+import NoteIcon from "@mui/icons-material/Note";
 
 
 // Node sizing constants
@@ -511,6 +512,39 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
+      {data.annotation && (
+        <Tooltip title={data.annotation} arrow placement="bottom">
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              px: 1,
+              py: 0.5,
+              mx: 1,
+              mb: 1,
+              bgcolor: theme.vars.palette.action.hover,
+              borderRadius: 1,
+              border: `1px solid ${theme.vars.palette.divider}`,
+              maxWidth: "calc(100% - 16px)"
+            }}
+          >
+            <NoteIcon sx={{ fontSize: 14, color: theme.vars.palette.text.secondary }} />
+            <Typography
+              variant="caption"
+              sx={{
+                color: theme.vars.palette.text.secondary,
+                fontStyle: "italic",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {data.annotation}
+            </Typography>
+          </Box>
+        </Tooltip>
+      )}
     </Container>
   );
 };

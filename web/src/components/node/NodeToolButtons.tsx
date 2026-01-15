@@ -23,6 +23,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SyncIcon from "@mui/icons-material/Sync";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import NoteIcon from "@mui/icons-material/Note";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -35,6 +36,7 @@ import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
+import useAnnotationDialogStore from "../../stores/AnnotationDialogStore";
 
 interface NodeToolbarProps {
   nodeId: string | null;
@@ -61,11 +63,15 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const dropdownOpen = Boolean(anchorEl);
+  const openAnnotationDialog = useAnnotationDialogStore(
+    (state) => state.openAnnotationDialog
+  );
 
   const syncMode = nodeData?.sync_mode || "on_any";
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const isInGroup = Boolean(node?.parentId);
+  const hasAnnotation = Boolean(nodeData?.annotation?.trim());
 
   const handleDelete = useCallback(() => {
     if (nodeId !== null) {
@@ -104,6 +110,12 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
     }
   }, [nodeId, hasCommentTitle, updateNodeData]);
+
+  const handleOpenAnnotation = useCallback(() => {
+    if (nodeId !== null) {
+      openAnnotationDialog(nodeId);
+    }
+  }, [nodeId, openAnnotationDialog]);
 
   const handleRemoveFromGroup = useCallback(() => {
     if (node) {
@@ -199,6 +211,26 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             size="small"
           >
             <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip
+          title={
+            <span>
+              {hasAnnotation ? "Edit Annotation" : "Add Annotation"}
+            </span>
+          }
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <IconButton
+            className="nodrag"
+            onClick={handleOpenAnnotation}
+            tabIndex={-1}
+            color={hasAnnotation ? "primary" : "default"}
+            size="small"
+            sx={{ opacity: hasAnnotation ? 1 : 0.5 }}
+          >
+            <NoteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
 
@@ -302,6 +334,15 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             <ListItemText>Remove from Group</ListItemText>
           </MenuItem>
         )}
+
+        <MenuItem onClick={handleOpenAnnotation}>
+          <ListItemIcon>
+            <NoteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>
+            {hasAnnotation ? "Edit Annotation" : "Add Annotation"}
+          </ListItemText>
+        </MenuItem>
 
         {conditions.canConvertToInput && (
           <MenuItem onClick={handlers.handleConvertToInput}>
