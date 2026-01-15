@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Workflow Statistics Panel (2026-01-15)
+
+**What**: Added Workflow Statistics Panel - a floating panel showing real-time metrics about the current workflow including total nodes/edges, node type breakdown, connectivity analysis, and complexity score.
+
+**Files**:
+- `web/src/stores/WorkflowStatisticsStore.ts` - New store for tracking and calculating workflow statistics
+- `web/src/components/node_editor/WorkflowStatisticsPanel.tsx` - New component displaying workflow metrics
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated panel into the node editor
+- `web/src/stores/__tests__/WorkflowStatisticsStore.test.ts` - Unit tests for the statistics store
+
+**Implementation**:
+- `WorkflowStatisticsStore` calculates statistics from nodes and edges including node type counts, connectivity, and complexity score
+- `WorkflowStatisticsPanel` displays overview, node types breakdown, connectivity stats, and complexity score with visual indicators
+- Panel auto-updates when nodes or edges change, with manual refresh button
+- Complexity score based on node count, edge count, unique node types, and disconnected nodes (0-100 scale)
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).

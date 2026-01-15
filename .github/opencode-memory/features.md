@@ -51,6 +51,7 @@ Last updated: 2026-01-12
 - **Version History**: Track workflow changes over time
 - **Workflow Export/Import**: Export workflows as JSON files
 - **Workflow Actions**: Batch operations on workflows
+- **Workflow Statistics**: Real-time metrics panel showing node counts, types, connectivity, and complexity score
 
 ### Workflow Execution
 - **Run Workflows**: Execute workflows with real-time progress
