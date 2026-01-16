@@ -12,6 +12,10 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
+import PinIcon from "@mui/icons-material/Pin";
+import CalculateIcon from "@mui/icons-material/Calculate";
+import ToggleOnIcon from "@mui/icons-material/ToggleOn";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -133,6 +137,65 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
   }
 ];
 
+export const CONSTANT_NODES: QuickActionDefinition[] = [
+  {
+    key: "constant-string",
+    label: "String",
+    nodeType: "nodetool.input.StringInput",
+    icon: <TextFieldsIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(129, 140, 248, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(129, 140, 248, 0.6), rgba(165, 180, 252, 0.5))",
+    shadow: "0 4px 12px rgba(99, 102, 241, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(129, 140, 248, 0.35), 0 0 16px rgba(165, 180, 252, 0.25)",
+    iconColor: "#e0e7ff"
+  },
+  {
+    key: "constant-integer",
+    label: "Integer",
+    nodeType: "nodetool.input.IntegerInput",
+    icon: <PinIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(52, 211, 153, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(52, 211, 153, 0.6), rgba(94, 234, 212, 0.5))",
+    shadow: "0 4px 12px rgba(16, 185, 129, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(52, 211, 153, 0.35), 0 0 16px rgba(94, 234, 212, 0.25)",
+    iconColor: "#d1fae5"
+  },
+  {
+    key: "constant-float",
+    label: "Float",
+    nodeType: "nodetool.input.FloatInput",
+    icon: <CalculateIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(245, 158, 11, 0.4), rgba(251, 191, 36, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(251, 191, 36, 0.6), rgba(252, 211, 77, 0.5))",
+    shadow: "0 4px 12px rgba(245, 158, 11, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(251, 191, 36, 0.35), 0 0 16px rgba(252, 211, 77, 0.25)",
+    iconColor: "#fef3c7"
+  },
+  {
+    key: "constant-boolean",
+    label: "Boolean",
+    nodeType: "nodetool.input.BooleanInput",
+    icon: <ToggleOnIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(236, 72, 153, 0.4), rgba(244, 114, 182, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(244, 114, 182, 0.6), rgba(249, 113, 207, 0.5))",
+    shadow: "0 4px 12px rgba(236, 72, 153, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(244, 114, 182, 0.35), 0 0 16px rgba(249, 113, 207, 0.25)",
+    iconColor: "#fce7f3"
+  }
+];
+
 const tileStyles = (theme: Theme) =>
   css({
     "&": {
@@ -166,6 +229,28 @@ const tileStyles = (theme: Theme) =>
       gap: "8px",
       alignContent: "start",
       overflowY: "auto",
+      padding: "2px",
+      "&::-webkit-scrollbar": {
+        width: "6px"
+      },
+      "&::-webkit-scrollbar-track": {
+        background: "transparent"
+      },
+      "&::-webkit-scrollbar-thumb": {
+        backgroundColor: theme.vars.palette.action.disabledBackground,
+        borderRadius: "8px"
+      },
+      "&::-webkit-scrollbar-thumb:hover": {
+        backgroundColor: theme.vars.palette.action.disabled
+      }
+    },
+    ".constants-container": {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+      gridAutoRows: "1fr",
+      gap: "8px",
+      alignContent: "start",
+      marginTop: "12px",
       padding: "2px",
       "&::-webkit-scrollbar": {
         width: "6px"
@@ -229,6 +314,19 @@ const tileStyles = (theme: Theme) =>
       "&.active": {
         borderColor: theme.vars.palette.primary.main,
         boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}, 0 4px 12px rgba(0,0,0,0.5)`
+      }
+    },
+    ".constant-tile": {
+      minHeight: "70px",
+      padding: "10px 6px",
+      "& .tile-icon": {
+        marginBottom: "4px",
+        "& svg": {
+          fontSize: "1.5rem"
+        }
+      },
+      "& .tile-label": {
+        fontSize: "0.65rem"
       }
     },
     ".tile-icon": {
@@ -368,6 +466,69 @@ const QuickActionTiles = memo(function QuickActionTiles() {
             >
               <div
                 className="quick-tile"
+                draggable
+                onDragStart={handleDragStart(nodeType)}
+                onDragEnd={handleDragEnd}
+                onClick={() => onTileClick(definition)}
+                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                style={
+                  {
+                    "--quick-gradient": gradient,
+                    "--quick-hover-tile-bg": hoverGradient,
+                    "--quick-shadow": shadow,
+                    "--quick-shadow-hover": hoverShadow ?? shadow,
+                    "--quick-icon-color": iconColor,
+                    background: theme.vars.palette.action.hoverBackground 
+                  } as CSSProperties
+                }
+              >
+                <div className="tile-icon" style={{ color: iconColor }}>
+                  {icon}
+                </div>
+                <Typography className="tile-label">{label}</Typography>
+              </div>
+            </Tooltip>
+          );
+        })}
+      </div>
+      <div className="tiles-header" style={{ marginTop: "16px", marginBottom: "8px" }}>
+        <Typography variant="h5">Constants</Typography>
+      </div>
+      <div className="constants-container">
+        {CONSTANT_NODES.map((definition) => {
+          const {
+            key,
+            label,
+            nodeType,
+            icon,
+            gradient,
+            hoverGradient,
+            shadow,
+            hoverShadow = shadow,
+            iconColor
+          } = definition;
+          return (
+            <Tooltip
+              key={key}
+              title={
+                <div>
+                  <div>{label} Constant</div>
+                  <div
+                    style={{
+                      fontSize: "0.7rem",
+                      opacity: 0.75,
+                      marginTop: "4px"
+                    }}
+                  >
+                    Click to place
+                  </div>
+                </div>
+              }
+              placement="top"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+              <div
+                className="quick-tile constant-tile"
                 draggable
                 onDragStart={handleDragStart(nodeType)}
                 onDragEnd={handleDragEnd}
