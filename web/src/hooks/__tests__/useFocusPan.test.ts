@@ -1,28 +1,44 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFocusPan } from "../useFocusPan";
 
-jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({
-    getViewport: jest.fn(() => ({ zoom: 1 })),
-    setCenter: jest.fn()
-  }))
-}));
+const mockSetCenter = jest.fn();
+const mockGetViewport = jest.fn(() => ({ zoom: 1 }));
 
-jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) =>
-    selector({
-      findNode: jest.fn((id) => ({
-        id,
-        position: { x: 100, y: 200 },
-        data: {}
-      }))
-    })
-  )
-}));
+jest.mock("@xyflow/react", () => {
+  const mockUseReactFlow = jest.fn();
+  return {
+    useReactFlow: mockUseReactFlow
+  };
+});
+
+jest.mock("../../contexts/NodeContext", () => {
+  const mockUseNodes = jest.fn();
+  return {
+    useNodes: mockUseNodes
+  };
+});
+
+import { useNodes } from "../../contexts/NodeContext";
+import { useReactFlow } from "@xyflow/react";
 
 describe("useFocusPan", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSetCenter.mockReset();
+    mockGetViewport.mockReturnValue({ zoom: 1 });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        findNode: jest.fn((id) => ({
+          id,
+          position: { x: 100, y: 200 },
+          data: {}
+        }))
+      })
+    );
+    (useReactFlow as unknown as jest.Mock).mockReturnValue({
+      getViewport: mockGetViewport,
+      setCenter: mockSetCenter
+    });
   });
 
   it("returns a callback function", () => {
@@ -32,28 +48,16 @@ describe("useFocusPan", () => {
   });
 
   it("does not pan when Tab was not pressed", () => {
-    const setCenter = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 1 })),
-      setCenter
-    });
-
     const { result } = renderHook(() => useFocusPan("node-1"));
 
     act(() => {
       result.current({} as React.FocusEvent<HTMLElement>);
     });
 
-    expect(setCenter).not.toHaveBeenCalled();
+    expect(mockSetCenter).not.toHaveBeenCalled();
   });
 
   it("pans to node when Tab was pressed", () => {
-    const setCenter = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 1 })),
-      setCenter
-    });
-
     const { result } = renderHook(() => useFocusPan("node-1"));
 
     act(() => {
@@ -65,22 +69,18 @@ describe("useFocusPan", () => {
       result.current({} as React.FocusEvent<HTMLElement>);
     });
 
-    expect(setCenter).toHaveBeenCalledWith(100, 200, {
+    expect(mockSetCenter).toHaveBeenCalledWith(100, 200, {
       duration: 200,
       zoom: 1
     });
   });
 
   it("does not pan when node is not found", () => {
-    const setCenter = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 1 })),
-      setCenter
-    });
-
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      findNode: jest.fn(() => null)
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        findNode: jest.fn(() => null)
+      })
+    );
 
     const { result } = renderHook(() => useFocusPan("nonexistent-node"));
 
@@ -93,15 +93,11 @@ describe("useFocusPan", () => {
       result.current({} as React.FocusEvent<HTMLElement>);
     });
 
-    expect(setCenter).not.toHaveBeenCalled();
+    expect(mockSetCenter).not.toHaveBeenCalled();
   });
 
   it("uses current zoom level from viewport", () => {
-    const setCenter = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 0.5 })),
-      setCenter
-    });
+    mockGetViewport.mockReturnValue({ zoom: 0.5 });
 
     const { result } = renderHook(() => useFocusPan("node-1"));
 
@@ -114,7 +110,7 @@ describe("useFocusPan", () => {
       result.current({} as React.FocusEvent<HTMLElement>);
     });
 
-    expect(setCenter).toHaveBeenCalledWith(100, 200, {
+    expect(mockSetCenter).toHaveBeenCalledWith(100, 200, {
       duration: 200,
       zoom: 0.5
     });
@@ -146,15 +142,6 @@ describe("useFocusPan", () => {
       window.dispatchEvent(keydownEvent);
     });
 
-    let didNotPan = false;
-    const originalSetCenter = require("@xyflow/react").useReactFlow().setCenter;
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 1 })),
-      setCenter: () => {
-        didNotPan = true;
-      }
-    });
-
     act(() => {
       const keyupEvent = new KeyboardEvent("keyup", { key: "Tab" });
       window.dispatchEvent(keyupEvent);
@@ -164,6 +151,6 @@ describe("useFocusPan", () => {
       result.current({} as React.FocusEvent<HTMLElement>);
     });
 
-    expect(didNotPan).toBe(false);
+    expect(mockSetCenter).not.toHaveBeenCalled();
   });
 });
