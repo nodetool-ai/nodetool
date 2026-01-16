@@ -27,6 +27,7 @@ Last updated: 2026-01-12
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
 
 ### Node Management
+- **Node Menu Virtualization**: Virtualized node list using @tanstack/react-virtual for improved performance with large node counts
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
@@ -270,7 +271,6 @@ Last updated: 2026-01-12
 
 *(Update this section when considering these features in the future)*
 
-- **Virtualized Lists**: Large list virtualization for performance
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions

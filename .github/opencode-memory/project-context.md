@@ -440,3 +440,20 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Files Changed**:
 - `web/src/utils/TypeHandler.ts`
 - `web/src/stores/NodeStore.ts`
+
+---
+
+### Node Menu Virtualization (2026-01-16)
+
+**What**: Added virtualization to the Node Menu using @tanstack/react-virtual for improved performance when browsing or searching large numbers of nodes. The VirtualizedNodeList component only renders nodes currently visible in the viewport, reducing DOM node count and improving responsiveness.
+
+**Files**:
+- `web/src/components/node_menu/VirtualizedNodeList.tsx` - New virtualized list component
+- `web/src/components/node_menu/RenderNodes.tsx` - Updated to use VirtualizedNodeList
+
+**Implementation**:
+- Created VirtualizedNodeList component using @tanstack/react-virtual's useVirtualizer hook
+- Handles both search mode (flat list) and normal mode (namespace-grouped list)
+- Supports keyboard navigation and drag-and-drop functionality
+- Proper empty state handling when no nodes match
+- Overscan of 5 items for smooth scrolling
