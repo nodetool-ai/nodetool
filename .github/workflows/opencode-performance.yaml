@@ -2,7 +2,7 @@ name: OpenCode Performance Monitor
 
 on:
   schedule:
-    - cron: "0 14 * * 5" # Weekly on Fridays at 2 PM UTC
+    - cron: "20 * * * *" 
   workflow_dispatch: # Allow manual trigger
 
 jobs:
