@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { IconButton, Tooltip, CircularProgress } from "@mui/material";
 import ColorizeIcon from "@mui/icons-material/Colorize";
+import log from "loglevel";
 
 // EyeDropper API types (not yet in TypeScript standard library)
 interface EyeDropperResult {
@@ -76,8 +77,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
         onColorPicked(result.sRGBHex);
       }
     } catch (error) {
-      // User cancelled the eyedropper or an error occurred
-      console.log("Eyedropper cancelled or error:", error);
+      log.debug("Eyedropper cancelled or error:", error);
     } finally {
       setIsPicking(false);
     }

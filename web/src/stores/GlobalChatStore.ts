@@ -1101,10 +1101,10 @@ export const useThreadsQuery = () => {
           }
         }
       });
-      console.log("Threads fetched:", data);
       if (error) {
         throw new Error(error.detail?.[0]?.msg || "Failed to fetch threads");
       }
+      log.debug("Threads fetched:", data);
       return data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
