@@ -5,6 +5,8 @@ import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +16,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useShowGraphPreview, useWorkflowListViewStore } from "../../stores/WorkflowListViewStore";
 
 interface WorkflowToolbarProps {
   setFilterValue: (value: string) => void;
@@ -71,6 +74,27 @@ const styles = (theme: Theme) =>
         fill: "warning.main"
       }
     },
+    ".tools .preview-toggle-button": {
+      fontSize: "0.7em",
+      borderColor: `${"var(--palette-primary-main)"}33`,
+      width: "2em",
+      height: "2em",
+      "&:hover": {
+        borderColor: "var(--palette-primary-main)"
+      },
+      "& svg": {
+        color: theme.vars.palette.grey[400]
+      },
+      "&:hover svg": {
+        fill: "var(--palette-primary-main)"
+      }
+    },
+    ".tools .preview-toggle-button.active": {
+      borderColor: "var(--palette-primary-main)",
+      "& svg": {
+        color: "var(--palette-primary-main)"
+      }
+    },
     ".tools .delete-selected-button": {
       borderColor: `${"var(--palette-primary-main)"}33`,
       color: "var(--palette-primary-main)",
@@ -121,6 +145,12 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const showGraphPreview = useShowGraphPreview();
+  const setShowGraphPreview = useWorkflowListViewStore((state) => state.actions.setShowGraphPreview);
+
+  const handleToggleGraphPreview = useCallback(() => {
+    setShowGraphPreview(!showGraphPreview);
+  }, [setShowGraphPreview, showGraphPreview]);
 
   const handleCreateWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
@@ -188,6 +218,19 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             </IconButton>
           </Tooltip>
         )}
+
+        <Tooltip
+          title={`${showGraphPreview ? "Hide" : "Show"} graph preview`}
+          placement="top"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <IconButton
+            className={`preview-toggle-button ${showGraphPreview ? "active" : ""}`}
+            onClick={handleToggleGraphPreview}
+          >
+            {showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
+          </IconButton>
+        </Tooltip>
 
         <Tooltip title="Create new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton
