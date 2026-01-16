@@ -160,6 +160,25 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Notes (2026-01-16)
+
+**What**: Added Node Notes feature allowing users to add custom annotations to any workflow node. Users can double-click on the notes area below a node to add or edit notes, which persist with the workflow.
+
+**Files**:
+- `web/src/stores/NodeData.ts` - Added `notes` field to NodeData type
+- `web/src/components/node/EditableNotes.tsx` - New component for editing node notes
+- `web/src/components/node/BaseNode.tsx` - Integrated EditableNotes component into node display
+- `web/src/config/shortcuts.ts` - Added keyboard shortcut (N key) for node notes
+
+**Implementation**:
+- Notes are stored as a string field in the node's data object
+- Notes appear as a styled annotation below the node when present
+- Double-click to edit, Escape to cancel, blur to save
+- Empty notes are not stored (trimmed automatically)
+- Notes have a visual indicator (Notes icon and yellow accent color)
+
+---
+
 ### Node Resize Min Width (2026-01-16)
 
 **What**: Increased minimum width for resizable nodes from 100px to 200px.
