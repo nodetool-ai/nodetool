@@ -1,68 +1,84 @@
 # Test Coverage Improvements (2026-01-16)
 
-**Coverage Added**: 3 new store test files with 74 tests
+**Coverage Added**: 3 new test files with 45 tests
 
 **Tests Added**:
-- `ResultsStore.test.ts` - 35 tests for execution results storage
-- `SessionStateStore.test.ts` - 8 tests for clipboard state management
-- `NodeFocusStore.test.ts` - 31 tests for node keyboard navigation
+- `graphConversion.test.ts` - 18 tests for graph/ReactFlow edge conversion utilities
+- `formatNodeDocumentation.test.ts` - 19 tests for node documentation formatting
+- `useAlignNodes.test.ts` - 8 tests for node alignment functionality (fixed failing test)
 
 **Areas Covered**:
-- Results (execution outputs, progress, chunks)
-- Output results for nodes
-- Progress tracking with chunk accumulation
-- Edge status tracking
-- Tasks and tool calls
-- Planning updates and previews
-- Clipboard data management
-- Node focus navigation (next/prev/directional)
-- Focus history management
-- Navigation mode switching
+- Graph edge to ReactFlow edge conversion (`graphEdgeToReactFlowEdge`)
+- ReactFlow edge to graph edge conversion (`reactFlowEdgeToGraphEdge`)
+- Node documentation parsing (description, tags, use cases)
+- Node alignment operations (horizontal/vertical, spacing, collapsed state)
+- Edge round-trip conversion
 
 **Test Patterns Used**:
 
-1. **Store Testing Pattern**:
+1. **Pure Function Testing Pattern**:
 ```typescript
-describe("StoreName", () => {
+describe("functionName", () => {
+  it("should convert input to expected output", () => {
+    const input = createMockInput();
+    const result = functionName(input);
+    expect(result.property).toEqual(expected);
+  });
+
+  it("should handle edge cases", () => {
+    const input = createEdgeCaseInput();
+    const result = functionName(input);
+    expect(result).toEqual(expected);
+  });
+});
+```
+
+2. **Hook Testing Pattern with Mocks**:
+```typescript
+describe("useHookName", () => {
+  const mockSetNodes = jest.fn();
+
   beforeEach(() => {
-    useStoreName.setState(useStoreName.getInitialState());
+    jest.clearAllMocks();
+    (useReactFlow as jest.Mock).mockReturnValue({ setNodes: mockSetNodes });
   });
 
-  it("should perform action", () => {
-    useStoreName.getState().action();
-    expect(useStoreName.getState().property).toEqual(expected);
+  it("should return a function", () => {
+    const { result } = renderHook(() => useHookName());
+    expect(typeof result.current).toBe("function");
+  });
+
+  it("should perform action when called", () => {
+    mockGetSelectedNodes.mockReturnValue([createMockNode()]);
+    const { result } = renderHook(() => useHookName());
+    act(() => {
+      result.current({ option: true });
+    });
+    expect(mockSetNodes).toHaveBeenCalled();
   });
 });
 ```
 
-2. **Multi-workflow Isolation**:
+3. **Round-trip Conversion Testing**:
 ```typescript
-it("should isolate state between workflows", () => {
-  useStore.getState().setData("wf-1", "node-1", value1);
-  useStore.getState().setData("wf-2", "node-1", value2);
-  expect(useStore.getState().getData("wf-1", "node-1")).toEqual(value1);
-  expect(useStore.getState().getData("wf-2", "node-1")).toEqual(value2);
+it("should round trip conversion correctly", () => {
+  const original = createOriginal();
+  const converted = toReactFlow(original);
+  const roundTripped = fromReactFlow(converted);
+  expect(roundTripped).toEqual(original);
 });
 ```
 
-3. **Complex State Operations**:
-```typescript
-it("should handle append operations", () => {
-  useStore.getState().append("wf-1", "node-1", item1);
-  useStore.getState().append("wf-1", "node-1", item2, true);
-  expect(useStore.getState().getData("wf-1", "node-1")).toEqual([item1, item2]);
-});
-```
-
-**Files Created**:
-- `web/src/stores/__tests__/ResultsStore.test.ts`
-- `web/src/stores/__tests__/SessionStateStore.test.ts`
-- `web/src/stores/__tests__/NodeFocusStore.test.ts`
+**Files Created/Modified**:
+- `web/src/stores/__tests__/graphConversion.test.ts` (NEW - 18 tests)
+- `web/src/stores/__tests__/formatNodeDocumentation.test.ts` (NEW - 19 tests)
+- `web/src/hooks/__tests__/useAlignNodes.test.ts` (FIXED - 8 tests now passing)
 
 **Key Learnings**:
-1. Always check for existing tests before creating new ones
-2. Multi-workflow isolation is critical for NodeTool's architecture
-3. Test cleanup in `beforeEach` is essential for test independence
-4. Complex state operations (append, clear by prefix) need thorough edge case coverage
+1. Mock `@xyflow/react` and React dependencies properly for hook tests
+2. Test edge conversion round-trips to ensure data integrity
+3. Fix test import issues (default vs named exports) before assuming test failure is a code issue
+4. Understand actual implementation behavior before writing test expectations
+5. TypeScript generics in mock data need `extends Record<string, unknown>` constraint
 
-**Status**: All 74 tests passing
+**Status**: All 45 tests passing
