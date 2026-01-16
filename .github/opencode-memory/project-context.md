@@ -487,3 +487,37 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Verification**:
 - ✅ Lint: All packages pass
 - ✅ TypeScript: Web package passes
+
+---
+
+### Workflow Performance Profiling Research Feature (2026-01-16)
+
+**Type**: Experimental feature for users and researchers
+**Goal**: Help users identify performance bottlenecks in AI workflows
+**Status**: Prototype / MVP
+**Approach**: Built a comprehensive performance profiling system using Zustand for state management, with React components for visualization
+
+**Implementation**:
+- Created `PerformanceProfilerStore` to track timing statistics across multiple runs
+- Built `PerformanceProfiler`, `PerformanceHeatmap`, and `PerformancePanel` components
+- Developed `usePerformanceProfiler` hook for easy integration
+- Supports bottleneck detection, run comparison, and performance history
+
+**Findings**:
+- Building on existing `ExecutionTimeStore` worked well
+- Storing last 20 runs per node provides good statistical basis
+- Color-coded visualization (green/yellow/red) is intuitive for users
+- Comparison with previous runs helps track optimization progress
+
+**Next Steps**:
+- Integrate with workflow execution system for automatic profiling
+- Add historical trend charts
+- Consider adding performance recommendations
+- Add export to common formats (CSV, JSON)
+
+**Files**:
+- `web/src/stores/PerformanceProfilerStore.ts`
+- `web/src/components/performance/PerformanceProfiler.tsx`
+- `web/src/components/performance/PerformanceHeatmap.tsx`
+- `web/src/components/performance/PerformancePanel.tsx`
+- `web/src/hooks/usePerformanceProfiler.ts`
