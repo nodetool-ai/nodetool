@@ -287,6 +287,14 @@ Last updated: 2026-01-12
 
 ---
 
+## Research Features (Experimental)
+
+These features are in research/prototype phase and may change:
+
+- **Workflow Performance Profiler** (2026-01-16): Analyzes workflow complexity, detects bottlenecks, and provides optimization recommendations. Features: complexity scoring, cycle detection, graph metrics, node type breakdown. Files: `web/src/core/workflowProfiler.ts`, `web/src/stores/WorkflowProfilerStore.ts`, `web/src/components/panels/WorkflowProfilerPanel.tsx`
+
+---
+
 ## How to Use This File
 
 ### Before Planning Features
