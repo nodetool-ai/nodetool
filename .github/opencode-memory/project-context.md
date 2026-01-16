@@ -160,6 +160,34 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Performance Profiling Feature (2026-01-16)
+
+**What**: Added workflow performance profiler for tracking and analyzing execution performance across multiple runs.
+
+**Why**: Researchers and developers need tools to identify bottlenecks and optimize workflow performance.
+
+**Components Created**:
+- `PerformanceProfileStore`: Zustand store for aggregating performance data across workflow executions
+- `usePerformanceProfiler`: Hook for analyzing workflow performance
+- `PerformanceProfilerPanel`: UI component displaying performance metrics and bottlenecks
+
+**Implementation**:
+- Tracks per-node execution times, averages, min/max values
+- Identifies top 5 bottlenecks automatically
+- Shows execution time distribution across all nodes
+- Stores up to 50 data points per node for trend analysis
+- Provides API for recording executions and retrieving profiles
+
+**Files**:
+- `web/src/stores/PerformanceProfileStore.ts`
+- `web/src/hooks/usePerformanceProfiler.ts`
+- `web/src/components/node_editor/PerformanceProfilerPanel.tsx`
+- `web/src/stores/__tests__/PerformanceProfileStore.test.ts`
+
+**Impact**: Users can now understand their workflow's performance characteristics, identify slow nodes, and track improvements over time.
+
+---
+
 ### Node Resize Min Width (2026-01-16)
 
 **What**: Increased minimum width for resizable nodes from 100px to 200px.
