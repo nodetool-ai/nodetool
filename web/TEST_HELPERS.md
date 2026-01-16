@@ -310,7 +310,7 @@ api.restore();
 ```typescript
 import { Server } from 'mock-socket';
 
-export const createMockWebSocket = (url: string = 'ws://localhost:8000') => {
+export const createMockWebSocket = (url: string = 'ws://localhost:7777') => {
   const mockServer = new Server(url);
   const messages: any[] = [];
 

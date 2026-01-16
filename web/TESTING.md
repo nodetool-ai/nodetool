@@ -499,7 +499,7 @@ Environment variables are mocked in `setupTests.ts`:
 ```typescript
 // Already configured - available in all tests
 import.meta.env.MODE // 'test'
-import.meta.env.VITE_API_URL // 'http://localhost:8000'
+import.meta.env.VITE_API_URL // 'http://localhost:7777'
 ```
 
 ## Test Patterns
