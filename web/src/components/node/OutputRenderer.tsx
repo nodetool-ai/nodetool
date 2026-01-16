@@ -52,7 +52,6 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
-import log from "loglevel";
 // import left for future reuse of audio stream component when needed
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
@@ -347,7 +346,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
-              onImageEdited={(dataUrl, blob) => log.debug(dataUrl, blob)}
             />
           ));
         } else {
@@ -363,7 +361,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else {
             imageSource = "";
           }
-          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => log.debug(dataUrl, blob)} />;
+          return <ImageView source={imageSource} />;
         }
       case "audio": {
         // Handle different audio data formats
