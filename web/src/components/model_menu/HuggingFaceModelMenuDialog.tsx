@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel, UnifiedModel } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelMenuStore } from "../../stores/ModelMenuStore";
@@ -29,7 +29,7 @@ const mapTaskToEndpoint = (
   return null;
 };
 
-export default function HuggingFaceModelMenuDialog({
+function HuggingFaceModelMenuDialog({
   open,
   onClose,
   onModelChange,
@@ -113,5 +113,7 @@ export default function HuggingFaceModelMenuDialog({
     />
   );
 }
+
+export default memo(HuggingFaceModelMenuDialog);
 
 

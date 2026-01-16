@@ -10,6 +10,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
 import { Node } from "@xyflow/react";
@@ -60,7 +61,7 @@ const NodeContextMenu: React.FC = () => {
       key="toggle-bypass"
       onClick={handlers.handleToggleBypass}
       label={conditions.isBypassed ? "Enable Node" : "Bypass Node"}
-      IconComponent={conditions.isBypassed ? <PlayArrowIcon /> : <BlockIcon />}
+      IconComponent={conditions.isBypassed ? <PowerSettingsNewIcon /> : <BlockIcon />}
       tooltip={
         <div className="tooltip-span">
           <div className="tooltip-title">

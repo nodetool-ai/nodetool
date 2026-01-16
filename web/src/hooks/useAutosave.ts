@@ -175,19 +175,38 @@ export const useAutosave = (
    * Set up interval-based autosave triggering
    * Backend handles rate limiting, we just trigger at configured interval
    */
+  const intervalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!autosaveSettings?.enabled || !workflowId) {
+      if (intervalTimeoutRef.current) {
+        clearTimeout(intervalTimeoutRef.current);
+        intervalTimeoutRef.current = null;
+      }
       return;
     }
 
-    const intervalMs = (autosaveSettings?.intervalMinutes ?? 5) * 60 * 1000;
+    const intervalMs = (autosaveSettings?.intervalMinutes ?? 10) * 60 * 1000;
 
-    const intervalId = setInterval(() => {
-      triggerAutosave();
-    }, intervalMs);
+    const scheduleNextAutosave = () => {
+      if (!autosaveSettings?.enabled || !workflowId) {
+        return;
+      }
+
+      intervalTimeoutRef.current = setTimeout(() => {
+        triggerAutosave().then(() => {
+          scheduleNextAutosave();
+        });
+      }, intervalMs);
+    };
+
+    scheduleNextAutosave();
 
     return () => {
-      clearInterval(intervalId);
+      if (intervalTimeoutRef.current) {
+        clearTimeout(intervalTimeoutRef.current);
+        intervalTimeoutRef.current = null;
+      }
     };
   }, [
     autosaveSettings?.enabled,

@@ -5,6 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { IconButton, CircularProgress, Tooltip } from "@mui/material";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useCallback } from "react";
 
 const styles = (theme: Theme, _isRunning: boolean) =>
   css({
@@ -49,6 +50,12 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
   const theme = useTheme();
   const isRunning = state === "running";
 
+  const handleClick = useCallback(() => {
+    if (!isWorkflowRunning) {
+      onClick();
+    }
+  }, [isWorkflowRunning, onClick]);
+
   return (
     <Tooltip
       title={
@@ -75,7 +82,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
         tabIndex={-1}
         css={styles(theme, isRunning)}
         className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
-        onClick={() => !isWorkflowRunning && onClick()}
+        onClick={handleClick}
       >
         {isRunning ? <CircularProgress /> : <PlayArrow />}
       </IconButton>
