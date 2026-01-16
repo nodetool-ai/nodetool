@@ -227,9 +227,11 @@ describe("ResultsStore", () => {
 
   describe("tasks", () => {
     const mockTask: Task = {
+      type: "task",
       id: "task-1",
-      status: "running",
-      description: "Test task"
+      title: "Test Task",
+      description: "Test task",
+      steps: []
     };
 
     it("should set task for a node", () => {
@@ -255,6 +257,7 @@ describe("ResultsStore", () => {
 
   describe("toolCalls", () => {
     const mockToolCall: ToolCallUpdate = {
+      type: "tool_call_update",
       name: "test_tool",
       args: { param: "value" },
       message: "Calling tool"
@@ -284,7 +287,9 @@ describe("ResultsStore", () => {
   describe("planningUpdates", () => {
     const mockPlanningUpdate: PlanningUpdate = {
       type: "planning_update",
-      planning: "New plan"
+      phase: "planning",
+      status: "in_progress",
+      content: "New plan"
     };
 
     it("should set planning update for a node", () => {

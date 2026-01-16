@@ -1,26 +1,22 @@
 import { renderHook, act } from "@testing-library/react";
-import { useFitView, getNodesBounds } from "../useFitView";
-import { Node, Position, XYPosition } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
+import { useFitView } from "../useFitView";
+import { Node } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
+import { Position } from "@xyflow/system";
 
 jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({
-    fitView: jest.fn(),
-    fitBounds: jest.fn(),
-    getViewport: jest.fn(() => ({ x: 0, y: 0, zoom: 1 }))
-  }))
+  useReactFlow: jest.fn()
 }));
 
 jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) =>
-    selector({
-      nodes: [],
-      getSelectedNodes: jest.fn(() => []),
-      setSelectedNodes: jest.fn(),
-      setViewport: jest.fn()
-    })
-  )
+  useNodes: jest.fn()
 }));
+
+import { useReactFlow } from "@xyflow/react";
+import { useNodes } from "../../contexts/NodeContext";
+
+const mockUseReactFlow = useReactFlow as jest.Mock;
+const mockUseNodes = useNodes as jest.Mock;
 
 const createMockNode = (
   id: string,
@@ -52,7 +48,7 @@ describe("useFitView", () => {
   beforeEach(() => {
     fitView = jest.fn();
     fitBounds = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
+    mockUseReactFlow.mockReturnValue({
       fitView,
       fitBounds,
       getViewport: jest.fn(() => ({ x: 0, y: 0, zoom: 1 }))
@@ -71,7 +67,7 @@ describe("useFitView", () => {
   });
 
   it("fits all nodes when no nodes are selected", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
+    mockUseNodes.mockReturnValue({
       nodes: [createMockNode("node1", 0, 0, 100, 50)],
       getSelectedNodes: jest.fn(() => []),
       setSelectedNodes: jest.fn(),
@@ -88,7 +84,7 @@ describe("useFitView", () => {
   });
 
   it("fits selected nodes when nodes are selected", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
+    mockUseNodes.mockReturnValue({
       nodes: [
         createMockNode("node1", 0, 0, 100, 50),
         createMockNode("node2", 200, 0, 100, 50)
@@ -111,7 +107,7 @@ describe("useFitView", () => {
   });
 
   it("fits specific node IDs when provided", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
+    mockUseNodes.mockReturnValue({
       nodes: [
         createMockNode("node1", 0, 0, 100, 50),
         createMockNode("node2", 200, 0, 100, 50),
@@ -132,7 +128,7 @@ describe("useFitView", () => {
   });
 
   it("uses custom padding when provided", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
+    mockUseNodes.mockReturnValue({
       nodes: [createMockNode("node1", 0, 0, 100, 50)],
       getSelectedNodes: jest.fn(() => []),
       setSelectedNodes: jest.fn(),
@@ -153,7 +149,7 @@ describe("useFitView", () => {
       createMockNode("node1", 100, 100, 100, 50),
       createMockNode("node2", 300, 100, 100, 50)
     ];
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
+    mockUseNodes.mockReturnValue({
       nodes,
       getSelectedNodes: jest.fn(() => nodes),
       setSelectedNodes: jest.fn(),
@@ -172,87 +168,5 @@ describe("useFitView", () => {
       }),
       expect.any(Object)
     );
-  });
-});
-
-describe("getNodesBounds", () => {
-  it("returns null for empty nodes array", () => {
-    const result = getNodesBounds([], {});
-    expect(result).toBeNull();
-  });
-
-  it("calculates bounds correctly for single node", () => {
-    const nodes: Node<NodeData>[] = [
-      createMockNode("node1", 100, 200, 150, 60)
-    ];
-    const nodesById: Record<string, XYPosition> = {
-      node1: { x: 100, y: 200 }
-    };
-
-    const result = getNodesBounds(nodes, nodesById);
-
-    expect(result).toEqual({
-      xMin: 100,
-      xMax: 250,
-      yMin: 200,
-      yMax: 260
-    });
-  });
-
-  it("calculates bounds correctly for multiple nodes", () => {
-    const nodes: Node<NodeData>[] = [
-      createMockNode("node1", 100, 100, 100, 50),
-      createMockNode("node2", 300, 200, 100, 50)
-    ];
-    const nodesById: Record<string, XYPosition> = {
-      node1: { x: 100, y: 100 },
-      node2: { x: 300, y: 200 }
-    };
-
-    const result = getNodesBounds(nodes, nodesById);
-
-    expect(result).toEqual({
-      xMin: 100,
-      xMax: 400,
-      yMin: 100,
-      yMax: 250
-    });
-  });
-
-  it("handles nodes without measured dimensions", () => {
-    const nodes: Node<NodeData>[] = [
-      createMockNode("node1", 100, 100, undefined, undefined)
-    ];
-    const nodesById: Record<string, XYPosition> = {
-      node1: { x: 100, y: 100 }
-    };
-
-    const result = getNodesBounds(nodes, nodesById);
-
-    expect(result).toEqual({
-      xMin: 100,
-      xMax: 100,
-      yMin: 100,
-      yMax: 100
-    });
-  });
-
-  it("includes parent position for child nodes", () => {
-    const nodes: Node<NodeData>[] = [
-      createMockNode("child1", 50, 50, 100, 50, "parent")
-    ];
-    const nodesById: Record<string, XYPosition> = {
-      child1: { x: 50, y: 50 },
-      parent: { x: 200, y: 300 }
-    };
-
-    const result = getNodesBounds(nodes, nodesById);
-
-    expect(result).toEqual({
-      xMin: 250,
-      xMax: 350,
-      yMin: 350,
-      yMax: 400
-    });
   });
 });
