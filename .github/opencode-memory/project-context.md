@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Node Header Icon Fix (2026-01-16)
+
+**What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
+
+**Why**: Both actions used the same PlayArrowIcon, confusing users about their different purposes.
+
+**Files**: `web/src/components/context_menus/NodeContextMenu.tsx`, `web/src/components/node/NodeToolButtons.tsx`
+
+---
+
 ### Image Size Display in Nodes (2026-01-16)
 
 **What**: Added image dimensions display (width × height) at bottom right of image output nodes, shown in tiny monospace font with semi-transparent background.
