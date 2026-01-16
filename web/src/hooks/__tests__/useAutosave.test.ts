@@ -41,7 +41,12 @@ describe("useAutosave", () => {
     workflowId: "test-workflow-123",
     getWorkflow: jest.fn(() => ({
       id: "test-workflow-123",
-      name: "Test Workflow"
+      access: "private",
+      created_at: "2026-01-12T10:00:00Z",
+      updated_at: "2026-01-12T10:00:00Z",
+      name: "Test Workflow",
+      description: "Test description",
+      graph: { nodes: [], edges: [] }
     })),
     isDirty: jest.fn(() => true)
   };
