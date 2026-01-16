@@ -1,4 +1,4 @@
-import { memo, useCallback, forwardRef } from "react";
+import { memo, useCallback, useRef, forwardRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Typography, Checkbox, IconButton, Tooltip } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
@@ -20,6 +20,7 @@ interface NodeItemProps {
   isSelected?: boolean;
   onToggleSelection?: (nodeType: string) => void;
   showFavoriteButton?: boolean;
+  onHover?: (node: NodeMetadata | null, element: HTMLElement | null) => void;
 }
 
 const NodeItem = memo(
@@ -33,9 +34,10 @@ const NodeItem = memo(
         showCheckbox = false,
         isSelected = false,
         onToggleSelection,
-        showFavoriteButton = true
+        showFavoriteButton = true,
+        onHover
       },
-      ref
+      _ref
     ) => {
       const theme = useTheme();
       const outputType =
@@ -55,10 +57,21 @@ const NodeItem = memo(
       const addNotification = useNotificationStore(
         (state) => state.addNotification
       );
+      const elementRef = useRef<HTMLDivElement>(null);
 
-      const onMouseEnter = useCallback(() => {
+      const handleMouseEnter = useCallback(() => {
         setHoveredNode(node);
-      }, [node, setHoveredNode]);
+        if (onHover && elementRef.current) {
+          onHover(node, elementRef.current);
+        }
+      }, [node, setHoveredNode, onHover]);
+
+      const handleMouseLeave = useCallback(() => {
+        setHoveredNode(null);
+        if (onHover) {
+          onHover(null, null);
+        }
+      }, [setHoveredNode, onHover]);
 
       const handleClick = useCallback(
         (e: React.MouseEvent) => {
@@ -90,12 +103,13 @@ const NodeItem = memo(
 
       return (
         <div
-          ref={ref}
+          ref={elementRef}
           className={`node ${isHovered ? "hovered" : ""} ${
             showCheckbox && isSelected ? "selected" : ""
           }`}
           draggable={!showCheckbox}
-          onMouseEnter={onMouseEnter}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
           onDragStart={(e) => {
             if (!showCheckbox) {
               onDragStart(e);
