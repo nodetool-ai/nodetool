@@ -739,4 +739,4 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   );
 };
 
-export default GettingStartedPanel;
+export default React.memo(GettingStartedPanel);
