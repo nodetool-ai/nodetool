@@ -520,7 +520,30 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Implementation**:
 - Replaced `(message: any)` parameter with existing `MsgpackData` union type
 - Created `JobRunState` interface for run_state access
-- Replaced `(job as any).run_state` cast with type-safe intersection `JobUpdate & { run_state?: JobRunState }`
+  - Replaced `(job as any).run_state` cast with type-safe intersection `JobUpdate & { run_state?: JobRunState }`
 
 **Files**:
 - `web/src/stores/workflowUpdates.ts`
+
+---
+
+### Performance Profiling Feature (2026-01-16)
+
+**What**: Added performance profiling UI for tracking workflow execution metrics and identifying bottlenecks.
+
+**Why**: Researchers and developers need tools to analyze workflow performance, track execution times, and optimize AI pipelines.
+
+**Implementation**:
+- Created `PerformanceProfileStore` for tracking workflow execution metrics across multiple runs
+- Built `PerformanceDashboard` component displaying aggregate statistics (total runs, avg duration, success rate, bottlenecks)
+- Created `PerformancePanel` side panel for workflow editor integration
+- Added `usePerformanceTracking` hook for integrating with workflow execution
+- Calculates statistics including min/max/avg/p50/p95/p99 execution times per node
+- Tracks bottlenecks sorted by average execution time
+
+**Files**:
+- `web/src/stores/PerformanceProfileStore.ts` - Main store for performance metrics
+- `web/src/components/performance/PerformanceDashboard.tsx` - Dashboard UI
+- `web/src/components/performance/PerformancePanel.tsx` - Editor panel
+- `web/src/components/performance/index.ts` - Exports
+- `web/src/hooks/usePerformanceTracking.ts` - Integration hook
