@@ -194,6 +194,27 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
+### Workflow Comments Enhancement (2026-01-16)
+
+**What**: Enhanced workflow comments feature with discoverability, keyboard shortcuts, and search functionality.
+
+**Files**:
+- `web/src/serverState/useMetadata.ts` - Added Comment metadata to defaultMetadata for searchable node menu
+- `web/src/config/shortcuts.ts` - Added keyboard shortcuts (Shift+C for add, Ctrl+Shift+F for find, Ctrl+Alt+ArrowUp/Down for navigation)
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handlers for comment shortcuts
+- `web/src/hooks/useAddComment.ts` - New hook for creating comment nodes
+- `web/src/hooks/useCommentNavigation.ts` - New hook for navigating between comments
+- `web/src/hooks/useFindInWorkflow.ts` - Enhanced to search comment content
+- `web/src/hooks/__tests__/useAddComment.test.ts` - Tests for add comment hook
+- `web/src/hooks/__tests__/useCommentNavigation.test.ts` - Tests for comment navigation
+- `web/src/hooks/__tests__/useFindInWorkflow.test.ts` - Added comment search tests
+
+**Implementation**:
+- Comment nodes now appear in searchable node menu (Shift+Space)
+- Keyboard shortcuts: Shift+C (add comment), Ctrl+Shift+F (find comments), Ctrl+Alt+Up/Down (navigate comments)
+- Find in Workflow now searches comment content
+- Comment display names show comment preview text
+- Comment navigation centers view on comment nodes
 ### Viewport Status Indicator (2026-01-13)
 
 **What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.

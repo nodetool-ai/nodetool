@@ -21,7 +21,7 @@ Last updated: 2026-01-12
 - **Minimap**: Overview minimap for workflow navigation
 - **Multi-Select**: Select and manipulate multiple nodes simultaneously
 - **Copy/Paste**: Copy and paste nodes within and across workflows
-- **Find in Workflow**: Search for nodes by name, type, or properties
+- **Find in Workflow**: Search for nodes by name, type, or properties (now includes comment content)
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
@@ -39,6 +39,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Workflow Comments**: Rich text comment annotations in workflows with color picker, searchable via node menu, keyboard shortcuts (Shift+C to add, Ctrl+Shift+F to find), and navigation shortcuts (Ctrl+Alt+ArrowUp/Down)
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

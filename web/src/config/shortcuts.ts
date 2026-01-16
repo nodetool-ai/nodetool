@@ -750,6 +750,39 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  // ---------- COMMENTS --------------------------------------------------------
+  {
+    title: "Add Comment",
+    slug: "addComment",
+    keyCombo: ["Shift", "C"],
+    category: "editor" as const,
+    description: "Add a comment node at cursor position",
+    registerCombo: true
+  },
+  {
+    title: "Find Comments",
+    slug: "findComments",
+    keyCombo: ["Control", "Shift", "F"],
+    category: "editor" as const,
+    description: "Find and navigate to comments in workflow",
+    registerCombo: true
+  },
+  {
+    title: "Next Comment",
+    slug: "nextComment",
+    keyCombo: ["Control", "Alt", "ArrowDown"],
+    category: "editor" as const,
+    description: "Navigate to next comment in workflow",
+    registerCombo: true
+  },
+  {
+    title: "Previous Comment",
+    slug: "prevComment",
+    keyCombo: ["Control", "Alt", "ArrowUp"],
+    category: "editor" as const,
+    description: "Navigate to previous comment in workflow",
+    registerCombo: true
   }
 ] as Shortcut[];
 

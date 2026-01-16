@@ -31,6 +31,41 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false
+  },
+  "nodetool.workflows.base_node.Comment": {
+    title: "Comment",
+    description: "Add a comment or annotation to your workflow",
+    namespace: "default",
+    node_type: "nodetool.workflows.base_node.Comment",
+    layout: "comment",
+    basic_fields: [],
+    is_dynamic: false,
+    properties: [
+      {
+        name: "comment",
+        type: {
+          type: "any",
+          optional: true,
+          type_args: []
+        },
+        required: false
+      },
+      {
+        name: "comment_color",
+        type: {
+          type: "string",
+          optional: true,
+          type_args: []
+        },
+        required: false
+      }
+    ],
+    outputs: [],
+    the_model_info: {},
+    recommended_models: [],
+    expose_as_tool: false,
+    supports_dynamic_outputs: false,
+    is_streaming_output: false
   }
 };
 
@@ -43,11 +78,17 @@ export const loadMetadata = async () => {
 
   const nodeTypes: NodeTypes = {};
   const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata };
-  
+
   data.forEach((md: NodeMetadata) => {
     nodeTypes[md.node_type] = BaseNode;
     metadataByType[md.node_type] = md;
   });
+
+  // Register special node types that don't come from backend
+  const { default: CommentNode } = await import(
+    "../components/node/CommentNode"
+  );
+  nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
 
   const recommendedModels = data.reduce<UnifiedModel[]>(
     (result, md) => [...result, ...md.recommended_models],

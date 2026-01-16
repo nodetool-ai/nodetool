@@ -34,6 +34,14 @@ export const useFindInWorkflow = () => {
         return title;
       }
       const nodeType = node.type ?? "";
+      if (nodeType === "nodetool.workflows.base_node.Comment") {
+        const comment = node.data?.properties?.comment;
+        if (typeof comment === "string" && comment.trim()) {
+          const preview = comment.trim().substring(0, 30);
+          return comment.trim().length > 30 ? `${preview}...` : preview;
+        }
+        return "Comment";
+      }
       const metadata = metadataStore.getMetadata(nodeType);
       if (metadata?.title) {
         return metadata.title;
@@ -42,6 +50,20 @@ export const useFindInWorkflow = () => {
     },
     [metadataStore]
   );
+
+  const getCommentContent = useCallback((node: Node<NodeData>): string => {
+    if (node.type !== "nodetool.workflows.base_node.Comment") {
+      return "";
+    }
+    const comment = node.data?.properties?.comment;
+    if (typeof comment === "string") {
+      return comment;
+    }
+    if (comment && typeof comment === "object") {
+      return JSON.stringify(comment);
+    }
+    return "";
+  }, []);
 
   const searchNodes = useCallback(
     (term: string, nodeList: Node<NodeData>[]): Node<NodeData>[] => {
@@ -56,11 +78,13 @@ export const useFindInWorkflow = () => {
         const displayName = getNodeDisplayName(node).toLowerCase();
         const nodeType = (node.type ?? "").toLowerCase();
         const nodeId = node.id.toLowerCase();
+        const commentContent = getCommentContent(node).toLowerCase();
 
         if (
           displayName.includes(normalizedTerm) ||
           nodeType.includes(normalizedTerm) ||
-          nodeId.includes(normalizedTerm)
+          nodeId.includes(normalizedTerm) ||
+          commentContent.includes(normalizedTerm)
         ) {
           results.push(node);
         }
@@ -68,7 +92,7 @@ export const useFindInWorkflow = () => {
 
       return results;
     },
-    [getNodeDisplayName]
+    [getNodeDisplayName, getCommentContent]
   );
 
   const performSearch = useCallback(

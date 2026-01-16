@@ -546,4 +546,143 @@ describe("useFindInWorkflow", () => {
       expect(result.current.totalCount).toBe(result.current.results.length);
     });
   });
+
+  describe("comment search", () => {
+    const mockNodesWithComments: Node<NodeData>[] = [
+      {
+        id: "comment-1",
+        type: "nodetool.workflows.base_node.Comment",
+        position: { x: 0, y: 0 },
+        data: {
+          ...createMockNodeData(),
+          properties: { comment: "This is a test comment" }
+        }
+      },
+      {
+        id: "comment-2",
+        type: "nodetool.workflows.base_node.Comment",
+        position: { x: 100, y: 0 },
+        data: {
+          ...createMockNodeData(),
+          properties: { comment: "Another important note" }
+        }
+      },
+      {
+        id: "regular-node",
+        type: "input.text",
+        position: { x: 200, y: 0 },
+        data: { ...createMockNodeData(), properties: { name: "Regular Node" } }
+      }
+    ];
+
+    it("should find comments by comment content", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodesWithComments, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("test");
+      });
+
+      expect(result.current.results.length).toBe(1);
+      expect(result.current.results[0].node.id).toBe("comment-1");
+    });
+
+    it("should find multiple comments matching search term", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodesWithComments, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("comment");
+      });
+
+      expect(result.current.results.length).toBe(2);
+      expect(result.current.results.map(r => r.node.id)).toContain("comment-1");
+      expect(result.current.results.map(r => r.node.id)).toContain("comment-2");
+    });
+
+    it("should return Comment as display name for empty comment", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = {
+          nodes: [{
+            id: "empty-comment",
+            type: "nodetool.workflows.base_node.Comment",
+            position: { x: 0, y: 0 },
+            data: { ...createMockNodeData(), properties: {} }
+          }],
+          edges: []
+        };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      const displayName = result.current.getNodeDisplayName({
+        id: "empty-comment",
+        type: "nodetool.workflows.base_node.Comment",
+        position: { x: 0, y: 0 },
+        data: { ...createMockNodeData(), properties: {} }
+      });
+
+      expect(displayName).toBe("Comment");
+    });
+
+    it("should show comment preview in display name", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodesWithComments, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      const displayName = result.current.getNodeDisplayName(mockNodesWithComments[0]);
+
+      expect(displayName).toBe("This is a test comment");
+    });
+
+    it("should truncate long comments in display name", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = {
+          nodes: [{
+            id: "long-comment",
+            type: "nodetool.workflows.base_node.Comment",
+            position: { x: 0, y: 0 },
+            data: {
+              ...createMockNodeData(),
+              properties: { comment: "A".repeat(100) }
+            }
+          }],
+          edges: []
+        };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      const displayName = result.current.getNodeDisplayName({
+        id: "long-comment",
+        type: "nodetool.workflows.base_node.Comment",
+        position: { x: 0, y: 0 },
+        data: {
+          ...createMockNodeData(),
+          properties: { comment: "A".repeat(100) }
+        }
+      });
+
+      expect(displayName.length).toBe(33);
+      expect(displayName).toBe("A".repeat(30) + "...");
+    });
+  });
 });

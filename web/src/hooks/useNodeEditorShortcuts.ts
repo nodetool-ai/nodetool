@@ -27,6 +27,8 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useAddComment } from "./useAddComment";
+import { useCommentNavigation } from "./useCommentNavigation";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -78,6 +80,8 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const addComment = useAddComment();
+  const commentNavigation = useCommentNavigation();
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -522,6 +526,16 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      addComment: { callback: addComment },
+      findComments: { callback: findInWorkflow.openFind },
+      nextComment: {
+        callback: commentNavigation.navigateToNextComment,
+        active: commentNavigation.commentIds.length > 0
+      },
+      prevComment: {
+        callback: commentNavigation.navigateToPreviousComment,
+        active: commentNavigation.commentIds.length > 0
       }
     };
 
@@ -586,7 +600,12 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    addComment,
+    findInWorkflow.openFind,
+    commentNavigation.navigateToNextComment,
+    commentNavigation.commentIds.length,
+    commentNavigation.navigateToPreviousComment
   ]);
 
   // useEffect for shortcut registration
