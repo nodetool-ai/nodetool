@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Auto-save Interval Fix (2026-01-16)
+
+**What**: Fixed auto-save interval settings not being applied when changed by user.
+
+**Why**: The interval useEffect wasn't properly resetting when intervalMinutes changed due to dependency array issues with memoized callbacks.
+
+**Files**: `web/src/hooks/useAutosave.ts`
+
+---
+
 ### Mobile TypeScript Type Definitions Fix (2026-01-15)
 
 **What**: Fixed mobile package TypeScript type checking by adding `@types/react-native` package.

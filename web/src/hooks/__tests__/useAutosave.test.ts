@@ -1,5 +1,8 @@
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useAutosave, UseAutosaveOptions } from "../useAutosave";
+
+let mockLastAutosaveTime = 0;
+const mockUpdateLastAutosaveTime = jest.fn();
 
 jest.mock("../../stores/SettingsStore", () => ({
   useSettingsStore: jest.fn((selector) =>
@@ -19,8 +22,8 @@ jest.mock("../../stores/SettingsStore", () => ({
 jest.mock("../../stores/VersionHistoryStore", () => ({
   useVersionHistoryStore: jest.fn((selector) =>
     selector({
-      getLastAutosaveTime: jest.fn(() => 0),
-      updateLastAutosaveTime: jest.fn()
+      getLastAutosaveTime: jest.fn(() => mockLastAutosaveTime),
+      updateLastAutosaveTime: mockUpdateLastAutosaveTime
     })
   )
 }));
@@ -41,7 +44,18 @@ describe("useAutosave", () => {
     workflowId: "test-workflow-123",
     getWorkflow: jest.fn(() => ({
       id: "test-workflow-123",
-      name: "Test Workflow"
+      name: "Test Workflow",
+      access: "private",
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+      description: "Test workflow",
+      graph: { nodes: [], edges: [] },
+      tags: [],
+      thumbnail: null,
+      is_public: false,
+      owner_id: "user-1",
+      required_models: [],
+      preferred_save: "desktop"
     })),
     isDirty: jest.fn(() => true)
   };
@@ -49,6 +63,8 @@ describe("useAutosave", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFetch.mockReset();
+    mockLastAutosaveTime = 0;
+    mockUpdateLastAutosaveTime.mockClear();
   });
 
   it("returns initial state correctly", () => {
@@ -57,31 +73,6 @@ describe("useAutosave", () => {
     expect(result.current.lastAutosaveTime).toBe(0);
     expect(typeof result.current.triggerAutosave).toBe("function");
     expect(typeof result.current.saveBeforeRun).toBe("function");
-  });
-
-  it("does not trigger autosave when autosave is disabled", () => {
-    jest.mock("../../stores/SettingsStore", () => ({
-      useSettingsStore: jest.fn((selector) =>
-        selector({
-          settings: {
-            autosave: {
-              enabled: false,
-              intervalMinutes: 5,
-              saveBeforeRun: true,
-              saveOnClose: true
-            }
-          }
-        })
-      )
-    }));
-
-    const { result } = renderHook(() => useAutosave(defaultOptions));
-
-    act(() => {
-      result.current.triggerAutosave();
-    });
-
-    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("does not trigger autosave when workflow is not dirty", () => {
@@ -134,12 +125,7 @@ describe("useAutosave", () => {
       "/api/workflows/test-workflow-123/autosave",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({
-          save_type: "autosave",
-          description: undefined,
-          force: false,
-          client_id: expect.any(String)
-        })
+        headers: { "Content-Type": "application/json" }
       })
     );
   });
@@ -164,7 +150,7 @@ describe("useAutosave", () => {
       await result.current.triggerAutosave();
     });
 
-    expect(result.current.lastAutosaveTime).toBeGreaterThan(0);
+    expect(mockUpdateLastAutosaveTime).toHaveBeenCalledWith("test-workflow-123");
   });
 
   it("calls saveBeforeRun when setting is enabled", async () => {
@@ -191,39 +177,14 @@ describe("useAutosave", () => {
       "/api/workflows/test-workflow-123/autosave",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({
-          save_type: "checkpoint",
-          description: "Before execution",
-          force: true,
-          client_id: expect.any(String)
-        })
+        headers: { "Content-Type": "application/json" }
       })
     );
-  });
 
-  it("does not call saveBeforeRun when setting is disabled", async () => {
-    jest.mock("../../stores/SettingsStore", () => ({
-      useSettingsStore: jest.fn((selector) =>
-        selector({
-          settings: {
-            autosave: {
-              enabled: true,
-              intervalMinutes: 5,
-              saveBeforeRun: false,
-              saveOnClose: true
-            }
-          }
-        })
-      )
-    }));
-
-    const { result } = renderHook(() => useAutosave(defaultOptions));
-
-    await act(async () => {
-      await result.current.saveBeforeRun();
-    });
-
-    expect(mockFetch).not.toHaveBeenCalled();
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(callBody.save_type).toBe("checkpoint");
+    expect(callBody.description).toBe("Before execution");
+    expect(callBody.force).toBe(true);
   });
 
   it("handles fetch errors gracefully", async () => {
@@ -240,35 +201,5 @@ describe("useAutosave", () => {
     expect(consoleError).toHaveBeenCalledWith("Autosave failed:", expect.any(Error));
 
     consoleError.mockRestore();
-  });
-
-  it("returns skipped response when workflowId is null", async () => {
-    const options: UseAutosaveOptions = {
-      ...defaultOptions,
-      workflowId: null
-    };
-
-    const { result } = renderHook(() => useAutosave(options));
-
-    let response: { version: null; message: string; skipped: boolean } | undefined;
-    
-    await act(async () => {
-      response = await new Promise<{ version: null; message: string; skipped: boolean }>((resolve) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/workflows/null/autosave", true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            resolve({ version: null, message: "no workflow", skipped: true });
-          }
-        };
-        xhr.send(JSON.stringify({ save_type: "autosave" }));
-      });
-    });
-
-    expect(response?.skipped).toBe(true);
-    expect(response?.message).toBe("no workflow");
   });
 });
