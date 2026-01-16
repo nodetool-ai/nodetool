@@ -4,12 +4,19 @@ import { MiniMap, Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
+import MiniMapZoomControls from "./MiniMapZoomControls";
 
-const minimapStyle = {
+const minimapContainerStyle = {
   position: "absolute" as const,
   bottom: "70px",
   right: "20px",
   zIndex: 10
+};
+
+const minimapWrapperStyle = {
+  position: "relative" as const,
+  display: "flex",
+  flexDirection: "column" as const
 };
 
 const MiniMapNavigator: React.FC = () => {
@@ -50,28 +57,33 @@ const MiniMapNavigator: React.FC = () => {
   }
 
   return (
-    <div className="minimap-navigator" css={{ minimapStyle }}>
-      <MiniMap
-        nodeColor={nodeColor}
-        maskColor={maskColor}
-        nodeStrokeWidth={2}
-        nodeStrokeColor={(node: Node) => {
-          if (node.selected) {
-            return theme.vars.palette.primary.main;
-          }
-          return isDarkMode ? "#475569" : "#cbd5e1";
-        }}
-        nodeBorderRadius={8}
-        zoomable
-        pannable
-        style={{
-          backgroundColor: isDarkMode
-            ? theme.vars.palette.grey[900]
-            : theme.vars.palette.grey[100],
-          border: `1px solid ${borderColor}`,
-          borderRadius: "8px"
-        }}
-      />
+    <div className="minimap-navigator" style={minimapContainerStyle}>
+      <div style={minimapWrapperStyle}>
+        <MiniMap
+          nodeColor={nodeColor}
+          maskColor={maskColor}
+          nodeStrokeWidth={2}
+          nodeStrokeColor={(node: Node) => {
+            if (node.selected) {
+              return theme.vars.palette.primary.main;
+            }
+            return isDarkMode ? "#475569" : "#cbd5e1";
+          }}
+          nodeBorderRadius={8}
+          zoomable
+          pannable
+          style={{
+            backgroundColor: isDarkMode
+              ? theme.vars.palette.grey[900]
+              : theme.vars.palette.grey[100],
+            border: `1px solid ${borderColor}`,
+            borderRadius: "8px",
+            borderBottomLeftRadius: "0",
+            borderBottomRightRadius: "0"
+          }}
+        />
+        <MiniMapZoomControls />
+      </div>
     </div>
   );
 };

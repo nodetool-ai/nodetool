@@ -487,3 +487,25 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Verification**:
 - ✅ Lint: All packages pass
 - ✅ TypeScript: Web package passes
+
+---
+
+### Minimap Zoom Controls (2026-01-16)
+
+**What**: Added zoom controls to the minimap navigator including zoom in/out buttons, zoom percentage indicator, and reset zoom button.
+
+**Files**:
+- `web/src/stores/MiniMapStore.ts` - Extended with zoom level state and zoom actions
+- `web/src/components/node/MiniMapZoomControls.tsx` - New component with zoom controls UI
+- `web/src/components/node/MiniMapNavigator.tsx` - Integrated zoom controls into minimap
+- `web/src/config/shortcuts.ts` - Added minimap zoom keyboard shortcuts (M, Ctrl+Shift+/-, Ctrl+Shift+0)
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handlers for minimap zoom shortcuts
+- `web/src/stores/__tests__/MiniMapStore.test.ts` - Tests for zoom functionality
+
+**Implementation**:
+- MiniMapStore now tracks zoomLevel with min (0.5), max (2), and step (0.1)
+- MiniMapZoomControls component provides visual zoom buttons and percentage indicator
+- Keyboard shortcuts for toggle (M), zoom in/out (Ctrl+Shift+/-), and reset (Ctrl+Shift+0)
+- Zoom level persisted in store for potential future use
+
+**Impact**: Users can now zoom in/out on the minimap using buttons or keyboard shortcuts, with a visual indicator showing current zoom level. Improves navigation of large workflows.

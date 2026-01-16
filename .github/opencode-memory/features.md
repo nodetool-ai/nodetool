@@ -21,6 +21,8 @@ Last updated: 2026-01-12
 - **Viewport Status Indicator**: Real-time zoom percentage with zoom presets (25%-200%), zoom in/out buttons, and fit view
 - **Zoom Presets**: Quick access to common zoom levels (25%, 50%, 75%, 100%, 150%, 200%) via dropdown menu and keyboard shortcuts
 - **Minimap**: Overview minimap for workflow navigation
+- **Minimap Zoom Controls**: Zoom in/out buttons, zoom level indicator (%), and reset zoom for minimap navigation
+- **Minimap Keyboard Shortcuts**: Toggle minimap (M), zoom in/out (Ctrl+Shift+/-), reset (Ctrl+Shift+0)
 - **Multi-Select**: Select and manipulate multiple nodes simultaneously
 - **Copy/Paste**: Copy and paste nodes within and across workflows
 - **Find in Workflow**: Search for nodes by name, type, or properties
