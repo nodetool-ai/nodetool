@@ -61,7 +61,7 @@ const resizer = (
           const [dirX, dirY] = params.direction;
           return dirX !== 0 && dirY === 0;
         }}
-        minWidth={100}
+        minWidth={200}
         maxWidth={MAX_NODE_WIDTH}
       />
     </div>

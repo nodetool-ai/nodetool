@@ -6,6 +6,8 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 Last updated: 2026-01-12
 
+- **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
+
 ---
 
 ## Core Application Features

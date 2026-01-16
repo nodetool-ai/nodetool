@@ -160,6 +160,16 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Node Resize Min Width (2026-01-16)
+
+**What**: Increased minimum width for resizable nodes from 100px to 200px.
+
+**Why**: 100px was too small and could make nodes unusable when resized too narrow. Matches the minimum used in GroupNode (200px).
+
+**Files**: `web/src/components/node/BaseNode.tsx`
+
+---
+
 ### Mobile TypeScript Type Definitions Fix (2026-01-15)
 
 **What**: Fixed mobile package TypeScript type checking by adding `@types/react-native` package.
