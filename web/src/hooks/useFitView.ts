@@ -6,7 +6,7 @@ import { NodeData } from "../stores/NodeData";
 const EXTRA_LEFT_PADDING = 100;
 const TOP_PADDING_ADJUSTMENT = 50;
 
-function getNodesBounds(
+export function getNodesBounds(
   nodesToBound: Node<NodeData>[],
   nodesById: Record<string, XYPosition>
 ) {
