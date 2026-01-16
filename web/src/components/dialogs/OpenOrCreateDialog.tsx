@@ -27,7 +27,6 @@ import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
-import { escapeHtml } from "../../utils/highlightText";
 const styles = (theme: Theme) =>
   css({
     ".MuiBackdrop-root": { background: "transparent" },
@@ -188,9 +187,6 @@ const OpenOrCreateDialog = () => {
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
-  function addBreaks(text: string) {
-    return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
-  }
   const loadWorkflows = async (cursor?: string, limit?: number) => {
     cursor = cursor || "";
     const { data, error } = await client.GET("/api/workflows/", {
@@ -276,10 +272,9 @@ const OpenOrCreateDialog = () => {
             {!workflow.thumbnail_url && <Box className="image-placeholder" />}
           </Box>
           <Box className="name-and-description">
-            <div
-              className="name"
-              dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-            ></div>
+            <Box className="name" sx={{ wordBreak: "break-word" }}>
+              {workflow.name}
+            </Box>
             <Typography className="description">
               {truncateString(workflow.description, 350)}
             </Typography>

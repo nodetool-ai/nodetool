@@ -8,7 +8,6 @@ import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
-import { escapeHtml } from "../../utils/highlightText";
 
 interface WorkflowTileProps {
   workflow: Workflow;
@@ -20,10 +19,6 @@ interface WorkflowTileProps {
   onSelect: (workflow: Workflow) => void;
   onDelete: (e: any, workflow: Workflow) => void;
 }
-
-const addBreaks = (text: string) => {
-  return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
-};
 
 export const WorkflowTile = ({
   workflow,
@@ -59,10 +54,9 @@ export const WorkflowTile = ({
         {!workflow.thumbnail_url && <Box className="image-placeholder" />}
       </Box>
 
-      <div
-        className="name"
-        dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-      />
+      <Box className="name" sx={{ wordBreak: "break-word" }}>
+        {workflow.name}
+      </Box>
 
       <Typography className="description">
         {truncateString(workflow.description, 150)}
