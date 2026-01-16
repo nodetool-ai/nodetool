@@ -750,6 +750,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  {
+    title: "History Panel",
+    slug: "historyPanel",
+    keyCombo: ["Control", "H"],
+    category: "editor" as const,
+    description: "Show/hide the history panel",
+    registerCombo: true
   }
 ] as Shortcut[];
 

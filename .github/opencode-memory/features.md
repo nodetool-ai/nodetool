@@ -14,6 +14,7 @@ Last updated: 2026-01-12
 - **Visual Node Editor**: Drag-and-drop interface using ReactFlow for creating AI workflows
 - **Node Connection**: Visual edge connections between node inputs/outputs with validation
 - **Undo/Redo**: Temporal middleware for undo/redo operations in workflows
+- **History Panel**: Visual timeline panel showing editing history with undo/redo buttons and entry navigation (Ctrl+H)
 - **Auto-Layout**: Automatic node positioning algorithms for cleaner workflows
 - **Zoom & Pan**: Navigation controls for large workflows
 - **Viewport Status Indicator**: Real-time zoom percentage with zoom presets (25%-200%), zoom in/out buttons, and fit view

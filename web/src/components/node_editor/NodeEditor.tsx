@@ -44,8 +44,10 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import HistoryPanel from "./HistoryPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useHistoryStore } from "../../stores/HistoryStore";
 
 declare global {
   interface Window {
@@ -102,6 +104,20 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     },
     true,
     active
+  );
+
+  // Keyboard shortcut to close History Panel (Escape)
+  const historyIsOpen = useHistoryStore((state) => state.isOpen);
+  const setHistoryIsOpen = useHistoryStore((state) => state.setIsOpen);
+  useCombo(
+    ["escape"],
+    () => {
+      if (active && historyIsOpen) {
+        setHistoryIsOpen(false);
+      }
+    },
+    true,
+    active && historyIsOpen
   );
 
   // OPEN NODE MENU
@@ -171,6 +187,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 redo={() => nodeHistory.redo()}
                 reactFlowWrapper={reactFlowWrapperRef}
               />
+              <HistoryPanel />
               <FindInWorkflowDialog workflowId={workflowId} />
               <Modal
                 open={showShortcuts}

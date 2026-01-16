@@ -491,7 +491,27 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
-### Console Log to Loglevel Migration (2026-01-16)
+### Visual History Panel (2026-01-16)
+
+**What**: Added a visual History Panel feature that displays the undo/redo stack as a timeline, allowing users to see their editing history, navigate through past actions, and jump to specific states.
+
+**Files**:
+- `web/src/stores/HistoryStore.ts` - New store for managing history panel state and entries
+- `web/src/components/node_editor/HistoryPanel.tsx` - New component with visual timeline UI showing action types, timestamps, node/edge counts
+- `web/src/config/shortcuts.ts` - Added Ctrl+H keyboard shortcut for history panel toggle
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handler for history panel toggle
+- `web/src/components/node_editor/NodeEditor.tsx` - Integrated HistoryPanel component
+- `web/src/components/node_editor/__tests__/HistoryPanel.test.tsx` - Tests for the new component
+
+**Implementation**:
+- Created `HistoryStore` with Zustand persist middleware to track history entries (action type, timestamp, node/edge counts, descriptions)
+- Built `HistoryPanel` component with MUI styling showing a scrollable timeline of editing actions
+- Added keyboard shortcut (Ctrl+H on Windows/Linux, Cmd+H on Mac) to toggle the panel
+- Panel includes undo/redo buttons, clear history functionality, and keyboard shortcut hints
+- Each history entry shows action type icon, description, timestamp, and node/edge counts
+- Escape key closes the panel when open
+
+**Impact**: Users now have a visual way to track and navigate their editing history, complementing the existing keyboard-based undo/redo functionality.
 
 **What**: Replaced `console.log` statements with proper `loglevel` logging across multiple files.
 
