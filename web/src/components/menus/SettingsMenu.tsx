@@ -70,37 +70,21 @@ interface SettingsMenuProps {
 }
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
-  const { user } = useAuth();
+  const user = useAuth((state) => state.user);
   const _navigate = useNavigate();
-  const {
-    isMenuOpen,
-    setMenuOpen,
-    settingsTab,
-    setGridSnap,
-    setConnectionSnap,
-    setPanControls,
-    setSelectionMode,
-    setTimeFormat,
-    setSelectNodesOnDrag,
-    setShowWelcomeOnStartup,
-    setSoundNotifications,
-    updateAutosaveSettings,
-    settings
-  } = useSettingsStore((state) => ({
-    isMenuOpen: state.isMenuOpen,
-    settings: state.settings,
-    setMenuOpen: state.setMenuOpen,
-    settingsTab: state.settingsTab,
-    setGridSnap: state.setGridSnap,
-    setConnectionSnap: state.setConnectionSnap,
-    setPanControls: state.setPanControls,
-    setSelectionMode: state.setSelectionMode,
-    setTimeFormat: state.setTimeFormat,
-    setSelectNodesOnDrag: state.setSelectNodesOnDrag,
-    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
-    setSoundNotifications: state.setSoundNotifications,
-    updateAutosaveSettings: state.updateAutosaveSettings
-  }));
+  const isMenuOpen = useSettingsStore((state) => state.isMenuOpen);
+  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+  const settingsTab = useSettingsStore((state) => state.settingsTab);
+  const setGridSnap = useSettingsStore((state) => state.setGridSnap);
+  const setConnectionSnap = useSettingsStore((state) => state.setConnectionSnap);
+  const setPanControls = useSettingsStore((state) => state.setPanControls);
+  const setSelectionMode = useSettingsStore((state) => state.setSelectionMode);
+  const setTimeFormat = useSettingsStore((state) => state.setTimeFormat);
+  const setSelectNodesOnDrag = useSettingsStore((state) => state.setSelectNodesOnDrag);
+  const setShowWelcomeOnStartup = useSettingsStore((state) => state.setShowWelcomeOnStartup);
+  const setSoundNotifications = useSettingsStore((state) => state.setSoundNotifications);
+  const updateAutosaveSettings = useSettingsStore((state) => state.updateAutosaveSettings);
+  const settings = useSettingsStore((state) => state.settings);
 
   const [activeSection, setActiveSection] = useState("editor");
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
