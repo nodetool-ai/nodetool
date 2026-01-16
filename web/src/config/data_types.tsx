@@ -35,6 +35,7 @@ import database from "../icons/database.svg?react";
 import task from "../icons/task.svg?react";
 import documentIcon from "../icons/document.svg?react";
 import np_array from "../icons/np_array.svg?react";
+import datetime from "../icons/datetime.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
 
@@ -92,7 +93,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   model_ref: model,
   image_model: model,
   workflow: dataframe,
-  datetime: float,
+  datetime,
   object: dict,
   np_array: np_array,
   document: documentIcon,
