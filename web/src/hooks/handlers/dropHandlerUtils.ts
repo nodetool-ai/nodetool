@@ -14,6 +14,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
+import { createErrorMessage, AppError } from "../../utils/errorHandling";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -110,7 +111,7 @@ export const useFileHandlers = () => {
     workflow: state.workflow
   }));
   const { addNotification } = useNotificationStore();
-  const { user } = useAuth();
+  const { user } = useAuth((auth) => ({ user: auth.user }));
   const createDataframe = useCreateDataframe(createNode, addNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const navigate = useNavigate();
@@ -151,10 +152,11 @@ export const useFileHandlers = () => {
         });
 
         return { success: true };
-      } catch (error: any) {
+      } catch (error) {
+        const err = createErrorMessage(error, "Failed to upload file as asset");
         return {
           success: false,
-          error: error.message || "Failed to upload file as asset"
+          error: err instanceof AppError ? err.detail : err.message
         };
       }
     },
@@ -185,19 +187,21 @@ export const useFileHandlers = () => {
             });
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
-          } catch (error: any) {
+          } catch (error) {
+            const err = createErrorMessage(error, "Failed to create workflow");
             return {
               success: false,
-              error: error.message || "Failed to create workflow"
+              error: err instanceof AppError ? err.detail : err.message
             };
           }
         } else {
           return await handleGenericFile(file, position);
         }
-      } catch (error: any) {
+      } catch (error) {
+        const err = createErrorMessage(error, "Failed to process PNG file");
         return {
           success: false,
-          error: error.message || "Failed to process PNG file"
+          error: err instanceof AppError ? err.detail : err.message
         };
       }
     },
@@ -219,10 +223,11 @@ export const useFileHandlers = () => {
             });
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
-          } catch (error: any) {
+          } catch (error) {
+            const err = createErrorMessage(error, "Failed to create workflow");
             return {
               success: false,
-              error: error.detail || "Failed to create workflow"
+              error: err instanceof AppError ? err.detail : err.message
             };
           }
         } else if (isNodetoolWorkflowJson(jsonData)) {
@@ -235,20 +240,22 @@ export const useFileHandlers = () => {
             });
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
-          } catch (error: any) {
+          } catch (error) {
+            const err = createErrorMessage(error, "Failed to create workflow");
             return {
               success: false,
-              error: error.message || "Failed to create workflow"
+              error: err instanceof AppError ? err.detail : err.message
             };
           }
         } else {
           // Handle as regular JSON file
           return await handleGenericFile(file, position);
         }
-      } catch (error: any) {
+      } catch (error) {
+        const err = createErrorMessage(error, "Failed to process JSON file");
         return {
           success: false,
-          error: error.message || "Failed to process JSON file"
+          error: err instanceof AppError ? err.detail : err.message
         };
       }
     },
@@ -265,10 +272,11 @@ export const useFileHandlers = () => {
           // If createDataframe didn't handle the file, treat it as a generic file
           return await handleGenericFile(file, position);
         }
-      } catch (error: any) {
+      } catch (error) {
+        const err = createErrorMessage(error, "Failed to process CSV file");
         return {
           success: false,
-          error: error.message || "Failed to process CSV file"
+          error: err instanceof AppError ? err.detail : err.message
         };
       }
     },

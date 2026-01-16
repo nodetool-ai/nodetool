@@ -122,7 +122,7 @@ if (isLocalhost) {
 }
 
 const NavigateToStart = () => {
-  const { state } = useAuth();
+  const { state } = useAuth((auth) => ({ state: auth.state }));
 
   if (isLocalhost) {
     return <Navigate to="/dashboard" replace={true} />;

@@ -9,7 +9,7 @@ type Props = {
 
 const ProtectedRoute: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();
-  const { state } = useAuth();
+  const { state } = useAuth((auth) => ({ state: auth.state }));
 
   useEffect(() => {
     if (state === "logged_out") {
