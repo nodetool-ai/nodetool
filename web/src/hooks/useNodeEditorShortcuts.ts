@@ -290,11 +290,7 @@ export const useNodeEditorShortcuts = (
           closeCurrentWorkflow();
           break;
         case "resetZoom":
-          reactFlow.setViewport({
-            x: 0,
-            y: 0,
-            zoom: 1
-          });
+          reactFlow.zoomTo(0.5, { duration: 200 });
           break;
         case "zoomIn":
           reactFlow.zoomIn();
@@ -425,12 +421,9 @@ export const useNodeEditorShortcuts = (
       duplicateVertical: { callback: duplicateNodesVertical },
       fitView: { callback: () => handleFitView({ padding: 0.4 }) },
       resetZoom: {
-        callback: () =>
-          reactFlow.setViewport({
-            x: 0,
-            y: 0,
-            zoom: 1
-          })
+        callback: () => {
+          reactFlow.zoomTo(0.5, { duration: 200 });
+        }
       },
       openNodeMenu: { callback: handleOpenNodeMenu },
       groupSelected: { callback: handleGroup },
