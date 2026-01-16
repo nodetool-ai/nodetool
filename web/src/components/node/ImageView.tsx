@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useCallback, useState } from "react";
-import { Typography, IconButton, Tooltip } from "@mui/material";
+import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
+import { Typography, IconButton, Tooltip, Box } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import AssetViewer from "../assets/AssetViewer";
@@ -14,6 +14,8 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const [openViewer, setOpenViewer] = React.useState(false);
   const [copied, setCopied] = useState(false);
   const blobUrlRef = useRef<string | null>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const imageUrl = useMemo(() => {
     const result = createImageUrl(source, blobUrlRef.current);
@@ -21,15 +23,26 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     return result.url || undefined;
   }, [source]);
 
+  const handleImageLoad = useCallback(() => {
+    if (imageRef.current) {
+      setImageDimensions({
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    setImageDimensions(null);
+  }, [imageUrl]);
+
   const handleCopyToClipboard = useCallback(async () => {
-    if (!imageUrl) {return;}
+    if (!imageUrl) { return; }
 
     try {
-      // Fetch image as blob to avoid CORS issues with canvas
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      
-      // Convert blob to data URL
+
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
@@ -98,8 +111,10 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         )}
       </div>
       <img
+        ref={imageRef}
         src={imageUrl}
         alt=""
+        onLoad={handleImageLoad}
         style={{
           width: "100%",
           height: "100%",
@@ -109,6 +124,25 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         }}
         onDoubleClick={() => setOpenViewer(true)}
       />
+      {imageDimensions && (
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 4,
+            right: 4,
+            bgcolor: "rgba(0, 0, 0, 0.6)",
+            color: "white",
+            px: 0.5,
+            py: 0.25,
+            borderRadius: 0.5,
+            fontSize: "0.65rem",
+            fontFamily: "monospace",
+            pointerEvents: "none"
+          }}
+        >
+          {imageDimensions.width} × {imageDimensions.height}
+        </Box>
+      )}
     </div>
   );
 };
