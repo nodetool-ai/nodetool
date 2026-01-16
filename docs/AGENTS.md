@@ -158,18 +158,17 @@ Use consistent markdown formatting:
 
 Use fenced code blocks with language specification:
 
-\```python
+```python
 def example_function():
     return "Hello"
-\```
+```
 
-\```typescript
+```typescript
 const example = "Hello";
-\```
+```
 
-\```bash
+```bash
 npm install nodetool
-\```
 ```
 
 ### Document Structure
@@ -330,7 +329,7 @@ Authorization: Bearer <token>
 
 ### Example
 
-\```typescript
+```typescript
 const response = await fetch('/api/resource', {
   method: 'POST',
   headers: {
@@ -338,7 +337,6 @@ const response = await fetch('/api/resource', {
   },
   body: JSON.stringify({ parameter: 'value' })
 });
-\```
 ```
 
 ### Troubleshooting Format
@@ -363,7 +361,6 @@ const response = await fetch('/api/resource', {
 ### Issue: Another problem
 
 [Same pattern...]
-```
 
 ## Adding New Documentation
 
