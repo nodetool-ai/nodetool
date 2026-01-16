@@ -63,6 +63,7 @@ export const useDropHandler = () => {
       event.preventDefault();
       const target = event.target as HTMLElement;
       const targetIsPane = target.classList.contains("react-flow__pane");
+      const targetIsPreviewNode = target.closest(".preview-node") !== null;
       const position = reactFlow.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY
@@ -70,6 +71,12 @@ export const useDropHandler = () => {
 
       // Use unified deserialization
       const dragData = deserializeDragData(event.dataTransfer);
+
+      // If dropping on a preview node without modifier key, don't create image node
+      // This allows the preview node to be moved instead
+      if (targetIsPreviewNode && !event.altKey) {
+        return;
+      }
 
       // Handle create-node drop
       if (dragData?.type === "create-node") {

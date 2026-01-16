@@ -22,6 +22,7 @@ Last updated: 2026-01-12
 - **Zoom Presets**: Quick access to common zoom levels (25%, 50%, 75%, 100%, 150%, 200%) via dropdown menu and keyboard shortcuts
 - **Minimap**: Overview minimap for workflow navigation
 - **Multi-Select**: Select and manipulate multiple nodes simultaneously
+- **Drag Image to Preview Node**: Dragging images onto preview nodes moves them instead of creating new nodes; use Alt key modifier to create image nodes
 - **Copy/Paste**: Copy and paste nodes within and across workflows
 - **Find in Workflow**: Search for nodes by name, type, or properties
 - **Node Placement**: Smart node placement with collision avoidance
