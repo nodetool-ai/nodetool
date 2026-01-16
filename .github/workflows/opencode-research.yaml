@@ -321,8 +321,6 @@ jobs:
             ```bash
             python scripts/compact-memory.py
             ```
-            **Files**: List of files created/modified
-            ```
 
             ## Example Research Features
 
