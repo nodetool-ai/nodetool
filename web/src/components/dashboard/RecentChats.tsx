@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useMemo } from "react";
 import { Box, Typography } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -7,6 +7,7 @@ import type { Theme } from "@mui/material/styles";
 import ThreadList from "../chat/thread/ThreadList";
 import { Thread } from "../../stores/ApiTypes";
 import { ThreadInfo } from "../chat/types/thread.types";
+import { memo } from "react";
 
 interface RecentChatsProps {
   threads: { [key: string]: Thread };
@@ -47,23 +48,26 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   getThreadPreview
 }) => {
   const theme = useTheme();
-  const sortedAndTransformedThreads = Object.fromEntries(
-    Object.entries(threads)
-      .sort(([, a], [, b]) => {
-        const dateA = a.updated_at || "";
-        const dateB = b.updated_at || "";
-        return dateB.localeCompare(dateA);
-      })
-      .slice(0, 5)
-      .map(([id, thread]): [string, ThreadInfo] => [
-        id,
-        {
+  const sortedAndTransformedThreads = useMemo(() =>
+    Object.fromEntries(
+      Object.entries(threads)
+        .sort(([, a], [, b]) => {
+          const dateA = a.updated_at || "";
+          const dateB = b.updated_at || "";
+          return dateB.localeCompare(dateA);
+        })
+        .slice(0, 5)
+        .map(([id, thread]): [string, ThreadInfo] => [
           id,
-          title: thread.title ?? undefined,
-          updatedAt: thread.updated_at || new Date().toISOString(),
-          messages: [] as any[]
-        }
-      ])
+          {
+            id,
+            title: thread.title ?? undefined,
+            updatedAt: thread.updated_at || new Date().toISOString(),
+            messages: [] as any[]
+          }
+        ])
+    ),
+    [threads]
   );
 
   return (
@@ -85,4 +89,4 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   );
 };
 
-export default RecentChats;
+export default memo(RecentChats);

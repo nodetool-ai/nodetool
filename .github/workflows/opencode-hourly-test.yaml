@@ -277,11 +277,9 @@ jobs:
                **Date**: YYYY-MM-DD
                ```
 
-            2. **`.github/opencode-memory/project-context.md`** - ONLY for major test fixes:
+            2. **`.github/opencode-memory/project-context.md`** - ONLY for major test fixes (MAX 5 entries, delete oldest):
                ```markdown
-               ### Fix Title (YYYY-MM-DD)
-               **What**: One sentence
-               **Files**: List affected files
+               - **Fix Title (YYYY-MM-DD)**: One sentence. Files: affected-file.tsx
                ```
 
             **Keep it minimal** - Only write truly important information.

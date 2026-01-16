@@ -5,6 +5,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
+import { useMemo } from "react";
 
 interface TagFilterProps {
   tags: Record<string, Workflow[]>;
@@ -13,6 +14,13 @@ interface TagFilterProps {
 }
 
 const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag }) => {
+  const sortedTags = useMemo(() =>
+    Object.keys(tags)
+      .filter((tag) => tag !== "start")
+      .sort((a, b) => a.localeCompare(b)),
+    [tags]
+  );
+
   return (
     <Box className="tag-menu">
       <div className="button-row">
@@ -29,10 +37,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
             Getting Started
           </Button>
         </Tooltip>
-        {Object.keys(tags)
-          .filter((tag) => tag !== "start")
-          .sort((a, b) => a.localeCompare(b))
-          .map((tag) => (
+        {sortedTags.map((tag) => (
             <Tooltip
               key={tag}
               title={`Show ${tag} examples`}

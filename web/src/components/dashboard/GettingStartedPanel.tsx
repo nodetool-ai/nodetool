@@ -364,7 +364,8 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
     getIsElectronDetails().isElectron || !isProduction;
 
   // Fetch secrets to check provider configuration
-  const { secrets, fetchSecrets } = useSecretsStore();
+  const secrets = useSecretsStore((state) => state.secrets);
+  const fetchSecrets = useSecretsStore((state) => state.fetchSecrets);
 
   useQuery({
     queryKey: ["secrets-onboarding"],
@@ -738,4 +739,4 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   );
 };
 
-export default GettingStartedPanel;
+export default React.memo(GettingStartedPanel);

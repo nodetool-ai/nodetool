@@ -64,7 +64,9 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const theme = useTheme();
-  const { collections, fetchCollections, isLoading } = useCollectionStore();
+  const collections = useCollectionStore((state) => state.collections);
+  const fetchCollections = useCollectionStore((state) => state.fetchCollections);
+  const isLoading = useCollectionStore((state) => state.isLoading);
 
   useEffect(() => {
     if (!collections) {
@@ -91,7 +93,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
   );
 
   const handleSelectAll = useCallback(() => {
-    if (collections) {
+    if (collections?.collections) {
       onChange(collections.collections.map((c) => c.name));
     }
   }, [collections, onChange]);
@@ -101,7 +103,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
   }, [onChange]);
 
   const selectedCount = value.length;
-  const totalCount = collections?.collections.length || 0;
+  const totalCount = collections?.collections?.length || 0;
 
   // Positioning logic for Popover
   const [positionConfig, setPositionConfig] = useState<{

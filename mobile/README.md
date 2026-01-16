@@ -131,9 +131,9 @@ The app stores the server URL in AsyncStorage. You can:
 - The default value is `http://localhost:7777`
 
 For local development with a device/emulator:
-- iOS Simulator: Use `http://localhost:8000`
-- Android Emulator: Use `http://10.0.2.2:8000` (Android's localhost proxy)
-- Physical Device: Use your computer's IP address (e.g., `http://192.168.1.100:8000`)
+- iOS Simulator: Use `http://localhost:7777`
+- Android Emulator: Use `http://10.0.2.2:7777` (Android's localhost proxy)
+- Physical Device: Use your computer's IP address (e.g., `http://192.168.1.100:7777`)
 
 ## Development Notes
 
@@ -144,22 +144,87 @@ This app reuses types and logic from the web application (`web/src/components/mi
 
 ## Building for Production
 
-### Android APK
+NodeTool uses **EAS Build** (Expo's cloud build service) for creating production builds. This requires an Expo account and the EAS CLI.
+
+### Prerequisites
+
+1. Create an Expo account: https://expo.dev/signup
+2. Install EAS CLI:
+   ```bash
+   npm install -g eas-cli
+   ```
+3. Log in to your Expo account:
+   ```bash
+   eas login
+   ```
+
+### Building for Android (APK/AAB)
 
 ```bash
-expo build:android
+# Build for Android (APK for direct installation)
+eas build --platform android --profile preview
+
+# Or build for Google Play Store submission (AAB format)
+eas build --platform android --profile production
 ```
 
-### iOS IPA
+### Building for iOS (IPA)
 
 ```bash
-expo build:ios
+# Build for iOS (requires Apple Developer account)
+eas build --platform ios --profile preview
 ```
 
-### Standalone Apps
+### Building for Both Platforms
 
-For standalone native builds without Expo Go, see:
-https://docs.expo.dev/build/introduction/
+```bash
+# Build for all platforms at once
+eas build --platform all --profile preview
+```
+
+### EAS Build Profiles
+
+The app uses EAS Build profiles defined in `eas.json`:
+
+- **preview**: For testing builds (simpler configuration)
+- **production**: For store submissions (includes app versioning, icons, etc.)
+
+### Submitting to App Stores
+
+After building, you can submit directly to stores:
+
+```bash
+# Submit to Google Play Store
+eas submit --platform android
+
+# Submit to Apple App Store
+eas submit --platform ios
+```
+
+### Local Builds (Advanced)
+
+For local builds without EAS, you can use:
+
+```bash
+# Android local build
+npx expo export -p android
+eas build --platform android --local
+
+# iOS local build (macOS only)
+npx expo export -p ios
+eas build --platform ios --local
+```
+
+### Troubleshooting Builds
+
+- **Missing credentials**: Run `eas credentials` to configure store credentials
+- **Build failures**: Check the build logs in Expo dashboard
+- **Timeouts**: Larger apps may need increased build timeout settings
+
+For more details, see:
+- [EAS Build Documentation](https://docs.expo.dev/build/introduction/)
+- [EAS Submit Documentation](https://docs.expo.dev/submit/introduction/)
+- [Mobile Architecture](ARCHITECTURE.md)
 
 ## Troubleshooting
 
@@ -167,7 +232,7 @@ https://docs.expo.dev/build/introduction/
 - Ensure the NodeTool server is running
 - Check the server URL in Settings
 - For physical devices, ensure your device and server are on the same network
-- For Android emulator, use `http://10.0.2.2:8000` instead of `localhost:8000`
+- For Android emulator, use `http://10.0.2.2:7777` instead of `localhost:7777`
 
 ### App crashes on startup
 - Clear the app data and restart
