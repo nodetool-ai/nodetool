@@ -314,25 +314,13 @@ jobs:
                - Document technical learnings
                - Share implementation patterns
 
-            3. **`.github/opencode-memory/project-context.md`**:
-               - Add to "Recent Changes"
-               - Explain rationale and goals
+            3. **`.github/opencode-memory/project-context.md`** (MAX 5 entries, delete oldest):
+               - Add one line: `- **Feature Research (date)**: Brief description. Files: x, y`
 
             **After updating memory files, COMPACT THEM**:
             ```bash
             python scripts/compact-memory.py
             ```
-
-            **Format**:
-            ```markdown
-            ### [Feature Name] Research (2026-01-12)
-
-            **Type**: Experimental feature for [users/developers/researchers]
-            **Goal**: What problem it aims to solve
-            **Status**: Prototype / MVP / Experimental
-            **Approach**: Technical approach and key decisions
-            **Findings**: What worked, what didn't
-            **Next Steps**: Future improvements or full implementation
             **Files**: List of files created/modified
             ```
 
