@@ -453,3 +453,46 @@ _No entries yet - this memory system is new as of 2026-01-10_
 - `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
 
 **Impact**: Reduced unnecessary re-renders in auth-related components by ensuring they only update when their specific state changes. Improved TypeScript type safety by using proper error handling with AppError type guards.
+
+---
+
+### Workflow Performance Profiler Research Feature (2026-01-16)
+
+**Type**: Experimental feature for users and developers
+**Goal**: Help users identify performance bottlenecks in AI workflows
+**Status**: Prototype / MVP
+**Approach**: Built a performance profiling system that analyzes execution timing data collected by ExecutionTimeStore
+
+**Key Components**:
+- `PerformanceProfileStore.ts` - Aggregates and analyzes execution timing data, identifies bottlenecks (nodes taking ≥20% of total time)
+- `useWorkflowPerformance.ts` - Hook providing profile data, insights, and utility functions
+- `WorkflowProfiler.tsx` - Component displaying performance summary, bar charts, bottlenecks, and insights
+- `PerformanceBarChart.tsx` - Visual bar chart showing execution time by node
+- `PerformanceHeatmap.tsx` - Overlay component showing performance heatmap on workflow nodes
+
+**Features**:
+- Total workflow execution time tracking
+- Per-node execution time and percentage of total
+- Automatic bottleneck detection (≥20% of total time)
+- Performance insights with suggestions
+- Visual bar chart for top 10 slowest nodes
+- Heatmap overlay for workflow graph
+
+**Findings**:
+- Execution timing data was already being collected by ExecutionTimeStore
+- Integrated seamlessly with existing workflow execution flow
+- Insights provide actionable suggestions for optimization
+- Visualization helps users quickly identify slow nodes
+
+**Next Steps**:
+- Add to workflow editor UI panel
+- Support historical profiling (compare multiple runs)
+- Add CPU/memory profiling if backend provides data
+- Consider machine learning suggestions for optimization
+
+**Files**:
+- `web/src/stores/profiling/PerformanceProfileStore.ts`
+- `web/src/hooks/profiling/useWorkflowPerformance.ts`
+- `web/src/components/profiling/WorkflowProfiler.tsx`
+- `web/src/components/profiling/PerformanceBarChart.tsx`
+- `web/src/components/profiling/PerformanceHeatmap.tsx`
