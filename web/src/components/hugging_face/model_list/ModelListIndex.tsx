@@ -139,7 +139,8 @@ const ModelListIndex: React.FC = () => {
     handleShowInExplorer
   } = useModels();
 
-  const downloadStore = useModelDownloadStore();
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const openDialog = useModelDownloadStore((state) => state.openDialog);
   const { getModelCompatibility } = useModelCompatibility();
 
   const handleDeleteClick = (modelId: string) => {
@@ -150,22 +151,22 @@ const ModelListIndex: React.FC = () => {
     setModelToDelete(null);
   };
 
-  const startDownload = useCallback(
+  const handleStartDownload = useCallback(
     (model: UnifiedModel) => {
       const repoId = model.repo_id || model.id;
       const path = model.path ?? null;
       const allowPatterns = path ? null : model.allow_patterns ?? null;
       const ignorePatterns = path ? null : model.ignore_patterns ?? null;
-      downloadStore.startDownload(
+      startDownload(
         repoId,
         model.type ?? "",
         path ?? undefined,
         allowPatterns,
         ignorePatterns
       );
-      downloadStore.openDialog();
+      openDialog();
     },
-    [downloadStore]
+    [startDownload, openDialog]
   );
 
   // Flatten the model list with headers for "All" view
@@ -421,7 +422,7 @@ const ModelListIndex: React.FC = () => {
                         }
                         onDownload={
                           !displayModel.downloaded
-                            ? () => startDownload(item.model)
+                            ? () => handleStartDownload(item.model)
                             : undefined
                         }
                         handleShowInExplorer={

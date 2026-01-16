@@ -16,7 +16,8 @@ import { useTheme } from "@mui/material/styles";
 
 const ModelTypeSidebar: React.FC = () => {
   const { modelTypes, availableModelTypes } = useModels();
-  const { selectedModelType, setSelectedModelType } = useModelManagerStore();
+  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const setSelectedModelType = useModelManagerStore((state) => state.setSelectedModelType);
   const theme = useTheme();
 
   const onModelTypeChange = useCallback(
