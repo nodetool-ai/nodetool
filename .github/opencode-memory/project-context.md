@@ -160,6 +160,28 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Workflow Performance Profiler (2026-01-16)
+
+**What**: Added comprehensive workflow performance profiling feature including execution timing, bottleneck detection, critical path analysis, and optimization suggestions.
+
+**Why**: Users and researchers need to understand where time is spent in AI workflows to optimize performance.
+
+**Files**:
+- `web/src/stores/ProfilerStore.ts` - Core profiling data store
+- `web/src/hooks/useWorkflowProfiler.ts` - Profiling hook for components
+- `web/src/components/panels/ProfilerPanel.tsx` - Visual profiling panel
+- `web/src/stores/__tests__/ProfilerStore.test.ts` - ProfilerStore tests
+- `web/src/hooks/__tests__/useWorkflowProfiler.test.ts` - Hook tests
+
+**Implementation**:
+- Tracks node execution times, memory usage, and data flow
+- Identifies bottlenecks with severity levels (critical, high, medium, low)
+- Detects critical path through graph traversal
+- Provides performance grade (A/B/C/D/F) and optimization suggestions
+- Context-aware suggestions based on node type (LLM, image, audio)
+
+---
+
 ### Node Resize Min Width (2026-01-16)
 
 **What**: Increased minimum width for resizable nodes from 100px to 200px.
