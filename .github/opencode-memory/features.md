@@ -4,9 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-12
+Last updated: 2026-01-17
 
-- **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
+- **Data Type Icons**: Improved icons for audio, dict, float, int, any, document, and np_array types for better visual clarity
 
 ---
 
