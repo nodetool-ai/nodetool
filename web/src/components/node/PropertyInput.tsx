@@ -508,6 +508,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     [isDynamicProperty, property.name]
   );
 
+  const handleEditNameClick = useCallback(() => {
+    setIsEditingName(true);
+  }, []);
+
+  const handleDeleteClick = useCallback(() => {
+    handleDeleteProperty(property.name);
+  }, [handleDeleteProperty, property.name]);
+
   return (
     <div
       className="property-input-container"
@@ -518,18 +526,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       {inputField}
       {isDynamicProperty && (
         <div className="action-icons">
-          {isDynamicProperty && (
-            <Edit
-              className="action-icon"
-              onClick={() => setIsEditingName(true)}
-            />
-          )}
-          {handleDeleteProperty && (
-            <Close
-              className="action-icon close"
-              onClick={() => handleDeleteProperty(property.name)}
-            />
-          )}
+          <Edit
+            className="action-icon"
+            onClick={handleEditNameClick}
+          />
+          <Close
+            className="action-icon close"
+            onClick={handleDeleteClick}
+          />
         </div>
       )}
     </div>
