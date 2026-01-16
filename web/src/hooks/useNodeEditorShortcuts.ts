@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useHistoryStore } from "../stores/HistoryStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -252,6 +253,8 @@ export const useNodeEditorShortcuts = (
       onShowShortcuts();
     }
   }, [onShowShortcuts]);
+
+  const toggleHistoryPanel = useHistoryStore((state) => state.toggleOpen);
 
   const handleMenuEvent = useCallback(
     (data: any) => {
@@ -522,7 +525,8 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
-      }
+      },
+      historyPanel: { callback: toggleHistoryPanel }
     };
 
     // Switch-to-tab (1-9)
@@ -586,7 +590,8 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    toggleHistoryPanel
   ]);
 
   // useEffect for shortcut registration
