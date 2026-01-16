@@ -256,6 +256,43 @@ try {
 - **Web First**: Build web package before electron
 - **Native Modules**: Some require rebuild for Electron
 
+## Test Coverage (2026-01-16)
+
+**Tests Added**: 75 new unit tests across 4 test files:
+- `src/utils/__tests__/edgeValue.test.ts` - 14 tests
+- `src/utils/__tests__/hfCache.test.ts` - 28 tests
+- `src/utils/__tests__/imageUtils.test.ts` - 21 tests
+- `src/utils/__tests__/downloadPreviewAssets.test.ts` - 12 tests
+
+**Previously Untested Files Now Covered**:
+- `src/utils/edgeValue.ts` - resolveExternalEdgeValue function
+- `src/utils/hfCache.ts` - HuggingFace cache utilities
+- `src/utils/imageUtils.ts` - Image URL creation
+- `src/utils/downloadPreviewAssets.ts` - Download payload logic
+
+**Test Results**: All new tests pass (75/75).
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test files
+npm test -- --testPathPattern="edgeValue.test|hfCache.test"
+
+# Run with coverage
+npm run test:coverage
+```
+
+### Best Practices for Adding Tests
+
+1. **Use mock data factories** for consistent test setup
+2. **Group tests with describe blocks** by behavior/input type
+3. **Test edge cases** - null, undefined, empty strings, zero, false
+4. **Avoid complex DOM mocking** when possible; test logic separately
+5. **Ensure TypeScript types match** - check generated API types
+
 ## CI/CD
 
 GitHub Actions runs these checks automatically:
