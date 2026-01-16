@@ -75,6 +75,7 @@ Last updated: 2026-01-12
 
 ### Asset Viewers
 - **Image Viewer**: Display images with zoom and pan
+- **Image Size Display**: Shows image dimensions (width × height) in bottom right of image output nodes
 - **Audio Viewer**: Audio playback with controls
 - **Video Viewer**: Video playback with controls
 - **PDF Viewer**: PDF document viewer

@@ -160,6 +160,16 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Image Size Display in Nodes (2026-01-16)
+
+**What**: Added image dimensions display (width × height) at bottom right of image output nodes, shown in tiny monospace font with semi-transparent background.
+
+**Why**: Users can now see image size without clicking on the image, improving workflow visibility.
+
+**Files**: `web/src/components/node/ImageView.tsx`
+
+---
+
 ### Mobile TypeScript Type Definitions Fix (2026-01-15)
 
 **What**: Fixed mobile package TypeScript type checking by adding `@types/react-native` package.
