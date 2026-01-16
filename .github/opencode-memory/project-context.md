@@ -160,6 +160,22 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Quick Favorites Bar (2026-01-15)
+
+**What**: Added a compact horizontal Quick Favorites Bar at the top of the NodeMenu for instant drag-and-drop access to favorite nodes. Displays up to 6 favorite nodes with color-coded borders based on output type, tooltips, and right-click to remove from favorites.
+
+**Files**:
+- `web/src/components/node_menu/QuickFavoritesBar.tsx` - New component
+- `web/src/components/node_menu/NodeMenu.tsx` - Integrated QuickFavoritesBar below search toolbar
+
+**Implementation**:
+- Compact horizontal bar showing up to 6 favorite nodes as 36x36px tiles
+- Color-coded left border based on node's output type
+- Drag-and-drop support for creating nodes on canvas
+- Click to place node, right-click to remove from favorites
+- Tooltips showing node name and usage instructions
+- Horizontal scrolling for overflow favorites
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
