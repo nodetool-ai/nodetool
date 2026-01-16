@@ -23,8 +23,15 @@ const updateSettings = useSettingsStore((state) => state.updateSettings);
 
 **Impact**: Significant reduction in unnecessary re-renders, especially in the chat and workflow assistant components.
 
-**Files Fixed**:
+**Files Fixed (Original)**:
 - `web/src/components/panels/WorkflowAssistantChat.tsx`
 - `web/src/components/panels/AppHeader.tsx`
 - `web/src/components/dashboard/WelcomePanel.tsx`
 - `web/src/components/content/Welcome/Welcome.tsx`
+
+**Additional Files Fixed (2026-01-16)**:
+- `web/src/components/buttons/GoogleAuthButton.tsx` - useAuth() → individual selectors
+- `web/src/components/assets/AssetGrid.tsx` - useAuth() → individual selector
+- `web/src/components/menus/SettingsMenu.tsx` - useSettingsStore() object destructuring → 13 individual selectors
+
+**Status**: ✅ RESOLVED - All identified components have been optimized with selective Zustand subscriptions.

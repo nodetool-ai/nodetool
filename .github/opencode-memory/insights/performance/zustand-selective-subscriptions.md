@@ -30,4 +30,26 @@ const threads = useGlobalChatStore((state) => state.threads);
 - `web/src/components/dashboard/WelcomePanel.tsx`
 - `web/src/components/content/Welcome/Welcome.tsx`
 
-**Date**: 2026-01-11
+---
+
+### Additional Selective Subscriptions (2026-01-16)
+
+**Issue**: Components still using full store destructuring causing unnecessary re-renders.
+
+**Files Optimized**:
+- `web/src/components/buttons/GoogleAuthButton.tsx` - Converted `const { signInWithProvider, state } = useAuth()` to individual selectors
+- `web/src/components/assets/AssetGrid.tsx` - Converted `const { user } = useAuth()` to `const user = useAuth((state) => state.user)`
+- `web/src/components/menus/SettingsMenu.tsx` - Converted object destructuring pattern to 13 individual selectors
+
+**Pattern Applied**:
+```typescript
+// Before - creates new object on every render
+const { user } = useAuth();
+
+// After - stable reference, only re-renders when user changes
+const user = useAuth((state) => state.user);
+```
+
+**Impact**: Prevents re-renders when unrelated auth state changes (e.g., session refresh, token updates).
+
+**Date**: 2026-01-16
