@@ -54,6 +54,7 @@ const NodeDescription = React.memo(({
 }: NodeDescriptionProps) => {
   const theme = useTheme();
 
+<<<<<<< HEAD
   const handleTagClick = useCallback(
     (tag: string) => {
       if (onTagClick) {
@@ -67,6 +68,13 @@ const NodeDescription = React.memo(({
     (tag: string) => () => handleTagClick(tag),
     [handleTagClick]
   );
+=======
+  const handleTagClick = useCallback((tag: string) => () => {
+    if (onTagClick) {
+      onTagClick(tag);
+    }
+  }, [onTagClick]);
+>>>>>>> origin/main
 
   if (!description) {
     return null;
@@ -99,6 +107,7 @@ const NodeDescription = React.memo(({
             <span
               key={index}
               className="tag"
+<<<<<<< HEAD
               onClick={createTagClickHandler(tag)}
               style={{ cursor: onTagClick ? "pointer" : "default" }}
             >

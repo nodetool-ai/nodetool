@@ -130,7 +130,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
   }, []);
 
   const handleColorChangeAndClose = useCallback(
-    (color: string) => {
+    (color: string) => () => {
       onColorChange(color);
       setModalOpen(false);
     },

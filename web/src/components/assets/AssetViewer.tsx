@@ -395,8 +395,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     prevNextAmount,
     onChangeIndex: handleChangeAsset
   });
-
-  useCombo(["Escape"], handleClose);
   useCombo(
     ["left"],
     useCallback(() => {
@@ -614,6 +612,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         maxWidth={false}
         fullWidth
         open={open}
+        onClose={handleClose}
       >
         <div className="actions">
           <Tooltip title="Download">

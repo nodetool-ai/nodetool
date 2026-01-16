@@ -241,14 +241,14 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   );
 
   const handleToolSelect = useCallback(
-    (newTool: EditTool) => {
+    (newTool: EditTool) => () => {
       onToolChange(newTool);
     },
     [onToolChange]
   );
 
   const handleActionClick = useCallback(
-    (action: EditAction) => {
+    (action: EditAction) => () => {
       onAction(action);
     },
     [onAction]
@@ -445,7 +445,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className="action-button"
                 onClick={handleFlipV}
                 size="small"
-                sx={{ transform: "rotate(90deg)" }}
               >
                 <FlipIcon fontSize="small" />
               </IconButton>
