@@ -80,11 +80,13 @@ const mockUseNotificationStore = useNotificationStore as jest.MockedFunction<
 
 const mockSecretsStore: {
   secrets: any[];
+  isLoading: boolean;
   fetchSecrets: jest.Mock;
   updateSecret: jest.Mock;
   deleteSecret: jest.Mock;
 } = {
   secrets: [],
+  isLoading: false,
   fetchSecrets: jest.fn((secrets?: any[]) => {
     if (secrets) {
       mockSecretsStore.secrets = secrets;
@@ -124,8 +126,13 @@ describe("SecretsMenu", () => {
     jest.clearAllMocks();
     queryClient.clear();
 
-    mockUseSecretsStore.mockReturnValue(mockSecretsStore as any);
-    mockUseNotificationStore.mockReturnValue(mockNotificationStore as any);
+    mockUseSecretsStore.mockImplementation((selector?: any) => {
+      if (typeof selector === 'function') {
+        return selector(mockSecretsStore);
+      }
+      return mockSecretsStore;
+    });
+    mockUseNotificationStore.mockReturnValue(mockNotificationStore);
 
     mockSecretsStore.fetchSecrets.mockResolvedValue([]);
   });

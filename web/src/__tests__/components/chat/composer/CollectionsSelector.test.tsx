@@ -91,9 +91,46 @@ jest.mock("@mui/material/styles", () => ({
 }));
 
 // Mock the CollectionStore
-jest.mock("../../../../stores/CollectionStore", () => ({
-  useCollectionStore: jest.fn()
-}));
+jest.mock("../../../../stores/CollectionStore", () => {
+  const mockStore = {
+    collections: {
+      collections: null
+    },
+    isLoading: false,
+    fetchCollections: jest.fn(),
+    setCollections: jest.fn(),
+    setIsLoading: jest.fn(),
+    setError: jest.fn(),
+    setDeleteTarget: jest.fn(),
+    setShowForm: jest.fn(),
+    setDragOverCollection: jest.fn(),
+    setIndexProgress: jest.fn(),
+    setIndexErrors: jest.fn(),
+    setSelectedCollections: jest.fn(),
+    deleteCollection: jest.fn(),
+    confirmDelete: jest.fn(),
+    cancelDelete: jest.fn(),
+    handleDragOver: jest.fn(),
+    handleDragLeave: jest.fn(),
+    handleDrop: jest.fn()
+  };
+
+  return {
+    __esModule: true,
+    default: jest.fn((selector) => {
+      if (typeof selector === 'function') {
+        return selector(mockStore);
+      }
+      return mockStore;
+    }),
+    useCollectionStore: jest.fn((selector) => {
+      if (typeof selector === 'function') {
+        return selector(mockStore);
+      }
+      return mockStore;
+    })
+  };
+});
 
 // Mock the constants
 jest.mock("../../../../config/constants", () => ({
@@ -418,6 +455,10 @@ describe("CollectionsSelector", () => {
 
     it("selects all collections when All button is clicked", async () => {
       const user = userEvent.setup();
+      (useCollectionStore as unknown as jest.Mock).mockReturnValue({
+        ...mockStore,
+        collections: mockCollections
+      });
       renderComponent(baseProps);
 
       // Open popover
@@ -461,6 +502,10 @@ describe("CollectionsSelector", () => {
   describe("Accessibility", () => {
     it("has correct title for popover", async () => {
       const user = userEvent.setup();
+      (useCollectionStore as unknown as jest.Mock).mockReturnValue({
+        ...mockStore,
+        collections: mockCollections
+      });
       renderComponent(baseProps);
 
       // Open popover
@@ -478,8 +523,7 @@ describe("CollectionsSelector", () => {
       const user = userEvent.setup();
       (useCollectionStore as unknown as jest.Mock).mockReturnValue({
         ...mockStore,
-        collections: mockCollections,
-        isLoading: false
+        collections: mockCollections
       });
       renderComponent(baseProps);
 

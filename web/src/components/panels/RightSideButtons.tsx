@@ -37,7 +37,9 @@ const styles = (theme: Theme) =>
 
 const RightSideButtons: React.FC = () => {
   const theme = useTheme();
-  const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
+  const helpOpen = useAppHeaderStore((state) => state.helpOpen);
+  const handleCloseHelp = useAppHeaderStore((state) => state.handleCloseHelp);
+  const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
 
   return (
     <Box className="buttons-right" css={styles(theme)}>

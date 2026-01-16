@@ -38,19 +38,13 @@ const OutputContextMenu: React.FC = () => {
     type: state.type,
     handleId: state.handleId
   }));
-  const { openNodeMenu } = useNodeMenuStore();
-  const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
-    (state) => ({
-      createNode: state.createNode,
-      addNode: state.addNode,
-      addEdge: state.addEdge,
-      generateEdgeId: state.generateEdgeId
-    })
-  );
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const createNode = useNodes((state) => state.createNode);
+  const addNode = useNodes((state) => state.addNode);
+  const addEdge = useNodes((state) => state.addEdge);
+  const generateEdgeId = useNodes((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
-  const { getMetadata } = useMetadataStore((state) => ({
-    getMetadata: state.getMetadata
-  }));
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
   const {

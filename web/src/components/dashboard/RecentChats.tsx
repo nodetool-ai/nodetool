@@ -7,6 +7,7 @@ import type { Theme } from "@mui/material/styles";
 import ThreadList from "../chat/thread/ThreadList";
 import { Thread } from "../../stores/ApiTypes";
 import { ThreadInfo } from "../chat/types/thread.types";
+import { memo } from "react";
 
 interface RecentChatsProps {
   threads: { [key: string]: Thread };
@@ -47,26 +48,25 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   getThreadPreview
 }) => {
   const theme = useTheme();
-  const sortedAndTransformedThreads = useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(threads)
-          .sort(([, a], [, b]) => {
-            const dateA = a.updated_at || "";
-            const dateB = b.updated_at || "";
-            return dateB.localeCompare(dateA);
-          })
-          .slice(0, 5)
-          .map(([id, thread]): [string, ThreadInfo] => [
+  const sortedAndTransformedThreads = useMemo(() =>
+    Object.fromEntries(
+      Object.entries(threads)
+        .sort(([, a], [, b]) => {
+          const dateA = a.updated_at || "";
+          const dateB = b.updated_at || "";
+          return dateB.localeCompare(dateA);
+        })
+        .slice(0, 5)
+        .map(([id, thread]): [string, ThreadInfo] => [
+          id,
+          {
             id,
-            {
-              id,
-              title: thread.title ?? undefined,
-              updatedAt: thread.updated_at || new Date().toISOString(),
-              messages: [] as any[]
-            }
-          ])
-      ),
+            title: thread.title ?? undefined,
+            updatedAt: thread.updated_at || new Date().toISOString(),
+            messages: [] as any[]
+          }
+        ])
+    ),
     [threads]
   );
 
@@ -89,4 +89,4 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   );
 };
 
-export default RecentChats;
+export default memo(RecentChats);
