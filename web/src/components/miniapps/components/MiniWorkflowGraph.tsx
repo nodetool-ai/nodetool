@@ -27,18 +27,38 @@ interface LayoutNode extends SimpleNode {
 }
 
 const glowPulse = keyframes`
-  0%, 100% { 
-    box-shadow: 0 0 4px rgba(76, 175, 80, 0.4), 0 0 8px rgba(76, 175, 80, 0.2);
-    border-color: #4caf50;
+  0%, 100% {
+    box-shadow: 0 0 4px var(--palette-success-light, rgba(76, 175, 80, 0.4)), 0 0 8px var(--palette-success-light, rgba(76, 175, 80, 0.2));
+    border-color: var(--palette-success-main, #4caf50);
   }
-  50% { 
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8), 0 0 16px rgba(76, 175, 80, 0.4), 0 0 24px rgba(76, 175, 80, 0.2);
-    border-color: #81c784;
+  50% {
+    box-shadow: 0 0 8px var(--palette-success-light, rgba(76, 175, 80, 0.8)), 0 0 16px var(--palette-success-light, rgba(76, 175, 80, 0.4)), 0 0 24px var(--palette-success-light, rgba(76, 175, 80, 0.2));
+    border-color: var(--palette-success-light, #81c784);
   }
 `;
 
-const getNodeTitle = (node: any): string => {
-  if (node.ui_properties?.title) {
+interface GraphNode {
+  id: string;
+  type: string;
+  ui_properties?: unknown;
+  [key: string]: unknown;
+}
+
+interface GraphEdge {
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  [key: string]: unknown;
+}
+
+const getNodeTitle = (node: GraphNode): string => {
+  if (
+    node.ui_properties &&
+    typeof node.ui_properties === "object" &&
+    "title" in node.ui_properties &&
+    typeof node.ui_properties.title === "string"
+  ) {
     return node.ui_properties.title;
   }
   const typeParts = node.type.split(".");
@@ -69,19 +89,19 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
 
     // Filter out comment, group, and preview nodes
     const filteredNodes = graphNodes.filter(
-      (n: any) =>
+      (n: GraphNode) =>
         !n.type.includes("Comment") &&
         !n.type.includes("Group") &&
         !n.type.includes("Preview")
     );
 
-    const simpleNodes: SimpleNode[] = filteredNodes.map((node: any) => ({
+    const simpleNodes: SimpleNode[] = filteredNodes.map((node: GraphNode) => ({
       id: node.id,
       type: node.type,
       title: getNodeTitle(node)
     }));
 
-    const simpleEdges: SimpleEdge[] = graphEdges.map((edge: any) => ({
+    const simpleEdges: SimpleEdge[] = graphEdges.map((edge: GraphEdge) => ({
       source: edge.source,
       target: edge.target
     }));
@@ -209,24 +229,24 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
     }
 
     .mini-node.running {
-      border-color: #4caf50;
+      border-color: var(--palette-success-main, #4caf50);
       animation: ${glowPulse} 1.5s ease-in-out infinite;
     }
 
     .mini-node.completed {
-      border-color: #4caf50;
-      background: rgba(76, 175, 80, 0.15);
+      border-color: var(--palette-success-main, #4caf50);
+      background: var(--palette-success-light, rgba(76, 175, 80, 0.15));
     }
 
     .mini-node.error {
-      border-color: #f44336;
-      background: rgba(244, 67, 54, 0.15);
+      border-color: var(--palette-error-main, #f44336);
+      background: var(--palette-error-light, rgba(244, 67, 54, 0.15));
     }
 
     .mini-node.booting,
     .mini-node.queued {
-      border-color: #ff9800;
-      background: rgba(255, 152, 0, 0.1);
+      border-color: var(--palette-warning-main, #ff9800);
+      background: var(--palette-warning-light, rgba(255, 152, 0, 0.1));
     }
 
     .edge-line {
@@ -236,7 +256,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
     }
     
     .edge-line.active {
-      stroke: #4caf50;
+      stroke: var(--palette-success-main, #4caf50);
       stroke-width: 1.5;
     }
 
