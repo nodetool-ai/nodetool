@@ -463,3 +463,27 @@ _No entries yet - this memory system is new as of 2026-01-10_
 - `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
 
 **Impact**: Reduced unnecessary re-renders in auth-related components by ensuring they only update when their specific state changes. Improved TypeScript type safety by using proper error handling with AppError type guards.
+
+---
+
+### Performance Optimization - useMemo for Expensive Operations (2026-01-16)
+
+**What**: Added `useMemo` to components performing expensive operations (sort, reduce, filter) on every render.
+
+**Why**: Components were recalculating sorted lists, storage metrics, and download progress on every render, even when dependencies hadn't changed. This caused unnecessary CPU usage and potential UI jank.
+
+**Components Optimized**:
+- `RecentChats.tsx`: Memoized thread sorting and transformation (5 most recent threads)
+- `StorageAnalytics.tsx`: Memoized storage size calculations and file/folder counting
+- `OverallDownloadProgress.tsx`: Memoized download progress reduce operations
+
+**Files**:
+- `web/src/components/dashboard/RecentChats.tsx`
+- `web/src/components/assets/StorageAnalytics.tsx`
+- `web/src/components/hugging_face/OverallDownloadProgress.tsx`
+
+**Impact**: Reduced unnecessary computations in dashboard and asset management components. These calculations now only run when their specific dependencies change.
+
+**Verification**:
+- ✅ Lint: All packages pass
+- ✅ TypeScript: Web package passes
