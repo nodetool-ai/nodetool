@@ -180,7 +180,7 @@ all: install typecheck lint test build
 quickstart: install
 	@echo ""
 	@echo "Installation complete! Next steps:"
-	@echo "  cd web && npm run dev   - Start web development server"
-	@echo "  make electron          - Build web and start electron app"
+	@echo "  cd web && npm start    - Start web development server"
+	@echo "  make electron         - Build web and start electron app"
 	@echo ""
 	@echo "For more commands, run 'make help'"

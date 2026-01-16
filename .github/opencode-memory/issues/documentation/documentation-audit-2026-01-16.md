@@ -112,9 +112,18 @@ All markdown files use consistent formatting:
    - Current: `npm install` in some docs
    - Recommended: `npm ci` for CI/CD, `npm install` for development
 
-2. **Minor**: The web package.json has `start` script but no `dev` script - consider adding `dev` alias for consistency
+2. **Minor**: The web package.json has `start` script but no `dev` script
+   - **FIXED 2026-01-16**: Makefile quickstart corrected from `npm run dev` to `npm start`
 
 3. **Optional**: Add more screenshots to visual documentation (e.g., workflow editor, dashboard)
+
+---
+
+### Issues Fixed (Post-Audit)
+
+- **Makefile quickstart command (2026-01-16)**: Corrected `cd web && npm run dev` → `cd web && npm start`
+  - File: `/Makefile`
+  - Status: ✅ FIXED
 
 ---
 
