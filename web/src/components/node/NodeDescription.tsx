@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback } from "react";
 
 const styles = (theme: Theme) =>
   css({
@@ -47,12 +47,27 @@ interface NodeDescriptionProps {
   onTagClick?: (tag: string) => void;
 }
 
-const NodeDescription: React.FC<NodeDescriptionProps> = ({
+const NodeDescription = React.memo(({
   description,
   className,
   onTagClick
-}) => {
+}: NodeDescriptionProps) => {
   const theme = useTheme();
+
+  const handleTagClick = useCallback(
+    (tag: string) => {
+      if (onTagClick) {
+        onTagClick(tag);
+      }
+    },
+    [onTagClick]
+  );
+
+  const createTagClickHandler = useCallback(
+    (tag: string) => () => handleTagClick(tag),
+    [handleTagClick]
+  );
+
   if (!description) {
     return null;
   }
@@ -75,12 +90,6 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
         .filter((t) => t)
     : [];
 
-  const handleTagClick = (tag: string) => {
-    if (onTagClick) {
-      onTagClick(tag);
-    }
-  };
-
   return (
     <div css={styles(theme)} className={className}>
       {firstLine && <span className="first-line">{firstLine}</span>}
@@ -90,7 +99,7 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
             <span
               key={index}
               className="tag"
-              onClick={() => handleTagClick(tag)}
+              onClick={createTagClickHandler(tag)}
               style={{ cursor: onTagClick ? "pointer" : "default" }}
             >
               {tag}
@@ -103,6 +112,8 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
       )}
     </div>
   );
-};
+});
+
+NodeDescription.displayName = "NodeDescription";
 
 export default NodeDescription;

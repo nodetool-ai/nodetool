@@ -98,6 +98,10 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       );
     }, []);
 
+    const toggleInfoSeverity = useCallback(() => toggleSeverity("info"), [toggleSeverity]);
+    const toggleWarningSeverity = useCallback(() => toggleSeverity("warning"), [toggleSeverity]);
+    const toggleErrorSeverity = useCallback(() => toggleSeverity("error"), [toggleSeverity]);
+
     return (
       <Dialog
         open={open}
@@ -143,7 +147,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("info") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("info")}
+              onClick={toggleInfoSeverity}
             />
             <Chip
               size="small"
@@ -152,7 +156,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("warning") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("warning")}
+              onClick={toggleWarningSeverity}
             />
             <Chip
               size="small"
@@ -161,7 +165,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("error") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("error")}
+              onClick={toggleErrorSeverity}
             />
           </Box>
           <div style={{ padding: 10 }} ref={logsRef}>
