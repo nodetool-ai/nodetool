@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Button, Tooltip } from "@mui/material";
+import { Button, Tooltip, Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
@@ -43,6 +43,8 @@ const PropertyDropzone = ({
 
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [openViewer, setOpenViewer] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
 
   const styles = (theme: Theme) =>
@@ -168,6 +170,19 @@ const PropertyDropzone = ({
     [onDrop]
   );
 
+  const handleImageLoad = useCallback(() => {
+    if (imageRef.current) {
+      setImageDimensions({
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    setImageDimensions(null);
+  }, [uri]);
+
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
       case "image":
@@ -179,12 +194,35 @@ const PropertyDropzone = ({
               open={openViewer}
               onClose={() => setOpenViewer(false)}
             />
-            <img
-              src={asset?.get_url || uri || ""}
-              alt=""
-              style={{ width: "100%", height: "auto" }}
-              onDoubleClick={() => setOpenViewer(true)}
-            />
+            <div style={{ position: "relative" }}>
+              <img
+                ref={imageRef}
+                src={asset?.get_url || uri || ""}
+                alt=""
+                style={{ width: "100%", height: "auto" }}
+                onLoad={handleImageLoad}
+                onDoubleClick={() => setOpenViewer(true)}
+              />
+              {imageDimensions && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 4,
+                    right: 4,
+                    bgcolor: "rgba(0, 0, 0, 0.6)",
+                    color: "white",
+                    px: 0.5,
+                    py: 0.25,
+                    borderRadius: 0.5,
+                    fontSize: "0.65rem",
+                    fontFamily: "monospace",
+                    pointerEvents: "none"
+                  }}
+                >
+                  {imageDimensions.width} × {imageDimensions.height}
+                </Box>
+              )}
+            </div>
           </>
         );
       case "audio":

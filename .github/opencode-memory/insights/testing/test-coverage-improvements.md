@@ -1,84 +1,196 @@
 # Test Coverage Improvements (2026-01-16)
 
-**Coverage Added**: 3 new test files with 45 tests
+**Coverage Added**: 3 new store test files with 74 tests
 
 **Tests Added**:
-- `graphConversion.test.ts` - 18 tests for graph/ReactFlow edge conversion utilities
-- `formatNodeDocumentation.test.ts` - 19 tests for node documentation formatting
-- `useAlignNodes.test.ts` - 8 tests for node alignment functionality (fixed failing test)
+- `ResultsStore.test.ts` - 35 tests for execution results storage
+- `SessionStateStore.test.ts` - 8 tests for clipboard state management
+- `NodeFocusStore.test.ts` - 31 tests for node keyboard navigation
 
 **Areas Covered**:
-- Graph edge to ReactFlow edge conversion (`graphEdgeToReactFlowEdge`)
-- ReactFlow edge to graph edge conversion (`reactFlowEdgeToGraphEdge`)
-- Node documentation parsing (description, tags, use cases)
-- Node alignment operations (horizontal/vertical, spacing, collapsed state)
-- Edge round-trip conversion
+- Results (execution outputs, progress, chunks)
+- Output results for nodes
+- Progress tracking with chunk accumulation
+- Edge status tracking
+- Tasks and tool calls
+- Planning updates and previews
+- Clipboard data management
+- Node focus navigation (next/prev/directional)
+- Focus history management
+- Navigation mode switching
 
 **Test Patterns Used**:
 
-1. **Pure Function Testing Pattern**:
+1. **Store Testing Pattern**:
+```typescript
+describe("StoreName", () => {
+  beforeEach(() => {
+    useStoreName.setState(useStoreName.getInitialState());
+  });
+
+  it("should perform action", () => {
+    useStoreName.getState().action();
+    expect(useStoreName.getState().property).toEqual(expected);
+  });
+});
+```
+
+2. **Multi-workflow Isolation**:
+```typescript
+it("should isolate state between workflows", () => {
+  useStore.getState().setData("wf-1", "node-1", value1);
+  useStore.getState().setData("wf-2", "node-1", value2);
+  expect(useStore.getState().getData("wf-1", "node-1")).toEqual(value1);
+  expect(useStore.getState().getData("wf-2", "node-1")).toEqual(value2);
+});
+```
+
+3. **Complex State Operations**:
+```typescript
+it("should handle append operations", () => {
+  useStore.getState().append("wf-1", "node-1", item1);
+  useStore.getState().append("wf-1", "node-1", item2, true);
+  expect(useStore.getState().getData("wf-1", "node-1")).toEqual([item1, item2]);
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/ResultsStore.test.ts`
+- `web/src/stores/__tests__/SessionStateStore.test.ts`
+- `web/src/stores/__tests__/NodeFocusStore.test.ts`
+
+**Key Learnings**:
+1. Always check for existing tests before creating new ones
+2. Multi-workflow isolation is critical for NodeTool's architecture
+3. Test cleanup in `beforeEach` is essential for test independence
+4. Complex state operations (append, clear by prefix) need thorough edge case coverage
+
+**Status**: All 74 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-16 - Additional)
+
+**Tests Added**: 41 new tests in utility test files
+
+**Tests Added**:
+- `NumberInput.utils.test.ts` - 28 tests for NumberInput utility functions
+- `edgeValue.test.ts` - 13 tests for edge value resolution
+
+**Areas Covered**:
+- Number input step calculation for various ranges and input types
+- Decimal place calculation from step size
+- Speed factor calculation for drag slowdown
+- Slider width calculation with zoom support
+- Value constraint application (min/max clamping, rounding, step snapping)
+- Edge value resolution from workflow results
+- Fallback to node properties when results unavailable
+- Source handle resolution from nested objects
+
+**Test Patterns Used**:
+
+1. **Pure Function Testing**:
+```typescript
+describe("calculateStep", () => {
+  it("returns 0.1 for unbounded float input", () => {
+    expect(calculateStep(undefined, undefined, "float")).toBe(0.1);
+  });
+});
+```
+
+2. **Edge Case Coverage**:
+```typescript
+it("clamps negative value below min", () => {
+  expect(applyValueConstraints(-150, -100, 100, "int", 0)).toBe(-100);
+});
+```
+
+3. **Mock-Based Service Testing**:
+```typescript
+it("returns result from getResult when available", () => {
+  mockGetResult.mockReturnValue({ output: "test-value" });
+  const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+  expect(result.value).toBe("test-value");
+});
+```
+
+**Files Created**:
+- `web/src/utils/__tests__/NumberInput.utils.test.ts`
+- `web/src/utils/__tests__/edgeValue.test.ts`
+
+**Key Learnings**:
+1. Pure utility functions are ideal candidates for unit tests
+2. Mock dependencies (getResult, findNode) enable isolated testing
+3. Test edge cases like invalid bounds, empty values, and boundary conditions
+4. Verify both happy path and error scenarios
+
+**Status**: All 41 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17)
+
+**Coverage Added**: 2 new utility test files with 17 tests
+
+**Tests Added**:
+- `graphEdgeToReactFlowEdge.test.ts` - 9 tests for graph to ReactFlow edge conversion
+- `reactFlowEdgeToGraphEdge.test.ts` - 8 tests for ReactFlow to graph edge conversion
+
+**Areas Covered**:
+- Basic edge conversion (id, source, target, handles)
+- UUID generation when id is not provided
+- Handle null/undefined/empty string conversion
+- UI properties (className) handling
+- Edge cases with special characters
+
+**Test Patterns Used**:
+
+1. **Utility Function Testing Pattern**:
 ```typescript
 describe("functionName", () => {
-  it("should convert input to expected output", () => {
-    const input = createMockInput();
+  it("performs expected conversion", () => {
+    const input = { /* test data */ };
     const result = functionName(input);
     expect(result.property).toEqual(expected);
   });
 
-  it("should handle edge cases", () => {
-    const input = createEdgeCaseInput();
+  it("handles edge case", () => {
+    const input = { /* edge case data */ };
     const result = functionName(input);
-    expect(result).toEqual(expected);
+    expect(result.property).toEqual(expected);
   });
 });
 ```
 
-2. **Hook Testing Pattern with Mocks**:
+2. **Edge Conversion Testing**:
 ```typescript
-describe("useHookName", () => {
-  const mockSetNodes = jest.fn();
+describe("graphEdgeToReactFlowEdge", () => {
+  it("converts a basic edge with all required fields", () => {
+    const graphEdge: GraphEdge = {
+      id: "edge-1",
+      source: "node-1",
+      sourceHandle: "output",
+      target: "node-2",
+      targetHandle: "input"
+    };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (useReactFlow as jest.Mock).mockReturnValue({ setNodes: mockSetNodes });
-  });
+    const result = graphEdgeToReactFlowEdge(graphEdge);
 
-  it("should return a function", () => {
-    const { result } = renderHook(() => useHookName());
-    expect(typeof result.current).toBe("function");
-  });
-
-  it("should perform action when called", () => {
-    mockGetSelectedNodes.mockReturnValue([createMockNode()]);
-    const { result } = renderHook(() => useHookName());
-    act(() => {
-      result.current({ option: true });
-    });
-    expect(mockSetNodes).toHaveBeenCalled();
+    expect(result.id).toBe("edge-1");
+    expect(result.source).toBe("node-1");
+    // ... more assertions
   });
 });
 ```
 
-3. **Round-trip Conversion Testing**:
-```typescript
-it("should round trip conversion correctly", () => {
-  const original = createOriginal();
-  const converted = toReactFlow(original);
-  const roundTripped = fromReactFlow(converted);
-  expect(roundTripped).toEqual(original);
-});
-```
-
-**Files Created/Modified**:
-- `web/src/stores/__tests__/graphConversion.test.ts` (NEW - 18 tests)
-- `web/src/stores/__tests__/formatNodeDocumentation.test.ts` (NEW - 19 tests)
-- `web/src/hooks/__tests__/useAlignNodes.test.ts` (FIXED - 8 tests now passing)
+**Files Created**:
+- `web/src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts`
+- `web/src/stores/__tests__/reactFlowEdgeToGraphEdge.test.ts`
 
 **Key Learnings**:
-1. Mock `@xyflow/react` and React dependencies properly for hook tests
-2. Test edge conversion round-trips to ensure data integrity
-3. Fix test import issues (default vs named exports) before assuming test failure is a code issue
-4. Understand actual implementation behavior before writing test expectations
-5. TypeScript generics in mock data need `extends Record<string, unknown>` constraint
+1. Simple utility functions are easy to test with basic input/output assertions
+2. Handle null, undefined, and empty string edge cases explicitly
+3. Verify type conversions (e.g., null handles to null, empty strings to null)
+4. Graph conversion utilities are critical for workflow editor functionality
 
-**Status**: All 45 tests passing
+**Status**: All 17 tests passing

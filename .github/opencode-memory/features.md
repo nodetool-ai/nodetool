@@ -4,7 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-12
+Last updated: 2026-01-16
+
+- **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
 
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
 
@@ -77,6 +79,7 @@ Last updated: 2026-01-12
 
 ### Asset Viewers
 - **Image Viewer**: Display images with zoom and pan
+- **Image Size Display**: Shows image dimensions (width × height) in bottom right of image output nodes
 - **Audio Viewer**: Audio playback with controls
 - **Video Viewer**: Video playback with controls
 - **PDF Viewer**: PDF document viewer
