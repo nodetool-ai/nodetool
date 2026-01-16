@@ -41,12 +41,12 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
   }, [imageUrl]);
 
   const handleCopyToClipboard = useCallback(async () => {
-    if (!imageUrl) {return;}
+    if (!imageUrl) { return; }
 
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      
+
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
