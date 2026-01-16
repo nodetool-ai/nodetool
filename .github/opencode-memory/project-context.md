@@ -160,7 +160,30 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
-### Node Resize Min Width (2026-01-16)
+### Workflow Versioning UI Research (2026-01-16)
+
+**What**: Implemented experimental Workflow Versioning UI with visual diff capabilities for tracking and comparing workflow versions.
+
+**Why**: Addresses the "Workflow Versioning UI" gap identified in features.md. Enables users to track changes, understand workflow evolution, and restore previous versions.
+
+**Status**: Prototype/MVP with core functionality implemented
+
+**Files Created**:
+- `web/src/hooks/useWorkflowDiff.ts` - Diff computation hook
+- `web/src/components/workflows/WorkflowDiffViewer.tsx` - Visual diff component
+- `web/src/components/workflows/VersionHistoryPanel.tsx` - History panel
+- `web/src/hooks/useWorkflowVersions.ts` - API integration
+- `web/src/hooks/__tests__/useWorkflowDiff.test.ts` - Unit tests
+- `web/src/components/workflows/__tests__/WorkflowDiffViewer.test.tsx` - Component tests
+- `docs/FEATURES_VERSIONING.md` - Feature documentation
+
+**Implementation**:
+- Leverages existing `VersionHistoryStore` for UI state
+- Computes differences between workflow versions (nodes, edges, data changes)
+- Supports compare mode for side-by-side version comparison
+- Color-coded changes (green=added, red=removed, yellow=modified)
+
+**Testing**: All 10 unit tests pass
 
 **What**: Increased minimum width for resizable nodes from 100px to 200px.
 
