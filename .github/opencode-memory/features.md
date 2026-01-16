@@ -194,6 +194,7 @@ Last updated: 2026-01-12
 - **File System Access**: Direct file system operations
 - **Custom Title Bar**: Custom title bar for desktop app
 - **Native Menus**: Native application menus
+- **Sound Notifications**: System beep on workflow completion (Electron-only)
 
 ### Mobile App (React Native)
 - **Mini Apps Viewer**: Browse and run mini apps on mobile
@@ -311,19 +312,43 @@ Last updated: 2026-01-12
 
 ---
 
+### Documentation Port Consistency Fixes (2026-01-17)
+
+**Areas Improved**:
+- Fixed port 8000 → 7777 in mobile/IMPLEMENTATION_SUMMARY.md
+- Added port clarification comments to workflow_runner/AGENTS.md code examples
+- Ensured consistent development port (7777) across all mobile and standalone app documentation
+
+**Issues Fixed**:
+- mobile/IMPLEMENTATION_SUMMARY.md: Server URL setup section now correctly defaults to port 7777
+- workflow_runner/AGENTS.md: Code examples now use 7777 with explanatory comments about dev/prod distinction
+
+**Impact**: Mobile and workflow runner documentation now correctly directs developers to port 7777 for local development, matching the web application and other documentation.
+
+**Files Updated**:
+- mobile/IMPLEMENTATION_SUMMARY.md
+- workflow_runner/AGENTS.md
+- .github/opencode-memory/issues/git-ci/documentation-port-inconsistency.md
+
+---
+
 ### Documentation Quality Assurance (2026-01-16)
 
 **Areas Improved**:
 - Fixed port inconsistencies in mobile documentation (port 8000 → 7777)
 - Fixed markdown code block escaping in docs/AGENTS.md
 - Added documentation best practices to memory insights
+- Comprehensive audit of all 27 documentation files (AGENTS.md + README)
+- Verified port consistency, command accuracy, and code examples across all docs
 
 **Issues Fixed**:
 - mobile/README.md: Fixed Android emulator URL in troubleshooting
 - mobile/QUICKSTART.md: Fixed emulator URLs and firewall port reference
 - docs/AGENTS.md: Fixed 4 incorrectly escaped code block examples
+- All docs verified to use correct npm commands from package.json
+- All code examples verified to compile and match current implementation
 
-**Impact**: Documentation now correctly references port 7777 for development scenarios. Code examples in docs/AGENTS.md render properly in markdown viewers.
+**Impact**: Documentation now correctly references port 7777 for development scenarios. Code examples in docs/AGENTS.md render properly in markdown viewers. All 27 documentation files verified accurate and complete.
 
 **Files Updated**:
 - mobile/README.md
@@ -331,10 +356,31 @@ Last updated: 2026-01-12
 - docs/AGENTS.md
 - .github/opencode-memory/issues/git-ci/documentation-port-inconsistency.md
 - .github/opencode-memory/insights/code-quality/documentation-best-practices.md
+- .github/opencode-memory/issues/documentation/documentation-audit-2026-01-16.md (NEW)
 
 ---
 
-### Documentation Port Consistency Fix (2026-01-12)
+### Documentation Improvements (2026-01-16)
+
+**Areas Improved**: Mobile app documentation
+**Issues Fixed**: Deprecated Expo build commands updated to EAS Build
+**Impact**: Developers following documentation will now use current Expo build tooling. EAS Build is the recommended approach for production builds, replacing deprecated `expo build:android` and `expo build:ios` commands.
+
+**Files Updated**:
+- `mobile/README.md` - Replaced deprecated commands with EAS Build instructions
+  - Added EAS CLI installation and login steps
+  - Added Android APK/AAB build instructions
+  - Added iOS IPA build instructions
+  - Added multi-platform build commands
+  - Added EAS Build profiles documentation
+  - Added app store submission instructions
+  - Added local build alternatives
+  - Added troubleshooting section
+
+**Related Memory**:
+- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+
+---
 
 **Issue**: Development-focused documentation incorrectly referenced port 8000 instead of 7777 for the local NodeTool server.
 

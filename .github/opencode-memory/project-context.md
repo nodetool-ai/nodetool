@@ -530,3 +530,19 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Remaining Opportunities**:
 - Asset grid virtualization for 1000+ potential items (lower priority)
 - Continue adding React.memo to remaining dashboard components
+### Additional Performance Optimizations (2026-01-16)
+
+**What**: Fixed additional Zustand store subscription patterns and added component memoization.
+
+**Files Optimized**:
+- `web/src/components/buttons/GoogleAuthButton.tsx` - useAuth() selective selectors
+- `web/src/components/menus/SettingsMenu.tsx` - useAuth() selective selectors
+- `web/src/components/assets/AssetGrid.tsx` - useAuth() selective selectors
+- `web/src/components/dashboard/LayoutMenu.tsx` - useLayoutStore() selective selectors + React.memo
+- `web/src/components/dashboard/ExamplesList.tsx` - Added React.memo
+
+**Impact**: Reduced unnecessary re-renders in authentication and dashboard components. Components now only update when their specific data changes.
+
+**Verification**:
+- ✅ Lint: No errors in modified files
+- ✅ TypeScript: Type checking passes (pre-existing test issues unrelated)
