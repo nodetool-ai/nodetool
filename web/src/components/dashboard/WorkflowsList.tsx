@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
-import { useTheme, type Theme } from "@mui/material/styles";
+import React, { memo, useCallback, useMemo } from "react";
+import { useTheme } from "@mui/material/styles";
 import {
   Box,
   Typography,
@@ -25,7 +25,21 @@ interface WorkflowsListProps {
   handleWorkflowClick: (workflow: Workflow) => void;
 }
 
-const styles = (theme: Theme) =>
+const WorkflowsList = memo(({
+  sortedWorkflows,
+  isLoadingWorkflows,
+  settings,
+  handleOrderChange,
+  handleCreateNewWorkflow,
+  handleWorkflowClick
+}: WorkflowsListProps) => {
+  const theme = useTheme();
+
+  const onWorkflowClick = useCallback((workflow: Workflow) => {
+    handleWorkflowClick(workflow);
+  }, [handleWorkflowClick]);
+
+  const styles = useMemo(() =>
   css({
     borderRadius: theme.spacing(1),
     padding: "1em",
@@ -130,19 +144,10 @@ const styles = (theme: Theme) =>
       marginLeft: "auto",
       flexShrink: 0
     }
-  });
+  }), [theme]);
 
-const WorkflowsList: React.FC<WorkflowsListProps> = ({
-  sortedWorkflows,
-  isLoadingWorkflows,
-  settings,
-  handleOrderChange,
-  handleCreateNewWorkflow,
-  handleWorkflowClick
-}) => {
-  const theme = useTheme();
   return (
-    <div className="workflows-list" css={styles(theme)}>
+    <div className="workflows-list" css={styles}>
       <Box className="header-controls">
         <Typography variant="h3" className="section-title">
           Recent Workflows
@@ -181,7 +186,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <Box
               key={workflow.id}
               className="workflow-item"
-              onClick={() => handleWorkflowClick(workflow)}
+              onClick={() => onWorkflowClick(workflow)}
             >
               <Box
                 className="workflow-thumbnail"
@@ -208,6 +213,8 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
       </Box>
     </div>
   );
-};
+});
+
+WorkflowsList.displayName = "WorkflowsList";
 
 export default WorkflowsList;

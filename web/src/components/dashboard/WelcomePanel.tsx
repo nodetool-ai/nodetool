@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, ReactNode, useMemo } from "react";
+import React, { useState, useCallback, ReactNode, useMemo, memo } from "react";
 import {
   Typography,
   Accordion,
@@ -309,4 +309,4 @@ const WelcomePanel: React.FC = () => {
   );
 };
 
-export default WelcomePanel;
+export default memo(WelcomePanel);
