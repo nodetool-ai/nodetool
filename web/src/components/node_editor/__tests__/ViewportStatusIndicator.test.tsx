@@ -77,10 +77,13 @@ describe("ViewportStatusIndicator", () => {
     expect(screen.getByText("100%")).toBeInTheDocument();
   });
 
+  // Note: Tests involving clicking use pointerEventsCheck: 0 because the panel
+  // now starts hidden (opacity: 0, pointer-events: none) and only shows during zoom changes
   it("opens zoom preset menu when zoom percentage is clicked", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithTheme(<ViewportStatusIndicator />);
     const zoomButton = screen.getByText("125%");
-    await userEvent.click(zoomButton);
+    await user.click(zoomButton);
     await waitFor(() => {
       expect(screen.getByText("25%")).toBeInTheDocument();
       expect(screen.getByText("50%")).toBeInTheDocument();
@@ -92,49 +95,54 @@ describe("ViewportStatusIndicator", () => {
   });
 
   it("calls zoomTo with preset value when menu item is clicked", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithTheme(<ViewportStatusIndicator />);
     const zoomButton = screen.getByText("125%");
-    await userEvent.click(zoomButton);
+    await user.click(zoomButton);
     const preset100 = await screen.findByText("100%");
-    await userEvent.click(preset100);
+    await user.click(preset100);
     expect(mockZoomTo).toHaveBeenCalledWith(1, { duration: 200 });
   });
 
   it("closes menu after selecting preset", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithTheme(<ViewportStatusIndicator />);
     const zoomButton = screen.getByText("125%");
-    await userEvent.click(zoomButton);
+    await user.click(zoomButton);
     const preset100 = await screen.findByText("100%");
-    await userEvent.click(preset100);
+    await user.click(preset100);
     await waitFor(() => {
       expect(screen.queryByText("25%")).not.toBeInTheDocument();
     });
   });
 
   it("calls zoomTo with adjusted zoom when zoom in button is clicked", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.25
     }));
     renderWithTheme(<ViewportStatusIndicator />);
     const addButton = screen.getByTestId("AddIcon").closest("button") as HTMLElement;
-    await userEvent.click(addButton);
+    await user.click(addButton);
     expect(mockZoomTo).toHaveBeenCalledWith(Math.min(1.25 * 1.2, 5), { duration: 100 });
   });
 
   it("calls zoomTo with adjusted zoom when zoom out button is clicked", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.25
     }));
     renderWithTheme(<ViewportStatusIndicator />);
     const removeButton = screen.getByTestId("RemoveIcon").closest("button") as HTMLElement;
-    await userEvent.click(removeButton);
+    await user.click(removeButton);
     expect(mockZoomTo).toHaveBeenCalledWith(Math.max(1.25 / 1.2, 0.1), { duration: 100 });
   });
 
   it("calls fitView when fit view button is clicked", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithTheme(<ViewportStatusIndicator />);
     const fitViewButton = screen.getByTestId("CenterFocusStrongIcon");
-    await userEvent.click(fitViewButton.closest("button") as HTMLElement);
+    await user.click(fitViewButton.closest("button") as HTMLElement);
     expect(mockFitView).toHaveBeenCalledWith({ padding: 0.2, duration: 200 });
   });
 
@@ -168,5 +176,16 @@ describe("ViewportStatusIndicator", () => {
     expect(screen.getByTestId("RemoveIcon")).toBeInTheDocument();
     expect(screen.getByTestId("AddIcon")).toBeInTheDocument();
     expect(screen.getByTestId("CenterFocusStrongIcon")).toBeInTheDocument();
+  });
+
+  it("starts with panel hidden (opacity 0) when no zoom change has occurred", () => {
+    (useViewport as jest.Mock).mockImplementation(() => ({
+      zoom: 1.0
+    }));
+    renderWithTheme(<ViewportStatusIndicator />);
+    
+    // Panel should start hidden (opacity 0)
+    const panel = screen.getByTestId("viewport-status-indicator");
+    expect(panel).toHaveStyle({ opacity: "0" });
   });
 });

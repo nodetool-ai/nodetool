@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
   Box,
   IconButton,
@@ -21,6 +21,8 @@ interface ViewportStatusIndicatorProps {
 }
 
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2] as const;
+const HIDE_DELAY_MS = 1500;
+const ZOOM_CHANGE_THRESHOLD = 0.001;
 
 type ZoomPreset = (typeof ZOOM_PRESETS)[number];
 
@@ -33,6 +35,35 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   const [zoomMenuAnchor, setZoomMenuAnchor] = useState<HTMLElement | null>(
     null
   );
+  const [isZooming, setIsZooming] = useState(false);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevZoomRef = useRef<number | null>(null);
+
+  // Detect zoom changes and show the panel
+  useEffect(() => {
+    // Skip showing on initial render (prevZoomRef is null)
+    if (prevZoomRef.current !== null && Math.abs(zoom - prevZoomRef.current) > ZOOM_CHANGE_THRESHOLD) {
+      setIsZooming(true);
+      
+      // Clear any existing timeout
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+      
+      // Set a new timeout to hide the panel
+      hideTimeoutRef.current = setTimeout(() => {
+        setIsZooming(false);
+      }, HIDE_DELAY_MS);
+    }
+    
+    prevZoomRef.current = zoom;
+    
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, [zoom]);
 
   const zoomPercentage = useMemo(() => Math.round(zoom * 100), [zoom]);
 
@@ -78,6 +109,9 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     [zoom, isZoomPreset]
   );
 
+  // Keep the popover open even when not zooming
+  const shouldShowPanel = isZooming || Boolean(zoomMenuAnchor);
+
   if (!visible) {
     return null;
   }
@@ -85,6 +119,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   return (
     <>
       <Box
+        data-testid="viewport-status-indicator"
         sx={{
           position: "absolute",
           bottom: 16,
@@ -100,7 +135,9 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           padding: "4px 8px",
           boxShadow: theme.shadows[4],
           userSelect: "none",
-          pointerEvents: "auto"
+          pointerEvents: shouldShowPanel ? "auto" : "none",
+          opacity: shouldShowPanel ? 1 : 0,
+          transition: "opacity 0.2s ease-in-out"
         }}
       >
         <Tooltip title={getShortcutTooltip("zoomOut")} placement="top" arrow>

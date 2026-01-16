@@ -633,7 +633,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     slug: "resetZoom",
     keyCombo: ["Control", "0"],
     category: "editor" as const,
-    description: "Reset zoom to 100% (default scale)",
+    description: "Reset zoom to 50%",
     registerCombo: true
   },
   {
