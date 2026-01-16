@@ -453,3 +453,21 @@ _No entries yet - this memory system is new as of 2026-01-10_
 - `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
 
 **Impact**: Reduced unnecessary re-renders in auth-related components by ensuring they only update when their specific state changes. Improved TypeScript type safety by using proper error handling with AppError type guards.
+
+---
+
+### Node Namespace Display for Selected Nodes (2026-01-16)
+
+**What**: Added node namespace display under node title, shown only when node is selected with `fontSizeTiny` styling.
+
+**Files**: 
+- `web/src/components/node/NodeHeader.tsx` - Added namespace prop and conditional rendering
+- `web/src/components/node/BaseNode.tsx` - Pass namespace to NodeHeader
+
+**Implementation**: 
+- Added `namespace` prop to NodeHeader component
+- Added `.node-namespace` CSS class with `fontSizeTiny` styling
+- Namespace only renders when `selected && namespace` is true
+- Namespace displays below the node title in the header
+
+---

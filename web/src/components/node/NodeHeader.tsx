@@ -24,6 +24,7 @@ export interface NodeHeaderProps {
   iconBaseColor?: string;
   showIcon?: boolean;
   workflowId?: string;
+  namespace?: string;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -36,7 +37,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   iconBaseColor,
   showIcon = true,
   data,
-  workflowId
+  workflowId,
+  namespace
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
@@ -97,6 +99,13 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           letterSpacing: "0.02em",
           padding: "2px 0",
           color: "var(--palette-text-primary)"
+        },
+        ".node-namespace": {
+          fontSize: "var(--fontSizeTiny)",
+          color: "var(--palette-text-secondary)",
+          fontWeight: 400,
+          opacity: 0.8,
+          marginTop: "2px"
         }
       }),
     []
@@ -187,6 +196,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           }}
         >
           {metadataTitle}
+          {selected && namespace && (
+            <span className="node-namespace">{namespace}</span>
+          )}
         </span>
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>

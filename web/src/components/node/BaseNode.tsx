@@ -446,6 +446,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         iconType={metadata?.outputs?.[0]?.type?.type}
         iconBaseColor={baseColor}
         workflowId={workflow_id}
+        namespace={meta.nodeNamespace}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
