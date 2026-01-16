@@ -9,6 +9,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
 import isEqual from "lodash/isEqual";
 import { FixedSizeList } from "react-window";
+import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -155,8 +156,9 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
+  const showGraphPreview = useShowGraphPreview();
 
-  const ITEM_HEIGHT = 150;
+  const ITEM_HEIGHT = showGraphPreview ? 150 : 50;
   const CONTAINER_HEIGHT = window.innerHeight - 210;
 
   const Row = ({
