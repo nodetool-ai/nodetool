@@ -165,6 +165,8 @@ const SearchResultItem = memo(
   forwardRef<HTMLDivElement, SearchResultItemProps>(
     ({ node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false }, ref) => {
       const theme = useTheme();
+      const outputType =
+        node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
       // Parse description and tags
@@ -217,7 +219,7 @@ const SearchResultItem = memo(
             <div className="result-main">
               <div className="result-title-row">
                 <IconForType
-                  iconName={node.outputs.length > 0 ? node.outputs[0].type.type : ""}
+                  iconName={outputType}
                   containerStyle={{
                     borderRadius: "0 0 3px 0",
                     marginLeft: "0",
