@@ -339,7 +339,27 @@ Last updated: 2026-01-12
 
 ---
 
-### Documentation Port Consistency Fix (2026-01-12)
+### Documentation Improvements (2026-01-16)
+
+**Areas Improved**: Mobile app documentation
+**Issues Fixed**: Deprecated Expo build commands updated to EAS Build
+**Impact**: Developers following documentation will now use current Expo build tooling. EAS Build is the recommended approach for production builds, replacing deprecated `expo build:android` and `expo build:ios` commands.
+
+**Files Updated**:
+- `mobile/README.md` - Replaced deprecated commands with EAS Build instructions
+  - Added EAS CLI installation and login steps
+  - Added Android APK/AAB build instructions
+  - Added iOS IPA build instructions
+  - Added multi-platform build commands
+  - Added EAS Build profiles documentation
+  - Added app store submission instructions
+  - Added local build alternatives
+  - Added troubleshooting section
+
+**Related Memory**:
+- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+
+---
 
 **Issue**: Development-focused documentation incorrectly referenced port 8000 instead of 7777 for the local NodeTool server.
 
