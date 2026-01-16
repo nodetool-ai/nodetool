@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
-import { useAlignNodes } from "../useAlignNodes";
-import { Node, Position } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
+import useAlignNodes from "../useAlignNodes";
+import { Node } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({
@@ -27,8 +27,8 @@ const createMockNode = (
   id,
   type: "test",
   position: { x, y },
-  targetPosition: Position.Left,
-  sourcePosition: Position.Right,
+  targetPosition: "left" as any,
+  sourcePosition: "right" as any,
   data: {
     properties: {},
     dynamic_properties: {},
@@ -43,6 +43,7 @@ describe("useAlignNodes", () => {
 
   beforeEach(() => {
     setNodes = jest.fn();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
       setNodes
     });
@@ -55,6 +56,7 @@ describe("useAlignNodes", () => {
   });
 
   it("does nothing with less than 2 selected nodes", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
       getSelectedNodes: jest.fn(() => [createMockNode("node1", 0, 0)])
     });

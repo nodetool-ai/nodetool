@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFitView, getNodesBounds } from "../useFitView";
-import { Node, Position, XYPosition } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
+import { Node, XYPosition } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({
@@ -33,8 +33,8 @@ const createMockNode = (
   id,
   type: "test",
   position: { x, y },
-  targetPosition: Position.Left,
-  sourcePosition: Position.Right,
+  targetPosition: "left" as any,
+  sourcePosition: "right" as any,
   data: {
     properties: {},
     dynamic_properties: {},
