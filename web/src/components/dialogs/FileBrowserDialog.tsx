@@ -5,7 +5,8 @@ import React, {
   useEffect,
   useMemo,
   useState,
-  useRef
+  useRef,
+  memo
 } from "react";
 import {
   Dialog,
@@ -181,7 +182,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 
 // --- Component ---
 
-export default function FileBrowserDialog({
+function FileBrowserDialog({
   open,
   onClose,
   onConfirm,
@@ -849,3 +850,5 @@ export default function FileBrowserDialog({
     </Dialog>
   );
 }
+
+export default memo(FileBrowserDialog);
