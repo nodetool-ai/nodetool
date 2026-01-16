@@ -8,8 +8,9 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { Badge, IconButton, Tooltip } from "@mui/material";
+import { Badge, IconButton, Tooltip, Button } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
+import { Visibility, InputOutlined } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 
 export interface NodeHeaderProps {
@@ -24,6 +25,11 @@ export interface NodeHeaderProps {
   iconBaseColor?: string;
   showIcon?: boolean;
   workflowId?: string;
+  // Toggle buttons for result/inputs view
+  showResultButton?: boolean;
+  showInputsButton?: boolean;
+  onShowResults?: () => void;
+  onShowInputs?: () => void;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -36,7 +42,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   iconBaseColor,
   showIcon = true,
   data,
-  workflowId
+  workflowId,
+  showResultButton = false,
+  showInputsButton = false,
+  onShowResults,
+  onShowInputs
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
@@ -206,6 +216,60 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               </Badge>
             </IconButton>
           </Tooltip>
+        )}
+        {/* Show Result button */}
+        {showResultButton && onShowResults && (
+          <Button
+            size="small"
+            startIcon={<Visibility sx={{ fontSize: 14 }} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowResults();
+            }}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.7rem",
+              padding: "2px 8px",
+              minWidth: "auto",
+              backgroundColor: "rgba(255, 255, 255, 0.05)",
+              color: "var(--palette-text-primary)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "12px",
+              "&:hover": {
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                borderColor: "var(--palette-primary-main)"
+              }
+            }}
+          >
+            Show Result
+          </Button>
+        )}
+        {/* Show Inputs button */}
+        {showInputsButton && onShowInputs && (
+          <Button
+            size="small"
+            startIcon={<InputOutlined sx={{ fontSize: 14 }} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowInputs();
+            }}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.7rem",
+              padding: "2px 8px",
+              minWidth: "auto",
+              backgroundColor: "rgba(255, 255, 255, 0.05)",
+              color: "var(--palette-text-primary)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "12px",
+              "&:hover": {
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                borderColor: "var(--palette-primary-main)"
+              }
+            }}
+          >
+            Show Inputs
+          </Button>
         )}
       </div>
 
