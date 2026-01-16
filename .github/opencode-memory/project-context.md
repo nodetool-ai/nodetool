@@ -440,3 +440,39 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Files Changed**:
 - `web/src/utils/TypeHandler.ts`
 - `web/src/stores/NodeStore.ts`
+
+---
+
+### Console Log to Loglevel Migration (2026-01-16)
+
+**What**: Replaced `console.log` statements with proper `loglevel` logging across multiple files.
+
+**Why**: The codebase uses `loglevel` for logging, but some files had `console.log` statements that bypass this pattern.
+
+**Implementation**:
+- Replaced `console.log("Threads fetched:", data)` with `log.debug()` in GlobalChatStore.ts
+- Replaced `console.log("Eyedropper cancelled or error:", error)` with `log.debug()` in EyedropperButton.tsx
+- Replaced `console.log(dataUrl, blob)` with `log.debug()` in OutputRenderer.tsx (2 occurrences)
+- Replaced `console.log("[Terminal] resize", ...)` with `log.debug()` in Terminal.tsx
+
+**Files**:
+- `web/src/stores/GlobalChatStore.ts`
+- `web/src/components/color_picker/EyedropperButton.tsx`
+- `web/src/components/node/OutputRenderer.tsx`
+- `web/src/components/terminal/Terminal.tsx`
+
+---
+
+### TypeScript Any Type Improvements (2026-01-16)
+
+**What**: Improved TypeScript type safety by replacing `any` types with proper types in workflowUpdates.ts.
+
+**Why**: Using `any` reduces TypeScript's type checking capabilities. The codebase follows strict typing standards.
+
+**Implementation**:
+- Replaced `(message: any)` parameter with existing `MsgpackData` union type
+- Created `JobRunState` interface for run_state access
+- Replaced `(job as any).run_state` cast with type-safe intersection `JobUpdate & { run_state?: JobRunState }`
+
+**Files**:
+- `web/src/stores/workflowUpdates.ts`
