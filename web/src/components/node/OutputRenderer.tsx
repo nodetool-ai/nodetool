@@ -316,6 +316,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     [computedViewer.assets, setOpenAsset]
   );
 
+  const handleModel3DClick = useCallback((url: string, contentType?: string) => () => {
+    setOpenModel3D({ url, contentType });
+  }, []);
+
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
   const renderContent = useMemo(() => {
@@ -428,7 +432,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <Model3DViewer
               url={url}
               compact={true}
-              onClick={() => setOpenModel3D({ url, contentType })}
+              onClick={handleModel3DClick(url, contentType)}
             />
           </div>
         );
@@ -728,8 +732,17 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     videoRef,
     handleMouseDown,
     scrollRef,
-    showTextActions
+    showTextActions,
+    handleModel3DClick
   ]);
+
+  const handleCloseAsset = useCallback(() => {
+    setLocalOpenAsset(null);
+  }, []);
+
+  const handleCloseModel3D = useCallback(() => {
+    setOpenModel3D(null);
+  }, []);
 
   if (!shouldRender) {
     return null;
@@ -744,7 +757,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             computedViewer.assets.length ? computedViewer.assets : undefined
           }
           open={openAsset !== null}
-          onClose={() => setLocalOpenAsset(null)}
+          onClose={handleCloseAsset}
         />
       )}
       {openModel3D && (
@@ -752,7 +765,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           url={openModel3D.url}
           contentType={openModel3D.contentType}
           open={true}
-          onClose={() => setOpenModel3D(null)}
+          onClose={handleCloseModel3D}
         />
       )}
       {renderContent}
