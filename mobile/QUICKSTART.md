@@ -122,7 +122,7 @@ curl http://localhost:7777/api/workflows/
 - Try a personal hotspot as an alternative
 
 **Check Firewall:**
-- Make sure your firewall allows incoming connections on port 8000
+- Make sure your firewall allows incoming connections on port 7777
 - On macOS: System Preferences > Security & Privacy > Firewall
 - On Windows: Windows Defender Firewall settings
 
