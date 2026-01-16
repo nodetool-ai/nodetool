@@ -17,7 +17,8 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
   modelPacks
 }) => {
   const [openModelDialog, setOpenModelDialog] = useState(false);
-  const { startDownload, openDialog } = useModelDownloadStore();
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const openDialog = useModelDownloadStore((state) => state.openDialog);
   const handleOpenModelDialog = useCallback(() => setOpenModelDialog(true), []);
   const handleCloseModelDialog = useCallback(
     () => setOpenModelDialog(false),

@@ -167,7 +167,8 @@ const Help = ({
   open: boolean;
   handleClose: () => void;
 }) => {
-  const { helpIndex, setHelpIndex } = useAppHeaderStore();
+  const helpIndex = useAppHeaderStore((state) => state.helpIndex);
+  const setHelpIndex = useAppHeaderStore((state) => state.setHelpIndex);
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setHelpIndex(newValue);
   };

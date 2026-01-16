@@ -35,14 +35,12 @@ interface SecretFormData {
 const SecretsMenu = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const {
-    secrets,
-    isLoading: storeLoading,
-    fetchSecrets,
-    updateSecret,
-    deleteSecret
-  } = useSecretsStore();
-  const { addNotification } = useNotificationStore();
+  const secrets = useSecretsStore((state) => state.secrets);
+  const storeLoading = useSecretsStore((state) => state.isLoading);
+  const fetchSecrets = useSecretsStore((state) => state.fetchSecrets);
+  const updateSecret = useSecretsStore((state) => state.updateSecret);
+  const deleteSecret = useSecretsStore((state) => state.deleteSecret);
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const safeSecrets = useMemo(() => secrets ?? [], [secrets]);
 
   const [openDialog, setOpenDialog] = useState(false);

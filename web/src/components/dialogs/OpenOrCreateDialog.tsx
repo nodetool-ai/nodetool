@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Button from "@mui/material/Button";
@@ -238,14 +238,17 @@ const OpenOrCreateDialog = () => {
     }
   };
 
-  const { handleOpenHelp } = useAppHeaderStore();
+  const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
 
-  const sortedWorkflows = data?.workflows.sort((a, b) => {
-    if (settings.workflowOrder === "name") {
-      return a.name.localeCompare(b.name);
-    }
-    return b.updated_at.localeCompare(a.updated_at);
-  });
+  const sortedWorkflows = useMemo(() =>
+    data?.workflows?.sort((a, b) => {
+      if (settings.workflowOrder === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      return b.updated_at.localeCompare(a.updated_at);
+    }),
+    [data?.workflows, settings.workflowOrder]
+  );
 
   // (a, b) =>
   //   new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()

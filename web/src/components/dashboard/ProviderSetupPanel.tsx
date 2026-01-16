@@ -189,8 +189,10 @@ const panelStyles = (theme: Theme) =>
 const ProviderSetupPanel: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const { secrets, fetchSecrets, updateSecret } = useSecretsStore();
-  const { addNotification } = useNotificationStore();
+  const secrets = useSecretsStore((state) => state.secrets);
+  const fetchSecrets = useSecretsStore((state) => state.fetchSecrets);
+  const updateSecret = useSecretsStore((state) => state.updateSecret);
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   const [isExpanded, setIsExpanded] = useState(true);
   const [apiKeys, setApiKeys] = useState<Record<ProviderKey, string>>({

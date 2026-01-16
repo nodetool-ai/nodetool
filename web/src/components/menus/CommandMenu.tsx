@@ -156,7 +156,8 @@ const LayoutCommands = memo(function LayoutCommands() {
 
 const ViewCommands = memo(function ViewCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
-  const { visible, toggleVisible } = useMiniMapStore();
+  const visible = useMiniMapStore((state) => state.visible);
+  const toggleVisible = useMiniMapStore((state) => state.toggleVisible);
 
   return (
     <Command.Group heading="View">

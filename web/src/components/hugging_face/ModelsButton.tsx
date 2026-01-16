@@ -6,7 +6,8 @@ import { IconForType } from "../../config/data_types";
 import { useModelManagerStore } from "../../stores/ModelManagerStore";
 
 const ModelsButton: React.FC = memo(function ModelsButton() {
-  const { isOpen, setIsOpen } = useModelManagerStore();
+  const isOpen = useModelManagerStore((state) => state.isOpen);
+  const setIsOpen = useModelManagerStore((state) => state.setIsOpen);
   
   const handleOpen = useCallback(() => setIsOpen(true), [setIsOpen]);
   const handleClose = useCallback(() => setIsOpen(false), [setIsOpen]);

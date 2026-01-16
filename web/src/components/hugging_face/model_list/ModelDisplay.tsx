@@ -19,31 +19,32 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
   models,
   handleDeleteClick
 }) => {
-  const { modelSearchTerm } = useModelManagerStore();
+  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const { handleShowInExplorer } = useModels();
-  const downloadStore = useModelDownloadStore();
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const openDialog = useModelDownloadStore((state) => state.openDialog);
 
   // react-window configuration
   const ITEM_SIZE = 130; // px per row; adjust if list item height changes
   const MAX_LIST_HEIGHT = 600; // max viewport height
   const LIST_HEIGHT = Math.min(models.length * ITEM_SIZE, MAX_LIST_HEIGHT);
 
-  const startDownload = React.useCallback(
+  const handleStartDownload = React.useCallback(
     (model: UnifiedModel) => {
       const repoId = model.repo_id || model.id;
       const path = model.path ?? null;
       const allowPatterns = path ? null : model.allow_patterns ?? null;
       const ignorePatterns = path ? null : model.ignore_patterns ?? null;
-      downloadStore.startDownload(
+      startDownload(
         repoId,
         model.type ?? "",
         path ?? undefined,
         allowPatterns,
         ignorePatterns
       );
-      downloadStore.openDialog();
+      openDialog();
     },
-    [downloadStore]
+    [startDownload, openDialog]
   );
 
   if (models.length === 0) {
@@ -74,7 +75,7 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
                   model.downloaded ? handleDeleteClick : undefined
                 }
                 onDownload={
-                  !model.downloaded ? () => startDownload(model) : undefined
+                  !model.downloaded ? () => handleStartDownload(model) : undefined
                 }
                 handleShowInExplorer={
                   model.downloaded ? handleShowInExplorer : undefined

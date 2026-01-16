@@ -6,7 +6,8 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
 
 const WorkspacesButton: React.FC = memo(function WorkspacesButton() {
-  const { isOpen, setIsOpen } = useWorkspaceManagerStore();
+  const isOpen = useWorkspaceManagerStore((state) => state.isOpen);
+  const setIsOpen = useWorkspaceManagerStore((state) => state.setIsOpen);
 
   const handleOpen = useCallback(() => setIsOpen(true), [setIsOpen]);
   const handleClose = useCallback(() => setIsOpen(false), [setIsOpen]);

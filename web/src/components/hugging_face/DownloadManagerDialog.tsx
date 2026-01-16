@@ -76,7 +76,9 @@ const styles = (theme: Theme) =>
   });
 
 const DownloadManagerDialog: React.FC = () => {
-  const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
+  const isDialogOpen = useModelDownloadStore((state) => state.isDialogOpen);
+  const closeDialog = useModelDownloadStore((state) => state.closeDialog);
+  const downloads = useModelDownloadStore((state) => state.downloads);
 
   const hasActiveDownloads = Object.keys(downloads).length > 0;
 
