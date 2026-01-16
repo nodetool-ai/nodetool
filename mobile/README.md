@@ -131,9 +131,9 @@ The app stores the server URL in AsyncStorage. You can:
 - The default value is `http://localhost:7777`
 
 For local development with a device/emulator:
-- iOS Simulator: Use `http://localhost:8000`
-- Android Emulator: Use `http://10.0.2.2:8000` (Android's localhost proxy)
-- Physical Device: Use your computer's IP address (e.g., `http://192.168.1.100:8000`)
+- iOS Simulator: Use `http://localhost:7777`
+- Android Emulator: Use `http://10.0.2.2:7777` (Android's localhost proxy)
+- Physical Device: Use your computer's IP address (e.g., `http://192.168.1.100:7777`)
 
 ## Development Notes
 
@@ -167,7 +167,7 @@ https://docs.expo.dev/build/introduction/
 - Ensure the NodeTool server is running
 - Check the server URL in Settings
 - For physical devices, ensure your device and server are on the same network
-- For Android emulator, use `http://10.0.2.2:8000` instead of `localhost:8000`
+- For Android emulator, use `http://10.0.2.2:7777` instead of `localhost:7777`
 
 ### App crashes on startup
 - Clear the app data and restart
