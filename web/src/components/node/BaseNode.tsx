@@ -28,6 +28,7 @@ import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
+import NodePerformanceBadge from "./NodePerformanceBadge";
 import { hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../../hooks/nodes/useSelect";
@@ -450,6 +451,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
+      <NodePerformanceBadge nodeId={id} workflowId={workflow_id} status={status} />
       {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (
         <ModelRecommendations nodeType={type} />
       )}

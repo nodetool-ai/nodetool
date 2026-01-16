@@ -425,7 +425,21 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
-### Dead Code Removal (2026-01-13)
+### Node Performance Badge (2026-01-16)
+
+**What**: Added NodePerformanceBadge component that displays visual performance indicators on nodes, showing color-coded badges (fast/medium/slow) and execution details on hover.
+
+**Files**:
+- `web/src/components/node/NodePerformanceBadge.tsx` - New component with performance badges, icons, and tooltip
+- `web/src/components/node/BaseNode.tsx` - Integrated NodePerformanceBadge into node display
+- `web/src/components/node/__tests__/NodePerformanceBadge.test.tsx` - Comprehensive tests for the component
+
+**Implementation**:
+- Created NodePerformanceBadge that shows color-coded badges based on execution time (fast < 1s, medium 1-5s, slow > 5s)
+- Uses MUI Chip with icons (Speed, Timer, AccessTime) for visual feedback
+- Tooltip on hover shows duration, performance level, and status
+- Running state shows animated pulsing dots indicator
+- Integrated into BaseNode next to existing NodeExecutionTime component
 
 **What**: Removed commented-out dead code from TypeHandler.ts and NodeStore.ts.
 
