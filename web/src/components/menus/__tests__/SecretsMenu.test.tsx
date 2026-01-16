@@ -24,7 +24,12 @@ jest.mock("@mui/material", () => ({
   TextField: ({ label, value, children, ...props }: any) => (
     <div data-testid="TextField">
       {label && <label htmlFor={props.id || "textfield-input"}>{label}</label>}
-      <input {...props} id={props.id || "textfield-input"} value={value || ""} aria-label={label} />
+      <input
+        {...props}
+        id={props.id || "textfield-input"}
+        value={value || ""}
+        aria-label={label || undefined}
+      />
       {children}
     </div>
   ),
@@ -256,13 +261,13 @@ describe("SecretsMenu", () => {
         expect(screen.getByText("TEST_SECRET")).toBeInTheDocument();
       });
 
-      // Click edit button to open dialog
       const editButton = screen.getByLabelText("Set secret");
       await userEvent.click(editButton);
 
       await waitFor(() => {
-        // Should have Value input field
-        expect(screen.getByLabelText("Value")).toBeInTheDocument();
+        const dialog = screen.getByTestId("Dialog");
+        const input = dialog.querySelector('input[aria-label="Value"]');
+        expect(input).toBeInTheDocument();
       });
     });
   });

@@ -6,6 +6,8 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 Last updated: 2026-01-12
 
+- **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
+
 ---
 
 ## Core Application Features
@@ -87,6 +89,7 @@ Last updated: 2026-01-12
 - **Session Management**: User session state tracking
 - **Remote Settings**: Sync user settings across devices
 - **Secrets Management**: Store and manage API keys securely
+- **Secrets Search**: Sticky search input to filter secrets by key or description
 
 ---
 
@@ -305,6 +308,29 @@ Last updated: 2026-01-12
 ---
 
 **Note**: This list represents the current state of NodeTool. Check git history and recent PRs for the most up-to-date information on new features.
+
+---
+
+### Documentation Quality Assurance (2026-01-16)
+
+**Areas Improved**:
+- Fixed port inconsistencies in mobile documentation (port 8000 → 7777)
+- Fixed markdown code block escaping in docs/AGENTS.md
+- Added documentation best practices to memory insights
+
+**Issues Fixed**:
+- mobile/README.md: Fixed Android emulator URL in troubleshooting
+- mobile/QUICKSTART.md: Fixed emulator URLs and firewall port reference
+- docs/AGENTS.md: Fixed 4 incorrectly escaped code block examples
+
+**Impact**: Documentation now correctly references port 7777 for development scenarios. Code examples in docs/AGENTS.md render properly in markdown viewers.
+
+**Files Updated**:
+- mobile/README.md
+- mobile/QUICKSTART.md
+- docs/AGENTS.md
+- .github/opencode-memory/issues/git-ci/documentation-port-inconsistency.md
+- .github/opencode-memory/insights/code-quality/documentation-best-practices.md
 
 ---
 

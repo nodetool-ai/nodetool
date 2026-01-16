@@ -82,7 +82,7 @@ NodeTool can run entirely without the UI—perfect for automation, CI/CD pipelin
 
 ```bash
 # Run a workflow and get results (non-streaming)
-curl -X POST "http://localhost:8000/api/workflows/YOUR_WORKFLOW_ID/run" \
+curl -X POST "http://localhost:7777/api/workflows/YOUR_WORKFLOW_ID/run" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
