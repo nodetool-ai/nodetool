@@ -21,6 +21,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SpeedIcon from "@mui/icons-material/Speed";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
@@ -29,6 +30,7 @@ import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
+import ProfilerPanel from "../node_editor/ProfilerPanel";
 
 const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
@@ -117,6 +119,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle,
   handleVersionsToggle,
   handleWorkflowToggle,
+  handleProfilerToggle,
   activeView,
   panelVisible
 }: {
@@ -126,7 +129,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
   handleWorkflowToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow";
+  handleProfilerToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "profiler";
   panelVisible: boolean;
 }) {
   return (
@@ -273,6 +277,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <SettingsIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Profiler Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Performance Profiler</div>
+            <div className="tooltip-key">
+              <kbd>P</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleProfilerToggle}
+          className={
+            activeView === "profiler" && panelVisible
+              ? "profiler active"
+              : "profiler"
+          }
+        >
+          <SpeedIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -381,6 +411,10 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "profiler" ? (
+                  currentWorkflowId ? (
+                    <ProfilerPanel workflowId={currentWorkflowId} />
+                  ) : null
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -404,6 +438,7 @@ const PanelRight: React.FC = () => {
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
+        handleProfilerToggle={() => handlePanelToggle("profiler")}
         activeView={activeView}
         panelVisible={isVisible}
       />

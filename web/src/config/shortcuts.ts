@@ -524,6 +524,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Operator panel",
     registerCombo: false
   },
+  {
+    title: "Performance Profiler",
+    slug: "toggleProfiler",
+    keyCombo: ["P"],
+    category: "panel",
+    description: "Show or hide Performance Profiler panel",
+    registerCombo: true
+  },
   // K is conflicting with CommandMenu shortcut
   // {
   //   title: "Keyboard Shortcuts",

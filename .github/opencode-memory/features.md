@@ -271,6 +271,8 @@ Last updated: 2026-01-16
 - **Context Providers**: React context for cross-cutting concerns
 - **Store Pattern**: Zustand stores for global state
 
+- **Performance Profiling UI**: Built-in performance profiling tools for workflow analysis (Experimental)
+
 ---
 
 ## Features NOT Yet Implemented
