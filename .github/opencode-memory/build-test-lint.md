@@ -128,6 +128,15 @@ make all                  # install + typecheck + lint + test + build
 - **Coverage**: Not required but encouraged for new features
 - **Patterns**: Follow existing test patterns in the codebase
 
+**Current Test Status (2026-01-16)**:
+- Total test files: 176
+- Total tests: 2,233
+- Passing tests: 2,193 (98.2%)
+- Failing tests: 39 (pre-existing issues)
+- Tests added this session: 2 new store test files
+  - ResultsStore.test.ts (37 test cases)
+  - SessionStateStore.test.ts (8 test cases)
+
 ### E2E Tests
 
 - **Location**: `tests/e2e/**/*.spec.ts` (web), `electron/tests/e2e/**/*.spec.ts` (electron)

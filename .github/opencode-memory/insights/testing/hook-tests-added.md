@@ -4,6 +4,47 @@
 
 ## Tests Added
 
+### Store Tests Added (2026-01-16)
+
+#### 1. ResultsStore Tests
+**File**: `web/src/stores/__tests__/ResultsStore.test.ts`
+
+**Coverage**:
+- Initial state verification for all result types
+- hashKey function for composite keys
+- setResult/getResult with simple and array results
+- setOutputResult/getOutputResult
+- setProgress/getProgress with chunk accumulation
+- addChunk/getChunk for streaming data
+- setTask/getTask for task tracking
+- setToolCall/getToolCall for tool call tracking
+- setEdge/getEdge for edge status
+- setPreview/getPreview for preview data
+- setPlanningUpdate/getPlanningUpdate for planning updates
+- deleteResult for removing specific results
+- clearResults/clearOutputResults/clearProgress/clearChunks
+- clearTasks/clearToolCalls/clearEdges
+- clearPlanningUpdates/clearPreviews
+- Workflow isolation between different workflows
+
+**Mock Strategy**:
+- No external mocks needed - pure Zustand store
+- Uses renderHook from React Testing Library
+- Tests isolated state for each workflow ID
+
+#### 2. SessionStateStore Tests
+**File**: `web/src/stores/__tests__/SessionStateStore.test.ts`
+
+**Coverage**:
+- Initial state (null clipboard, invalid)
+- setClipboardData with string and null values
+- setIsClipboardValid with true/false
+- Complete clipboard workflow (set data, mark valid, clear data)
+
+**Mock Strategy**:
+- No external mocks needed - simple Zustand store
+- Tests state transitions and independence
+
 ### 1. useAutosave Hook Tests
 **File**: `web/src/hooks/__tests__/useAutosave.test.ts`
 
@@ -125,14 +166,17 @@ afterEach(() => {
 ## Coverage Impact
 
 **Previous State**: Many hooks had no test coverage
-**New Coverage**: 4 hook files with comprehensive test suites
+**New Coverage (2026-01-16)**: 2 store test files added + 4 hook test files
 
-**Total Test Cases**: ~30+ individual test cases covering:
+**Total Test Cases**: ~70+ individual test cases covering:
 - State initialization
 - Conditional behavior
 - Edge cases
 - Error handling
 - Cleanup/integration
+- Store state management
+- Clipboard operations
+- Results tracking
 
 ## Files Created
 
@@ -140,6 +184,8 @@ afterEach(() => {
 2. `/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useFocusPan.test.ts`
 3. `/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useAlignNodes.test.ts`
 4. `/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useFitView.test.ts`
+5. `/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/ResultsStore.test.ts` (NEW)
+6. `/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/SessionStateStore.test.ts` (NEW)
 
 ## Notes
 
@@ -148,3 +194,4 @@ afterEach(() => {
 - Use descriptive test names explaining behavior
 - Cover both happy path and edge cases
 - Clean up timers and event listeners in afterEach
+- Store tests use renderHook with Zustand store directly
