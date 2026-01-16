@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useMiniMapStore } from "../stores/MiniMapStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -78,6 +79,13 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const miniMapStore = useMiniMapStore((state) => ({
+    visible: state.visible,
+    toggleVisible: state.toggleVisible,
+    zoomIn: state.zoomIn,
+    zoomOut: state.zoomOut,
+    resetZoom: state.resetZoom
+  }));
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -94,6 +102,7 @@ export const useNodeEditorShortcuts = (
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
   const { openFind } = findInWorkflow;
+  const { visible: _isMiniMapVisible, toggleVisible: toggleMiniMap, zoomIn: zoomMiniMapIn, zoomOut: zoomMiniMapOut, resetZoom: resetMiniMapZoom } = miniMapStore;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
@@ -515,7 +524,11 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
-      }
+      },
+      toggleMinimap: { callback: toggleMiniMap },
+      zoomMinimapIn: { callback: zoomMiniMapIn },
+      zoomMinimapOut: { callback: zoomMiniMapOut },
+      resetMinimapZoom: { callback: resetMiniMapZoom }
     };
 
     // Switch-to-tab (1-9)
@@ -578,9 +591,13 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusDown,
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
-    nodeFocus.goBack,
-    nodeFocus.focusHistory.length
-  ]);
+     nodeFocus.goBack,
+     nodeFocus.focusHistory.length,
+     toggleMiniMap,
+     zoomMiniMapIn,
+     zoomMiniMapOut,
+     resetMiniMapZoom
+   ]);
 
   // useEffect for shortcut registration
   useEffect(() => {

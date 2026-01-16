@@ -742,13 +742,47 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Move focus to the nearest node to the right",
     registerCombo: true
   },
+   {
+     title: "Go Back",
+     slug: "goBack",
+     keyCombo: ["Alt", "ArrowLeft"],
+     altKeyCombos: [["Control", "ArrowLeft"]],
+     category: "editor" as const,
+     description: "Go back to previously focused node",
+     registerCombo: true
+   },
+
+  // ---------- MINIMAP ----------------------------------------------------
   {
-    title: "Go Back",
-    slug: "goBack",
-    keyCombo: ["Alt", "ArrowLeft"],
-    altKeyCombos: [["Control", "ArrowLeft"]],
+    title: "Toggle Minimap",
+    slug: "toggleMinimap",
+    keyCombo: ["M"],
     category: "editor" as const,
-    description: "Go back to previously focused node",
+    description: "Show or hide the minimap",
+    registerCombo: true
+  },
+  {
+    title: "Zoom Minimap In",
+    slug: "zoomMinimapIn",
+    keyCombo: ["Control", "Shift", "="],
+    category: "editor" as const,
+    description: "Increase minimap zoom level",
+    registerCombo: true
+  },
+  {
+    title: "Zoom Minimap Out",
+    slug: "zoomMinimapOut",
+    keyCombo: ["Control", "Shift", "-"],
+    category: "editor" as const,
+    description: "Decrease minimap zoom level",
+    registerCombo: true
+  },
+  {
+    title: "Reset Minimap Zoom",
+    slug: "resetMinimapZoom",
+    keyCombo: ["Control", "Shift", "0"],
+    category: "editor" as const,
+    description: "Reset minimap zoom to default",
     registerCombo: true
   }
 ] as Shortcut[];
