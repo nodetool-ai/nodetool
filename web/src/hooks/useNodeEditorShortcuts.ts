@@ -66,7 +66,9 @@ export const useNodeEditorShortcuts = (
 
   const nodeMenuStore = useNodeMenuStore(
     (state) => ({
-      openNodeMenu: state.openNodeMenu
+      openNodeMenu: state.openNodeMenu,
+      isMenuOpen: state.isMenuOpen,
+      toggleFavorite: state.toggleFavorite
     }),
     shallow
   );
@@ -92,7 +94,7 @@ export const useNodeEditorShortcuts = (
     saveWorkflow
   } = workflowManager;
   const { handleCopy, handlePaste, handleCut } = copyPaste;
-  const { openNodeMenu } = nodeMenuStore;
+  const { openNodeMenu, isMenuOpen, toggleFavorite } = nodeMenuStore;
   const { openFind } = findInWorkflow;
 
   // All useCallback hooks
@@ -149,6 +151,12 @@ export const useNodeEditorShortcuts = (
     },
     [reactFlow]
   );
+
+  const handleToggleFavorite = useCallback(() => {
+    if (isMenuOpen) {
+      toggleFavorite();
+    }
+  }, [isMenuOpen, toggleFavorite]);
 
   const handleAlign = useCallback(() => {
     alignNodes({ arrangeSpacing: false });
@@ -522,6 +530,10 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      toggleFavoriteNode: {
+        callback: handleToggleFavorite,
+        active: isMenuOpen
       }
     };
 
@@ -586,7 +598,9 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    isMenuOpen,
+    handleToggleFavorite
   ]);
 
   // useEffect for shortcut registration

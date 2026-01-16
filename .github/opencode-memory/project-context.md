@@ -393,6 +393,23 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Quick Favorite Feature (2026-01-16)
+
+**What**: Added keyboard shortcut support for quickly toggling favorite status of nodes directly from the Node Menu using Shift+F.
+
+**Files**:
+- `web/src/config/shortcuts.ts` - Added toggleFavoriteNode shortcut definition
+- `web/src/stores/NodeMenuStore.ts` - Added toggleFavorite action and FavoriteNodesStore integration
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added shortcut handler with menu-open condition
+
+**Implementation**:
+- New `toggleFavoriteNode` shortcut (Shift+F) registered in NODE_EDITOR_SHORTCUTS
+- `NodeMenuStore.toggleFavorite()` method calls `FavoriteNodesStore.toggleFavorite()` for selected node
+- Shortcut only active when Node Menu is open (`isMenuOpen` condition)
+- Follows existing keyboard shortcut patterns and store architecture
+
+**Impact**: Power users can now quickly favorite/unfavorite nodes using keyboard without mouse interaction, improving workflow efficiency.
+
 ### Console Log Removal (2026-01-15)
 
 **What**: Removed debug console.log statements and replaced with proper loglevel logging.

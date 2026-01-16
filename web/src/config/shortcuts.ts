@@ -742,13 +742,23 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Move focus to the nearest node to the right",
     registerCombo: true
   },
-  {
+   {
     title: "Go Back",
     slug: "goBack",
     keyCombo: ["Alt", "ArrowLeft"],
     altKeyCombos: [["Control", "ArrowLeft"]],
     category: "editor" as const,
     description: "Go back to previously focused node",
+    registerCombo: true
+  },
+
+  // ---------- NODE MENU ----------------------------------------------------
+  {
+    title: "Toggle Favorite",
+    slug: "toggleFavoriteNode",
+    keyCombo: ["Shift", "F"],
+    category: "panel" as const,
+    description: "Add or remove selected node from favorites",
     registerCombo: true
   }
 ] as Shortcut[];

@@ -29,6 +29,7 @@ Last updated: 2026-01-12
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
+- **Quick Favorite**: Keyboard shortcut (Shift+F) to toggle favorite status for selected node in the Node Menu
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
 - **Node Info Panel**: Contextual panel showing selected node details (type, description, connections, status, quick actions)

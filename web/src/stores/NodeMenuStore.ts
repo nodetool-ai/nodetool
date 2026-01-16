@@ -22,6 +22,7 @@ import {
   filterNodesUtil,
   SearchResultGroup
 } from "../utils/nodeSearch";
+import { useFavoriteNodesStore } from "./FavoriteNodesStore";
 
 export interface SplitNodeDescription {
   description: string;
@@ -113,6 +114,7 @@ export type NodeMenuStore = {
   moveSelectionUp: () => void;
   moveSelectionDown: () => void;
   getSelectedNode: () => NodeMetadata | null;
+  toggleFavorite: () => void;
 };
 
 type NodeMenuStoreOptions = {
@@ -560,6 +562,12 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
         if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
         return allNodes[selectedIndex];
+      },
+      toggleFavorite: () => {
+        const selectedNode = get().getSelectedNode();
+        if (selectedNode) {
+          useFavoriteNodesStore.getState().toggleFavorite(selectedNode.node_type);
+        }
       }
     };
   });
