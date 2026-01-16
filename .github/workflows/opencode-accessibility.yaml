@@ -2,7 +2,7 @@ name: OpenCode Accessibility Audit
 
 on:
   schedule:
-    - cron: "0 12 * * 2" # Weekly on Tuesdays at noon UTC
+    - cron: "0 12 * * *" # Weekly on Tuesdays at noon UTC
   workflow_dispatch: # Allow manual trigger
 
 jobs:
