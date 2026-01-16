@@ -1,247 +1,342 @@
-import { computeGraphDiff, getDiffSummary } from "../graphDiff";
-import { Graph } from "../../stores/ApiTypes";
+import { computeGraphDiff, getDiffSummary, GraphDiff } from "../graphDiff";
+import { Graph, Node, Edge } from "../stores/ApiTypes";
+
+const createMockNode = (id: string, data?: Record<string, unknown>, ui_properties?: Record<string, unknown>): Node => ({
+  id,
+  type: "test",
+  data: data || {},
+  ui_properties
+}) as Node;
+
+const createMockEdge = (id: string, source: string, target: string, sourceHandle?: string, targetHandle?: string): Edge => ({
+  id,
+  source,
+  target,
+  sourceHandle,
+  targetHandle
+}) as Edge;
+
+const createMockGraph = (nodes: Node[], edges: Edge[]): Graph => ({
+  nodes,
+  edges
+});
 
 describe("graphDiff", () => {
-  const baseGraph: Graph = {
-    nodes: [
-      {
-        id: "node-1",
-        type: "test.nodeA",
-        sync_mode: "on_any",
-        data: { value: 1, name: "Node 1" }
-      },
-      {
-        id: "node-2",
-        type: "test.nodeB",
-        sync_mode: "on_any",
-        data: { value: 2, name: "Node 2" }
-      }
-    ],
-    edges: [
-      {
-        source: "node-1",
-        sourceHandle: "output",
-        target: "node-2",
-        targetHandle: "input"
-      }
-    ]
-  };
-
   describe("computeGraphDiff", () => {
-    it("should detect no changes when graphs are identical", () => {
-      const diff = computeGraphDiff(baseGraph, baseGraph);
+    it("returns no changes when graphs are identical", () => {
+      const nodes = [createMockNode("1"), createMockNode("2")];
+      const edges = [createMockEdge("e1", "1", "2")];
+      const oldGraph = createMockGraph(nodes, edges);
+      const newGraph = createMockGraph(nodes, edges);
 
-      expect(diff.hasChanges).toBe(false);
-      expect(diff.addedNodes).toHaveLength(0);
-      expect(diff.removedNodes).toHaveLength(0);
-      expect(diff.modifiedNodes).toHaveLength(0);
-      expect(diff.addedEdges).toHaveLength(0);
-      expect(diff.removedEdges).toHaveLength(0);
+      const result = computeGraphDiff(oldGraph, newGraph);
+
+      expect(result.hasChanges).toBe(false);
+      expect(result.addedNodes).toEqual([]);
+      expect(result.removedNodes).toEqual([]);
+      expect(result.modifiedNodes).toEqual([]);
+      expect(result.addedEdges).toEqual([]);
+      expect(result.removedEdges).toEqual([]);
     });
 
-    it("should detect added nodes", () => {
-      const newGraph: Graph = {
-        ...baseGraph,
-        nodes: [
-          ...baseGraph.nodes,
-          {
-            id: "node-3",
-            type: "test.nodeC",
-            sync_mode: "on_any",
-            data: { value: 3 }
-          }
-        ]
-      };
+    it("detects added nodes", () => {
+      const oldGraph = createMockGraph([createMockNode("1")], []);
+      const newGraph = createMockGraph([createMockNode("1"), createMockNode("2")], []);
 
-      const diff = computeGraphDiff(baseGraph, newGraph);
+      const result = computeGraphDiff(oldGraph, newGraph);
 
-      expect(diff.hasChanges).toBe(true);
-      expect(diff.addedNodes).toHaveLength(1);
-      expect(diff.addedNodes[0].id).toBe("node-3");
-      expect(diff.removedNodes).toHaveLength(0);
+      expect(result.hasChanges).toBe(true);
+      expect(result.addedNodes).toHaveLength(1);
+      expect(result.addedNodes[0].id).toBe("2");
+      expect(result.removedNodes).toEqual([]);
     });
 
-    it("should detect removed nodes", () => {
-      const newGraph: Graph = {
-        ...baseGraph,
-        nodes: [baseGraph.nodes[0]],
-        edges: []
-      };
+    it("detects removed nodes", () => {
+      const oldGraph = createMockGraph([createMockNode("1"), createMockNode("2")], []);
+      const newGraph = createMockGraph([createMockNode("1")], []);
 
-      const diff = computeGraphDiff(baseGraph, newGraph);
+      const result = computeGraphDiff(oldGraph, newGraph);
 
-      expect(diff.hasChanges).toBe(true);
-      expect(diff.removedNodes).toHaveLength(1);
-      expect(diff.removedNodes[0].id).toBe("node-2");
-      expect(diff.addedNodes).toHaveLength(0);
+      expect(result.hasChanges).toBe(true);
+      expect(result.removedNodes).toHaveLength(1);
+      expect(result.removedNodes[0].id).toBe("2");
+      expect(result.addedNodes).toEqual([]);
     });
 
-    it("should detect modified nodes", () => {
-      const newGraph: Graph = {
-        ...baseGraph,
-        nodes: [
-          {
-            ...baseGraph.nodes[0],
-            data: { value: 100, name: "Modified Node 1" }
-          },
-          baseGraph.nodes[1]
-        ]
-      };
+    it("detects added edges", () => {
+      const oldGraph = createMockGraph([createMockNode("1"), createMockNode("2")], []);
+      const newGraph = createMockGraph(
+        [createMockNode("1"), createMockNode("2")],
+        [createMockEdge("e1", "1", "2")]
+      );
 
-      const diff = computeGraphDiff(baseGraph, newGraph);
+      const result = computeGraphDiff(oldGraph, newGraph);
 
-      expect(diff.hasChanges).toBe(true);
-      expect(diff.modifiedNodes).toHaveLength(1);
-      expect(diff.modifiedNodes[0].nodeId).toBe("node-1");
-      expect(diff.modifiedNodes[0].changes.length).toBeGreaterThan(0);
+      expect(result.hasChanges).toBe(true);
+      expect(result.addedEdges).toHaveLength(1);
+      expect(result.addedEdges[0].id).toBe("e1");
     });
 
-    it("should detect added edges", () => {
-      const newGraph: Graph = {
-        ...baseGraph,
-        edges: [
-          ...baseGraph.edges,
-          {
-            source: "node-2",
-            sourceHandle: "output",
-            target: "node-1",
-            targetHandle: "input"
-          }
-        ]
-      };
+    it("detects removed edges", () => {
+      const oldGraph = createMockGraph(
+        [createMockNode("1"), createMockNode("2")],
+        [createMockEdge("e1", "1", "2")]
+      );
+      const newGraph = createMockGraph([createMockNode("1"), createMockNode("2")], []);
 
-      const diff = computeGraphDiff(baseGraph, newGraph);
+      const result = computeGraphDiff(oldGraph, newGraph);
 
-      expect(diff.hasChanges).toBe(true);
-      expect(diff.addedEdges).toHaveLength(1);
-      expect(diff.removedEdges).toHaveLength(0);
+      expect(result.hasChanges).toBe(true);
+      expect(result.removedEdges).toHaveLength(1);
+      expect(result.removedEdges[0].id).toBe("e1");
     });
 
-    it("should detect removed edges", () => {
-      const newGraph: Graph = {
-        ...baseGraph,
-        edges: []
-      };
+    it("detects modified node data", () => {
+      const oldGraph = createMockGraph(
+        [createMockNode("1", { value: "old" })],
+        []
+      );
+      const newGraph = createMockGraph(
+        [createMockNode("1", { value: "new" })],
+        []
+      );
 
-      const diff = computeGraphDiff(baseGraph, newGraph);
+      const result = computeGraphDiff(oldGraph, newGraph);
 
-      expect(diff.hasChanges).toBe(true);
-      expect(diff.removedEdges).toHaveLength(1);
-      expect(diff.addedEdges).toHaveLength(0);
+      expect(result.hasChanges).toBe(true);
+      expect(result.modifiedNodes).toHaveLength(1);
+      expect(result.modifiedNodes[0].nodeId).toBe("1");
+      expect(result.modifiedNodes[0].changes).toHaveLength(1);
+      expect(result.modifiedNodes[0].changes[0].key).toBe("value");
+      expect(result.modifiedNodes[0].changes[0].oldValue).toBe("old");
+      expect(result.modifiedNodes[0].changes[0].newValue).toBe("new");
     });
 
-    it("should detect multiple changes", () => {
-      const newGraph: Graph = {
-        nodes: [
-          {
-            id: "node-1",
-            type: "test.nodeA",
-            sync_mode: "on_any",
-            data: { value: 999 }
-          },
-          {
-            id: "node-3",
-            type: "test.nodeC",
-            sync_mode: "on_any",
-            data: {}
-          }
+    it("detects modified node ui_properties", () => {
+      const oldGraph = createMockGraph(
+        [createMockNode("1", {}, { position: { x: 0, y: 0 } })],
+        []
+      );
+      const newGraph = createMockGraph(
+        [createMockNode("1", {}, { position: { x: 100, y: 100 } })],
+        []
+      );
+
+      const result = computeGraphDiff(oldGraph, newGraph);
+
+      expect(result.hasChanges).toBe(true);
+      expect(result.modifiedNodes).toHaveLength(1);
+      expect(result.modifiedNodes[0].changes).toHaveLength(1);
+      expect(result.modifiedNodes[0].changes[0].key).toBe("ui_properties");
+    });
+
+    it("detects multiple types of changes simultaneously", () => {
+      const oldGraph = createMockGraph(
+        [createMockNode("1", { value: "old" })],
+        []
+      );
+      const newGraph = createMockGraph(
+        [
+          createMockNode("1", { value: "new" }),
+          createMockNode("2")
         ],
-        edges: [
-          {
-            source: "node-1",
-            sourceHandle: "out2",
-            target: "node-3",
-            targetHandle: "in"
-          }
-        ]
-      };
+        [createMockEdge("e1", "1", "2")]
+      );
 
-      const diff = computeGraphDiff(baseGraph, newGraph);
+      const result = computeGraphDiff(oldGraph, newGraph);
 
-      expect(diff.hasChanges).toBe(true);
-      expect(diff.addedNodes).toHaveLength(1); // node-3
-      expect(diff.removedNodes).toHaveLength(1); // node-2
-      expect(diff.modifiedNodes).toHaveLength(1); // node-1
-      expect(diff.addedEdges).toHaveLength(1); // new edge
-      expect(diff.removedEdges).toHaveLength(1); // old edge
+      expect(result.hasChanges).toBe(true);
+      expect(result.modifiedNodes).toHaveLength(1);
+      expect(result.addedNodes).toHaveLength(1);
+      expect(result.addedEdges).toHaveLength(1);
     });
 
-    it("should handle empty graphs", () => {
-      const emptyGraph: Graph = { nodes: [], edges: [] };
+    it("handles edge with different handles as different edges", () => {
+      const oldGraph = createMockGraph(
+        [createMockNode("1"), createMockNode("2")],
+        [createMockEdge("e1", "1", "2", "out1", "in1")]
+      );
+      const newGraph = createMockGraph(
+        [createMockNode("1"), createMockNode("2")],
+        [
+          createMockEdge("e1", "1", "2", "out1", "in1"),
+          createMockEdge("e2", "1", "2", "out2", "in2")
+        ]
+      );
 
-      const diff1 = computeGraphDiff(emptyGraph, emptyGraph);
-      expect(diff1.hasChanges).toBe(false);
+      const result = computeGraphDiff(oldGraph, newGraph);
 
-      const diff2 = computeGraphDiff(emptyGraph, baseGraph);
-      expect(diff2.hasChanges).toBe(true);
-      expect(diff2.addedNodes).toHaveLength(2);
-      expect(diff2.addedEdges).toHaveLength(1);
+      expect(result.hasChanges).toBe(true);
+      expect(result.addedEdges).toHaveLength(1);
+      expect(result.addedEdges[0].sourceHandle).toBe("out2");
+    });
 
-      const diff3 = computeGraphDiff(baseGraph, emptyGraph);
-      expect(diff3.hasChanges).toBe(true);
-      expect(diff3.removedNodes).toHaveLength(2);
-      expect(diff3.removedEdges).toHaveLength(1);
+    it("handles empty graphs", () => {
+      const oldGraph = createMockGraph([], []);
+      const newGraph = createMockGraph([], []);
+
+      const result = computeGraphDiff(oldGraph, newGraph);
+
+      expect(result.hasChanges).toBe(false);
+    });
+
+    it("handles adding to empty graph", () => {
+      const oldGraph = createMockGraph([], []);
+      const newGraph = createMockGraph([createMockNode("1")], []);
+
+      const result = computeGraphDiff(oldGraph, newGraph);
+
+      expect(result.hasChanges).toBe(true);
+      expect(result.addedNodes).toHaveLength(1);
+    });
+
+    it("handles removing all nodes from graph", () => {
+      const oldGraph = createMockGraph([createMockNode("1")], []);
+      const newGraph = createMockGraph([], []);
+
+      const result = computeGraphDiff(oldGraph, newGraph);
+
+      expect(result.hasChanges).toBe(true);
+      expect(result.removedNodes).toHaveLength(1);
+    });
+
+    it("detects new node with new data properties", () => {
+      const oldGraph = createMockGraph([createMockNode("1", { a: 1 })], []);
+      const newGraph = createMockGraph(
+        [createMockNode("1", { a: 1, b: 2 })],
+        []
+      );
+
+      const result = computeGraphDiff(oldGraph, newGraph);
+
+      expect(result.hasChanges).toBe(true);
+      expect(result.modifiedNodes[0].changes).toHaveLength(1);
+      expect(result.modifiedNodes[0].changes[0].key).toBe("b");
+    });
+
+    it("detects removed node data properties", () => {
+      const oldGraph = createMockGraph(
+        [createMockNode("1", { a: 1, b: 2 })],
+        []
+      );
+      const newGraph = createMockGraph([createMockNode("1", { a: 1 })], []);
+
+      const result = computeGraphDiff(oldGraph, newGraph);
+
+      expect(result.hasChanges).toBe(true);
+      expect(result.modifiedNodes[0].changes).toHaveLength(1);
+      expect(result.modifiedNodes[0].changes[0].key).toBe("b");
     });
   });
 
   describe("getDiffSummary", () => {
-    it("should return 'No changes' for identical graphs", () => {
-      const diff = computeGraphDiff(baseGraph, baseGraph);
+    it("returns 'No changes' for unchanged diff", () => {
+      const diff: GraphDiff = {
+        addedNodes: [],
+        removedNodes: [],
+        modifiedNodes: [],
+        addedEdges: [],
+        removedEdges: [],
+        hasChanges: false
+      };
+
       expect(getDiffSummary(diff)).toBe("No changes");
     });
 
-    it("should summarize added nodes", () => {
-      const newGraph: Graph = {
-        ...baseGraph,
-        nodes: [
-          ...baseGraph.nodes,
-          {
-            id: "node-3",
-            type: "test.nodeC",
-            sync_mode: "on_any",
-            data: {}
-          },
-          {
-            id: "node-4",
-            type: "test.nodeD",
-            sync_mode: "on_any",
-            data: {}
-          }
-        ]
+    it("summarizes added nodes", () => {
+      const diff: GraphDiff = {
+        addedNodes: [{ id: "1" } as Node],
+        removedNodes: [],
+        modifiedNodes: [],
+        addedEdges: [],
+        removedEdges: [],
+        hasChanges: true
       };
 
-      const diff = computeGraphDiff(baseGraph, newGraph);
-      const summary = getDiffSummary(diff);
-
-      expect(summary).toContain("+2 node(s)");
+      expect(getDiffSummary(diff)).toBe("+1 node(s)");
     });
 
-    it("should summarize all change types", () => {
-      const newGraph: Graph = {
-        nodes: [
-          {
-            id: "node-1",
-            type: "test.nodeA",
-            sync_mode: "on_any",
-            data: { changed: true }
-          },
-          {
-            id: "node-3",
-            type: "test.nodeC",
-            sync_mode: "on_any",
-            data: {}
-          }
-        ],
-        edges: []
+    it("summarizes removed nodes", () => {
+      const diff: GraphDiff = {
+        addedNodes: [],
+        removedNodes: [{ id: "1" } as Node],
+        modifiedNodes: [],
+        addedEdges: [],
+        removedEdges: [],
+        hasChanges: true
       };
 
-      const diff = computeGraphDiff(baseGraph, newGraph);
-      const summary = getDiffSummary(diff);
+      expect(getDiffSummary(diff)).toBe("-1 node(s)");
+    });
 
+    it("summarizes modified nodes", () => {
+      const diff: GraphDiff = {
+        addedNodes: [],
+        removedNodes: [],
+        modifiedNodes: [{ nodeId: "1", nodeType: "test", changes: [] }],
+        addedEdges: [],
+        removedEdges: [],
+        hasChanges: true
+      };
+
+      expect(getDiffSummary(diff)).toBe("~1 modified node(s)");
+    });
+
+    it("summarizes added edges", () => {
+      const diff: GraphDiff = {
+        addedNodes: [],
+        removedNodes: [],
+        modifiedNodes: [],
+        addedEdges: [{ id: "e1" } as Edge],
+        removedEdges: [],
+        hasChanges: true
+      };
+
+      expect(getDiffSummary(diff)).toBe("+1 connection(s)");
+    });
+
+    it("summarizes removed edges", () => {
+      const diff: GraphDiff = {
+        addedNodes: [],
+        removedNodes: [],
+        modifiedNodes: [],
+        addedEdges: [],
+        removedEdges: [{ id: "e1" } as Edge],
+        hasChanges: true
+      };
+
+      expect(getDiffSummary(diff)).toBe("-1 connection(s)");
+    });
+
+    it("combines multiple change types", () => {
+      const diff: GraphDiff = {
+        addedNodes: [{ id: "1" } as Node],
+        removedNodes: [{ id: "2" } as Node],
+        modifiedNodes: [{ nodeId: "3", nodeType: "test", changes: [] }],
+        addedEdges: [{ id: "e1" } as Edge],
+        removedEdges: [{ id: "e2" } as Edge],
+        hasChanges: true
+      };
+
+      const summary = getDiffSummary(diff);
       expect(summary).toContain("+1 node(s)");
       expect(summary).toContain("-1 node(s)");
       expect(summary).toContain("~1 modified node(s)");
+      expect(summary).toContain("+1 connection(s)");
       expect(summary).toContain("-1 connection(s)");
+    });
+
+    it("formats multiple items correctly", () => {
+      const diff: GraphDiff = {
+        addedNodes: [{ id: "1" } as Node, { id: "2" } as Node],
+        removedNodes: [],
+        modifiedNodes: [],
+        addedEdges: [],
+        removedEdges: [],
+        hasChanges: true
+      };
+
+      expect(getDiffSummary(diff)).toBe("+2 node(s)");
     });
   });
 });
