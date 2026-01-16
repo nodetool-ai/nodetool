@@ -1,26 +1,28 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFitView, getNodesBounds } from "../useFitView";
-import { Node, Position, XYPosition } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
+import { Node, XYPosition } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
 
-jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({
-    fitView: jest.fn(),
-    fitBounds: jest.fn(),
-    getViewport: jest.fn(() => ({ x: 0, y: 0, zoom: 1 }))
-  }))
-}));
+const mockFitView = jest.fn();
+const mockFitBounds = jest.fn();
+const mockGetViewport = jest.fn(() => ({ x: 0, y: 0, zoom: 1 }));
 
-jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) =>
-    selector({
-      nodes: [],
-      getSelectedNodes: jest.fn(() => []),
-      setSelectedNodes: jest.fn(),
-      setViewport: jest.fn()
-    })
-  )
-}));
+jest.mock("@xyflow/react", () => {
+  const mockUseReactFlow = jest.fn();
+  return {
+    useReactFlow: mockUseReactFlow
+  };
+});
+
+jest.mock("../../contexts/NodeContext", () => {
+  const mockUseNodes = jest.fn();
+  return {
+    useNodes: mockUseNodes
+  };
+});
+
+import { useNodes } from "../../contexts/NodeContext";
+import { useReactFlow } from "@xyflow/react";
 
 const createMockNode = (
   id: string,
@@ -33,8 +35,8 @@ const createMockNode = (
   id,
   type: "test",
   position: { x, y },
-  targetPosition: Position.Left,
-  sourcePosition: Position.Right,
+  targetPosition: "left" as any,
+  sourcePosition: "right" as any,
   data: {
     properties: {},
     dynamic_properties: {},
@@ -46,19 +48,25 @@ const createMockNode = (
 });
 
 describe("useFitView", () => {
-  let fitView: jest.Mock;
-  let fitBounds: jest.Mock;
-
   beforeEach(() => {
-    fitView = jest.fn();
-    fitBounds = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
-      fitView,
-      fitBounds,
-      getViewport: jest.fn(() => ({ x: 0, y: 0, zoom: 1 }))
-    });
     jest.useFakeTimers();
     jest.clearAllMocks();
+    mockFitView.mockReset();
+    mockFitBounds.mockReset();
+    mockGetViewport.mockReturnValue({ x: 0, y: 0, zoom: 1 });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        nodes: [],
+        getSelectedNodes: jest.fn(() => []),
+        setSelectedNodes: jest.fn(),
+        setViewport: jest.fn()
+      })
+    );
+    (useReactFlow as unknown as jest.Mock).mockReturnValue({
+      fitView: mockFitView,
+      fitBounds: mockFitBounds,
+      getViewport: mockGetViewport
+    });
   });
 
   afterEach(() => {
@@ -71,12 +79,14 @@ describe("useFitView", () => {
   });
 
   it("fits all nodes when no nodes are selected", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      nodes: [createMockNode("node1", 0, 0, 100, 50)],
-      getSelectedNodes: jest.fn(() => []),
-      setSelectedNodes: jest.fn(),
-      setViewport: jest.fn()
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        nodes: [createMockNode("node1", 0, 0, 100, 50)],
+        getSelectedNodes: jest.fn(() => []),
+        setSelectedNodes: jest.fn(),
+        setViewport: jest.fn()
+      })
+    );
 
     const { result } = renderHook(() => useFitView());
 
@@ -84,22 +94,24 @@ describe("useFitView", () => {
       result.current();
     });
 
-    expect(fitView).toHaveBeenCalledWith({ duration: 800, padding: 0.1 });
+    expect(mockFitView).toHaveBeenCalledWith({ duration: 800, padding: 0.1 });
   });
 
   it("fits selected nodes when nodes are selected", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      nodes: [
-        createMockNode("node1", 0, 0, 100, 50),
-        createMockNode("node2", 200, 0, 100, 50)
-      ],
-      getSelectedNodes: jest.fn(() => [
-        createMockNode("node1", 0, 0, 100, 50),
-        createMockNode("node2", 200, 0, 100, 50)
-      ]),
-      setSelectedNodes: jest.fn(),
-      setViewport: jest.fn()
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        nodes: [
+          createMockNode("node1", 0, 0, 100, 50),
+          createMockNode("node2", 200, 0, 100, 50)
+        ],
+        getSelectedNodes: jest.fn(() => [
+          createMockNode("node1", 0, 0, 100, 50),
+          createMockNode("node2", 200, 0, 100, 50)
+        ]),
+        setSelectedNodes: jest.fn(),
+        setViewport: jest.fn()
+      })
+    );
 
     const { result } = renderHook(() => useFitView());
 
@@ -107,20 +119,22 @@ describe("useFitView", () => {
       result.current();
     });
 
-    expect(fitBounds).toHaveBeenCalled();
+    expect(mockFitBounds).toHaveBeenCalled();
   });
 
   it("fits specific node IDs when provided", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      nodes: [
-        createMockNode("node1", 0, 0, 100, 50),
-        createMockNode("node2", 200, 0, 100, 50),
-        createMockNode("node3", 400, 0, 100, 50)
-      ],
-      getSelectedNodes: jest.fn(() => []),
-      setSelectedNodes: jest.fn(),
-      setViewport: jest.fn()
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        nodes: [
+          createMockNode("node1", 0, 0, 100, 50),
+          createMockNode("node2", 200, 0, 100, 50),
+          createMockNode("node3", 400, 0, 100, 50)
+        ],
+        getSelectedNodes: jest.fn(() => []),
+        setSelectedNodes: jest.fn(),
+        setViewport: jest.fn()
+      })
+    );
 
     const { result } = renderHook(() => useFitView());
 
@@ -128,16 +142,18 @@ describe("useFitView", () => {
       result.current({ nodeIds: ["node1", "node3"] });
     });
 
-    expect(fitBounds).toHaveBeenCalled();
+    expect(mockFitBounds).toHaveBeenCalled();
   });
 
   it("uses custom padding when provided", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      nodes: [createMockNode("node1", 0, 0, 100, 50)],
-      getSelectedNodes: jest.fn(() => []),
-      setSelectedNodes: jest.fn(),
-      setViewport: jest.fn()
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        nodes: [createMockNode("node1", 0, 0, 100, 50)],
+        getSelectedNodes: jest.fn(() => []),
+        setSelectedNodes: jest.fn(),
+        setViewport: jest.fn()
+      })
+    );
 
     const { result } = renderHook(() => useFitView());
 
@@ -145,7 +161,7 @@ describe("useFitView", () => {
       result.current({ padding: 0.5 });
     });
 
-    expect(fitView).toHaveBeenCalledWith({ duration: 800, padding: 0.5 });
+    expect(mockFitView).toHaveBeenCalledWith({ duration: 800, padding: 0.5 });
   });
 
   it("applies extra left padding to bounds", () => {
@@ -153,12 +169,14 @@ describe("useFitView", () => {
       createMockNode("node1", 100, 100, 100, 50),
       createMockNode("node2", 300, 100, 100, 50)
     ];
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      nodes,
-      getSelectedNodes: jest.fn(() => nodes),
-      setSelectedNodes: jest.fn(),
-      setViewport: jest.fn()
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        nodes,
+        getSelectedNodes: jest.fn(() => nodes),
+        setSelectedNodes: jest.fn(),
+        setViewport: jest.fn()
+      })
+    );
 
     const { result } = renderHook(() => useFitView());
 
@@ -166,7 +184,7 @@ describe("useFitView", () => {
       result.current();
     });
 
-    expect(fitBounds).toHaveBeenCalledWith(
+    expect(mockFitBounds).toHaveBeenCalledWith(
       expect.objectContaining({
         x: expect.any(Number)
       }),

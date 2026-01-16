@@ -1,21 +1,26 @@
 import { renderHook, act } from "@testing-library/react";
-import { useAlignNodes } from "../useAlignNodes";
-import { Node, Position } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
+import useAlignNodes from "../useAlignNodes";
+import { Node } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
 
-jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({
-    setNodes: jest.fn()
-  }))
-}));
+const mockSetNodes = jest.fn();
 
-jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) =>
-    selector({
-      getSelectedNodes: jest.fn()
-    })
-  )
-}));
+jest.mock("@xyflow/react", () => {
+  const mockUseReactFlow = jest.fn();
+  return {
+    useReactFlow: mockUseReactFlow
+  };
+});
+
+jest.mock("../../contexts/NodeContext", () => {
+  const mockUseNodes = jest.fn();
+  return {
+    useNodes: mockUseNodes
+  };
+});
+
+import { useNodes } from "../../contexts/NodeContext";
+import { useReactFlow } from "@xyflow/react";
 
 const createMockNode = (
   id: string,
@@ -27,8 +32,8 @@ const createMockNode = (
   id,
   type: "test",
   position: { x, y },
-  targetPosition: Position.Left,
-  sourcePosition: Position.Right,
+  targetPosition: "left" as any,
+  sourcePosition: "right" as any,
   data: {
     properties: {},
     dynamic_properties: {},
@@ -39,14 +44,17 @@ const createMockNode = (
 });
 
 describe("useAlignNodes", () => {
-  let setNodes: jest.Mock;
-
   beforeEach(() => {
-    setNodes = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
-      setNodes
-    });
     jest.clearAllMocks();
+    mockSetNodes.mockReset();
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        getSelectedNodes: jest.fn(() => [])
+      })
+    );
+    (useReactFlow as unknown as jest.Mock).mockReturnValue({
+      setNodes: mockSetNodes
+    });
   });
 
   it("returns a function", () => {
@@ -55,9 +63,11 @@ describe("useAlignNodes", () => {
   });
 
   it("does nothing with less than 2 selected nodes", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      getSelectedNodes: jest.fn(() => [createMockNode("node1", 0, 0)])
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        getSelectedNodes: jest.fn(() => [createMockNode("node1", 0, 0)])
+      })
+    );
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -65,17 +75,19 @@ describe("useAlignNodes", () => {
       result.current({ arrangeSpacing: false });
     });
 
-    expect(setNodes).not.toHaveBeenCalled();
+    expect(mockSetNodes).not.toHaveBeenCalled();
   });
 
   it("aligns nodes vertically when xRange < yRange", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      getSelectedNodes: jest.fn(() => [
-        createMockNode("node1", 100, 0),
-        createMockNode("node2", 150, 100),
-        createMockNode("node3", 50, 200)
-      ])
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        getSelectedNodes: jest.fn(() => [
+          createMockNode("node1", 100, 0),
+          createMockNode("node2", 150, 100),
+          createMockNode("node3", 50, 200)
+        ])
+      })
+    );
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -83,8 +95,8 @@ describe("useAlignNodes", () => {
       result.current({ arrangeSpacing: false });
     });
 
-    expect(setNodes).toHaveBeenCalledWith(expect.any(Function));
-    const updateFunction = setNodes.mock.calls[0][0];
+    expect(mockSetNodes).toHaveBeenCalledWith(expect.any(Function));
+    const updateFunction = mockSetNodes.mock.calls[0][0];
     const currentNodes = [
       createMockNode("node1", 100, 0),
       createMockNode("node2", 150, 100),
@@ -96,13 +108,15 @@ describe("useAlignNodes", () => {
   });
 
   it("aligns nodes horizontally when xRange >= yRange", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      getSelectedNodes: jest.fn(() => [
-        createMockNode("node1", 0, 100),
-        createMockNode("node2", 100, 150),
-        createMockNode("node3", 200, 50)
-      ])
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        getSelectedNodes: jest.fn(() => [
+          createMockNode("node1", 0, 100),
+          createMockNode("node2", 100, 150),
+          createMockNode("node3", 200, 50)
+        ])
+      })
+    );
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -110,8 +124,8 @@ describe("useAlignNodes", () => {
       result.current({ arrangeSpacing: false });
     });
 
-    expect(setNodes).toHaveBeenCalledWith(expect.any(Function));
-    const updateFunction = setNodes.mock.calls[0][0];
+    expect(mockSetNodes).toHaveBeenCalledWith(expect.any(Function));
+    const updateFunction = mockSetNodes.mock.calls[0][0];
     const currentNodes = [
       createMockNode("node1", 0, 100),
       createMockNode("node2", 100, 150),
@@ -123,13 +137,15 @@ describe("useAlignNodes", () => {
   });
 
   it("applies spacing when arrangeSpacing is true (vertical alignment)", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      getSelectedNodes: jest.fn(() => [
-        createMockNode("node1", 100, 0, 100, 50),
-        createMockNode("node2", 150, 200, 100, 50),
-        createMockNode("node3", 50, 400, 100, 50)
-      ])
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        getSelectedNodes: jest.fn(() => [
+          createMockNode("node1", 100, 0, 100, 50),
+          createMockNode("node2", 150, 200, 100, 50),
+          createMockNode("node3", 50, 400, 100, 50)
+        ])
+      })
+    );
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -137,8 +153,8 @@ describe("useAlignNodes", () => {
       result.current({ arrangeSpacing: true });
     });
 
-    expect(setNodes).toHaveBeenCalledWith(expect.any(Function));
-    const updateFunction = setNodes.mock.calls[0][0];
+    expect(mockSetNodes).toHaveBeenCalledWith(expect.any(Function));
+    const updateFunction = mockSetNodes.mock.calls[0][0];
     const currentNodes = [
       createMockNode("node1", 100, 0, 100, 50),
       createMockNode("node2", 150, 200, 100, 50),
@@ -150,12 +166,14 @@ describe("useAlignNodes", () => {
   });
 
   it("sets collapsed state when provided", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      getSelectedNodes: jest.fn(() => [
-        createMockNode("node1", 0, 0),
-        createMockNode("node2", 100, 0)
-      ])
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        getSelectedNodes: jest.fn(() => [
+          createMockNode("node1", 0, 0),
+          createMockNode("node2", 100, 0)
+        ])
+      })
+    );
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -163,8 +181,8 @@ describe("useAlignNodes", () => {
       result.current({ arrangeSpacing: false, collapsed: true });
     });
 
-    expect(setNodes).toHaveBeenCalledWith(expect.any(Function));
-    const updateFunction = setNodes.mock.calls[0][0];
+    expect(mockSetNodes).toHaveBeenCalledWith(expect.any(Function));
+    const updateFunction = mockSetNodes.mock.calls[0][0];
     const currentNodes = [
       createMockNode("node1", 0, 0),
       createMockNode("node2", 100, 0)
@@ -179,9 +197,11 @@ describe("useAlignNodes", () => {
       createMockNode("node1", 0, 0),
       createMockNode("node2", 100, 0)
     ];
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      getSelectedNodes: jest.fn(() => selectedNodes)
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        getSelectedNodes: jest.fn(() => selectedNodes)
+      })
+    );
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -189,8 +209,8 @@ describe("useAlignNodes", () => {
       result.current({ arrangeSpacing: false });
     });
 
-    expect(setNodes).toHaveBeenCalledWith(expect.any(Function));
-    const updateFunction = setNodes.mock.calls[0][0];
+    expect(mockSetNodes).toHaveBeenCalledWith(expect.any(Function));
+    const updateFunction = mockSetNodes.mock.calls[0][0];
     const currentNodes = [
       ...selectedNodes,
       createMockNode("unrelated", 500, 500)
@@ -201,12 +221,14 @@ describe("useAlignNodes", () => {
   });
 
   it("handles nodes without measured dimensions", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockReturnValue({
-      getSelectedNodes: jest.fn(() => [
-        createMockNode("node1", 0, 0),
-        createMockNode("node2", 100, 0)
-      ])
-    });
+    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      sel({
+        getSelectedNodes: jest.fn(() => [
+          createMockNode("node1", 0, 0),
+          createMockNode("node2", 100, 0)
+        ])
+      })
+    );
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -214,6 +236,6 @@ describe("useAlignNodes", () => {
       result.current({ arrangeSpacing: true });
     });
 
-    expect(setNodes).toHaveBeenCalled();
+    expect(mockSetNodes).toHaveBeenCalled();
   });
 });
