@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import log from "loglevel";
 import { NodeContext } from "../contexts/NodeContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
@@ -43,7 +44,7 @@ export const useInputMinMax = ({
     nodeMax = (node?.data?.properties as Record<string, unknown>)?.max as number | undefined;
 
     if (process.env.NODE_ENV === "development") {
-      console.log("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
+      log.debug("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
     }
   }
 

@@ -410,6 +410,30 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Console Log to Loglevel Migration (2026-01-16)
+
+**What**: Replaced direct console.log/console.error calls with proper loglevel logging throughout the codebase to follow the established logging pattern.
+
+**Why**: The codebase uses loglevel for logging, but some files had console statements that bypass this pattern. Using loglevel consistently allows for better log level control and filtering.
+
+**Implementation**:
+- `web/src/stores/GlobalChatStore.ts`: Replaced console.error with log.error for error logging, replaced console.log with log.debug for debug logging, removed duplicate console.error
+- `web/src/lib/websocket/GlobalWebSocketManager.ts`: Replaced console.log with log.debug for message routing debug
+- `web/src/hooks/useEnsureChatConnected.ts`: Added loglevel import and replaced console.log with log.debug
+- `web/src/hooks/useInputMinMax.ts`: Added loglevel import and replaced console.log with log.debug (wrapped in NODE_ENV check)
+- `web/src/core/chat/chatProtocol.ts`: Replaced console.log with log.debug in WebSocket message handling
+
+**Files**:
+- `web/src/stores/GlobalChatStore.ts`
+- `web/src/lib/websocket/GlobalWebSocketManager.ts`
+- `web/src/hooks/useEnsureChatConnected.ts`
+- `web/src/hooks/useInputMinMax.ts`
+- `web/src/core/chat/chatProtocol.ts`
+
+**Impact**: Consistent logging throughout the codebase with proper log level control.
+
+---
+
 ### Lint Warning Fixes (2026-01-15)
 
 **What**: Fixed lint warnings in test files by removing unused variables and code.

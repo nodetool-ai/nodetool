@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import log from "loglevel";
 
 type UseEnsureChatConnectedOptions = {
   autoConnect?: boolean;
@@ -23,7 +24,7 @@ export function useEnsureChatConnected(
 
     // Connection is handled automatically by GlobalWebSocketManager
     // Just log for debugging
-    console.log("useEnsureChatConnected: WebSocketManager handles connection automatically");
+    log.debug("useEnsureChatConnected: WebSocketManager handles connection automatically");
 
     return () => {
       if (disconnectOnUnmount) {
