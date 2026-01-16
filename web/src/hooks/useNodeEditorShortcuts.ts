@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useBookmarkStore } from "../stores/BookmarkStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -78,6 +79,11 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const bookmarks = useBookmarkStore((state) => ({
+    addBookmark: state.addBookmark,
+    navigateToBookmark: state.navigateToBookmark,
+    getAllBookmarks: state.getAllBookmarks
+  }));
   // All hooks above this line
 
   // Now destructure/store values from the hook results
@@ -522,6 +528,37 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      addBookmark: {
+        callback: () => {
+          const viewport = reactFlow.getViewport();
+          const bookmarkCount = bookmarks.getAllBookmarks().length;
+          const name = `Bookmark ${bookmarkCount + 1}`;
+          bookmarks.addBookmark(name, viewport);
+          addNotification({
+            content: `Bookmark "${name}" added`,
+            type: "success",
+            alert: false
+          });
+        }
+      },
+      nextBookmark: {
+        callback: () => {
+          const bookmark = bookmarks.navigateToBookmark("next");
+          if (bookmark) {
+            reactFlow.setViewport(bookmark.viewport, { duration: 200 });
+          }
+        },
+        active: bookmarks.getAllBookmarks().length > 0
+      },
+      prevBookmark: {
+        callback: () => {
+          const bookmark = bookmarks.navigateToBookmark("prev");
+          if (bookmark) {
+            reactFlow.setViewport(bookmark.viewport, { duration: 200 });
+          }
+        },
+        active: bookmarks.getAllBookmarks().length > 0
       }
     };
 
@@ -584,10 +621,12 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusUp,
     nodeFocus.focusDown,
     nodeFocus.focusLeft,
-    nodeFocus.focusRight,
-    nodeFocus.goBack,
-    nodeFocus.focusHistory.length
-  ]);
+      nodeFocus.focusRight,
+      nodeFocus.goBack,
+      nodeFocus.focusHistory.length,
+      bookmarks,
+      addNotification
+    ]);
 
   // useEffect for shortcut registration
   useEffect(() => {

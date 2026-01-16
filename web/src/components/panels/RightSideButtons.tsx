@@ -11,6 +11,7 @@ import SettingsMenu from "../menus/SettingsMenu";
 import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
+import BookmarkButton from "./BookmarkButton";
 import { isProduction } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -47,6 +48,7 @@ const RightSideButtons: React.FC = () => {
           <OverallDownloadProgress />
         </>
       )}
+      <BookmarkButton />
       <NotificationButton />
       <Help open={helpOpen} handleClose={handleCloseHelp} />
       <Tooltip

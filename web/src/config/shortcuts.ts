@@ -750,6 +750,42 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+
+  // ---------- BOOKMARKS --------------------------------------------------------
+  {
+    title: "Add Bookmark",
+    slug: "addBookmark",
+    keyCombo: ["Control", "Shift", "B"],
+    category: "editor" as const,
+    description: "Add bookmark at current view",
+    registerCombo: true
+  },
+  {
+    title: "Next Bookmark",
+    slug: "nextBookmark",
+    keyCombo: ["Control", "Tab"],
+    altKeyCombos: [["Control", "ArrowDown"]],
+    category: "editor" as const,
+    description: "Navigate to next bookmark",
+    registerCombo: true
+  },
+  {
+    title: "Previous Bookmark",
+    slug: "prevBookmark",
+    keyCombo: ["Control", "Shift", "Tab"],
+    altKeyCombos: [["Control", "ArrowUp"]],
+    category: "editor" as const,
+    description: "Navigate to previous bookmark",
+    registerCombo: true
+  },
+  {
+    title: "Toggle Bookmarks Panel",
+    slug: "toggleBookmarksPanel",
+    keyCombo: ["Control", "Shift", "M"],
+    category: "panel" as const,
+    description: "Show or hide Bookmarks panel",
+    registerCombo: true
   }
 ] as Shortcut[];
 

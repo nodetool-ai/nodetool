@@ -410,6 +410,31 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Workflow Bookmarks Feature (2026-01-16)
+
+**What**: Added workflow bookmarks feature for quick navigation to important views in large workflows. Users can save viewport positions as bookmarks with custom names and navigate between them using keyboard shortcuts or a bookmark button in the header.
+
+**Features**:
+- Add bookmarks at current viewport position with custom names
+- Color-coded bookmarks for visual identification
+- Navigate between bookmarks using Next/Previous buttons or keyboard shortcuts
+- Keyboard shortcuts: Ctrl+Shift+B (add), Ctrl+Tab (next), Ctrl+Shift+Tab (prev), Ctrl+Shift+M (toggle panel)
+- Persists bookmarks to localStorage across sessions
+- Maximum 20 bookmarks per workflow
+- 8 distinct colors that cycle for new bookmarks
+
+**Files**:
+- `web/src/stores/BookmarkStore.ts` - New Zustand store for bookmark management
+- `web/src/components/panels/BookmarkPanel.tsx` - Full bookmark management panel
+- `web/src/components/panels/BookmarkButton.tsx` - Quick access button with popup menu
+- `web/src/components/panels/RightSideButtons.tsx` - Added bookmark button to header
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added bookmark keyboard shortcut handlers
+- `web/src/config/shortcuts.ts` - Added 4 new keyboard shortcuts
+- `web/src/stores/__tests__/BookmarkStore.test.ts` - Unit tests for BookmarkStore
+- `web/jest.setup.js` - Added crypto.randomUUID mock for tests
+
+---
+
 ### Lint Warning Fixes (2026-01-15)
 
 **What**: Fixed lint warnings in test files by removing unused variables and code.
