@@ -89,6 +89,7 @@ Last updated: 2026-01-12
 - **Session Management**: User session state tracking
 - **Remote Settings**: Sync user settings across devices
 - **Secrets Management**: Store and manage API keys securely
+- **Secrets Search**: Sticky search input to filter secrets by key or description
 
 ---
 
