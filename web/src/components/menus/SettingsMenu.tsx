@@ -70,7 +70,7 @@ interface SettingsMenuProps {
 }
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
-  const { user } = useAuth();
+  const user = useAuth((state) => state.user);
   const _navigate = useNavigate();
   const {
     isMenuOpen,
