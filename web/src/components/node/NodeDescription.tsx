@@ -47,18 +47,34 @@ interface NodeDescriptionProps {
   onTagClick?: (tag: string) => void;
 }
 
-const NodeDescription: React.FC<NodeDescriptionProps> = ({
+const NodeDescription = React.memo(({
   description,
   className,
   onTagClick
-}) => {
+}: NodeDescriptionProps) => {
   const theme = useTheme();
 
+<<<<<<< HEAD
+  const handleTagClick = useCallback(
+    (tag: string) => {
+      if (onTagClick) {
+        onTagClick(tag);
+      }
+    },
+    [onTagClick]
+  );
+
+  const createTagClickHandler = useCallback(
+    (tag: string) => () => handleTagClick(tag),
+    [handleTagClick]
+  );
+=======
   const handleTagClick = useCallback((tag: string) => () => {
     if (onTagClick) {
       onTagClick(tag);
     }
   }, [onTagClick]);
+>>>>>>> origin/main
 
   if (!description) {
     return null;
@@ -91,7 +107,8 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
             <span
               key={index}
               className="tag"
-              onClick={handleTagClick(tag)}
+<<<<<<< HEAD
+              onClick={createTagClickHandler(tag)}
               style={{ cursor: onTagClick ? "pointer" : "default" }}
             >
               {tag}
@@ -104,6 +121,8 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
       )}
     </div>
   );
-};
+});
+
+NodeDescription.displayName = "NodeDescription";
 
 export default NodeDescription;

@@ -137,6 +137,11 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
     [onColorChange]
   );
 
+  const createColorClickHandler = useCallback(
+    (color: string) => () => handleColorChangeAndClose(color),
+    [handleColorChangeAndClose]
+  );
+
   return (
     <div css={colorPickerButtonStyles(theme, alwaysVisible)}>
       <IconButton
@@ -174,7 +179,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
                     "lighten"
                   )
                 }}
-                onClick={handleColorChangeAndClose(datatype.color)}
+                onClick={createColorClickHandler(datatype.color)}
               >
                 <Typography
                   style={{

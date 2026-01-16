@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel } from "../../stores/ApiTypes";
 import { useImageModelMenuStore } from "../../stores/ModelMenuStore";
@@ -12,7 +12,7 @@ export interface ImageModelMenuDialogProps {
   anchorEl?: HTMLElement | null;
 }
 
-export default function ImageModelMenuDialog({
+function ImageModelMenuDialog({
   open,
   onClose,
   onModelChange,
@@ -33,3 +33,5 @@ export default function ImageModelMenuDialog({
     />
   );
 }
+
+export default memo(ImageModelMenuDialog);
