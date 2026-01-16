@@ -281,7 +281,7 @@ Last updated: 2026-01-12
 - **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
-- **Workflow Marketplace**: Share and discover community workflows
+- **Workflow Marketplace**: ⚠️ **PARTIALLY IMPLEMENTED** - Export/Import prototype exists, needs backend integration
 - **Integration Testing E2E**: More comprehensive E2E test coverage
 - **Performance Profiling UI**: Built-in performance profiling tools
 
