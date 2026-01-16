@@ -2,7 +2,7 @@ name: Hourly OpenCode Features
 
 on:
   schedule:
-    - cron: "45 * * * *" # Every 6 hours
+    - cron: "0 */6 * * *" # Every 6 hours
 
 jobs:
   opencode:
