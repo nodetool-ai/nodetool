@@ -182,10 +182,10 @@ describe("ViewportStatusIndicator", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.0
     }));
-    const { container } = renderWithTheme(<ViewportStatusIndicator />);
+    renderWithTheme(<ViewportStatusIndicator />);
     
     // Panel should start hidden (opacity 0)
-    const box = container.querySelector('[class*="MuiBox-root"]');
-    expect(box).toHaveStyle({ opacity: "0" });
+    const panel = screen.getByTestId("viewport-status-indicator");
+    expect(panel).toHaveStyle({ opacity: "0" });
   });
 });

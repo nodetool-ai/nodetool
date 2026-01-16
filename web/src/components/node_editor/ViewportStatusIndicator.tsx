@@ -22,6 +22,7 @@ interface ViewportStatusIndicatorProps {
 
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2] as const;
 const HIDE_DELAY_MS = 1500;
+const ZOOM_CHANGE_THRESHOLD = 0.001;
 
 type ZoomPreset = (typeof ZOOM_PRESETS)[number];
 
@@ -36,11 +37,12 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   );
   const [isZooming, setIsZooming] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevZoomRef = useRef<number>(zoom);
+  const prevZoomRef = useRef<number | null>(null);
 
   // Detect zoom changes and show the panel
   useEffect(() => {
-    if (Math.abs(zoom - prevZoomRef.current) > 0.001) {
+    // Skip showing on initial render (prevZoomRef is null)
+    if (prevZoomRef.current !== null && Math.abs(zoom - prevZoomRef.current) > ZOOM_CHANGE_THRESHOLD) {
       setIsZooming(true);
       
       // Clear any existing timeout
@@ -52,9 +54,9 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       hideTimeoutRef.current = setTimeout(() => {
         setIsZooming(false);
       }, HIDE_DELAY_MS);
-      
-      prevZoomRef.current = zoom;
     }
+    
+    prevZoomRef.current = zoom;
     
     return () => {
       if (hideTimeoutRef.current) {
@@ -117,6 +119,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   return (
     <>
       <Box
+        data-testid="viewport-status-indicator"
         sx={{
           position: "absolute",
           bottom: 16,
