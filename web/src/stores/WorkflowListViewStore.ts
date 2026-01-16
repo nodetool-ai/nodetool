@@ -12,7 +12,7 @@ interface WorkflowListViewState {
 export const useWorkflowListViewStore = create<WorkflowListViewState>()(
   persist(
     (set) => ({
-      showGraphPreview: true, // Default to showing graph preview
+      showGraphPreview: false, // Default to showing graph preview
       actions: {
         toggleGraphPreview: () => {
           set((state) => ({ showGraphPreview: !state.showGraphPreview }));
