@@ -69,6 +69,65 @@ it("should handle append operations", () => {
 
 ---
 
+### Test Coverage Improvement (2026-01-16 - Additional)
+
+**Tests Added**: 41 new tests in utility test files
+
+**Tests Added**:
+- `NumberInput.utils.test.ts` - 28 tests for NumberInput utility functions
+- `edgeValue.test.ts` - 13 tests for edge value resolution
+
+**Areas Covered**:
+- Number input step calculation for various ranges and input types
+- Decimal place calculation from step size
+- Speed factor calculation for drag slowdown
+- Slider width calculation with zoom support
+- Value constraint application (min/max clamping, rounding, step snapping)
+- Edge value resolution from workflow results
+- Fallback to node properties when results unavailable
+- Source handle resolution from nested objects
+
+**Test Patterns Used**:
+
+1. **Pure Function Testing**:
+```typescript
+describe("calculateStep", () => {
+  it("returns 0.1 for unbounded float input", () => {
+    expect(calculateStep(undefined, undefined, "float")).toBe(0.1);
+  });
+});
+```
+
+2. **Edge Case Coverage**:
+```typescript
+it("clamps negative value below min", () => {
+  expect(applyValueConstraints(-150, -100, 100, "int", 0)).toBe(-100);
+});
+```
+
+3. **Mock-Based Service Testing**:
+```typescript
+it("returns result from getResult when available", () => {
+  mockGetResult.mockReturnValue({ output: "test-value" });
+  const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+  expect(result.value).toBe("test-value");
+});
+```
+
+**Files Created**:
+- `web/src/utils/__tests__/NumberInput.utils.test.ts`
+- `web/src/utils/__tests__/edgeValue.test.ts`
+
+**Key Learnings**:
+1. Pure utility functions are ideal candidates for unit tests
+2. Mock dependencies (getResult, findNode) enable isolated testing
+3. Test edge cases like invalid bounds, empty values, and boundary conditions
+4. Verify both happy path and error scenarios
+
+**Status**: All 41 tests passing
+
+---
+
 ### Test Coverage Improvement (2026-01-17)
 
 **Coverage Added**: 2 new utility test files with 17 tests
