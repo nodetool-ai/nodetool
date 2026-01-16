@@ -27,3 +27,29 @@
 4. Update .env example
 5. Update BASE_URL.ts comments
 6. Update mobile app settings screens and documentation
+
+### Additional Port Documentation Fixes (2026-01-16)
+
+**Issue**: Additional documentation files were found referencing the wrong port for development scenarios:
+
+Fixed files:
+- `web/TEST_HELPERS.md`: Mock WebSocket URL default (8000 → 7777)
+- `web/src/config/AGENTS.md`: API_URL default value examples (8000 → 7777)
+- `web/src/lib/AGENTS.md`: WebSocketManager example URL (8000 → 7777)
+- `web/TESTING.md`: Environment variable comment (8000 → 7777)
+- `docs/workflow-debugging.md`: Error message example (8000 → 7777)
+- `docs/api-reference.md`: cURL example (8000 → 7777)
+- `docs/chat-api.md`: Added clarification about port differences (7777 for dev, 8000 for production) and updated examples to show both ports
+
+**Files NOT changed** (correctly use port 8000 for production):
+- `docs/proxy.md`: Docker internal_port configuration (8000 is correct for containers)
+- `docs/chat-api.md`: Worker/Chat Server API endpoints (8000 is correct for production)
+
+**Key Distinction**:
+- Development: `nodetool serve` → port 7777
+- Production: `nodetool worker` / `nodetool serve --production` → port 8000
+
+**Documentation Pattern**: When documenting URLs:
+- For development scenarios: Use port 7777
+- For production/Worker scenarios: Use port 8000 or a configurable server URL
+- For Docker/proxy configs: Use the internal port (8000) for container-to-container communication
