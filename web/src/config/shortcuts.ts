@@ -360,6 +360,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Node Notes",
+    slug: "nodeNotes",
+    keyCombo: ["N"],
+    category: "editor",
+    description: "Add or edit notes on selected node",
+    registerCombo: true
+  },
+  {
     title: "Select Connected (All)",
     slug: "selectConnectedAll",
     keyCombo: ["Shift", "C"],

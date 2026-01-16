@@ -39,6 +39,7 @@ Last updated: 2026-01-12
 - **Node Documentation**: Inline documentation for each node type
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
+- **Node Notes**: Add custom annotations to any node for documentation and reminders
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
 
