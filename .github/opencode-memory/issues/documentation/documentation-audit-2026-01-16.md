@@ -144,3 +144,25 @@ All documentation files are:
 - [Documentation Port Consistency Fix](../git-ci/documentation-port-inconsistency.md)
 - [Features List](../../features.md)
 - [Project Context](../../project-context.md)
+
+---
+
+### Follow-up Audit (2026-01-17)
+
+**Issue Found**: Makefile quickstart target referenced incorrect command.
+
+**Problem**:
+- Line 183: `npm run dev` - but web/package.json has no `dev` script
+- web/package.json only has `start` script (line 110)
+
+**Fix Applied**:
+- Changed Makefile line 183 from `npm run dev` to `npm start`
+
+**Files Updated**:
+- `/Makefile` - Fixed quickstart target
+
+**Verification**:
+- web/package.json line 110: `"start": "vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false"` ✅
+- electron/package.json line 18: `"dev": "vite"` ✅ (electron has dev script)
+
+**Note**: electron/README.md correctly references `npm run dev` because electron has a dev script. The issue was only in the web-related Makefile quickstart target.
