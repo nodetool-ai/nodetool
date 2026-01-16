@@ -131,8 +131,29 @@ All documentation files are:
 
 ---
 
+### Merge Conflict Markers Fixed (2026-01-16)
+
+**Issue Found**: Source code files contained unresolved merge conflict markers (`<<<<<<< HEAD`, `=======`, `>>>>>>> origin/main`) that were incorrectly committed to the repository. These caused TypeScript compilation failures with "Merge conflict marker encountered" errors.
+
+**Files Fixed**:
+- `web/src/components/node/NodeDescription.tsx` - Removed merge conflict markers in tag click handler functions
+- `web/src/components/node/NodeLogs.tsx` - Removed duplicate Chip components with merge conflict markers
+- `web/src/hooks/__tests__/useAutosave.test.ts` - Cleaned up duplicate test code with merge conflict markers
+
+**Resolution**:
+- Kept the HEAD version of the code (more readable handler functions in NodeDescription.tsx)
+- Removed duplicate UI components (NodeLogs.tsx)
+- Merged duplicate test cases and assertions (useAutosave.test.ts)
+
+**Impact**: TypeScript compilation now passes for these files. Merge conflict markers are not valid TypeScript syntax and must be resolved before code can be compiled.
+
+**Verification**: Confirmed with `grep -r "<<<<<<< HEAD"` that no merge conflict markers remain in the fixed files.
+
+---
+
 **Verification Commands Run**:
 - `git branch -a` - Checked for duplicate work
+- `grep -r "<<<<<<< HEAD"` - Identified files with merge conflict markers
 - All port references verified against vite.config.ts and package.json scripts
 - All code examples verified against actual package.json scripts
 

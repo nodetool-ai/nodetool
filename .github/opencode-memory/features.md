@@ -315,6 +315,21 @@ Last updated: 2026-01-16
 
 ---
 
+### Merge Conflict Markers Fixed (2026-01-16)
+
+**Areas Improved**: Code quality and type safety
+**Issues Fixed**: Resolved merge conflict markers in 3 source files that caused TypeScript compilation failures
+**Impact**: Fixed TypeScript errors "Merge conflict marker encountered" in NodeDescription.tsx, NodeLogs.tsx, and useAutosave.test.ts
+
+**Files Updated**:
+- `web/src/components/node/NodeDescription.tsx` - Removed merge conflict markers from tag click handlers
+- `web/src/components/node/NodeLogs.tsx` - Removed duplicate Chip components with merge conflict markers
+- `web/src/hooks/__tests__/useAutosave.test.ts` - Cleaned up duplicate test code
+
+**Verification**: `grep -r "<<<<<<< HEAD"` confirmed no merge conflict markers remain in fixed files
+
+---
+
 ### Documentation Port Consistency Fixes (2026-01-17)
 
 **Areas Improved**:

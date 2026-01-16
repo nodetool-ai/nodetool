@@ -1,51 +1,47 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import React, { useCallback } from "react";
-
-const styles = (theme: Theme) =>
-  css({
-    fontWeight: "400",
-    fontSize: theme.fontSizeNormal,
-    color: theme.vars.palette.grey[0],
-    whiteSpace: "pre-wrap",
-    marginBottom: "0.5em",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.5em",
-    ".first-line": {
-      lineHeight: "1.2em"
-    },
-    ".tags-container": {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "0.5em"
-    },
-    ".tag": {
-      fontWeight: "600",
-      fontSize: theme.fontSizeTiny,
-      color: theme.vars.palette.grey[1000],
-      backgroundColor: theme.vars.palette.grey[400],
-      borderRadius: "0.5em",
-      padding: "0.2em 0.5em",
-      textTransform: "uppercase",
-      display: "inline-block",
-      "&:hover": {
-        filter: "brightness(1.2)"
-      }
-    },
-    ".rest-description": {
-      lineHeight: "1.2em",
-      whiteSpace: "pre-wrap"
-    }
-  });
+import { useTheme } from "@mui/material";
+import { css } from "@emotion/react";
 
 interface NodeDescriptionProps {
-  description: string;
+  description?: string;
   className?: string;
   onTagClick?: (tag: string) => void;
 }
+
+const styles = (theme: any) => css`
+  font-size: 13px;
+  line-height: 1.5;
+  color: ${theme.vars.palette.text.primary};
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  .first-line {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .tag {
+    background-color: ${theme.vars.palette.primary.dark};
+    color: ${theme.vars.palette.primary.contrastText};
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .rest-description {
+    margin-top: 4px;
+    color: ${theme.vars.palette.text.secondary};
+  }
+`;
 
 const NodeDescription = React.memo(({
   description,
@@ -54,7 +50,6 @@ const NodeDescription = React.memo(({
 }: NodeDescriptionProps) => {
   const theme = useTheme();
 
-<<<<<<< HEAD
   const handleTagClick = useCallback(
     (tag: string) => {
       if (onTagClick) {
@@ -68,13 +63,6 @@ const NodeDescription = React.memo(({
     (tag: string) => () => handleTagClick(tag),
     [handleTagClick]
   );
-=======
-  const handleTagClick = useCallback((tag: string) => () => {
-    if (onTagClick) {
-      onTagClick(tag);
-    }
-  }, [onTagClick]);
->>>>>>> origin/main
 
   if (!description) {
     return null;
@@ -107,7 +95,6 @@ const NodeDescription = React.memo(({
             <span
               key={index}
               className="tag"
-<<<<<<< HEAD
               onClick={createTagClickHandler(tag)}
               style={{ cursor: onTagClick ? "pointer" : "default" }}
             >
