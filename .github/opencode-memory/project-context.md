@@ -25,7 +25,7 @@ NodeTool: Open-source, privacy-first, visual AI workflow builder. Drag-and-drop 
 
 ## State Management
 
-**Zustand Stores**: NodeStore, WorkflowStore, AssetStore, SettingsStore, GlobalChatStore (all use temporal middleware for undo/redo)
+**Zustand Stores**: NodeStore, WorkflowStore, AssetStore, SettingsStore, GlobalChatStore, ExecutionTimeStore, ProfilingStore (all use temporal middleware for undo/redo where applicable)
 
 **React Context**: ThemeContext, WorkflowContext, KeyboardContext
 
@@ -50,8 +50,8 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.
 
+- **Workflow Performance Profiler (2026-01-17)**: Added ProfilingStore, useProfiling hook, and ProfilerPanel for workflow performance analysis. Files: ProfilingStore.ts, useProfiling.ts, ProfilerPanel.tsx, workflowUpdates.ts
 - **Zoom Presets (2026-01-14)**: Added zoom in/out buttons, presets dropdown (25-200%), keyboard shortcuts. Files: ViewportStatusIndicator.tsx, shortcuts.ts
 - **Node Execution Time (2026-01-14)**: Shows execution duration on completed nodes. Files: ExecutionTimeStore.ts, NodeExecutionTime.tsx
 - **Keyboard Node Navigation (2026-01-13)**: Tab/Shift+Tab and Alt+Arrows to navigate nodes. Files: NodeFocusStore.ts, useNodeFocus.ts
 - **Zustand Selector Optimization (2026-01-11)**: Fixed components subscribing to entire stores. Files: WorkflowAssistantChat.tsx, AppHeader.tsx
-- **Security Fixes (2026-01-12)**: Updated DOMPurify, react-router-dom, added CSP. Files: package.json, index.html

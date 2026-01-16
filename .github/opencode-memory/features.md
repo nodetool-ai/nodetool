@@ -283,7 +283,14 @@ Last updated: 2026-01-12
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
+
+---
+
+## Experimental Features
+
+*(Research features that are implemented but not yet production-ready)*
+
+- **Workflow Performance Profiler**: Built-in performance profiling tools for identifying bottlenecks and optimizing workflow execution (2026-01-17)
 
 ---
 

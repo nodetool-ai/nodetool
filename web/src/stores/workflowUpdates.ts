@@ -26,6 +26,7 @@ import { useNotificationStore } from "./NotificationStore";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
+import useProfilingStore from "./ProfilingStore";
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -272,21 +273,10 @@ export const handleUpdate = (
     
     switch (job.status) {
       case "completed":
-        runner.addNotification({
-          type: "info",
-          alert: true,
-          content: "Job completed"
+        runnerStore.setState({
+          statusMessage: job.message || "Workflow completed successfully"
         });
-        clearEdges(workflow.id);
-        clearProgress(workflow.id);
-        clearTimings(workflow.id);
-        break;
-      case "cancelled":
-        runner.addNotification({
-          type: "info",
-          alert: true,
-          content: "Job cancelled"
-        });
+        useProfilingStore.getState().endProfiling(workflow.id);
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
@@ -301,6 +291,7 @@ export const handleUpdate = (
           content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
           timeout: 30000
         });
+        useProfilingStore.getState().endProfiling(workflow.id);
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
@@ -320,6 +311,7 @@ export const handleUpdate = (
             content: job.message
           });
         }
+        useProfilingStore.getState().startProfiling(workflow.id);
         break;
       case "suspended":
         runner.addNotification({
@@ -385,8 +377,17 @@ export const handleUpdate = (
       });
       runnerStore.setState({ state: "error" });
       endExecution(workflow.id, update.node_id);
-      setStatus(workflow.id, update.node_id, update.status);
-      setError(workflow.id, update.node_id, update.error);
+        useProfilingStore.getState().addNodeProfile(workflow.id, {
+          nodeId: update.node_id,
+          nodeType: update.node_type || "unknown",
+          title: update.node_name || update.node_id,
+          duration: useExecutionTimeStore.getState().getDuration(workflow.id, update.node_id) || 0,
+          startTime: Date.now(),
+          endTime: Date.now(),
+          status: update.status,
+        });
+        setStatus(workflow.id, update.node_id, update.status);
+        setError(workflow.id, update.node_id, update.error);
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
@@ -414,6 +415,15 @@ export const handleUpdate = (
         startExecution(workflow.id, update.node_id);
       } else if (isFinishing) {
         endExecution(workflow.id, update.node_id);
+        useProfilingStore.getState().addNodeProfile(workflow.id, {
+          nodeId: update.node_id,
+          nodeType: update.node_type || "unknown",
+          title: update.node_name || update.node_id,
+          duration: useExecutionTimeStore.getState().getDuration(workflow.id, update.node_id) || 0,
+          startTime: Date.now(),
+          endTime: Date.now(),
+          status: update.status,
+        });
       }
 
       setStatus(workflow.id, update.node_id, update.status);
