@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
   Button,
@@ -14,7 +15,8 @@ import {
   Tooltip,
   Chip,
   Box,
-  Divider
+  Divider,
+  InputAdornment
 } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -51,6 +53,7 @@ const SecretsMenu = () => {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Use React Query to trigger fetch, but use store state directly
   const { isLoading: queryLoading } = useQuery({
@@ -65,10 +68,19 @@ const SecretsMenu = () => {
   // Group secrets by configured/unconfigured status
   // Use store state directly (same as sidebar) to ensure consistency
   const secretsByStatus = useMemo(() => {
-    const configured = safeSecrets.filter((s: any) => s.is_configured);
-    const unconfigured = safeSecrets.filter((s: any) => !s.is_configured);
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    const filterSecrets = (secrets: any[]) => {
+      if (!lowerSearchTerm) {return secrets;}
+      return secrets.filter(
+        (s: any) =>
+          s.key.toLowerCase().includes(lowerSearchTerm) ||
+          (s.description && s.description.toLowerCase().includes(lowerSearchTerm))
+      );
+    };
+    const configured = filterSecrets(safeSecrets.filter((s: any) => s.is_configured));
+    const unconfigured = filterSecrets(safeSecrets.filter((s: any) => !s.is_configured));
     return { configured, unconfigured };
-  }, [safeSecrets]);
+  }, [safeSecrets, searchTerm]);
 
   const updateMutation = useMutation({
     mutationFn: () => updateSecret(editingSecret.key, formData.value),
@@ -184,6 +196,30 @@ const SecretsMenu = () => {
           <div className="settings-main-content">
             <Typography variant="h1">Secrets Management</Typography>
 
+            <div className="secrets-search-container">
+              <TextField
+                placeholder="Search secrets..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                size="small"
+                fullWidth
+                aria-label="Search secrets"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "text.disabled" }} />
+                    </InputAdornment>
+                  )
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "10px",
+                    backgroundColor: "action.hover"
+                  }
+                }}
+              />
+            </div>
+
             <div className="secrets">
               <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main, flexShrink: 0 }} />
               <Typography>
@@ -196,6 +232,10 @@ const SecretsMenu = () => {
               <Typography sx={{ textAlign: "center", padding: "2em" }}>
                 No secrets available. Contact your administrator to configure
                 available secrets.
+              </Typography>
+            ) : secretsByStatus.configured.length === 0 && secretsByStatus.unconfigured.length === 0 ? (
+              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+                No secrets found matching &quot;{searchTerm}&quot;
               </Typography>
             ) : (
               <>

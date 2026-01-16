@@ -83,6 +83,15 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       border-left: 3px solid ${theme.vars.palette.warning.main};
     }
 
+    .secrets-search-container {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: ${theme.vars.palette.background.paper};
+      padding: 1em 0;
+      margin: 0;
+    }
+
     .description {
       margin-top: 1em;
       opacity: 0.8;
