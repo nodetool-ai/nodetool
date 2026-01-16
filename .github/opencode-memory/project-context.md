@@ -227,13 +227,21 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
-### Viewport Status Indicator (2026-01-13)
 
-**What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
+### Code Quality Improvements (2026-01-15)
 
-**Files**: `web/src/components/node_editor/ViewportStatusIndicator.tsx`, `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx`, `web/src/components/node/ReactFlowWrapper.tsx`
+**What**: Fixed lint warnings, TypeScript types, and mobile type definitions.
 
-**Implementation**: Component positioned above minimap, displays zoom percentage (clickable to reset), node count with selection info, and fit view button. Uses ReactFlow's useViewport and useReactFlow hooks.
+**Files**:
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Fixed unused variable and missing brace
+- `web/src/components/miniapps/components/MiniWorkflowGraph.tsx` - Added proper types and theme-based colors
+- `mobile/package.json`, `mobile/package-lock.json` - Added missing @types/jest and @types/node
+
+**Implementation**:
+- Fixed lint warnings in test file (unused `formatDuration` variable, missing `{` after `if`)
+- Replaced `any` types with typed interfaces in MiniWorkflowGraph
+- Replaced hardcoded colors with CSS custom properties referencing theme values
+- Installed missing type definition packages for mobile package
 
 ---
 
