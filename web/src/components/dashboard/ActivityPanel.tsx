@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Box, Tab, Tabs } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -69,9 +69,9 @@ const ActivityPanel: React.FC<ActivityPanelProps> = (props) => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
-  };
+  }, []);
 
   return (
     <Box css={styles(theme)} className="activity-panel">
@@ -130,4 +130,4 @@ const ActivityPanel: React.FC<ActivityPanelProps> = (props) => {
   );
 };
 
-export default ActivityPanel;
+export default React.memo(ActivityPanel);
