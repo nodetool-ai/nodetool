@@ -130,7 +130,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
   }, []);
 
   const handleColorChangeAndClose = useCallback(
-    (color: string) => {
+    (color: string) => () => {
       onColorChange(color);
       setModalOpen(false);
     },
@@ -174,7 +174,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
                     "lighten"
                   )
                 }}
-                onClick={() => handleColorChangeAndClose(datatype.color)}
+                onClick={handleColorChangeAndClose(datatype.color)}
               >
                 <Typography
                   style={{
