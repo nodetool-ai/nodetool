@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -266,6 +266,50 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     onZoomChange(1);
   }, [onZoomChange]);
 
+  const handleToolSelectSelect = useCallback(() => {
+    handleToolSelect("select");
+  }, [handleToolSelect]);
+
+  const handleToolSelectCrop = useCallback(() => {
+    handleToolSelect("crop");
+  }, [handleToolSelect]);
+
+  const handleToolSelectDraw = useCallback(() => {
+    handleToolSelect("draw");
+  }, [handleToolSelect]);
+
+  const handleToolSelectErase = useCallback(() => {
+    handleToolSelect("erase");
+  }, [handleToolSelect]);
+
+  const handleActionApplyCrop = useCallback(() => {
+    handleActionClick("apply-crop");
+  }, [handleActionClick]);
+
+  const handleActionCancelCrop = useCallback(() => {
+    handleActionClick("cancel-crop");
+  }, [handleActionClick]);
+
+  const handleActionRotateCCW = useCallback(() => {
+    handleActionClick("rotate-ccw");
+  }, [handleActionClick]);
+
+  const handleActionRotateCW = useCallback(() => {
+    handleActionClick("rotate-cw");
+  }, [handleActionClick]);
+
+  const handleActionFlipH = useCallback(() => {
+    handleActionClick("flip-h");
+  }, [handleActionClick]);
+
+  const handleActionFlipV = useCallback(() => {
+    handleActionClick("flip-v");
+  }, [handleActionClick]);
+
+  const handleActionReset = useCallback(() => {
+    handleActionClick("reset");
+  }, [handleActionClick]);
+
   return (
     <div css={styles(theme)}>
       <div className="toolbar">
@@ -276,7 +320,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Select / Pan" placement="top">
               <IconButton
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
-                onClick={() => handleToolSelect("select")}
+                onClick={handleToolSelectSelect}
                 size="small"
               >
                 <PanToolIcon fontSize="small" />
@@ -285,7 +329,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Crop" placement="top">
               <IconButton
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
-                onClick={() => handleToolSelect("crop")}
+                onClick={handleToolSelectCrop}
                 size="small"
               >
                 <CropIcon fontSize="small" />
@@ -294,7 +338,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Draw / Paint" placement="top">
               <IconButton
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
-                onClick={() => handleToolSelect("draw")}
+                onClick={handleToolSelectDraw}
                 size="small"
               >
                 <BrushIcon fontSize="small" />
@@ -303,7 +347,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Erase" placement="top">
               <IconButton
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
-                onClick={() => handleToolSelect("erase")}
+                onClick={handleToolSelectErase}
                 size="small"
               >
                 <AutoFixHighIcon fontSize="small" />
@@ -322,13 +366,13 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <div className="crop-actions">
               <button
                 className="crop-action-button crop-apply"
-                onClick={() => handleActionClick("apply-crop")}
+                onClick={handleActionApplyCrop}
               >
                 <CheckIcon fontSize="small" /> Apply
               </button>
               <button
                 className="crop-action-button crop-cancel"
-                onClick={() => handleActionClick("cancel-crop")}
+                onClick={handleActionCancelCrop}
               >
                 <CloseIcon fontSize="small" /> Cancel
               </button>
@@ -402,7 +446,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Rotate 90° CCW">
               <IconButton
                 className="action-button"
-                onClick={() => handleActionClick("rotate-ccw")}
+                onClick={handleActionRotateCCW}
                 size="small"
               >
                 <Rotate90DegreesCcwIcon fontSize="small" />
@@ -411,7 +455,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Rotate 90° CW">
               <IconButton
                 className="action-button"
-                onClick={() => handleActionClick("rotate-cw")}
+                onClick={handleActionRotateCW}
                 size="small"
               >
                 <Rotate90DegreesCwIcon fontSize="small" />
@@ -420,7 +464,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Flip Horizontal">
               <IconButton
                 className="action-button"
-                onClick={() => handleActionClick("flip-h")}
+                onClick={handleActionFlipH}
                 size="small"
               >
                 <FlipIcon fontSize="small" />
@@ -429,7 +473,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Flip Vertical">
               <IconButton
                 className="action-button"
-                onClick={() => handleActionClick("flip-v")}
+                onClick={handleActionFlipV}
                 size="small"
                 sx={{ transform: "rotate(90deg)" }}
               >
@@ -554,7 +598,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Reset to Original">
               <IconButton
                 className="action-button"
-                onClick={() => handleActionClick("reset")}
+                onClick={handleActionReset}
                 size="small"
               >
                 <RestartAltIcon fontSize="small" />
@@ -567,4 +611,4 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   );
 };
 
-export default ImageEditorToolbar;
+export default memo(ImageEditorToolbar);

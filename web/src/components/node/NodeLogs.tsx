@@ -200,9 +200,9 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
     setOpen(true);
   }, []);
 
-  if (count === 0) {
-    return null;
-  }
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, []);
 
   return (
     <div className="node-logs-container" css={styles(theme)}>
@@ -223,7 +223,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
         id={id}
         workflowId={workflowId}
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -129,7 +129,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
     setModalOpen(false);
   }, []);
 
-  const handleColorChangeAndClose = useCallback(
+  const handleColorButtonClick = useCallback(
     (color: string) => {
       onColorChange(color);
       setModalOpen(false);
@@ -174,7 +174,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
                     "lighten"
                   )
                 }}
-                onClick={() => handleColorChangeAndClose(datatype.color)}
+                onClick={() => handleColorButtonClick(datatype.color)}
               >
                 <Typography
                   style={{
@@ -191,3 +191,5 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
     </div>
   );
 };
+
+export default memo(NodeColorSelector);

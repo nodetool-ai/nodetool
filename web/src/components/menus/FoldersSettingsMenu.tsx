@@ -49,7 +49,7 @@ const FoldersSettings = () => {
     settingsByGroup: storeSettingsByGroup,
     settings
   } = useRemoteSettingsStore();
-  const { addNotification } = useNotificationStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings

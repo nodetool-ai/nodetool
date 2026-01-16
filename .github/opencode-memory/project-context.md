@@ -506,3 +506,41 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Verification**:
 - ✅ Lint: No errors in modified files
 - ✅ TypeScript: Type checking passes (pre-existing test issues unrelated)
+
+---
+
+### Performance Optimization: Inline Callbacks and Store Subscriptions (2026-01-16)
+
+**What**: Fixed inline arrow functions in node editor components and corrected remaining store subscriptions to use selective selectors.
+
+**Why**: Inline arrow functions create new function references on every render, and full store subscriptions cause unnecessary re-renders when any state changes.
+
+**Files Optimized**:
+- `web/src/components/node/NodeColorSelector.tsx` - Added React.memo, memoized handleColorButtonClick
+- `web/src/components/node/NodeLogs.tsx` - Memoized handleClose callback
+- `web/src/components/node/NodeDescription.tsx` - Added React.memo
+- `web/src/components/node/PropertyInput.tsx` - Memoized handleNameChange callback
+- `web/src/components/node/image_editor/ImageEditorToolbar.tsx` - Added React.memo, memoized 11 tool/action callbacks
+- `web/src/components/workspaces/WorkspaceTree.tsx` - useWorkspaceManagerStore selective selector
+- `web/src/components/menus/FoldersSettingsMenu.tsx` - useNotificationStore selective selector
+- `web/src/components/node_menu/NamespaceItem.tsx` - useNodeMenuStore selective selector
+
+**Impact**: Reduced unnecessary re-renders in the node editor (one of the most frequently-used components) and fixed store subscription patterns in workspace/menu components. Node editor components now only update when their specific props change.
+
+**Pattern**:
+```typescript
+// Inline arrow function → Memoized callback
+<Button onClick={() => handleAction(id)} />
+// Becomes:
+const handleAction = useCallback(() => doSomething(id), [id]);
+<Button onClick={handleAction} />
+
+// Full store subscription → Selective selector
+const { value } = useStore();
+// Becomes:
+const value = useStore(state => state.value);
+```
+
+**Verification**:
+- ✅ Lint: No errors in modified files
+- ✅ TypeScript: Type checking passes (pre-existing test issues unrelated)

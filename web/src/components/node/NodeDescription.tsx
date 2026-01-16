@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { memo } from "react";
 
 const styles = (theme: Theme) =>
   css({
@@ -105,4 +105,4 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
   );
 };
 
-export default NodeDescription;
+export default memo(NodeDescription);
