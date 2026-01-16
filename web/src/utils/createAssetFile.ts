@@ -169,7 +169,7 @@ const resolveDownloadUri = (uri: string): string => {
 
 const chunkToOutput = (chunk: Chunk) => {
   if (typeof window !== "undefined") {
-    console.log("[createAssetFile] chunkToOutput", {
+    log.debug("[createAssetFile] chunkToOutput", {
       type: chunk.content_type,
       hasContent: typeof chunk.content !== "undefined",
       contentLength:

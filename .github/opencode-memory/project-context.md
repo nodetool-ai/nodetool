@@ -160,6 +160,39 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Mobile TypeScript Type Definitions Fix (2026-01-15)
+
+**What**: Fixed mobile package TypeScript type checking by adding `@types/react-native` package.
+
+**Why**: TypeScript couldn't find type definition files for 'jest', 'node', and 'react-native' even though tsconfig.json specified them in the types array. The `@types/react-native` package was missing from package.json.
+
+**Files**: `mobile/package.json`, `mobile/package-lock.json`
+
+---
+
+### NodeExecutionTime Test Lint Fix (2026-01-15)
+
+**What**: Fixed lint warnings in NodeExecutionTime.test.tsx by removing unused duplicate function.
+
+**Why**: ESLint reported unused variable warning for `formatDuration` function that was duplicated unnecessarily.
+
+**Files**: `web/src/components/node/__tests__/NodeExecutionTime.test.tsx`
+
+---
+
+### Quality Checks Verification (2026-01-15)
+
+**What**: Ran full quality checks and fixed issues found.
+
+**Result**:
+- ✅ Type checking: All packages pass
+- ✅ Linting: All packages pass (2 warnings fixed)
+- ✅ Tests: All 595 tests pass (206 web + 389 mobile)
+
+**Files**: Multiple files across web and mobile packages
+
+---
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
@@ -194,17 +227,32 @@ test('handles user interaction', async () => {
 - `workflowUpdates.ts` calls `startExecution` when node starts and `endExecution` when it completes
 - `NodeExecutionTime` component displays "Completed in X" or "Failed in X" after execution
 - Timings are cleared when workflow completes, cancels, or fails
-### Viewport Status Indicator (2026-01-13)
 
-**What**: Added a Viewport Status Indicator in the bottom-right corner of the node editor showing real-time zoom percentage, node count, and selected/total node counts. Includes clickable zoom reset button and fit view button.
+### Code Quality Improvements (2026-01-15)
 
-**Files**: `web/src/components/node_editor/ViewportStatusIndicator.tsx`, `web/src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx`, `web/src/components/node/ReactFlowWrapper.tsx`
+**What**: Fixed lint warnings, TypeScript types, and mobile type definitions.
 
-**Implementation**: Component positioned above minimap, displays zoom percentage (clickable to reset), node count with selection info, and fit view button. Uses ReactFlow's useViewport and useReactFlow hooks.
+**Files**:
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Fixed unused variable and missing brace
+- `web/src/components/miniapps/components/MiniWorkflowGraph.tsx` - Added proper types and theme-based colors
+- `mobile/package.json`, `mobile/package-lock.json` - Added missing @types/jest and @types/node
+
+**Implementation**:
+- Fixed lint warnings in test file (unused `formatDuration` variable, missing `{` after `if`)
+- Replaced `any` types with typed interfaces in MiniWorkflowGraph
+- Replaced hardcoded colors with CSS custom properties referencing theme values
+- Installed missing type definition packages for mobile package
+
+### Mobile TypeScript Type Definitions Fix (2026-01-15)
+
+**What**: Fixed mobile package type checking by removing "react-native" from the types array in tsconfig.json.
+
+**Why**: Modern React Native (0.81+) includes its own type definitions, making `@types/react-native` deprecated and unnecessary. The types array was causing TypeScript to look for external type packages that weren't needed.
+
+**Files**: `mobile/tsconfig.json`
 
 ---
 
-### Zustand Store Subscription Optimization (2026-01-13)
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
 

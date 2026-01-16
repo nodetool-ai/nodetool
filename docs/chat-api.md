@@ -3,14 +3,14 @@ layout: page
 title: "Chat API"
 ---
 
-
-
 NodeTool provides both OpenAI-compatible HTTP endpoints and WebSocket endpoints for chat interactions:
 
-- The **Editor API** (`nodetool serve`) exposes WebSocket chat at `/chat` and `/predict`, primarily for the desktop/local app.  
-- The **Worker and Chat Server APIs** (`nodetool worker`, `nodetool chat-server`) expose OpenAI-compatible HTTP endpoints (`/v1/chat/completions`, `/v1/models`) for remote clients.
+- The **Editor API** (`nodetool serve`, defaults to port **7777**) exposes WebSocket chat at `/chat` and `/predict`, primarily for the desktop/local app.
+- The **Worker and Chat Server APIs** (`nodetool worker`, `nodetool chat-server`, defaults to port **8000**) expose OpenAI-compatible HTTP endpoints (`/v1/chat/completions`, `/v1/models`) for remote clients.
 
 See the canonical matrix in [API Reference](api-reference.md#unified-endpoint-matrix) for methods, auth requirements, and streaming behavior.
+
+> **Port Reference**: Development uses port 7777, production deployments use port 8000. Replace `localhost` with your server hostname for remote connections.
 
 ## OpenAI-Compatible HTTP API
 
@@ -44,6 +44,8 @@ is optional for development.
 ```python
 import openai
 
+# For local development: base_url="http://localhost:7777/v1"
+# For production/worker: base_url="http://localhost:8000/v1" or your server URL
 client = openai.OpenAI(
     api_key="YOUR_TOKEN",
     base_url="http://localhost:8000/v1"
@@ -69,6 +71,8 @@ for chunk in response:
 List all available models for the configured provider.
 
 ```bash
+# For local development: http://localhost:7777/v1/models
+# For production: http://localhost:8000/v1/models
 curl http://localhost:8000/v1/models \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
@@ -81,10 +85,14 @@ NodeTool also exposes a `/chat` WebSocket endpoint for real time conversations. 
 The connection supports both binary (MessagePack) and text (JSON) messages. Authentication can be provided via
 `Authorization: Bearer <token>` headers or an `api_key` query parameter.
 
+> **Note**: The WebSocket endpoint is served by the Editor API on port 7777 (development) or your configured server port.
+
 ### WebSocket Example usage
 
 ```javascript
-const socket = new WebSocket("ws://localhost:8000/chat?api_key=YOUR_KEY");
+// For local development: ws://localhost:7777/chat
+// For production deployments, use your server URL
+const socket = new WebSocket("ws://localhost:7777/chat?api_key=YOUR_KEY");
 
 // Send a chat message
 const message = {

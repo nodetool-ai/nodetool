@@ -2,7 +2,7 @@ name: OpenCode Research Features
 
 on:
   schedule:
-    - cron: "0 16 * * 4" # Weekly on Thursdays at 4 PM UTC
+    - cron: "30 * * * *" # Weekly on Thursdays at 4 PM UTC
   workflow_dispatch: # Allow manual trigger
 
 jobs:

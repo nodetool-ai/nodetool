@@ -88,7 +88,7 @@ export const Terminal: React.FC = () => {
     dims?: { cols: number; rows: number } | null,
     prev?: { cols: number; rows: number } | null
   ) => {
-    console.log("[Terminal] resize", label, { dims, prev });
+    log.debug("[Terminal] resize", label, { dims, prev });
   };
   const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
   const [error, setError] = useState<string | null>(null);
