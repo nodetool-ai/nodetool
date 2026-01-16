@@ -160,6 +160,7 @@ Last updated: 2026-01-12
 - **Store Persistence**: Save store state to localStorage
 - **Custom Equality**: Optimized equality checks for state updates
 - **Selective Subscriptions**: Fine-grained store subscriptions to prevent re-renders
+- **ProfilerStore**: Performance profiling store for workflow execution metrics and bottleneck detection
 
 ### Testing Infrastructure
 - **Jest Unit Tests**: Unit testing framework with React Testing Library
@@ -277,12 +278,11 @@ Last updated: 2026-01-12
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
+- **Advanced Analytics**: Workflow performance analytics and profiling (Experimental: Basic profiling implemented)
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
-- **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
+- **Integration Testing E2E**: More comprehensive E2E test coverage with bottleneck detection and efficiency scoring
 
 ---
 
