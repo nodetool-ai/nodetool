@@ -397,25 +397,14 @@ jobs:
             2. **`.github/opencode-memory/issues/` (list folders to see issues by topic)**:
                - Document performance bottlenecks found and fixed
 
-            3. **`.github/opencode-memory/project-context.md`**:
-               - Note significant performance improvements
+            3. **`.github/opencode-memory/project-context.md`** (MAX 5 entries, delete oldest):
+               - Add one line for performance improvements: `- **Perf Fix (date)**: Brief description. Files: x, y`
 
             **After updating memory files, COMPACT THEM**:
             ```bash
             python scripts/compact-memory.py
             ```
             Commit the compacted files with your changes.
-
-            **Format**:
-            ```markdown
-            ### Performance Optimization (2026-01-12)
-
-            **Issue**: Description of performance problem
-            **Measurement**: Baseline metrics (render time, bundle size, etc.)
-            **Solution**: Optimization technique applied
-            **Impact**: Improvement achieved (e.g., 50% faster, 200KB smaller)
-            **Files**: List of optimized files
-            ```
 
             ## Performance Optimization Examples
 

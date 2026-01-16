@@ -358,25 +358,14 @@ jobs:
                - Share security best practices learned
                - Document secure coding patterns
 
-            3. **`.github/opencode-memory/project-context.md`**:
-               - Note security improvements made
+            3. **`.github/opencode-memory/project-context.md`** (MAX 5 entries, delete oldest):
+               - Add one line for security improvements: `- **Security Fix (date)**: Brief description. Files: x, y`
 
             **After updating memory files, COMPACT THEM**:
             ```bash
             python scripts/compact-memory.py
             ```
             Commit the compacted files with your changes.
-
-            **Format**:
-            ```markdown
-            ### Security Fixes (2026-01-12)
-
-            **Vulnerabilities Fixed**: List of CVEs or issues
-            **Severity**: Critical/High/Moderate/Low
-            **Impact**: What was at risk
-            **Solution**: How it was fixed
-            **Files**: List of affected files
-            ```
 
             ## Security Issue Examples
 

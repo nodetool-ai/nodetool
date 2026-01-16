@@ -446,25 +446,14 @@ jobs:
                - Share accessibility patterns that work
                - Document a11y best practices
 
-            3. **`.github/opencode-memory/project-context.md`**:
-               - Note accessibility improvements
+            3. **`.github/opencode-memory/project-context.md`** (MAX 5 entries, delete oldest):
+               - Add one line for accessibility improvements: `- **A11y Fix (date)**: Brief description. Files: x, y`
 
             **After updating memory files, COMPACT THEM**:
             ```bash
             python scripts/compact-memory.py
             ```
             Commit the compacted files.
-
-            **Format**:
-            ```markdown
-            ### Accessibility Improvements (2026-01-12)
-
-            **Issues Found**: List of a11y violations
-            **WCAG Criteria**: Which success criteria were failing
-            **Solution**: How issues were fixed
-            **Impact**: Who benefits from these improvements
-            **Files**: List of updated files
-            ```
 
             ## Accessibility Best Practices
 

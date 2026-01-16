@@ -92,7 +92,7 @@ jobs:
             - **Add ONE LINE to features.md** if you added a user-facing feature
             - **Create a file in issues/<topic>/`** if you solved a tricky problem
             - **Create a file in insights/<topic>/`** if you discovered a best practice
-            - **Add ONE ENTRY to project-context.md** under "Recent Changes" for significant changes
+            - **Add ONE LINE to project-context.md** "Recent Changes" (MAX 5 entries, delete oldest): `Feature (date): One line. Files: x, y`
             
             **Format for new issue files** (create in `issues/<topic>/your-issue.md`):
             ```markdown
