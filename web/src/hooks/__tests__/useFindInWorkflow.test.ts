@@ -546,4 +546,139 @@ describe("useFindInWorkflow", () => {
       expect(result.current.totalCount).toBe(result.current.results.length);
     });
   });
+
+  describe("highlightedNodeIds", () => {
+    it("should return highlightedNodeIds from store", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+      expect(result.current.highlightedNodeIds).toBeInstanceOf(Set);
+    });
+
+    it("should update highlightedNodeIds when search is performed", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("text");
+      });
+
+      expect(result.current.highlightedNodeIds.size).toBeGreaterThan(0);
+      expect(result.current.highlightedNodeIds.has("node-1")).toBe(true);
+      expect(result.current.highlightedNodeIds.has("node-4")).toBe(true);
+    });
+
+    it("should clear highlightedNodeIds when search is cleared", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("text");
+      });
+
+      expect(result.current.highlightedNodeIds.size).toBeGreaterThan(0);
+
+      act(() => {
+        result.current.clearSearch();
+      });
+
+      expect(result.current.highlightedNodeIds).toEqual(new Set());
+    });
+
+    it("should clear highlightedNodeIds when search returns no results", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("text");
+      });
+
+      const _textSearchHighlightCount = result.current.highlightedNodeIds.size;
+
+      act(() => {
+        result.current.immediateSearch("nonexistent");
+      });
+
+      expect(result.current.highlightedNodeIds.size).toBe(0);
+    });
+
+    it("should return setHighlightedNodeIds function", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+      expect(typeof result.current.setHighlightedNodeIds).toBe("function");
+    });
+
+    it("should return clearHighlightedNodes function", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+      expect(typeof result.current.clearHighlightedNodes).toBe("function");
+    });
+
+    it("should allow manual setting of highlightedNodeIds", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.setHighlightedNodeIds(new Set(["node-2", "node-3"]));
+      });
+
+      expect(result.current.highlightedNodeIds.has("node-2")).toBe(true);
+      expect(result.current.highlightedNodeIds.has("node-3")).toBe(true);
+      expect(result.current.highlightedNodeIds.has("node-1")).toBe(false);
+    });
+
+    it("should allow clearing highlightedNodeIds manually", () => {
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [] };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.setHighlightedNodeIds(new Set(["node-2", "node-3"]));
+      });
+
+      act(() => {
+        result.current.clearHighlightedNodes();
+      });
+
+      expect(result.current.highlightedNodeIds).toEqual(new Set());
+    });
+  });
 });

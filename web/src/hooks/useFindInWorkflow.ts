@@ -12,11 +12,14 @@ export const useFindInWorkflow = () => {
     searchTerm,
     results,
     selectedIndex,
+    highlightedNodeIds,
     openFind,
     closeFind,
     setSearchTerm,
     setResults,
     setSelectedIndex,
+    setHighlightedNodeIds,
+    clearHighlightedNodes,
     navigateNext,
     navigatePrevious,
     clearSearch
@@ -75,6 +78,7 @@ export const useFindInWorkflow = () => {
     (term: string) => {
       if (!term.trim()) {
         setResults([]);
+        clearHighlightedNodes();
         return;
       }
 
@@ -83,7 +87,7 @@ export const useFindInWorkflow = () => {
         matchingNodes.map((node, index) => ({ node, matchIndex: index }))
       );
     },
-    [nodes, searchNodes, setResults]
+    [nodes, searchNodes, setResults, clearHighlightedNodes]
   );
 
   const debouncedSearch = useCallback(
@@ -156,6 +160,7 @@ export const useFindInWorkflow = () => {
     results,
     selectedIndex,
     totalCount: results.length,
+    highlightedNodeIds,
     openFind,
     closeFind,
     performSearch: debouncedSearch,
@@ -165,6 +170,8 @@ export const useFindInWorkflow = () => {
     navigatePrevious,
     clearSearch,
     selectNode,
-    getNodeDisplayName
+    getNodeDisplayName,
+    setHighlightedNodeIds,
+    clearHighlightedNodes
   };
 };

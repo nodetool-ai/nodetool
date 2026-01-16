@@ -393,6 +393,23 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Search Result Highlighting (2026-01-15)
+
+**What**: Added visual highlighting for nodes that match the current search in the Find in Workflow dialog. Matching nodes are highlighted on the canvas with a yellow border and glow effect, making it easier to locate them in large workflows.
+
+**Files**:
+- `web/src/stores/FindInWorkflowStore.ts` - Extended store with `highlightedNodeIds` tracking
+- `web/src/hooks/useFindInWorkflow.ts` - Updated hook to manage highlighted nodes
+- `web/src/components/node/BaseNode.tsx` - Added visual highlight styling for matching nodes
+- `web/src/stores/__tests__/FindInWorkflowStore.test.ts` - New test file for store functionality
+- `web/src/hooks/__tests__/useFindInWorkflow.test.ts` - Extended tests with highlighting scenarios
+
+**Implementation**:
+- Added `highlightedNodeIds: Set<string>` to the FindInWorkflowStore
+- When search results are set, the store automatically populates highlightedNodeIds with matching node IDs
+- BaseNode subscribes to highlightedNodeIds and applies a yellow border/glow when a node is highlighted
+- The highlight is visible but doesn't interfere with node selection
+
 ### Console Log Removal (2026-01-15)
 
 **What**: Removed debug console.log statements and replaced with proper loglevel logging.
