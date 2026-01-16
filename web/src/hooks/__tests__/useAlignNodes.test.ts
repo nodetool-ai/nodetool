@@ -1,28 +1,28 @@
 import { renderHook, act } from "@testing-library/react";
 import useAlignNodes from "../useAlignNodes";
-import { Node } from "@xyflow/react";
+import { Node, Position } from "@xyflow/react";
+import { NodeData } from "../stores/NodeData";
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({
     setNodes: jest.fn()
-  }))
+  })),
+  Position: {
+    Left: "left",
+    Right: "right",
+    Top: "top",
+    Bottom: "bottom"
+  }
 }));
 
 jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) =>
-    selector({
+  useNodes: jest.fn((selector) => {
+    const mockState = {
       getSelectedNodes: jest.fn(() => [])
-    })
-  )
+    };
+    return selector(mockState);
+  })
 }));
-
-type NodeData = {
-  properties: Record<string, unknown>;
-  dynamic_properties: Record<string, unknown>;
-  selectable: boolean;
-  workflow_id: string;
-  collapsed?: boolean;
-};
 
 const createMockNode = (
   id: string,
@@ -34,8 +34,8 @@ const createMockNode = (
   id,
   type: "test",
   position: { x, y },
-  targetPosition: "left" as "left",
-  sourcePosition: "right" as "right",
+  targetPosition: Position.Left,
+  sourcePosition: Position.Right,
   data: {
     properties: {},
     dynamic_properties: {},
@@ -62,11 +62,11 @@ describe("useAlignNodes", () => {
   });
 
   it("does nothing with less than 2 selected nodes", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) =>
-      selector({
+    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+      return selector({
         getSelectedNodes: jest.fn(() => [createMockNode("node1", 0, 0)])
-      })
-    );
+      });
+    });
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -78,15 +78,15 @@ describe("useAlignNodes", () => {
   });
 
   it("aligns nodes vertically when xRange < yRange", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) =>
-      selector({
+    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+      return selector({
         getSelectedNodes: jest.fn(() => [
           createMockNode("node1", 100, 0),
           createMockNode("node2", 150, 100),
           createMockNode("node3", 50, 200)
         ])
-      })
-    );
+      });
+    });
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -107,15 +107,15 @@ describe("useAlignNodes", () => {
   });
 
   it("aligns nodes horizontally when xRange >= yRange", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) =>
-      selector({
+    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+      return selector({
         getSelectedNodes: jest.fn(() => [
           createMockNode("node1", 0, 100),
           createMockNode("node2", 100, 150),
           createMockNode("node3", 200, 50)
         ])
-      })
-    );
+      });
+    });
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -136,15 +136,15 @@ describe("useAlignNodes", () => {
   });
 
   it("applies spacing when arrangeSpacing is true (vertical alignment)", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) =>
-      selector({
+    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+      return selector({
         getSelectedNodes: jest.fn(() => [
           createMockNode("node1", 100, 0, 100, 50),
           createMockNode("node2", 150, 200, 100, 50),
           createMockNode("node3", 50, 400, 100, 50)
         ])
-      })
-    );
+      });
+    });
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -165,14 +165,14 @@ describe("useAlignNodes", () => {
   });
 
   it("sets collapsed state when provided", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) =>
-      selector({
+    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+      return selector({
         getSelectedNodes: jest.fn(() => [
           createMockNode("node1", 0, 0),
           createMockNode("node2", 100, 0)
         ])
-      })
-    );
+      });
+    });
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -196,11 +196,11 @@ describe("useAlignNodes", () => {
       createMockNode("node1", 0, 0),
       createMockNode("node2", 100, 0)
     ];
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) =>
-      selector({
+    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+      return selector({
         getSelectedNodes: jest.fn(() => selectedNodes)
-      })
-    );
+      });
+    });
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -220,14 +220,14 @@ describe("useAlignNodes", () => {
   });
 
   it("handles nodes without measured dimensions", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) =>
-      selector({
+    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+      return selector({
         getSelectedNodes: jest.fn(() => [
           createMockNode("node1", 0, 0),
           createMockNode("node2", 100, 0)
         ])
-      })
-    );
+      });
+    });
 
     const { result } = renderHook(() => useAlignNodes());
 

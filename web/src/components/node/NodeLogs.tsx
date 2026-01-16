@@ -90,7 +90,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       }
     }, [logs]);
 
-    const toggleSeverity = useCallback((severity: Severity) => {
+    const toggleSeverity = useCallback((severity: Severity) => () => {
       setSelectedSeverities((prev) =>
         prev.includes(severity)
           ? prev.filter((s) => s !== severity)
@@ -143,7 +143,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("info") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("info")}
+              onClick={toggleSeverity("info")}
             />
             <Chip
               size="small"
@@ -152,7 +152,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("warning") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("warning")}
+              onClick={toggleSeverity("warning")}
             />
             <Chip
               size="small"
@@ -161,7 +161,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("error") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("error")}
+              onClick={toggleSeverity("error")}
             />
           </Box>
           <div style={{ padding: 10 }} ref={logsRef}>
@@ -200,6 +200,10 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
     setOpen(true);
   }, []);
 
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, []);
+
   if (count === 0) {
     return null;
   }
@@ -223,7 +227,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
         id={id}
         workflowId={workflowId}
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
       />
     </div>
   );

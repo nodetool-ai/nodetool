@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface WorkflowListViewState {
   showGraphPreview: boolean;
@@ -9,17 +10,20 @@ interface WorkflowListViewState {
 }
 
 export const useWorkflowListViewStore = create<WorkflowListViewState>()(
-  (set) => ({
-    showGraphPreview: false,
-    actions: {
-      toggleGraphPreview: () => {
-        set((state) => ({ showGraphPreview: !state.showGraphPreview }));
+  persist(
+    (set) => ({
+      showGraphPreview: true,
+      actions: {
+        toggleGraphPreview: () => {
+          set((state) => ({ showGraphPreview: !state.showGraphPreview }));
+        },
+        setShowGraphPreview: (show: boolean) => {
+          set({ showGraphPreview: show });
+        },
       },
-      setShowGraphPreview: (show: boolean) => {
-        set({ showGraphPreview: show });
-      },
-    },
-  })
+    }),
+    { name: "workflow-list-view" }
+  )
 );
 
 export const useWorkflowListViewActions = () =>

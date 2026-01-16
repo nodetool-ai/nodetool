@@ -125,3 +125,72 @@ it("returns result from getResult when available", () => {
 4. Verify both happy path and error scenarios
 
 **Status**: All 41 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17)
+
+**Coverage Added**: 2 new utility test files with 17 tests
+
+**Tests Added**:
+- `graphEdgeToReactFlowEdge.test.ts` - 9 tests for graph to ReactFlow edge conversion
+- `reactFlowEdgeToGraphEdge.test.ts` - 8 tests for ReactFlow to graph edge conversion
+
+**Areas Covered**:
+- Basic edge conversion (id, source, target, handles)
+- UUID generation when id is not provided
+- Handle null/undefined/empty string conversion
+- UI properties (className) handling
+- Edge cases with special characters
+
+**Test Patterns Used**:
+
+1. **Utility Function Testing Pattern**:
+```typescript
+describe("functionName", () => {
+  it("performs expected conversion", () => {
+    const input = { /* test data */ };
+    const result = functionName(input);
+    expect(result.property).toEqual(expected);
+  });
+
+  it("handles edge case", () => {
+    const input = { /* edge case data */ };
+    const result = functionName(input);
+    expect(result.property).toEqual(expected);
+  });
+});
+```
+
+2. **Edge Conversion Testing**:
+```typescript
+describe("graphEdgeToReactFlowEdge", () => {
+  it("converts a basic edge with all required fields", () => {
+    const graphEdge: GraphEdge = {
+      id: "edge-1",
+      source: "node-1",
+      sourceHandle: "output",
+      target: "node-2",
+      targetHandle: "input"
+    };
+
+    const result = graphEdgeToReactFlowEdge(graphEdge);
+
+    expect(result.id).toBe("edge-1");
+    expect(result.source).toBe("node-1");
+    // ... more assertions
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts`
+- `web/src/stores/__tests__/reactFlowEdgeToGraphEdge.test.ts`
+
+**Key Learnings**:
+1. Simple utility functions are easy to test with basic input/output assertions
+2. Handle null, undefined, and empty string edge cases explicitly
+3. Verify type conversions (e.g., null handles to null, empty strings to null)
+4. Graph conversion utilities are critical for workflow editor functionality
+
+**Status**: All 17 tests passing

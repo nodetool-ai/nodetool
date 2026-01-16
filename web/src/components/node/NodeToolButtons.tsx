@@ -14,6 +14,7 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import InfoIcon from "@mui/icons-material/Info";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import BlockIcon from "@mui/icons-material/Block";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -179,7 +180,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             color={isBypassed ? "warning" : "default"}
             size="small"
           >
-            {isBypassed ? <PlayArrowIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
+            {isBypassed ? <PowerSettingsNewIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
 
