@@ -2,7 +2,7 @@ name: OpenCode Documentation Quality
 
 on:
   schedule:
-    - cron: "0 8 * * 1" # Weekly on Mondays at 8 AM UTC
+    - cron: "18 * * * *" 
   workflow_dispatch: # Allow manual trigger
 
 jobs:
