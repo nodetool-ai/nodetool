@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import useAnnotationStore from "../stores/AnnotationStore";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -391,6 +392,36 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const addAnnotation = useAnnotationStore((state) => state.addAnnotation);
+  const deleteAnnotation = useAnnotationStore((state) => state.deleteAnnotation);
+  const selectedAnnotationId = useAnnotationStore((state) => state.selectedAnnotationId);
+
+  const handleAddAnnotation = useCallback(() => {
+    const viewport = reactFlow.getViewport();
+    const containerElement = document.querySelector(".react-flow");
+    const containerWidth = containerElement?.clientWidth || 800;
+    const containerHeight = containerElement?.clientHeight || 600;
+    const centerX = (-viewport.x + containerWidth / 2) / viewport.zoom - 100;
+    const centerY = (-viewport.y + containerHeight / 2) / viewport.zoom - 75;
+    addAnnotation({ x: centerX, y: centerY });
+    addNotification({
+      content: "Annotation created",
+      type: "info",
+      alert: false
+    });
+  }, [reactFlow, addAnnotation, addNotification]);
+
+  const handleDeleteAnnotation = useCallback(() => {
+    if (selectedAnnotationId) {
+      deleteAnnotation(selectedAnnotationId);
+      addNotification({
+        content: "Annotation deleted",
+        type: "info",
+        alert: false
+      });
+    }
+  }, [selectedAnnotationId, deleteAnnotation, addNotification]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -522,6 +553,11 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      addAnnotation: { callback: handleAddAnnotation },
+      deleteAnnotation: {
+        callback: handleDeleteAnnotation,
+        active: selectedAnnotationId !== null
       }
     };
 
@@ -583,11 +619,14 @@ export const useNodeEditorShortcuts = (
     nodeFocus.exitNavigationMode,
     nodeFocus.focusUp,
     nodeFocus.focusDown,
-    nodeFocus.focusLeft,
-    nodeFocus.focusRight,
-    nodeFocus.goBack,
-    nodeFocus.focusHistory.length
-  ]);
+      nodeFocus.focusLeft,
+      nodeFocus.focusRight,
+      nodeFocus.goBack,
+      nodeFocus.focusHistory.length,
+      handleAddAnnotation,
+      handleDeleteAnnotation,
+      selectedAnnotationId
+    ]);
 
   // useEffect for shortcut registration
   useEffect(() => {

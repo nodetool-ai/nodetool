@@ -39,6 +39,7 @@ Last updated: 2026-01-12
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Workflow Annotations**: Add sticky-note annotations to document workflows directly on the canvas
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

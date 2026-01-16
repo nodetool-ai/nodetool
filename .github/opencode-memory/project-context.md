@@ -410,6 +410,38 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Workflow Annotations Feature (2026-01-16)
+
+**What**: Added a workflow annotations feature that allows users to add sticky-note style annotations directly on the canvas to document complex workflows.
+
+**Features**:
+- Create annotations at any position on the canvas
+- Edit annotation text with inline editing
+- Choose from 5 colors (yellow, green, blue, pink, orange) for visual categorization
+- Drag annotations to reposition them
+- Keyboard shortcut (N) to add annotation at center of viewport
+- Delete selected annotation with Shift+N
+- Annotation panel shows all annotations with timestamps
+- Select annotations to focus and manage them
+
+**Files**:
+- `web/src/stores/AnnotationStore.ts` - New store for managing annotations
+- `web/src/components/node/AnnotationNode.tsx` - Visual annotation component
+- `web/src/components/node/AnnotationsLayer.tsx` - Layer rendering annotations on canvas
+- `web/src/components/panels/AnnotationPanel.tsx` - Panel for managing annotations
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added annotation shortcuts
+- `web/src/config/shortcuts.ts` - Added keyboard shortcut definitions
+- `web/src/components/node/ReactFlowWrapper.tsx` - Integrated annotations layer
+- `web/src/stores/__tests__/AnnotationStore.test.ts` - Tests for the store
+
+**Key Design Decisions**:
+- Annotations are stored in a separate store (AnnotationStore) to keep them independent from workflow nodes
+- Annotations render as a layer on top of ReactFlow canvas
+- Color picker in each annotation for quick color changes
+- 5 predefined colors with good contrast for visibility in both light and dark modes
+
+---
+
 ### Lint Warning Fixes (2026-01-15)
 
 **What**: Fixed lint warnings in test files by removing unused variables and code.

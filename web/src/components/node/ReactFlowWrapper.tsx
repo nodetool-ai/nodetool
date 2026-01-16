@@ -64,6 +64,7 @@ interface ReactFlowWrapperProps {
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
+import AnnotationsLayer from "./AnnotationsLayer";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -545,6 +546,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       )}
       <MiniMapNavigator />
       <ViewportStatusIndicator />
+      <AnnotationsLayer workflowId={workflowId} />
     </div>
   );
 };

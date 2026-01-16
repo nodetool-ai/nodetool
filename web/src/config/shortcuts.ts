@@ -458,6 +458,23 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true,
     altKeyCombos: [["Backspace"]]
   },
+  // ---------- ANNOTATIONS ----------------------------------------------------
+  {
+    title: "Add Annotation",
+    slug: "addAnnotation",
+    keyCombo: ["N"],
+    category: "editor" as const,
+    description: "Add a new annotation at the center of the viewport",
+    registerCombo: true
+  },
+  {
+    title: "Delete Annotation",
+    slug: "deleteAnnotation",
+    keyCombo: ["Shift", "N"],
+    category: "editor" as const,
+    description: "Delete the selected annotation",
+    registerCombo: true
+  },
   {
     title: "Node Info",
     slug: "nodeInfo",
