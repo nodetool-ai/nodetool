@@ -147,7 +147,7 @@ describe("useFocusPan", () => {
     });
 
     let didNotPan = false;
-    const originalSetCenter = require("@xyflow/react").useReactFlow().setCenter;
+    require("@xyflow/react").useReactFlow();
     (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
       getViewport: jest.fn(() => ({ zoom: 1 })),
       setCenter: () => {

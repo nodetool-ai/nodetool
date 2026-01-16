@@ -1,4 +1,4 @@
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useAutosave, UseAutosaveOptions } from "../useAutosave";
 
 jest.mock("../../stores/SettingsStore", () => ({
@@ -41,7 +41,12 @@ describe("useAutosave", () => {
     workflowId: "test-workflow-123",
     getWorkflow: jest.fn(() => ({
       id: "test-workflow-123",
-      name: "Test Workflow"
+      name: "Test Workflow",
+      access: "private",
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+      description: "Test workflow description",
+      graph: { nodes: [], edges: [] }
     })),
     isDirty: jest.fn(() => true)
   };
@@ -248,7 +253,7 @@ describe("useAutosave", () => {
       workflowId: null
     };
 
-    const { result } = renderHook(() => useAutosave(options));
+    const { result: _result } = renderHook(() => useAutosave(options));
 
     let response: { version: null; message: string; skipped: boolean } | undefined;
     

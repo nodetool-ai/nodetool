@@ -96,5 +96,12 @@ export default [
       "curly": ["warn", "all"], // Encourage curly braces for all control statements
       "no-throw-literal": "error"
     }
+  },
+  {
+    // Test files can use require() for jest.mock() module access
+    files: ["**/__tests__/**/*.{ts,tsx,js,jsx}", "**/*.test.{ts,tsx,js,jsx}", "**/*.spec.{ts,tsx,js,jsx}"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off"
+    }
   }
 ];

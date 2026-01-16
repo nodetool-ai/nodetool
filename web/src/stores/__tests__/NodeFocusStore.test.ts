@@ -8,6 +8,7 @@ const createMockNode = (id: string, x: number = 0, y: number = 0): Node<NodeData
   position: { x, y },
   data: {
     properties: {},
+    dynamic_properties: {},
     selectable: true,
     workflow_id: "test-workflow"
   }
