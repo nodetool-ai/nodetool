@@ -509,3 +509,30 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 **Files**:
 - `web/src/stores/workflowUpdates.ts`
+
+---
+
+### Workflow Statistics Panel (2026-01-16)
+
+**What**: Added a new Workflow Statistics panel to the bottom panel, providing real-time insights into workflow structure and metrics.
+
+**Features**:
+- Structure metrics: node count, edge count, graph depth, connected/isolated nodes
+- Node type breakdown with visual progress bars
+- Node categorization (Inputs, Processing, Outputs, Isolated)
+- Toggle via FloatingToolbar menu or keyboard shortcut (Ctrl+Shift+S)
+- Integrated into existing bottom panel system alongside Terminal
+
+**Files**:
+- `web/src/stores/WorkflowStatsStore.ts` - New store for tracking workflow statistics
+- `web/src/components/node_editor/WorkflowStatsPanel.tsx` - New stats display component
+- `web/src/components/node_editor/__tests__/WorkflowStatsStore.test.ts` - Tests for the store
+- `web/src/components/panels/PanelBottom.tsx` - Added stats panel to bottom panel
+- `web/src/components/panels/FloatingToolBar.tsx` - Added stats toggle to menu
+- `web/src/stores/BottomPanelStore.ts` - Added "stats" as a new panel view type
+
+**Implementation**:
+- WorkflowStatsStore calculates structure metrics from nodes and edges
+- Panel shows empty state when no nodes, statistics when nodes exist
+- Categories nodes as Input/Processing/Output based on type name
+- Calculates graph depth via longest path from input to output nodes

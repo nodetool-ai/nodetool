@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type BottomPanelView = "terminal";
+export type BottomPanelView = "terminal" | "stats";
 
 interface PanelState {
   panelSize: number;

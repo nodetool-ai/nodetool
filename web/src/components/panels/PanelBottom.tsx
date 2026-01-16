@@ -14,6 +14,9 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import WorkflowStatsPanel from "../node_editor/WorkflowStatsPanel";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -108,9 +111,18 @@ const PanelBottom: React.FC = () => {
   } = useResizeBottomPanel();
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
+  const { getCurrentWorkflow, currentWorkflowId } = useWorkflowManager((state) => ({
+    getCurrentWorkflow: state.getWorkflow,
+    currentWorkflowId: state.currentWorkflowId
+  }));
+  const currentWorkflow = currentWorkflowId ? getCurrentWorkflow(currentWorkflowId) : undefined;
+  const workflowId = currentWorkflow?.id || "";
 
   // Add keyboard shortcut for toggle (Ctrl+`)
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
+
+  // Add keyboard shortcut for stats (Ctrl+Shift+S)
+  useCombo(["Control", "Shift", "s"], () => handlePanelToggle("stats"), false);
 
   const openHeight = isVisible
     ? Math.min(
@@ -118,6 +130,70 @@ const PanelBottom: React.FC = () => {
         typeof window !== "undefined" ? Math.max(200, window.innerHeight * 0.6) : panelSize
       )
     : 0;
+
+  const renderHeader = () => {
+    if (activeView === "terminal") {
+      return (
+        <>
+          <div className="left">
+            <TerminalIcon fontSize="small" />
+            <Typography variant="body2">Terminal</Typography>
+          </div>
+          <Tooltip
+            title={
+              <div className="tooltip-span">
+                <div className="tooltip-title">Hide terminal</div>
+                <div className="tooltip-key">
+                  <kbd>Ctrl</kbd> + <kbd>`</kbd>
+                </div>
+              </div>
+            }
+            placement="top-start"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <IconButton
+              size="small"
+              onClick={() => handlePanelToggle("terminal")}
+              aria-label="Hide terminal"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      );
+    }
+    if (activeView === "stats") {
+      return (
+        <>
+          <div className="left">
+            <BarChartIcon fontSize="small" />
+            <Typography variant="body2">Statistics</Typography>
+          </div>
+          <Tooltip
+            title={
+              <div className="tooltip-span">
+                <div className="tooltip-title">Hide statistics</div>
+                <div className="tooltip-key">
+                  <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>
+                </div>
+              </div>
+            }
+            placement="top-start"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <IconButton
+              size="small"
+              onClick={() => handlePanelToggle("stats")}
+              aria-label="Hide statistics"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      );
+    }
+    return null;
+  };
 
   return (
     <div
@@ -159,30 +235,7 @@ const PanelBottom: React.FC = () => {
         <div className="panel-content">
           {isVisible && (
             <div className="panel-header">
-              <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
-              </div>
-              <Tooltip
-                title={
-                  <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
-                    <div className="tooltip-key">
-                      <kbd>Ctrl</kbd> + <kbd>`</kbd>
-                    </div>
-                  </div>
-                }
-                placement="top-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                <IconButton
-                  size="small"
-                  onClick={() => handlePanelToggle("terminal")}
-                  aria-label="Hide terminal"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              {renderHeader()}
             </div>
           )}
           <div
@@ -192,6 +245,18 @@ const PanelBottom: React.FC = () => {
             }}
           >
             <Terminal />
+          </div>
+          <div
+            className="stats-wrapper"
+            style={{
+              display: activeView === "stats" && isVisible ? "flex" : "none",
+              flex: 1,
+              minHeight: 0,
+              overflow: "auto",
+              width: "100%"
+            }}
+          >
+            {workflowId && <WorkflowStatsPanel workflowId={workflowId} />}
           </div>
         </div>
       </Drawer>
