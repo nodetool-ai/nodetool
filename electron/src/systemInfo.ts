@@ -113,38 +113,55 @@ async function checkLlamaServerInstalled(): Promise<boolean> {
 }
 
 /**
- * Get CUDA version if available
+ * Get CUDA version and availability in a single call.
+ * This consolidates detection to ensure consistent results.
  */
-async function getCudaVersion(): Promise<string | null> {
+async function getCudaInfo(): Promise<{ available: boolean; version: string | null }> {
   try {
-    // Try nvidia-smi first (most reliable)
-    const nvidiaSmiOutput = await execCommand("nvidia-smi --query-gpu=driver_version --format=csv,noheader");
-    if (nvidiaSmiOutput) {
-      // Also try to get CUDA version
-      const cudaOutput = await execCommand("nvidia-smi");
-      if (cudaOutput) {
-        const cudaMatch = cudaOutput.match(/CUDA Version:\s+(\d+\.\d+)/);
-        if (cudaMatch) {
-          return cudaMatch[1];
-        }
+    // Try nvidia-smi to get full GPU info (most comprehensive check)
+    const fullOutput = await execCommand("nvidia-smi");
+    if (fullOutput && fullOutput.trim().length > 0) {
+      // GPU is available - now try to extract CUDA version
+      const cudaMatch = fullOutput.match(/CUDA Version:\s+(\d+\.\d+)/);
+      if (cudaMatch) {
+        return { available: true, version: cudaMatch[1] };
       }
-      return `Driver ${nvidiaSmiOutput}`;
-    }
-    return null;
-  } catch (error) {
-    return null;
-  }
-}
 
-/**
- * Check if CUDA is available
- */
-async function checkCudaAvailable(): Promise<boolean> {
-  try {
-    const output = await execCommand("nvidia-smi");
-    return output !== null;
+      // Try to get driver version as fallback
+      const driverOutput = await execCommand(
+        "nvidia-smi --query-gpu=driver_version --format=csv,noheader"
+      );
+      if (driverOutput && driverOutput.trim().length > 0) {
+        return { available: true, version: `Driver ${driverOutput.trim()}` };
+      }
+
+      // nvidia-smi works but we couldn't parse version - GPU is still available
+      return { available: true, version: "Available" };
+    }
+
+    // nvidia-smi failed, try alternative detection methods
+    // Try lspci to detect NVIDIA GPU on Linux
+    if (process.platform === "linux") {
+      const lspciOutput = await execCommand("lspci | grep -i nvidia");
+      if (lspciOutput && lspciOutput.toLowerCase().includes("nvidia")) {
+        return { available: true, version: "NVIDIA GPU detected (driver not installed)" };
+      }
+    }
+
+    // Try spctl (macOS) for GPU detection
+    if (process.platform === "darwin") {
+      const systemProfilerOutput = await execCommand(
+        "system_profiler SPDisplaysDataType | grep -i nvidia"
+      );
+      if (systemProfilerOutput && systemProfilerOutput.toLowerCase().includes("nvidia")) {
+        return { available: true, version: "NVIDIA GPU detected" };
+      }
+    }
+
+    return { available: false, version: null };
   } catch (error) {
-    return false;
+    logMessage(`CUDA detection error: ${error}`, "warn");
+    return { available: false, version: null };
   }
 }
 
@@ -206,16 +223,14 @@ export async function getSystemInfo(): Promise<SystemInfo> {
     pythonVersion,
     ollamaVersion,
     llamaServerVersion,
-    cudaVersion,
-    cudaAvailable,
+    cudaInfo,
     ollamaInstalled,
     llamaServerInstalled,
   ] = await Promise.all([
     getPythonVersion(),
     getOllamaVersion(),
     getLlamaServerVersion(),
-    getCudaVersion(),
-    checkCudaAvailable(),
+    getCudaInfo(),
     checkOllamaInstalled(),
     checkLlamaServerInstalled(),
   ]);
@@ -238,8 +253,8 @@ export async function getSystemInfo(): Promise<SystemInfo> {
     // Python and package versions
     pythonVersion,
     // Feature availability
-    cudaAvailable,
-    cudaVersion,
+    cudaAvailable: cudaInfo.available,
+    cudaVersion: cudaInfo.version,
     ollamaInstalled,
     ollamaVersion,
     llamaServerInstalled,
