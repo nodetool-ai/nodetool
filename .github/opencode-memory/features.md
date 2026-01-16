@@ -80,6 +80,9 @@ Last updated: 2026-01-12
 - **PDF Viewer**: PDF document viewer
 - **Text Viewer**: Text file viewer with syntax highlighting
 
+### Data Visualization
+- **Workflow Performance Profiler**: Analyze workflow execution timing with bottleneck detection, visual charts, and performance insights (Experimental)
+
 ### Authentication & User Management
 - **Login/Logout**: User authentication system
 - **Google OAuth**: Google authentication integration
@@ -274,12 +277,10 @@ Last updated: 2026-01-12
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
