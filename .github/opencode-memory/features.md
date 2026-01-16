@@ -79,6 +79,7 @@ Last updated: 2026-01-12
 - **Video Viewer**: Video playback with controls
 - **PDF Viewer**: PDF document viewer
 - **Text Viewer**: Text file viewer with syntax highlighting
+- **ESC Key Exit**: Press Escape to close any asset viewer (implemented via useCombo hook)
 
 ### Authentication & User Management
 - **Login/Logout**: User authentication system
