@@ -2,12 +2,11 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo } from "react";
+import React from "react";
 import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
-import isEqual from "lodash/isEqual";
 import { FixedSizeList } from "react-window";
 import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
 
@@ -139,7 +138,6 @@ const listStyles = (theme: Theme) =>
     }
   });
 
-// Memoize the main WorkflowListView component
 const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   workflows,
   onOpenWorkflow,
@@ -206,4 +204,4 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   );
 };
 
-export default memo(WorkflowListView, isEqual);
+export default WorkflowListView;

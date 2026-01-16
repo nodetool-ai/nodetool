@@ -16,7 +16,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useShowGraphPreview, useWorkflowListViewActions } from "../../stores/WorkflowListViewStore";
+import { useShowGraphPreview, useWorkflowListViewStore } from "../../stores/WorkflowListViewStore";
 
 interface WorkflowToolbarProps {
   setFilterValue: (value: string) => void;
@@ -146,7 +146,11 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const showGraphPreview = useShowGraphPreview();
-  const { toggleGraphPreview } = useWorkflowListViewActions();
+  const setShowGraphPreview = useWorkflowListViewStore((state) => state.actions.setShowGraphPreview);
+
+  const handleToggleGraphPreview = useCallback(() => {
+    setShowGraphPreview(!showGraphPreview);
+  }, [setShowGraphPreview, showGraphPreview]);
 
   const handleCreateWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
@@ -222,7 +226,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
         >
           <IconButton
             className={`preview-toggle-button ${showGraphPreview ? "active" : ""}`}
-            onClick={toggleGraphPreview}
+            onClick={handleToggleGraphPreview}
           >
             {showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
           </IconButton>

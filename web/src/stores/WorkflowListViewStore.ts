@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 
 interface WorkflowListViewState {
   showGraphPreview: boolean;
@@ -10,23 +9,17 @@ interface WorkflowListViewState {
 }
 
 export const useWorkflowListViewStore = create<WorkflowListViewState>()(
-  persist(
-    (set) => ({
-      showGraphPreview: false, // Default to showing graph preview
-      actions: {
-        toggleGraphPreview: () => {
-          set((state) => ({ showGraphPreview: !state.showGraphPreview }));
-        },
-        setShowGraphPreview: (show: boolean) => {
-          set({ showGraphPreview: show });
-        },
+  (set) => ({
+    showGraphPreview: false,
+    actions: {
+      toggleGraphPreview: () => {
+        set((state) => ({ showGraphPreview: !state.showGraphPreview }));
       },
-    }),
-    {
-      name: "workflow-list-view",
-      storage: createJSONStorage(() => localStorage),
-    }
-  )
+      setShowGraphPreview: (show: boolean) => {
+        set({ showGraphPreview: show });
+      },
+    },
+  })
 );
 
 export const useWorkflowListViewActions = () =>
