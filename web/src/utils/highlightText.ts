@@ -1,8 +1,17 @@
 import { NodeMetadata } from "../stores/ApiTypes";
 import { sanitizeText } from "./sanitize";
+import DOMPurify from "dompurify";
 
 export const escapeHtml = (text: string): string => {
   return sanitizeText(text);
+};
+
+export const sanitizeWithBreaks = (text: string): string => {
+  const escaped = escapeHtml(text).replace(/([-_.])/g, "$1<br>");
+  return DOMPurify.sanitize(escaped, {
+    ALLOWED_TAGS: ["b", "i", "em", "strong", "a", "ul", "li", "br", "wbr"],
+    ALLOWED_ATTR: ["href", "title", "class"]
+  });
 };
 
 // Convert hex color to RGB values

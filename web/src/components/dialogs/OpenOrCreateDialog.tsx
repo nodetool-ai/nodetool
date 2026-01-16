@@ -27,7 +27,7 @@ import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
-import { escapeHtml } from "../../utils/highlightText";
+import { sanitizeWithBreaks } from "../../utils/highlightText";
 const styles = (theme: Theme) =>
   css({
     ".MuiBackdrop-root": { background: "transparent" },
@@ -189,7 +189,7 @@ const OpenOrCreateDialog = () => {
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
   function addBreaks(text: string) {
-    return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
+    return sanitizeWithBreaks(text);
   }
   const loadWorkflows = async (cursor?: string, limit?: number) => {
     cursor = cursor || "";
