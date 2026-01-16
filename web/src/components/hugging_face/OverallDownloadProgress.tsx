@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Box, Tooltip } from "@mui/material";
 import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -36,17 +36,20 @@ const OverallDownloadProgress: React.FC = () => {
     shallow
   );
 
-  const totalBytes = Object.values(downloads).reduce(
-    (sum, download) =>
-      download.status === "progress" ? sum + download.totalBytes : sum,
-    0
-  );
-  const downloadedBytes = Object.values(downloads).reduce(
-    (sum, download) =>
-      download.status === "progress" ? sum + download.downloadedBytes : sum,
-    0
-  );
-  const progress = totalBytes > 0 ? (downloadedBytes / totalBytes) * 100 : 0;
+  const { progress } = useMemo(() => {
+    const total = Object.values(downloads).reduce(
+      (sum, download) =>
+        download.status === "progress" ? sum + download.totalBytes : sum,
+      0
+    );
+    const downloaded = Object.values(downloads).reduce(
+      (sum, download) =>
+        download.status === "progress" ? sum + download.downloadedBytes : sum,
+      0
+    );
+    const prog = total > 0 ? (downloaded / total) * 100 : 0;
+    return { progress: prog };
+  }, [downloads]);
 
   return (
     <Tooltip title="Download Progress" enterDelay={TOOLTIP_ENTER_DELAY}>
