@@ -245,6 +245,13 @@ Last updated: 2026-01-12
 - **Selective Zustand Subscriptions**: Subscribe only to needed state slices
 - **Virtualization Ready**: Structure supports virtualized lists (not yet implemented)
 
+### Performance Analysis
+- **Performance Profiler**: Analyze workflow execution timing and identify bottlenecks
+- **Execution Time Tracking**: Track individual node execution durations
+- **Bottleneck Detection**: Automatically identify nodes taking >50% of total time
+- **Performance Visualization**: Bar chart showing execution time by node
+- **Performance Summary**: Dashboard showing total duration, averages, and statistics
+
 ---
 
 ## Existing Patterns & Conventions
@@ -277,12 +284,10 @@ Last updated: 2026-01-12
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
