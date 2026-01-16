@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback } from "react";
 
 const styles = (theme: Theme) =>
   css({
@@ -53,6 +53,13 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
   onTagClick
 }) => {
   const theme = useTheme();
+
+  const handleTagClick = useCallback((tag: string) => () => {
+    if (onTagClick) {
+      onTagClick(tag);
+    }
+  }, [onTagClick]);
+
   if (!description) {
     return null;
   }
@@ -75,12 +82,6 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
         .filter((t) => t)
     : [];
 
-  const handleTagClick = (tag: string) => {
-    if (onTagClick) {
-      onTagClick(tag);
-    }
-  };
-
   return (
     <div css={styles(theme)} className={className}>
       {firstLine && <span className="first-line">{firstLine}</span>}
@@ -90,7 +91,7 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
             <span
               key={index}
               className="tag"
-              onClick={() => handleTagClick(tag)}
+              onClick={handleTagClick(tag)}
               style={{ cursor: onTagClick ? "pointer" : "default" }}
             >
               {tag}

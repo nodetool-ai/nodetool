@@ -69,6 +69,37 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     setShowOutputDialog(false);
   }, [newOutputName, newOutputType, handleAddOutput]);
 
+  const handleShowInputDialog = useCallback(() => {
+    setShowInputDialog(true);
+  }, []);
+
+  const handleHideInputDialog = useCallback(() => {
+    setShowInputDialog(false);
+  }, []);
+
+  const handleShowOutputDialog = useCallback(() => {
+    setShowOutputDialog(true);
+  }, []);
+
+  const handleHideOutputDialog = useCallback(() => {
+    setShowOutputDialog(false);
+  }, []);
+
+  const handleAddInputProperty = useCallback(() => {
+    const name = newInputName.trim();
+    const validation = validateIdentifierName(name);
+    
+    if (!validation.isValid) {
+      setInputNameError(validation.error);
+      return;
+    }
+    
+    onAddProperty(name);
+    setNewInputName("");
+    setInputNameError(undefined);
+    setShowInputDialog(false);
+  }, [newInputName, onAddProperty]);
+
   // Dynamic property creation is handled by dropping a connection onto the node
 
   return (
@@ -92,7 +123,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           })}
         >
           <Tooltip title="Add input">
-            <IconButton size="small" onClick={() => setShowInputDialog(true)}>
+            <IconButton size="small" onClick={handleShowInputDialog}>
               <Add fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -121,7 +152,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               >
                 <Box
                   component="button"
-                  onClick={() => setShowOutputDialog(true)}
+                  onClick={handleShowOutputDialog}
                   css={css({
                     display: "inline-flex",
                     alignItems: "center",
@@ -174,7 +205,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               <Tooltip title="Add output">
                 <IconButton
                   size="small"
-                  onClick={() => setShowOutputDialog(true)}
+                  onClick={handleShowOutputDialog}
                 >
                   <Add fontSize="small" />
                 </IconButton>
@@ -184,7 +215,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
 
           <Dialog
             open={showOutputDialog}
-            onClose={() => setShowOutputDialog(false)}
+            onClose={handleHideOutputDialog}
             maxWidth="xs"
             fullWidth
           >
@@ -234,7 +265,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             </DialogContent>
             <DialogActions>
               <Button
-                onClick={() => setShowOutputDialog(false)}
+                onClick={handleHideOutputDialog}
                 variant="text"
                 size="small"
               >
@@ -250,7 +281,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
 
       <Dialog
         open={showInputDialog}
-        onClose={() => setShowInputDialog(false)}
+        onClose={handleHideInputDialog}
         maxWidth="xs"
         fullWidth
         sx={{
@@ -298,27 +329,14 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => setShowInputDialog(false)}
+            onClick={handleHideInputDialog}
             variant="text"
             size="small"
           >
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              const name = newInputName.trim();
-              const validation = validateIdentifierName(name);
-              
-              if (!validation.isValid) {
-                setInputNameError(validation.error);
-                return;
-              }
-              
-              onAddProperty(name);
-              setNewInputName("");
-              setInputNameError(undefined);
-              setShowInputDialog(false);
-            }}
+            onClick={handleAddInputProperty}
             variant="contained"
             size="small"
           >
