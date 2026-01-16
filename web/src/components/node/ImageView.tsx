@@ -57,12 +57,10 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         position: "relative",
         display: "flex",
         justifyContent: "center",
-        alignItems: "flex-start",
+        alignItems: "center",
         width: "100%",
-        maxWidth: "100%",
-        height: "auto",
-        minHeight: "80px",
-        aspectRatio: "auto"
+        height: "100%",
+        minHeight: "80px"
       }}
     >
       <AssetViewer
@@ -104,8 +102,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         alt=""
         style={{
           width: "100%",
-          height: "auto",
-          maxHeight: "400px",
+          height: "100%",
           objectFit: "contain",
           borderRadius: "4px",
           cursor: "pointer"
