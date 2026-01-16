@@ -99,3 +99,24 @@ Fixed files:
 - For development scenarios: Use port 7777
 - For production/Worker scenarios: Use port 8000 or a configurable server URL
 - For Docker/proxy configs: Use the internal port (8000) for container-to-container communication
+
+### Additional Documentation Port Fixes (2026-01-17)
+
+**Issue**: Additional files still referenced port 8000 for development scenarios:
+
+Fixed files:
+- `mobile/IMPLEMENTATION_SUMMARY.md`: Updated server URL setup section to use port 7777 for development with clear distinction for production
+- `workflow_runner/AGENTS.md`: Added clarification comments about port usage (7777 for dev, 8000 for production) in code examples
+
+**Changes Made**:
+- `mobile/IMPLEMENTATION_SUMMARY.md`: Changed default URL from `http://localhost:8000` to `http://localhost:7777` and added note about production port
+- `workflow_runner/AGENTS.md`: Updated code examples to use port 7777 with explanatory comments about development vs production
+
+**Key Distinction**:
+- Development: `nodetool serve` → port 7777
+- Production: `nodetool worker` / `nodetool serve --production` → port 8000
+
+**Documentation Pattern**: When documenting URLs in mobile or standalone apps:
+- Default to development port (7777) in examples
+- Add comments explaining the distinction
+- For production deployments, explicitly state to use port 8000

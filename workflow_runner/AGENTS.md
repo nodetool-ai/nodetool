@@ -96,7 +96,9 @@ class WorkflowRunner {
   
   getApiUrl() {
     // Get API URL from environment or default
-    return window.NODETOOL_API_URL || 'http://localhost:8000';
+    // For development: use port 7777 (nodetool serve)
+    // For production: use port 8000 (nodetool serve --production) or your server URL
+    return window.NODETOOL_API_URL || 'http://localhost:7777';
   }
   
   getWorkflowIdFromUrl() {
@@ -393,7 +395,8 @@ Configure via URL parameters or environment variables:
 ```javascript
 // In runner.js
 const config = {
-  apiUrl: window.NODETOOL_API_URL || 'http://localhost:8000',
+  // For development use port 7777, for production use port 8000 or your server URL
+  apiUrl: window.NODETOOL_API_URL || 'http://localhost:7777',
   workflowId: getUrlParam('workflow'),
   theme: getUrlParam('theme') || 'light',
   showHeader: getUrlParam('showHeader') !== 'false'
