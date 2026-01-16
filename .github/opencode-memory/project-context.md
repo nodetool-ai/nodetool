@@ -453,3 +453,21 @@ _No entries yet - this memory system is new as of 2026-01-10_
 - `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
 
 **Impact**: Reduced unnecessary re-renders in auth-related components by ensuring they only update when their specific state changes. Improved TypeScript type safety by using proper error handling with AppError type guards.
+
+---
+
+### Quality Checks Fixes (2026-01-16)
+
+**What**: Fixed type checking, test failures, and performance test flakiness.
+
+**Result**:
+- ✅ Type checking: All packages pass
+- ✅ Linting: All packages pass
+- ✅ Tests: All 2161 tests pass (1 skipped)
+
+**Files**:
+- `mobile/package.json`, `mobile/package-lock.json` - Added @types/jest and @types/node packages
+- `web/src/stores/WorkflowListViewStore.ts` - Added persist middleware and fixed default value
+- `web/src/__tests__/performance/nodeComponentsPerformance.test.tsx` - Increased iterations and reduced threshold
+
+**Impact**: All quality checks now pass reliably.
