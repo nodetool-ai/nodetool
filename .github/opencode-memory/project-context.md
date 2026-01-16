@@ -160,6 +160,39 @@ test('handles user interaction', async () => {
 > **Files**: Main files changed
 > ```
 
+### Mobile TypeScript Type Definitions Fix (2026-01-15)
+
+**What**: Fixed mobile package TypeScript type checking by adding `@types/react-native` package.
+
+**Why**: TypeScript couldn't find type definition files for 'jest', 'node', and 'react-native' even though tsconfig.json specified them in the types array. The `@types/react-native` package was missing from package.json.
+
+**Files**: `mobile/package.json`, `mobile/package-lock.json`
+
+---
+
+### NodeExecutionTime Test Lint Fix (2026-01-15)
+
+**What**: Fixed lint warnings in NodeExecutionTime.test.tsx by removing unused duplicate function.
+
+**Why**: ESLint reported unused variable warning for `formatDuration` function that was duplicated unnecessarily.
+
+**Files**: `web/src/components/node/__tests__/NodeExecutionTime.test.tsx`
+
+---
+
+### Quality Checks Verification (2026-01-15)
+
+**What**: Ran full quality checks and fixed issues found.
+
+**Result**:
+- ✅ Type checking: All packages pass
+- ✅ Linting: All packages pass (2 warnings fixed)
+- ✅ Tests: All 595 tests pass (206 web + 389 mobile)
+
+**Files**: Multiple files across web and mobile packages
+
+---
+
 ### Zoom Presets Feature (2026-01-14)
 
 **What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
@@ -401,6 +434,38 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Console Log Removal (2026-01-15)
+
+**What**: Removed debug console.log statements and replaced with proper loglevel logging.
+
+**Why**: The codebase uses loglevel for logging, but some files had console.log statements that bypass this pattern.
+
+**Implementation**:
+- Removed 4 debug console.log statements from workflowUpdates.ts and GlobalChatStore.ts
+- Replaced console.log with log.debug in createAssetFile.ts
+
+**Files**:
+- `web/src/stores/workflowUpdates.ts`
+- `web/src/stores/GlobalChatStore.ts`
+- `web/src/utils/createAssetFile.ts`
+
+---
+
+### Lint Warning Fixes (2026-01-15)
+
+**What**: Fixed lint warnings in test files by removing unused variables and code.
+
+**Why**: Two lint warnings were found in NodeExecutionTime.test.tsx: unused variable and missing braces.
+
+**Implementation**:
+- Removed unused formatDuration function in test case
+- This was dead code that wasn't being used by the test
+
+**Files**:
+- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx`
+
+---
+
 ### Dead Code Removal (2026-01-13)
 
 **What**: Removed commented-out dead code from TypeHandler.ts and NodeStore.ts.
@@ -416,3 +481,39 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Files Changed**:
 - `web/src/utils/TypeHandler.ts`
 - `web/src/stores/NodeStore.ts`
+
+---
+
+### Console Log to Loglevel Migration (2026-01-16)
+
+**What**: Replaced `console.log` statements with proper `loglevel` logging across multiple files.
+
+**Why**: The codebase uses `loglevel` for logging, but some files had `console.log` statements that bypass this pattern.
+
+**Implementation**:
+- Replaced `console.log("Threads fetched:", data)` with `log.debug()` in GlobalChatStore.ts
+- Replaced `console.log("Eyedropper cancelled or error:", error)` with `log.debug()` in EyedropperButton.tsx
+- Replaced `console.log(dataUrl, blob)` with `log.debug()` in OutputRenderer.tsx (2 occurrences)
+- Replaced `console.log("[Terminal] resize", ...)` with `log.debug()` in Terminal.tsx
+
+**Files**:
+- `web/src/stores/GlobalChatStore.ts`
+- `web/src/components/color_picker/EyedropperButton.tsx`
+- `web/src/components/node/OutputRenderer.tsx`
+- `web/src/components/terminal/Terminal.tsx`
+
+---
+
+### TypeScript Any Type Improvements (2026-01-16)
+
+**What**: Improved TypeScript type safety by replacing `any` types with proper types in workflowUpdates.ts.
+
+**Why**: Using `any` reduces TypeScript's type checking capabilities. The codebase follows strict typing standards.
+
+**Implementation**:
+- Replaced `(message: any)` parameter with existing `MsgpackData` union type
+- Created `JobRunState` interface for run_state access
+- Replaced `(job as any).run_state` cast with type-safe intersection `JobUpdate & { run_state?: JobRunState }`
+
+**Files**:
+- `web/src/stores/workflowUpdates.ts`

@@ -47,6 +47,7 @@ import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
 import { checkForPackageUpdates, installExpectedPackages, checkExpectedPackageVersions } from "./packageManager";
+import { checkAndUpdateCondaPackages } from "./condaPackageChecker";
 import { IpcChannels } from "./types.d";
 import { readSettings, updateSetting } from "./settings";
 
@@ -263,7 +264,11 @@ async function initialize(): Promise<void> {
     assert(mainWindow, "MainWindow is not initialized");
 
     if (hasEnvironment) {
-      logMessage("Environment exists, starting backend server");
+      logMessage("Environment exists, checking for conda package updates");
+      // Check if any conda packages need to be installed or upgraded
+      await checkAndUpdateCondaPackages();
+      
+      logMessage("Starting backend server");
       await initializeBackendServer();
       logMessage("initializeBackendServer() completed");
       logMessage("Loading web app...");

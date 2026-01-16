@@ -46,8 +46,7 @@ export const subscribeToWorkflowUpdates = (
 
   const unsubscribe = globalWebSocketManager.subscribe(
     workflowId,
-    (message: any) => {
-      console.log("workflowUpdates: Received message", message);
+    (message: MsgpackData) => {
       handleUpdate(workflow, message, runnerStore);
     }
   );
@@ -97,6 +96,15 @@ export type MsgpackData =
   | PreviewUpdate
   | EdgeUpdate
   | Notification;
+
+interface JobRunState {
+  status: string;
+  suspended_node_id?: string;
+  suspension_reason?: string;
+  error_message?: string;
+  execution_strategy?: string;
+  is_resumable?: boolean;
+}
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
@@ -211,17 +219,7 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
-    // Access run_state from WebSocket message (may not be in TypeScript types yet)
-    const runState = (job as any).run_state as
-      | {
-          status: string;
-          suspended_node_id?: string;
-          suspension_reason?: string;
-          error_message?: string;
-          execution_strategy?: string;
-          is_resumable?: boolean;
-        }
-      | undefined;
+    const runState = (job as JobUpdate & { run_state?: JobRunState }).run_state;
 
     // Consolidate state mapping
     let newState:
