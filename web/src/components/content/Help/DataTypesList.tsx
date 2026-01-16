@@ -127,12 +127,15 @@ const DataTypesList = ({
                   iconName={type.value}
                   containerStyle={{
                     fill: type.textColor,
-                    width: "24px",
-                    height: "24px"
+                    width: "50px",
+                    height: "50px"
                   }}
                   bgStyle={{
                     backgroundColor: type.color,
-                    padding: "5px"
+                    width: "50px",
+                    height: "50px",
+                    color: type.textColor,
+                    padding: "8px"
                   }}
                 />
                 <Button
