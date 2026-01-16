@@ -54,7 +54,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "unbzip2-stream": "^1.4.3",
-    "vite": "^6.4.1",
+    "vite": "^6.1.7",
     "vite-plugin-electron": "^0.29.0"
   },
   "optionalDependencies": {

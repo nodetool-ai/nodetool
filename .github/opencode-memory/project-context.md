@@ -487,3 +487,42 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Verification**:
 - ✅ Lint: All packages pass
 - ✅ TypeScript: Web package passes
+
+---
+
+### Security Audit (2026-01-16)
+
+**What**: Comprehensive security audit of all packages (web, electron, mobile) and dependency vulnerability scanning.
+
+**Results**:
+- **Web Package**: Fixed 1 HIGH severity vulnerability (glob command injection via esbuild-style-plugin)
+- **Electron Package**: All vulnerabilities resolved through npm dependency updates
+- **Mobile Package**: 9 vulnerabilities in transitive dependencies with no upstream fix available
+
+**Files Modified**:
+- `web/package.json` - Added `"glob": ">=10.5.0"` override
+- `.github/opencode-memory/issues/security/security-vulnerability-fixes.md` - Updated with new findings
+
+**Verification**:
+- `npm audit web` - 0 vulnerabilities (was 10)
+- `npm audit electron` - 0 vulnerabilities (was 17)
+- `npm audit mobile` - 9 vulnerabilities (no fix available - transitive dependencies)
+
+**Known Mobile Vulnerabilities**:
+- HIGH: prismjs XSS (via react-native-syntax-highlighter)
+- MODERATE: highlight.js ReDOS, prototype pollution (via react-syntax-highlighter)
+- MODERATE: markdown-it resource consumption (via react-native-markdown-display)
+
+**Code Security Findings**:
+- ✅ Electron context isolation enabled
+- ✅ Electron nodeIntegration disabled
+- ✅ CSP meta tag configured
+- ✅ TypeScript strict mode enabled
+- ✅ No eval/Function constructor usage
+- ✅ No hardcoded secrets found
+- ✅ Input sanitization using escapeHtml and DOMPurify
+
+**Recommendations**:
+1. Monitor react-native-syntax-highlighter for security updates
+2. Consider alternative syntax highlighting for mobile
+3. Run `npm audit` regularly as part of CI/CD

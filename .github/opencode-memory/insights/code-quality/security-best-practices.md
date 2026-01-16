@@ -1,6 +1,6 @@
 # Security Best Practices
 
-**Insight**: Regular dependency audits and prompt patching are essential for maintaining application security.
+**Insight**: Regular dependency audits and prompt patching are essential for maintaining application security. Nested/transitive dependency vulnerabilities require npm `overrides` to force patched versions.
 
 **Key Practices**:
 1. **Dependency Management**: Use `npm audit` regularly to identify vulnerabilities
@@ -16,6 +16,7 @@
 
 // Transitive dependencies - use overrides
 "overrides": {
+  "glob": ">=10.5.0",
   "qs": ">=6.14.1",
   "express": ">=4.21.2"
 }
@@ -27,6 +28,34 @@
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
 ```
 
-**Impact**: Comprehensive security patching reduced web vulnerabilities from 8 to 2 and electron from 12 to 0.
+**Input Sanitization**:
+```typescript
+// Safe HTML rendering with DOMPurify
+import DOMPurify from 'dompurify';
+const clean = DOMPurify.sanitize(userContent);
 
-**Date**: 2026-01-12
+// Safe text rendering with escapeHtml
+import { escapeHtml } from '../utils/highlightText';
+const safe = escapeHtml(userText);
+```
+
+**Electron Security Configuration**:
+```typescript
+const window = new BrowserWindow({
+  webPreferences: {
+    preload: path.join(__dirname, 'preload.js'),
+    contextIsolation: true,
+    nodeIntegration: false,
+    devTools: true,
+    webSecurity: true,
+  }
+});
+```
+
+**Impact**: Comprehensive security patching reduced web vulnerabilities from 10 to 0 and electron from 17 to 0.
+
+**Known Issues (No Fix Available)**:
+- Mobile package has 9 vulnerabilities in transitive dependencies (react-native-syntax-highlighter, react-native-markdown-display)
+- These require upstream fixes from the package maintainers
+
+**Date**: 2026-01-16 (updated from 2026-01-12)
