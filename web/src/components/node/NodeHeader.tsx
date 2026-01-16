@@ -56,6 +56,22 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const logCount = logs?.length || 0;
 
+  // Common button styles for toggle buttons
+  const toggleButtonStyles = {
+    textTransform: "none" as const,
+    fontSize: "0.7rem",
+    padding: "2px 8px",
+    minWidth: "auto",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    color: "var(--palette-text-primary)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    borderRadius: "12px",
+    "&:hover": {
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      borderColor: "var(--palette-primary-main)"
+    }
+  };
+
   const headerCss = useMemo(
     () =>
       css({
@@ -226,20 +242,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               e.stopPropagation();
               onShowResults();
             }}
-            sx={{
-              textTransform: "none",
-              fontSize: "0.7rem",
-              padding: "2px 8px",
-              minWidth: "auto",
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
-              color: "var(--palette-text-primary)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "12px",
-              "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                borderColor: "var(--palette-primary-main)"
-              }
-            }}
+            sx={toggleButtonStyles}
           >
             Show Result
           </Button>
@@ -253,20 +256,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               e.stopPropagation();
               onShowInputs();
             }}
-            sx={{
-              textTransform: "none",
-              fontSize: "0.7rem",
-              padding: "2px 8px",
-              minWidth: "auto",
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
-              color: "var(--palette-text-primary)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "12px",
-              "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                borderColor: "var(--palette-primary-main)"
-              }
-            }}
+            sx={toggleButtonStyles}
           >
             Show Inputs
           </Button>
