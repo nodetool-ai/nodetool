@@ -521,31 +521,31 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         </Typography>
                       </div>
 
-                      <div className="settings-item">
-                        <FormControl>
-                          <InputLabel htmlFor={id}>
-                            Sound Notifications
-                          </InputLabel>
-                          <Switch
-                            sx={{
-                              "&.MuiSwitch-root": {
-                                margin: "16px 0 0"
+                      {isElectron && (
+                        <div className="settings-item">
+                          <FormControl>
+                            <InputLabel htmlFor={id}>
+                              Sound Notifications
+                            </InputLabel>
+                            <Switch
+                              sx={{
+                                "&.MuiSwitch-root": {
+                                  margin: "16px 0 0"
+                                }
+                              }}
+                              checked={!!settings.soundNotifications}
+                              onChange={(e) =>
+                                setSoundNotifications(e.target.checked ?? true)
                               }
-                            }}
-                            checked={!!settings.soundNotifications}
-                            onChange={(e) =>
-                              setSoundNotifications(e.target.checked ?? true)
-                            }
-                            inputProps={{ "aria-label": id }}
-                          />
-                        </FormControl>
-                        <Typography className="description">
-                          Play a system beep sound when workflows complete,
-                          exports finish, or other important events occur.
-                          <br />
-                          Only works in Electron app.
-                        </Typography>
-                      </div>
+                              inputProps={{ "aria-label": id }}
+                            />
+                          </FormControl>
+                          <Typography className="description">
+                            Play a system beep sound when workflows complete,
+                            exports finish, or other important events occur.
+                          </Typography>
+                        </div>
+                      )}
 
                       {isElectron && (
                         <div className="settings-item">

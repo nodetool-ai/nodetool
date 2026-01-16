@@ -194,6 +194,7 @@ Last updated: 2026-01-12
 - **File System Access**: Direct file system operations
 - **Custom Title Bar**: Custom title bar for desktop app
 - **Native Menus**: Native application menus
+- **Sound Notifications**: System beep on workflow completion (Electron-only)
 
 ### Mobile App (React Native)
 - **Mini Apps Viewer**: Browse and run mini apps on mobile
