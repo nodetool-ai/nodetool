@@ -33,6 +33,8 @@ import union from "../icons/union.svg?react";
 import video from "../icons/video.svg?react";
 import database from "../icons/database.svg?react";
 import task from "../icons/task.svg?react";
+import documentIcon from "../icons/document.svg?react";
+import np_array from "../icons/np_array.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
 
@@ -92,7 +94,8 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   workflow: dataframe,
   datetime: float,
   object: dict,
-  np_array: tensor,
+  np_array: np_array,
+  document: documentIcon,
   ...comfyIconMap
 };
 

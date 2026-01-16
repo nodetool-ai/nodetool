@@ -2,20 +2,16 @@ import React, { useMemo, useRef, useCallback, useState } from "react";
 import { Typography, IconButton, Tooltip } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
-import EditIcon from "@mui/icons-material/Edit";
 import AssetViewer from "../assets/AssetViewer";
-import { ImageEditorModal } from "./image_editor";
 import { isElectron } from "../../utils/browser";
 import { createImageUrl } from "../../utils/imageUtils";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
-  onImageEdited?: (dataUrl: string, blob: Blob) => void;
 }
 
-const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
+const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const [openViewer, setOpenViewer] = React.useState(false);
-  const [openEditor, setOpenEditor] = useState(false);
   const [copied, setCopied] = useState(false);
   const blobUrlRef = useRef<string | null>(null);
 
@@ -50,21 +46,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
     }
   }, [imageUrl]);
 
-  const handleOpenEditor = useCallback(() => {
-    setOpenEditor(true);
-  }, []);
-
-  const handleCloseEditor = useCallback(() => {
-    setOpenEditor(false);
-  }, []);
-
-  const handleSaveEditedImage = useCallback((dataUrl: string, blob: Blob) => {
-    setOpenEditor(false);
-    if (onImageEdited) {
-      onImageEdited(dataUrl, blob);
-    }
-  }, [onImageEdited]);
-
   if (!imageUrl) {
     return <Typography>No Image found</Typography>;
   }
@@ -76,12 +57,10 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
         position: "relative",
         display: "flex",
         justifyContent: "center",
-        alignItems: "flex-start",
+        alignItems: "center",
         width: "100%",
-        maxWidth: "100%",
-        height: "auto",
-        minHeight: "80px",
-        aspectRatio: "auto"
+        height: "100%",
+        minHeight: "80px"
       }}
     >
       <AssetViewer
@@ -90,14 +69,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
         open={openViewer}
         onClose={() => setOpenViewer(false)}
       />
-      {openEditor && (
-        <ImageEditorModal
-          imageUrl={imageUrl}
-          onSave={handleSaveEditedImage}
-          onClose={handleCloseEditor}
-          title="Image Editor"
-        />
-      )}
       <div
         style={{
           position: "absolute",
@@ -108,21 +79,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
           gap: "4px"
         }}
       >
-        <Tooltip title="Edit Image">
-          <IconButton
-            onClick={handleOpenEditor}
-            size="small"
-            sx={{
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              color: "white",
-              "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.7)"
-              }
-            }}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
         {isElectron && (
           <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
             <IconButton
@@ -146,8 +102,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, onImageEdited }) => {
         alt=""
         style={{
           width: "100%",
-          height: "auto",
-          maxHeight: "400px",
+          height: "100%",
           objectFit: "contain",
           borderRadius: "4px",
           cursor: "pointer"

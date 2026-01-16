@@ -175,4 +175,4 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
   );
 };
 
-export default ExamplesList;
+export default React.memo(ExamplesList);

@@ -119,7 +119,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   // Dockview panel components are defined below; handlers for files live inside the Files panel
 
-  const { user } = useAuth();
+  const user = useAuth((state) => state.user);
 
   const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore(
     (state) => ({

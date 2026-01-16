@@ -15,7 +15,7 @@ const minimapStyle = {
 const MiniMapNavigator: React.FC = () => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
-  const { visible } = useMiniMapStore();
+  const visible = useMiniMapStore((state) => state.visible);
 
   const nodeColor = useMemo(() => {
     return (node: Node) => {

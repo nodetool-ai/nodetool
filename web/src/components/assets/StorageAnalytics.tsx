@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useMemo } from "react";
 import { Typography, Box } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
@@ -63,23 +63,27 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
 }) => {
   const location = useLocation();
   const theme = useTheme();
+
+  const { totalSize, fileCount, folderCount } = useMemo(() => {
+    const total = assets.reduce((sum, asset) => {
+      const assetSize = (asset as any).size as number | undefined;
+      return sum + (assetSize || 0);
+    }, 0);
+
+    const files = assets.filter(
+      (asset) => asset.content_type !== "folder"
+    ).length;
+    const folders = assets.filter(
+      (asset) => asset.content_type === "folder"
+    ).length;
+
+    return { totalSize: total, fileCount: files, folderCount: folders };
+  }, [assets]);
+
   // Only show in explorer mode (fullscreen asset browser)
   if (location.pathname !== "/assets") {
     return null;
   }
-
-  // Calculate total storage for visible assets
-  const totalSize = assets.reduce((sum, asset) => {
-    const assetSize = (asset as any).size as number | undefined;
-    return sum + (assetSize || 0);
-  }, 0);
-
-  const fileCount = assets.filter(
-    (asset) => asset.content_type !== "folder"
-  ).length;
-  const folderCount = assets.filter(
-    (asset) => asset.content_type === "folder"
-  ).length;
 
   if (assets.length === 0) {
     return null;

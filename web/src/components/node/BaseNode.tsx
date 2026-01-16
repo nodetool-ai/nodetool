@@ -61,7 +61,7 @@ const resizer = (
           const [dirX, dirY] = params.direction;
           return dirX !== 0 && dirY === 0;
         }}
-        minWidth={100}
+        minWidth={200}
         maxWidth={MAX_NODE_WIDTH}
       />
     </div>
@@ -446,6 +446,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         iconType={metadata?.outputs?.[0]?.type?.type}
         iconBaseColor={baseColor}
         workflowId={workflow_id}
+        showResultButton={!isOverlayVisible && hasToggleableResult}
+        showInputsButton={isOverlayVisible}
+        onShowResults={handleShowResults}
+        onShowInputs={handleShowInputs}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
