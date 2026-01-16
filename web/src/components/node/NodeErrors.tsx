@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -66,6 +66,10 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
   );
   const { writeClipboard } = useClipboard();
 
+  const handleCopyError = useCallback(() => {
+    writeClipboard(error, true);
+  }, [writeClipboard, error]);
+
   if (!error) {
     return null;
   }
@@ -75,7 +79,7 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
       <IconButton
         className="copy-button"
         size="small"
-        onClick={() => writeClipboard(error, true)}
+        onClick={handleCopyError}
         title="Copy error to clipboard"
       >
         <ContentCopyIcon fontSize="small" />
