@@ -280,3 +280,33 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+---
+
+## Test Coverage Update (2026-01-16)
+
+**New Test Files Added**: 10 files with 960+ lines of test code
+
+### Utility Tests Added
+- `src/utils/__tests__/formatDateAndTime.test.ts` - Date/time formatting
+- `src/utils/__tests__/errorHandling.test.ts` - Error handling utilities
+- `src/utils/__tests__/titleizeString.test.ts` - String title case
+- `src/utils/__tests__/graphCycle.test.ts` - Graph cycle detection
+- `src/utils/__tests__/selectionBounds.test.ts` - Selection bounds calculation
+- `src/utils/__tests__/edgeValue.test.ts` - Edge value resolution
+- `src/utils/__tests__/nodeUtils.test.ts` - Node metadata constants
+
+### Store Tests Added
+- `src/stores/__tests__/uuidv4.test.ts` - UUID generation
+- `src/stores/__tests__/RecentNodesStore.test.ts` - Recent nodes tracking
+- `src/stores/__tests__/VersionHistoryStore.test.ts` - Version history state
+
+### Test Patterns Applied
+1. **Utility functions**: Pure function tests with edge cases
+2. **Zustand stores**: Reset state in beforeEach, use act() for updates
+3. **Descriptive names**: Test names explain behavior being tested
+
+### Testing Coverage
+- **Total tests**: ~2156 passing
+- **Failed tests**: 39 (pre-existing failures in UI tests)
+- **Coverage areas**: Utilities, stores, hooks, components
