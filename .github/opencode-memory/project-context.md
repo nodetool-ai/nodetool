@@ -243,9 +243,16 @@ test('handles user interaction', async () => {
 - Replaced hardcoded colors with CSS custom properties referencing theme values
 - Installed missing type definition packages for mobile package
 
+### Mobile TypeScript Type Definitions Fix (2026-01-15)
+
+**What**: Fixed mobile package type checking by removing "react-native" from the types array in tsconfig.json.
+
+**Why**: Modern React Native (0.81+) includes its own type definitions, making `@types/react-native` deprecated and unnecessary. The types array was causing TypeScript to look for external type packages that weren't needed.
+
+**Files**: `mobile/tsconfig.json`
+
 ---
 
-### Zustand Store Subscription Optimization (2026-01-13)
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
 

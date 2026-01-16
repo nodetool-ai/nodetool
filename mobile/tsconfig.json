@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "isolatedModules": true,
-    "types": ["react-native", "jest", "node"]
+    "types": ["jest", "node"]
   },
   "include": [
     "**/*.ts",
