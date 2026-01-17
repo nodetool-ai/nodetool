@@ -107,6 +107,7 @@
     "zustand": "4.5.7"
   },
   "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false",
     "start": "vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false",
     "build": "vite build",
     "build:staging": "vite build --mode staging",
