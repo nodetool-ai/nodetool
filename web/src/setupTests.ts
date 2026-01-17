@@ -8,11 +8,6 @@ import "@testing-library/jest-dom";
 jest.mock("react", () => ({
   ...jest.requireActual("react"),
   createContext: jest.fn(() => ({ Provider: ({ children }: any) => children })),
-  useCallback: (fn: any) => fn,
-  useMemo: (fn: any) => fn(),
-  useState: (initial: any) => [initial, jest.fn()],
-  useEffect: jest.fn(),
-  useRef: (initial: any) => ({ current: initial }),
 }));
 
 // Mock import.meta for Vite environment variables

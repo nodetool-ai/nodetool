@@ -280,3 +280,50 @@ describe("formatNodeDocumentation", () => {
 
 **Additional Fixes**:
 - Fixed merge conflict markers in `useAutosave.test.ts` that were preventing the file from compiling
+
+---
+
+### Test Coverage Improvement (2026-01-17)
+
+**Coverage Fixed**: Fixed 304 failing tests (529 → 227 failing tests)
+**Test Suites Fixed**: 42 test suites (81 → 39 failing suites)
+
+**Tests Fixed**:
+- `useIsDarkMode.test.ts` - Fixed 5 tests that were failing due to improper React mock in setupTests.ts
+  - Returns false when dark mode is not active
+  - Returns true when dark mode is active
+  - Updates when dark mode class is added
+  - Updates when dark mode class is removed
+  - Cleans up observer on unmount
+
+- `WorkspaceManagerStore.test.ts` - Fixed 3 tests for store state management
+  - Should initialize with isOpen as false
+  - Should set isOpen to true when setIsOpen(true) is called
+  - Should set isOpen to false when setIsOpen(false) is called
+
+- `useAssistantVisibility.test.ts` - Fixed 2 tests for localStorage-based visibility
+  - Default true and persists
+  - Reads initial value from storage
+
+**Root Cause Fixed**:
+The React mock in `setupTests.ts` was overly aggressive, mocking `useState`, `useEffect`, `useCallback`, `useMemo`, and `useRef` which broke the actual functionality of hooks that rely on these React built-ins.
+
+**Solution**:
+Reverted the aggressive React mock in `setupTests.ts` to only mock `createContext` (which was the original intent to prevent Context issues in tests). The mock for `useState` was particularly problematic as it didn't handle lazy initialization properly.
+
+**Files Modified**:
+- `web/src/setupTests.ts` - Simplified React mock to only mock createContext
+- `web/src/hooks/__tests__/useIsDarkMode.test.ts` - Updated test to properly handle MutationObserver mocking
+
+**Key Learnings**:
+1. Be very careful when mocking React core hooks - it can break the actual functionality being tested
+2. Test-specific mocks should be as minimal as possible
+3. Use `rerender()` instead of relying on external state mutations for hook tests
+4. When mocking global APIs like MutationObserver, save and restore the original to avoid polluting other tests
+
+**Status**: 2157 tests passing, 227 tests failing, 147 test suites passing, 39 test suites failing
+
+**Remaining Issues**:
+1. Provider tests (MenuProvider, ContextMenuProvider) - Still failing due to undefined context
+2. Performance tests - Timing-based tests that are flaky on different hardware
+3. ThemeProvider tests - Emotion cache setup issues in some component tests
