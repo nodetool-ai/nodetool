@@ -1,8 +1,89 @@
 # Test Coverage Improvements (2026-01-17)
 
-**Coverage Added**: 3 new test files with 30 tests for hooks
+**Coverage Added**: 2 new test files with 23 tests for critical hooks
 
 **Tests Added**:
+- `useCollectionDragAndDrop.test.ts` - 13 tests for drag-and-drop file indexing
+- `useNamespaceTree.test.ts` - 10 tests for namespace tree organization
+
+**Areas Covered**:
+- Drag-and-drop file handling with API calls
+- File indexing progress tracking
+- Error handling during file processing
+- Namespace extraction from node metadata
+- Tree construction from dot-separated namespaces
+- API key validation and namespace disabling
+- Sorting (enabled first, then disabled alphabetically)
+- First disabled namespace tracking
+
+**Test Patterns Used**:
+
+1. **Drag-and-Drop Hook Testing**:
+```typescript
+describe("useCollectionDragAndDrop", () => {
+  it("sets dragOverCollection when dragging over a collection", () => {
+    const { result } = renderHook(() => useCollectionDragAndDrop());
+    
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      dataTransfer: { files: [] }
+    };
+    
+    act(() => {
+      result.current.handleDragOver(mockEvent as any, "test-collection");
+    });
+    
+    expect(mockSetDragOverCollection).toHaveBeenCalledWith("test-collection");
+  });
+});
+```
+
+2. **Namespace Tree Hook Testing**:
+```typescript
+describe("useNamespaceTree", () => {
+  it("builds correct hierarchical tree structure", () => {
+    const { result } = renderHook(() => useNamespaceTree());
+    
+    const tree = result.current;
+    
+    expect(tree["openai"]).toBeDefined();
+    expect(tree["openai"].children["chat"]).toBeDefined();
+  });
+});
+```
+
+3. **API Key Validation Testing**:
+```typescript
+it("marks namespaces as disabled when API key is missing", () => {
+  (useSecrets as jest.Mock).mockReturnValue({
+    isApiKeySet: jest.fn(() => false)
+  });
+  
+  const { result } = renderHook(() => useNamespaceTree());
+  
+  expect(result.current["anthropic"].disabled).toBe(true);
+  expect(result.current["anthropic"].requiredKey).toBe("Anthropic API Key");
+});
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/useCollectionDragAndDrop.test.ts`
+- `web/src/hooks/__tests__/useNamespaceTree.test.ts`
+
+**Key Learnings**:
+1. Mock paths must use correct relative paths from test file location
+2. Use `jest.Mock` for typed mock functions
+3. Test both success and error paths for async operations
+4. API key validation logic needs proper mocking of `isProduction` flag
+5. Namespace tree structure requires careful testing of nested properties
+
+**Status**: All 23 tests passing (210 test suites, 2720 tests total)
+
+---
+
+### Previous Entry (2026-01-17)
+
+**Coverage Added**: 3 new test files with 30 tests for hooks
 - `useProviderApiKeyValidation.test.ts` - 11 tests for API key validation hook
 - `useRunningJobs.test.tsx` - 10 tests for running jobs hook
 - `useFitNodeEvent.test.ts` - 9 tests for node fitting event hook
