@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { useCallback } from "react";
 import {
   List,
   ListItemButton,
@@ -98,6 +98,51 @@ const ProviderList: React.FC<ProviderListProps> = ({
     return result;
   }, [providers, enabledProviders]);
 
+  const handleSelectNull = useCallback(() => {
+    setSelected(null);
+  }, [setSelected]);
+
+  const handleSelectProvider = useCallback((p: string) => {
+    setSelected(p);
+  }, [setSelected]);
+
+  const handleMenuOpen = useCallback((e: React.MouseEvent, p: string) => {
+    e.preventDefault();
+    setMenuAnchor(e.currentTarget);
+    setMenuProvider(p);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setMenuAnchor(null);
+    setMenuProvider(null);
+  }, []);
+
+  const handleOpenSettings = useCallback(() => {
+    setMenuOpen(true, 1);
+  }, [setMenuOpen]);
+
+  const handleCheckboxChange = useCallback((p: string, enabled: boolean) => {
+    setProviderEnabled(p, enabled);
+  }, [setProviderEnabled]);
+
+  const handleStopPropagation = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  const handleOpenWebsite = useCallback(() => {
+    const url = getProviderUrl(menuProvider || undefined);
+    if (url) { window.open(url, "_blank"); }
+    handleMenuClose();
+  }, [menuProvider, handleMenuClose]);
+
+  const handleToggleProvider = useCallback(() => {
+    if (menuProvider) {
+      const next = !isProviderEnabled(menuProvider);
+      setProviderEnabled(menuProvider, next);
+    }
+    handleMenuClose();
+  }, [menuProvider, isProviderEnabled, setProviderEnabled, handleMenuClose]);
+
   return (
     <List
       dense
@@ -120,7 +165,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
         className={`model-menu__provider-item ${selected === null && !forceUnselect ? "is-selected" : ""
           }`}
         selected={selected === null && !forceUnselect}
-        onClick={() => setSelected(null)}
+        onClick={handleSelectNull}
         sx={{
           py: iconOnly ? 1 : 0.25,
           justifyContent: iconOnly ? 'center' : 'flex-start',
@@ -282,7 +327,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           alignItems: "center",
                           gap: 0.5
                         }}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={handleStopPropagation}
                       >
                         <Tooltip title="API key required">
                           <InfoOutlinedIcon
@@ -302,7 +347,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                               p: 0,
                               fontSize: (theme) => theme.vars.fontSizeSmaller
                             }}
-                            onClick={() => setMenuOpen(true, 1)}
+                            onClick={handleOpenSettings}
                           >
                             Add key
                           </Button>
@@ -316,7 +361,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         alignItems: "center",
                         gap: 0.5
                       }}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={handleStopPropagation}
                     >
                       {renderBadges()}
                       <Tooltip
@@ -348,31 +393,16 @@ const ProviderList: React.FC<ProviderListProps> = ({
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
-        onClose={() => {
-          setMenuAnchor(null);
-          setMenuProvider(null);
-        }}
+        onClose={handleMenuClose}
       >
         <MenuItem
           disabled={!menuProvider || !getProviderUrl(menuProvider)}
-          onClick={() => {
-            const url = getProviderUrl(menuProvider || undefined);
-            if (url) { window.open(url, "_blank"); }
-            setMenuAnchor(null);
-            setMenuProvider(null);
-          }}
+          onClick={handleOpenWebsite}
         >
           Open provider website
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            if (menuProvider) {
-              const next = !isProviderEnabled(menuProvider);
-              setProviderEnabled(menuProvider, next);
-            }
-            setMenuAnchor(null);
-            setMenuProvider(null);
-          }}
+          onClick={handleToggleProvider}
         >
           {menuProvider && isProviderEnabled(menuProvider)
             ? "Disable provider"

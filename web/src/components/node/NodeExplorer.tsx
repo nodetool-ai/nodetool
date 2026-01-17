@@ -245,6 +245,25 @@ const NodeExplorer: React.FC = () => {
     [openContextMenu]
   );
 
+  const handleFilterChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setFilter(event.target.value);
+  }, []);
+
+  const handleNodeClick = useCallback(
+    (nodeId: string) => {
+      handleNodeFocus(nodeId);
+    },
+    [handleNodeFocus]
+  );
+
+  const handleNodeEditClick = useCallback(
+    (event: React.MouseEvent, nodeId: string) => {
+      event.stopPropagation();
+      handleNodeEdit(nodeId);
+    },
+    [handleNodeEdit]
+  );
+
   return (
     <Box className="node-explorer" css={explorerStyles}>
       <div className="explorer-header">
@@ -264,7 +283,7 @@ const NodeExplorer: React.FC = () => {
         placeholder="Filter by name, type, or node id"
         label=""
         value={filter}
-        onChange={(event) => setFilter(event.target.value)}
+        onChange={handleFilterChange}
         variant="outlined"
         sx={{
           "& .MuiInputBase-root": {
@@ -289,7 +308,7 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeFocus(entry.node.id)}
+                onClick={() => handleNodeClick(entry.node.id)}
                 onContextMenu={(event) => {
                   handleNodeContextMenu(event, entry.node.id);
                 }}

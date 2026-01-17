@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Inline Arrow Functions (2026-01-17)
+
+**What**: Memoized 20+ inline arrow functions across 6 components using useCallback to prevent unnecessary re-renders.
+
+**Files**: ApiKeyValidation.tsx, NodeOutputs.tsx, NodeExplorer.tsx, NodeToolButtons.tsx, ProviderList.tsx, FileBrowserDialog.tsx
+
+**Impact**: Reduced re-renders in frequently-updating node components, dialogs, and model menus by providing stable function references to memoized children.
+
 ### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
