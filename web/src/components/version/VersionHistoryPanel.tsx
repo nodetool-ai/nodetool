@@ -26,11 +26,13 @@ import {
   Close as CloseIcon,
   Compare as CompareIcon,
   History as HistoryIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  ViewModule as ViewModuleIcon
 } from "@mui/icons-material";
 import { VersionListItem } from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
+import { VersionSideBySideView } from "./VersionSideBySideView";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
@@ -81,6 +83,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [versionToDelete, setVersionToDelete] = useState<string | null>(null);
+  const [isSideBySideMode, setIsSideBySideMode] = useState(false);
 
   const versions: Array<WorkflowVersion & { save_type: SaveType; size_bytes: number }> = useMemo(() => {
     if (!apiVersions?.versions) {
@@ -88,9 +91,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     }
     let filtered = apiVersions.versions;
     if (filterType !== "all") {
-      filtered = filtered.filter((v) => getSaveType(v) === filterType);
+      filtered = filtered.filter((v: WorkflowVersion) => getSaveType(v) === filterType);
     }
-    return filtered.map((v) => ({
+    return filtered.map((v: WorkflowVersion) => ({
       ...v,
       save_type: getSaveType(v),
       size_bytes: new Blob([JSON.stringify(v.graph)]).size
@@ -220,6 +223,16 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     }
   }, [isCompareMode, setCompareMode, setCompareVersion]);
 
+  const handleToggleSideBySideMode = useCallback(() => {
+    setIsSideBySideMode(!isSideBySideMode);
+    if (!isSideBySideMode) {
+      setCompareMode(true);
+      if (!selectedVersionId && versions.length > 0) {
+        setSelectedVersion(versions[0].id);
+      }
+    }
+  }, [isSideBySideMode, setCompareMode, selectedVersionId, versions, setSelectedVersion]);
+
   const handleClearComparison = useCallback(() => {
     setSelectedVersion(null);
     setCompareVersion(null);
@@ -327,6 +340,19 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             </ToggleButton>
           </Tooltip>
 
+          <Tooltip title="Side-by-side view">
+            <ToggleButton
+              value="sideBySide"
+              selected={isSideBySideMode}
+              onChange={handleToggleSideBySideMode}
+              size="small"
+              sx={{ px: 1 }}
+            >
+              <ViewModuleIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Split
+            </ToggleButton>
+          </Tooltip>
+
           {isCompareMode && (selectedVersionId || compareVersionId) && (
             <Button size="small" onClick={handleClearComparison}>
               Clear
@@ -378,37 +404,50 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             borderColor: "divider"
           }}
         >
-          <Box sx={{ p: 1, bgcolor: "rgba(2, 136, 209, 0.05)" }}>
-            <Typography variant="caption" color="text.secondary" fontWeight="medium">
-              Visual Preview
-            </Typography>
-            <GraphVisualDiff
+          {isSideBySideMode ? (
+            <VersionSideBySideView
+              olderVersion={compareVersion.version < selectedVersion.version ? compareVersion : selectedVersion}
+              newerVersion={compareVersion.version < selectedVersion.version ? selectedVersion : compareVersion}
+              olderGraph={compareVersion.version < selectedVersion.version ? compareVersion.graph : selectedVersion.graph}
+              newerGraph={compareVersion.version < selectedVersion.version ? selectedVersion.graph : compareVersion.graph}
               diff={diff}
-              oldGraph={compareVersion.version < selectedVersion.version ? compareVersion.graph : selectedVersion.graph}
-              newGraph={compareVersion.version < selectedVersion.version ? selectedVersion.graph : compareVersion.graph}
-              width={280}
-              height={140}
+              onClose={() => setIsSideBySideMode(false)}
             />
-          </Box>
-          <Box
-            sx={{
-              p: 1,
-              maxHeight: 200,
-              overflow: "auto"
-            }}
-          >
-            <VersionDiff
-              diff={diff}
-              oldVersionNumber={Math.min(
-                selectedVersion.version,
-                compareVersion.version
-              )}
-              newVersionNumber={Math.max(
-                selectedVersion.version,
-                compareVersion.version
-              )}
-            />
-          </Box>
+          ) : (
+            <>
+              <Box sx={{ p: 1, bgcolor: "rgba(2, 136, 209, 0.05)" }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="medium">
+                  Visual Preview
+                </Typography>
+                <GraphVisualDiff
+                  diff={diff}
+                  oldGraph={compareVersion.version < selectedVersion.version ? compareVersion.graph : selectedVersion.graph}
+                  newGraph={compareVersion.version < selectedVersion.version ? selectedVersion.graph : compareVersion.graph}
+                  width={280}
+                  height={140}
+                />
+              </Box>
+              <Box
+                sx={{
+                  p: 1,
+                  maxHeight: 200,
+                  overflow: "auto"
+                }}
+              >
+                <VersionDiff
+                  diff={diff}
+                  oldVersionNumber={Math.min(
+                    selectedVersion.version,
+                    compareVersion.version
+                  )}
+                  newVersionNumber={Math.max(
+                    selectedVersion.version,
+                    compareVersion.version
+                  )}
+                />
+              </Box>
+            </>
+          )}
         </Box>
       )}
 

@@ -54,37 +54,17 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Feature Research: Side-by-Side Version Diff View (2026-01-17)
+
+**What**: Implemented Side-by-Side Version Diff View for workflow version comparison. Added toggle button in Version History Panel and new `VersionSideBySideView` component.
+
+**Files**: `web/src/components/version/VersionHistoryPanel.tsx`, `web/src/components/version/VersionSideBySideView.tsx`
+
+**Impact**: Users can now compare two workflow versions side-by-side with visual mini-graph representations, improving version tracking and comparison capabilities.
+
+---
+
 ### Performance Optimization: Large Component Memoization (2026-01-17)
-
-**What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
-
-**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, EditorController.tsx, AssetViewer.tsx, AgentExecutionView.tsx
-
-**Impact**: Large components (684-925 lines) now only re-render when props change, improving editor performance with complex workflows.
-
----
-
-### Performance Optimization: Component Memoization (2026-01-17)
-
-**What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
-
-**Files**: ImageEditorToolbar.tsx, ImageEditorModal.tsx, OpenOrCreateDialog.tsx
-
-**Impact**: Reduced re-renders in image editing and workflow creation workflows. Bundle size unchanged (5.74 MB).
-
----
-
-### Performance Optimization: Handler Memoization (2026-01-17)
-
-**What**: Memoized inline handlers in NodeHeader (4), AssetTable (1), FormatButton (1), and TableActions (7) components. Added React.memo to AssetTable.
-
-**Files**: NodeHeader.tsx, AssetTable.tsx, FormatButton.tsx, TableActions.tsx
-
-**Impact**: Prevented unnecessary re-renders in high-frequency node components and asset management UI by providing stable function references.
-
----
-
-### TypeScript Type Improvements (2026-01-17)
 
 **What**: Improved TypeScript types in StatusStore and ErrorStore. Removed debug console statements from NodeMenuStore. Fixed unused variables in test files.
 
