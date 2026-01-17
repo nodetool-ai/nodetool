@@ -481,6 +481,10 @@ function FileBrowserDialog({
     }
   };
 
+  const handleStartEditPath = useCallback(() => {
+    setIsEditingPath(true);
+  }, []);
+
   const handleUp = () => {
     if (currentPath === "~" || currentPath === "/") {return;}
     // Naive parent path
@@ -494,6 +498,10 @@ function FileBrowserDialog({
 
     handleNavigate(parent || "~");
   };
+
+  const handleRefresh = useCallback(() => {
+    handleNavigate(currentPath);
+  }, [currentPath, handleNavigate]);
 
   const handleFileClick = (file: FileInfo) => {
     if (file.is_dir) {
@@ -592,22 +600,30 @@ function FileBrowserDialog({
 
   // --- Renderers ---
 
-  const Row = ({
+  const Row = memo(function Row({
     index,
     style
   }: {
     index: number;
     style: React.CSSProperties;
-  }) => {
+  }) {
     const file = filteredFiles[index];
     const isSelected = selectedPath === file.path;
+
+    const handleClick = useCallback(() => {
+      handleFileClick(file);
+    }, [file, handleFileClick]);
+
+    const handleDoubleClick = useCallback(() => {
+      handleFileDoubleClick(file);
+    }, [file, handleFileDoubleClick]);
 
     return (
       <div
         style={style}
         className={`list-item ${isSelected ? "selected" : ""}`}
-        onClick={() => handleFileClick(file)}
-        onDoubleClick={() => handleFileDoubleClick(file)}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
       >
         {file.is_dir ? (
           <FolderIcon color="primary" sx={{ fontSize: 20 }} />
@@ -628,7 +644,7 @@ function FileBrowserDialog({
         )}
       </div>
     );
-  };
+  });
 
   return (
     <Dialog
@@ -714,7 +730,7 @@ function FileBrowserDialog({
                   cursor: "text",
                   minWidth: "100px"
                 }}
-                onClick={() => setIsEditingPath(true)}
+                onClick={handleStartEditPath}
               >
                 <Breadcrumbs className="breadcrumbs" separator="/">
                   {breadcrumbs.map((b, i) => (
@@ -758,9 +774,7 @@ function FileBrowserDialog({
             />
 
             <IconButton
-              onClick={() => {
-                handleNavigate(currentPath);
-              }}
+              onClick={handleRefresh}
               size="small"
               style={{ width: 32, height: 32 }}
             >
