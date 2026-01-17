@@ -16,6 +16,7 @@ import isEqual from "lodash/isEqual";
 import { memo, useCallback, useState, useEffect } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
+import PatternLibraryPanel from "../patterns/PatternLibraryPanel";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -27,6 +28,7 @@ import ThemeToggle from "../ui/ThemeToggle";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import { Fullscreen } from "@mui/icons-material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -413,6 +415,26 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
       <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Patterns</div>
+            <div className="tooltip-key">
+              <kbd>4</kbd>
+            </div>
+          </div>
+        }
+        placement="right-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={() => onViewChange("patternLibrary")}
+          className={activeView === "patternLibrary" && panelVisible ? "active" : ""}
+        >
+          <AutoAwesomeIcon />
+        </IconButton>
+      </Tooltip>
+      <Tooltip
         title={getShortcutTooltip("toggleAssets")}
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -520,6 +542,9 @@ const PanelContent = memo(function PanelContent({
           <RunningJobsList />
         </Box>
       )}
+      {activeView === "patternLibrary" && (
+        <PatternLibraryPanel />
+      )}
     </>
   );
 });
@@ -547,6 +572,7 @@ const PanelLeft: React.FC = () => {
   useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["2"], () => handlePanelToggle("assets"), false);
   useCombo(["3"], () => handlePanelToggle("jobs"), false);
+  useCombo(["4"], () => handlePanelToggle("patternLibrary"), false);
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";

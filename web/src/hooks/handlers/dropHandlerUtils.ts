@@ -15,6 +15,10 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import { createErrorMessage, AppError } from "../../utils/errorHandling";
+import { WorkflowPattern } from "../../stores/PatternLibraryStore";
+import NodeStore from "../../stores/NodeStore";
+import NotificationStore from "../../stores/NotificationStore";
+import MetadataStore from "../../stores/MetadataStore";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -283,11 +287,82 @@ export const useFileHandlers = () => {
     [createDataframe, handleGenericFile]
   );
 
+  const handlePattern = useCallback(
+    async (pattern: WorkflowPattern, position: XYPosition): Promise<FileHandlerResult> => {
+      try {
+        const { createNode, addNode } = NodeStore.getState();
+        const { addNotification } = NotificationStore.getState();
+        const getMetadata = MetadataStore.getState().getMetadata;
+
+        const createdNodes: string[] = [];
+        const idMap: Record<string, string> = {};
+
+        for (const patternNode of pattern.nodes) {
+          const nodeMetadata = getMetadata(patternNode.type);
+          if (!nodeMetadata) {
+            addNotification({
+              type: "warning",
+              alert: true,
+              content: `Unknown node type in pattern: ${patternNode.type}`
+            });
+            continue;
+          }
+
+          const newNode = createNode(nodeMetadata, {
+            x: position.x + patternNode.position.x,
+            y: position.y + patternNode.position.y
+          });
+
+          newNode.data.properties = { ...newNode.data.properties, ...patternNode.data };
+
+          const oldId = patternNode.id;
+          const newId = newNode.id;
+          idMap[oldId] = newId;
+          createdNodes.push(newId);
+
+          addNode(newNode);
+        }
+
+        for (const patternEdge of pattern.edges) {
+          const sourceId = idMap[patternEdge.source];
+          const targetId = idMap[patternEdge.target];
+
+          if (sourceId && targetId) {
+            const { addEdge } = useNodes.getState();
+            addEdge({
+              id: `e-${sourceId}-${targetId}`,
+              source: sourceId,
+              target: targetId,
+              sourceHandle: patternEdge.sourceHandle,
+              targetHandle: patternEdge.targetHandle
+            });
+          }
+        }
+
+        addNotification({
+          type: "success",
+          alert: false,
+          content: `Added pattern "${pattern.name}" with ${createdNodes.length} nodes`
+        });
+
+        return { success: true, data: { nodeCount: createdNodes.length } };
+      } catch (error) {
+        const err = createErrorMessage(error, "Failed to add pattern");
+        return {
+          success: false,
+          error: err instanceof AppError ? err.detail : err.message
+        };
+      }
+    },
+    []
+  );
+
   return {
     handleGenericFile,
     handlePngFile,
     handleJsonFile,
     handleCsvFile,
+    handlePattern,
     createDataframe
   };
 };

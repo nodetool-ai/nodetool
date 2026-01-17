@@ -43,7 +43,7 @@ function detectFileType(file: File): string {
 }
 
 export const useDropHandler = () => {
-  const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile } =
+  const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile, handlePattern } =
     useFileHandlers();
   const reactFlow = useReactFlow();
   const { addNode, createNode } = useNodes((state) => ({
@@ -78,6 +78,13 @@ export const useDropHandler = () => {
         addNode(newNode);
         // Track this node as recently used
         addRecentNode(node.node_type);
+        return;
+      }
+
+      // Handle pattern drop
+      if (dragData?.type === "pattern") {
+        const pattern = dragData.payload as WorkflowPattern;
+        await handlePattern(pattern, position);
         return;
       }
 
@@ -166,6 +173,7 @@ export const useDropHandler = () => {
       handleJsonFile,
       handleCsvFile,
       handleGenericFile,
+      handlePattern,
       addNotification
     ]
   );

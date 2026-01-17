@@ -412,6 +412,16 @@ _No entries yet - this memory system is new as of 2026-01-10_
 
 ---
 
+### Pattern Library Research (2026-01-17)
+
+**What**: Implemented Workflow Pattern Library - reusable workflow templates with drag-and-drop support.
+
+**Files**: PatternLibraryStore.ts, PatternLibraryPanel.tsx, dropHandlerUtils.ts, useDropHandler.ts, types.ts, serialization.ts, PanelLeft.tsx, PanelStore.ts
+
+**Impact**: Added new left panel tab (key '4') with 5 sample patterns (Text-to-Image, RAG, Multi-Modal, Audio, Batch). Users can drag patterns to canvas to create nodes/edges.
+
+---
+
 ### Asset List Virtualization (2026-01-16)
 
 **What**: Added virtualization to AssetListView using react-window for efficient rendering of 1000+ assets.
