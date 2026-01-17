@@ -5,6 +5,8 @@
 **Solution**: Memoized handlers using `useCallback` at the component top level with proper dependency arrays.
 
 **Files Modified**:
+
+### Previously Fixed Files:
 - `Login.tsx` - Memoized `handleButtonClick` for external link buttons
 - `GradientBuilder.tsx` - Added `handleStopClick`, `handleApplyCurrentColor`, `handleRemoveStopClick`
 - `SwatchPanel.tsx` - Added `handleRecentColorClick`, `handleSwatchColorClick`, `handlePaletteRemove`, `handlePaletteColorClick`, `handleLoadPresetPalette`
@@ -15,6 +17,11 @@
 - `ExamplesList.tsx` - Added `handleCardClick`
 - `SelectionContextMenu.tsx` - Added `handleCopyNodes`, `handleAlignNodesFalse`, `handleAlignNodesTrue`
 - `MiniAppResults.tsx` - Added `handleCopyResult`
+
+### Dashboard Components (2026-01-17 Additional Fixes):
+- `BackToDashboardButton.tsx` - Added `useCallback` for navigation handler, replaced inline `onClick`
+- `GettingStartedPanel.tsx` - Added `handleToggleModelsExpanded` callback for collapse toggle, added `handleDownload` callback in `InlineModelDownload` component
+- `ProviderSetupPanel.tsx` - Added `handleToggleExpanded` callback for provider panel collapse
 
 **Pattern Used**:
 ```typescript

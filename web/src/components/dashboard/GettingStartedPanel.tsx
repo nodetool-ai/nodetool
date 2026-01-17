@@ -249,6 +249,17 @@ const InlineModelDownload: React.FC<{
   }));
   const downloadKey = model.repo_id || model.id;
   const inProgress = !!downloads[downloadKey];
+
+  const handleDownload = useCallback(() => {
+    startDownload(
+      model.repo_id || "",
+      model.type || "hf.model",
+      model.path ?? null,
+      model.allow_patterns ?? null,
+      model.ignore_patterns ?? null
+    );
+  }, [startDownload, model.repo_id, model.type, model.path, model.allow_patterns, model.ignore_patterns]);
+
   if (inProgress) {
     return (
       <Box
@@ -269,15 +280,7 @@ const InlineModelDownload: React.FC<{
       aria-label={`Download ${model.repo_id || model.id}`}
       sx={{ ml: 1, verticalAlign: "middle" }}
       className={`model-download-button ${isDefault ? "default-model" : ""}`}
-      onClick={() =>
-        startDownload(
-          model.repo_id || "",
-          model.type || "hf.model",
-          model.path ?? null,
-          model.allow_patterns ?? null,
-          model.ignore_patterns ?? null
-        )
-      }
+      onClick={handleDownload}
     >
       {label ?? "Download"}
     </Button>
@@ -420,6 +423,10 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   const handleOpenSettings = useCallback(() => {
     navigate("/settings");
   }, [navigate]);
+
+  const handleToggleModelsExpanded = useCallback(() => {
+    setModelsExpanded((prev) => !prev);
+  }, []);
 
   const handleTryTemplate = useCallback(() => {
     // Mark template as tried when user clicks
@@ -582,7 +589,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                 {step.id === "download-model" && (
                   <Box sx={{ mt: 1.5 }}>
                     <Box
-                      onClick={() => setModelsExpanded(!modelsExpanded)}
+                      onClick={handleToggleModelsExpanded}
                       sx={{
                         display: "flex",
                         alignItems: "center",

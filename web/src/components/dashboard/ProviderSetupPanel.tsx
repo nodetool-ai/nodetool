@@ -292,13 +292,17 @@ const ProviderSetupPanel: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
 
+  const handleToggleExpanded = useCallback(() => {
+    setIsExpanded((prev) => !prev);
+  }, []);
+
   return (
     <Box css={panelStyles(theme)} className="provider-setup-panel">
       <div className="scrollable-content">
         <Box className="provider-setup-container">
           <div
             className="collapse-header"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleToggleExpanded}
           >
             <div className="section-title">
               <Typography
