@@ -10,6 +10,8 @@ Last updated: 2026-01-16
 
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
 
+- **Workflow Debugger Panel (Experimental)**: Visual debugging system for workflows with execution visualization, breakpoints, execution history, and performance metrics
+
 ---
 
 ## Core Application Features
@@ -29,6 +31,13 @@ Last updated: 2026-01-16
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
+
+### Debugging (Experimental)
+- **Workflow Debugger Panel**: Visual debugging system with execution controls, breakpoints, and performance metrics
+- **Breakpoints**: Set breakpoints on nodes to pause execution and inspect data
+- **Execution Timeline**: Visual history of node execution with timing and status
+- **Performance Metrics**: Real-time display of nodes run, completed, errors, and total duration
+- **Debug Mode**: Toggle debug mode to visualize node execution state and breakpoints in the editor
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
@@ -286,7 +295,6 @@ Last updated: 2026-01-16
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 

@@ -14,6 +14,8 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import BugReportIcon from "@mui/icons-material/BugReport";
+import DebugPanel from "../node_editor/DebugPanel";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -111,6 +113,7 @@ const PanelBottom: React.FC = () => {
 
   // Add keyboard shortcut for toggle (Ctrl+`)
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
+  useCombo(["Control", "d"], () => handlePanelToggle("debug"), false);
 
   const openHeight = isVisible
     ? Math.min(
@@ -160,13 +163,66 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
+                {activeView === "terminal" ? (
+                  <>
+                    <TerminalIcon fontSize="small" />
+                    <Typography variant="body2">Terminal</Typography>
+                  </>
+                ) : (
+                  <>
+                    <BugReportIcon fontSize="small" />
+                    <Typography variant="body2">Debug</Typography>
+                  </>
+                )}
+              </div>
+              <div className="left" style={{ gap: "4px" }}>
+                <Tooltip
+                  title={
+                    <div className="tooltip-span">
+                      <div className="tooltip-title">Terminal</div>
+                      <div className="tooltip-key">
+                        <kbd>Ctrl</kbd> + <kbd>`</kbd>
+                      </div>
+                    </div>
+                  }
+                  placement="top-start"
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => handlePanelToggle("terminal")}
+                    color={activeView === "terminal" ? "primary" : "default"}
+                    aria-label="Show terminal"
+                  >
+                    <TerminalIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip
+                  title={
+                    <div className="tooltip-span">
+                      <div className="tooltip-title">Debug Panel</div>
+                      <div className="tooltip-key">
+                        <kbd>Ctrl</kbd> + <kbd>D</kbd>
+                      </div>
+                    </div>
+                  }
+                  placement="top-start"
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => handlePanelToggle("debug")}
+                    color={activeView === "debug" ? "primary" : "default"}
+                    aria-label="Show debug panel"
+                  >
+                    <BugReportIcon />
+                  </IconButton>
+                </Tooltip>
               </div>
               <Tooltip
                 title={
                   <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
+                    <div className="tooltip-title">Hide panel</div>
                     <div className="tooltip-key">
                       <kbd>Ctrl</kbd> + <kbd>`</kbd>
                     </div>
@@ -177,8 +233,8 @@ const PanelBottom: React.FC = () => {
               >
                 <IconButton
                   size="small"
-                  onClick={() => handlePanelToggle("terminal")}
-                  aria-label="Hide terminal"
+                  onClick={() => handlePanelToggle(activeView)}
+                  aria-label="Hide panel"
                 >
                   <CloseIcon />
                 </IconButton>
@@ -192,6 +248,14 @@ const PanelBottom: React.FC = () => {
             }}
           >
             <Terminal />
+          </div>
+          <div
+            className="terminal-wrapper"
+            style={{
+              display: activeView === "debug" && isVisible ? "flex" : "none"
+            }}
+          >
+            <DebugPanel />
           </div>
         </div>
       </Drawer>
