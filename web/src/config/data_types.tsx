@@ -14,6 +14,7 @@ import notype from "../icons/notype.svg?react";
 import asset from "../icons/asset.svg?react";
 import wav from "../icons/wav.svg?react";
 import bool from "../icons/bool.svg?react";
+import chunk from "../icons/chunk.svg?react";
 import dataframe from "../icons/dataframe.svg?react";
 import dict from "../icons/dict.svg?react";
 import _enum from "../icons/enum.svg?react"; // 'enum' is a reserved keyword
@@ -74,6 +75,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   asset,
   audio: wav,
   bool,
+  chunk,
   dataframe,
   dict,
   enum: _enum,
