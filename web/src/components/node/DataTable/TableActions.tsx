@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Tooltip, IconButton } from "@mui/material";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
@@ -47,7 +47,7 @@ const TableActions: React.FC<TableActionsProps> = ({
     (state) => state.addNotification
   );
 
-  const handleCopyData = () => {
+  const handleCopyData = useCallback(() => {
     let dataToStringify;
     if (isListTable) {
       dataToStringify = Array.isArray(data) ? data : Object.values(data);
@@ -66,15 +66,14 @@ const TableActions: React.FC<TableActionsProps> = ({
       type: "success",
       alert: true
     });
-  };
+  }, [data, isListTable, writeClipboard, addNotification]);
 
-  const handleAddRow = () => {
+  const handleAddRow = useCallback(() => {
     const shouldTreatAsList = isListTable || !dataframeColumns;
     if (shouldTreatAsList) {
       if (Array.isArray(data)) {
         let defaultValue: any = "";
 
-        // If we have existing data, try to match its type
         if (data.length > 0) {
           const firstItem = data[0];
           if (typeof firstItem === "number") {
@@ -85,7 +84,6 @@ const TableActions: React.FC<TableActionsProps> = ({
             defaultValue = "";
           }
         } else if (dataframeColumns?.[0]?.data_type) {
-          // Use the data_type from columns if available
           switch (dataframeColumns[0].data_type) {
             case "int":
               defaultValue = 0;
@@ -114,9 +112,9 @@ const TableActions: React.FC<TableActionsProps> = ({
         onChangeRows({ ...data, [newKey]: "" });
       }
     }
-  };
+  }, [data, isListTable, dataframeColumns, onChangeRows]);
 
-  const handleDeleteRows = () => {
+  const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
       onChangeRows(
         data.filter((_, index) => {
@@ -133,13 +131,29 @@ const TableActions: React.FC<TableActionsProps> = ({
       });
       onChangeRows(newData);
     }
-  };
+  }, [data, selectedRows, onChangeRows]);
 
-  const handleResetSorting = () => {
+  const handleResetSorting = useCallback(() => {
     if (tabulator) {
       tabulator.clearSort();
     }
-  };
+  }, [tabulator]);
+
+  const handleDeleteClick = useCallback(() => {
+    if (tabulator?.getSelectedRows().length) {
+      handleDeleteRows();
+    }
+  }, [tabulator, handleDeleteRows]);
+
+  const handleToggleSelect = useCallback(() => {
+    setShowSelect(!showSelect);
+  }, [setShowSelect, showSelect]);
+
+  const handleToggleRowNumbers = useCallback(() => {
+    if (setShowRowNumbers) {
+      setShowRowNumbers(!showRowNumbers);
+    }
+  }, [setShowRowNumbers, showRowNumbers]);
 
   return (
     <div className="table-actions">
@@ -156,11 +170,7 @@ const TableActions: React.FC<TableActionsProps> = ({
               className={
                 tabulator?.getSelectedRows().length === 0 ? "disabled" : ""
               }
-              onClick={() => {
-                if (tabulator?.getSelectedRows().length) {
-                  handleDeleteRows();
-                }
-              }}
+              onClick={handleDeleteClick}
             >
               <DeleteIcon sx={{ fontSize: 12 }} />
             </IconButton>
@@ -178,7 +188,7 @@ const TableActions: React.FC<TableActionsProps> = ({
 
       <Tooltip title="Show Select column">
         <IconButton
-          onClick={() => setShowSelect(!showSelect)}
+          onClick={handleToggleSelect}
           color={showSelect ? "primary" : "default"}
         >
           <CheckBoxIcon sx={{ fontSize: 12 }} />
@@ -188,7 +198,7 @@ const TableActions: React.FC<TableActionsProps> = ({
       {showRowNumbersButton && Array.isArray(data) && setShowRowNumbers && (
         <Tooltip title="Show Row Numbers">
           <IconButton
-            onClick={() => setShowRowNumbers(!showRowNumbers)}
+            onClick={handleToggleRowNumbers}
             color={showRowNumbers ? "primary" : "default"}
           >
             <NumbersIcon sx={{ fontSize: 12 }} />
@@ -205,7 +215,7 @@ const TableActions: React.FC<TableActionsProps> = ({
   );
 };
 
-export default TableActions;
+export default React.memo(TableActions);
 
 const defaultRow = (columns: ColumnDef[]) => {
   return columns.reduce((acc, col) => {
