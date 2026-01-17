@@ -6,6 +6,7 @@
  */
 
 import type { Asset, NodeMetadata } from "../../stores/ApiTypes";
+import type { WorkflowPattern } from "../../stores/PatternLibraryStore";
 
 /**
  * Supported drag data types in the application.
@@ -17,7 +18,8 @@ export type DragDataType =
   | "assets-multiple" // Multiple assets (maps to existing "selectedAssetIds" key)
   | "file" // External file from OS
   | "tab" // Editor tab reordering
-  | "collection-file"; // File being added to collection
+  | "collection-file" // File being added to collection
+  | "pattern"; // Workflow pattern from Pattern Library
 
 /**
  * Type-safe payload definitions for each drag type
@@ -29,6 +31,7 @@ export interface DragPayloadMap {
   file: File;
   tab: string; // Workflow ID
   "collection-file": File;
+  pattern: WorkflowPattern;
 }
 
 /**

@@ -287,6 +287,7 @@ Last updated: 2026-01-16
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
 - **Performance Profiling UI**: Built-in performance profiling tools
+- **Workflow Pattern Library**: Reusable workflow templates for common AI tasks (Research Feature)
 
 ---
 

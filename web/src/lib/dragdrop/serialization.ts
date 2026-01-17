@@ -17,7 +17,8 @@ const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   "assets-multiple": "selectedAssetIds",
   file: "", // External files don't use custom keys
   tab: "text/plain",
-  "collection-file": ""
+  "collection-file": "",
+  pattern: "" // Pattern uses unified format only
 };
 
 /**
