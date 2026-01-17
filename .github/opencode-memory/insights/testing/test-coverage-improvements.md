@@ -197,232 +197,87 @@ describe("graphEdgeToReactFlowEdge", () => {
 
 ---
 
-### Test Coverage Improvement (2026-01-16 - Additional Tests)
-
-**Coverage Added**: 6 new test files with 120 tests
-
-**Tests Added**:
-- `uuidv4.test.ts` - 7 tests for UUID v4 generation
-- `customEquality.test.ts` - 18 tests for custom equality comparison functions
-- `fuseOptions.test.ts` - 11 tests for Fuse.js search options configuration
-- `formatNodeDocumentation.test.ts` - 14 tests for node documentation formatting
-- `imageUtils.test.ts` - 13 tests for image URL creation utilities
-- `hfCache.test.ts` - 20 tests for HuggingFace cache utilities
-
-**Areas Covered**:
-- UUID v4 format validation, uniqueness, and version/variant bits
-- Node and edge comparison functions for Zustand store optimization
-- Fuzzy search configuration options for node menu
-- Node documentation parsing (description, tags, use cases)
-- Image URL creation from various sources (URI, base64, blob, Uint8Array)
-- HuggingFace model cache key generation and request building
-
-**Test Patterns Used**:
-
-1. **Format Validation Testing**:
-```typescript
-it("generates a valid UUID v4 format", () => {
-  const uuid = uuidv4();
-  expect(uuid).toMatch(
-    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  );
-});
-```
-
-2. **Browser API Mocking**:
-```typescript
-beforeAll(() => {
-  (URL as any).createObjectURL = jest.fn((blob: Blob) => {
-    const url = `blob:mock-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    mockBlobUrls.push(url);
-    return url;
-  });
-});
-```
-
-3. **Complex Object Comparison Testing**:
-```typescript
-describe("compareNode", () => {
-  it("returns false for different node ids", () => {
-    const node1 = createMockNode({ id: "node1" });
-    const node2 = createMockNode({ id: "node2" });
-    expect(compareNode(node1, node2)).toBe(false);
-  });
-});
-```
-
-4. **Utility Function Coverage**:
-```typescript
-describe("formatNodeDocumentation", () => {
-  it("extracts first line as description", () => {
-    const result = formatNodeDocumentation("This is a description line.\ntag1, tag2");
-    expect(result.description).toBe("This is a description line.");
-  });
-});
-```
-
-**Files Created**:
-- `web/src/stores/__tests__/uuidv4.test.ts`
-- `web/src/stores/__tests__/customEquality.test.ts`
-- `web/src/stores/__tests__/fuseOptions.test.ts`
-- `web/src/stores/__tests__/formatNodeDocumentation.test.ts`
-- `web/src/utils/__tests__/imageUtils.test.ts`
-- `web/src/utils/__tests__/hfCache.test.ts`
-
-**Key Learnings**:
-1. Browser APIs like URL.createObjectURL require proper mocking in jsdom environment
-2. Complex comparison functions need thorough coverage of all fields and edge cases
-3. Regex patterns are effective for validating format-generated strings like UUIDs
-4. Documentation parsing tests should cover various input formats and edge cases
-5. Utility functions with external dependencies need careful mock setup
-
-**Status**: All 120 tests passing
-
-**Additional Fixes**:
-- Fixed merge conflict markers in `useAutosave.test.ts` that were preventing the file from compiling
-
----
-
 ### Test Coverage Improvement (2026-01-17 - Additional)
 
-**Coverage Added**: 1 new store test file with 15 tests
+**Tests Added**: 7 new test files with 69 tests
 
 **Tests Added**:
-- `ModelFiltersStore.test.ts` - 15 tests for model filtering state management
+- `getChildNodes.test.ts` - 7 tests for child node retrieval
+- `getGroupBounds.test.ts` - 10 tests for group bounds calculation
+- `useIsGroupable.test.ts` - 14 tests for node groupable checks
+- `useSurroundWithGroup.test.ts` - 13 tests for surrounding nodes with groups
+- `useRemoveFromGroup.test.ts` - 12 tests for removing nodes from groups
+- `graphCycle.test.ts` - 18 tests for cycle detection in graphs
+- `selectionBounds.test.ts` - 17 tests for selection rectangle calculations
 
 **Areas Covered**:
-- Initial state verification
-- Type tag toggling (add/remove)
-- Size bucket setting and clearing
-- Family toggling (add/remove)
-- Clear all functionality
-- Combined operations and state consistency
+- Child node filtering by parent ID
+- Group bounds calculation with padding and dimensions
+- Node type checking (Loop, Group, custom nodes)
+- Group node creation and positioning
+- Node position adjustment when grouping/ungrouping
+- Cycle detection (direct, indirect, multi-path)
+- Selection rectangle normalization and bounds
 
 **Test Patterns Used**:
 
-1. **Store State Testing Pattern**:
+1. **Pure Utility Function Testing**:
 ```typescript
-describe('ModelFiltersStore', () => {
-  const initialState = useModelFiltersStore.getState();
-
-  beforeEach(() => {
-    useModelFiltersStore.setState(initialState, true);
-  });
-
-  it('adds type when not present', () => {
-    useModelFiltersStore.getState().toggleType('chat' as TypeTag);
-    expect(useModelFiltersStore.getState().selectedTypes).toContain('chat');
-  });
-
-  it('removes type when present', () => {
-    useModelFiltersStore.setState({ selectedTypes: ['chat' as TypeTag, 'code' as TypeTag] });
-    useModelFiltersStore.getState().toggleType('chat' as TypeTag);
-    expect(useModelFiltersStore.getState().selectedTypes).toEqual(['code' as TypeTag]);
+describe("getChildNodes", () => {
+  it("returns all direct children of specified parent", () => {
+    const nodes = [
+      createMockNode("node-1", "parent-1"),
+      createMockNode("node-2", "parent-1"),
+      createMockNode("node-3", "parent-2")
+    ];
+    const result = getChildNodes(nodes, "parent-1");
+    expect(result).toHaveLength(2);
   });
 });
 ```
 
-2. **Filter State Management**:
+2. **Cycle Detection Testing**:
 ```typescript
-it('maintains state correctly through multiple operations', () => {
-  useModelFiltersStore.getState().toggleType('chat' as TypeTag);
-  useModelFiltersStore.getState().toggleType('code' as TypeTag);
-  useModelFiltersStore.getState().setSizeBucket('3-7B' as SizeBucket);
-  useModelFiltersStore.getState().toggleFamily('llama');
+describe("wouldCreateCycle", () => {
+  it("returns true for simple direct cycle", () => {
+    const edges = [
+      createEdge("a", "b"),
+      createEdge("b", "a")
+    ];
+    const result = wouldCreateCycle(edges, "a", "b");
+    expect(result).toBe(true);
+  });
+});
+```
 
-  expect(useModelFiltersStore.getState().selectedTypes).toEqual(['chat', 'code']);
-  expect(useModelFiltersStore.getState().sizeBucket).toBe('3-7B');
-  expect(useModelFiltersStore.getState().families).toEqual(['llama']);
-
-  useModelFiltersStore.getState().clearAll();
-  expect(useModelFiltersStore.getState()).toEqual(initialState);
+3. **Selection Bounds Testing**:
+```typescript
+describe("getSelectionRect", () => {
+  it("returns null when selection is too small", () => {
+    const result = getSelectionRect(
+      createPosition(0, 0),
+      createPosition(2, 100)
+    );
+    expect(result).toBeNull();
+  });
 });
 ```
 
 **Files Created**:
-- `web/src/stores/__tests__/ModelFiltersStore.test.ts`
+- `web/src/hooks/nodes/__tests__/getChildNodes.test.ts`
+- `web/src/hooks/nodes/__tests__/getGroupBounds.test.ts`
+- `web/src/hooks/nodes/__tests__/useIsGroupable.test.ts`
+- `web/src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts`
+- `web/src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts`
+- `web/src/utils/__tests__/graphCycle.test.ts`
+- `web/src/utils/__tests__/selectionBounds.test.ts`
 
 **Key Learnings**:
-1. Zustand stores with simple state operations are straightforward to test
-2. Always reset store state in beforeEach to ensure test isolation
-3. Test both individual operations and combined state changes
-4. Verify clearAll/reset functionality returns to initial state
+1. Mock @xyflow/react functions (getNodesBounds) for isolated testing
+2. Mock React context providers for hook tests
+3. Use beforeEach to set up mock implementations for each test
+4. Test both happy path and edge cases (empty arrays, null values)
+5. Utility functions with clear inputs/outputs are easy to test
+6. Graph algorithms need thorough edge case coverage
 
-**Status**: All 15 tests passing
-
----
-
-### Test Coverage Improvement (2026-01-17 - SettingsStore)
-
-**Coverage Added**: Extended SettingsStore test suite with 36 tests (previously 4 tests)
-
-**Tests Added**:
-- Initial state verification for all settings
-- Grid and connection snap settings (setGridSnap, setConnectionSnap)
-- Control settings (setPanControls, setSelectionMode)
-- Order settings (setWorkflowOrder, setAssetsOrder)
-- Display settings (setAssetItemSize, setTimeFormat)
-- Behavior settings (setAlertBeforeTabClose, setSelectNodesOnDrag, setShowWelcomeOnStartup, setSoundNotifications, setInstantUpdate)
-- updateSettings with multiple properties
-- resetSettings restores all defaults
-- Menu and tab state management (setMenuOpen)
-- Extended autosave settings coverage
-- Default values validation
-
-**Areas Covered**:
-- All 13 settings properties with individual setters
-- Default values verification for Settings and AutosaveSettings
-- Menu open/close state with tab selection
-- Partial updates preserve other settings
-- Reset to defaults functionality
-
-**Test Patterns Used**:
-
-1. **Comprehensive Settings Store Testing**:
-```typescript
-describe('Grid and Connection Settings', () => {
-  test('setGridSnap updates value', () => {
-    useSettingsStore.getState().setGridSnap(5);
-    expect(useSettingsStore.getState().settings.gridSnap).toBe(5);
-  });
-
-  test('setGridSnap defaults to 1 when falsy value passed', () => {
-    useSettingsStore.getState().setGridSnap(0);
-    expect(useSettingsStore.getState().settings.gridSnap).toBe(1);
-  });
-});
-```
-
-2. **Behavior Settings Toggle Testing**:
-```typescript
-describe('Behavior Settings', () => {
-  test('setSelectNodesOnDrag toggles value', () => {
-    useSettingsStore.getState().setSelectNodesOnDrag(true);
-    expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(true);
-    useSettingsStore.getState().setSelectNodesOnDrag(false);
-    expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(false);
-  });
-});
-```
-
-3. **Menu State Testing**:
-```typescript
-describe('Menu and Tab State', () => {
-  test('setMenuOpen opens menu with specific tab', () => {
-    useSettingsStore.getState().setMenuOpen(true, 2);
-    expect(useSettingsStore.getState().isMenuOpen).toBe(true);
-    expect(useSettingsStore.getState().settingsTab).toBe(2);
-  });
-});
-```
-
-**Files Updated**:
-- `web/src/stores/__tests__/SettingsStore.test.ts` (extended from 55 to 250+ lines)
-
-**Key Learnings**:
-1. Settings stores with many simple setters benefit from comprehensive individual tests
-2. Test both the setter behavior and the default fallback behavior
-3. Menu/UI state can be tested alongside business settings
-4. Reset functionality should restore entire state, not just individual properties
-
-**Status**: All 36 tests passing
+**Status**: 69 tests passing
