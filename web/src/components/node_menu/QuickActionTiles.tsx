@@ -222,6 +222,12 @@ export const CONSTANT_NODES: QuickActionDefinition[] = [
     iconType: "dict"
   }),
   buildConstantNode({
+    key: "constant-audio",
+    label: "Audio",
+    nodeType: "nodetool.constant.Audio",
+    iconType: "audio"
+  }),
+  buildConstantNode({
     key: "constant-document",
     label: "Document",
     nodeType: "nodetool.constant.Document",
@@ -275,7 +281,7 @@ export const CONSTANT_NODES: QuickActionDefinition[] = [
     nodeType: "nodetool.constant.Video",
     iconType: "video"
   })
-];
+].sort((a, b) => a.label.localeCompare(b.label));
 
 const tileStyles = (theme: Theme) =>
   css({
