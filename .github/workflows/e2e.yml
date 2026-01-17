@@ -71,7 +71,7 @@ jobs:
       - name: Start nodetool server
         shell: bash -l {0}
         run: |
-          nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
+          nodetool serve --port 7777 --mock > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
           
       - name: Wait for nodetool server to be ready

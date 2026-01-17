@@ -24,7 +24,7 @@ const webServers = process.env.CI ? {
 } : [
   ...(shouldStartBackend
     ? [{
-        command: 'conda run -n nodetool nodetool serve --port 7777',
+        command: 'conda run -n nodetool nodetool serve --port 7777 --mock',
         url: BACKEND_HEALTH_URL,
         reuseExistingServer: true,
         timeout: 120 * 1000,
