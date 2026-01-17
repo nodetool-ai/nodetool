@@ -54,7 +54,15 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### Performance Optimization: Large Component Memoization (2026-01-17)
+### Security Audit & Vulnerability Fixes (2026-01-17)
+
+**What**: Fixed remaining dependency vulnerabilities in web and electron packages. Added glob override for command injection (GHSA-5j98-mcp5-4vw2), updated @eslint/plugin-kit and tar via npm audit fix.
+
+**Files**: `web/package.json`, `web/package-lock.json`, `electron/package-lock.json`
+
+**Result**: Web: 0 vulnerabilities (was 1 high), Electron: 0 vulnerabilities (was 10). Mobile has 8 unfixable vulnerabilities in react-native-markdown-display dependencies.
+
+---
 
 **What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
 
@@ -227,7 +235,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
 
 **Files**: `web/src/hooks/useChatService.ts`, `web/src/hooks/editor/useChatIntegration.ts`, `web/src/components/chat/containers/GlobalChat.tsx`, `web/src/components/chat/containers/StandaloneChat.tsx`
@@ -393,25 +400,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 - `web/src/stores/useAuth.ts`
 - `web/src/stores/CollectionStore.ts`
 - `web/src/utils/errorHandling.ts`
-
----
-
-_No entries yet - this memory system is new as of 2026-01-10_
-### Mobile TypeScript Type Errors (2026-01-12)
-
-**What**: Fixed mobile package TypeScript errors by updating tsconfig.json to include proper type definitions for React Native, Jest, and Node.js.
-
-**Files**: `mobile/tsconfig.json`
-
-### Test Expectation Fix (2026-01-12)
-
-**What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
-**Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
-
-### Selection Action Toolbar (2026-01-10)
-
-**What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
-**Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
 
 ---
 
