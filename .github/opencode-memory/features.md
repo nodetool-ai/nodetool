@@ -288,6 +288,7 @@ Last updated: 2026-01-16
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
 - **Performance Profiling UI**: Built-in performance profiling tools
+- **Workflow Health Panel**: Real-time workflow validation and health scoring with issue detection (disconnected nodes, cycles, configuration errors)
 
 ---
 
