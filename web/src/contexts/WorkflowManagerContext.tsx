@@ -80,11 +80,41 @@ export const FetchCurrentWorkflow: React.FC<{
   const isWorkflowLoaded = Boolean(workflowId && getNodeStore(workflowId));
 
   useEffect(() => {
-    if (workflowId) {
+    let isCancelled = false;
+    const ensureWorkflow = async () => {
+      if (!workflowId) {
+        return;
+      }
       setCurrentWorkflowId(workflowId);
-    }
-    if (workflowId && !isWorkflowLoaded) {
-      fetchWorkflow(workflowId).catch(async () => {
+      if (isWorkflowLoaded) {
+        return;
+      }
+      try {
+        const fetched = await fetchWorkflow(workflowId);
+        if (!fetched && !isCancelled) {
+          const workflow: Workflow = {
+            id: workflowId,
+            name: "New Workflow",
+            description: "",
+            access: "private",
+            thumbnail: "",
+            updated_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            graph: {
+              nodes: [],
+              edges: []
+            },
+            settings: {
+              hide_ui: false
+            },
+            run_mode: "workflow"
+          };
+          addWorkflow(workflow);
+        }
+      } catch {
+        if (isCancelled) {
+          return;
+        }
         const workflow: Workflow = {
           id: workflowId,
           name: "New Workflow",
@@ -103,9 +133,19 @@ export const FetchCurrentWorkflow: React.FC<{
           run_mode: "workflow"
         };
         addWorkflow(workflow);
-      });
-    }
-  }, [workflowId, fetchWorkflow, isWorkflowLoaded, setCurrentWorkflowId, addWorkflow]);
+      }
+    };
+    ensureWorkflow();
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    workflowId,
+    fetchWorkflow,
+    isWorkflowLoaded,
+    setCurrentWorkflowId,
+    addWorkflow
+  ]);
 
   return children;
 };
