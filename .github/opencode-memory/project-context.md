@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Workflow Performance Profiling (2026-01-17)
+
+**What**: Implemented workflow analytics dashboard showing runtime statistics, execution metrics, and performance highlights for AI workflows.
+
+**Files**: useWorkflowAnalytics.ts, WorkflowStatsPanel.tsx, NodeEditor.tsx
+
+**Impact**: Users can now monitor workflow performance with real-time stats, completion percentage, and node-level timing breakdown.
+
+---
+
 ### Performance Optimization: Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
