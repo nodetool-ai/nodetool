@@ -3,7 +3,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
-import type { CSSProperties, DragEvent as ReactDragEvent, ReactNode } from "react";
+import type {
+  CSSProperties,
+  DragEvent as ReactDragEvent,
+  ReactNode
+} from "react";
 import { Box, Tooltip, Typography } from "@mui/material";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ImageIcon from "@mui/icons-material/Image";
@@ -12,10 +16,6 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
-import TextFieldsIcon from "@mui/icons-material/TextFields";
-import PinIcon from "@mui/icons-material/Pin";
-import CalculateIcon from "@mui/icons-material/Calculate";
-import ToggleOnIcon from "@mui/icons-material/ToggleOn";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -23,6 +23,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import { IconForType, colorForType } from "../../config/data_types";
 
 export type QuickActionDefinition = {
   key: string;
@@ -137,63 +138,143 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
   }
 ];
 
+const hexToRgba = (hex: string, alpha: number) => {
+  const cleanHex = hex.replace("#", "");
+  if (cleanHex.length !== 6) {
+    return `rgba(255, 255, 255, ${alpha})`;
+  }
+  const r = parseInt(cleanHex.slice(0, 2), 16);
+  const g = parseInt(cleanHex.slice(2, 4), 16);
+  const b = parseInt(cleanHex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const buildConstantNode = ({
+  key,
+  label,
+  nodeType,
+  iconType
+}: {
+  key: string;
+  label: string;
+  nodeType: string;
+  iconType: string;
+}): QuickActionDefinition => {
+  const baseColor = colorForType(iconType);
+  return {
+    key,
+    label,
+    nodeType,
+    icon: (
+      <IconForType
+        iconName={iconType}
+        showTooltip={false}
+        iconSize="normal"
+        svgProps={{ style: { color: baseColor } }}
+      />
+    ),
+    gradient: `linear-gradient(135deg, ${hexToRgba(
+      baseColor,
+      0.35
+    )}, ${hexToRgba(baseColor, 0.18)})`,
+    hoverGradient: `linear-gradient(135deg, ${hexToRgba(
+      baseColor,
+      0.55
+    )}, ${hexToRgba(baseColor, 0.32)})`,
+    shadow: `0 4px 12px ${hexToRgba(baseColor, 0.18)}`,
+    hoverShadow: `0 8px 24px ${hexToRgba(
+      baseColor,
+      0.35
+    )}, 0 0 16px ${hexToRgba(baseColor, 0.22)}`,
+    iconColor: baseColor
+  };
+};
+
 export const CONSTANT_NODES: QuickActionDefinition[] = [
-  {
-    key: "constant-string",
-    label: "String",
-    nodeType: "nodetool.input.StringInput",
-    icon: <TextFieldsIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(129, 140, 248, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(129, 140, 248, 0.6), rgba(165, 180, 252, 0.5))",
-    shadow: "0 4px 12px rgba(99, 102, 241, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(129, 140, 248, 0.35), 0 0 16px rgba(165, 180, 252, 0.25)",
-    iconColor: "#e0e7ff"
-  },
-  {
-    key: "constant-integer",
-    label: "Integer",
-    nodeType: "nodetool.input.IntegerInput",
-    icon: <PinIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(52, 211, 153, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(52, 211, 153, 0.6), rgba(94, 234, 212, 0.5))",
-    shadow: "0 4px 12px rgba(16, 185, 129, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(52, 211, 153, 0.35), 0 0 16px rgba(94, 234, 212, 0.25)",
-    iconColor: "#d1fae5"
-  },
-  {
+  buildConstantNode({
+    key: "constant-bool",
+    label: "Bool",
+    nodeType: "nodetool.constant.Bool",
+    iconType: "bool"
+  }),
+  buildConstantNode({
+    key: "constant-dataframe",
+    label: "Data Frame",
+    nodeType: "nodetool.constant.DataFrame",
+    iconType: "dataframe"
+  }),
+  buildConstantNode({
+    key: "constant-date",
+    label: "Date",
+    nodeType: "nodetool.constant.Date",
+    iconType: "date"
+  }),
+  buildConstantNode({
+    key: "constant-datetime",
+    label: "Date Time",
+    nodeType: "nodetool.constant.DateTime",
+    iconType: "datetime"
+  }),
+  buildConstantNode({
+    key: "constant-dict",
+    label: "Dict",
+    nodeType: "nodetool.constant.Dict",
+    iconType: "dict"
+  }),
+  buildConstantNode({
+    key: "constant-document",
+    label: "Document",
+    nodeType: "nodetool.constant.Document",
+    iconType: "document"
+  }),
+  buildConstantNode({
     key: "constant-float",
     label: "Float",
-    nodeType: "nodetool.input.FloatInput",
-    icon: <CalculateIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(245, 158, 11, 0.4), rgba(251, 191, 36, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(251, 191, 36, 0.6), rgba(252, 211, 77, 0.5))",
-    shadow: "0 4px 12px rgba(245, 158, 11, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(251, 191, 36, 0.35), 0 0 16px rgba(252, 211, 77, 0.25)",
-    iconColor: "#fef3c7"
-  },
-  {
-    key: "constant-boolean",
-    label: "Boolean",
-    nodeType: "nodetool.input.BooleanInput",
-    icon: <ToggleOnIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(236, 72, 153, 0.4), rgba(244, 114, 182, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(244, 114, 182, 0.6), rgba(249, 113, 207, 0.5))",
-    shadow: "0 4px 12px rgba(236, 72, 153, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(244, 114, 182, 0.35), 0 0 16px rgba(249, 113, 207, 0.25)",
-    iconColor: "#fce7f3"
-  }
+    nodeType: "nodetool.constant.Float",
+    iconType: "float"
+  }),
+  buildConstantNode({
+    key: "constant-image",
+    label: "Image",
+    nodeType: "nodetool.constant.Image",
+    iconType: "image"
+  }),
+  buildConstantNode({
+    key: "constant-integer",
+    label: "Integer",
+    nodeType: "nodetool.constant.Integer",
+    iconType: "int"
+  }),
+  buildConstantNode({
+    key: "constant-json",
+    label: "JSON",
+    nodeType: "nodetool.constant.JSON",
+    iconType: "json"
+  }),
+  buildConstantNode({
+    key: "constant-list",
+    label: "List",
+    nodeType: "nodetool.constant.List",
+    iconType: "list"
+  }),
+  buildConstantNode({
+    key: "constant-model-3d",
+    label: "Model 3D",
+    nodeType: "nodetool.constant.Model3D",
+    iconType: "model_3d"
+  }),
+  buildConstantNode({
+    key: "constant-string",
+    label: "String",
+    nodeType: "nodetool.constant.String",
+    iconType: "str"
+  }),
+  buildConstantNode({
+    key: "constant-video",
+    label: "Video",
+    nodeType: "nodetool.constant.Video",
+    iconType: "video"
+  })
 ];
 
 const tileStyles = (theme: Theme) =>
@@ -228,21 +309,8 @@ const tileStyles = (theme: Theme) =>
       gridAutoRows: "1fr",
       gap: "8px",
       alignContent: "start",
-      overflowY: "auto",
-      padding: "2px",
-      "&::-webkit-scrollbar": {
-        width: "6px"
-      },
-      "&::-webkit-scrollbar-track": {
-        background: "transparent"
-      },
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor: theme.vars.palette.action.disabledBackground,
-        borderRadius: "8px"
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        backgroundColor: theme.vars.palette.action.disabled
-      }
+      overflow: "visible",
+      padding: "2px"
     },
     ".constants-container": {
       display: "grid",
@@ -355,7 +423,7 @@ const tileStyles = (theme: Theme) =>
 const QuickActionTiles = memo(function QuickActionTiles() {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
-  
+
   const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
     setDragToCreate: state.setDragToCreate,
     setHoveredNode: state.setHoveredNode
@@ -390,7 +458,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     },
     [getMetadata, setDragToCreate, setActiveDrag]
   );
-  
+
   const handleDragEnd = useCallback(() => {
     setDragToCreate(false);
     clearDrag();
@@ -400,7 +468,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     (action: QuickActionDefinition) => {
       const { nodeType, label } = action;
       const metadata = getMetadata(nodeType);
-      
+
       if (!metadata) {
         console.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
@@ -478,7 +546,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                     "--quick-shadow": shadow,
                     "--quick-shadow-hover": hoverShadow ?? shadow,
                     "--quick-icon-color": iconColor,
-                    background: theme.vars.palette.action.hoverBackground 
+                    background: theme.vars.palette.action.hoverBackground
                   } as CSSProperties
                 }
               >
@@ -491,7 +559,10 @@ const QuickActionTiles = memo(function QuickActionTiles() {
           );
         })}
       </div>
-      <div className="tiles-header" style={{ marginTop: "16px", marginBottom: "8px" }}>
+      <div
+        className="tiles-header"
+        style={{ marginTop: "16px", marginBottom: "8px" }}
+      >
         <Typography variant="h5">Constants</Typography>
       </div>
       <div className="constants-container">
@@ -541,7 +612,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                     "--quick-shadow": shadow,
                     "--quick-shadow-hover": hoverShadow ?? shadow,
                     "--quick-icon-color": iconColor,
-                    background: theme.vars.palette.action.hoverBackground 
+                    background: theme.vars.palette.action.hoverBackground
                   } as CSSProperties
                 }
               >
