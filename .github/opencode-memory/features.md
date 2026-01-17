@@ -10,6 +10,8 @@ Last updated: 2026-01-16
 
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
 
+- **Workflow Profiler (Experimental)**: Performance analysis panel showing execution times, bottlenecks, and optimization suggestions (Research Feature)
+
 ---
 
 ## Core Application Features

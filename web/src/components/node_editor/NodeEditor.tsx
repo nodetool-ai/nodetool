@@ -46,6 +46,11 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import { useWorkflowRunnerState } from "../../hooks/useWorkflowRunnerState";
+import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
+import { analyzeWorkflowPerformance } from "../../stores/WorkflowProfilerStore";
+import { useEffect } from "react";
 
 declare global {
   interface Window {
@@ -77,6 +82,28 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+
+  const runnerState = useWorkflowRunnerState(workflowId);
+  const timings = useExecutionTimeStore((state) => state.timings);
+
+  // Access runner data directly from store
+  const runnerData = workflowId ? getWorkflowRunnerStore(workflowId).getState() : null;
+
+  // Analyze workflow performance when execution completes
+  useEffect(() => {
+    if (
+      runnerData?.workflow &&
+      (runnerState === "idle" || runnerState === "error" || runnerState === "cancelled")
+    ) {
+      analyzeWorkflowPerformance(
+        runnerData.workflow.id,
+        runnerData.workflow.name,
+        runnerData.nodes,
+        runnerData.edges,
+        timings
+      );
+    }
+  }, [runnerState, runnerData, runnerData?.workflow, runnerData?.nodes, runnerData?.edges, timings]);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
