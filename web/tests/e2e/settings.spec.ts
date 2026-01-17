@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { BACKEND_API_URL } from "./support/backend";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -78,20 +79,16 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Check for various localStorage keys used by the app
-        const storageKeys = await page.evaluate(() => {
-          const keys: string[] = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key) {
-              keys.push(key);
-            }
-          }
-          return keys;
+        const storageKeyCount = await page.evaluate(() => {
+          return localStorage.length;
         });
 
-        // The app should store something in localStorage
-        // (might be settings, auth, or other state)
-        expect(storageKeys.length).toBeGreaterThanOrEqual(0);
+        // The app stores settings in localStorage
+        // Just verify the page loads correctly and localStorage is accessible
+        const bodyText = await page.textContent("body");
+        expect(bodyText).toBeTruthy();
+        // Storage might have some keys from the app
+        expect(typeof storageKeyCount).toBe("number");
       });
 
       test("should restore settings on page reload", async ({ page }) => {
@@ -169,7 +166,7 @@ if (process.env.JEST_WORKER_ID) {
         // Create a workflow
         const workflowName = `test-editor-prefs-${Date.now()}`;
         const createResponse = await request.post(
-          "http://localhost:7777/api/workflows/",
+          `${BACKEND_API_URL}/workflows/`,
           {
             data: {
               name: workflowName,
@@ -207,7 +204,7 @@ if (process.env.JEST_WORKER_ID) {
           await expect(canvas).toBeVisible();
         } finally {
           await request.delete(
-            `http://localhost:7777/api/workflows/${workflow.id}`
+            `${BACKEND_API_URL}/workflows/${workflow.id}`
           );
         }
       });

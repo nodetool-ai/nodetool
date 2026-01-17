@@ -107,7 +107,8 @@ if (process.env.JEST_WORKER_ID) {
           // Wait for editor to be ready
           await page.waitForSelector(".react-flow", { timeout: 10000 });
 
-          // Try keyboard shortcut for save (Cmd/Ctrl + S)
+          // Try keyboard shortcut for save (Meta maps to Cmd on macOS, Windows key on Windows)
+          // The app handles both Cmd+S and Ctrl+S
           await page.keyboard.press("Meta+s");
 
           // Wait a moment for any save operation

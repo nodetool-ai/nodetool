@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 
+// Note: These tests use "Meta" modifier which maps to Command on macOS and Windows key on Windows.
+// Playwright handles this cross-platform, but the actual shortcuts in the app may differ by platform.
+// These tests verify the keyboard interaction doesn't crash the app and functionality works.
+
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});

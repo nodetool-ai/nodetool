@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { BACKEND_API_URL } from "./support/backend";
 
 // Common viewport sizes for testing
 const VIEWPORTS = {
@@ -331,7 +332,7 @@ if (process.env.JEST_WORKER_ID) {
         // Create a workflow
         const workflowName = `test-responsive-${Date.now()}`;
         const createResponse = await request.post(
-          "http://localhost:7777/api/workflows/",
+          `${BACKEND_API_URL}/workflows/`,
           {
             data: {
               name: workflowName,
@@ -363,7 +364,7 @@ if (process.env.JEST_WORKER_ID) {
           await expect(canvas).toBeVisible();
         } finally {
           await request.delete(
-            `http://localhost:7777/api/workflows/${workflow.id}`
+            `${BACKEND_API_URL}/workflows/${workflow.id}`
           );
         }
       });
