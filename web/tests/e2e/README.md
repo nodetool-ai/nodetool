@@ -2,91 +2,146 @@
 
 This directory contains end-to-end tests for the NodeTool web application using Playwright.
 
-## Test Files
+## Test Organization
 
-### 1. app-loads.spec.ts (Original)
+### Standard Tests (With Real Backend)
+
+Tests that require a running backend server to test full integration:
+
+### Tests with Mock Data Support
+
+Tests enhanced with mock data capabilities for faster, more reliable testing:
+
+#### chat.spec.ts
+**Tests: 9** (3 original + 6 with mocks)
+- Chat page loading and interface
+- Mocked thread and message display
+- Chat with tool calls
+- Thread navigation
+
+#### models.spec.ts  
+**Tests: 14** (3 original + 5 with mocks + 6 API integration)
+- Models page loading and interface
+- Mocked HuggingFace model display
+- Model type filtering
+- Recommended models and providers
+- API integration tests
+
+#### templates.spec.ts
+**Tests: 13** (8 original + 5 with mocks)
+- Templates page loading and interface
+- Mocked template workflow display
+- Template categorization
+- Workflow graph validation
+- API integration and search tests
+
+#### mock-data.spec.ts
+**Tests: 17** (new)
+- Mock data fixture validation
+- Mock API route setup verification
+- Content validation for all mock data types
+- Integration scenario testing
+
+### Other Test Files
+
+#### 1. app-loads.spec.ts
 **Tests: 3**
 - Basic application loading
 - Navigation functionality
 - Backend API connectivity
 
-### 2. dashboard.spec.ts (New)
+#### 2. dashboard.spec.ts
 **Tests: 3**
 - Dashboard page loading
 - Dashboard sections display
 - Navigation from dashboard
 
-### 3. assets.spec.ts (New)
+#### 3. assets.spec.ts
 **Tests: 5**
 - Asset explorer page loading
 - Asset interface display
 - Empty state handling
-- Text file upload
-- Image file upload
+- File uploads (text and image)
 
-### 4. auth.spec.ts (New)
+#### 4. auth.spec.ts
 **Tests: 4**
-- Root redirect behavior (localhost mode)
+- Root redirect behavior
 - Dashboard access
 - Login page accessibility
-- Protected route handling (editor routes)
+- Protected route handling
 
-### 5. chat.spec.ts (New)
-**Tests: 3**
-- Chat page loading
-- Chat interface elements
-- Thread ID navigation
-
-### 6. collections.spec.ts (New)
+#### 5. collections.spec.ts
 **Tests: 4**
 - Collections page loading
 - Collections interface display
 - Empty state handling
-- Collection creation and file upload via drag and drop
+- Collection creation with drag and drop
 
-### 7. templates.spec.ts (New)
-**Tests: 3**
-- Templates page loading
-- Templates interface display
-- Empty state handling
-
-### 8. models.spec.ts (New)
-**Tests: 3**
-- Models page loading
-- Models interface display
-- Navigation to models page
-
-### 9. miniapps.spec.ts (New)
+#### 6. miniapps.spec.ts
 **Tests: 3**
 - MiniApps page loading
 - MiniApps interface display
 - Optional workflow ID parameter handling
 
-### 10. navigation.spec.ts (New)
+#### 7. navigation.spec.ts
 **Tests: 11**
-- All major route navigation (8 routes)
+- All major route navigation
 - State maintenance across navigation
 - Browser back/forward functionality
 - Invalid route handling
 
-### 11. websocket.spec.ts (New)
+#### 8. websocket.spec.ts
 **Tests: 10**
-- WebSocket connection establishment on chat page
-- Unified /ws endpoint usage (not legacy /ws/chat or /ws/predict)
+- WebSocket connection establishment
+- Unified /ws endpoint usage
 - Connection status display
-- Chat interface loading after connection
 - Thread creation via WebSocket
-- GlobalChatStore WebSocket manager initialization
-- Connection persistence during navigation
-- Command-wrapped message format
-- Connection interruption handling
-- Disconnection status display
+- Connection persistence
 
+#### 9. model-download.spec.ts
 ### 12. model-download.spec.ts (New)
 **Tests: 3**
-- Download a small HuggingFace model successfully
-- Connect to download WebSocket endpoint
-- Network access to HuggingFace (validates no CI restrictions)
+- HuggingFace model download
+- Download WebSocket endpoint
+- Network access validation
+
+## Mock Data System
+
+The test suite includes a comprehensive mock data system for testing without a backend server.
+
+### Features
+- ✅ Prepopulated workflows with realistic node graphs
+- ✅ Chat threads and messages with tool calls
+- ✅ Model metadata (HuggingFace, providers, recommendations)
+- ✅ Template workflows for example use cases
+- ✅ Easy-to-use mock API route utilities
+
+### Quick Start
+
+```typescript
+import { setupMockApiRoutes } from "./fixtures/mockData";
+
+test.describe("Feature with Mocks", () => {
+  test.beforeEach(async ({ page }) => {
+    await setupMockApiRoutes(page);
+  });
+
+  test("should work with mocked data", async ({ page }) => {
+    await page.goto("/models");
+    // Test with mocked model data
+  });
+});
+```
+
+### Documentation
+- **[Mock Data Guide](./fixtures/README.md)** - Complete guide to using mock data
+- **Mock Data Files**: `tests/e2e/fixtures/*.json`
+- **Mock Utilities**: `tests/e2e/fixtures/mockData.ts`
+
+### Benefits
+- 🚀 **Faster**: No backend server needed for UI tests
+- 🎯 **Reliable**: Deterministic data eliminates flaky tests
+- 🔧 **Flexible**: Easy to test edge cases and error scenarios
 
 ### 13. mock-data.spec.ts (New)
 **Tests: 20**
@@ -100,10 +155,10 @@ This directory contains end-to-end tests for the NodeTool web application using 
 
 ## Total Test Coverage
 
-- **Total Files:** 13
-- **Total Tests:** 69
-- **Original Tests:** 3
-- **New Tests:** 66
+- **Total Files**: 17 (including mock-data.spec.ts)
+- **Total Tests**: ~70+ (varies based on API integration tests)
+- **Tests with Mock Support**: 53 tests across 4 files
+- **Mock Data Fixtures**: 5 JSON files with realistic data
 
 ## Test Coverage Areas
 
@@ -113,16 +168,16 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - ✅ Dashboard
 - ✅ Asset management
 - ✅ Collections
-- ✅ Templates/Examples
-- ✅ Chat interface
+- ✅ Templates/Examples with mock data
+- ✅ Chat interface with mock threads and messages
 - ✅ MiniApps
-- ✅ Model management
+- ✅ Model management with mock model data
 - ✅ Model downloads
 - ✅ Navigation and routing
 - ✅ Browser history navigation
 - ✅ Backend API connectivity
 - ✅ WebSocket integration (unified /ws endpoint)
-- ✅ Mock data loading (chat threads, workflows, assets, models, providers)
+- ✅ Mock data fixtures and validation
 
 ### Test Patterns Used
 
@@ -146,6 +201,12 @@ This directory contains end-to-end tests for the NodeTool web application using 
    - Invalid routes
    - Server error detection
 
+5. **Mock Data Testing** (NEW)
+   - Mocked API responses
+   - Deterministic test data
+   - Edge case scenarios
+   - Fast UI tests without backend
+
 ## Running the Tests
 
 ### All Tests
@@ -155,7 +216,15 @@ npm run test:e2e
 
 ### Specific Test File
 ```bash
-npx playwright test dashboard.spec.ts
+npx playwright test chat.spec.ts          # Chat tests with mocks
+npx playwright test models.spec.ts        # Model tests with mocks
+npx playwright test templates.spec.ts     # Template tests with mocks
+npx playwright test mock-data.spec.ts     # Mock data validation
+```
+
+### Run Only Mock Data Tests
+```bash
+npx playwright test mock-data.spec.ts chat.spec.ts models.spec.ts templates.spec.ts
 ```
 
 ### With UI Mode (Recommended for Development)
@@ -172,6 +241,17 @@ npm run test:e2e:headed
 ```bash
 npx playwright test --debug
 ```
+
+### Run Tests Without Backend (Mock Only)
+
+To run tests using only mock data (no backend required):
+
+```bash
+# Set environment variable to skip backend startup
+E2E_START_BACKEND=false npm run test:e2e
+```
+
+Note: Only tests using `setupMockApiRoutes` will work without a backend.
 
 ## Test Structure
 
