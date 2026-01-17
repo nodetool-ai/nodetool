@@ -283,7 +283,12 @@ const FavoritesTiles = memo(function FavoritesTiles() {
           />
           Favorites
         </Typography>
-        <Tooltip title="Clear all favorites" placement="top">
+        <Tooltip
+          title="Clear all favorites"
+          placement="top"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          enterNextDelay={TOOLTIP_ENTER_DELAY}
+        >
           <IconButton
             size="small"
             className="clear-button"
@@ -318,6 +323,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
               }
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
+              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="favorite-tile"

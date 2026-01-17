@@ -232,7 +232,9 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     (nodeType: string) => {
       const metadata = getMetadata(nodeType);
       if (metadata) {
-        return metadata.title || metadata.node_type.split(".").pop() || nodeType;
+        return (
+          metadata.title || metadata.node_type.split(".").pop() || nodeType
+        );
       }
       return nodeType.split(".").pop() || nodeType;
     },
@@ -241,7 +243,8 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
 
   // Filter out nodes that are already shown in Quick Actions
   const filteredRecentNodes = useMemo(
-    () => recentNodes.filter((node) => !QUICK_ACTION_NODE_TYPES.has(node.nodeType)),
+    () =>
+      recentNodes.filter((node) => !QUICK_ACTION_NODE_TYPES.has(node.nodeType)),
     [recentNodes]
   );
 
@@ -291,6 +294,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
               }
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
+              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="recent-tile"
