@@ -25,7 +25,7 @@ NodeTool is open-source software for creating AI workflows without code. Drag an
 - Work with text, images, audio, and video
 - Run models locally on Apple Silicon, NVIDIA GPUs, or CPU (works offline)
 - Access 500,000+ models from HuggingFace
-- Use cloud APIs: OpenAI, Anthropic, Gemini, Replicate
+- Use cloud APIs: OpenAI, Anthropic, Gemini, OpenRouter, Kie, Fal, MiniMax, Replicate
 - Deploy to RunPod, Google Cloud Run, or your own infrastructure
 - Manage and organize your media files
 
