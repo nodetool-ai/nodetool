@@ -515,31 +515,26 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
-      
+
       {selected && metadata.namespace && (
         <Box
           sx={{
             position: "absolute",
-            bottom: -18,
+            bottom: -25,
             left: "50%",
             transform: "translateX(-50%)",
-            bgcolor: "rgba(0, 0, 0, 0.75)",
-            color: "rgba(255, 255, 255, 0.95)",
+            bgcolor: "background.paper",
+            color: "text.secondary",
             px: 1,
             py: 0.25,
             borderRadius: 1,
             fontSize: "0.65rem",
             fontWeight: 400,
             zIndex: 1000,
-            boxShadow: 1,
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
+            border: "1px solid",
+            borderColor: "divider",
             whiteSpace: "nowrap",
-            pointerEvents: "none",
-            ...theme.applyStyles("light", {
-              bgcolor: "rgba(255, 255, 255, 0.9)",
-              color: "rgba(0, 0, 0, 0.8)"
-            })
+            pointerEvents: "none"
           }}
         >
           {metadata.namespace}
