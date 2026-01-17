@@ -61,7 +61,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   }, [closeContextMenu]);
 
 
-  const addComment = (event: React.MouseEvent) => {
+  const addComment = useCallback((event: React.MouseEvent) => {
     // Fake metadata for comments
     const metadata = COMMENT_NODE_METADATA;
     const newNode = createNode(
@@ -75,7 +75,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     newNode.height = 100;
     newNode.style = { width: 150, height: 100 };
     addNode(newNode);
-  };
+  }, [createNode, addNode, reactFlowInstance, menuPosition]);
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
@@ -235,6 +235,44 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     []
   );
 
+  const handlePasteAndClose = useCallback(() => {
+    handlePaste();
+    closeAllMenus();
+  }, [handlePaste, closeAllMenus]);
+
+  const handleFitViewAndClose = useCallback(
+    (event?: React.MouseEvent) => {
+      if (event) {
+        event.preventDefault();
+        fitView({ padding: 0.5 });
+      }
+      closeAllMenus();
+    },
+    [fitView, closeAllMenus]
+  );
+
+  const handleAddCommentAndClose = useCallback(
+    (event?: React.MouseEvent) => {
+      if (event) {
+        event.preventDefault();
+        addComment(event);
+      }
+      closeAllMenus();
+    },
+    [addComment, closeAllMenus]
+  );
+
+  const handleAddGroupAndClose = useCallback(
+    (event?: React.MouseEvent) => {
+      if (event) {
+        event.preventDefault();
+        addGroupNode(event);
+      }
+      closeAllMenus();
+    },
+    [addGroupNode, closeAllMenus]
+  );
+
   if (!menuPosition) {
     return null;
   }
@@ -265,10 +303,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         }}
       >
         <ContextMenuItem
-          onClick={() => {
-            handlePaste();
-            closeAllMenus();
-          }}
+          onClick={handlePasteAndClose}
           label="Paste"
           addButtonClassName={`action ${!isClipboardValid ? "disabled" : ""}`}
           IconComponent={<SouthEastIcon />}
@@ -288,13 +323,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           }
         />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              fitView({ padding: 0.5 });
-            }
-            closeAllMenus();
-          }}
+          onClick={handleFitViewAndClose}
           label="Fit Screen"
           IconComponent={<FitScreenIcon />}
           tooltip={getShortcutTooltip("fit-view")}
@@ -365,25 +394,13 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         />
         <Divider />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              addComment(e);
-            }
-            closeAllMenus();
-          }}
+          onClick={handleAddCommentAndClose}
           label="Add Comment"
           IconComponent={<AddCommentIcon />}
           tooltip={"Hold C key and drag"}
         />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              addGroupNode(e);
-            }
-            closeAllMenus();
-          }}
+          onClick={handleAddGroupAndClose}
           label="Add Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={"Add a group node"}
