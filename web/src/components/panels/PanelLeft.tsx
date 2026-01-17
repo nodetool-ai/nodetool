@@ -29,12 +29,14 @@ import GridViewIcon from "@mui/icons-material/GridView";
 import DatasetIcon from "@mui/icons-material/Dataset";
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
-// Models and Workspaces (conditional)
+// Models, Workspaces, and Collections (modals)
 import ModelsManager from "../hugging_face/ModelsManager";
 import WorkspacesManager from "../workspaces/WorkspacesManager";
+import CollectionsManager from "../collections/CollectionsManager";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { useModelManagerStore } from "../../stores/ModelManagerStore";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
+import { useCollectionsManagerStore } from "../../stores/CollectionsManagerStore";
 import { getIsElectronDetails } from "../../utils/browser";
 import { isProduction } from "../../stores/ApiClient";
 
@@ -199,11 +201,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
 }) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
   
-  // Models and Workspaces modal state
+  // Modal states for Collections, Models, and Workspaces
+  const isCollectionsOpen = useCollectionsManagerStore((state) => state.isOpen);
+  const setCollectionsOpen = useCollectionsManagerStore((state) => state.setIsOpen);
   const isModelsOpen = useModelManagerStore((state) => state.isOpen);
   const setModelsOpen = useModelManagerStore((state) => state.setIsOpen);
   const isWorkspacesOpen = useWorkspaceManagerStore((state) => state.isOpen);
@@ -213,8 +215,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   const showModelsWorkspaces = getIsElectronDetails().isElectron || !isProduction;
 
   const handleCollectionsClick = useCallback(() => {
-    navigate("/collections");
-  }, [navigate]);
+    setCollectionsOpen(true);
+  }, [setCollectionsOpen]);
 
   const handleModelsClick = useCallback(() => {
     setModelsOpen(true);
@@ -223,8 +225,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
   const handleWorkspacesClick = useCallback(() => {
     setWorkspacesOpen(true);
   }, [setWorkspacesOpen]);
-
-  const isCollectionsActive = location.pathname.startsWith("/collections");
 
   return (
     <div className="vertical-toolbar">
@@ -266,9 +266,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
       {/* Divider between drawer views and external actions */}
-      <Divider sx={{ my: 1, mx: 1, opacity: 0.3 }} />
+      <Divider sx={{ my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" }} />
 
-      {/* External section - routes or modals */}
+      {/* External section - modals */}
       <Tooltip
         title="Collections"
         placement="right-start"
@@ -277,7 +277,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
         <IconButton
           tabIndex={-1}
           onClick={handleCollectionsClick}
-          className={isCollectionsActive ? "active" : ""}
         >
           <DatasetIcon />
         </IconButton>
@@ -320,7 +319,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
 
-      {/* Modals for Models and Workspaces */}
+      {/* Modals for Collections, Models and Workspaces */}
+      <CollectionsManager open={isCollectionsOpen} onClose={() => setCollectionsOpen(false)} />
       {showModelsWorkspaces && (
         <>
           <ModelsManager open={isModelsOpen} onClose={() => setModelsOpen(false)} />

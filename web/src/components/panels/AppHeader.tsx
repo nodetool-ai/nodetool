@@ -7,7 +7,6 @@ import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
-import DashboardIcon from "@mui/icons-material/Dashboard";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import EditIcon from "@mui/icons-material/Edit";
 import Logo from "../Logo";
@@ -189,7 +188,6 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
   // Determine active mode - only modes are active, not other routes
   const isEditorActive = currentPath.startsWith("/editor");
   const isChatActive = currentPath.startsWith("/chat");
-  const isDashboardActive = currentPath.startsWith("/dashboard");
 
   const handleEditorClick = useCallback(async () => {
     if (currentWorkflowId) {
@@ -219,10 +217,6 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
     }
   }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
 
-  const handleDashboardClick = useCallback(() => {
-    navigate("/dashboard");
-  }, [navigate]);
-
   return (
     <div className="mode-pills">
       <Tooltip title="Editor" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
@@ -245,17 +239,6 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
         >
           <IconForType iconName="message" showTooltip={false} />
           <span>Chat</span>
-        </button>
-      </Tooltip>
-      <Tooltip title="Dashboard" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          className={`mode-pill ${isDashboardActive ? "active" : ""}`}
-          onClick={handleDashboardClick}
-          tabIndex={-1}
-          aria-current={isDashboardActive ? "page" : undefined}
-        >
-          <DashboardIcon />
-          <span>Dashboard</span>
         </button>
       </Tooltip>
     </div>

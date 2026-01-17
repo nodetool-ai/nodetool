@@ -100,23 +100,41 @@ const helpStyles = (theme: Theme) =>
         minWidth: "unset"
       }
     },
-    ".docs-link": {
+    ".docs-button": {
       display: "flex",
       alignItems: "center",
-      gap: "6px",
-      color: theme.vars.palette.primary.main,
+      gap: "10px",
+      color: theme.vars.palette.text.primary,
       textDecoration: "none",
-      fontSize: "0.9rem",
+      fontSize: "0.85rem",
       fontWeight: 500,
-      padding: "6px 12px",
-      borderRadius: "6px",
+      padding: "8px 14px",
+      borderRadius: "8px",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.action.hover,
       transition: "all 0.2s ease",
+      flexShrink: 0,
       "&:hover": {
-        backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.1)",
+        backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.15)",
+        borderColor: theme.vars.palette.primary.main,
         textDecoration: "none"
       },
+      ".docs-button-text": {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        lineHeight: 1.2,
+        "& span:first-of-type": {
+          fontSize: "0.7rem",
+          opacity: 0.7
+        },
+        "& span:last-of-type": {
+          fontWeight: 600
+        }
+      },
       "& svg": {
-        fontSize: "1rem"
+        fontSize: "1.1rem",
+        color: theme.vars.palette.primary.main
       }
     },
     ".tabpanel": {
@@ -277,9 +295,12 @@ const Help = ({
                 href="https://docs.nodetool.ai"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="docs-link"
+                className="docs-button"
               >
-                Documentation
+                <div className="docs-button-text">
+                  <span>Nodetool</span>
+                  <span>Documentation</span>
+                </div>
                 <OpenInNewIcon />
               </Link>
             </div>

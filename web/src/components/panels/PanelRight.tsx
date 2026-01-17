@@ -373,7 +373,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
       {/* Divider between workflow tools and runtime section */}
-      <Divider sx={{ my: 1, mx: 1, opacity: 0.3 }} />
+      <Divider sx={{ my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" }} />
 
       {/* Runtime Section - Logs and Jobs */}
       {/* Logs Button */}
