@@ -99,6 +99,7 @@ Tests enhanced with mock data capabilities for faster, more reliable testing:
 - Connection persistence
 
 #### 9. model-download.spec.ts
+### 12. model-download.spec.ts (New)
 **Tests: 3**
 - HuggingFace model download
 - Download WebSocket endpoint
@@ -141,6 +142,16 @@ test.describe("Feature with Mocks", () => {
 - 🚀 **Faster**: No backend server needed for UI tests
 - 🎯 **Reliable**: Deterministic data eliminates flaky tests
 - 🔧 **Flexible**: Easy to test edge cases and error scenarios
+
+### 13. mock-data.spec.ts (New)
+**Tests: 20**
+- Mock server data loading tests (uses `--mock` flag)
+- Chat threads API integration
+- Workflows API integration
+- Assets API integration
+- Models API integration
+- Providers API integration
+- Cross-feature integration tests
 
 ## Total Test Coverage
 
@@ -276,7 +287,36 @@ These tests run automatically in GitHub Actions:
 - On push to `main` branch (when web files change)
 - On pull requests to `main` branch (when web files change)
 
+The CI workflow starts the nodetool server with the `--mock` flag, which creates dummy data for:
+- Chat threads
+- Workflows
+- Assets
+- Models
+- Providers
+
+This allows tests to verify data loading and display without requiring external services or real user data.
+
 See `.github/workflows/e2e.yml` for CI configuration.
+
+## Mock Server
+
+The e2e tests use the nodetool server's `--mock` flag to generate consistent test data.
+
+### Starting the Mock Server Locally
+
+```bash
+# Start the server with mock data
+conda run -n nodetool nodetool serve --port 7777 --mock
+```
+
+### Mock Data Available
+
+When running with `--mock`, the server provides:
+- **Chat Threads**: Pre-populated conversation threads
+- **Workflows**: Example workflows with nodes and connections
+- **Assets**: Sample assets (images, text files, etc.)
+- **Models**: Mock model configurations
+- **Providers**: Mock AI provider configurations
 
 ## Future Enhancements
 

@@ -1,5 +1,67 @@
-import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, setupSelectiveMockRoutes, workflows, threads, messages, models, templates } from "./fixtures/mockData";
+import { test, expect, Page } from "@playwright/test";
+import { BACKEND_API_URL } from "./support/backend";
+
+/**
+ * Tests for loading data from the mock server.
+ * These tests verify that the --mock flag creates appropriate dummy data
+ * for chat threads, workflows, assets, models, and providers.
+ */
+
+/**
+ * Helper function to check page for server errors
+ */
+async function checkPageForServerErrors(page: Page): Promise<void> {
+  const bodyText = await page.textContent("body");
+  expect(bodyText).not.toContain("500");
+  expect(bodyText).not.toContain("Internal Server Error");
+}
+
+/**
+ * Helper function to wait for and verify page content
+ */
+async function waitForPageContent(page: Page): Promise<void> {
+  const body = page.locator("body");
+  await expect(body).not.toBeEmpty();
+  const hasContent = await body.textContent();
+  expect(hasContent).toBeTruthy();
+  expect(hasContent!.length).toBeGreaterThan(0);
+}
+
+/**
+ * Helper function to track API calls and wait for specific endpoint
+ */
+async function trackApiCallsAndNavigate(
+  page: Page,
+  path: string,
+  apiPattern: string
+): Promise<string[]> {
+  const apiCalls: string[] = [];
+
+  page.on("response", (response) => {
+    const url = response.url();
+    if (url.includes(apiPattern)) {
+      apiCalls.push(url);
+    }
+  });
+
+  await page.goto(path);
+  await page.waitForLoadState("networkidle");
+
+  // Wait for specific API response if pattern provided
+  if (apiPattern) {
+    try {
+      await page.waitForResponse(
+        (response) => response.url().includes(apiPattern),
+        { timeout: 10000 }
+      );
+    } catch {
+      // Response may have already been captured before waitForResponse was called
+    }
+  }
+
+  return apiCalls;
+}
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
