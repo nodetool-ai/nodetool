@@ -1,6 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
 import { useAutosave, UseAutosaveOptions } from "../useAutosave";
-import { useSettingsStore } from "../../stores/SettingsStore";
 
 let mockLastAutosaveTime = 0;
 const mockUpdateLastAutosaveTime = jest.fn();
@@ -20,7 +19,7 @@ const mockUseSettingsStore = jest.fn((selector) =>
 );
 
 jest.mock("../../stores/SettingsStore", () => ({
-  useSettingsStore: (...args: any[]) => mockUseSettingsStore(...args)
+  useSettingsStore: (selector: any) => mockUseSettingsStore(selector)
 }));
 
 jest.mock("../../stores/VersionHistoryStore", () => ({
