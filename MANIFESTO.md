@@ -1,12 +1,10 @@
-# NODETOOL MANIFESTO
-
-### The Visual AI Workflow Platform
+# NodeTool Manifesto
 
 ## Vision
 
-AI should be yours.
-Run it on your machine, beside your data.
-Transparent, flexible, and under your control.
+AI belongs on your machine, next to your data.
+Not behind a paywall. Not in someone else's cloud.
+Transparent. Flexible. Yours.
 
 ## Mission
 
@@ -14,21 +12,22 @@ Build an open-source visual platform for everyone to design and run AI workflows
 
 ## Principles
 
-- **Build visually.** Connect blocks, not code. Accessible to everyone.
-- **Your data stays yours.** Never leaves without your permission.
-- **See every step.** Watch workflows execute in real-time.
-- **Mix your tools.** Combine local AI with cloud services as you need.
-- **Share your work.** Export, deploy, and collaborate.
-- **Experiment freely.** Iterate, undo, perfect—all visible and controllable.
-- **Own your infrastructure.** Run on your hardware. Keep control.
+- **Build visually** - Connect blocks, not code
+- **Your data stays yours** - It doesn't leave unless you send it
+- **See every step** - Watch your workflow execute in real-time
+- **Mix your tools** - Combine local AI with cloud services
+- **Share your work** - Export, deploy, collaborate
+- **Experiment freely** - Iterate, undo, perfect
+- **Own your infrastructure** - Run on your hardware
 
-## What NodeTool Is (today)
+## What NodeTool Is
 
-- Visual workflow builder + AI runtime (desktop + web)
-- Generate content, process data, and automate with AI
-- Local models (Flux/SDXL/Whisper/LLMs) + cloud APIs (OpenAI/Anthropic/Replicate)
-- Run on laptop, deploy to cloud when needed
-- Share as Mini-Apps or deploy as APIs
+A visual workflow builder + AI runtime (desktop + web) that lets you:
+
+- Generate content, process data, automate with AI
+- Run models locally (Flux/SDXL/Whisper/LLMs) or use cloud APIs (OpenAI/Anthropic/Replicate)
+- Work on your laptop, deploy to cloud when needed
+- Share workflows as Mini-Apps or deploy as APIs
 
 ## What NodeTool Is Not (today)
 
@@ -43,11 +42,12 @@ Indie hackers, Game devs, AI enthusiasts, creative professionals, agencies, and 
 
 ## Roadmap
 
-- **Workflow templates:** Ready-to-use examples for common AI tasks.
-- **Version control:** Track workflow evolution, compare versions, rollback changes.
-- **Batch processing:** Run workflows at scale with variations.
-- **Community hub:** Share workflows, discover patterns, learn from others.
+- **Workflow templates** - Ready examples for common tasks
+- **Version control** - Track changes, compare versions, rollback
+- **Batch processing** - Run workflows at scale with variations
+- **Community hub** - Share workflows, discover patterns, learn
 
 ## Promise
 
-Open source. Privacy first. Own your workflows, your data, and everything you build.
+Open source. Privacy first.
+Own your workflows, your data, everything you build.
