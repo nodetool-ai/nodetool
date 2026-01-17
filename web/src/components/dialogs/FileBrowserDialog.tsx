@@ -471,7 +471,7 @@ function FileBrowserDialog({
     setIsEditingPath(false);
   };
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = useCallback((path: string) => {
     setCurrentPath(path);
     setSearchQuery("");
     if (selectionMode === "directory") {
@@ -479,7 +479,7 @@ function FileBrowserDialog({
     } else {
       setSelectedPath("");
     }
-  };
+  }, [selectionMode]);
 
   const handleUp = () => {
     if (currentPath === "~" || currentPath === "/") {return;}
@@ -495,7 +495,7 @@ function FileBrowserDialog({
     handleNavigate(parent || "~");
   };
 
-  const handleFileClick = (file: FileInfo) => {
+  const handleFileClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       if (selectionMode === "directory") {
         setSelectedPath(file.path);
@@ -505,9 +505,9 @@ function FileBrowserDialog({
         setSelectedPath(file.path);
       }
     }
-  };
+  }, [selectionMode]);
 
-  const handleFileDoubleClick = (file: FileInfo) => {
+  const handleFileDoubleClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       handleNavigate(file.path);
     } else {
@@ -516,7 +516,15 @@ function FileBrowserDialog({
         onConfirm(file.path);
       }
     }
-  };
+  }, [selectionMode, onConfirm, handleNavigate]);
+
+  const handleBreadcrumbClick = useCallback((path: string) => {
+    handleNavigate(path);
+  }, [handleNavigate]);
+
+  const handleRefreshClick = useCallback(() => {
+    handleNavigate(currentPath);
+  }, [currentPath, handleNavigate]);
 
   const handleConfirmClick = () => {
     if (selectedPath) {
@@ -592,13 +600,7 @@ function FileBrowserDialog({
 
   // --- Renderers ---
 
-  const Row = ({
-    index,
-    style
-  }: {
-    index: number;
-    style: React.CSSProperties;
-  }) => {
+  const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const file = filteredFiles[index];
     const isSelected = selectedPath === file.path;
 
@@ -628,7 +630,7 @@ function FileBrowserDialog({
         )}
       </div>
     );
-  };
+  }, [filteredFiles, selectedPath, handleFileClick, handleFileDoubleClick]);
 
   return (
     <Dialog
@@ -726,10 +728,10 @@ function FileBrowserDialog({
                           ? "text.primary"
                           : "inherit"
                       }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNavigate(b.path);
-                      }}
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         handleBreadcrumbClick(b.path);
+                       }}
                       underline="hover"
                       variant="body2"
                     >
@@ -758,9 +760,7 @@ function FileBrowserDialog({
             />
 
             <IconButton
-              onClick={() => {
-                handleNavigate(currentPath);
-              }}
+              onClick={handleRefreshClick}
               size="small"
               style={{ width: 32, height: 32 }}
             >
