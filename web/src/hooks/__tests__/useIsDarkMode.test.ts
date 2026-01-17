@@ -3,7 +3,6 @@ import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 describe("useIsDarkMode", () => {
   beforeEach(() => {
-    // Clear any existing dark mode class
     document.documentElement.classList.remove("dark");
   });
 
@@ -23,13 +22,12 @@ describe("useIsDarkMode", () => {
   });
 
   it("updates when dark mode class is added", async () => {
-    const { result } = renderHook(() => useIsDarkMode());
+    const { result, rerender } = renderHook(() => useIsDarkMode());
     expect(result.current).toBe(false);
 
-    // Toggle dark mode
     document.documentElement.classList.add("dark");
+    rerender();
 
-    // Wait for the state to update via MutationObserver
     await waitFor(
       () => {
         expect(result.current).toBe(true);
@@ -40,13 +38,12 @@ describe("useIsDarkMode", () => {
 
   it("updates when dark mode class is removed", async () => {
     document.documentElement.classList.add("dark");
-    const { result } = renderHook(() => useIsDarkMode());
+    const { result, rerender } = renderHook(() => useIsDarkMode());
     expect(result.current).toBe(true);
 
-    // Toggle dark mode
     document.documentElement.classList.remove("dark");
+    rerender();
 
-    // Wait for the state to update via MutationObserver
     await waitFor(
       () => {
         expect(result.current).toBe(false);
@@ -56,12 +53,15 @@ describe("useIsDarkMode", () => {
   });
 
   it("cleans up observer on unmount", () => {
-    const disconnectSpy = jest.spyOn(MutationObserver.prototype, "disconnect");
-    const { unmount } = renderHook(() => useIsDarkMode());
+    const disconnectSpy = jest.fn();
+    const originalDisconnect = MutationObserver.prototype.disconnect;
+    MutationObserver.prototype.disconnect = disconnectSpy;
 
+    const { unmount } = renderHook(() => useIsDarkMode());
     unmount();
 
     expect(disconnectSpy).toHaveBeenCalled();
-    disconnectSpy.mockRestore();
+
+    MutationObserver.prototype.disconnect = originalDisconnect;
   });
 });
