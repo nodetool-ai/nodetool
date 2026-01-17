@@ -4,9 +4,11 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-16
+Last updated: 2026-01-17
 
-- **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
+- **A/B Testing Feature**: Compare two workflow versions side-by-side to measure performance differences. Includes ABTestDialog for version selection and ABTestResultsPanel for visualizing results.
+
+- **Workflow Version Comparison**: Visual diff between workflow versions with GraphVisualDiff component showing added (green), removed (red), and modified (orange) nodes. Includes VersionDiff for property-level changes.
 
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
 

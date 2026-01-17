@@ -364,6 +364,13 @@ const PanelRight: React.FC = () => {
                       workflowId={currentWorkflowId}
                       onRestore={handleRestoreVersion}
                       onClose={() => handlePanelToggle("versions")}
+                      onRunABTest={(baseVersion, testVersion) => {
+                        console.log("A/B Test requested:", {
+                          workflowId: currentWorkflowId,
+                          baseVersion,
+                          testVersion
+                        });
+                      }}
                     />
                   ) : null
                 ) : activeView === "workflow" ? (
