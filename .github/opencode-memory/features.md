@@ -6,6 +6,7 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 Last updated: 2026-01-16
 
+- **Workflow Versioning**: Visual diff and restore for workflow versions (compare mode, GraphVisualDiff, VersionHistoryPanel)
 - **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
 
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX

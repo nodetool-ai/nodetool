@@ -54,6 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Feature Research: Workflow Versioning UI (2026-01-17)
+**What**: Added "Compare with Previous" button to VersionListItem. Enhanced version history panel with quick diff access.
+**Files**: VersionListItem.tsx, VersionHistoryPanel.tsx
+**Impact**: Users can now quickly compare any version with its predecessor without manual selection.
+
+---
+
 ### Performance Optimization: Large Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
