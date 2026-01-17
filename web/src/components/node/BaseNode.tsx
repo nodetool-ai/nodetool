@@ -41,6 +41,8 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
+import { NodeComment } from "./NodeComment";
+import { useNodes } from "../../contexts/NodeContext";
 
 
 // Node sizing constants
@@ -244,6 +246,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
+  const [showCommentEditor, setShowCommentEditor] = useState(false);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -327,6 +331,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const handleShowResults = useCallback(() => {
     setShowResultOverlay(true);
   }, []);
+
+  const handleToggleComment = useCallback(() => {
+    setShowCommentEditor((prev) => !prev);
+  }, []);
+
+  const handleUpdateComment = useCallback((comment: string) => {
+    updateNodeData(id, { comment });
+  }, [id, updateNodeData]);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
   const isEmptyResult = (obj: any) => obj && typeof obj === "object" && Object.keys(obj).length === 0;
@@ -451,6 +463,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         showInputsButton={isOverlayVisible}
         onShowResults={handleShowResults}
         onShowInputs={handleShowInputs}
+        hasComment={!!data.comment}
+        onToggleComment={handleToggleComment}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
@@ -480,6 +494,15 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onShowResults={handleShowResults}
         />
       </Box>
+
+      {/* Node comment section */}
+      {(showCommentEditor || data.comment) && (
+        <NodeComment
+          _nodeId={id}
+          comment={data.comment}
+          onUpdateComment={handleUpdateComment}
+        />
+      )}
 
       {/* Default behavior: width-only resize for regular nodes.
           If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}

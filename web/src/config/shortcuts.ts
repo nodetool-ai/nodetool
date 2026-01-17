@@ -742,13 +742,21 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Move focus to the nearest node to the right",
     registerCombo: true
   },
-  {
+   {
     title: "Go Back",
     slug: "goBack",
     keyCombo: ["Alt", "ArrowLeft"],
     altKeyCombos: [["Control", "ArrowLeft"]],
     category: "editor" as const,
     description: "Go back to previously focused node",
+    registerCombo: true
+  },
+  {
+    title: "Add/Edit Comment",
+    slug: "addComment",
+    keyCombo: ["C"],
+    category: "editor" as const,
+    description: "Add or edit a comment on the selected node",
     registerCombo: true
   }
 ] as Shortcut[];

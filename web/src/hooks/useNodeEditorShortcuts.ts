@@ -387,6 +387,24 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleAddComment = useCallback(() => {
+    if (selectedNodes.length === 1) {
+      const node = selectedNodes[0];
+      const nodeElement = document.querySelector(`[data-id="${node.id}"]`);
+      if (nodeElement) {
+        const commentSection = nodeElement.querySelector('textarea');
+        if (commentSection) {
+          commentSection.focus();
+        } else {
+          const editButton = nodeElement.querySelector('[aria-label="Edit comment"]') as HTMLElement;
+          if (editButton) {
+            editButton.click();
+          }
+        }
+      }
+    }
+  }, [selectedNodes]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -515,6 +533,10 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
+      },
+      addComment: {
+        callback: handleAddComment,
+        active: selectedNodes.length === 1
       }
     };
 
@@ -579,7 +601,8 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusLeft,
     nodeFocus.focusRight,
     nodeFocus.goBack,
-    nodeFocus.focusHistory.length
+    nodeFocus.focusHistory.length,
+    handleAddComment
   ]);
 
   // useEffect for shortcut registration
