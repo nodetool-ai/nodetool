@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef } from "react";
+import { memo, useState, useRef, useCallback } from "react";
 import {
   Box,
   CircularProgress,
@@ -9,7 +9,9 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  TextField
+  TextField,
+  IconButton,
+  Tooltip
 } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -29,7 +31,7 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "lodash/isEqual";
 import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useTemporalNodes } from "../../contexts/NodeContext";
+import { useTemporalNodes, useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
@@ -45,7 +47,11 @@ import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
-import { useNodes } from "../../contexts/NodeContext";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import BookmarksIcon from "@mui/icons-material/Bookmarks";
+import SaveVersionDialog from "../version/SaveVersionDialog";
+import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
+import { CreateWorkflowVersionRequest } from "../../stores/ApiTypes";
 
 declare global {
   interface Window {
@@ -65,6 +71,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -77,6 +84,18 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+
+  // Get workflow name for dialog
+  const currentWorkflow = useNodes((state) => state.getWorkflow());
+  const workflowName = currentWorkflow?.name || "Untitled";
+
+  // Version mutations
+  const { createVersion, isCreatingVersion } = useWorkflowVersions(workflowId);
+
+  const handleSaveVersion = useCallback(async (request: CreateWorkflowVersionRequest) => {
+    await createVersion(request);
+    setSaveVersionDialogOpen(false);
+  }, [createVersion]);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -155,6 +174,30 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <CircularProgress /> Uploading assets...
             </div>
           )}
+          {/* Editor Toolbar with Save Version button */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 8,
+              left: 8,
+              zIndex: 10,
+              display: "flex",
+              gap: 0.5
+            }}
+          >
+            <Tooltip title="Save Version Checkpoint" enterDelay={TOOLTIP_ENTER_DELAY}>
+              <IconButton
+                size="small"
+                onClick={() => setSaveVersionDialogOpen(true)}
+                sx={{
+                  bgcolor: "background.paper",
+                  "&:hover": { bgcolor: "action.hover" }
+                }}
+              >
+                <BookmarksIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
           <ReactFlowWrapper workflowId={workflowId} active={active} />
           {active && (
             <>
@@ -237,6 +280,15 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Save Version Dialog */}
+      <SaveVersionDialog
+        open={saveVersionDialogOpen}
+        onClose={() => setSaveVersionDialogOpen(false)}
+        onSave={handleSaveVersion}
+        isCreating={isCreatingVersion}
+        workflowName={workflowName}
+      />
     </>
   );
 };

@@ -4,11 +4,11 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-16
+Last updated: 2026-01-17
 
 - **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
-
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
+- **Save Version Checkpoint**: Added manual version checkpoint creation with name/description dialog
 
 ---
 
