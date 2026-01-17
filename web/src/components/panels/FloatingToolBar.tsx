@@ -36,6 +36,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import SpeedIcon from "@mui/icons-material/Speed";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
@@ -606,6 +607,17 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <ListItemText
             primary={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
           />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            useBottomPanelStore.getState().handleViewChange("profiler");
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <SpeedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Profiler" />
         </MenuItem>
         <MenuItem
           onClick={() => {
