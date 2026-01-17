@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip, Typography } from "@mui/material";
+import { Drawer, IconButton, Tooltip, Tabs, Tab } from "@mui/material";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo } from "react";
@@ -14,6 +14,10 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import SpeedIcon from "@mui/icons-material/Speed";
+import PerformanceProfilerPanel from "../node_editor/PerformanceProfilerPanel";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useNodes } from "../../contexts/NodeContext";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -93,6 +97,14 @@ const styles = (theme: Theme) =>
       ".terminal-container": {
         width: "100%"
       }
+    },
+    ".panel-tabs": {
+      minWidth: 0,
+      "& .MuiTab-root": {
+        minWidth: "auto",
+        padding: "0 12px",
+        minHeight: "40px"
+      }
     }
   });
 
@@ -104,12 +116,20 @@ const PanelBottom: React.FC = () => {
     isVisible,
     isDragging,
     handleMouseDown,
-    handlePanelToggle,
+    handlePanelToggle
   } = useResizeBottomPanel();
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
+  const setActiveView = useBottomPanelStore((state) => state.setActiveView);
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const nodes = useNodes((state) => state.nodes);
+  const nodeStore = useWorkflowManager((state) =>
+    currentWorkflowId ? state.getNodeStore(currentWorkflowId) : undefined
+  );
+  const storeNodes: any = nodeStore ? nodeStore.getState().nodes : [];
 
-  // Add keyboard shortcut for toggle (Ctrl+`)
+  const allNodes = nodes.length > 0 ? nodes : storeNodes;
+
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
 
   const openHeight = isVisible
@@ -119,12 +139,16 @@ const PanelBottom: React.FC = () => {
       )
     : 0;
 
+  const handleTabChange = (_: React.SyntheticEvent, newValue: "terminal" | "profiler") => {
+    setActiveView(newValue);
+  };
+
   return (
     <div
       css={styles(theme)}
       className="panel-container"
       style={{
-        height: isVisible ? `${openHeight}px` : PANEL_HEIGHT_COLLAPSED,
+        height: isVisible ? `${openHeight}px` : PANEL_HEIGHT_COLLAPSED
       }}
     >
       <Drawer
@@ -160,13 +184,32 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
+                <Tabs
+                  value={activeView}
+                  onChange={handleTabChange}
+                  className="panel-tabs"
+                  aria-label="Bottom panel tabs"
+                >
+                  <Tab
+                    icon={<TerminalIcon fontSize="small" />}
+                    iconPosition="start"
+                    value="terminal"
+                    label="Terminal"
+                    aria-label="Terminal"
+                  />
+                  <Tab
+                    icon={<SpeedIcon fontSize="small" />}
+                    iconPosition="start"
+                    value="profiler"
+                    label="Profiler"
+                    aria-label="Profiler"
+                  />
+                </Tabs>
               </div>
               <Tooltip
                 title={
                   <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
+                    <div className="tooltip-title">Hide panel</div>
                     <div className="tooltip-key">
                       <kbd>Ctrl</kbd> + <kbd>`</kbd>
                     </div>
@@ -177,8 +220,8 @@ const PanelBottom: React.FC = () => {
               >
                 <IconButton
                   size="small"
-                  onClick={() => handlePanelToggle("terminal")}
-                  aria-label="Hide terminal"
+                  onClick={() => handlePanelToggle(activeView)}
+                  aria-label="Hide panel"
                 >
                   <CloseIcon />
                 </IconButton>
@@ -192,6 +235,21 @@ const PanelBottom: React.FC = () => {
             }}
           >
             <Terminal />
+          </div>
+          <div
+            style={{
+              display: activeView === "profiler" && isVisible ? "flex" : "none",
+              flex: 1,
+              minHeight: 0,
+              overflow: "auto"
+            }}
+          >
+            {currentWorkflowId && (
+              <PerformanceProfilerPanel
+                workflowId={currentWorkflowId}
+                nodes={allNodes}
+              />
+            )}
           </div>
         </div>
       </Drawer>

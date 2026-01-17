@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Research Feature: Workflow Performance Profiler (2026-01-17)
+
+**What**: Implemented a visual performance profiler for workflows, analyzing execution times, identifying bottlenecks, and suggesting parallelization opportunities.
+
+**Files**: PerformanceStore.ts, usePerformanceProfile.ts, PerformanceProfilerPanel.tsx, PanelBottom.tsx
+
+**Impact**: Users can now analyze workflow performance, see total duration, bottlenecks, and potential speedup from parallelization.
+
+---
+
 ### Performance Optimization: Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
