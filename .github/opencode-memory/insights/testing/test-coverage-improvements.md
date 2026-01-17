@@ -756,3 +756,123 @@ it("falls back to URI when createAssetFile fails", async () => {
 6. Reset store state in `beforeEach` for test isolation
 
 **Status**: All 92 tests passing (210 test suites, 2693 tests total)
+
+---
+
+### Test Coverage Improvement (2026-01-17 - Additional)
+
+**Coverage Added**: 7 new test files with 78+ tests
+
+**Tests Added**:
+- `graphEdgeToReactFlowEdge.test.ts` - 6 tests for graph edge to ReactFlow edge conversion
+- `reactFlowEdgeToGraphEdge.test.ts` - 5 tests for ReactFlow edge to graph edge conversion
+- `SessionStateStore.test.ts` - 6 tests for clipboard session state management
+- `graphDiff.test.ts` - 35 tests for graph diff computation and summary generation
+- `titleizeString.test.ts` - 9 tests for string titleization utility
+- `formatDateAndTime.test.ts` - 30 tests for date/time formatting utilities
+- `highlightText.test.ts` - 14 tests for text highlighting and HTML escaping
+
+**Areas Covered**:
+- Edge conversion between graph and ReactFlow formats (bidirectional)
+- Session clipboard state (data and validity)
+- Graph diff computation (added/removed/modified nodes and edges)
+- Human-readable diff summary generation
+- String titleization with various separators
+- Date/time formatting (secondsToHMS, prettyDate, relativeTime, timestamps)
+- HTML escaping and bullet list formatting
+- Text highlighting with search term matching
+
+**Test Patterns Used**:
+
+1. **Utility Function Testing**:
+```typescript
+describe("graphEdgeToReactFlowEdge", () => {
+  it("converts a basic graph edge to ReactFlow edge", () => {
+    const graphEdge: GraphEdge = {
+      id: "edge-1",
+      source: "node-1",
+      sourceHandle: "output-1",
+      target: "node-2",
+      targetHandle: "input-1"
+    };
+
+    const result = graphEdgeToReactFlowEdge(graphEdge);
+
+    expect(result.id).toBe("edge-1");
+    expect(result.source).toBe("node-1");
+  });
+});
+```
+
+2. **Zustand Store Testing**:
+```typescript
+describe("SessionStateStore", () => {
+  beforeEach(() => {
+    useSessionStateStore.setState(useSessionStateStore.getInitialState());
+  });
+
+  it("sets clipboard data", () => {
+    const testData = JSON.stringify({ nodes: [], edges: [] });
+    useSessionStateStore.getState().setClipboardData(testData);
+    expect(useSessionStateStore.getState().clipboardData).toBe(testData);
+  });
+});
+```
+
+3. **Graph Algorithm Testing**:
+```typescript
+describe("computeGraphDiff", () => {
+  it("detects added nodes", () => {
+    const oldGraph: Graph = { nodes: [{ id: "node-1", type: "test", data: {} }], edges: [] };
+    const newGraph: Graph = {
+      nodes: [
+        { id: "node-1", type: "test", data: {} },
+        { id: "node-2", type: "test", data: {} }
+      ],
+      edges: []
+    };
+
+    const result = computeGraphDiff(oldGraph, newGraph);
+
+    expect(result.hasChanges).toBe(true);
+    expect(result.addedNodes).toHaveLength(1);
+    expect(result.addedNodes[0].id).toBe("node-2");
+  });
+});
+```
+
+4. **Date/Time Utility Testing**:
+```typescript
+describe("secondsToHMS", () => {
+  it("converts seconds to HH:MM:SS format", () => {
+    expect(secondsToHMS(0)).toBe("00:00:00");
+    expect(secondsToHMS(59)).toBe("00:00:59");
+    expect(secondsToHMS(60)).toBe("00:01:00");
+  });
+});
+
+describe("relativeTime", () => {
+  it("returns 'just now' for current time", () => {
+    const now = new Date();
+    expect(relativeTime(now)).toBe("just now");
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts`
+- `web/src/stores/__tests__/reactFlowEdgeToGraphEdge.test.ts`
+- `web/src/stores/__tests__/SessionStateStore.test.ts`
+- `web/src/utils/__tests__/graphDiff.test.ts`
+- `web/src/utils/__tests__/titleizeString.test.ts`
+- `web/src/utils/__tests__/formatDateAndTime.test.ts`
+- `web/src/utils/__tests__/highlightText.test.ts`
+
+**Key Learnings**:
+1. Test edge conversion functions handle null/undefined/empty handle values correctly
+2. Graph diff algorithms require comprehensive edge case coverage (empty graphs, identical graphs, etc.)
+3. Date/time tests need dynamic dates to avoid hardcoded timestamp issues
+4. HTML escaping tests need flexible assertions for different escape formats
+5. Zustand store tests should reset state in beforeEach for test isolation
+
+**Status**: All 7 new test files passing (2880+ tests total)
