@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
 import { Typography, Dialog, Tooltip, Button } from "@mui/material";
 //icons
@@ -699,4 +699,4 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
 };
 
-export default AssetViewer;
+export default memo(AssetViewer);

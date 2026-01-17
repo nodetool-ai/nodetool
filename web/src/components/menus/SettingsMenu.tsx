@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 // Dialog-based settings menu (replacing MUI Menu)
+import React, { memo } from "react";
 import MenuItem from "@mui/material/MenuItem";
 import {
   TextField,
@@ -915,4 +916,4 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   );
 }
 
-export default SettingsMenu;
+export default memo(SettingsMenu);

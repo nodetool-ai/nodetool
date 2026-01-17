@@ -11,7 +11,7 @@ import {
   MenuItem,
   FormHelperText
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
@@ -554,4 +554,4 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   );
 };
 
-export default WorkflowForm;
+export default memo(WorkflowForm);

@@ -3,7 +3,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import WarningIcon from "@mui/icons-material/Warning";
 import LoginIcon from "@mui/icons-material/Login";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, memo } from "react";
 import {
   Button,
   TextField,
@@ -545,4 +545,4 @@ const RemoteSettings = () => {
   );
 };
 
-export default RemoteSettings;
+export default memo(RemoteSettings);
