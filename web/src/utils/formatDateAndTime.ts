@@ -97,3 +97,16 @@ export function getTimestampForFilename(includeTime: boolean = true): string {
     return now.toFormat("yyyy-MM-dd");
   }
 }
+
+export function formatDuration(ms: number | undefined): string {
+  if (ms === undefined || ms === null) { return "-"; }
+  if (ms < 1000) { return `${ms}ms`; }
+  if (ms < 60000) { return `${(ms / 1000).toFixed(2)}s`; }
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes < 60) { return `${minutes}m ${remainingSeconds}s`; }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours}h ${remainingMinutes}m ${remainingSeconds}s`;
+}

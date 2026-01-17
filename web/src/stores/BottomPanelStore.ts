@@ -1,20 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type BottomPanelView = "terminal";
+export type BottomPanelView = "terminal" | "analytics";
 
-interface PanelState {
-  panelSize: number;
-  isVisible: boolean;
-  isDragging: boolean;
-  hasDragged: boolean;
-  minHeight: number;
-  maxHeight: number;
-  defaultHeight: number;
-  activeView: BottomPanelView;
-}
-
-interface ResizePanelState {
+export interface ResizePanelState {
   panel: PanelState;
   setSize: (newSize: number) => void;
   setIsDragging: (isDragging: boolean) => void;

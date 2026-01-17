@@ -2,18 +2,20 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip, Typography } from "@mui/material";
+import { Drawer, IconButton, Tooltip, Typography, Tab, Tabs, Box } from "@mui/material";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import Terminal from "../terminal/Terminal";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import WorkflowAnalyticsPanel from "../node_editor/WorkflowAnalyticsPanel";
 
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import SpeedIcon from "@mui/icons-material/Speed";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -72,7 +74,6 @@ const styles = (theme: Theme) =>
       height: "40px",
       display: "flex",
       alignItems: "center",
-      justifyContent: "space-between",
       gap: "8px",
       padding: "0 12px",
       backgroundColor: theme.vars.palette.background.default,
@@ -81,18 +82,40 @@ const styles = (theme: Theme) =>
         display: "flex",
         alignItems: "center",
         gap: "8px",
-        color: theme.vars.palette.text.secondary
+        color: theme.vars.palette.text.secondary,
+        flex: 1
+      },
+      "& .right": {
+        display: "flex",
+        alignItems: "center",
+        gap: "4px"
       }
     },
-    ".terminal-wrapper": {
+    ".panel-tabs": {
+      display: "flex",
+      alignItems: "center",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      minWidth: 0,
+      flex: 1,
+      "& .MuiTab-root": {
+        minWidth: "auto",
+        minHeight: 32,
+        padding: "4px 12px",
+        fontSize: "0.75rem",
+        textTransform: "none",
+        opacity: 0.7,
+        "&.Mui-selected": {
+          opacity: 1
+        }
+      },
+      "& .MuiTabs-indicator": {
+        height: 2
+      }
+    },
+    ".panel-body": {
       flex: 1,
       minHeight: 0,
-      display: "flex",
-      overflow: "auto",
-      width: "100%",
-      ".terminal-container": {
-        width: "100%"
-      }
+      overflow: "hidden"
     }
   });
 
@@ -104,12 +127,16 @@ const PanelBottom: React.FC = () => {
     isVisible,
     isDragging,
     handleMouseDown,
-    handlePanelToggle,
+    handlePanelToggle
   } = useResizeBottomPanel();
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
+  const setActiveView = useBottomPanelStore((state) => state.setActiveView);
 
-  // Add keyboard shortcut for toggle (Ctrl+`)
+  const handleTabChange = useCallback((_event: React.SyntheticEvent, newValue: string) => {
+    setActiveView(newValue as "terminal" | "analytics");
+  }, [setActiveView]);
+
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
 
   const openHeight = isVisible
@@ -124,7 +151,7 @@ const PanelBottom: React.FC = () => {
       css={styles(theme)}
       className="panel-container"
       style={{
-        height: isVisible ? `${openHeight}px` : PANEL_HEIGHT_COLLAPSED,
+        height: isVisible ? `${openHeight}px` : PANEL_HEIGHT_COLLAPSED
       }}
     >
       <Drawer
@@ -156,17 +183,39 @@ const PanelBottom: React.FC = () => {
           onMouseDown={handleMouseDown}
           style={{ cursor: isDragging ? "ns-resize" : "ns-resize" }}
         />
-        <div className="panel-content">
-          {isVisible && (
-            <div className="panel-header">
-              <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
-              </div>
+        {isVisible && (
+          <div className="panel-header">
+            <div className="left">
+              <Box className="panel-tabs" sx={{ mr: 2 }}>
+                <Tabs
+                  value={activeView}
+                  onChange={handleTabChange}
+                  variant="scrollable"
+                  scrollButtons={false}
+                  TabIndicatorProps={{
+                    sx: { left: 0, width: "100%" }
+                  }}
+                >
+                  <Tab
+                    value="terminal"
+                    icon={<TerminalIcon sx={{ fontSize: 16 }} />}
+                    iconPosition="start"
+                    label="Terminal"
+                  />
+                  <Tab
+                    value="analytics"
+                    icon={<SpeedIcon sx={{ fontSize: 16 }} />}
+                    iconPosition="start"
+                    label="Analytics"
+                  />
+                </Tabs>
+              </Box>
+            </div>
+            <div className="right">
               <Tooltip
                 title={
                   <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
+                    <div className="tooltip-title">Hide panel</div>
                     <div className="tooltip-key">
                       <kbd>Ctrl</kbd> + <kbd>`</kbd>
                     </div>
@@ -177,21 +226,31 @@ const PanelBottom: React.FC = () => {
               >
                 <IconButton
                   size="small"
-                  onClick={() => handlePanelToggle("terminal")}
-                  aria-label="Hide terminal"
+                  onClick={() => handlePanelToggle(activeView)}
+                  aria-label="Hide panel"
                 >
                   <CloseIcon />
                 </IconButton>
               </Tooltip>
             </div>
-          )}
+          </div>
+        )}
+        <div className="panel-body">
           <div
-            className="terminal-wrapper"
             style={{
-              display: activeView === "terminal" && isVisible ? "flex" : "none"
+              display: activeView === "terminal" && isVisible ? "flex" : "none",
+              height: "100%"
             }}
           >
             <Terminal />
+          </div>
+          <div
+            style={{
+              display: activeView === "analytics" && isVisible ? "flex" : "none",
+              height: "100%"
+            }}
+          >
+            <WorkflowAnalyticsPanel />
           </div>
         </div>
       </Drawer>
