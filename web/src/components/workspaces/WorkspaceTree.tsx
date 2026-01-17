@@ -429,7 +429,14 @@ const WorkspaceTree: React.FC = () => {
             />
           </div>
         ) : (
-          <Typography color="text.secondary">No files in workspace</Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", py: 3 }}>
+            <Typography color="text.secondary" sx={{ mb: 1 }}>
+              No files in this workspace
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Add files to your workspace folder to browse them here
+            </Typography>
+          </Box>
         )}
       </div>
     </Box>

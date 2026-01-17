@@ -12,6 +12,8 @@ Last updated: 2026-01-16
 
 ---
 
+- **Improved Workspace Error Messages**: Better user-friendly error and empty state messages in workspace explorer with helpful guidance
+
 ## Core Application Features
 
 ### Workflow Editor
