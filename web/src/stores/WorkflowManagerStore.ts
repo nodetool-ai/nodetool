@@ -266,15 +266,24 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         },
 
        /**
-        * Creates a new workflow locally with instant response.
-        * Does NOT save to database - only saves when saveWorkflow() is called.
-        * @returns {Promise<Workflow>} The newly created local workflow
+        * Creates a new workflow using the backend API.
+        * Ensures the workflow exists server-side for autosave and edits.
+        * @returns {Promise<Workflow>} The created workflow
         */
        createNew: async () => {
-         const workflow = get().newWorkflow();
-         get().addWorkflow(workflow);
-         get().setCurrentWorkflowId(workflow.id);
-         return workflow;
+         return get().create({
+           name: "New Workflow",
+           description: "",
+           access: "private",
+           graph: {
+             nodes: [],
+             edges: []
+           },
+           settings: {
+             hide_ui: false
+           },
+           run_mode: "workflow"
+         });
        },
 
        /**
