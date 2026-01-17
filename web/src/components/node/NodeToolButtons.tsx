@@ -133,6 +133,14 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     setAnchorEl(null);
   }, []);
 
+  const handleSyncModeOnAny = useCallback(() => {
+    handleSelectSyncMode("on_any");
+  }, [handleSelectSyncMode]);
+
+  const handleSyncModeZipAll = useCallback(() => {
+    handleSelectSyncMode("zip_all");
+  }, [handleSelectSyncMode]);
+
   if (!nodeId) { return null; }
 
   const isInspected = inspectedNodeId === nodeId;
@@ -349,7 +357,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <MenuItem
           selected={syncMode === "on_any"}
-          onClick={() => handleSelectSyncMode("on_any")}
+          onClick={handleSyncModeOnAny}
           sx={{ py: 0.5, minHeight: "unset", pl: 3 }}
         >
           <ListItemIcon sx={{ minWidth: 32 }}>
@@ -365,7 +373,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <MenuItem
           selected={syncMode === "zip_all"}
-          onClick={() => handleSelectSyncMode("zip_all")}
+          onClick={handleSyncModeZipAll}
           sx={{ py: 0.5, minHeight: "unset", pl: 3 }}
         >
           <ListItemIcon sx={{ minWidth: 32 }}>
@@ -395,4 +403,4 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   );
 };
 
-export default NodeToolButtons;
+export default React.memo(NodeToolButtons);

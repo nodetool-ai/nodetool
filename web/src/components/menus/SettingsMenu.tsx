@@ -35,7 +35,7 @@ import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, memo } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -915,4 +915,4 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   );
 }
 
-export default SettingsMenu;
+export default memo(SettingsMenu);
