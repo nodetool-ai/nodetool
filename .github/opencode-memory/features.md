@@ -399,3 +399,26 @@ Last updated: 2026-01-16
 **Impact**: Developers following documentation will now correctly connect to the development server on port 7777.
 
 ---
+
+### Documentation Quality Audit & JSDoc Improvements (2026-01-17)
+
+**Areas Improved**: Hook documentation (useAlignNodes)
+
+**Issues Fixed**: Missing JSDoc documentation on useAlignNodes hook
+
+**Improvement Made**: Added comprehensive JSDoc documentation to web/src/hooks/useAlignNodes.ts:
+- Added module-level type documentation
+- Documented AlignNodesOptions type with @param tags
+- Added @returns tag describing the callback function
+- Included @example code block showing usage patterns
+
+**Impact**: Improved hook discoverability and developer experience. Hooks now follow the same documentation standards as critical stores (NodeStore, WorkflowRunner, GlobalChatStore).
+
+**Files Updated**:
+- web/src/hooks/useAlignNodes.ts
+
+**Related Memory**:
+- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+- `.github/opencode-memory/issues/documentation/documentation-quality-audit-2026-01-17.md` - Audit findings
+
+---
