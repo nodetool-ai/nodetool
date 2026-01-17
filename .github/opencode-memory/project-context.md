@@ -48,11 +48,43 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
-> ```
-> ### Feature/Fix Name (YYYY-MM-DD)
+>/Fix Name ( ```
+> ### FeatureYYYY-MM-DD)
 > **What**: One sentence
 > **Files**: Main files changed
 > ```
+
+### Debug Console Statement Removal (2026-01-17)
+
+**What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
+
+**Files**: web/src/components/version/VersionHistoryPanel.tsx, web/src/components/node/image_editor/ImageEditorModal.tsx, web/src/components/node/image_editor/ImageEditorCanvas.tsx, web/src/components/chat/message/MessageContentRenderer.tsx, web/src/components/node_menu/NodeMenu.tsx, web/src/lib/websocket/GlobalWebSocketManager.ts
+
+**Impact**: Cleaned up development debug statements from production code.
+
+---
+
+### Mobile TypeScript Type Definitions Fix (2026-01-17)
+
+**What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
+
+**Files**: mobile/package.json, mobile/package-lock.json
+
+**Impact**: All packages now pass type checking (web, electron, mobile).
+### Workflow Settings UI Improvements (2026-01-17)
+
+**What**: Removed "Basic Information" headline from workflow settings, added descriptions to Execution and Advanced sections.
+
+**Files**: web/src/components/workflows/WorkflowForm.tsx
+### Workflow Versions Panel - Remove Pin Button (2026-01-17)
+
+**What**: Removed pin button and related functionality from workflow versions panel.
+
+**Files**: VersionListItem.tsx, VersionHistoryPanel.tsx
+
+**Impact**: Pin button no longer appears in version history list, simplifying the UI.
+
+---
 
 ### Performance Optimization: Large Component Memoization (2026-01-17)
 
@@ -66,11 +98,11 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ### Performance Optimization: Component Memoization (2026-01-17)
 
-**What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
+**What**: Added React.memo to 20+ large components (500+ lines each) including Welcome, SettingsMenu, Model3DViewer, WorkflowAssistantChat, GlobalChat, and more.
 
-**Files**: ImageEditorToolbar.tsx, ImageEditorModal.tsx, OpenOrCreateDialog.tsx
+**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, WorkflowAssistantChat.tsx, GlobalChat.tsx, and 15+ others
 
-**Impact**: Reduced re-renders in image editing and workflow creation workflows. Bundle size unchanged (5.74 MB).
+**Impact**: Reduced unnecessary re-renders in large editor workflows. Bundle size unchanged (5.74 MB).
 
 ---
 

@@ -5,7 +5,8 @@ import React, {
   useRef,
   useMemo,
   useState,
-  useCallback
+  useCallback,
+  memo
 } from "react";
 import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -525,4 +526,4 @@ const GlobalChat: React.FC = () => {
   );
 };
 
-export default GlobalChat;
+export default memo(GlobalChat);
