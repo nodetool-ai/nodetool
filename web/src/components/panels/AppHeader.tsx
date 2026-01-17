@@ -78,8 +78,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "rgba(255, 255, 255, 0.06)",
       borderRadius: "20px",
       padding: "3px",
-      gap: "2px",
-      border: "1px solid rgba(255, 255, 255, 0.08)"
+      gap: "2px"
     },
     ".mode-pill": {
       padding: "5px 14px",
