@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type {
   ImageModel,
   LanguageModel,
+  EmbeddingModel,
   TTSModel,
   ASRModel,
   VideoModel
@@ -15,12 +16,22 @@ export type SidebarTab = "favorites" | "recent";
 
 export type EnabledProvidersMap = Record<string, boolean>;
 
-export type ModelSelectorModel =
+export interface ModelSelectorModel {
+  type: string;
+  provider: string;
+  id: string;
+  name: string;
+  path?: string | null;
+  supported_tasks?: string[];
+}
+
+export type ModelType =
   | LanguageModel
   | ImageModel
   | TTSModel
   | ASRModel
-  | VideoModel;
+  | VideoModel
+  | EmbeddingModel;
 
 export interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
@@ -285,3 +296,8 @@ export const useHuggingFaceImageModelMenuStore =
   huggingFaceImageModelMenu.useStore;
 export const useHuggingFaceImageModelMenuData =
   huggingFaceImageModelMenu.useData;
+
+// Embedding models use EmbeddingModel type
+const embeddingModelMenu = createModelMenuSelector<EmbeddingModel>();
+export const useEmbeddingModelMenuStore = embeddingModelMenu.useStore;
+export const useEmbeddingModelMenuData = embeddingModelMenu.useData;
