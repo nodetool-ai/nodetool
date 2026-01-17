@@ -62,6 +62,18 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 **Impact**: Reduced re-renders in frequently-updating node components, dialogs, and model menus by providing stable function references to memoized children.
 
+---
+
+### Security Audit: glob Vulnerability Fix (2026-01-17)
+
+**What**: Fixed high-severity glob command injection vulnerability (GHSA-5j98-mcp5-4vw2) by adding npm override in web/package.json.
+
+**Files**: `web/package.json`, `web/package-lock.json`
+
+**Impact**: Web production dependencies now have 0 vulnerabilities. Remaining vulnerabilities are in dev dependencies or require upstream fixes.
+
+---
+
 ### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
