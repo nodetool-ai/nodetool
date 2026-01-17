@@ -1,0 +1,237 @@
+{
+  "workflows": [
+    {
+      "id": "example-001",
+      "name": "Text to Image",
+      "description": "Generate images from text descriptions using Stable Diffusion",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z",
+      "access": "public",
+      "thumbnail": null,
+      "tags": ["example", "image-generation", "stable-diffusion"],
+      "graph": {
+        "nodes": [
+          {
+            "id": "text-input-1",
+            "type": "nodetool.text.TextInput",
+            "data": {
+              "properties": {
+                "value": "A serene landscape with mountains"
+              }
+            },
+            "position": { "x": 100, "y": 150 }
+          },
+          {
+            "id": "sd-node-1",
+            "type": "nodetool.image.StableDiffusion",
+            "data": {
+              "properties": {
+                "prompt": "",
+                "steps": 30,
+                "width": 768,
+                "height": 768
+              }
+            },
+            "position": { "x": 400, "y": 150 }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-1",
+            "source": "text-input-1",
+            "target": "sd-node-1",
+            "sourceHandle": "output",
+            "targetHandle": "prompt"
+          }
+        ]
+      }
+    },
+    {
+      "id": "example-002",
+      "name": "Chat with GPT",
+      "description": "Simple chatbot using GPT models",
+      "created_at": "2024-01-02T00:00:00Z",
+      "updated_at": "2024-01-02T00:00:00Z",
+      "access": "public",
+      "thumbnail": null,
+      "tags": ["example", "chat", "llm"],
+      "graph": {
+        "nodes": [
+          {
+            "id": "chat-input-1",
+            "type": "nodetool.text.ChatInput",
+            "data": {
+              "properties": {
+                "message": "Hello, how are you?"
+              }
+            },
+            "position": { "x": 100, "y": 150 }
+          },
+          {
+            "id": "gpt-node-1",
+            "type": "nodetool.llm.ChatCompletion",
+            "data": {
+              "properties": {
+                "model": "gpt-3.5-turbo",
+                "temperature": 0.7,
+                "max_tokens": 500
+              }
+            },
+            "position": { "x": 400, "y": 150 }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-2",
+            "source": "chat-input-1",
+            "target": "gpt-node-1",
+            "sourceHandle": "output",
+            "targetHandle": "input"
+          }
+        ]
+      }
+    },
+    {
+      "id": "example-003",
+      "name": "Audio Transcription",
+      "description": "Transcribe audio files using Whisper",
+      "created_at": "2024-01-03T00:00:00Z",
+      "updated_at": "2024-01-03T00:00:00Z",
+      "access": "public",
+      "thumbnail": null,
+      "tags": ["example", "audio", "transcription"],
+      "graph": {
+        "nodes": [
+          {
+            "id": "audio-input-1",
+            "type": "nodetool.audio.AudioInput",
+            "data": {
+              "properties": {}
+            },
+            "position": { "x": 100, "y": 150 }
+          },
+          {
+            "id": "whisper-node-1",
+            "type": "nodetool.audio.Whisper",
+            "data": {
+              "properties": {
+                "model": "large-v3"
+              }
+            },
+            "position": { "x": 400, "y": 150 }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-3",
+            "source": "audio-input-1",
+            "target": "whisper-node-1",
+            "sourceHandle": "output",
+            "targetHandle": "audio"
+          }
+        ]
+      }
+    },
+    {
+      "id": "example-004",
+      "name": "Image Analysis",
+      "description": "Analyze images using vision models",
+      "created_at": "2024-01-04T00:00:00Z",
+      "updated_at": "2024-01-04T00:00:00Z",
+      "access": "public",
+      "thumbnail": null,
+      "tags": ["example", "vision", "analysis"],
+      "graph": {
+        "nodes": [
+          {
+            "id": "image-input-1",
+            "type": "nodetool.image.ImageInput",
+            "data": {
+              "properties": {}
+            },
+            "position": { "x": 100, "y": 150 }
+          },
+          {
+            "id": "vision-node-1",
+            "type": "nodetool.vision.Analyze",
+            "data": {
+              "properties": {
+                "model": "clip-vit-large"
+              }
+            },
+            "position": { "x": 400, "y": 150 }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-4",
+            "source": "image-input-1",
+            "target": "vision-node-1",
+            "sourceHandle": "output",
+            "targetHandle": "image"
+          }
+        ]
+      }
+    },
+    {
+      "id": "example-005",
+      "name": "Text Processing Pipeline",
+      "description": "Multi-step text processing workflow",
+      "created_at": "2024-01-05T00:00:00Z",
+      "updated_at": "2024-01-05T00:00:00Z",
+      "access": "public",
+      "thumbnail": null,
+      "tags": ["example", "text", "pipeline"],
+      "graph": {
+        "nodes": [
+          {
+            "id": "text-input-2",
+            "type": "nodetool.text.TextInput",
+            "data": {
+              "properties": {
+                "value": "Sample text for processing"
+              }
+            },
+            "position": { "x": 100, "y": 150 }
+          },
+          {
+            "id": "transform-1",
+            "type": "nodetool.text.Transform",
+            "data": {
+              "properties": {
+                "operation": "uppercase"
+              }
+            },
+            "position": { "x": 300, "y": 150 }
+          },
+          {
+            "id": "split-1",
+            "type": "nodetool.text.Split",
+            "data": {
+              "properties": {
+                "delimiter": " "
+              }
+            },
+            "position": { "x": 500, "y": 150 }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge-5",
+            "source": "text-input-2",
+            "target": "transform-1",
+            "sourceHandle": "output",
+            "targetHandle": "input"
+          },
+          {
+            "id": "edge-6",
+            "source": "transform-1",
+            "target": "split-1",
+            "sourceHandle": "output",
+            "targetHandle": "input"
+          }
+        ]
+      }
+    }
+  ]
+}

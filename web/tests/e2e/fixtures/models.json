@@ -1,0 +1,161 @@
+{
+  "huggingface": [
+    {
+      "id": "stabilityai/stable-diffusion-xl-base-1.0",
+      "name": "Stable Diffusion XL Base 1.0",
+      "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
+      "type": "diffusion",
+      "size_on_disk": 6938078208,
+      "downloads": 5243876,
+      "likes": 12453,
+      "description": "SDXL is a latent diffusion model for text-to-image generation",
+      "tags": ["text-to-image", "stable-diffusion", "diffusion"]
+    },
+    {
+      "id": "runwayml/stable-diffusion-v1-5",
+      "name": "Stable Diffusion v1.5",
+      "repo_id": "runwayml/stable-diffusion-v1-5",
+      "type": "diffusion",
+      "size_on_disk": 4265146304,
+      "downloads": 15432987,
+      "likes": 23456,
+      "description": "Stable Diffusion is a latent text-to-image diffusion model",
+      "tags": ["text-to-image", "stable-diffusion", "diffusion"]
+    },
+    {
+      "id": "meta-llama/Llama-3.2-3B",
+      "name": "Llama 3.2 3B",
+      "repo_id": "meta-llama/Llama-3.2-3B",
+      "type": "language",
+      "size_on_disk": 6442450944,
+      "downloads": 2341234,
+      "likes": 8765,
+      "description": "Llama 3.2 is a family of language models",
+      "tags": ["text-generation", "llama", "language"]
+    },
+    {
+      "id": "openai/whisper-large-v3",
+      "name": "Whisper Large v3",
+      "repo_id": "openai/whisper-large-v3",
+      "type": "audio",
+      "size_on_disk": 3094528000,
+      "downloads": 987654,
+      "likes": 5432,
+      "description": "Whisper is a general-purpose speech recognition model",
+      "tags": ["speech-recognition", "whisper", "audio"]
+    }
+  ],
+  "recommended": [
+    {
+      "id": "stabilityai/stable-diffusion-xl-base-1.0",
+      "name": "Stable Diffusion XL",
+      "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
+      "type": "image",
+      "category": "diffusion",
+      "recommended_for": "High-quality image generation",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": "meta-llama/Llama-3.2-3B",
+      "name": "Llama 3.2 3B",
+      "repo_id": "meta-llama/Llama-3.2-3B",
+      "type": "language",
+      "category": "llm",
+      "recommended_for": "Text generation and chat",
+      "difficulty": "beginner"
+    },
+    {
+      "id": "black-forest-labs/FLUX.1-schnell",
+      "name": "FLUX.1 Schnell",
+      "repo_id": "black-forest-labs/FLUX.1-schnell",
+      "type": "image",
+      "category": "diffusion",
+      "recommended_for": "Fast high-quality image generation",
+      "difficulty": "intermediate"
+    }
+  ],
+  "recommended_language": [
+    {
+      "id": "meta-llama/Llama-3.2-3B",
+      "name": "Llama 3.2 3B",
+      "repo_id": "meta-llama/Llama-3.2-3B",
+      "type": "language",
+      "size_on_disk": 6442450944,
+      "recommended_for": "General text generation"
+    },
+    {
+      "id": "mistralai/Mistral-7B-Instruct-v0.3",
+      "name": "Mistral 7B Instruct",
+      "repo_id": "mistralai/Mistral-7B-Instruct-v0.3",
+      "type": "language",
+      "size_on_disk": 14483456000,
+      "recommended_for": "Instruction following and chat"
+    },
+    {
+      "id": "microsoft/phi-3-mini-4k-instruct",
+      "name": "Phi-3 Mini",
+      "repo_id": "microsoft/phi-3-mini-4k-instruct",
+      "type": "language",
+      "size_on_disk": 7483447296,
+      "recommended_for": "Efficient small model for chat"
+    }
+  ],
+  "recommended_image": [
+    {
+      "id": "stabilityai/stable-diffusion-xl-base-1.0",
+      "name": "Stable Diffusion XL",
+      "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
+      "type": "image",
+      "size_on_disk": 6938078208,
+      "recommended_for": "High-quality photorealistic images"
+    },
+    {
+      "id": "black-forest-labs/FLUX.1-schnell",
+      "name": "FLUX.1 Schnell",
+      "repo_id": "black-forest-labs/FLUX.1-schnell",
+      "type": "image",
+      "size_on_disk": 23500000000,
+      "recommended_for": "Fast high-quality generation"
+    },
+    {
+      "id": "runwayml/stable-diffusion-v1-5",
+      "name": "Stable Diffusion v1.5",
+      "repo_id": "runwayml/stable-diffusion-v1-5",
+      "type": "image",
+      "size_on_disk": 4265146304,
+      "recommended_for": "Balanced speed and quality"
+    }
+  ],
+  "providers": [
+    {
+      "name": "huggingface",
+      "display_name": "HuggingFace",
+      "description": "Download and run models from HuggingFace Hub",
+      "requires_api_key": false
+    },
+    {
+      "name": "openai",
+      "display_name": "OpenAI",
+      "description": "Use OpenAI's API for GPT models",
+      "requires_api_key": true
+    },
+    {
+      "name": "anthropic",
+      "display_name": "Anthropic",
+      "description": "Use Anthropic's Claude models",
+      "requires_api_key": true
+    },
+    {
+      "name": "ollama",
+      "display_name": "Ollama",
+      "description": "Run local models using Ollama",
+      "requires_api_key": false
+    },
+    {
+      "name": "replicate",
+      "display_name": "Replicate",
+      "description": "Run models on Replicate's cloud",
+      "requires_api_key": true
+    }
+  ]
+}

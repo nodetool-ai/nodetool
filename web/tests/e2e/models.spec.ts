@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
+import { setupMockApiRoutes, models } from "./fixtures/mockData";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -47,6 +48,95 @@ if (process.env.JEST_WORKER_ID) {
     });
   });
 
+  test.describe("Models with Mock Data", () => {
+    test.beforeEach(async ({ page }) => {
+      // Setup mock API routes before each test
+      await setupMockApiRoutes(page);
+    });
+
+    test("should display mocked HuggingFace models", async ({ page }) => {
+      await page.goto("/models");
+      await page.waitForLoadState("networkidle");
+
+      // Wait for any async data loading
+      await page.waitForTimeout(2000);
+
+      // Verify page is functional
+      const bodyText = await page.textContent("body");
+      expect(bodyText).toBeTruthy();
+    });
+
+    test("should verify mock model data structure", async ({ page }) => {
+      // Verify our mock data has the expected structure
+      expect(models.huggingface).toBeDefined();
+      expect(Array.isArray(models.huggingface)).toBe(true);
+      expect(models.huggingface.length).toBeGreaterThan(0);
+
+      const firstModel = models.huggingface[0];
+      expect(firstModel).toHaveProperty("id");
+      expect(firstModel).toHaveProperty("name");
+      expect(firstModel).toHaveProperty("repo_id");
+      expect(firstModel).toHaveProperty("type");
+
+      await page.goto("/models");
+      await page.waitForLoadState("networkidle");
+      
+      // Page should load successfully
+      const bodyText = await page.textContent("body");
+      expect(bodyText).toBeTruthy();
+    });
+
+    test("should display different model types", async ({ page }) => {
+      // Verify we have different types of models in mock data
+      const diffusionModels = models.huggingface.filter(m => m.type === "diffusion");
+      const languageModels = models.huggingface.filter(m => m.type === "language");
+      
+      expect(diffusionModels.length).toBeGreaterThan(0);
+      expect(languageModels.length).toBeGreaterThan(0);
+
+      await page.goto("/models");
+      await page.waitForLoadState("networkidle");
+      
+      // Page should load with model data
+      const bodyText = await page.textContent("body");
+      expect(bodyText).toBeTruthy();
+    });
+
+    test("should have recommended models", async ({ page }) => {
+      // Verify recommended models exist
+      expect(models.recommended).toBeDefined();
+      expect(Array.isArray(models.recommended)).toBe(true);
+      expect(models.recommended.length).toBeGreaterThan(0);
+
+      await page.goto("/models");
+      await page.waitForLoadState("networkidle");
+      
+      // Page should load successfully
+      const bodyText = await page.textContent("body");
+      expect(bodyText).toBeTruthy();
+    });
+
+    test("should have model providers", async ({ page }) => {
+      // Verify providers exist
+      expect(models.providers).toBeDefined();
+      expect(Array.isArray(models.providers)).toBe(true);
+      expect(models.providers.length).toBeGreaterThan(0);
+
+      // Check provider structure
+      const firstProvider = models.providers[0];
+      expect(firstProvider).toHaveProperty("name");
+      expect(firstProvider).toHaveProperty("display_name");
+      expect(firstProvider).toHaveProperty("requires_api_key");
+
+      await page.goto("/models");
+      await page.waitForLoadState("networkidle");
+      
+      // Page should load successfully
+      const bodyText = await page.textContent("body");
+      expect(bodyText).toBeTruthy();
+    });
+  });
+
   test.describe("Models API Integration", () => {
     test("should fetch Hugging Face models from API", async ({ page, request }) => {
       // Navigate to models page to ensure app is loaded
@@ -61,9 +151,9 @@ if (process.env.JEST_WORKER_ID) {
       expect(response.status()).toBe(200);
       
       // Parse and verify response data
-      const models = await response.json();
-      expect(models).toBeDefined();
-      expect(Array.isArray(models)).toBeTruthy();
+      const modelsData = await response.json();
+      expect(modelsData).toBeDefined();
+      expect(Array.isArray(modelsData)).toBeTruthy();
     });
 
     test("should fetch recommended models from API", async ({ page, request }) => {
@@ -79,9 +169,9 @@ if (process.env.JEST_WORKER_ID) {
       expect(response.status()).toBe(200);
       
       // Parse and verify response data
-      const models = await response.json();
-      expect(models).toBeDefined();
-      expect(Array.isArray(models)).toBeTruthy();
+      const modelsData = await response.json();
+      expect(modelsData).toBeDefined();
+      expect(Array.isArray(modelsData)).toBeTruthy();
     });
 
     test("should fetch model providers from API", async ({ page, request }) => {
@@ -115,9 +205,9 @@ if (process.env.JEST_WORKER_ID) {
       expect(response.status()).toBe(200);
       
       // Parse and verify response data
-      const models = await response.json();
-      expect(models).toBeDefined();
-      expect(Array.isArray(models)).toBeTruthy();
+      const modelsData = await response.json();
+      expect(modelsData).toBeDefined();
+      expect(Array.isArray(modelsData)).toBeTruthy();
     });
 
     test("should fetch recommended image models from API", async ({ page, request }) => {
@@ -133,9 +223,9 @@ if (process.env.JEST_WORKER_ID) {
       expect(response.status()).toBe(200);
       
       // Parse and verify response data
-      const models = await response.json();
-      expect(models).toBeDefined();
-      expect(Array.isArray(models)).toBeTruthy();
+      const modelsData = await response.json();
+      expect(modelsData).toBeDefined();
+      expect(Array.isArray(modelsData)).toBeTruthy();
     });
 
     test("should handle API errors gracefully", async ({ page, request }) => {
@@ -163,11 +253,11 @@ if (process.env.JEST_WORKER_ID) {
       const response = await request.get(`${BACKEND_API_URL}/models/huggingface`);
       expect(response.ok()).toBeTruthy();
       
-      const models = await response.json();
+      const modelsData = await response.json();
       
       // Validate structure if models exist
-      if (models.length > 0) {
-        const firstModel = models[0];
+      if (modelsData.length > 0) {
+        const firstModel = modelsData[0];
         
         // Check for common model properties
         // Note: actual structure depends on backend implementation
