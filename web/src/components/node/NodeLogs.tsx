@@ -90,13 +90,29 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       }
     }, [logs]);
 
-    const toggleSeverity = useCallback((severity: Severity) => {
-      setSelectedSeverities((prev) =>
-        prev.includes(severity)
-          ? prev.filter((s) => s !== severity)
-          : [...prev, severity]
-      );
-    }, []);
+    const toggleSeverity = useCallback(
+      (severity: Severity) => () => {
+        setSelectedSeverities((prev) =>
+          prev.includes(severity)
+            ? prev.filter((s) => s !== severity)
+            : [...prev, severity]
+        );
+      },
+      []
+    );
+
+    const toggleInfoSeverity = useCallback(
+      () => toggleSeverity("info"),
+      [toggleSeverity]
+    );
+    const toggleWarningSeverity = useCallback(
+      () => toggleSeverity("warning"),
+      [toggleSeverity]
+    );
+    const toggleErrorSeverity = useCallback(
+      () => toggleSeverity("error"),
+      [toggleSeverity]
+    );
 
     return (
       <Dialog
@@ -143,7 +159,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("info") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("info")}
+              onClick={toggleInfoSeverity}
             />
             <Chip
               size="small"
@@ -152,7 +168,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("warning") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("warning")}
+              onClick={toggleWarningSeverity}
             />
             <Chip
               size="small"
@@ -161,7 +177,25 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("error") ? "filled" : "outlined"
               }
-              onClick={() => toggleSeverity("error")}
+              onClick={toggleErrorSeverity}
+            />
+            <Chip
+              size="small"
+              label={`Warnings`}
+              color="warning"
+              variant={
+                selectedSeverities.includes("warning") ? "filled" : "outlined"
+              }
+              onClick={toggleSeverity("warning")}
+            />
+            <Chip
+              size="small"
+              label={`Errors`}
+              color="error"
+              variant={
+                selectedSeverities.includes("error") ? "filled" : "outlined"
+              }
+              onClick={toggleSeverity("error")}
             />
           </Box>
           <div style={{ padding: 10 }} ref={logsRef}>

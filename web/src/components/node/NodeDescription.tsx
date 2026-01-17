@@ -71,23 +71,19 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
     return null;
   }
 
-  const lines = description.split("\n");
-  const firstLine = lines[0] || "";
-  const tagsLine = lines.length > 1 ? lines[1] : "";
-  const restOfDescription =
-    lines.length > 2
-      ? lines
-          .slice(2)
-          .map((line) => line.trim())
-          .join("\n")
-      : "";
+    const handleTagClick = useCallback(
+      (tag: string) => {
+        if (onTagClick) {
+          onTagClick(tag);
+        }
+      },
+      [onTagClick]
+    );
 
-  const tags = tagsLine
-    ? tagsLine
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((t) => t)
-    : [];
+    const createTagClickHandler = useCallback(
+      (tag: string) => () => handleTagClick(tag),
+      [handleTagClick]
+    );
 
   return (
     <div css={styles(theme)} className={className}>

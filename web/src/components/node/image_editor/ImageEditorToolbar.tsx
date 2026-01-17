@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -241,18 +241,32 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   );
 
   const handleToolSelect = useCallback(
-    (newTool: EditTool) => {
+    (newTool: EditTool) => () => {
       onToolChange(newTool);
     },
     [onToolChange]
   );
 
   const handleActionClick = useCallback(
-    (action: EditAction) => {
+    (action: EditAction) => () => {
       onAction(action);
     },
     [onAction]
   );
+
+  const handleSelectTool = useCallback(() => handleToolSelect("select"), [handleToolSelect]);
+  const handleCropTool = useCallback(() => handleToolSelect("crop"), [handleToolSelect]);
+  const handleDrawTool = useCallback(() => handleToolSelect("draw"), [handleToolSelect]);
+  const handleEraseTool = useCallback(() => handleToolSelect("erase"), [handleToolSelect]);
+
+  const handleApplyCrop = useCallback(() => handleActionClick("apply-crop"), [handleActionClick]);
+  const handleCancelCrop = useCallback(() => handleActionClick("cancel-crop"), [handleActionClick]);
+
+  const handleRotateCCW = useCallback(() => handleActionClick("rotate-ccw"), [handleActionClick]);
+  const handleRotateCW = useCallback(() => handleActionClick("rotate-cw"), [handleActionClick]);
+  const handleFlipH = useCallback(() => handleActionClick("flip-h"), [handleActionClick]);
+  const handleFlipV = useCallback(() => handleActionClick("flip-v"), [handleActionClick]);
+  const handleReset = useCallback(() => handleActionClick("reset"), [handleActionClick]);
 
   const handleZoomOut = useCallback(() => {
     onZoomChange(Math.max(0.1, zoom - 0.1));
@@ -466,7 +480,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className="action-button"
                 onClick={handleFlipV}
                 size="small"
-                sx={{ transform: "rotate(90deg)" }}
               >
                 <FlipIcon fontSize="small" />
               </IconButton>
@@ -602,4 +615,4 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   );
 };
 
-export default ImageEditorToolbar;
+export default memo(ImageEditorToolbar);

@@ -71,7 +71,7 @@ When authentication is enforced, send the static token in the header:
 TOKEN=$(cat ~/.config/nodetool/deployment.yaml | grep worker_auth_token | cut -d' ' -f2)
 
 # Use in requests
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/v1/models
+curl -H "Authorization: Bearer $TOKEN" http://localhost:7777/v1/models
 ```
 
 ### Example Requests
@@ -81,7 +81,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/v1/models
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -X POST http://localhost:8000/v1/chat/completions \
+  -X POST http://localhost:7777/v1/chat/completions \
   -d '{
     "model": "llama3.2:latest",
     "messages": [{"role": "user", "content": "Hello"}]
@@ -92,14 +92,14 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8000/admin/collections
+  http://localhost:7777/admin/collections
 ```
 
 **Upload File:**
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  -X PUT http://localhost:8000/admin/storage/assets/image.png \
+  -X PUT http://localhost:7777/admin/storage/assets/image.png \
   --data-binary @image.png
 ```
 
@@ -172,7 +172,7 @@ ______________________________________________________________________
 
 ```bash
 docker run -v ~/.config/nodetool:/root/.config/nodetool \
-  -p 8000:8000 \
+  -p 7777:7777 \
   nodetool-worker
 ```
 
@@ -186,7 +186,7 @@ TOKEN=$(openssl rand -base64 32)
 
 # Run with token
 docker run -e WORKER_AUTH_TOKEN="$TOKEN" \
-  -p 8000:8000 \
+  -p 7777:7777 \
   nodetool-worker
 ```
 
@@ -198,7 +198,7 @@ services:
   worker:
     image: nodetool-worker
     ports:
-      - "8000:8000"
+      - "7777:7777"
     volumes:
       # Mount config to persist token
       - ./config:/root/.config/nodetool
@@ -308,7 +308,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:7777;
     }
 }
 ```
@@ -390,12 +390,12 @@ python -m nodetool.deploy.worker
 ```bash
 # Mount config directory as volume
 docker run -v nodetool-config:/root/.config/nodetool \
-  -p 8000:8000 \
+  -p 7777:7777 \
   nodetool-worker
 
 # Or use environment variable
 docker run -e WORKER_AUTH_TOKEN="your-token" \
-  -p 8000:8000 \
+  -p 7777:7777 \
   nodetool-worker
 ```
 
@@ -409,7 +409,7 @@ ______________________________________________________________________
 import requests
 
 TOKEN = "your-token-here"
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:7777"
 
 headers = {"Authorization": f"Bearer {TOKEN}"}
 
@@ -433,7 +433,7 @@ print(response.json())
 
 ```javascript
 const TOKEN = "your-token-here";
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://localhost:7777";
 
 const headers = {
   "Authorization": `Bearer ${TOKEN}`,
@@ -462,7 +462,7 @@ console.log(await chat.json());
 #!/bin/bash
 
 TOKEN=$(cat ~/.config/nodetool/deployment.yaml | grep worker_auth_token | awk '{print $2}')
-BASE_URL="http://localhost:8000"
+BASE_URL="http://localhost:7777"
 
 # List models
 curl -H "Authorization: Bearer $TOKEN" \

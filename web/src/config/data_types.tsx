@@ -12,8 +12,9 @@ import stc from "string-to-color";
 import any from "../icons/any.svg?react";
 import notype from "../icons/notype.svg?react";
 import asset from "../icons/asset.svg?react";
-import audio from "../icons/audio.svg?react";
+import wav from "../icons/wav.svg?react";
 import bool from "../icons/bool.svg?react";
+import chunk from "../icons/chunk.svg?react";
 import dataframe from "../icons/dataframe.svg?react";
 import dict from "../icons/dict.svg?react";
 import _enum from "../icons/enum.svg?react"; // 'enum' is a reserved keyword
@@ -24,6 +25,9 @@ import image from "../icons/image.svg?react";
 import int from "../icons/int.svg?react";
 import list from "../icons/list.svg?react";
 import model from "../icons/model.svg?react";
+import language_model from "../icons/language_model.svg?react";
+import image_model from "../icons/image_model.svg?react";
+import model_3d from "../icons/model_3d.svg?react";
 import str from "../icons/str.svg?react";
 import tensor from "../icons/tensor.svg?react";
 import text from "../icons/text.svg?react";
@@ -35,6 +39,8 @@ import database from "../icons/database.svg?react";
 import task from "../icons/task.svg?react";
 import documentIcon from "../icons/document.svg?react";
 import np_array from "../icons/np_array.svg?react";
+import datetime from "../icons/datetime.svg?react";
+import date from "../icons/date.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
 
@@ -67,8 +73,9 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   any,
   notype,
   asset,
-  audio,
+  audio: wav,
   bool,
+  chunk,
   dataframe,
   dict,
   enum: _enum,
@@ -87,15 +94,18 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   video,
   database,
   task,
-  language_model: model,
+  language_model,
   thread,
   model_ref: model,
-  image_model: model,
+  image_model,
   workflow: dataframe,
-  datetime: float,
+  datetime,
+  date,
   object: dict,
-  np_array: np_array,
+  np_array,
+  json: dict,
   document: documentIcon,
+  model_3d,
   ...comfyIconMap
 };
 
@@ -127,6 +137,10 @@ function colour(k: SpectraKey) {
   return SpectraNode[k];
 }
 
+function normalizeTypeName(value: string) {
+  return value === "model3d" ? "model_3d" : value;
+}
+
 /**
  * NODETOOL built‑in data types with SpectraNode colours applied.
  */
@@ -146,9 +160,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "notype",
     label: "No Type",
-    description:
-      "No output produced. Used for nodes that perform actions without returning data.",
-    color: "#A7B1BF", // neutral grey
+    description: "No output or type not specified.",
+    color: "#A7B1BF",
     textColor: "dark",
     name: "",
     slug: "",
@@ -393,7 +406,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     name: "",
     slug: "",
     namespace: "",
-    icon: "ModelTraining"
+    icon: "ViewInAr"
   },
   {
     value: "message",
@@ -504,6 +517,17 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "DataObject"
   },
   {
+    value: "date",
+    label: "Date",
+    description: "Calendar date without a time component.",
+    color: colour("scalar"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
     value: "object",
     label: "Object",
     description:
@@ -514,6 +538,30 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     slug: "",
     namespace: "",
     icon: "DataObject"
+  },
+  {
+    value: "json",
+    label: "JSON",
+    description:
+      "Structured JSON data. Used for nested objects, configuration, and API payloads.",
+    color: colour("collection"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "model_3d",
+    label: "Model 3D",
+    description:
+      "3D model data for visualization or processing. Supports GLB and GLTF.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ModelTraining"
   },
   {
     value: "np_array",
@@ -557,7 +605,8 @@ const iconStyles = (_theme: Theme) => ({
 });
 
 export function datatypeByName(name: string): DataType | null {
-  const foundItem = DATA_TYPES.find((item) => item.value === name);
+  const normalizedName = normalizeTypeName(name);
+  const foundItem = DATA_TYPES.find((item) => item.value === normalizedName);
   return (
     foundItem || DATA_TYPES.find((item) => item.value === "notype") || null
   );
@@ -592,10 +641,11 @@ export const IconForType = memo(function IconForType({
 }: IconForTypeProps) {
   const theme = useTheme();
   const name = iconName?.replace("nodetool.", "") || "notype";
-  const dataType = datatypeByName(name);
+  const normalizedName = normalizeTypeName(name);
+  const dataType = datatypeByName(normalizedName);
   const description = dataType?.description || "";
-  const IconComponent = name
-    ? iconMap[name] || iconMap["any"] || iconMap["notype"]
+  const IconComponent = normalizedName
+    ? iconMap[normalizedName] || iconMap["any"] || iconMap["notype"]
     : iconMap["notype"];
   const resolvedSize = `${ICON_SIZE_MAP[iconSize] ?? ICON_SIZE_MAP.normal}px`;
 
@@ -642,22 +692,26 @@ export const IconForType = memo(function IconForType({
 isEqual);
 
 export function colorForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.color || stc(type);
 }
 
 export function textColorForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.textColor || "#eee";
 }
 
 export function descriptionForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.description || "";
 }
 
 export function labelForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.label || "";
 }
 
