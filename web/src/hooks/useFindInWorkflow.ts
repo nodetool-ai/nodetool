@@ -6,6 +6,50 @@ import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
+/**
+ * Hook to implement "Find in Workflow" functionality.
+ * 
+ * Provides search capabilities for finding nodes within the current workflow.
+ * Supports searching by node name, node type, or node ID with debounced
+ * input and keyboard navigation through results.
+ * 
+ * @returns Object containing:
+ *   - isOpen: Whether the find dialog is open
+ *   - searchTerm: Current search term
+ *   - results: Array of matching nodes with indices
+ *   - selectedIndex: Currently selected result index
+ *   - totalCount: Total number of matching results
+ *   - openFind: Function to open the find dialog
+ *   - closeFind: Function to close the find dialog
+ *   - performSearch: Debounced search function for text input
+ *   - immediateSearch: Non-debounced search function
+ *   - goToSelected: Navigate to and select the current result
+ *   - navigateNext: Move to next result
+ *   - navigatePrevious: Move to previous result
+ *   - clearSearch: Clear search term and results
+ *   - selectNode: Programmatically select a result by index
+ *   - getNodeDisplayName: Get display name for a node
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isOpen, 
+ *   openFind, 
+ *   performSearch, 
+ *   results,
+ *   goToSelected 
+ * } = useFindInWorkflow();
+ * 
+ * // Open find dialog
+ * openFind();
+ * 
+ * // Search for nodes
+ * performSearch("text");
+ * 
+ * // Navigate to result
+ * goToSelected();
+ * ```
+ */
 export const useFindInWorkflow = () => {
   const {
     isOpen,

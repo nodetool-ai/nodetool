@@ -83,21 +83,23 @@
 - useProcessedEdges.ts ✅ (HIGH PRIORITY - graph processing)
 - useNamespaceTree.ts ✅ (MEDIUM PRIORITY - workflow organization)
 
+**Updated (2026-01-17 - Additional Session)**:
+- useIsDarkMode.ts ✅ (UI theme detection)
+- useSecrets.ts ✅ (API secrets management)
+- useOllamaModels.ts ✅ (Ollama model fetching)
+- useHuggingFaceModels.ts ✅ (HuggingFace model fetching)
+- useRecommendedModels.ts ✅ (Curated model recommendations)
+- useFindInWorkflow.ts ✅ (Search in workflow functionality)
+
 **Remaining Hooks Without JSDoc** (Lower Priority):
 - useCollectionDragAndDrop.ts
 - useDashboardData.ts
 - useDelayedHover.ts
-- useFindInWorkflow.ts
-- useHuggingFaceModels.ts
 - useInputMinMax.ts
 - useIpcRenderer.ts
-- useIsDarkMode.ts
 - useNodeFocus.ts
-- useOllamaModels.ts
 - useRealtimeAudioStream.ts
-- useRecommendedModels.ts
 - useRecommendedTaskModels.ts
-- useSecrets.ts
 - useSelectConnected.ts
 
 **Recommendation**: Continue adding JSDoc to remaining hooks, prioritizing by complexity and usage frequency.

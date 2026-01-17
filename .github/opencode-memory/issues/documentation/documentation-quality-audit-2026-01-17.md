@@ -81,8 +81,33 @@ Critical files with JSDoc documentation:
 - Included @example code block
 - Improved hook discoverability and usability
 
+**Added JSDoc documentation to 6 additional hooks**:
+1. **useIsDarkMode.ts** - Theme detection with MutationObserver
+2. **useSecrets.ts** - API secrets management and validation
+3. **useOllamaModels.ts** - Ollama model fetching
+4. **useHuggingFaceModels.ts** - HuggingFace model fetching
+5. **useRecommendedModels.ts** - Curated model recommendations
+6. **useFindInWorkflow.ts** - Workflow search functionality
+
+All documentation follows established patterns:
+- Module-level description explaining hook purpose
+- @param tags for all parameters
+- @returns tag describing return value
+- @example code block with working TypeScript examples
+
 **Files Updated**:
 - `web/src/hooks/useAlignNodes.ts`
+- `web/src/hooks/useIsDarkMode.ts`
+- `web/src/hooks/useSecrets.ts`
+- `web/src/hooks/useOllamaModels.ts`
+- `web/src/hooks/useHuggingFaceModels.ts`
+- `web/src/hooks/useRecommendedModels.ts`
+- `web/src/hooks/useFindInWorkflow.ts`
+
+**Verification**:
+- ✅ TypeScript compilation: No errors on modified files
+- ✅ ESLint: No warnings on modified files
+- ✅ All documentation follows established JSDoc patterns
 
 ---
 
