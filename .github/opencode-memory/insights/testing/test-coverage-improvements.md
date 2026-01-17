@@ -197,87 +197,98 @@ describe("graphEdgeToReactFlowEdge", () => {
 
 ---
 
-### Test Coverage Improvement (2026-01-17 - Additional)
+### Test Coverage Improvement (2026-01-17)
 
-**Tests Added**: 7 new test files with 69 tests
+**Coverage Added**: 4 new store test files with 51 tests
 
 **Tests Added**:
-- `getChildNodes.test.ts` - 7 tests for child node retrieval
-- `getGroupBounds.test.ts` - 10 tests for group bounds calculation
-- `useIsGroupable.test.ts` - 14 tests for node groupable checks
-- `useSurroundWithGroup.test.ts` - 13 tests for surrounding nodes with groups
-- `useRemoveFromGroup.test.ts` - 12 tests for removing nodes from groups
-- `graphCycle.test.ts` - 18 tests for cycle detection in graphs
-- `selectionBounds.test.ts` - 17 tests for selection rectangle calculations
+- `MetadataStore.test.ts` - 16 tests for node metadata and model management
+- `ModelManagerStore.test.ts` - 17 tests for model manager UI state
+- `FindInWorkflowStore.test.ts` - 14 tests for find/replace functionality
+- `InspectedNodeStore.test.ts` - 4 tests for node inspection state
 
 **Areas Covered**:
-- Child node filtering by parent ID
-- Group bounds calculation with padding and dimensions
-- Node type checking (Loop, Group, custom nodes)
-- Group node creation and positioning
-- Node position adjustment when grouping/ungrouping
-- Cycle detection (direct, indirect, multi-path)
-- Selection rectangle normalization and bounds
+- Node metadata storage and retrieval
+- Recommended models and model packs
+- Model manager filter state (search, type, size, status)
+- Find/replace dialog state management
+- Search results navigation (next/prev, wrapping)
+- Node inspection toggling
 
 **Test Patterns Used**:
 
-1. **Pure Utility Function Testing**:
+1. **Store State Testing Pattern**:
 ```typescript
-describe("getChildNodes", () => {
-  it("returns all direct children of specified parent", () => {
-    const nodes = [
-      createMockNode("node-1", "parent-1"),
-      createMockNode("node-2", "parent-1"),
-      createMockNode("node-3", "parent-2")
-    ];
-    const result = getChildNodes(nodes, "parent-1");
-    expect(result).toHaveLength(2);
+describe("StoreName", () => {
+  beforeEach(() => {
+    useStoreName.setState(useStoreName.getInitialState());
+  });
+
+  it("initializes with correct default state", () => {
+    expect(useStoreName.getState().property).toEqual(defaultValue);
+  });
+
+  it("updates state correctly", () => {
+    act(() => {
+      useStoreName.getState().setProperty(newValue);
+    });
+    expect(useStoreName.getState().property).toEqual(newValue);
   });
 });
 ```
 
-2. **Cycle Detection Testing**:
+2. **Navigation Testing Pattern**:
 ```typescript
-describe("wouldCreateCycle", () => {
-  it("returns true for simple direct cycle", () => {
-    const edges = [
-      createEdge("a", "b"),
-      createEdge("b", "a")
-    ];
-    const result = wouldCreateCycle(edges, "a", "b");
-    expect(result).toBe(true);
+it("navigates to next result", () => {
+  const mockResults = [result1, result2, result3];
+  act(() => {
+    useStore.getState().setResults(mockResults);
   });
+  expect(useStore.getState().selectedIndex).toBe(0);
+
+  act(() => {
+    useStore.getState().navigateNext();
+  });
+  expect(useStore.getState().selectedIndex).toBe(1);
+});
+
+it("wraps around to first result", () => {
+  useStore.getState().setSelectedIndex(1);
+  act(() => {
+    useStore.getState().navigateNext();
+  });
+  expect(useStore.getState().selectedIndex).toBe(0);
 });
 ```
 
-3. **Selection Bounds Testing**:
+3. **Toggle Testing Pattern**:
 ```typescript
-describe("getSelectionRect", () => {
-  it("returns null when selection is too small", () => {
-    const result = getSelectionRect(
-      createPosition(0, 0),
-      createPosition(2, 100)
-    );
-    expect(result).toBeNull();
+it("toggles state on/off", () => {
+  expect(useStore.getState().isOpen).toBe(false);
+
+  act(() => {
+    useStore.getState().toggle();
   });
+  expect(useStore.getState().isOpen).toBe(true);
+
+  act(() => {
+    useStore.getState().toggle();
+  });
+  expect(useStore.getState().isOpen).toBe(false);
 });
 ```
 
 **Files Created**:
-- `web/src/hooks/nodes/__tests__/getChildNodes.test.ts`
-- `web/src/hooks/nodes/__tests__/getGroupBounds.test.ts`
-- `web/src/hooks/nodes/__tests__/useIsGroupable.test.ts`
-- `web/src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts`
-- `web/src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts`
-- `web/src/utils/__tests__/graphCycle.test.ts`
-- `web/src/utils/__tests__/selectionBounds.test.ts`
+- `web/src/stores/__tests__/MetadataStore.test.ts`
+- `web/src/stores/__tests__/ModelManagerStore.test.ts`
+- `web/src/stores/__tests__/FindInWorkflowStore.test.ts`
+- `web/src/stores/__tests__/InspectedNodeStore.test.ts`
 
 **Key Learnings**:
-1. Mock @xyflow/react functions (getNodesBounds) for isolated testing
-2. Mock React context providers for hook tests
-3. Use beforeEach to set up mock implementations for each test
-4. Test both happy path and edge cases (empty arrays, null values)
-5. Utility functions with clear inputs/outputs are easy to test
-6. Graph algorithms need thorough edge case coverage
+1. Use `useStore.getState()` directly for testing Zustand stores (not renderHook)
+2. Always reset store state in `beforeEach` for test isolation
+3. Create proper mock data structures matching TypeScript interfaces
+4. Test navigation patterns with edge cases (wrapping, empty lists)
+5. Test toggle behavior for both on/off states
 
-**Status**: 69 tests passing
+**Status**: All 51 tests passing
