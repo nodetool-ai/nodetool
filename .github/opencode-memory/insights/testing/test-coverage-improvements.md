@@ -444,3 +444,105 @@ it("toggles state on/off", () => {
 5. Test toggle behavior for both on/off states
 
 **Status**: All 51 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17)
+
+**Coverage Added**: 7 new test files with 92 tests
+
+**Tests Added**:
+- `ConnectableNodesStore.test.ts` - 3 tests for connectable nodes state management
+- `WorkflowActionsStore.test.ts` - 6 tests for workflow action handlers
+- `NodeMenuStore.test.ts` - 34 tests for node menu state and navigation
+- `useNumberInput.test.ts` - 6 tests for number input drag handling
+- `useDuplicate.test.ts` - 12 tests for node duplication logic
+- `useNodeFocus.test.ts` - 21 tests for node focus navigation
+- `downloadPreviewAssets.test.ts` - 8 tests for asset download functionality
+
+**Areas Covered**:
+- Connectable nodes state and menu visibility
+- Workflow action handlers (edit, duplicate, delete, open as app)
+- Node menu open/close, search, filtering, and keyboard navigation
+- Number input drag threshold and mouse handling
+- Node duplication with offsets, edge handling, and parent-child relationships
+- Node focus navigation (next, prev, up, down, left, right) and history
+- Asset download from preview values, raw results, and URI fallback
+
+**Test Patterns Used**:
+
+1. **Zustand Store Testing Pattern**:
+```typescript
+describe("StoreName", () => {
+  beforeEach(() => {
+    useStoreName.setState({
+      // explicit initial state
+    });
+  });
+
+  it("performs expected action", () => {
+    useStoreName.getState().action();
+    expect(useStoreName.getState().property).toEqual(expected);
+  });
+});
+```
+
+2. **Context-Based Hook Testing with Mocks**:
+```typescript
+jest.mock("../../contexts/NodeContext");
+jest.mock("../../stores/NodeFocusStore");
+
+describe("useHook", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useNodes as jest.Mock).mockImplementation((selector) => {
+      if (typeof selector === "function") {
+        return selector({ nodes: mockNodes, setNodes: mockSetNodes });
+      }
+      return { nodes: mockNodes, setNodes: mockSetNodes };
+    });
+  });
+
+  it("calls store action", () => {
+    const { result } = renderHook(() => useHook());
+    act(() => {
+      result.current.action();
+    });
+    expect(mockStore.action).toHaveBeenCalled();
+  });
+});
+```
+
+3. **File Download Testing with DOM Mocking**:
+```typescript
+it("falls back to URI when createAssetFile fails", async () => {
+  mockCreateAssetFile.mockRejectedValue(new Error("Failed"));
+
+  const mockAnchor = { href: "", download: "", click: jest.fn() };
+  jest.spyOn(document, "createElement").mockReturnValue(mockAnchor as any);
+
+  await downloadPreviewAssets({ nodeId: "test", previewValue: { uri: "http://example.com/file.txt" } });
+
+  expect(mockAnchor.href).toBe("http://example.com/file.txt");
+  expect(mockAnchor.click).toHaveBeenCalled();
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/ConnectableNodesStore.test.ts`
+- `web/src/stores/__tests__/WorkflowActionsStore.test.ts`
+- `web/src/stores/__tests__/NodeMenuStore.test.ts`
+- `web/src/hooks/__tests__/useNumberInput.test.ts`
+- `web/src/hooks/__tests__/useDuplicate.test.ts`
+- `web/src/hooks/__tests__/useNodeFocus.test.ts`
+- `web/src/utils/__tests__/downloadPreviewAssets.test.ts`
+
+**Key Learnings**:
+1. Mock paths in hooks tests must use correct relative paths (e.g., `../../contexts/` for hooks in `src/hooks/__tests__/`)
+2. Use `jest.fn()` mocks for external dependencies instead of variables to avoid initialization order issues
+3. Test complex hook behavior by mocking dependencies and verifying interactions
+4. For DOM-related utilities, mock `document.createElement` and spy on methods
+5. Handle edge cases in store tests (empty arrays, null values, wrapping navigation)
+6. Reset store state in `beforeEach` for test isolation
+
+**Status**: All 92 tests passing (210 test suites, 2693 tests total)
