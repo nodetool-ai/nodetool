@@ -1,7 +1,5 @@
 import React, { memo } from "react";
-import { Button, Box } from "@mui/material";
-import { Visibility } from "@mui/icons-material";
-import { useTheme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -46,10 +44,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
   workflowId,
   showResultOverlay,
   result,
-  onShowInputs,
-  onShowResults
+  onShowInputs
+  // onShowResults is no longer used here but kept in interface for backwards compatibility
 }) => {
-  const theme = useTheme();
   const { handleAddProperty } = useDynamicProperty(
     id,
     data.dynamic_properties as Record<string, any>
@@ -132,14 +129,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
     );
   }
 
-  // Determine what to show when overlay is not active
-  const shouldShowResultButton =
-    result &&
-    !isEmptyObject(result) &&
-    onShowResults &&
-    status === "completed" &&
-    !isConstantNode;
-
   return (
     <Box
       sx={{
@@ -175,48 +164,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {/* Show "Show Result" button when result is available and node is completed - only on hover */}
-      {shouldShowResultButton && (
-        <Box
-          className="show-result-button"
-          sx={{
-            position: "absolute",
-            top: 8,
-            left: "50%",
-            transform: "translateX(-50%) translateY(-4px)",
-            zIndex: 20,
-            opacity: 0,
-            transition: "opacity 0.2s ease, transform 0.2s ease",
-            ".base-node:hover &": {
-              opacity: 1,
-              transform: "translateX(-50%) translateY(0)"
-            }
-          }}
-        >
-          <Button
-            size="small"
-            startIcon={<Visibility sx={{ fontSize: 16 }} />}
-            onClick={onShowResults}
-            sx={{
-              textTransform: "none",
-              fontSize: "0.75rem",
-              padding: "4px 12px",
-              backgroundColor: theme.vars.palette.background.paper,
-              color: theme.vars.palette.text.primary,
-              border: `1px solid ${theme.vars.palette.divider}`,
-              borderRadius: "16px",
-              backdropFilter: theme.vars.palette.glass.blur,
-              boxShadow: 1,
-              "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover,
-                borderColor: theme.vars.palette.primary.main
-              }
-            }}
-          >
-            Show Result
-          </Button>
-        </Box>
-      )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </Box>
   );

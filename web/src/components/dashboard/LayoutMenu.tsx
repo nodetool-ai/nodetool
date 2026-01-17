@@ -27,13 +27,11 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState("");
-  const {
-    layouts,
-    activeLayoutId,
-    addLayout,
-    setActiveLayoutId,
-    updateActiveLayout
-  } = useLayoutStore();
+  const layouts = useLayoutStore((state) => state.layouts);
+  const activeLayoutId = useLayoutStore((state) => state.activeLayoutId);
+  const addLayout = useLayoutStore((state) => state.addLayout);
+  const setActiveLayoutId = useLayoutStore((state) => state.setActiveLayoutId);
+  const updateActiveLayout = useLayoutStore((state) => state.updateActiveLayout);
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -174,4 +172,4 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
   );
 };
 
-export default LayoutMenu;
+export default React.memo(LayoutMenu);

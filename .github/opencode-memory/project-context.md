@@ -1,155 +1,49 @@
 # NodeTool Project Context
 
+> **⚠️ KEEP COMPACT**: This file is read by AI agents. Keep entries minimal to save tokens.
+> - Recent Changes: MAX 5 entries, 2-3 lines each
+> - Run `python scripts/compact-memory.py` after updates
+
 ## Overview
 
-NodeTool is an open-source, privacy-first, visual AI workflow builder. Users create AI workflows by connecting nodes in a drag-and-drop interface—no coding required.
-
-**Key Philosophy**: Visual AI workflow creation with local-first privacy and cloud flexibility.
+NodeTool: Open-source, privacy-first, visual AI workflow builder. Drag-and-drop node interface, no coding required.
 
 ## Architecture
 
-### Components
+| Component | Path | Stack |
+|-----------|------|-------|
+| Web UI | `/web` | React 18.2, TypeScript 5.7, ReactFlow, MUI v7, Zustand, TanStack Query |
+| Electron | `/electron` | Desktop wrapper, local Python env, file system |
+| Mobile | `/mobile` | React Native/Expo |
+| Backend | (separate repo) | Python API server, WebSocket |
 
-1. **Web UI** (`/web`): React 18.2 + TypeScript 5.7 visual editor
-   - ReactFlow-based node editor
-   - Material-UI (MUI) v7 for components
-   - Zustand for state management
-   - TanStack Query for API calls
-   - Playwright for E2E tests
-
-2. **Electron App** (`/electron`): Desktop wrapper
-   - Packages web UI for offline use
-   - Manages local Python environment
-   - Handles file system operations
-
-3. **Mobile App** (`/mobile`): React Native/Expo
-   - Browse and run Mini Apps
-   - View workflows on mobile
-
-4. **Backend** (separate repository):
-   - Python-based API server
-   - WebSocket for workflow execution
-   - Not part of this repository
-
-### Key Directories
-
-```
-/web           - React web application
-/electron      - Electron desktop app
-/mobile        - React Native mobile app
-/docs          - Documentation
-/scripts       - Build and release scripts
-/.github       - CI/CD and agent instructions
-```
+**Key Dirs**: `/web`, `/electron`, `/mobile`, `/docs`, `/scripts`, `/.github`
 
 ## Design Principles
 
-1. **Visual First**: Everything should be achievable through the visual editor
-2. **Privacy First**: Run models locally when possible
-3. **No Coding Required**: Users shouldn't need to write code
-4. **Real-time Feedback**: Stream results as workflows execute
-5. **Portable Workflows**: Same workflow runs locally or in cloud
+1. Visual First  2. Privacy First  3. No Coding Required  4. Real-time Feedback  5. Portable Workflows
 
 ## State Management
 
-### Zustand Stores
+**Zustand Stores**: NodeStore, WorkflowStore, AssetStore, SettingsStore, GlobalChatStore (all use temporal middleware for undo/redo)
 
-The app uses Zustand stores for state management:
+**React Context**: ThemeContext, WorkflowContext, KeyboardContext
 
-- **NodeStore**: Manages nodes and edges in workflows
-- **WorkflowStore**: Workflow metadata and operations
-- **AssetStore**: Media file management
-- **SettingsStore**: User preferences
-- **GlobalChatStore**: Chat interface state
-
-**Pattern**: Stores use temporal middleware for undo/redo support.
-
-### React Context
-
-Some features use React Context for component-tree state:
-- ThemeContext: Theme switching
-- WorkflowContext: Current workflow state
-- KeyboardContext: Keyboard shortcuts
-
-## Important Patterns
-
-### Component Structure
+## Key Patterns
 
 ```typescript
-// Components use functional style with TypeScript
-interface MyComponentProps {
-  nodeId: string;
-  onSave?: (data: Data) => void;
-}
-
-export const MyComponent: React.FC<MyComponentProps> = ({ 
-  nodeId, 
-  onSave 
-}) => {
-  // Use Zustand selectors to minimize re-renders
-  const node = useNodeStore(state => state.nodes[nodeId]);
-  
-  // Memoize callbacks
-  const handleSave = useCallback(() => {
-    onSave?.(data);
-  }, [onSave, data]);
-  
-  return <Box>{/* ... */}</Box>;
-};
+// Zustand: Use selectors, not full store
+const nodes = useNodeStore(state => state.nodes);  // ✅
+const store = useNodeStore();  // ❌ causes re-renders
 ```
-
-### Avoiding Re-renders
-
-```typescript
-// ❌ Bad - subscribes to entire store
-const store = useNodeStore();
-
-// ✅ Good - subscribes only to needed data
-const nodes = useNodeStore(state => state.nodes);
-const addNode = useNodeStore(state => state.addNode);
-```
-
-### Testing Patterns
-
-```typescript
-// Use React Testing Library
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-
-test('handles user interaction', async () => {
-  const user = userEvent.setup();
-  const onSave = jest.fn();
-  
-  render(<MyComponent onSave={onSave} />);
-  
-  await user.click(screen.getByRole('button', { name: /save/i }));
-  expect(onSave).toHaveBeenCalled();
-});
-```
-
-## Data Flow
-
-1. User creates/edits nodes in ReactFlow editor
-2. Changes update Zustand stores
-3. Stores persist to backend via TanStack Query
-4. Workflow execution goes through WebSocket
-5. Results stream back to UI in real-time
 
 ## Critical Files
 
-- `/AGENTS.md` - Complete project documentation for AI agents
-- `/.github/copilot-instructions.md` - GitHub Copilot coding patterns
-- `/web/README.md` - Web app setup and development
-- `/web/TESTING.md` - Comprehensive testing guide
-- `/Makefile` - Build, test, lint commands
+`/AGENTS.md`, `/.github/copilot-instructions.md`, `/web/README.md`, `/web/TESTING.md`, `/Makefile`
 
-## Common Gotchas
+## Gotchas
 
-1. **ReactFlow Types**: ReactFlow node types need explicit casting
-2. **Zustand Temporal**: Undo/redo is automatic with temporal middleware
-3. **MUI Theme**: Always use theme values, not hardcoded colors
-4. **Strict Equality**: Use `===` not `==` (ESLint will catch this)
-5. **Array Checks**: Use `Array.isArray()` not `typeof === 'object'`
+1. ReactFlow types need casting  2. Zustand temporal = auto undo/redo  3. Use theme values, not hardcoded colors  4. Use `===` not `==`  5. Use `Array.isArray()`
 
 ## Recent Changes
 
@@ -159,6 +53,36 @@ test('handles user interaction', async () => {
 > **What**: One sentence
 > **Files**: Main files changed
 > ```
+
+### Node Header Icon Fix (2026-01-16)
+
+**What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
+
+**Why**: Both actions used the same PlayArrowIcon, confusing users about their different purposes.
+
+**Files**: `web/src/components/context_menus/NodeContextMenu.tsx`, `web/src/components/node/NodeToolButtons.tsx`
+
+---
+
+### Image Size Display in Nodes (2026-01-16)
+
+**What**: Added image dimensions display (width × height) at bottom right of image output nodes, shown in tiny monospace font with semi-transparent background.
+
+**Why**: Users can now see image size without clicking on the image, improving workflow visibility.
+
+**Files**: `web/src/components/node/ImageView.tsx`
+
+---
+
+### Auto-save Interval Fix (2026-01-16)
+
+**What**: Fixed auto-save interval settings not being applied when changed by user.
+
+**Why**: The interval useEffect wasn't properly resetting when intervalMinutes changed due to dependency array issues with memoized callbacks.
+
+**Files**: `web/src/hooks/useAutosave.ts`
+
+---
 
 ### Mobile TypeScript Type Definitions Fix (2026-01-15)
 
@@ -451,5 +375,11 @@ _No entries yet - this memory system is new as of 2026-01-10_
 - `web/src/components/ProtectedRoute.tsx` - Converted useAuth() to selective selector
 - `web/src/hooks/handlers/dropHandlerUtils.ts` - Converted useAuth() to selective selector and replaced catch(error: any) with proper error handling using createErrorMessage
 - `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
+> **Format**: `Feature (date): One line. Files: x, y`
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
 
-**Impact**: Reduced unnecessary re-renders in auth-related components by ensuring they only update when their specific state changes. Improved TypeScript type safety by using proper error handling with AppError type guards.
+- **Perf Fix: Inline Handler Memoization (2026-01-16)**: Memoized 20+ inline arrow functions, added React.memo to 5 dialogs. Files: ImageEditorToolbar.tsx, NodeColorSelector.tsx, NodeLogs.tsx, NodeDescription.tsx, model_menu/*.tsx, FileBrowserDialog.tsx
+- **Zoom Presets (2026-01-14)**: Added zoom in/out buttons, presets dropdown (25-200%), keyboard shortcuts. Files: ViewportStatusIndicator.tsx, shortcuts.ts
+- **Node Execution Time (2026-01-14)**: Shows execution duration on completed nodes. Files: ExecutionTimeStore.ts, NodeExecutionTime.tsx
+- **Keyboard Node Navigation (2026-01-13)**: Tab/Shift+Tab and Alt+Arrows to navigate nodes. Files: NodeFocusStore.ts, useNodeFocus.ts
+- **Zustand Selector Optimization (2026-01-11)**: Fixed components subscribing to entire stores. Files: WorkflowAssistantChat.tsx, AppHeader.tsx

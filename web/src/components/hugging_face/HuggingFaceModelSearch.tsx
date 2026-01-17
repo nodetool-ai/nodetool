@@ -73,7 +73,8 @@ const HuggingFaceModelSearch: React.FC = () => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const { startDownload, openDialog } = useModelDownloadStore();
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const openDialog = useModelDownloadStore((state) => state.openDialog);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["huggingface-models", searchQuery],

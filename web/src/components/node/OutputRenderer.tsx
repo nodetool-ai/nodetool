@@ -52,7 +52,6 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
-import log from "loglevel";
 // import left for future reuse of audio stream component when needed
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
@@ -317,6 +316,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     [computedViewer.assets, setOpenAsset]
   );
 
+  const handleModel3DClick = useCallback((url: string, contentType?: string) => () => {
+    setOpenModel3D({ url, contentType });
+  }, []);
+
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
   const renderContent = useMemo(() => {
@@ -347,7 +350,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
-              onImageEdited={(dataUrl, blob) => log.debug(dataUrl, blob)}
             />
           ));
         } else {
@@ -363,7 +365,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else {
             imageSource = "";
           }
-          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => log.debug(dataUrl, blob)} />;
+          return <ImageView source={imageSource} />;
         }
       case "audio": {
         // Handle different audio data formats
@@ -430,7 +432,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <Model3DViewer
               url={url}
               compact={true}
-              onClick={() => setOpenModel3D({ url, contentType })}
+              onClick={handleModel3DClick(url, contentType)}
             />
           </div>
         );
@@ -730,8 +732,17 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     videoRef,
     handleMouseDown,
     scrollRef,
-    showTextActions
+    showTextActions,
+    handleModel3DClick
   ]);
+
+  const handleCloseAsset = useCallback(() => {
+    setLocalOpenAsset(null);
+  }, []);
+
+  const handleCloseModel3D = useCallback(() => {
+    setOpenModel3D(null);
+  }, []);
 
   if (!shouldRender) {
     return null;
@@ -746,7 +757,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             computedViewer.assets.length ? computedViewer.assets : undefined
           }
           open={openAsset !== null}
-          onClose={() => setLocalOpenAsset(null)}
+          onClose={handleCloseAsset}
         />
       )}
       {openModel3D && (
@@ -754,7 +765,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           url={openModel3D.url}
           contentType={openModel3D.contentType}
           open={true}
-          onClose={() => setOpenModel3D(null)}
+          onClose={handleCloseModel3D}
         />
       )}
       {renderContent}

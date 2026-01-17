@@ -56,22 +56,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.5em 0.75em 0.75em",
-      overflow: "auto",
-      scrollbarWidth: "thin",
-      scrollbarColor: `${theme.vars.palette.c_scroll_thumb} ${theme.vars.palette.c_scroll_bg}`,
-      "&::-webkit-scrollbar": { width: 10 },
-      "&::-webkit-scrollbar-track": {
-        background: theme.vars.palette.c_scroll_bg
-      },
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor: theme.vars.palette.c_scroll_thumb,
-        borderRadius: 10,
-        border: `2px solid ${theme.vars.palette.c_scroll_bg}`
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        backgroundColor: theme.vars.palette.c_scroll_hover
-      }
+      padding: "0.5em 0.75em 0.75em"
     },
     // Toggle category
     ".toggle-category": {

@@ -96,15 +96,15 @@ const styles = (theme: Theme) =>
       right: "2em"
     },
     ".actions .button": {
-      width: "2.5em",
-      height: "2.5em",
+      width: "2em",
+      height: "2em",
       backgroundColor: "rgba(0, 0, 0, 0.8)",
       color: "#fff",
       borderRadius: "50%",
-      padding: "0.4em"
+      padding: "0.3em"
     },
     ".actions button svg": {
-      fontSize: "1.5em"
+      fontSize: "1.2em"
     },
     ".actions .button:hover": {
       backgroundColor: theme.vars.palette.grey[500]
@@ -395,8 +395,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     prevNextAmount,
     onChangeIndex: handleChangeAsset
   });
-
-  useCombo(["Escape"], handleClose);
   useCombo(
     ["left"],
     useCallback(() => {
@@ -614,6 +612,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         maxWidth={false}
         fullWidth
         open={open}
+        onClose={handleClose}
       >
         <div className="actions">
           <Tooltip title="Download">

@@ -176,11 +176,9 @@ jobs:
                - **Feature Name**: Brief description (max 10 words)
                ```
             
-            2. **`.github/opencode-memory/project-context.md`** - Add ONE entry under "Recent Changes":
+            2. **`.github/opencode-memory/project-context.md`** - Add ONE line under "Recent Changes" (MAX 5 entries, delete oldest):
                ```markdown
-               ### Feature Name (YYYY-MM-DD)
-               **What**: One sentence describing the feature
-               **Files**: List main files changed
+               - **Feature Name (YYYY-MM-DD)**: One sentence. Files: main-file.tsx, other-file.ts
                ```
             
             3. **`.github/opencode-memory/issues/<topic>/`** - ONLY if you solved a tricky problem:

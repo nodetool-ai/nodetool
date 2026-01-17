@@ -7,6 +7,7 @@ import isEqual from "lodash/isEqual";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useWorkflowActionsStore } from "../../stores/WorkflowActionsStore";
+import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -38,6 +39,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const setActions = useWorkflowActionsStore((state) => state.setActions);
   const clearActions = useWorkflowActionsStore((state) => state.clearActions);
+  const showGraphPreview = useShowGraphPreview();
 
   useEffect(() => {
     setActions({ onEdit, onDuplicate: onDuplicateWorkflow, onDelete, onOpenAsApp });
@@ -92,12 +94,14 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         />
       )}
       <Box className="preview-container" sx={{ flexGrow: 1, width: "100%", mr: 0 }}>
-        <WorkflowMiniPreview
-          workflow={workflow}
-          width="100%"
-          height={100}
-          label={workflow.name}
-        />
+        {showGraphPreview && (
+          <WorkflowMiniPreview
+            workflow={workflow}
+            width="100%"
+            height={100}
+            label={workflow.name}
+          />
+        )}
         <Typography className="name">{workflow.name}</Typography>
       </Box>
     </Box>
