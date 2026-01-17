@@ -48,6 +48,7 @@ import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
+import NodeExecutionVisualizer from "../node_editor/NodeExecutionVisualizer";
 
 const fitViewOptions = {
   maxZoom: MAX_ZOOM,
@@ -534,6 +535,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           dataTypes={DATA_TYPES}
           activeGradientKeys={activeGradientKeysArray}
         />
+        <NodeExecutionVisualizer workflowId={workflowId} />
       </ReactFlow>
       {pendingNodeType && ghostPosition && (
         <GhostNode

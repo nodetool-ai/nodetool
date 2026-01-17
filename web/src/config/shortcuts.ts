@@ -750,6 +750,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  {
+    title: "Debug Panel",
+    slug: "toggleDebugPanel",
+    keyCombo: ["Control", "D"],
+    category: "panel" as const,
+    description: "Toggle debug panel",
+    registerCombo: false
   }
 ] as Shortcut[];
 
