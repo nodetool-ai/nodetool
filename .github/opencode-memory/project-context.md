@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Additional Component Memoization (2026-01-17)
+
+**What**: Added React.memo to 2 large components (WorkspacesManager, ChatThreadView) that were missing memoization, preventing unnecessary re-renders.
+
+**Files**: WorkspacesManager.tsx, ChatThreadView.tsx
+
+**Impact**: 679-line and 610-line components now only re-render when props change, complementing the 9 components memoized in previous audits.
+
+---
+
 ### Performance Optimization: Large Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
