@@ -67,6 +67,8 @@ Last updated: 2026-01-16
 - **Audio Queue**: Queue and manage audio generation tasks
 - **Node Execution Time**: Display execution duration for completed nodes
 
+- **Workflow Profiler**: Performance profiling panel with execution metrics, bottlenecks, and optimization suggestions
+
 ### Asset Management
 - **Asset Explorer**: File browser for managing workflow assets
 - **Asset Grid**: Grid view of assets with thumbnails

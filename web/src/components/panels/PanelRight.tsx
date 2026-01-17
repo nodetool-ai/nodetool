@@ -21,12 +21,14 @@ import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SpeedIcon from "@mui/icons-material/Speed";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
 
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
+import { WorkflowProfiler } from "../profiling/WorkflowProfiler";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
 
@@ -116,6 +118,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle,
   handleWorkspaceToggle,
   handleVersionsToggle,
+  handleProfilerToggle,
   handleWorkflowToggle,
   activeView,
   panelVisible
@@ -125,8 +128,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleLogsToggle: () => void;
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
+  handleProfilerToggle: () => void;
   handleWorkflowToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow";
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "profiler" | "workflow";
   panelVisible: boolean;
 }) {
   return (
@@ -273,6 +277,25 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <SettingsIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Profiler Button */}
+      <Tooltip
+        title="Profiler"
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleProfilerToggle}
+          className={
+            activeView === "profiler" && panelVisible
+              ? "profiler active"
+              : "profiler"
+          }
+        >
+          <SpeedIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -381,6 +404,8 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "profiler" ? (
+                  <WorkflowProfiler nodes={(activeNodeStore?.getState().nodes || []) as any} />
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -403,6 +428,7 @@ const PanelRight: React.FC = () => {
         handleLogsToggle={() => handlePanelToggle("logs")}
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
         handleVersionsToggle={() => handlePanelToggle("versions")}
+        handleProfilerToggle={() => handlePanelToggle("profiler")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         activeView={activeView}
         panelVisible={isVisible}
