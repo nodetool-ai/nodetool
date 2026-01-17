@@ -6,6 +6,14 @@ import { NodeData } from "../stores/NodeData";
 const EXTRA_LEFT_PADDING = 100;
 const TOP_PADDING_ADJUSTMENT = 50;
 
+/**
+ * Calculates the bounding box that contains all specified nodes.
+ * Takes into account parent node positions and node dimensions.
+ * 
+ * @param nodesToBound - Array of nodes to calculate bounds for
+ * @param nodesById - Map of node IDs to their absolute positions
+ * @returns Object with xMin, xMax, yMin, yMax coordinates, or null if nodes array is empty
+ */
 export function getNodesBounds(
   nodesToBound: Node<NodeData>[],
   nodesById: Record<string, XYPosition>
@@ -33,6 +41,29 @@ export function getNodesBounds(
   return { xMin, xMax, yMin, yMax };
 }
 
+/**
+ * Custom hook for fitting the workflow editor viewport to display specified nodes.
+ * 
+ * Animates the viewport to center and zoom appropriately to show all nodes
+ * within the viewport. Supports fitting to selected nodes, specific node IDs,
+ * or all nodes in the workflow.
+ * 
+ * @returns Callback function to fit the viewport with optional configuration
+ * 
+ * @example
+ * ```typescript
+ * const fitView = useFitView();
+ * 
+ * // Fit all nodes to viewport
+ * fitView();
+ * 
+ * // Fit with custom padding
+ * fitView({ padding: 0.2 });
+ * 
+ * // Fit to specific nodes
+ * fitView({ nodeIds: ['node-1', 'node-2'] });
+ * ```
+ */
 export const useFitView = () => {
   const reactFlowInstance = useReactFlow();
   const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(

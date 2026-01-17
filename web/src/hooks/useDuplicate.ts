@@ -5,6 +5,27 @@ import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
 import { useNodes } from "../contexts/NodeContext";
 
+/**
+ * Custom hook for duplicating selected nodes and their connected edges in the workflow editor.
+ * 
+ * Generates new unique IDs for duplicated nodes and adjusts their positions.
+ * Handles parent-child relationships and preserves edge connections between duplicated nodes.
+ * 
+ * @param vertical - If true, duplicates nodes vertically (below original).
+ *                   If false, duplicates horizontally (to the right of original).
+ * @returns Callback function to duplicate selected nodes
+ * 
+ * @example
+ * ```typescript
+ * const duplicateNodes = useDuplicateNodes(false);
+ * 
+ * // Duplicate horizontally
+ * duplicateNodes();
+ * 
+ * // Duplicate vertically
+ * duplicateNodes(true);
+ * ```
+ */
 export const useDuplicateNodes = (vertical: boolean = false) => {
   const reactFlow = useReactFlow();
   const {
