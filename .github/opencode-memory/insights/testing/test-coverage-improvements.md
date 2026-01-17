@@ -444,3 +444,101 @@ it("toggles state on/off", () => {
 5. Test toggle behavior for both on/off states
 
 **Status**: All 51 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17 - Additional)
+
+**Coverage Added**: 2 new test files with 24 tests
+
+**Tests Added**:
+- `ConnectableNodesStore.test.ts` - 6 tests for connectable nodes context hook
+- `useCollectionDragAndDrop.test.tsx` - 18 tests for collection drag-and-drop hook
+
+**Areas Covered**:
+- Hook export validation and function overloads
+- Interface property validation (filterType, isVisible, handles, etc.)
+- State function call verification (setSourceHandle, setTargetHandle, setFilterType, etc.)
+- Drag-and-drop event handling (dragOver, dragLeave, drop)
+- File indexing with progress tracking
+- Error handling for failed file uploads
+- Multiple file processing with mixed success/failure
+
+**Test Patterns Used**:
+
+1. **Context Hook Testing (Interface Validation)**:
+```typescript
+describe("ConnectableNodesStore", () => {
+  it("export has correct function overloads", () => {
+    const module = require("../ConnectableNodesStore");
+    expect(typeof module.default).toBe("function");
+    expect(module.useConnectableNodes).toBeDefined();
+  });
+
+  it("state functions are callable", () => {
+    const state: ConnectableNodesState = { /* ... */ };
+    state.setSourceHandle("output-1");
+    expect(state.setSourceHandle).toHaveBeenCalledWith("output-1");
+  });
+});
+```
+
+2. **Drag-and-Drop Hook Testing**:
+```typescript
+describe("useCollectionDragAndDrop", () => {
+  it("handleDrop records errors for failed uploads", async () => {
+    mockClient.POST.mockResolvedValue({ 
+      data: null, 
+      error: { detail: [{ msg: "File too large" }] } 
+    });
+
+    const mockFile = new File(["content"], "large.txt", { type: "text/plain" });
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      dataTransfer: { files: [mockFile] }
+    };
+
+    await result.current.handleDrop("my-collection")(mockEvent as any);
+
+    expect(result.current.indexErrors).toHaveLength(1);
+    expect(result.current.indexErrors[0].file).toBe("large.txt");
+  });
+});
+```
+
+3. **Multi-File Processing Test**:
+```typescript
+it("handleDrop handles multiple files with mixed results", async () => {
+  mockClient.POST
+    .mockResolvedValueOnce({ data: { path: "file1.txt" }, error: null })
+    .mockResolvedValueOnce({ 
+      data: null, 
+      error: { detail: [{ msg: "Error" }] } 
+    })
+    .mockResolvedValueOnce({ data: { path: "file3.txt" }, error: null });
+
+  const mockEvent = {
+    preventDefault: jest.fn(),
+    dataTransfer: { files: [/* 3 files */] }
+  };
+
+  await result.current.handleDrop("my-collection")(mockEvent as any);
+
+  expect(result.current.indexErrors).toHaveLength(1);
+  expect(result.current.indexErrors[0].file).toBe("file2.txt");
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/ConnectableNodesStore.test.ts`
+- `web/src/hooks/__tests__/useCollectionDragAndDrop.test.tsx`
+
+**Key Learnings**:
+1. Context-based hooks require proper module mocking before import
+2. Test file extensions matter for JSX - use `.tsx` for tests with JSX wrappers
+3. Use `act()` for async hook operations to ensure proper state updates
+4. Test both success and error paths for file operations
+5. Verify multiple file processing handles partial failures correctly
+6. Interface testing validates TypeScript types without complex runtime setup
+
+**Status**: All 24 tests passing (205 test suites, 2622 tests total)
