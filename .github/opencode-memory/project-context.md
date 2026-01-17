@@ -378,8 +378,8 @@ _No entries yet - this memory system is new as of 2026-01-10_
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.
 
+- **Virtualized Node List (2026-01-17)**: Added windowing virtualization to node menu search results using react-window. Files: VirtualizedNodeList.tsx, RenderNodes.tsx
 - **Perf Fix: Inline Handler Memoization (2026-01-16)**: Memoized 20+ inline arrow functions, added React.memo to 5 dialogs. Files: ImageEditorToolbar.tsx, NodeColorSelector.tsx, NodeLogs.tsx, NodeDescription.tsx, model_menu/*.tsx, FileBrowserDialog.tsx
 - **Zoom Presets (2026-01-14)**: Added zoom in/out buttons, presets dropdown (25-200%), keyboard shortcuts. Files: ViewportStatusIndicator.tsx, shortcuts.ts
 - **Node Execution Time (2026-01-14)**: Shows execution duration on completed nodes. Files: ExecutionTimeStore.ts, NodeExecutionTime.tsx
 - **Keyboard Node Navigation (2026-01-13)**: Tab/Shift+Tab and Alt+Arrows to navigate nodes. Files: NodeFocusStore.ts, useNodeFocus.ts
-- **Zustand Selector Optimization (2026-01-11)**: Fixed components subscribing to entire stores. Files: WorkflowAssistantChat.tsx, AppHeader.tsx
