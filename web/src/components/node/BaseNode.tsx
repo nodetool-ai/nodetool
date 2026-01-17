@@ -523,8 +523,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             bottom: -18,
             left: "50%",
             transform: "translateX(-50%)",
-            bgcolor: "rgba(0, 0, 0, 0.6)",
-            color: "rgba(255, 255, 255, 0.7)",
+            bgcolor: "rgba(0, 0, 0, 0.75)",
+            color: "rgba(255, 255, 255, 0.95)",
             px: 1,
             py: 0.25,
             borderRadius: 1,
@@ -537,8 +537,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             whiteSpace: "nowrap",
             pointerEvents: "none",
             ...theme.applyStyles("light", {
-              bgcolor: "rgba(255, 255, 255, 0.8)",
-              color: "rgba(0, 0, 0, 0.6)"
+              bgcolor: "rgba(255, 255, 255, 0.9)",
+              color: "rgba(0, 0, 0, 0.8)"
             })
           }}
         >
