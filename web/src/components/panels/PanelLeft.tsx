@@ -105,13 +105,8 @@ const styles = (
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       paddingTop: "8px",
 
-      // Ensure custom SVG icons (IconForType) are sized like MUI icons
-      "& .icon-container": {
-        width: "18px",
-        height: "18px"
-      },
       "& .MuiIconButton-root, .MuiButton-root": {
-        padding: "12px",
+        padding: "10px",
         borderRadius: "8px",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
@@ -119,7 +114,7 @@ const styles = (
         backgroundColor: "transparent",
         // Make icons smaller within toolbar buttons
         "& svg": {
-          fontSize: "1.125rem",
+          fontSize: "1rem",
           "[data-mui-color-scheme='dark'] &": {
             color: theme.vars.palette.grey[100]
           }
@@ -261,7 +256,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           onClick={() => onViewChange("assets")}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
-          <IconForType iconName="asset" showTooltip={false} />
+          <IconForType iconName="asset" showTooltip={false} iconSize="small" />
         </IconButton>
       </Tooltip>
 
@@ -293,7 +288,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
               tabIndex={-1}
               onClick={handleModelsClick}
             >
-              <IconForType iconName="model" showTooltip={false} />
+              <IconForType iconName="model" showTooltip={false} iconSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip
