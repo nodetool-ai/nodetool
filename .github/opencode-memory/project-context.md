@@ -66,11 +66,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ### Performance Optimization: Inline Arrow Functions (2026-01-17)
 
-**What**: Memoized 20+ inline arrow functions across 6 components using useCallback to prevent unnecessary re-renders.
+**What**: Extended inline handler memoization to 10+ additional components including color pickers, dashboard, context menus, and mini apps.
 
-**Files**: ApiKeyValidation.tsx, NodeOutputs.tsx, NodeExplorer.tsx, NodeToolButtons.tsx, ProviderList.tsx, FileBrowserDialog.tsx
+**Files**: Login.tsx, GradientBuilder.tsx, SwatchPanel.tsx, HarmonyPicker.tsx, ColorPickerModal.tsx, LayoutMenu.tsx, WelcomePanel.tsx, ExamplesList.tsx, SelectionContextMenu.tsx, MiniAppResults.tsx
 
-**Impact**: Reduced re-renders in frequently-updating node components, dialogs, and model menus by providing stable function references to memoized children.
+**Impact**: Reduced re-renders in color picker, dashboard panels, context menus, and mini apps by providing stable function references.
+
+---
 
 ### Node Header Icon Fix (2026-01-16)
 

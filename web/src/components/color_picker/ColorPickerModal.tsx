@@ -339,6 +339,10 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     [handleApply]
   );
 
+  const handleCopyHex = useCallback(() => {
+    copyColor("hex");
+  }, [copyColor]);
+
   const content = (
     <div css={styles(theme)}>
       <div className="modal-overlay" onClick={handleOverlayClick}>
@@ -394,7 +398,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                 <Tooltip title="Click to copy HEX">
                   <div
                     className="preview-swatch"
-                    onClick={() => copyColor("hex")}
+                    onClick={handleCopyHex}
                   >
                     <div className="preview-swatch-bg" />
                     <div
