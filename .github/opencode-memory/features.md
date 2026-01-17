@@ -6,6 +6,8 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 Last updated: 2026-01-17
 
+- **Video Recorder Support**: Added video recording capability to PropertyDropZone for capturing property interaction demos
+
 - **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
 
 - **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
