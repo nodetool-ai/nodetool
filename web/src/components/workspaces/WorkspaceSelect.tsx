@@ -136,8 +136,11 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     if (error) {
       return (
         <Box css={styles(theme)}>
-          <Typography variant="body2" color="error">
-            Failed to load workspaces
+          <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+            Unable to load workspaces
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Check your connection or try again later
           </Typography>
         </Box>
       );
