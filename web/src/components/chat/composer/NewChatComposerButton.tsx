@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useCallback } from "react";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import { IconButton } from "@mui/material";
 
@@ -11,12 +11,16 @@ export const NewChatComposerButton = forwardRef<
   HTMLButtonElement,
   NewChatComposerButtonProps
 >(({ disabled = false, onClick }, ref) => {
+  const handleClick = useCallback(() => {
+    if (!disabled) {
+      onClick();
+    }
+  }, [disabled, onClick]);
+
   return (
     <IconButton
       ref={ref}
-      onClick={() => {
-        if (!disabled) {onClick();}
-      }}
+      onClick={handleClick}
       size="small"
       disableRipple={disabled}
       disabled={disabled}

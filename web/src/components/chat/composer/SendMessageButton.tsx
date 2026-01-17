@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useCallback } from "react";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { IconButton } from "@mui/material";
 
@@ -13,12 +13,17 @@ export const SendMessageButton = forwardRef<
   SendMessageButtonProps
 >(({ disabled = false, onClick, hasContent = true }, ref) => {
   const isDisabled = disabled || !hasContent;
+
+  const handleClick = useCallback(() => {
+    if (!isDisabled) {
+      onClick();
+    }
+  }, [isDisabled, onClick]);
+
   return (
     <IconButton
       ref={ref}
-      onClick={() => {
-        if (!isDisabled) {onClick();}
-      }}
+      onClick={handleClick}
       size="small"
       disableRipple={isDisabled}
       disabled={isDisabled}

@@ -5,7 +5,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 
 interface TagFilterProps {
   tags: Record<string, Workflow[]>;
@@ -21,6 +21,18 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
     [tags]
   );
 
+  const handleSelectGettingStarted = useCallback(() => {
+    onSelectTag("getting-started");
+  }, [onSelectTag]);
+
+  const handleSelectTag = useCallback((tag: string) => {
+    onSelectTag(tag);
+  }, [onSelectTag]);
+
+  const handleSelectAll = useCallback(() => {
+    onSelectTag(null);
+  }, [onSelectTag]);
+
   return (
     <Box className="tag-menu">
       <div className="button-row">
@@ -30,7 +42,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
           <Button
-            onClick={() => onSelectTag("getting-started")}
+            onClick={handleSelectGettingStarted}
             variant="outlined"
             className={selectedTag === "getting-started" ? "selected" : ""}
           >
@@ -45,7 +57,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
               <Button
-                onClick={() => onSelectTag(tag)}
+                onClick={handleSelectTag.bind(null, tag)}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
               >
@@ -59,7 +71,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
           <Button
-            onClick={() => onSelectTag(null)}
+            onClick={handleSelectAll}
             className={selectedTag === null ? "selected" : ""}
           >
             SHOW ALL

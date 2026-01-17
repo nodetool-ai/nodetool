@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Additional Inline Arrow Function Memoization (2026-01-17)
+
+**What**: Extended useCallback memoization to 20+ inline arrow functions in context menus, panels, chat components, and workflow components.
+
+**Files**: NodeContextMenu.tsx, FloatingToolBar.tsx, ActionButtons.tsx, SendMessageButton.tsx, NewChatComposerButton.tsx, NodeExplorer.tsx, AddPanelDropdown.tsx, TagFilter.tsx, SearchResults.tsx
+
+**Impact**: Prevented unnecessary re-renders in high-frequency UI components by providing stable function references.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).

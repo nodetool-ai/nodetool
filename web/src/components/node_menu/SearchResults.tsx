@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Box,
   List,
@@ -17,10 +17,10 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   results,
   handleCreateNode
 }) => {
-  const renderNode = (node: NodeMetadata) => {
+  const renderNode = useCallback((node: NodeMetadata) => {
     const words = node.node_type?.split(".");
     return (
-      <ListItemButton key={node.title} onClick={() => handleCreateNode(node)}>
+      <ListItemButton key={node.title} onClick={handleCreateNode.bind(null, node)}>
         {words.map((word, idx) => (
           <Box key={idx} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
@@ -33,7 +33,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         ))}
       </ListItemButton>
     );
-  };
+  }, [handleCreateNode]);
 
   return (
     <List sx={{ overflowY: "scroll", maxHeight: "55vh" }}>
