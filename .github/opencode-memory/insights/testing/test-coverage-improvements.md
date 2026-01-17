@@ -560,80 +560,100 @@ it("toggles state on/off", () => {
 
 ## Test Coverage Improvements (2026-01-17)
 
-**Tests Added**: 15 tests across 2 new test files
+**Coverage Added**: 7 new test files with 92 tests
 
 **Tests Added**:
-- `WorkflowManagerStore.test.ts` - 9 tests for `determineNextWorkflowId` pure function
-- `checkHfCache.test.ts` - 6 tests for HuggingFace cache checking API
+- `ConnectableNodesStore.test.ts` - 3 tests for connectable nodes state management
+- `WorkflowActionsStore.test.ts` - 6 tests for workflow action handlers
+- `NodeMenuStore.test.ts` - 34 tests for node menu state and navigation
+- `useNumberInput.test.ts` - 6 tests for number input drag handling
+- `useDuplicate.test.ts` - 12 tests for node duplication logic
+- `useNodeFocus.test.ts` - 21 tests for node focus navigation
+- `downloadPreviewAssets.test.ts` - 8 tests for asset download functionality
 
 **Areas Covered**:
-- Workflow manager store logic for determining next workflow when closing tabs
-- API request building for HuggingFace cache checking
-- Error handling for API failures
-- Pattern handling (string, array, null) for allow/ignore patterns
+- Connectable nodes state and menu visibility
+- Workflow action handlers (edit, duplicate, delete, open as app)
+- Node menu open/close, search, filtering, and keyboard navigation
+- Number input drag threshold and mouse handling
+- Node duplication with offsets, edge handling, and parent-child relationships
+- Node focus navigation (next, prev, up, down, left, right) and history
+- Asset download from preview values, raw results, and URI fallback
 
 **Test Patterns Used**:
 
-1. **Pure Function Testing**:
+1. **Zustand Store Testing Pattern**:
 ```typescript
-const determineNextWorkflowId = (
-  openWorkflows: WorkflowAttributes[],
-  closingWorkflowId: string,
-  currentWorkflowId: string | null
-): string | null => {
-  // Implementation
-};
+describe("StoreName", () => {
+  beforeEach(() => {
+    useStoreName.setState({
+      // explicit initial state
+    });
+  });
 
-describe("determineNextWorkflowId", () => {
-  it("returns next workflow when closing current workflow", () => {
-    const workflows = [createWorkflowAttr("wf1"), createWorkflowAttr("wf2")];
-    const result = determineNextWorkflowId(workflows, "wf2", "wf2");
-    expect(result).toBe("wf2");
+  it("performs expected action", () => {
+    useStoreName.getState().action();
+    expect(useStoreName.getState().property).toEqual(expected);
   });
 });
 ```
 
-2. **API Mocking**:
+2. **Context-Based Hook Testing with Mocks**:
 ```typescript
-global.fetch = jest.fn();
+jest.mock("../../contexts/NodeContext");
+jest.mock("../../stores/NodeFocusStore");
 
-describe("checkHfCache", () => {
-  const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
-
+describe("useHook", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (useNodes as jest.Mock).mockImplementation((selector) => {
+      if (typeof selector === "function") {
+        return selector({ nodes: mockNodes, setNodes: mockSetNodes });
+      }
+      return { nodes: mockNodes, setNodes: mockSetNodes };
+    });
   });
 
-  it("returns cache check response on success", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-      status: 200,
-      statusText: "OK",
-      text: async () => "",
-    } as unknown as Response);
-
-    const result = await checkHfCache({ repo_id: "test/repo" });
-    expect(result).toEqual(mockResponse);
+  it("calls store action", () => {
+    const { result } = renderHook(() => useHook());
+    act(() => {
+      result.current.action();
+    });
+    expect(mockStore.action).toHaveBeenCalled();
   });
+});
+```
+
+3. **File Download Testing with DOM Mocking**:
+```typescript
+it("falls back to URI when createAssetFile fails", async () => {
+  mockCreateAssetFile.mockRejectedValue(new Error("Failed"));
+
+  const mockAnchor = { href: "", download: "", click: jest.fn() };
+  jest.spyOn(document, "createElement").mockReturnValue(mockAnchor as any);
+
+  await downloadPreviewAssets({ nodeId: "test", previewValue: { uri: "http://example.com/file.txt" } });
+
+  expect(mockAnchor.href).toBe("http://example.com/file.txt");
+  expect(mockAnchor.click).toHaveBeenCalled();
 });
 ```
 
 **Files Created**:
-- `web/src/stores/__tests__/WorkflowManagerStore.test.ts`
-- `web/src/serverState/__tests__/checkHfCache.test.ts`
+- `web/src/stores/__tests__/ConnectableNodesStore.test.ts`
+- `web/src/stores/__tests__/WorkflowActionsStore.test.ts`
+- `web/src/stores/__tests__/NodeMenuStore.test.ts`
+- `web/src/hooks/__tests__/useNumberInput.test.ts`
+- `web/src/hooks/__tests__/useDuplicate.test.ts`
+- `web/src/hooks/__tests__/useNodeFocus.test.ts`
+- `web/src/utils/__tests__/downloadPreviewAssets.test.ts`
 
 **Key Learnings**:
-1. Pure functions extracted from stores can be tested without complex mocking
-2. For complex store dependencies, test the extracted pure functions separately
-3. API functions can be tested by mocking global.fetch
-4. Test edge cases: empty arrays, null values, boundary conditions
-5. Extract complex logic into separate utility functions for testability
+1. Mock paths in hooks tests must use correct relative paths (e.g., `../../contexts/` for hooks in `src/hooks/__tests__/`)
+2. Use `jest.fn()` mocks for external dependencies instead of variables to avoid initialization order issues
+3. Test complex hook behavior by mocking dependencies and verifying interactions
+4. For DOM-related utilities, mock `document.createElement` and spy on methods
+5. Handle edge cases in store tests (empty arrays, null values, wrapping navigation)
+6. Reset store state in `beforeEach` for test isolation
 
-**Quality Checks**:
-- ✓ TypeScript compilation passes
-- ✓ ESLint passes (no errors, no warnings in new files)
-- ✓ All 2414+ tests pass
-- ✓ 189 test suites pass
-
-**Status**: All tests passing, quality checks green
+**Status**: All 92 tests passing (210 test suites, 2693 tests total)
