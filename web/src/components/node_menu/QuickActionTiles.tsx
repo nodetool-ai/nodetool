@@ -531,6 +531,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
               }
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
+              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile"
@@ -597,6 +598,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
               }
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
+              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile constant-tile"
