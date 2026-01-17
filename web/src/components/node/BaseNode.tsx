@@ -19,6 +19,7 @@ import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
+import { NodeWarnings } from "./NodeWarnings";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import ModelRecommendations from "./ModelRecommendations";
@@ -452,6 +453,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onShowInputs={handleShowInputs}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
+      <NodeWarnings id={id} workflowId={workflow_id} />
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
       {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (
