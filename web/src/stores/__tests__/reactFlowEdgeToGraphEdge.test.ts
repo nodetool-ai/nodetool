@@ -1,6 +1,5 @@
 import { reactFlowEdgeToGraphEdge } from "../reactFlowEdgeToGraphEdge";
 import { Edge } from "@xyflow/react";
-import { Edge as GraphEdge } from "../ApiTypes";
 
 describe("reactFlowEdgeToGraphEdge", () => {
   describe("basic edge conversion", () => {

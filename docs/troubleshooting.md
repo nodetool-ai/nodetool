@@ -235,7 +235,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 - **Fix:** Add required vars to `env` section:
   ```yaml
   env:
-    PORT: "8000"
+    PORT: "7777"
     DB_PATH: "/workspace/nodetool.db"
     HF_HOME: "/hf-cache"
   ```

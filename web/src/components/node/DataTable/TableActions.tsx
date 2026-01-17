@@ -27,7 +27,7 @@ interface TableActionsProps {
   showRowNumbersButton?: boolean;
 }
 
-const TableActions: React.FC<TableActionsProps> = ({
+const TableActions: React.FC<TableActionsProps> = memo(({
   tabulator,
   data,
   selectedRows,
@@ -42,6 +42,7 @@ const TableActions: React.FC<TableActionsProps> = ({
   showResetSortingButton: showSortingButton = true,
   showRowNumbersButton = true
 }) => {
+  TableActions.displayName = 'TableActions';
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -213,7 +214,7 @@ const TableActions: React.FC<TableActionsProps> = ({
       </Tooltip>
     </div>
   );
-};
+});
 
 export default React.memo(TableActions);
 

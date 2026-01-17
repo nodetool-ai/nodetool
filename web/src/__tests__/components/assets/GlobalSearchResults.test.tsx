@@ -7,7 +7,7 @@ import { AssetWithPath } from "../../../stores/ApiTypes";
 import mockTheme from "../../../__mocks__/themeMock";
 
 jest.mock("../../../stores/BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000"
+  BASE_URL: "http://localhost:7777"
 }));
 
 // MUI Tooltip can access theme vars; keep Tooltip pass-through

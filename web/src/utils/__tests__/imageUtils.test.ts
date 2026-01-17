@@ -6,7 +6,7 @@ const originalCreateObjectURL = URL.createObjectURL;
 const originalRevokeObjectURL = URL.revokeObjectURL;
 
 beforeAll(() => {
-  (URL as any).createObjectURL = jest.fn((blob: Blob) => {
+  (URL as any).createObjectURL = jest.fn((_blob: Blob) => {
     const url = `blob:mock-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     mockBlobUrls.push(url);
     return url;
@@ -79,6 +79,13 @@ describe("imageUtils", () => {
       const source: ImageData = "http://example.com/image.png";
       const result = createImageUrl(source, null);
       expect(result.url).toBe("http://example.com/image.png");
+      expect(result.blobUrl).toBeNull();
+    });
+
+    it("handles relative URL path (API storage)", () => {
+      const source: ImageData = "/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg";
+      const result = createImageUrl(source, null);
+      expect(result.url).toBe("/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg");
       expect(result.blobUrl).toBeNull();
     });
 

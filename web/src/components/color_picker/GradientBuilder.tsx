@@ -199,6 +199,27 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
     [gradient, onChange, selectedStopIndex]
   );
 
+  const handleStopClick = useCallback(
+    (index: number) => () => {
+      setSelectedStopIndex(index);
+    },
+    []
+  );
+
+  const handleApplyCurrentColor = useCallback(
+    (index: number) => () => {
+      handleStopColorChange(index, currentColor);
+    },
+    [handleStopColorChange, currentColor]
+  );
+
+  const handleRemoveStopClick = useCallback(
+    (index: number) => () => {
+      removeStop(index);
+    },
+    [removeStop]
+  );
+
   const handleStopDrag = useCallback(
     (index: number, e: React.MouseEvent) => {
       const container = e.currentTarget.parentElement;
