@@ -54,6 +54,26 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Handler Memoization (2026-01-17)
+
+**What**: Memoized inline handlers in NodeHeader (4), AssetTable (1), FormatButton (1), and TableActions (7) components. Added React.memo to AssetTable.
+
+**Files**: NodeHeader.tsx, AssetTable.tsx, FormatButton.tsx, TableActions.tsx
+
+**Impact**: Prevented unnecessary re-renders in high-frequency node components and asset management UI by providing stable function references.
+
+---
+
+### Performance Optimization: Inline Arrow Functions (2026-01-17)
+
+**What**: Extended inline handler memoization to 10+ additional components including color pickers, dashboard, context menus, and mini apps.
+
+**Files**: Login.tsx, GradientBuilder.tsx, SwatchPanel.tsx, HarmonyPicker.tsx, ColorPickerModal.tsx, LayoutMenu.tsx, WelcomePanel.tsx, ExamplesList.tsx, SelectionContextMenu.tsx, MiniAppResults.tsx
+
+**Impact**: Reduced re-renders in color picker, dashboard panels, context menus, and mini apps by providing stable function references.
+
+---
+
 ### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.

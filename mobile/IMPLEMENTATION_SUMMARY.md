@@ -176,7 +176,7 @@ For testing:
 - **Android Emulator**: Use `http://10.0.2.2:7777`
 - **iOS Simulator**: Use `http://localhost:7777`
 
-**Note:** For production deployments, use port 8000 instead.
+**Note:** Both development and production deployments use port 7777 by default.
 
 ## Architecture Highlights
 

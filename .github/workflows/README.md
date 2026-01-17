@@ -210,11 +210,49 @@ Each workflow prompt includes:
 
 ### Quality Gates
 
+**NEW: Automated Quality Guardrails** 🛡️
+
+All OpenCode workflows now include automated quality guardrails to prevent code quality degradation:
+
+#### Pre-Flight Check (Before Agent Runs)
+- Runs `make typecheck`, `make lint`, and `make test`
+- Establishes baseline quality state
+- Documents pre-existing issues
+- Provides context to OpenCode agent
+
+#### Post-Change Verification (After Agent Completes)
+- Re-runs all quality checks
+- Compares to pre-flight baseline
+- **Fails workflow** if NEW errors introduced
+- Provides detailed error reports
+
+#### Quality Gate Rules
+
+✅ **PASS**:
+- No new errors introduced
+- Maintains or improves quality
+- All three checks pass: `make typecheck lint test`
+
+❌ **FAIL**:
+- New TypeScript errors
+- New lint errors
+- New test failures
+
+**See [Quality Guardrails Documentation](../opencode-memory/quality-guardrails.md) for details.**
+
+### Quality Check Commands
+
 All workflows must pass:
 ```bash
 make typecheck  # TypeScript type check
 make lint       # ESLint validation
 make test       # Jest test suite
+make check      # All three checks combined
+```
+
+Auto-fix lint issues:
+```bash
+make lint-fix   # Auto-fix many lint issues
 ```
 
 ### Permissions
