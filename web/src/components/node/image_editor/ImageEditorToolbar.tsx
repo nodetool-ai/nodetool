@@ -287,6 +287,14 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     [handleToolSelect]
   );
 
+  const handleRotateCcw = useCallback(() => {
+    handleActionClick("rotate-ccw");
+  }, [handleActionClick]);
+
+  const handleRotateCw = useCallback(() => {
+    handleActionClick("rotate-cw");
+  }, [handleActionClick]);
+
   return (
     <div css={styles(theme)}>
       <div className="toolbar">

@@ -155,8 +155,8 @@ describe("useRemoveFromGroup", () => {
     ];
 
     mockFindNode.mockImplementation((id: string) => {
-      if (id === "parent-1") return parentNode1;
-      if (id === "parent-2") return parentNode2;
+      if (id === "parent-1") {return parentNode1;}
+      if (id === "parent-2") {return parentNode2;}
       return undefined;
     });
 
