@@ -97,7 +97,7 @@ follows the schema defined in `src/nodetool/proxy/config.py`.
 
 ### Services
 
-All service containers must listen on **port 8000 internally**. The proxy starts
+All service containers must listen on **port 7777 internally**. The proxy starts
 them on demand.
 
 | Field | Type | Description |
@@ -161,7 +161,7 @@ deployments:
           path: /
           image: nodetool:latest
           environment:
-            PORT: "8000"
+            PORT: "7777"
             NODETOOL_API_URL: "http://localhost:9001"
             DB_PATH: "/workspace/nodetool.db"
             HF_HOME: "/hf-cache"

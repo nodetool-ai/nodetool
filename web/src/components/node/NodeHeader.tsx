@@ -160,6 +160,25 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     updateNode(id, { selected: true });
   }, [id, updateNode]);
 
+  const handleOpenLogsDialog = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLogsDialogOpen(true);
+  }, []);
+
+  const handleShowResultsClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowResults?.();
+  }, [onShowResults]);
+
+  const handleShowInputsClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowInputs?.();
+  }, [onShowInputs]);
+
+  const handleCloseLogsDialog = useCallback(() => {
+    setLogsDialogOpen(false);
+  }, []);
+
   const hasIcon = Boolean(iconType);
 
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
@@ -221,10 +240,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           <Tooltip title={`${logCount} logs`} arrow>
             <IconButton
               size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLogsDialogOpen(true);
-              }}
+              onClick={handleOpenLogsDialog}
               sx={{ padding: "4px" }}
             >
               <Badge badgeContent={logCount} color="warning" max={99}>
@@ -238,10 +254,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           <Button
             size="small"
             startIcon={<Visibility sx={{ fontSize: 14 }} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowResults();
-            }}
+            onClick={handleShowResultsClick}
             sx={toggleButtonStyles}
           >
             Show Result
@@ -252,10 +265,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           <Button
             size="small"
             startIcon={<InputOutlined sx={{ fontSize: 14 }} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowInputs();
-            }}
+            onClick={handleShowInputsClick}
             sx={toggleButtonStyles}
           >
             Show Inputs
@@ -267,7 +277,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         id={id}
         workflowId={workflowId || nodeWorkflowId || ""}
         open={logsDialogOpen}
-        onClose={() => setLogsDialogOpen(false)}
+        onClose={handleCloseLogsDialog}
       />
     </div>
   );

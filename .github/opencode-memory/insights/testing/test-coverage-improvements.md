@@ -210,3 +210,101 @@ describe("graphEdgeToReactFlowEdge", () => {
 4. Graph conversion utilities are critical for workflow editor functionality
 
 **Status**: All 17 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17)
+
+**Coverage Added**: 4 new store test files with 51 tests
+
+**Tests Added**:
+- `MetadataStore.test.ts` - 16 tests for node metadata and model management
+- `ModelManagerStore.test.ts` - 17 tests for model manager UI state
+- `FindInWorkflowStore.test.ts` - 14 tests for find/replace functionality
+- `InspectedNodeStore.test.ts` - 4 tests for node inspection state
+
+**Areas Covered**:
+- Node metadata storage and retrieval
+- Recommended models and model packs
+- Model manager filter state (search, type, size, status)
+- Find/replace dialog state management
+- Search results navigation (next/prev, wrapping)
+- Node inspection toggling
+
+**Test Patterns Used**:
+
+1. **Store State Testing Pattern**:
+```typescript
+describe("StoreName", () => {
+  beforeEach(() => {
+    useStoreName.setState(useStoreName.getInitialState());
+  });
+
+  it("initializes with correct default state", () => {
+    expect(useStoreName.getState().property).toEqual(defaultValue);
+  });
+
+  it("updates state correctly", () => {
+    act(() => {
+      useStoreName.getState().setProperty(newValue);
+    });
+    expect(useStoreName.getState().property).toEqual(newValue);
+  });
+});
+```
+
+2. **Navigation Testing Pattern**:
+```typescript
+it("navigates to next result", () => {
+  const mockResults = [result1, result2, result3];
+  act(() => {
+    useStore.getState().setResults(mockResults);
+  });
+  expect(useStore.getState().selectedIndex).toBe(0);
+
+  act(() => {
+    useStore.getState().navigateNext();
+  });
+  expect(useStore.getState().selectedIndex).toBe(1);
+});
+
+it("wraps around to first result", () => {
+  useStore.getState().setSelectedIndex(1);
+  act(() => {
+    useStore.getState().navigateNext();
+  });
+  expect(useStore.getState().selectedIndex).toBe(0);
+});
+```
+
+3. **Toggle Testing Pattern**:
+```typescript
+it("toggles state on/off", () => {
+  expect(useStore.getState().isOpen).toBe(false);
+
+  act(() => {
+    useStore.getState().toggle();
+  });
+  expect(useStore.getState().isOpen).toBe(true);
+
+  act(() => {
+    useStore.getState().toggle();
+  });
+  expect(useStore.getState().isOpen).toBe(false);
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/MetadataStore.test.ts`
+- `web/src/stores/__tests__/ModelManagerStore.test.ts`
+- `web/src/stores/__tests__/FindInWorkflowStore.test.ts`
+- `web/src/stores/__tests__/InspectedNodeStore.test.ts`
+
+**Key Learnings**:
+1. Use `useStore.getState()` directly for testing Zustand stores (not renderHook)
+2. Always reset store state in `beforeEach` for test isolation
+3. Create proper mock data structures matching TypeScript interfaces
+4. Test navigation patterns with edge cases (wrapping, empty lists)
+5. Test toggle behavior for both on/off states
+
+**Status**: All 51 tests passing

@@ -25,7 +25,7 @@ services:
     mem_limit: 8g
     cpus: 4
     environment:
-      PORT: "8000"
+      PORT: "7777"
       HF_HOME: /hf-cache
     volumes:
       /data/nodetool/workspace:
@@ -50,7 +50,7 @@ docker run --gpus all \
   -v /data/nodetool/workspace:/workspace \
   -v /data/hf-cache:/hf-cache:ro \
   -e HF_HOME=/hf-cache \
-  -p 8000:8000 \
+  -p 7777:7777 \
   nodetool:latest
 ```
 

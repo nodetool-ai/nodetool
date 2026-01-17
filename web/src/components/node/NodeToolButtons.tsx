@@ -125,6 +125,14 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     setAnchorEl(null);
   }, [nodeId, updateNodeData]);
 
+  const handleSelectOnAny = useCallback(() => {
+    handleSelectSyncMode("on_any");
+  }, [handleSelectSyncMode]);
+
+  const handleSelectZipAll = useCallback(() => {
+    handleSelectSyncMode("zip_all");
+  }, [handleSelectSyncMode]);
+
   const handleOpenDropdown = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   }, []);
@@ -349,7 +357,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <MenuItem
           selected={syncMode === "on_any"}
-          onClick={() => handleSelectSyncMode("on_any")}
+          onClick={handleSelectOnAny}
           sx={{ py: 0.5, minHeight: "unset", pl: 3 }}
         >
           <ListItemIcon sx={{ minWidth: 32 }}>
@@ -365,7 +373,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <MenuItem
           selected={syncMode === "zip_all"}
-          onClick={() => handleSelectSyncMode("zip_all")}
+          onClick={handleSelectZipAll}
           sx={{ py: 0.5, minHeight: "unset", pl: 3 }}
         >
           <ListItemIcon sx={{ minWidth: 32 }}>
