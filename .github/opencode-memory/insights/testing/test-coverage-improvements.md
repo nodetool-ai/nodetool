@@ -444,3 +444,85 @@ it("toggles state on/off", () => {
 5. Test toggle behavior for both on/off states
 
 **Status**: All 51 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17)
+
+**Coverage Added**: 2 new store test files with 19 tests
+
+**Tests Added**:
+- `AppHeaderStore.test.ts` - 11 tests for app header state management
+- `WorkflowActionsStore.test.ts` - 8 tests for workflow action callbacks
+
+**Areas Covered**:
+- Help dialog open/close state
+- Help index navigation
+- Workflow action callback registration
+- Action callback clearing and updates
+- Toggle behavior for help dialog
+
+**Test Patterns Used**:
+
+1. **UI State Store Testing Pattern**:
+```typescript
+describe("AppHeaderStore", () => {
+  beforeEach(() => {
+    useAppHeaderStore.setState(useAppHeaderStore.getInitialState());
+  });
+
+  it("initializes with correct default state", () => {
+    const { result } = renderHook(() => useAppHeaderStore());
+    expect(result.current.helpOpen).toBe(false);
+    expect(result.current.helpIndex).toBe(0);
+  });
+
+  it("handleOpenHelp sets helpOpen to true", () => {
+    const { result } = renderHook(() => useAppHeaderStore());
+    act(() => {
+      result.current.handleOpenHelp();
+    });
+    expect(result.current.helpOpen).toBe(true);
+  });
+});
+```
+
+2. **Callback Store Testing Pattern**:
+```typescript
+describe("WorkflowActionsStore", () => {
+  beforeEach(() => {
+    useWorkflowActionsStore.setState(useWorkflowActionsStore.getInitialState());
+  });
+
+  it("sets all actions at once", () => {
+    const mockEdit = jest.fn();
+    const { result } = renderHook(() => useWorkflowActionsStore());
+    act(() => {
+      result.current.setActions({ onEdit: mockEdit });
+    });
+    expect(result.current.onEdit).toBe(mockEdit);
+  });
+
+  it("clears all actions", () => {
+    const { result } = renderHook(() => useWorkflowActionsStore());
+    act(() => {
+      result.current.setActions({ onEdit: jest.fn() });
+      result.current.clearActions();
+    });
+    expect(result.current.onEdit).toBeNull();
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/AppHeaderStore.test.ts`
+- `web/src/stores/__tests__/WorkflowActionsStore.test.ts`
+
+**Key Learnings**:
+1. UI state stores with simple toggle behavior are ideal candidates for testing
+2. renderHook + act pattern works well for stores that need React integration
+3. Always test both positive and negative cases (open/close, set/clear)
+4. Test edge cases like multiple updates, negative indices, and large values
+5. Callback stores need proper cleanup testing (clearActions)
+
+**Status**: All 19 tests passing

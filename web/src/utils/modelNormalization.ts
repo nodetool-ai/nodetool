@@ -3,12 +3,14 @@ import type {
   ImageModel,
   ASRModel,
   TTSModel,
-  VideoModel
+  VideoModel,
+  EmbeddingModel
 } from "../stores/ApiTypes";
 import type { TypeTag, SizeBucket } from "../stores/ModelFiltersStore";
 
 export type ModelSelectorModel =
   | LanguageModel
+  | EmbeddingModel
   | ImageModel
   | ASRModel
   | TTSModel

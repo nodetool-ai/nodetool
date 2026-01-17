@@ -854,6 +854,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/embedding/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Embedding Models Endpoint
+         * @description Get all available embedding models from a specific provider.
+         */
+        get: operations["get_embedding_models_endpoint_api_models_embedding__provider__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/image/{provider}": {
         parameters: {
             query?: never;
@@ -5040,6 +5060,33 @@ export interface components {
             /** Supported Tasks */
             supported_tasks?: string[];
         };
+        /** EmbeddingModel */
+        EmbeddingModel: {
+            /**
+             * Type
+             * @default embedding_model
+             * @constant
+             */
+            type: "embedding_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Path */
+            path?: string | null;
+            /** Dimensions */
+            dimensions?: number | null;
+            /** Supported Tasks */
+            supported_tasks?: string[];
+        };
         /** LlamaModel */
         LlamaModel: {
             /**
@@ -8760,6 +8807,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_embedding_models_endpoint_api_models_embedding__provider__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["Provider"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmbeddingModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Provider Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": { detail: string };
                 };
             };
         };

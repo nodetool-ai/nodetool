@@ -106,6 +106,7 @@ export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type LanguageModel = components["schemas"]["LanguageModel"];
+export type EmbeddingModel = components["schemas"]["EmbeddingModel"];
 export type ImageModel = components["schemas"]["ImageModel"];
 export type TTSModel = components["schemas"]["TTSModel"];
 export type ASRModel = components["schemas"]["ASRModel"];
