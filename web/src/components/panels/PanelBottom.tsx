@@ -8,12 +8,14 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo } from "react";
 import isEqual from "lodash/isEqual";
 import Terminal from "../terminal/Terminal";
+import WorkflowProfilerPanel from "./WorkflowProfilerPanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import SsidChartIcon from "@mui/icons-material/SsidChart";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -82,6 +84,11 @@ const styles = (theme: Theme) =>
         alignItems: "center",
         gap: "8px",
         color: theme.vars.palette.text.secondary
+      },
+      "& .right": {
+        display: "flex",
+        alignItems: "center",
+        gap: "4px"
       }
     },
     ".terminal-wrapper": {
@@ -111,6 +118,9 @@ const PanelBottom: React.FC = () => {
 
   // Add keyboard shortcut for toggle (Ctrl+`)
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
+
+  // Add keyboard shortcut for profiler (Ctrl+Shift+P)
+  useCombo(["Control", "Shift", "KeyP"], () => handlePanelToggle("profiler"), false);
 
   const openHeight = isVisible
     ? Math.min(
@@ -160,29 +170,88 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
+                {activeView === "profiler" ? (
+                  <>
+                    <SsidChartIcon fontSize="small" />
+                    <Typography variant="body2">Profiler</Typography>
+                  </>
+                ) : (
+                  <>
+                    <TerminalIcon fontSize="small" />
+                    <Typography variant="body2">Terminal</Typography>
+                  </>
+                )}
               </div>
-              <Tooltip
-                title={
-                  <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
-                    <div className="tooltip-key">
-                      <kbd>Ctrl</kbd> + <kbd>`</kbd>
+              <div className="right">
+                {activeView === "terminal" && (
+                  <Tooltip
+                    title={
+                      <div className="tooltip-span">
+                        <div className="tooltip-title">Show profiler</div>
+                        <div className="tooltip-key">
+                          <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>
+                        </div>
+                      </div>
+                    }
+                    placement="top-start"
+                    enterDelay={TOOLTIP_ENTER_DELAY}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => handlePanelToggle("profiler")}
+                      aria-label="Show profiler"
+                    >
+                      <SsidChartIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {activeView === "profiler" && (
+                  <Tooltip
+                    title={
+                      <div className="tooltip-span">
+                        <div className="tooltip-title">Show terminal</div>
+                        <div className="tooltip-key">
+                          <kbd>Ctrl</kbd> + <kbd>`</kbd>
+                        </div>
+                      </div>
+                    }
+                    placement="top-start"
+                    enterDelay={TOOLTIP_ENTER_DELAY}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => handlePanelToggle("terminal")}
+                      aria-label="Show terminal"
+                    >
+                      <TerminalIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <Tooltip
+                  title={
+                    <div className="tooltip-span">
+                      <div className="tooltip-title">
+                        {activeView === "profiler" ? "Hide profiler" : "Hide terminal"}
+                      </div>
+                      <div className="tooltip-key">
+                        <kbd>Ctrl</kbd> + <kbd>`</kbd>
+                      </div>
                     </div>
-                  </div>
-                }
-                placement="top-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                <IconButton
-                  size="small"
-                  onClick={() => handlePanelToggle("terminal")}
-                  aria-label="Hide terminal"
+                  }
+                  placement="top-start"
+                  enterDelay={TOOLTIP_ENTER_DELAY}
                 >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+                  <IconButton
+                    size="small"
+                    onClick={() => handlePanelToggle(activeView)}
+                    aria-label={
+                      activeView === "profiler" ? "Hide profiler" : "Hide terminal"
+                    }
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </Tooltip>
+              </div>
             </div>
           )}
           <div
@@ -192,6 +261,17 @@ const PanelBottom: React.FC = () => {
             }}
           >
             <Terminal />
+          </div>
+          <div
+            style={{
+              display: activeView === "profiler" && isVisible ? "flex" : "none",
+              flex: 1,
+              minHeight: 0,
+              overflow: "auto",
+              width: "100%"
+            }}
+          >
+            <WorkflowProfilerPanel />
           </div>
         </div>
       </Drawer>
