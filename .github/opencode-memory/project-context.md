@@ -54,6 +54,18 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Audit (2026-01-17)
+
+**What**: Comprehensive performance audit completed. Codebase is well optimized with 55% bundle reduction (12.77 MB → 5.74 MB), selective Zustand subscriptions, React.memo on all large components, and proper cleanup in all useEffects.
+
+**Status**: ✅ EXCELLENT - No immediate performance work required.
+
+**Files**: .github/opencode-memory/insights/performance/performance-audit-20260117.md
+
+**Metrics**: 2574 tests pass, lint passes, typecheck passes (web), bundle 5.74 MB main.
+
+---
+
 ### Performance Optimization: Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
