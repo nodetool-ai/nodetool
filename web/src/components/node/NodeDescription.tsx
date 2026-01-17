@@ -47,81 +47,70 @@ interface NodeDescriptionProps {
   onTagClick?: (tag: string) => void;
 }
 
-const NodeDescription = React.memo(({
-  description,
-  className,
-  onTagClick
-}: NodeDescriptionProps) => {
-  const theme = useTheme();
+const NodeDescription = React.memo(
+  ({ description, className, onTagClick }: NodeDescriptionProps) => {
+    const theme = useTheme();
 
-<<<<<<< HEAD
-  const handleTagClick = useCallback(
-    (tag: string) => {
-      if (onTagClick) {
-        onTagClick(tag);
-      }
-    },
-    [onTagClick]
-  );
+    const handleTagClick = useCallback(
+      (tag: string) => {
+        if (onTagClick) {
+          onTagClick(tag);
+        }
+      },
+      [onTagClick]
+    );
 
-  const createTagClickHandler = useCallback(
-    (tag: string) => () => handleTagClick(tag),
-    [handleTagClick]
-  );
-=======
-  const handleTagClick = useCallback((tag: string) => () => {
-    if (onTagClick) {
-      onTagClick(tag);
+    const createTagClickHandler = useCallback(
+      (tag: string) => () => handleTagClick(tag),
+      [handleTagClick]
+    );
+
+    if (!description) {
+      return null;
     }
-  }, [onTagClick]);
->>>>>>> origin/main
 
-  if (!description) {
-    return null;
+    const lines = description.split("\n");
+    const firstLine = lines[0] || "";
+    const tagsLine = lines.length > 1 ? lines[1] : "";
+    const restOfDescription =
+      lines.length > 2
+        ? lines
+            .slice(2)
+            .map((line) => line.trim())
+            .join("\n")
+        : "";
+
+    const tags = tagsLine
+      ? tagsLine
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((t) => t)
+      : [];
+
+    return (
+      <div css={styles(theme)} className={className}>
+        {firstLine && <span className="first-line">{firstLine}</span>}
+        {tags.length > 0 && (
+          <div className="tags-container">
+            {tags.map((tag, index) => (
+              <span
+                key={index}
+                className="tag"
+                onClick={createTagClickHandler(tag)}
+                style={{ cursor: onTagClick ? "pointer" : "default" }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+        {restOfDescription && (
+          <div className="rest-description">{restOfDescription}</div>
+        )}
+      </div>
+    );
   }
-
-  const lines = description.split("\n");
-  const firstLine = lines[0] || "";
-  const tagsLine = lines.length > 1 ? lines[1] : "";
-  const restOfDescription =
-    lines.length > 2
-      ? lines
-          .slice(2)
-          .map((line) => line.trim())
-          .join("\n")
-      : "";
-
-  const tags = tagsLine
-    ? tagsLine
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((t) => t)
-    : [];
-
-  return (
-    <div css={styles(theme)} className={className}>
-      {firstLine && <span className="first-line">{firstLine}</span>}
-      {tags.length > 0 && (
-        <div className="tags-container">
-          {tags.map((tag, index) => (
-            <span
-              key={index}
-              className="tag"
-<<<<<<< HEAD
-              onClick={createTagClickHandler(tag)}
-              style={{ cursor: onTagClick ? "pointer" : "default" }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-      {restOfDescription && (
-        <div className="rest-description">{restOfDescription}</div>
-      )}
-    </div>
-  );
-});
+);
 
 NodeDescription.displayName = "NodeDescription";
 
