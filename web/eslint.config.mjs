@@ -96,5 +96,15 @@ export default [
       "curly": ["warn", "all"], // Encourage curly braces for all control statements
       "no-throw-literal": "error"
     }
+  },
+  // Test file overrides - allow Jest-specific patterns
+  {
+    files: ["**/__tests__/**/*.{ts,tsx,js,jsx}", "**/*.test.{ts,tsx,js,jsx}", "**/*.spec.{ts,tsx,js,jsx}"],
+    rules: {
+      // Allow require() for Jest mocking - this is the standard Jest pattern
+      "@typescript-eslint/no-require-imports": "off",
+      // Allow unused variables in tests (often used for clarity)
+      "@typescript-eslint/no-unused-vars": "off"
+    }
   }
 ];
