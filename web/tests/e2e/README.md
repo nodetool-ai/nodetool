@@ -10,13 +10,13 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Navigation functionality
 - Backend API connectivity
 
-### 2. dashboard.spec.ts (New)
+### 2. dashboard.spec.ts
 **Tests: 3**
 - Dashboard page loading
 - Dashboard sections display
 - Navigation from dashboard
 
-### 3. assets.spec.ts (New)
+### 3. assets.spec.ts
 **Tests: 5**
 - Asset explorer page loading
 - Asset interface display
@@ -24,52 +24,52 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Text file upload
 - Image file upload
 
-### 4. auth.spec.ts (New)
+### 4. auth.spec.ts
 **Tests: 4**
 - Root redirect behavior (localhost mode)
 - Dashboard access
 - Login page accessibility
 - Protected route handling (editor routes)
 
-### 5. chat.spec.ts (New)
+### 5. chat.spec.ts
 **Tests: 3**
 - Chat page loading
 - Chat interface elements
 - Thread ID navigation
 
-### 6. collections.spec.ts (New)
+### 6. collections.spec.ts
 **Tests: 4**
 - Collections page loading
 - Collections interface display
 - Empty state handling
 - Collection creation and file upload via drag and drop
 
-### 7. templates.spec.ts (New)
+### 7. templates.spec.ts
 **Tests: 3**
 - Templates page loading
 - Templates interface display
 - Empty state handling
 
-### 8. models.spec.ts (New)
+### 8. models.spec.ts
 **Tests: 3**
 - Models page loading
 - Models interface display
 - Navigation to models page
 
-### 9. miniapps.spec.ts (New)
+### 9. miniapps.spec.ts
 **Tests: 3**
 - MiniApps page loading
 - MiniApps interface display
 - Optional workflow ID parameter handling
 
-### 10. navigation.spec.ts (New)
+### 10. navigation.spec.ts
 **Tests: 11**
 - All major route navigation (8 routes)
 - State maintenance across navigation
 - Browser back/forward functionality
 - Invalid route handling
 
-### 11. websocket.spec.ts (New)
+### 11. websocket.spec.ts
 **Tests: 10**
 - WebSocket connection establishment on chat page
 - Unified /ws endpoint usage (not legacy /ws/chat or /ws/predict)
@@ -82,24 +82,111 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Connection interruption handling
 - Disconnection status display
 
-## Total Test Coverage
-
-- **Total Files:** 11
-- **Total Tests:** 49
-- **Original Tests:** 3
-- **New Tests:** 46
-### 11. model-download.spec.ts (New)
+### 12. model-download.spec.ts
 **Tests: 3**
 - Download a small HuggingFace model successfully
 - Connect to download WebSocket endpoint
 - Network access to HuggingFace (validates no CI restrictions)
 
+### 13. workflow-editor.spec.ts (New)
+**Tests: 10**
+- Workflow creation via API and opening in editor
+- Editor toolbar and controls display
+- Workflow save action handling
+- Canvas panning functionality
+- Zoom controls support
+- Node menu opening via right-click
+- Node menu opening via keyboard shortcut
+- Workflow data fetching on load
+- Handling non-existent workflows gracefully
+
+### 14. search.spec.ts (New)
+**Tests: 12**
+- Template search input presence
+- Template filtering when searching
+- Search results clearing
+- Asset search functionality
+- Asset search API handling
+- Command palette search support
+- Node search in editor
+- Keyboard navigation in search results
+- Search focus keyboard shortcuts
+- Valid search results from templates API
+- Empty search query handling
+- Special characters in search handling
+- Search performance (response time)
+
+### 15. keyboard-shortcuts.spec.ts (New)
+**Tests: 16**
+- Escape key to close dialogs
+- Meta+K for command palette
+- Undo shortcut (Cmd/Ctrl+Z)
+- Redo shortcut (Cmd/Ctrl+Shift+Z)
+- Select all shortcut (Cmd/Ctrl+A)
+- Copy/paste shortcuts
+- Delete shortcut
+- Fit to screen shortcut
+- Navigation shortcuts
+- Chat Enter to send message
+- Chat Shift+Enter for new line
+- Modal closing with Escape
+- Zoom in (Cmd/Ctrl++)
+- Zoom out (Cmd/Ctrl+-)
+- Reset zoom (Cmd/Ctrl+0)
+
+### 16. settings.spec.ts (New)
+**Tests: 16**
+- Settings panel access from dashboard
+- Settings display in sidebar/header
+- Dark/light mode support
+- Theme preference persistence
+- LocalStorage settings save
+- Settings restoration on page reload
+- Panel layout persistence
+- Panel resize handling
+- Editor view state persistence
+- Selected model persistence
+- Model settings in chat interface
+- API key configuration option
+- Workflow organization support
+- Open workflows persistence
+- Current workflow persistence
+- Agent mode preference persistence
+- Selected tools persistence
+- LocalStorage clearing handling
+
+### 17. responsive.spec.ts (New)
+**Tests: 24**
+- Dashboard display on desktop
+- Dashboard display on laptop
+- Dashboard display on tablet
+- Dashboard display on mobile
+- Dashboard display on mobile landscape
+- Chat interface adaptation for mobile
+- Chat input on tablet
+- Templates grid layout adaptation
+- Asset grid adaptation for mobile
+- Asset functionality on tablet
+- Model list adaptation for mobile
+- Model cards on tablet
+- Navigation adaptation for mobile
+- Sidebar on desktop
+- Viewport resize handling
+- State maintenance during resize
+- Touch-friendly element sizing
+- Mobile scrolling behavior
+- Horizontal scroll handling
+- Editor responsiveness on smaller screens
+- Portrait to landscape orientation changes
+- Tablet orientation changes
+- Content overflow handling
+
 ## Total Test Coverage
 
-- **Total Files:** 10
-- **Total Tests:** 41
+- **Total Files:** 17
+- **Total Tests:** ~110+
 - **Original Tests:** 3
-- **New Tests:** 38
+- **New Tests:** ~107+
 
 ## Test Coverage Areas
 
@@ -118,6 +205,11 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - ✅ Browser history navigation
 - ✅ Backend API connectivity
 - ✅ WebSocket integration (unified /ws endpoint)
+- ✅ Workflow editor (canvas, nodes, zoom, pan)
+- ✅ Search functionality (templates, assets, nodes)
+- ✅ Keyboard shortcuts (editor, chat, navigation)
+- ✅ Settings and preferences (localStorage, theme)
+- ✅ Responsive design (mobile, tablet, desktop)
 
 ### Test Patterns Used
 
@@ -140,6 +232,21 @@ This directory contains end-to-end tests for the NodeTool web application using 
    - Empty states
    - Invalid routes
    - Server error detection
+
+5. **API Integration**
+   - Direct API calls with Playwright request context
+   - Response validation
+   - Error response handling
+
+6. **Keyboard Interactions**
+   - Shortcut testing
+   - Focus management
+   - Modal handling
+
+7. **Responsive Testing**
+   - Multiple viewport sizes
+   - Orientation changes
+   - Touch target validation
 
 ## Running the Tests
 
@@ -195,6 +302,8 @@ if (process.env.JEST_WORKER_ID) {
 4. **Error Detection**: Checking for server errors
 5. **Timeout Handling**: Using appropriate timeouts for async operations
 6. **Clean Code**: Following TypeScript and Playwright best practices
+7. **Resource Cleanup**: Deleting test data after tests complete
+8. **API Testing**: Using Playwright's request context for API validation
 
 ## CI/CD Integration
 
@@ -207,10 +316,10 @@ See `.github/workflows/e2e.yml` for CI configuration.
 ## Future Enhancements
 
 Potential areas for additional tests:
-- Workflow creation and editing (node operations)
-- Asset upload and management
-- Form submissions
-- Real chat interactions
-- User settings
-- Keyboard shortcuts
-- Mobile responsive behavior
+- Real chat interactions with AI responses
+- Workflow execution and result validation
+- Complex node operations (grouping, connections)
+- Drag-and-drop node creation
+- Multi-tab workflow editing
+- Real-time collaboration features
+- Performance benchmarking
