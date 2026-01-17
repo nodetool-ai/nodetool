@@ -1,6 +1,7 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useWorkflowActions } from "../useWorkflowActions";
 import { Workflow } from "../../stores/ApiTypes";
+import * as ReactRouterDom from "react-router-dom";
 
 // Mock before imports
 jest.mock("react-router-dom", () => ({
@@ -20,8 +21,9 @@ jest.mock("../../contexts/WorkflowManagerContext", () => ({
   })
 }));
 
-// Re-import with mocks in place
-const mockUseNavigate = require("react-router-dom").useNavigate;
+// Get typed access to the mocked function
+type UseNavigateMock = () => jest.Mock;
+const mockUseNavigate = (ReactRouterDom as unknown as { useNavigate: UseNavigateMock }).useNavigate;
 
 describe("useWorkflowActions", () => {
   const mockNavigate = jest.fn();
@@ -43,7 +45,7 @@ describe("useWorkflowActions", () => {
     mockCreateNewWorkflow.mockResolvedValue(mockWorkflow);
     mockCreateWorkflow.mockResolvedValue(mockWorkflow);
     mockNavigate.mockClear();
-    mockUseNavigate.mockReturnValue(mockNavigate);
+    mockUseNavigate().mockReturnValue(mockNavigate);
   });
 
   it("returns loadingExampleId and all handler functions", () => {

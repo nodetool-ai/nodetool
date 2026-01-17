@@ -2,6 +2,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useSurroundWithGroup } from "../useSurroundWithGroup";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
+import * as NodeContext from "../../../contexts/NodeContext";
 
 // Mock dependencies at the top level
 jest.mock("@xyflow/react", () => ({
@@ -68,8 +69,8 @@ describe("useSurroundWithGroup", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    const { useNodes, useTemporalNodes } = require("../../../contexts/NodeContext");
-    
+    const { useNodes, useTemporalNodes } = NodeContext;
+
     mockCreateNode.mockReturnValue({
       id: "group-1",
       type: "nodetool.workflows.base_node.Group",
@@ -78,12 +79,12 @@ describe("useSurroundWithGroup", () => {
       width: 200,
       height: 200
     } as any);
-    
+
     (useNodes as jest.Mock).mockReturnValue({
       createNode: mockCreateNode,
       setNodes: mockSetNodes
     });
-    
+
     (useTemporalNodes as jest.Mock).mockReturnValue({
       pause: mockPause,
       resume: mockResume
@@ -246,7 +247,7 @@ describe("useSurroundWithGroup", () => {
     act(() => {
       try {
         result.current({ selectedNodes });
-      } catch (e) {
+      } catch (_e) {
         // Expected
       }
     });

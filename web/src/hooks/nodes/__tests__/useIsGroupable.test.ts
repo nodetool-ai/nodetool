@@ -8,7 +8,12 @@ describe("useIsGroupable", () => {
     id: "test-node",
     type,
     position: { x: 0, y: 0 },
-    data: {}
+    data: {
+      properties: {},
+      selectable: true,
+      dynamic_properties: {},
+      workflow_id: "test-workflow"
+    }
   });
 
   it("returns isGroupable and isGroup functions", () => {

@@ -10,7 +10,12 @@ describe("getChildNodes", () => {
     id,
     type: "default",
     position: { x: 0, y: 0 },
-    data: {},
+    data: {
+      properties: {},
+      selectable: true,
+      dynamic_properties: {},
+      workflow_id: "test-workflow"
+    },
     parentId
   });
 
@@ -73,13 +78,19 @@ describe("getChildNodes", () => {
         id: "node-1",
         type: "custom",
         position: { x: 100, y: 200 },
-        data: { customProp: "test" },
+        data: {
+          properties: {},
+          selectable: true,
+          dynamic_properties: {},
+          workflow_id: "test-workflow",
+          customProp: "test"
+        } as any,
         parentId: "parent-1"
       }
     ];
     const result = getChildNodes(nodes, "parent-1");
     expect(result).toHaveLength(1);
-    expect(result[0].data.customProp).toBe("test");
+    expect((result[0].data as any).customProp).toBe("test");
     expect(result[0].position).toEqual({ x: 100, y: 200 });
   });
 });

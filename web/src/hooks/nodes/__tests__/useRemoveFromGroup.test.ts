@@ -2,11 +2,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useRemoveFromGroup } from "../useRemoveFromGroup";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
-
-// Mock dependencies at the top level
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
-}));
+import * as NodeContext from "../../../contexts/NodeContext";
 
 describe("useRemoveFromGroup", () => {
   const mockUpdateNode = jest.fn();
@@ -21,13 +17,18 @@ describe("useRemoveFromGroup", () => {
     type: "default",
     position,
     parentId,
-    data: {}
+    data: {
+      properties: {},
+      selectable: true,
+      dynamic_properties: {},
+      workflow_id: "test-workflow"
+    }
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
-    const { useNodes } = require("../../../contexts/NodeContext");
-    
+    const { useNodes } = NodeContext;
+
     (useNodes as jest.Mock).mockReturnValue({
       updateNode: mockUpdateNode,
       findNode: mockFindNode
@@ -43,7 +44,6 @@ describe("useRemoveFromGroup", () => {
     const { result } = renderHook(() => useRemoveFromGroup());
 
     act(() => {
-      // @ts-expect-error - testing with undefined
       result.current(undefined);
     });
 
