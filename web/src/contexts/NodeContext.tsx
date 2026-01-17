@@ -38,6 +38,14 @@ export const useNodes = <T,>(
   return useStoreWithEqualityFn(store, selector, equalityFn ?? shallow);
 };
 
+export const useNodeStore = () => {
+  const store = useContext(NodeContext);
+  if (!store) {
+    throw new Error("useNodeStore must be used within a NodeProvider");
+  }
+  return store;
+};
+
 export const useTemporalNodes = <T,>(
   selector: (state: TemporalState<PartializedNodeStore>) => T
 ): T => {

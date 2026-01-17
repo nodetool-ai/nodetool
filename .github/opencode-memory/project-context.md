@@ -54,6 +54,19 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Save Version Checkpoint Feature (2026-01-17)
+
+**What**: Added manual version checkpoint creation to workflow editor.
+
+**Files**:
+- `web/src/components/version/SaveVersionDialog.tsx` - New dialog component
+- `web/src/components/node_editor/NodeEditor.tsx` - Added save button and integration
+- `web/src/contexts/NodeContext.tsx` - Added useNodeStore export
+
+**Impact**: Users can now manually save named version checkpoints from the editor toolbar.
+
+---
+
 ### Performance Optimization: Large Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
