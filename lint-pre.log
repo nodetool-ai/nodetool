@@ -4,6 +4,31 @@ cd web && npm run lint
 > nodetool@0.6.2-rc.26 lint
 > eslint src
 
+
+/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useDuplicate.test.ts
+  157:11  warning  'selectedNodes' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useNamespaceTree.test.ts
+  5:28  warning  'NamespaceTree' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useNumberInput.test.ts
+  1:22  warning  'act' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/ConnectableNodesStore.test.ts
+   4:9  warning  'createMockNodeMetadata' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  16:9  warning  'createMockTypeMetadata' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/WorkflowActionsStore.test.ts
+  2:10  warning  'Workflow' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/utils/__tests__/downloadPreviewAssets.test.ts
+  39:14  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  54:14  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  69:14  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  85:14  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 10 problems (0 errors, 10 warnings)
+
 Linting electron package...
 cd electron && npm run lint
 

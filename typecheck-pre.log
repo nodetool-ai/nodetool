@@ -4,15 +4,41 @@ cd web && npm run typecheck
 > nodetool@0.6.2-rc.26 typecheck
 > tsc --noEmit
 
-Type checking electron package...
-cd electron && npm run typecheck
-
-> nodetool-electron@0.6.2-rc.26 typecheck
-> tsc --noEmit
-
-Type checking mobile package...
-cd mobile && npm run typecheck
-
-> nodetool-mobile@0.6.2-rc.26 typecheck
-> tsc --noEmit
-
+src/hooks/__tests__/useCollectionDragAndDrop.test.ts(29,27): error TS2345: Argument of type '(initial: any) => (jest.Mock<any, any, any> | null)[] | (any[] | jest.Mock<any, any, any>)[]' is not assignable to parameter of type '() => [unknown, Dispatch<unknown>]'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+src/hooks/__tests__/useDuplicate.test.ts(167,7): error TS2322: Type '{ id: string; position: { x: number; y: number; }; data: { positionAbsolute: { x: number; y: number; }; }; selected: true; }' is not assignable to type 'never'.
+src/hooks/__tests__/useDuplicate.test.ts(168,7): error TS2322: Type '{ id: string; position: { x: number; y: number; }; data: {}; selected: false; }' is not assignable to type 'never'.
+src/hooks/__tests__/useDuplicate.test.ts(250,7): error TS2322: Type '{ id: string; source: string; target: string; }' is not assignable to type 'never'.
+src/hooks/__tests__/useDuplicate.test.ts(251,7): error TS2322: Type '{ id: string; source: string; target: string; }' is not assignable to type 'never'.
+src/hooks/__tests__/useDuplicate.test.ts(282,7): error TS2322: Type '{ id: string; source: string; target: string; }' is not assignable to type 'never'.
+src/hooks/__tests__/useNodeFocus.test.ts(37,6): error TS2352: Conversion of type 'UseBoundStore<StoreApi<NodeFocusState>>' to type 'Mock<any, any, any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ (): NodeFocusState; <U>(selector: (state: NodeFocusState) => U): U; <U>(selector: (state: NodeFocusState) => U, equalityFn: (a: U, b: U) => boolean): U; } & StoreApi<...>' is missing the following properties from type 'Mock<any, any, any>': getMockName, mock, mockClear, mockReset, and 13 more.
+src/hooks/__tests__/useNodeFocus.test.ts(139,5): error TS2322: Type '"node-2"' is not assignable to type 'null'.
+src/hooks/__tests__/useNodeFocus.test.ts(166,36): error TS2322: Type 'string' is not assignable to type 'never'.
+src/hooks/__tests__/useNodeFocus.test.ts(166,46): error TS2322: Type 'string' is not assignable to type 'never'.
+src/hooks/__tests__/useNodeFocus.test.ts(166,56): error TS2322: Type 'string' is not assignable to type 'never'.
+src/hooks/__tests__/useNodeFocus.test.ts(177,36): error TS2322: Type 'string' is not assignable to type 'never'.
+src/hooks/__tests__/useNodeFocus.test.ts(214,5): error TS2322: Type '"node-2"' is not assignable to type 'null'.
+src/hooks/__tests__/useNodeFocus.test.ts(221,5): error TS2322: Type '"non-existent"' is not assignable to type 'null'.
+src/hooks/__tests__/useNodeFocus.test.ts(228,5): error TS2322: Type '"node-1"' is not assignable to type 'null'.
+src/hooks/__tests__/useNodeFocus.test.ts(230,36): error TS2322: Type 'string' is not assignable to type 'never'.
+src/hooks/__tests__/useNodeFocus.test.ts(230,46): error TS2322: Type 'string' is not assignable to type 'never'.
+src/hooks/__tests__/useNumberInput.test.ts(3,46): error TS2307: Cannot find module '../components/inputs/NumberInput' or its corresponding type declarations.
+src/serverState/__tests__/checkHfCache.test.ts(13,25): error TS2304: Cannot find name 'HfCacheCheckResponse'.
+src/stores/__tests__/ConnectableNodesStore.test.ts(5,5): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'NodeMetadata'.
+src/stores/__tests__/ConnectableNodesStore.test.ts(17,5): error TS2353: Object literal may only specify known properties, and 'input' does not exist in type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }'.
+src/stores/__tests__/NodeMenuStore.test.ts(5,3): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'NodeMetadata'.
+src/stores/__tests__/NodeMenuStore.test.ts(87,34): error TS2353: Object literal may only specify known properties, and 'category' does not exist in type 'SearchResultGroup'.
+src/stores/__tests__/NodeMenuStore.test.ts(152,13): error TS2353: Object literal may only specify known properties, and 'category' does not exist in type 'SearchResultGroup'.
+src/stores/__tests__/NodeMenuStore.test.ts(152,90): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Partial<NodeMetadata>'.
+src/stores/__tests__/NodeMenuStore.test.ts(164,13): error TS2353: Object literal may only specify known properties, and 'category' does not exist in type 'SearchResultGroup'.
+src/stores/__tests__/NodeMenuStore.test.ts(164,90): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Partial<NodeMetadata>'.
+src/stores/__tests__/NodeMenuStore.test.ts(176,13): error TS2353: Object literal may only specify known properties, and 'category' does not exist in type 'SearchResultGroup'.
+src/stores/__tests__/NodeMenuStore.test.ts(176,90): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Partial<NodeMetadata>'.
+src/stores/__tests__/NodeMenuStore.test.ts(188,13): error TS2353: Object literal may only specify known properties, and 'category' does not exist in type 'SearchResultGroup'.
+src/stores/__tests__/NodeMenuStore.test.ts(188,90): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Partial<NodeMetadata>'.
+src/stores/__tests__/NodeMenuStore.test.ts(208,45): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Partial<NodeMetadata>'.
+src/stores/__tests__/NodeMenuStore.test.ts(210,34): error TS2353: Object literal may only specify known properties, and 'category' does not exist in type 'SearchResultGroup'.
+src/stores/__tests__/NodeMenuStore.test.ts(288,45): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Partial<NodeMetadata>'.
+src/stores/__tests__/graphNodeToReactFlowNode.test.ts(146,43): error TS2554: Expected 0 arguments, but got 1.
+make: *** [Makefile:147: typecheck-web] Error 2

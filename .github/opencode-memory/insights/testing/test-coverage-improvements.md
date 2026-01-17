@@ -1,6 +1,99 @@
 # Test Coverage Improvements (2026-01-17)
 
-**Coverage Added**: 2 new test files with 23 tests for critical hooks
+**Coverage Added**: 1 new test file with 8 tests for clipboard functionality
+
+**Tests Added**:
+- `useClipboard.test.ts` - 8 tests for clipboard operations in workflow editor
+
+**Areas Covered**:
+- Clipboard data state management (clipboardData, isClipboardValid)
+- Clipboard write operations with validation
+- Valid workflow data detection (nodes and edges)
+- Allow arbitrary mode for non-workflow data
+- Clipboard read operations
+- Focus-dependent clipboard reading
+
+**Test Patterns Used**:
+
+1. **Hook Testing with Zustand Store Mock**:
+```typescript
+jest.mock("../../stores/SessionStateStore", () => ({
+  default: jest.fn((selector) => {
+    const state = {
+      clipboardData: null,
+      setClipboardData: jest.fn(),
+      isClipboardValid: false,
+      setIsClipboardValid: jest.fn(),
+    };
+    if (typeof selector === "function") {
+      return selector(state);
+    }
+    return state;
+  }),
+  __esModule: true,
+}));
+```
+
+2. **Clipboard Function Testing**:
+```typescript
+it("writes valid workflow data to clipboard", async () => {
+  const validData = JSON.stringify({
+    nodes: [{ id: "node-1" }],
+    edges: [{ id: "edge-1" }]
+  });
+  
+  const { result } = renderHook(() => useClipboard());
+  
+  await result.current.writeClipboard(validData);
+
+  expect(navigator.clipboard.writeText).toHaveBeenCalledWith(validData);
+});
+```
+
+3. **Browser API Mocking**:
+```typescript
+global.navigator.clipboard = {
+  writeText: jest.fn().mockResolvedValue(undefined),
+  readText: jest.fn().mockResolvedValue(""),
+} as any;
+
+document.hasFocus = jest.fn().mockReturnValue(true);
+```
+
+**Key Learnings**:
+1. Mock Zustand stores by simulating the selector pattern they use
+2. Mock browser APIs (navigator.clipboard, document.hasFocus) for consistent test behavior
+3. Test exposed API of hooks rather than internal implementation details
+4. Test both success and failure paths for clipboard operations
+
+**Status**: All 8 tests passing (220 test suites, 2891 web tests total)
+
+---
+
+### Test Fix (2026-01-17)
+
+**Issue Fixed**: Failing test in `graphNodeToReactFlowNode.test.ts`
+
+**Problem**: Test expected `workflow_id: "my-workflow-id"` but received `"workflow-123"` due to mock function not accepting override parameters.
+
+**Solution**: Updated `createMockWorkflow` function to accept override parameters:
+```typescript
+// Before
+const createMockWorkflow = (): Workflow => ({
+  id: "workflow-123",
+  ...
+});
+
+// After
+const createMockWorkflow = (overrides: Partial<Workflow> = {}): Workflow => ({
+  id: "workflow-123",
+  ...overrides,
+});
+```
+
+**Impact**: All graph conversion tests now pass with proper mock flexibility.
+
+**Status**: Test fixed, all 2891 web tests passing
 
 **Tests Added**:
 - `useCollectionDragAndDrop.test.ts` - 13 tests for drag-and-drop file indexing
