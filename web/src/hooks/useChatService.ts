@@ -4,6 +4,29 @@ import useGlobalChatStore from "../stores/GlobalChatStore";
 import { Message, LanguageModel } from "../stores/ApiTypes";
 import { truncateString } from "../utils/truncateString";
 
+/**
+ * Custom hook that provides a unified interface for chat functionality.
+ * 
+ * Combines GlobalChatStore operations into a cohesive interface for chat components
+ * including message sending, thread management, and navigation.
+ * 
+ * @param selectedModel - The currently selected language model for chat responses
+ * @returns Object containing chat state and handler functions
+ * 
+ * @example
+ * ```typescript
+ * const chatService = useChatService(selectedModel);
+ * 
+ * // Send a message
+ * await chatService.sendMessage({ role: 'user', content: 'Hello!' });
+ * 
+ * // Create new thread
+ * await chatService.onNewThread();
+ * 
+ * // Get thread preview for display
+ * const preview = chatService.getThreadPreview(threadId);
+ * ```
+ */
 export const useChatService = (selectedModel: LanguageModel | null) => {
   const navigate = useNavigate();
   const status = useGlobalChatStore((state) => state.status);

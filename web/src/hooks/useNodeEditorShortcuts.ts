@@ -30,6 +30,31 @@ import { useNodeFocus } from "./useNodeFocus";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
+/**
+ * Custom hook that registers and handles keyboard shortcuts for the workflow editor.
+ * 
+ * Manages all keyboard interactions including copy/paste, undo/redo, node alignment,
+ * viewport controls, and workflow operations. Shortcuts can be enabled/disabled
+ * based on editor state (e.g., when dialogs are open).
+ * 
+ * @param active - Whether shortcut handling is enabled
+ * @param onShowShortcuts - Optional callback to show keyboard shortcuts help dialog
+ * @returns Empty (all functionality is side-effect based via store subscriptions)
+ * 
+ * @example
+ * ```typescript
+ * useNodeEditorShortcuts(true, () => setShowShortcuts(true));
+ * ```
+ * 
+ * **Key Shortcuts:**
+ * - Ctrl/Cmd + C: Copy selected nodes
+ * - Ctrl/Cmd + V: Paste nodes
+ * - Ctrl/Cmd + Z: Undo
+ * - Ctrl/Cmd + Shift + Z: Redo
+ * - Ctrl/Cmd + F: Find in workflow
+ * - Ctrl/Cmd + Plus/Minus: Zoom in/out
+ * - Delete/Backspace: Delete selected nodes
+ */
 export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void

@@ -6,6 +6,43 @@ import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
+/**
+ * Custom hook for finding nodes within a workflow by search term.
+ * 
+ * Provides search functionality that filters nodes by name, type, or ID.
+ * Supports debounced search, result navigation, and viewport centering.
+ * Used by the Find in Workflow dialog (Ctrl/Cmd+F).
+ * 
+ * @returns Object containing:
+ * - isOpen: Whether the search dialog is open
+ * - searchTerm: Current search term
+ * - results: Array of matching nodes with match indices
+ * - selectedIndex: Currently selected result index
+ * - totalCount: Total number of results
+ * - openFind/closeFind: Open/close the search dialog
+ * - performSearch: Debounced search function
+ * - goToSelected: Navigate viewport to selected result
+ * - navigateNext/navigatePrevious: Navigate through results
+ * - selectNode: Select a specific result
+ * - getNodeDisplayName: Get display name for a node
+ * 
+ * @example
+ * ```typescript
+ * const findInWorkflow = useFindInWorkflow();
+ * 
+ * // Open search dialog
+ * findInWorkflow.openFind();
+ * 
+ * // Perform search
+ * findInWorkflow.performSearch('image');
+ * 
+ * // Navigate to next result
+ * findInWorkflow.navigateNext();
+ * 
+ * // Center view on result
+ * findInWorkflow.goToSelected();
+ * ```
+ */
 export const useFindInWorkflow = () => {
   const {
     isOpen,

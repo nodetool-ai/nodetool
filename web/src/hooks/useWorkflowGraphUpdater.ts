@@ -1,8 +1,3 @@
-/**
- * Hook that handles workflow graph updates from GlobalChatStore messages
- * This ensures updates happen within the React component lifecycle with proper context access
- */
-
 import { useEffect, useRef } from "react";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../stores/GlobalChatStore";
@@ -12,7 +7,23 @@ import { Node as GraphNode, Edge as GraphEdge } from "../stores/ApiTypes";
 
 /**
  * Hook that subscribes to workflow graph updates from the GlobalChatStore
- * and applies them to the current workflow using React context
+ * and applies them to the current workflow using React context.
+ * 
+ * This hook enables the AI assistant to modify workflows in real-time.
+ * When the assistant sends a workflow update message, this hook:
+ * 1. Receives the update from GlobalChatStore
+ * 2. Converts graph nodes/edges to ReactFlow format
+ * 3. Updates the current workflow's NodeStore
+ * 4. Triggers auto-layout for the updated graph
+ * 5. Marks the workflow as clean (not dirty)
+ * 
+ * @returns void (side-effect based hook)
+ * 
+ * @example
+ * ```typescript
+ * // In a component within WorkflowManagerContext
+ * useWorkflowGraphUpdater();
+ * ```
  */
 export const useWorkflowGraphUpdater = () => {
   const { getCurrentWorkflow, getNodeStore } = useWorkflowManager((state) => ({
