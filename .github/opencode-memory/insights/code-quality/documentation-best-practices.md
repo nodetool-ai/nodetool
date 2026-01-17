@@ -305,3 +305,27 @@ Proper documentation:
 - [Documentation Quality Assurance 2026-01-17](../issues/documentation/documentation-quality-assurance-2026-01-17.md)
 
 **Date**: 2026-01-17
+
+---
+
+### JSDoc Documentation for Editor Hooks (2026-01-17)
+
+**What**: Added JSDoc documentation to two critical editor hooks that previously lacked documentation.
+
+**Files Updated**:
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added comprehensive module-level documentation
+  - Documents all keyboard shortcuts (copy, paste, undo, align, zoom, navigation)
+  - Includes @param and @example tags
+  - Explains platform-specific modifier handling (Ctrl/Meta)
+
+- `web/src/hooks/useFindInWorkflow.ts` - Added comprehensive hook documentation
+  - Documents all return values and their types
+  - Includes @example showing typical usage patterns
+  - Explains debounced search behavior
+
+**Impact**: Critical hooks are now discoverable and follow documentation standards. Developers can understand hook functionality without reading implementation details.
+
+**Verification**:
+- TypeScript: Web package passes
+- ESLint: Web package passes
+- JSDoc format: Follows project standards with @param, @returns, @example

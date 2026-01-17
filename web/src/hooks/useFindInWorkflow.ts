@@ -6,6 +6,44 @@ import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
+/**
+ * Custom hook for searching and navigating to nodes within the workflow editor.
+ * 
+ * Provides a complete search workflow including opening the search dialog,
+ * filtering nodes by name, type, or ID, navigating through results,
+ * and centering the viewport on selected nodes. Supports debounced search
+ * for responsive typing with large node counts.
+ * 
+ * @returns Object containing:
+ *   - isOpen: Whether the search dialog is visible
+ *   - searchTerm: Current search input
+ *   - results: Array of matching nodes
+ *   - selectedIndex: Currently selected result index
+ *   - openFind: Function to open search dialog
+ *   - closeFind: Function to close search dialog
+ *   - performSearch: Debounced search function
+ *   - goToSelected: Navigate to and select current result
+ *   - navigateNext/navigatePrevious: Navigate through results
+ *   - clearSearch: Reset search state
+ * 
+ * @example
+ * ```typescript
+ * const { isOpen, results, openFind, goToSelected } = useFindInWorkflow();
+ * 
+ * // Open search with Ctrl+F / Cmd+F
+ * useEffect(() => {
+ *   const handleKeyDown = (e) => {
+ *     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+ *       e.preventDefault();
+ *       openFind();
+ *     }
+ *   };
+ *   window.addEventListener('keydown', handleKeyDown);
+ *   return () => window.removeEventListener('keydown', handleKeyDown);
+ * }, [openFind]);
+ * ```
+ */
+
 export const useFindInWorkflow = () => {
   const {
     isOpen,
