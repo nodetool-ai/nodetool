@@ -194,3 +194,138 @@ describe("graphEdgeToReactFlowEdge", () => {
 4. Graph conversion utilities are critical for workflow editor functionality
 
 **Status**: All 17 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17 - Additional Coverage)
+
+**Coverage Added**: 6 new store test files with 92 tests
+
+**Tests Added**:
+- `AppHeaderStore.test.ts` - 15 tests for help dialog state management
+- `FindInWorkflowStore.test.ts` - 26 tests for find/replace workflow functionality
+- `MiniMapStore.test.ts` - 10 tests for minimap visibility toggling
+- `InspectedNodeStore.test.ts` - 10 tests for node inspection state
+- `ModelFiltersStore.test.ts` - 19 tests for model filtering (types, sizes, families)
+- `MetadataStore.test.ts` - 12 tests for node metadata and model management
+
+**Areas Covered**:
+- Help dialog open/close state and navigation
+- Find workflow search term, results, and navigation (next/prev)
+- Minimap visibility toggle and state management
+- Node inspection toggle and selection
+- Model filter types (instruct, chat, base, etc.)
+- Model size bucket filtering
+- Model family filtering
+- Clear all filters functionality
+- Node metadata storage and retrieval
+- Recommended models management
+- Node types registration
+
+**Test Patterns Used**:
+
+1. **Simple State Store Pattern**:
+```typescript
+describe("StoreName", () => {
+  beforeEach(() => {
+    useStoreName.setState(useStoreName.getInitialState());
+  });
+
+  it("should initialize with correct defaults", () => {
+    const state = useStoreName.getInitialState();
+    expect(state.property).toBe(expectedValue);
+  });
+
+  it("should update state on action", () => {
+    useStoreName.getState().setProperty(value);
+    expect(useStoreName.getState().property).toBe(value);
+  });
+});
+```
+
+2. **Toggle Pattern Testing**:
+```typescript
+describe("toggleVisible", () => {
+  it("should toggle from false to true", () => {
+    useStore.setState({ visible: false });
+    useStore.getState().toggleVisible();
+    expect(useStore.getState().visible).toBe(true);
+  });
+
+  it("should toggle multiple times", () => {
+    expect(useStore.getState().visible).toBe(false);
+    useStore.getState().toggleVisible();
+    expect(useStore.getState().visible).toBe(true);
+    useStore.getState().toggleVisible();
+    expect(useStore.getState().visible).toBe(false);
+  });
+});
+```
+
+3. **Filter Store Pattern**:
+```typescript
+describe("toggleType", () => {
+  it("should add type when not selected", () => {
+    useStore.getState().toggleType("instruct");
+    expect(useStore.getState().selectedTypes).toContain("instruct");
+  });
+
+  it("should remove type when already selected", () => {
+    useStore.setState({ selectedTypes: ["instruct", "chat"] });
+    useStore.getState().toggleType("instruct");
+    expect(useStore.getState().selectedTypes).toEqual(["chat"]);
+  });
+});
+```
+
+4. **Navigation Store Pattern**:
+```typescript
+describe("navigateNext", () => {
+  it("should increment selectedIndex within bounds", () => {
+    useStore.setState({ results: [...], selectedIndex: 1 });
+    useStore.getState().navigateNext();
+    expect(useStore.getState().selectedIndex).toBe(2);
+  });
+
+  it("should wrap to 0 when at last result", () => {
+    useStore.setState({ results: [...], selectedIndex: lastIndex });
+    useStore.getState().navigateNext();
+    expect(useStore.getState().selectedIndex).toBe(0);
+  });
+});
+```
+
+5. **Clear All Pattern**:
+```typescript
+describe("clearAll", () => {
+  it("should reset all filter state", () => {
+    useStore.setState({
+      selectedTypes: ["instruct"],
+      sizeBucket: "3-7B",
+      families: ["llama"]
+    });
+    useStore.getState().clearAll();
+    expect(useStore.getState().selectedTypes).toEqual([]);
+    expect(useStore.getState().sizeBucket).toBeNull();
+    expect(useStore.getState().families).toEqual([]);
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/AppHeaderStore.test.ts`
+- `web/src/stores/__tests__/FindInWorkflowStore.test.ts`
+- `web/src/stores/__tests__/MiniMapStore.test.ts`
+- `web/src/stores/__tests__/InspectedNodeStore.test.ts`
+- `web/src/stores/__tests__/ModelFiltersStore.test.ts`
+- `web/src/stores/__tests__/MetadataStore.test.ts`
+
+**Key Learnings**:
+1. Simple Zustand stores with basic actions are straightforward to test
+2. Navigation patterns (next/previous with wrapping) need edge case coverage
+3. Filter stores with add/remove semantics need both happy path and toggle tests
+4. Clear/reset operations should verify all state is properly reset
+5. Store initialization should be tested to ensure correct defaults
+6. Complex store interactions benefit from full workflow tests
+
+**Status**: All 92 tests passing
