@@ -3,18 +3,34 @@ import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
+/**
+ * Interface representing the return type of useSelectionActions hook.
+ * Provides callback functions for batch operations on selected nodes.
+ */
 interface SelectionActionsReturn {
+  /** Aligns selected nodes to the leftmost node's x position */
   alignLeft: () => void;
+  /** Aligns selected nodes to their collective center x position */
   alignCenter: () => void;
+  /** Aligns selected nodes to the rightmost node's x position */
   alignRight: () => void;
+  /** Aligns selected nodes to the topmost node's y position */
   alignTop: () => void;
+  /** Aligns selected nodes to their collective center y position */
   alignMiddle: () => void;
+  /** Aligns selected nodes to the bottommost node's y position */
   alignBottom: () => void;
+  /** Distributes selected nodes evenly along the x-axis with consistent spacing */
   distributeHorizontal: () => void;
+  /** Distributes selected nodes evenly along the y-axis with consistent spacing */
   distributeVertical: () => void;
+  /** Deletes all selected nodes from the workflow */
   deleteSelected: () => void;
+  /** Duplicates all selected nodes with offset positioning */
   duplicateSelected: () => void;
+  /** Groups selected nodes into a parent group node */
   groupSelected: () => void;
+  /** Toggles bypass mode for selected nodes */
   bypassSelected: () => void;
 }
 
@@ -27,6 +43,35 @@ const getNodeWidth = (node: { measured?: { width?: number } }) =>
 const getNodeHeight = (node: { measured?: { height?: number } }) =>
   node.measured?.height ?? 0;
 
+/**
+ * Custom hook providing batch manipulation actions for selected nodes in the workflow editor.
+ * 
+ * Provides callback functions for common selection-based operations including alignment,
+ * distribution, deletion, duplication, and grouping. All actions operate on currently
+ * selected nodes and require at least 2 nodes for alignment and distribution operations.
+ * 
+ * Alignment operations use the node's measured width/height when available, falling back
+ * to default NODE_WIDTH (280px) for calculations. Distribution operations use consistent
+ * spacing between nodes (HORIZONTAL_SPACING: 40px, VERTICAL_SPACING: 20px).
+ * 
+ * @returns SelectionActionsReturn object containing callback functions for each operation
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   alignLeft,
+ *   distributeHorizontal,
+ *   deleteSelected,
+ *   groupSelected
+ * } = useSelectionActions();
+ * 
+ * // Align selected nodes to the left
+ * alignLeft();
+ * 
+ * // Distribute selected nodes evenly
+ * distributeHorizontal();
+ * ```
+ */
 export const useSelectionActions = (): SelectionActionsReturn => {
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
   const deleteNode = useNodes((state) => state.deleteNode);
