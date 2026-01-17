@@ -48,11 +48,19 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
-> ```
-> ### Feature/Fix Name (YYYY-MM-DD)
+>/Fix Name ( ```
+> ### FeatureYYYY-MM-DD)
 > **What**: One sentence
 > **Files**: Main files changed
 > ```
+
+### Workflow Settings UI Improvements (2026-01-17)
+
+**What**: Removed "Basic Information" headline from workflow settings, added descriptions to Execution and Advanced sections.
+
+**Files**: web/src/components/workflows/WorkflowForm.tsx
+
+---
 
 ### Performance Optimization: Large Component Memoization (2026-01-17)
 
