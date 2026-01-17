@@ -47,43 +47,40 @@ interface NodeDescriptionProps {
   onTagClick?: (tag: string) => void;
 }
 
-const NodeDescription: React.FC<NodeDescriptionProps> = ({
+const NodeDescription = React.memo(({
   description,
   className,
   onTagClick
-}) => {
+}: NodeDescriptionProps) => {
   const theme = useTheme();
 
-  const handleTagClick = useCallback((tag: string) => {
+  const handleTagClick = useCallback((tag: string) => () => {
     if (onTagClick) {
       onTagClick(tag);
     }
   }, [onTagClick]);
 
-  const handleTagSpanClick = useCallback(
-    (tag: string) => {
-      handleTagClick(tag);
-    },
-    [handleTagClick]
-  );
-
   if (!description) {
     return null;
   }
 
-    const handleTagClick = useCallback(
-      (tag: string) => {
-        if (onTagClick) {
-          onTagClick(tag);
-        }
-      },
-      [onTagClick]
-    );
+  const lines = description.split("\n");
+  const firstLine = lines[0] || "";
+  const tagsLine = lines.length > 1 ? lines[1] : "";
+  const restOfDescription =
+    lines.length > 2
+      ? lines
+          .slice(2)
+          .map((line) => line.trim())
+          .join("\n")
+      : "";
 
-    const createTagClickHandler = useCallback(
-      (tag: string) => () => handleTagClick(tag),
-      [handleTagClick]
-    );
+  const tags = tagsLine
+    ? tagsLine
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((t) => t)
+    : [];
 
   return (
     <div css={styles(theme)} className={className}>
@@ -94,7 +91,7 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
             <span
               key={index}
               className="tag"
-              onClick={() => handleTagSpanClick(tag)}
+              onClick={handleTagClick(tag)}
               style={{ cursor: onTagClick ? "pointer" : "default" }}
             >
               {tag}
@@ -107,6 +104,8 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
       )}
     </div>
   );
-};
+});
+
+NodeDescription.displayName = "NodeDescription";
 
 export default NodeDescription;

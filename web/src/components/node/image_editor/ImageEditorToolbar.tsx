@@ -262,8 +262,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   const handleApplyCrop = useCallback(() => handleActionClick("apply-crop"), [handleActionClick]);
   const handleCancelCrop = useCallback(() => handleActionClick("cancel-crop"), [handleActionClick]);
 
-  const handleRotateCCW = useCallback(() => handleActionClick("rotate-ccw"), [handleActionClick]);
-  const handleRotateCW = useCallback(() => handleActionClick("rotate-cw"), [handleActionClick]);
+  const handleRotateCcw = useCallback(() => handleActionClick("rotate-ccw"), [handleActionClick]);
+  const handleRotateCw = useCallback(() => handleActionClick("rotate-cw"), [handleActionClick]);
   const handleFlipH = useCallback(() => handleActionClick("flip-h"), [handleActionClick]);
   const handleFlipV = useCallback(() => handleActionClick("flip-v"), [handleActionClick]);
   const handleReset = useCallback(() => handleActionClick("reset"), [handleActionClick]);
@@ -286,34 +286,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     },
     [handleToolSelect]
   );
-
-  const handleApplyCrop = useCallback(() => {
-    handleActionClick("apply-crop");
-  }, [handleActionClick]);
-
-  const handleCancelCrop = useCallback(() => {
-    handleActionClick("cancel-crop");
-  }, [handleActionClick]);
-
-  const handleRotateCcw = useCallback(() => {
-    handleActionClick("rotate-ccw");
-  }, [handleActionClick]);
-
-  const handleRotateCw = useCallback(() => {
-    handleActionClick("rotate-cw");
-  }, [handleActionClick]);
-
-  const handleFlipH = useCallback(() => {
-    handleActionClick("flip-h");
-  }, [handleActionClick]);
-
-  const handleFlipV = useCallback(() => {
-    handleActionClick("flip-v");
-  }, [handleActionClick]);
-
-  const handleReset = useCallback(() => {
-    handleActionClick("reset");
-  }, [handleActionClick]);
 
   return (
     <div css={styles(theme)}>
