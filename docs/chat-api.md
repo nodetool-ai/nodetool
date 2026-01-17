@@ -6,11 +6,11 @@ title: "Chat API"
 NodeTool provides both OpenAI-compatible HTTP endpoints and WebSocket endpoints for chat interactions:
 
 - The **Editor API** (`nodetool serve`, defaults to port **7777**) exposes WebSocket chat at `/chat` and `/predict`, primarily for the desktop/local app.
-- The **Worker and Chat Server APIs** (`nodetool worker`, `nodetool chat-server`, defaults to port **8000**) expose OpenAI-compatible HTTP endpoints (`/v1/chat/completions`, `/v1/models`) for remote clients.
+- The **Worker and Chat Server APIs** (`nodetool worker`, `nodetool chat-server`, defaults to port **7777**) expose OpenAI-compatible HTTP endpoints (`/v1/chat/completions`, `/v1/models`) for remote clients.
 
 See the canonical matrix in [API Reference](api-reference.md#unified-endpoint-matrix) for methods, auth requirements, and streaming behavior.
 
-> **Port Reference**: Development uses port 7777, production deployments use port 8000. Replace `localhost` with your server hostname for remote connections.
+> **Port Reference**: Both development and production deployments use port 7777 by default. Replace `localhost` with your server hostname for remote connections.
 
 ## OpenAI-Compatible HTTP API
 
@@ -20,7 +20,7 @@ is optional for development.
 
 ### Chat Completions: `POST /v1/chat/completions`
 
-**URL:** `http://localhost:8000/v1/chat/completions`
+**URL:** `http://localhost:7777/v1/chat/completions`
 
 **Headers:**
 
@@ -45,10 +45,10 @@ is optional for development.
 import openai
 
 # For local development: base_url="http://localhost:7777/v1"
-# For production/worker: base_url="http://localhost:8000/v1" or your server URL
+# For production/worker: base_url="http://localhost:7777/v1" or your server URL
 client = openai.OpenAI(
     api_key="YOUR_TOKEN",
-    base_url="http://localhost:8000/v1"
+    base_url="http://localhost:7777/v1"
 )
 
 response = client.chat.completions.create(
@@ -66,14 +66,13 @@ for chunk in response:
 
 ### Models: `GET /v1/models`
 
-**URL:** `http://localhost:8000/v1/models`
+**URL:** `http://localhost:7777/v1/models`
 
 List all available models for the configured provider.
 
 ```bash
-# For local development: http://localhost:7777/v1/models
-# For production: http://localhost:8000/v1/models
-curl http://localhost:8000/v1/models \
+# For local development and production: http://localhost:7777/v1/models
+curl http://localhost:7777/v1/models \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
