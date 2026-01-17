@@ -474,6 +474,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const componentType = componentFor(property);
 
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditedName(e.target.value);
+  }, []);
+
   let inputField: React.ReactNode = null;
   if (componentType) {
     if (isDynamicProperty && isEditingName) {
@@ -481,7 +485,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         <form onSubmit={handleNameSubmit} className="property-input-form">
           <input
             value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
+            onChange={handleNameChange}
             onBlur={handleNameSubmit}
             autoFocus
           />
