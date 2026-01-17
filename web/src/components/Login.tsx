@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useCallback } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
@@ -76,9 +77,16 @@ function Login() {
     { name: "Replicate", url: "https://replicate.com" },
     { name: "StabilityAI", url: "https://stability.ai/" }
   ];
-  const handleClick = (url: string) => {
+  const handleClick = useCallback((url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
-  };
+  }, []);
+
+  const handleButtonClick = useCallback(
+    (url: string) => () => {
+      handleClick(url);
+    },
+    [handleClick]
+  );
 
   return (
     <Box css={styles(theme)}>
@@ -100,7 +108,7 @@ function Login() {
         {linkItems.map((item) => (
           <Button
             key={item.name}
-            onClick={() => handleClick(item.url)}
+            onClick={handleButtonClick(item.url)}
             className="list-button"
           >
             {item.name}

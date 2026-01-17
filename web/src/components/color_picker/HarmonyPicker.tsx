@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, Typography, Tooltip, IconButton } from "@mui/material";
@@ -94,10 +94,34 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
     }));
   }, [color, harmonyInfo]);
 
-  const handleCopyAll = (colors: string[]) => {
+  const handleCopyAll = useCallback((colors: string[]) => {
     const colorsText = colors.join(", ");
     navigator.clipboard.writeText(colorsText);
-  };
+  }, []);
+
+  const handleColorSelectWithHarmony = useCallback(
+    (harmonyColor: string, harmonyType: HarmonyType) => {
+      onColorSelect(harmonyColor);
+      if (onHarmonyChange) {
+        onHarmonyChange(harmonyType);
+      }
+    },
+    [onColorSelect, onHarmonyChange]
+  );
+
+  const handleCopyAllColors = useCallback(
+    (colors: string[]) => () => {
+      handleCopyAll(colors);
+    },
+    [handleCopyAll]
+  );
+
+  const handleSelectColorWithHarmony = useCallback(
+    (harmonyColor: string, harmonyType: HarmonyType) => () => {
+      handleColorSelectWithHarmony(harmonyColor, harmonyType);
+    },
+    [handleColorSelectWithHarmony]
+  );
 
   return (
     <Box css={styles(theme)}>
@@ -119,7 +143,7 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
             <Tooltip title="Copy all colors">
               <IconButton
                 size="small"
-                onClick={() => handleCopyAll(harmony.colors)}
+                onClick={handleCopyAllColors(harmony.colors)}
               >
                 <ContentCopyIcon sx={{ fontSize: 14 }} />
               </IconButton>
@@ -136,12 +160,7 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
                   <div
                     className="harmony-color"
                     style={{ backgroundColor: harmonyColor }}
-                    onClick={() => {
-                      onColorSelect(harmonyColor);
-                      if (onHarmonyChange) {
-                        onHarmonyChange(harmony.type);
-                      }
-                    }}
+                    onClick={handleSelectColorWithHarmony(harmonyColor, harmony.type)}
                   >
                     <span className="color-hex" style={{ color: textHex }}>
                       {harmonyColor.replace("#", "")}

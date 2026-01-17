@@ -101,55 +101,32 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     closeContextMenu();
   }, [selectConnectedOutputs, closeContextMenu]);
 
-  //collapse
-  // const handleCollapseAll = useCallback(
-  //   (callAlignNodes: boolean) => {
-  //     if (selectedNodeIds?.length) {
-  //       selectedNodeIds.forEach((id) => {
-  //         const node = findNode(id);
-  //         if (node && node.data.properties) {
-  //           updateNodeData(id, {
-  //             properties: { ...node.data.properties },
-  //             collapsed: true,
-  //             workflow_id: node.data.workflow_id
-  //           });
-  //         }
-  //       });
-  //       // alignNodes
-  //       if (callAlignNodes && alignNodes) {
-  //         setTimeout(() => {
-  //           alignNodes({ arrangeSpacing: true, collapsed: true });
-  //         }, 10);
-  //       }
-  //     }
-  //   },
-  //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
-  // );
+  const handleAlignNodes = useCallback(
+    (arrangeSpacing: boolean) => {
+      alignNodes({ arrangeSpacing });
+    },
+    [alignNodes]
+  );
 
-  //expand
-  // const handleExpandAll = useCallback(
-  //   (callAlignNodes: boolean) => {
-  //     if (selectedNodeIds?.length) {
-  //       selectedNodeIds.forEach((id) => {
-  //         const node = findNode(id);
-  //         if (node && node.data.properties) {
-  //           updateNodeData(id, {
-  //             properties: { ...node.data.properties },
-  //             collapsed: false,
-  //             workflow_id: node.data.workflow_id
-  //           });
-  //         }
-  //       });
-  //       // alignNodes
-  //       if (callAlignNodes && alignNodes) {
-  //         setTimeout(() => {
-  //           alignNodes({ arrangeSpacing: true, collapsed: false });
-  //         }, 10);
-  //       }
-  //     }
-  //   },
-  //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
-  // );
+  const handleSurroundWithGroup = useCallback(() => {
+    surroundWithGroup({ selectedNodes });
+  }, [surroundWithGroup, selectedNodes]);
+
+  const handleRemoveFromGroup = useCallback(() => {
+    removeFromGroup(selectedNodes);
+  }, [removeFromGroup, selectedNodes]);
+
+  const handleCopyNodes = useCallback(() => {
+    handleCopy();
+  }, [handleCopy]);
+
+  const handleAlignNodesFalse = useCallback(() => {
+    handleAlignNodes(false);
+  }, [handleAlignNodes]);
+
+  const handleAlignNodesTrue = useCallback(() => {
+    handleAlignNodes(true);
+  }, [handleAlignNodes]);
 
   if (!menuPosition) {
     return null;
@@ -179,7 +156,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       </MenuItem>
 
       <ContextMenuItem
-        onClick={() => handleDuplicateNodes()}
+        onClick={handleDuplicateNodes}
         label="Duplicate"
         IconComponent={<QueueIcon />}
         tooltip={
@@ -192,7 +169,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }
       />
       <ContextMenuItem
-        onClick={() => handleCopy()}
+        onClick={handleCopyNodes}
         label="Copy"
         IconComponent={<CopyAllIcon />}
         tooltip={
@@ -218,9 +195,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       /> */}
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
-          onClick={() => {
-            alignNodes({ arrangeSpacing: false });
-          }}
+          onClick={handleAlignNodesFalse}
           label="Align"
           IconComponent={<FormatAlignLeftIcon />}
           tooltip={
@@ -235,9 +210,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       )}
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
-          onClick={() => {
-            alignNodes({ arrangeSpacing: true });
-          }}
+          onClick={handleAlignNodesTrue}
           label="Arrange"
           IconComponent={<FormatAlignLeftIcon />}
           tooltip={
@@ -269,9 +242,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
       {!anyHasParent && (
         <ContextMenuItem
-          onClick={() => {
-            surroundWithGroup({ selectedNodes });
-          }}
+          onClick={handleSurroundWithGroup}
           label="Surrround With Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
@@ -290,9 +261,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
       {anyHasParent && (
         <ContextMenuItem
-          onClick={() => {
-            removeFromGroup(selectedNodes);
-          }}
+          onClick={handleRemoveFromGroup}
           label="Remove From Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={

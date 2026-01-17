@@ -143,6 +143,10 @@ const WelcomePanel: React.FC = () => {
     [updateSettings]
   );
 
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
   const highlightText = useCallback((text: string, term: string) => {
     if (!term) {return text;}
     const parts = text.split(new RegExp(`(${term})`, "gi"));
@@ -276,7 +280,7 @@ const WelcomePanel: React.FC = () => {
                 </Typography>
                 <Button
                   size="small"
-                onClick={() => setSearchTerm("")}
+                  onClick={handleClearSearch}
                   sx={{ mt: 1 }}
                 >
                   Clear search
