@@ -22,7 +22,7 @@ jest.mock('../services/WebSocketManager', () => ({
 // Mock apiService
 jest.mock('../services/api', () => ({
   apiService: {
-    getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:8000/ws/chat'),
+    getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:7777/ws/chat'),
   },
 }));
 

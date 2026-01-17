@@ -28,7 +28,7 @@ jest.mock("../../utils/errorHandling", () => ({
   )
 }));
 jest.mock("../BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000"
+  BASE_URL: "http://localhost:7777"
 }));
 
 import axios from "axios";

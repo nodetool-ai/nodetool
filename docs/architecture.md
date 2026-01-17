@@ -46,6 +46,6 @@ sequenceDiagram
 
 ## Notes
 
-- All endpoints and examples use `http://127.0.0.1:8000` by default; update host/port when deploying.
+- All endpoints and examples use `http://127.0.0.1:7777` by default; update host/port when deploying.
 - Messaging emits both JSON and optional MessagePack; see [chat-server](chat-server.md) for protocol details.
 - Execution strategies are detailed in [execution-strategies](execution-strategies.md).

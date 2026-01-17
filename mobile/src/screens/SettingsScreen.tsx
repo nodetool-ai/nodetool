@@ -135,7 +135,7 @@ export default function SettingsScreen() {
           style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
           value={apiHost}
           onChangeText={setApiHost}
-          placeholder="http://localhost:8000"
+          placeholder="http://localhost:7777"
           placeholderTextColor={colors.textSecondary}
           autoCapitalize="none"
           autoCorrect={false}

@@ -328,7 +328,7 @@ Security software can interfere with NodeTool's local server and AI model execut
 
 #### Firewall Configuration
 
-NodeTool runs a local server (default port 8000). Allow it through your firewall:
+NodeTool runs a local server (default port 7777). Allow it through your firewall:
 
 **Windows Firewall**
 1. Open Windows Firewall → "Allow an app through firewall"
@@ -343,7 +343,7 @@ NodeTool runs a local server (default port 8000). Allow it through your firewall
 
 **Linux (ufw)**
 ```bash
-sudo ufw allow 8000/tcp
+sudo ufw allow 7777/tcp
 ```
 
 ---

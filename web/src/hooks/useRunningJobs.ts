@@ -7,7 +7,7 @@ import { useAuth } from "../stores/useAuth";
 /**
  * Fetches running jobs from the API
  * Note: If the /api/jobs/ endpoint is not in api.ts, regenerate the OpenAPI schema
- * by running: npm run openapi (requires backend to be running on port 8000)
+ * by running: npm run openapi (requires backend to be running on port 7777)
  */
 const fetchRunningJobs = async (): Promise<Job[]> => {
   const { data, error } = await client.GET("/api/jobs/", {

@@ -5,7 +5,7 @@ import { FrontendToolRegistry } from "../../tools/frontendTools";
 
 // Mock dependencies before imports
 jest.mock("../../../stores/BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000",
+  BASE_URL: "http://localhost:7777",
   UNIFIED_WS_URL: "ws://localhost:1234/ws"
 }));
 

@@ -4,7 +4,7 @@ import { TextEncoder, TextDecoder } from "util";
 (global as any).URL.createObjectURL = jest.fn(() => "blob:mock");
 
 jest.mock("../BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000",
+  BASE_URL: "http://localhost:7777",
   UNIFIED_WS_URL: "ws://test/ws"
 }));
 
