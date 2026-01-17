@@ -30,6 +30,32 @@ import { useNodeFocus } from "./useNodeFocus";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
+/**
+ * Custom hook that registers and manages all keyboard shortcuts for the node editor.
+ * 
+ * Handles copy, cut, paste, delete, duplicate, align, zoom, and navigation shortcuts.
+ * Supports both keyboard combos and platform-specific modifiers (Ctrl/Meta).
+ * Integrates with the KeyPressedStore for combo detection and the NodeContext
+ * for performing actions on the workflow graph.
+ * 
+ * @param active - Whether the shortcut handlers should be active
+ * @param onShowShortcuts - Optional callback to show the shortcuts help dialog
+ * 
+ * @example
+ * ```typescript
+ * useNodeEditorShortcuts(true, () => setShowShortcuts(true));
+ * 
+ * // Keyboard shortcuts registered:
+ * // - Ctrl+C / Cmd+C: Copy selected nodes
+ * // - Ctrl+V / Cmd+V: Paste nodes
+ * // - Ctrl+Z / Cmd+Z: Undo
+ * // - Ctrl+Shift+Z / Cmd+Shift+Z: Redo
+ * // - Delete/Backspace: Delete selected nodes
+ * // - Ctrl+G / Cmd+G: Group selected nodes
+ * // - Alt+Arrows: Navigate between nodes
+ * ```
+ */
+
 export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void
