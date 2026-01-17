@@ -254,11 +254,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     [onAction]
   );
 
-  const handleSelectTool = useCallback(() => handleToolSelect("select"), [handleToolSelect]);
-  const handleCropTool = useCallback(() => handleToolSelect("crop"), [handleToolSelect]);
-  const handleDrawTool = useCallback(() => handleToolSelect("draw"), [handleToolSelect]);
-  const handleEraseTool = useCallback(() => handleToolSelect("erase"), [handleToolSelect]);
-
   const handleApplyCrop = useCallback(() => handleActionClick("apply-crop"), [handleActionClick]);
   const handleCancelCrop = useCallback(() => handleActionClick("cancel-crop"), [handleActionClick]);
 
@@ -286,14 +281,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     },
     [handleToolSelect]
   );
-
-  const handleRotateCcw = useCallback(() => {
-    handleActionClick("rotate-ccw");
-  }, [handleActionClick]);
-
-  const handleRotateCw = useCallback(() => {
-    handleActionClick("rotate-cw");
-  }, [handleActionClick]);
 
   return (
     <div css={styles(theme)}>
@@ -431,7 +418,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Rotate 90° CCW">
               <IconButton
                 className="action-button"
-                onClick={handleRotateCcw}
+                onClick={handleRotateCCW}
                 size="small"
               >
                 <Rotate90DegreesCcwIcon fontSize="small" />
@@ -440,7 +427,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Rotate 90° CW">
               <IconButton
                 className="action-button"
-                onClick={handleRotateCw}
+                onClick={handleRotateCW}
                 size="small"
               >
                 <Rotate90DegreesCwIcon fontSize="small" />

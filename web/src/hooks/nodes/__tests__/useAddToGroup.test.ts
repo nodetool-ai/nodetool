@@ -3,12 +3,24 @@ import { useAddToGroup } from "../useAddToGroup";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
 
+const mockGetState = jest.fn();
+
 // Mock dependencies
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: jest.fn(),
-  useContext: jest.fn(),
-  NodeContext: {}
+  NodeContext: { displayName: 'NodeContext' }
 }));
+
+// Mock React's useContext to return our mock context
+jest.mock('react', () => {
+  const originalReact = jest.requireActual('react');
+  return {
+    ...originalReact,
+    useContext: () => ({
+      getState: () => mockGetState()
+    })
+  };
+});
 
 jest.mock("../useIsGroupable", () => ({
   useIsGroupable: () => ({
@@ -29,9 +41,6 @@ const mockGetGroupBounds = getGroupBounds as jest.MockedFunction<typeof getGroup
 
 describe("useAddToGroup", () => {
   const mockUpdateNode = jest.fn();
-  const mockNodeContext = {
-    getState: jest.fn().mockReturnValue({ nodes: [] })
-  };
 
   const createMockNode = (
     id: string,
@@ -43,7 +52,12 @@ describe("useAddToGroup", () => {
     type,
     position,
     parentId,
-    data: {}
+    data: {
+      properties: {},
+      selectable: true,
+      dynamic_properties: {},
+      workflow_id: "test-workflow"
+    }
   });
 
   beforeEach(() => {
@@ -52,6 +66,7 @@ describe("useAddToGroup", () => {
       updateNode: mockUpdateNode
     });
     mockGetGroupBounds.mockReturnValue({ width: 300, height: 200, offsetX: 0, offsetY: 0 });
+    mockGetState.mockReturnValue({ nodes: [] });
   });
 
   it("returns a function", () => {

@@ -24,7 +24,6 @@ describe("MetadataStore", () => {
       const mockMetadata: Record<string, NodeMetadata> = {
         "test-node": {
           description: "A test node",
-          category: "Test",
           node_type: "test-node",
           namespace: "test",
           title: "Test Node",
@@ -52,7 +51,6 @@ describe("MetadataStore", () => {
       const initialMetadata: Record<string, NodeMetadata> = {
         "test-node": {
           description: "Initial description",
-          category: "Test",
           node_type: "test-node",
           namespace: "test",
           title: "Test Node",
@@ -72,7 +70,6 @@ describe("MetadataStore", () => {
       const updatedMetadata: Record<string, NodeMetadata> = {
         "test-node": {
           description: "Updated description",
-          category: "Test",
           node_type: "test-node",
           namespace: "test",
           title: "Test Node",
@@ -109,7 +106,6 @@ describe("MetadataStore", () => {
       const mockMetadata: Record<string, NodeMetadata> = {
         "test-node": {
           description: "A test node",
-          category: "Test",
           node_type: "test-node",
           namespace: "test",
           title: "Test Node",
