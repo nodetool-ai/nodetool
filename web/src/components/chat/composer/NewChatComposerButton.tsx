@@ -14,9 +14,7 @@ export const NewChatComposerButton = forwardRef<
   return (
     <IconButton
       ref={ref}
-      onClick={() => {
-        if (!disabled) {onClick();}
-      }}
+      onClick={onClick}
       size="small"
       disableRipple={disabled}
       disabled={disabled}
