@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Large Component Memoization (2026-01-17)
+
+**What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
+
+**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, EditorController.tsx, AssetViewer.tsx, AgentExecutionView.tsx
+
+**Impact**: Large components (684-925 lines) now only re-render when props change, improving editor performance with complex workflows.
+
+---
+
 ### Performance Optimization: Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
@@ -71,6 +81,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: NodeHeader.tsx, AssetTable.tsx, FormatButton.tsx, TableActions.tsx
 
 **Impact**: Prevented unnecessary re-renders in high-frequency node components and asset management UI by providing stable function references.
+
+---
+
+### TypeScript Type Improvements (2026-01-17)
+
+**What**: Improved TypeScript types in StatusStore and ErrorStore. Removed debug console statements from NodeMenuStore. Fixed unused variables in test files.
+
+**Files**: StatusStore.ts, ErrorStore.ts, NodeMenuStore.ts, NodeToolsSelector.test.tsx, and related components
+
+**Impact**: Better type safety while maintaining flexibility for complex objects. Removed debug logging from production code.
 
 ---
 

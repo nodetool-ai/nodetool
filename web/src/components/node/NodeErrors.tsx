@@ -67,11 +67,32 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
   const { writeClipboard } = useClipboard();
 
   const handleCopyError = useCallback(() => {
-    writeClipboard(error, true);
+    let errorString = '';
+    if (typeof error === 'string') {
+      errorString = error;
+    } else if (error instanceof Error) {
+      errorString = error.message;
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      errorString = String(error.message);
+    } else if (error) {
+      errorString = JSON.stringify(error);
+    }
+    writeClipboard(errorString, true);
   }, [writeClipboard, error]);
 
   if (!error) {
     return null;
+  }
+
+  let errorDisplay: React.ReactNode = '';
+  if (typeof error === 'string') {
+    errorDisplay = error;
+  } else if (error instanceof Error) {
+    errorDisplay = error.message;
+  } else if (error && typeof error === 'object' && 'message' in error) {
+    errorDisplay = String(error.message);
+  } else if (error) {
+    errorDisplay = JSON.stringify(error);
   }
 
   return (
@@ -84,7 +105,7 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
       >
         <ContentCopyIcon fontSize="small" />
       </IconButton>
-      <div className="error-text">{error}</div>
+      <div className="error-text">{errorDisplay}</div>
     </div>
   );
 };

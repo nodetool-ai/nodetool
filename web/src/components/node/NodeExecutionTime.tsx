@@ -7,7 +7,7 @@ import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 interface NodeExecutionTimeProps {
   nodeId: string;
   workflowId: string;
-  status: string;
+  status?: string;
 }
 
 const formatDuration = (ms: number): string => {

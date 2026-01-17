@@ -105,7 +105,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
           connectedOutputs
         },
         hasError: !!nodeError,
-        errorMessage: nodeError,
+        errorMessage: typeof nodeError === 'string' ? nodeError : nodeError && 'message' in nodeError ? String(nodeError.message) : undefined,
         executionStatus,
         lastExecutedAt: typeof nodeResult === "object" && nodeResult !== null ? (nodeResult as { timestamp?: string }).timestamp : undefined
       };
