@@ -245,7 +245,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         // because we started from an input handle
         if (filterType === "output" && typeMetadata) {
           const output =
-            metadata.outputs.length > 0 ? metadata.outputs[0] : null;
+            metadata.outputs?.length ? metadata.outputs[0] : null;
           if (!output) {return;}
           const edge = {
             id: generateEdgeId(),

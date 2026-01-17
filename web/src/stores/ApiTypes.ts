@@ -68,6 +68,30 @@ export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];
 export type IndexResponse = components["schemas"]["IndexResponse"];
 
 export interface NodeMetadata extends BaseNodeMetadata {
+  type?: string;
+  category?: string;
+  display_name?: string;
+  inputs?: Array<{
+    name: string;
+    type: string | {
+      type: string;
+      optional?: boolean;
+      values?: (string | number)[] | null;
+      type_args?: Array<unknown>;
+    };
+    accepts?: string[];
+    required?: boolean;
+    optional?: boolean;
+  }>;
+  outputs?: Array<{
+    name: string;
+    type: {
+      type: string;
+      optional?: boolean;
+      values?: (string | number)[] | null;
+      type_args?: Array<unknown>;
+    };
+  }>;
   searchInfo?: {
     score?: number;
     matches?: Array<{

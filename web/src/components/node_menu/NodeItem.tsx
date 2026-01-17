@@ -39,7 +39,7 @@ const NodeItem = memo(
     ) => {
       const theme = useTheme();
       const outputType =
-        node.outputs.length > 0 ? node.outputs[0].type.type : "";
+        (node.outputs as any)?.length ? (node.outputs as any)[0].type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
       const { hoveredNode, setHoveredNode } = useNodeMenuStore((state) => ({
         hoveredNode: state.hoveredNode,
