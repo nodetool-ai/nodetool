@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 
 /**
@@ -6,6 +6,61 @@ import { BACKEND_API_URL } from "./support/backend";
  * These tests verify that the --mock flag creates appropriate dummy data
  * for chat threads, workflows, assets, models, and providers.
  */
+
+/**
+ * Helper function to check page for server errors
+ */
+async function checkPageForServerErrors(page: Page): Promise<void> {
+  const bodyText = await page.textContent("body");
+  expect(bodyText).not.toContain("500");
+  expect(bodyText).not.toContain("Internal Server Error");
+}
+
+/**
+ * Helper function to wait for and verify page content
+ */
+async function waitForPageContent(page: Page): Promise<void> {
+  const body = page.locator("body");
+  await expect(body).not.toBeEmpty();
+  const hasContent = await body.textContent();
+  expect(hasContent).toBeTruthy();
+  expect(hasContent!.length).toBeGreaterThan(0);
+}
+
+/**
+ * Helper function to track API calls and wait for specific endpoint
+ */
+async function trackApiCallsAndNavigate(
+  page: Page,
+  path: string,
+  apiPattern: string
+): Promise<string[]> {
+  const apiCalls: string[] = [];
+
+  page.on("response", (response) => {
+    const url = response.url();
+    if (url.includes(apiPattern)) {
+      apiCalls.push(url);
+    }
+  });
+
+  await page.goto(path);
+  await page.waitForLoadState("networkidle");
+
+  // Wait for specific API response if pattern provided
+  if (apiPattern) {
+    try {
+      await page.waitForResponse(
+        (response) => response.url().includes(apiPattern),
+        { timeout: 10000 }
+      );
+    } catch {
+      // Response may have already been captured before waitForResponse was called
+    }
+  }
+
+  return apiCalls;
+}
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -45,14 +100,8 @@ if (process.env.JEST_WORKER_ID) {
 
       // If mock threads exist, verify they appear in the UI
       if (Array.isArray(threads) && threads.length > 0) {
-        // Wait for chat interface to load
-        await page.waitForTimeout(2000);
-
-        // The chat interface should have content
-        const body = await page.locator("body");
-        const hasContent = await body.textContent();
-        expect(hasContent).toBeTruthy();
-        expect(hasContent!.length).toBeGreaterThan(0);
+        // Wait for chat interface to load by checking for content
+        await waitForPageContent(page);
       }
     });
 
@@ -114,14 +163,8 @@ if (process.env.JEST_WORKER_ID) {
 
       // If mock workflows exist, verify they appear in the UI
       if (data.workflows && data.workflows.length > 0) {
-        // Wait for dashboard to load
-        await page.waitForTimeout(2000);
-
-        // The dashboard should have content
-        const body = await page.locator("body");
-        const hasContent = await body.textContent();
-        expect(hasContent).toBeTruthy();
-        expect(hasContent!.length).toBeGreaterThan(0);
+        // Wait for dashboard to load by checking for content
+        await waitForPageContent(page);
       }
     });
 
@@ -206,14 +249,8 @@ if (process.env.JEST_WORKER_ID) {
 
       // If mock assets exist, verify they appear in the UI
       if (Array.isArray(assets) && assets.length > 0) {
-        // Wait for assets to load
-        await page.waitForTimeout(2000);
-
-        // The assets page should have content
-        const body = await page.locator("body");
-        const hasContent = await body.textContent();
-        expect(hasContent).toBeTruthy();
-        expect(hasContent!.length).toBeGreaterThan(0);
+        // Wait for assets to load by checking for content
+        await waitForPageContent(page);
       }
     });
 
@@ -334,14 +371,8 @@ if (process.env.JEST_WORKER_ID) {
 
       // If mock models exist, verify they appear in the UI
       if (Array.isArray(models) && models.length > 0) {
-        // Wait for models to load
-        await page.waitForTimeout(2000);
-
-        // The models page should have content
-        const body = await page.locator("body");
-        const hasContent = await body.textContent();
-        expect(hasContent).toBeTruthy();
-        expect(hasContent!.length).toBeGreaterThan(0);
+        // Wait for models to load by checking for content
+        await waitForPageContent(page);
       }
     });
 
@@ -411,22 +442,12 @@ if (process.env.JEST_WORKER_ID) {
     test("should verify providers page makes API calls on load", async ({
       page
     }) => {
-      // Set up request interceptor to track API calls
-      const apiCalls: string[] = [];
-
-      page.on("response", (response) => {
-        const url = response.url();
-        if (url.includes("/api/models/providers")) {
-          apiCalls.push(url);
-        }
-      });
-
-      // Navigate to models page
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
-
-      // Wait for API response
-      await page.waitForTimeout(2000);
+      // Use helper function to track API calls
+      const apiCalls = await trackApiCallsAndNavigate(
+        page,
+        "/models",
+        "/api/models/providers"
+      );
 
       // Verify that providers API call was made
       expect(apiCalls.length).toBeGreaterThan(0);
@@ -457,9 +478,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/dashboard");
       await page.waitForLoadState("networkidle");
 
-      const bodyText = await page.textContent("body");
-      expect(bodyText).not.toContain("500");
-      expect(bodyText).not.toContain("Internal Server Error");
+      await checkPageForServerErrors(page);
     });
 
     test("should navigate between pages and load mock data for each", async ({
@@ -486,12 +505,19 @@ if (process.env.JEST_WORKER_ID) {
       for (const pageConfig of pages) {
         await page.goto(pageConfig.path);
         await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(1000);
+
+        // Wait for API response containing expected endpoint
+        try {
+          await page.waitForResponse(
+            (response) => response.url().includes(`/api/${pageConfig.expectedApi}`),
+            { timeout: 10000 }
+          );
+        } catch {
+          // Response may have already been captured
+        }
 
         // Verify page loaded without errors
-        const bodyText = await page.textContent("body");
-        expect(bodyText).not.toContain("500");
-        expect(bodyText).not.toContain("Internal Server Error");
+        await checkPageForServerErrors(page);
       }
 
       // Verify API calls were made
