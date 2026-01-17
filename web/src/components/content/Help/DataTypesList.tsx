@@ -152,7 +152,7 @@ const DataTypesList = ({
                     style={{
                       fontWeight: "normal",
                       width: "100%",
-                      fontSize: "var(--fontSizeNormal)"
+                      fontSize: "var(--fontSizeBig)"
                     }}
                   >
                     {type.name}
@@ -160,7 +160,11 @@ const DataTypesList = ({
                 </Button>
                 <Typography
                   key={`text-${type.value}`}
-                  style={{ borderRight: "0" }}
+                  style={{
+                    borderRight: "0",
+                    color: theme.vars.palette.grey[50],
+                    fontSize: "var(--fontSizeSmall)"
+                  }}
                 >
                   {type.description}
                 </Typography>
