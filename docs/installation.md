@@ -43,60 +43,49 @@ Running models locally gives you privacy and offline use, but needs more resourc
 
 ### What Different Tasks Need
 
-**Image generation:**
+| GPU Tier | Recommended Setup | Best Local Experience (Optimized) |
+| --- | --- | --- |
+| **Entry (8 GB)** | RTX 4060 / 5060 | **Flux.1 Schnell (Nunchaku)**, Qwen-Image-Lightning, 8B LLMs (Llama 3/4). |
+| **Mid (12–16 GB)** | RTX 4070 Ti / 5070 | **Qwen-Image-Edit (4-bit)**, Flux.1 Dev (Nunchaku), 32B Reasoning LLMs (DeepSeek R1 Distill). |
+| **Pro (24–32 GB)** | RTX 3090 / 4090 / 5090 | **Full Qwen-Image 2512**, Wan2.1 Video (720p), 70B LLMs (Llama 3.3/4 Q4). |
+| **Ultra (48 GB+)** | Dual 5090s / Mac Ultra | **DeepSeek-V3 (Full Local)**, 4K Video Gen (LTX-2), LoRA training in minutes. |
 
-| Model | Min VRAM | Better With | RAM | Notes |
-|-------|----------|-------------|-----|-------|
-| SD 1.5 | 4 GB | 6 GB | 8 GB | Basic |
-| SDXL | 8 GB | 12 GB | 16 GB | Higher quality |
-| Flux Schnell | 8 GB | 12 GB | 16 GB | Fast |
-| Flux Dev | 12 GB | 16 GB+ | 24 GB | Best quality |
-| ControlNet | +2-4 GB | +4-6 GB | +4 GB | Adds to base |
+In 2026, Apple hardware is particularly strong for local AI because of **Unified Memory Architecture (UMA)**. Unlike Windows PCs where you are limited by the VRAM on your graphics card, a Mac can use a large portion of its total RAM for AI models.
 
-**Language models:**
+With the **M4 chip family** and the **MLX framework**, Macs are now competitive with NVIDIA for "compute-heavy" tasks like Flux and Qwen-Image.
 
-| Size | Min VRAM | Better With | RAM (CPU) | Quality |
-|------|----------|-------------|-----------|---------|
-| 7B (Mistral, Llama) | 6 GB | 8 GB | 16 GB | Good |
-| 13B | 10 GB | 12 GB | 24 GB | Better |
-| 20B+ (GPT-OSS) | 16 GB | 24 GB | 32 GB+ | Near-GPT |
-| 70B | 48 GB+ | 80 GB | 64 GB+ | Best, multi-GPU |
+### **2026 Apple Silicon AI Capability Table**
 
-> **Note:** 4-bit quantized models (Q4) use ~50% less VRAM. NodeTool uses them automatically when available.
+| Chip Model | Min. RAM | Ideal RAM | Can Handle (MLX Optimized) |
+| --- | --- | --- | --- |
+| **M4 (Base)** | 16 GB | 32 GB | **8B LLMs (Llama 4)**, Flux.1 Schnell (8-bit), Sana 4K images. |
+| **M4 Pro** | 24 GB | 64 GB | **Qwen-Image-Edit**, 32B Reasoning models (DeepSeek R1), Flux.1 Dev. |
+| **M4 Max** | 48 GB | 128 GB | **70B Flagship LLMs**, Full-precision Flux, 720p Video (Wan2.1). |
+| **M2/M3 Ultra** | 128 GB | 512 GB | **DeepSeek-V3 (671B)**, 4K Video workflows, massive Batch-processing. |
 
-**Audio:**
+---
 
-| Task | Min | Better With | Notes |
-|------|-----|-------------|-------|
-| Whisper | 4 GB VRAM / 8 GB RAM | 6 GB VRAM / 16 GB RAM | CPU works, slower |
-| Text-to-Speech | 2 GB VRAM / 4 GB RAM | 4 GB VRAM / 8 GB RAM | Lightweight |
-| Music | 8 GB VRAM | 12 GB VRAM | Model dependent |
+### **Specific Task Guide for Mac (2026)**
 
-**Video:**
+#### **1. Image Generation (MLX / MFLUX)**
 
-| Task | Min VRAM | Better With | RAM | Notes |
-|------|----------|-------------|-----|-------|
-| Video-to-Video | 12 GB | 16 GB+ | 32 GB | Frame by frame |
-| CogVideoX | 16 GB | 24 GB | 48 GB | Text-to-video |
+Apple users should use **MLX-based tools** (like `mflux`) rather than standard PyTorch for a 3x speed boost.
 
-**Apple Silicon:**
+* **Flux.1 Dev:** Requires at least **32GB RAM** to run smoothly at 8-bit.
+* **Qwen-Image-Edit:** Now natively supported via MLX. On an M4 Max, it can perform complex "Multi-Image" edits in under 10 seconds.
+* **Sana (4K):** Runs exceptionally well on the base M4 because of its low parameter count but high resolution output.
 
-Uses unified memory (shared CPU/GPU). NodeTool uses MLX for speed.
+#### **2. Language Models (LLMs)**
 
-| Chip | Memory | Can Handle |
-|------|--------|------------|
-| M1/M2 (8 GB) | 8 GB | Basic LLMs (7B), limited images |
-| M1/M2 Pro (16 GB) | 16 GB | Most LLMs, SDXL, Flux Schnell |
-| M1/M2 Max (32 GB) | 32 GB | Large LLMs (20B+), all images |
-| M1/M2 Ultra (64 GB+) | 64 GB+ | Everything including 70B LLMs |
-| M3/M4 | 8-128 GB | ~20% faster than M2 |
+The rule of thumb for Mac: **Your Model Size (GB) + 4GB (System) < Total RAM.**
 
-### Quick Check
+* **Llama 3.3/4 (70B) @ Q4:** Needs ~42 GB. Runs great on a **64GB M4 Pro/Max**.
+* **DeepSeek-V3 (MoE):** This massive model requires **at least 128GB RAM** (Ultra chips) even when heavily quantized.
 
-- **8 GB VRAM / 16 GB RAM** - Basic images, 7B LLMs, audio
-- **12 GB VRAM / 24 GB RAM** - SDXL, Flux, 13B LLMs, most workflows  
-- **16 GB+ VRAM / 32 GB+ RAM** - All local models, video, large LLMs
-- **Cloud APIs only** - Any hardware, offload to OpenAI/Anthropic/Replicate
+#### **3. Video Generation**
+
+* **Wan2.1 (Small):** Can run on **M4 Pro (48GB)**.
+* **CogVideoX:** Best on **M4 Max** due to high memory bandwidth requirements ( GB/s).
 
 ---
 
