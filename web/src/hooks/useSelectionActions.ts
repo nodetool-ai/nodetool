@@ -3,6 +3,42 @@ import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
+/**
+ * Hook to provide batch operations for selected nodes in the editor.
+ * 
+ * Supports aligning nodes (left, center, right, top, middle, bottom),
+ * distributing nodes evenly (horizontal, vertical), and other batch actions
+ * like delete, duplicate, group, and bypass.
+ * 
+ * @returns Object containing action functions:
+ *   - alignLeft: Align all selected nodes to the leftmost position
+ *   - alignCenter: Center all selected nodes vertically
+ *   - alignRight: Align all selected nodes to the rightmost position
+ *   - alignTop: Align all selected nodes to the topmost position
+ *   - alignMiddle: Center all selected nodes horizontally
+ *   - alignBottom: Align all selected nodes to the bottommost position
+ *   - distributeHorizontal: Evenly space nodes horizontally
+ *   - distributeVertical: Evenly space nodes vertically
+ *   - deleteSelected: Delete all selected nodes
+ *   - duplicateSelected: Duplicate all selected nodes
+ *   - groupSelected: Wrap selected nodes in a group node
+ *   - bypassSelected: Toggle bypass state for selected nodes
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   alignLeft, 
+ *   alignCenter,
+ *   distributeHorizontal,
+ *   deleteSelected 
+ * } = useSelectionActions();
+ * 
+ * // Use in a toolbar
+ * <button onClick={alignLeft}>Align Left</button>
+ * <button onClick={distributeHorizontal}>Distribute</button>
+ * ```
+ */
+
 interface SelectionActionsReturn {
   alignLeft: () => void;
   alignCenter: () => void;

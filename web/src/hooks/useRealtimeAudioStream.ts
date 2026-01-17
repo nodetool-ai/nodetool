@@ -2,6 +2,39 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useInputStream } from "./useInputStream";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 
+/**
+ * Hook to manage real-time audio streaming from microphone to workflow.
+ * 
+ * Captures audio from the user's microphone at 22kHz sample rate, converts
+ * to PCM16LE format, and streams it to the workflow via WebSocket. Handles
+ * automatic cleanup and stop on workflow state changes.
+ * 
+ * @param inputNodeName - Optional name of the audio input node to stream to
+ * @returns Object containing:
+ *   - isStreaming: Whether audio is currently being captured and streamed
+ *   - start: Function to start audio capture
+ *   - stop: Function to stop audio capture
+ *   - toggle: Function to toggle streaming state
+ *   - stream: The current MediaStream object, or null
+ *   - version: Incremented when streaming state changes (for triggering updates)
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isStreaming, 
+ *   start, 
+ *   stop, 
+ *   toggle 
+ * } = useRealtimeAudioStream("audio-input");
+ * 
+ * return (
+ *   <button onClick={isStreaming ? stop : start}>
+ *     {isStreaming ? "Stop Recording" : "Start Recording"}
+ *   </button>
+ * );
+ * ```
+ */
+
 type UseRealtimeAudioStream = {
   isStreaming: boolean;
   start: () => void;

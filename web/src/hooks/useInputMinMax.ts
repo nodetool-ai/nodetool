@@ -5,6 +5,34 @@ import { shallow } from "zustand/shallow";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
+/**
+ * Hook to determine min/max bounds for numeric input nodes.
+ * 
+ * Looks up min/max values from node properties for FloatInput and IntegerInput
+ * node types. Falls back to provided property values or default bounds.
+ * 
+ * @param options - Configuration options
+ * @param options.nodeType - Type of the node (e.g., "nodetool.input.FloatInput")
+ * @param options.nodeId - ID of the node to look up
+ * @param options.propertyName - Name of the property (usually "value")
+ * @param options.propertyMin - Optional explicit minimum from property definition
+ * @param options.propertyMax - Optional explicit maximum from property definition
+ * @returns Object with min and max bounds for the input
+ * 
+ * @example
+ * ```typescript
+ * const { min, max } = useInputMinMax({
+ *   nodeType: "nodetool.input.FloatInput",
+ *   nodeId: "node-123",
+ *   propertyName: "value",
+ *   propertyMin: 0,
+ *   propertyMax: 100
+ * });
+ * 
+ * // Returns { min: 0, max: 100 } or values from node.data.properties
+ * ```
+ */
+
 interface UseInputMinMaxOptions {
   nodeType?: string;
   nodeId: string;

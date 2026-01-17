@@ -492,6 +492,39 @@ Last updated: 2026-01-17
 
 ---
 
+### JSDoc Hook Documentation Complete Coverage (2026-01-17)
+
+**What**: Added JSDoc documentation to 12 remaining hooks, achieving 100% documentation coverage for web/src/hooks.
+
+**Files Updated**:
+1. **useCollectionDragAndDrop.ts** - Asset collection drag-and-drop with progress tracking
+2. **useDashboardData.ts** - Dashboard workflow and template loading
+3. **useDelayedHover.ts** - Hover delay for tooltips and menus
+4. **useInputMinMax.ts** - Input bounds determination for numeric nodes
+5. **useNodeFocus.ts** - Keyboard navigation mode for node editor
+6. **useRealtimeAudioStream.ts** - Real-time audio capture and streaming
+7. **useRecommendedTaskModels.ts** - Task-specific model recommendations
+8. **useSelectConnected.ts** - Connected node selection traversal
+9. **useSelectedNodesInfo.ts** - Selected node metadata aggregation
+10. **useSelectionActions.ts** - Batch alignment, distribution, and operations
+11. **useWorkflowActions.ts** - Workflow creation and navigation
+
+**Impact**: All hooks in the web/src/hooks directory now have comprehensive JSDoc documentation with:
+- Module-level descriptions explaining hook purpose
+- @param tags for all parameters
+- @returns tags describing return values
+- @example code blocks with working TypeScript examples
+
+**Verification**:
+- ESLint: All modified files pass linting with no warnings
+- TypeScript: No new errors introduced by documentation
+- All documentation follows established patterns from NodeStore, WorkflowRunner, GlobalChatStore
+
+**Related Memory**:
+- `.github/opencode-memory/issues/documentation/jsdoc-improvements-2026-01-17.md` - Complete coverage tracking
+
+---
+
 **Note**: This list represents the current state of NodeTool. Check git history and recent PRs for the most up-to-date information on new features.
 
 ---

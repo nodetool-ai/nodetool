@@ -6,6 +6,40 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 
+/**
+ * Hook to load and organize dashboard data including workflows and templates.
+ * 
+ * Fetches user workflows and example templates, then organizes them for display
+ * on the dashboard. Templates tagged with "start" or "getting-started" are
+ * identified as starter templates.
+ * 
+ * @returns Object containing:
+ *   - isLoadingWorkflows: Whether workflows are currently loading
+ *   - sortedWorkflows: User workflows sorted by name or update date
+ *   - isLoadingTemplates: Whether templates are currently loading
+ *   - startTemplates: Workflow templates suitable for new users
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isLoadingWorkflows, 
+ *   sortedWorkflows, 
+ *   startTemplates 
+ * } = useDashboardData();
+ * 
+ * if (isLoadingWorkflows) return <Loading />;
+ * 
+ * return (
+ *   <div>
+ *     <h2>Start Here</h2>
+ *     {startTemplates.map(t => <TemplateCard key={t.id} template={t} />)}
+ *     <h2>Your Workflows</h2>
+ *     {sortedWorkflows.map(w => <WorkflowCard key={w.id} workflow={w} />)}
+ *   </div>
+ * );
+ * ```
+ */
+
 const loadWorkflows = async () => {
   const { data, error } = await client.GET("/api/workflows/", {
     params: {

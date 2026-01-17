@@ -4,6 +4,49 @@ import { useNodes } from "../contexts/NodeContext";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 
+/**
+ * Hook to manage keyboard navigation mode for nodes in the editor.
+ * 
+ * Provides comprehensive keyboard navigation capabilities including sequential
+ * navigation (Tab/Shift+Tab), directional navigation (Alt+Arrows), history
+ * tracking for "go back" functionality, and selection management.
+ * 
+ * @returns Object containing:
+ *   - focusedNodeId: ID of the currently focused node, or null
+ *   - isNavigationMode: Whether keyboard navigation mode is active
+ *   - focusHistory: Array of previously focused node IDs
+ *   - enterNavigationMode: Function to activate navigation mode
+ *   - exitNavigationMode: Function to deactivate navigation mode
+ *   - setFocusedNode: Function to programmatically set focus
+ *   - focusNext: Focus the next node in the workflow
+ *   - focusPrev: Focus the previous node in the workflow
+ *   - focusUp: Focus the node above the current one
+ *   - focusDown: Focus the node below the current one
+ *   - focusLeft: Focus the node to the left
+ *   - focusRight: Focus the node to the right
+ *   - selectFocused: Select the currently focused node
+ *   - goBack: Navigate to the previously focused node
+ *   - clearFocusHistory: Clear the navigation history
+ *   - getFocusedNode: Get the full node object for the focused node
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   focusedNodeId, 
+ *   isNavigationMode,
+ *   focusNext, 
+ *   focusPrev,
+ *   selectFocused 
+ * } = useNodeFocus();
+ * 
+ * // Navigate through nodes
+ * focusNext();
+ * 
+ * // Select the focused node
+ * selectFocused();
+ * ```
+ */
+
 interface UseNodeFocusReturn {
   focusedNodeId: string | null;
   isNavigationMode: boolean;

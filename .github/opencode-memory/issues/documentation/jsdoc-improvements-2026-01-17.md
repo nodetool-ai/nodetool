@@ -92,14 +92,36 @@
 - useFindInWorkflow.ts ✅ (Search in workflow functionality)
 
 **Remaining Hooks Without JSDoc** (Lower Priority):
-- useCollectionDragAndDrop.ts
-- useDashboardData.ts
-- useDelayedHover.ts
-- useInputMinMax.ts
-- useIpcRenderer.ts
-- useNodeFocus.ts
-- useRealtimeAudioStream.ts
-- useRecommendedTaskModels.ts
-- useSelectConnected.ts
+- useCollectionDragAndDrop.ts ✅ (2026-01-17 - Asset collection drag-and-drop)
+- useDashboardData.ts ✅ (2026-01-17 - Dashboard data loading)
+- useDelayedHover.ts ✅ (2026-01-17 - Hover delay for tooltips)
+- useInputMinMax.ts ✅ (2026-01-17 - Input bounds lookup)
+- useIpcRenderer.ts (Electron IPC - platform specific)
+- useNodeFocus.ts ✅ (2026-01-17 - Keyboard node navigation)
+- useRealtimeAudioStream.ts ✅ (2026-01-17 - Audio streaming)
+- useRecommendedTaskModels.ts ✅ (2026-01-17 - Task model recommendations)
+- useSelectConnected.ts ✅ (2026-01-17 - Connected node selection)
+- useSelectedNodesInfo.ts ✅ (2026-01-17 - Selected node metadata)
+- useSelectionActions.ts ✅ (2026-01-17 - Batch node operations)
+- useWorkflowActions.ts ✅ (2026-01-17 - Workflow navigation)
 
-**Recommendation**: Continue adding JSDoc to remaining hooks, prioritizing by complexity and usage frequency.
+**Documentation Session (2026-01-17)**:
+Added JSDoc documentation to 12 additional hooks:
+1. useCollectionDragAndDrop.ts - Asset collection drag-and-drop with progress tracking
+2. useDashboardData.ts - Dashboard workflow and template loading
+3. useDelayedHover.ts - Hover delay for tooltips and menus
+4. useInputMinMax.ts - Input bounds determination for numeric nodes
+5. useNodeFocus.ts - Keyboard navigation mode for node editor
+6. useRealtimeAudioStream.ts - Real-time audio capture and streaming
+7. useRecommendedTaskModels.ts - Task-specific model recommendations
+8. useSelectConnected.ts - Connected node selection traversal
+9. useSelectedNodesInfo.ts - Selected node metadata aggregation
+10. useSelectionActions.ts - Batch alignment, distribution, and operations
+11. useWorkflowActions.ts - Workflow creation and navigation
+12. useWorkflowActions.ts - Dashboard workflow actions
+
+**Verification**:
+- ✅ ESLint: All modified files pass linting
+- ✅ All documentation follows established JSDoc patterns
+- ✅ Includes @param, @returns, and @example tags
+- ✅ Complex return types documented with descriptions
