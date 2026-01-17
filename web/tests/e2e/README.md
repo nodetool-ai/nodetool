@@ -82,24 +82,28 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - Connection interruption handling
 - Disconnection status display
 
-## Total Test Coverage
-
-- **Total Files:** 11
-- **Total Tests:** 49
-- **Original Tests:** 3
-- **New Tests:** 46
-### 11. model-download.spec.ts (New)
+### 12. model-download.spec.ts (New)
 **Tests: 3**
 - Download a small HuggingFace model successfully
 - Connect to download WebSocket endpoint
 - Network access to HuggingFace (validates no CI restrictions)
 
+### 13. mock-data.spec.ts (New)
+**Tests: 20**
+- Mock server data loading tests (uses `--mock` flag)
+- Chat threads API integration
+- Workflows API integration
+- Assets API integration
+- Models API integration
+- Providers API integration
+- Cross-feature integration tests
+
 ## Total Test Coverage
 
-- **Total Files:** 10
-- **Total Tests:** 41
+- **Total Files:** 13
+- **Total Tests:** 69
 - **Original Tests:** 3
-- **New Tests:** 38
+- **New Tests:** 66
 
 ## Test Coverage Areas
 
@@ -118,6 +122,7 @@ This directory contains end-to-end tests for the NodeTool web application using 
 - ✅ Browser history navigation
 - ✅ Backend API connectivity
 - ✅ WebSocket integration (unified /ws endpoint)
+- ✅ Mock data loading (chat threads, workflows, assets, models, providers)
 
 ### Test Patterns Used
 
@@ -202,7 +207,36 @@ These tests run automatically in GitHub Actions:
 - On push to `main` branch (when web files change)
 - On pull requests to `main` branch (when web files change)
 
+The CI workflow starts the nodetool server with the `--mock` flag, which creates dummy data for:
+- Chat threads
+- Workflows
+- Assets
+- Models
+- Providers
+
+This allows tests to verify data loading and display without requiring external services or real user data.
+
 See `.github/workflows/e2e.yml` for CI configuration.
+
+## Mock Server
+
+The e2e tests use the nodetool server's `--mock` flag to generate consistent test data.
+
+### Starting the Mock Server Locally
+
+```bash
+# Start the server with mock data
+conda run -n nodetool nodetool serve --port 7777 --mock
+```
+
+### Mock Data Available
+
+When running with `--mock`, the server provides:
+- **Chat Threads**: Pre-populated conversation threads
+- **Workflows**: Example workflows with nodes and connections
+- **Assets**: Sample assets (images, text files, etc.)
+- **Models**: Mock model configurations
+- **Providers**: Mock AI provider configurations
 
 ## Future Enhancements
 
