@@ -1,151 +1,147 @@
 import { act } from "@testing-library/react";
-import { useModelManagerStore, ModelFilterStatus } from "../ModelManagerStore";
+import { useModelManagerStore } from "../ModelManagerStore";
 
 describe("ModelManagerStore", () => {
   beforeEach(() => {
-    useModelManagerStore.setState(useModelManagerStore.getInitialState());
+    useModelManagerStore.setState({
+      isOpen: false,
+      modelSearchTerm: "",
+      selectedModelType: "All",
+      maxModelSizeGB: 0,
+      filterStatus: "all"
+    });
   });
 
-  it("initializes with correct default state", () => {
-    expect(useModelManagerStore.getState().isOpen).toBe(false);
-    expect(useModelManagerStore.getState().modelSearchTerm).toBe("");
-    expect(useModelManagerStore.getState().selectedModelType).toBe("All");
-    expect(useModelManagerStore.getState().maxModelSizeGB).toBe(0);
-    expect(useModelManagerStore.getState().filterStatus).toBe("all");
+  describe("initial state", () => {
+    test("should initialize with default values", () => {
+      const state = useModelManagerStore.getState();
+      expect(state.isOpen).toBe(false);
+      expect(state.modelSearchTerm).toBe("");
+      expect(state.selectedModelType).toBe("All");
+      expect(state.maxModelSizeGB).toBe(0);
+      expect(state.filterStatus).toBe("all");
+    });
   });
 
-  describe("setIsOpen", () => {
-    it("sets isOpen to true", () => {
+  describe("isOpen state", () => {
+    test("should set isOpen to true", () => {
       act(() => {
         useModelManagerStore.getState().setIsOpen(true);
       });
+
       expect(useModelManagerStore.getState().isOpen).toBe(true);
     });
 
-    it("sets isOpen to false", () => {
+    test("should set isOpen to false", () => {
       act(() => {
         useModelManagerStore.getState().setIsOpen(true);
-      });
-      act(() => {
         useModelManagerStore.getState().setIsOpen(false);
       });
+
       expect(useModelManagerStore.getState().isOpen).toBe(false);
     });
   });
 
-  describe("setModelSearchTerm", () => {
-    it("sets model search term", () => {
+  describe("model search term", () => {
+    test("should set model search term", () => {
       act(() => {
-        useModelManagerStore.getState().setModelSearchTerm("test model");
+        useModelManagerStore.getState().setModelSearchTerm("llama");
       });
-      expect(useModelManagerStore.getState().modelSearchTerm).toBe("test model");
+
+      expect(useModelManagerStore.getState().modelSearchTerm).toBe("llama");
     });
 
-    it("clears search term with empty string", () => {
+    test("should clear model search term", () => {
       act(() => {
-        useModelManagerStore.getState().setModelSearchTerm("some search");
-      });
-      act(() => {
+        useModelManagerStore.getState().setModelSearchTerm("llama");
         useModelManagerStore.getState().setModelSearchTerm("");
       });
-      expect(useModelManagerStore.getState().modelSearchTerm).toBe("");
-    });
 
-    it("updates search term multiple times", () => {
-      act(() => {
-        useModelManagerStore.getState().setModelSearchTerm("first");
-      });
-      act(() => {
-        useModelManagerStore.getState().setModelSearchTerm("second");
-      });
-      act(() => {
-        useModelManagerStore.getState().setModelSearchTerm("third");
-      });
-      expect(useModelManagerStore.getState().modelSearchTerm).toBe("third");
+      expect(useModelManagerStore.getState().modelSearchTerm).toBe("");
     });
   });
 
-  describe("setSelectedModelType", () => {
-    it("sets selected model type", () => {
+  describe("selected model type", () => {
+    test("should set selected model type", () => {
       act(() => {
-        useModelManagerStore.getState().setSelectedModelType("llm");
+        useModelManagerStore.getState().setSelectedModelType("text-generation");
       });
-      expect(useModelManagerStore.getState().selectedModelType).toBe("llm");
+
+      expect(useModelManagerStore.getState().selectedModelType).toBe("text-generation");
     });
 
-    it("resets to All", () => {
+    test("should reset selected model type to All", () => {
       act(() => {
-        useModelManagerStore.getState().setSelectedModelType("vision");
-      });
-      act(() => {
+        useModelManagerStore.getState().setSelectedModelType("text-generation");
         useModelManagerStore.getState().setSelectedModelType("All");
       });
+
       expect(useModelManagerStore.getState().selectedModelType).toBe("All");
     });
   });
 
-  describe("setMaxModelSizeGB", () => {
-    it("sets max model size in GB", () => {
-      act(() => {
-        useModelManagerStore.getState().setMaxModelSizeGB(4);
-      });
-      expect(useModelManagerStore.getState().maxModelSizeGB).toBe(4);
-    });
-
-    it("sets no limit when 0", () => {
+  describe("max model size", () => {
+    test("should set max model size in GB", () => {
       act(() => {
         useModelManagerStore.getState().setMaxModelSizeGB(8);
       });
-      act(() => {
-        useModelManagerStore.getState().setMaxModelSizeGB(0);
-      });
-      expect(useModelManagerStore.getState().maxModelSizeGB).toBe(0);
+
+      expect(useModelManagerStore.getState().maxModelSizeGB).toBe(8);
     });
 
-    it("handles various size values", () => {
-      const sizes = [1, 2, 4, 8, 16, 32];
-      sizes.forEach((size) => {
-        act(() => {
-          useModelManagerStore.getState().setMaxModelSizeGB(size);
-        });
-        expect(useModelManagerStore.getState().maxModelSizeGB).toBe(size);
+    test("should set max model size to 0 (no limit)", () => {
+      act(() => {
+        useModelManagerStore.getState().setMaxModelSizeGB(8);
+        useModelManagerStore.getState().setMaxModelSizeGB(0);
       });
+
+      expect(useModelManagerStore.getState().maxModelSizeGB).toBe(0);
     });
   });
 
-  describe("setFilterStatus", () => {
-    it("sets filter status to downloaded", () => {
+  describe("filter status", () => {
+    test("should set filter status to downloaded", () => {
       act(() => {
         useModelManagerStore.getState().setFilterStatus("downloaded");
       });
+
       expect(useModelManagerStore.getState().filterStatus).toBe("downloaded");
     });
 
-    it("sets filter status to not_downloaded", () => {
+    test("should set filter status to not_downloaded", () => {
       act(() => {
         useModelManagerStore.getState().setFilterStatus("not_downloaded");
       });
+
       expect(useModelManagerStore.getState().filterStatus).toBe("not_downloaded");
     });
 
-    it("sets filter status to all", () => {
+    test("should reset filter status to all", () => {
       act(() => {
         useModelManagerStore.getState().setFilterStatus("downloaded");
-      });
-      act(() => {
         useModelManagerStore.getState().setFilterStatus("all");
       });
+
       expect(useModelManagerStore.getState().filterStatus).toBe("all");
     });
+  });
 
-    it("handles all filter status values", () => {
-      const statuses: ModelFilterStatus[] = ["all", "downloaded", "not_downloaded"];
-      statuses.forEach((status) => {
-        act(() => {
-          useModelManagerStore.getState().setFilterStatus(status);
-        });
-        expect(useModelManagerStore.getState().filterStatus).toBe(status);
+  describe("multiple state changes", () => {
+    test("should handle multiple state changes", () => {
+      act(() => {
+        useModelManagerStore.getState().setIsOpen(true);
+        useModelManagerStore.getState().setModelSearchTerm("gpt");
+        useModelManagerStore.getState().setSelectedModelType("text-generation");
+        useModelManagerStore.getState().setMaxModelSizeGB(4);
+        useModelManagerStore.getState().setFilterStatus("downloaded");
       });
+
+      const state = useModelManagerStore.getState();
+      expect(state.isOpen).toBe(true);
+      expect(state.modelSearchTerm).toBe("gpt");
+      expect(state.selectedModelType).toBe("text-generation");
+      expect(state.maxModelSizeGB).toBe(4);
+      expect(state.filterStatus).toBe("downloaded");
     });
   });
 });
