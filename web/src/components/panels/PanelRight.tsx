@@ -362,6 +362,7 @@ const PanelRight: React.FC = () => {
                   currentWorkflowId ? (
                     <VersionHistoryPanel
                       workflowId={currentWorkflowId}
+                      currentVersionId={currentWorkflowId}
                       onRestore={handleRestoreVersion}
                       onClose={() => handlePanelToggle("versions")}
                     />

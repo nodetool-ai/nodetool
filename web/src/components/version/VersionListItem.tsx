@@ -21,7 +21,8 @@ import {
   Delete as DeleteIcon,
   PushPin as PinIcon,
   PushPinOutlined as PinOutlinedIcon,
-  Compare as CompareIcon
+  Compare as CompareIcon,
+  History as HistoryIcon
 } from "@mui/icons-material";
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow } from "date-fns";
@@ -33,11 +34,13 @@ interface VersionListItemProps {
   isSelected: boolean;
   isCompareTarget: boolean;
   compareMode: boolean;
+  hasPreviousVersion: boolean;
   onSelect: (versionId: string) => void;
   onRestore: (version: WorkflowVersion) => void;
   onDelete: (versionId: string) => void;
   onPin: (versionId: string, pinned: boolean) => void;
   onCompare: (versionId: string) => void;
+  onCompareWithPrevious: (version: WorkflowVersion) => void;
   isRestoring?: boolean;
 }
 
@@ -88,20 +91,22 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   isSelected,
   isCompareTarget,
   compareMode,
+  hasPreviousVersion,
   onSelect,
   onRestore,
   onDelete,
   onPin,
   onCompare,
+  onCompareWithPrevious,
   isRestoring = false
 }) => {
-  const handleClick = useCallback(() => {
+  const _handleClick = useCallback(() => {
     if (compareMode) {
-      onCompare(version.id);
+      _handleCompare({ stopPropagation: () => {} } as React.MouseEvent);
     } else {
       onSelect(version.id);
     }
-  }, [compareMode, version.id, onSelect, onCompare]);
+  }, [compareMode, version.id, _handleCompare, onSelect]);
 
   const handleRestore = useCallback(
     (e: React.MouseEvent) => {
@@ -127,13 +132,29 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
     [version.id, version.is_pinned, onPin]
   );
 
+  const _handleCompare = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onCompare(version.id);
+    },
+    [version.id, onCompare]
+  );
+
+  const handleCompareWithPrevious = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onCompareWithPrevious(version);
+    },
+    [version, onCompareWithPrevious]
+  );
+
   const timeAgo = formatDistanceToNow(new Date(version.created_at), {
     addSuffix: true
   });
 
   return (
-    <ListItem
-      onClick={handleClick}
+      <ListItem
+        onClick={_handleClick}
       sx={{
         cursor: "pointer",
         borderLeft: isSelected
@@ -218,6 +239,13 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
             <CircularProgress size={20} />
           ) : (
             <>
+              {hasPreviousVersion && (
+                <Tooltip title="Compare with previous version">
+                  <IconButton size="small" onClick={handleCompareWithPrevious}>
+                    <HistoryIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
               <Tooltip title="Restore this version">
                 <IconButton size="small" onClick={handleRestore}>
                   <RestoreIcon fontSize="small" />

@@ -54,13 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### Performance Optimization: Component Memoization (2026-01-17)
+### Workflow Version Diff (2026-01-17)
 
-**What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
+**What**: Added visual workflow version comparison feature. Users can now compare any version with its predecessor to see what nodes/edges changed (added/removed/modified).
 
-**Files**: ImageEditorToolbar.tsx, ImageEditorModal.tsx, OpenOrCreateDialog.tsx
-
-**Impact**: Reduced re-renders in image editing and workflow creation workflows. Bundle size unchanged (5.74 MB).
+**Files**:
+- `web/src/stores/WorkflowDiffStore.ts` - Diff state management
+- `web/src/utils/workflowDiff.ts` - Diff computation logic
+- `web/src/components/workflow/WorkflowDiffViewer.tsx` - Diff UI component
+- `web/src/components/version/VersionHistoryPanel.tsx` - Integrated diff viewer
+- `web/src/components/version/VersionListItem.tsx` - Added "Compare with Previous" button
 
 ---
 

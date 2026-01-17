@@ -31,7 +31,9 @@ import {
 import { VersionListItem } from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
+import { WorkflowDiffViewer } from "../workflow/WorkflowDiffViewer";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
+import { useWorkflowDiffStore } from "../../stores/WorkflowDiffStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
@@ -39,6 +41,7 @@ import { NodeUIProperties } from "../../stores/NodeStore";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
+  currentVersionId: string;
   onRestore: (version: WorkflowVersion) => void;
   onClose: () => void;
 }
@@ -57,6 +60,7 @@ const getSaveType = (version: WorkflowVersion): SaveType => {
 
 export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   workflowId,
+  currentVersionId,
   onRestore,
   onClose
 }) => {
@@ -225,6 +229,19 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareVersion(null);
     setCompareMode(false);
   }, [setSelectedVersion, setCompareVersion, setCompareMode]);
+
+  const { openDiff } = useWorkflowDiffStore();
+
+  const handleCompareWithPrevious = useCallback(
+    (version: WorkflowVersion) => {
+      const currentIndex = versions.findIndex((v) => v.id === version.id);
+      if (currentIndex > 0 && versions[currentIndex - 1]) {
+        const previousVersion = versions[currentIndex - 1];
+        openDiff(previousVersion.id, version.id);
+      }
+    },
+    [versions, openDiff]
+  );
 
   if (isLoading) {
     return (
@@ -424,18 +441,20 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           </Box>
         ) : (
           <List dense sx={{ py: 1 }}>
-            {versions.map((version) => (
+            {versions.map((version, index) => (
               <VersionListItem
                 key={version.id}
                 version={version}
                 isSelected={selectedVersionId === version.id}
                 isCompareTarget={compareVersionId === version.id}
                 compareMode={isCompareMode}
+                hasPreviousVersion={index > 0}
                 onSelect={handleSelect}
                 onRestore={handleRestore}
                 onDelete={handleDelete}
                 onPin={handlePin}
                 onCompare={handleCompare}
+                onCompareWithPrevious={handleCompareWithPrevious}
                 isRestoring={isRestoringVersion}
               />
             ))}
@@ -474,6 +493,11 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <WorkflowDiffViewer
+        versions={versions as import("../../stores/ApiTypes").WorkflowVersion[]}
+        currentVersionId={currentVersionId}
+      />
     </Paper>
   );
 };
