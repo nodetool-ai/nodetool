@@ -1,110 +1,116 @@
-import { renderHook, act } from "@testing-library/react";
-import { useWorkflowActionsStore, useWorkflowActions } from "../WorkflowActionsStore";
+import { useWorkflowActionsStore } from "../WorkflowActionsStore";
+import { Workflow } from "../ApiTypes";
 
 describe("WorkflowActionsStore", () => {
   beforeEach(() => {
-    useWorkflowActionsStore.setState(useWorkflowActionsStore.getInitialState());
+    useWorkflowActionsStore.setState({
+      onEdit: null,
+      onDuplicate: null,
+      onDelete: null,
+      onOpenAsApp: null,
+    });
   });
 
-  it("initializes with null actions", () => {
-    const { result } = renderHook(() => useWorkflowActionsStore());
-    expect(result.current.onEdit).toBeNull();
-    expect(result.current.onDuplicate).toBeNull();
-    expect(result.current.onDelete).toBeNull();
-    expect(result.current.onOpenAsApp).toBeNull();
+  it("initializes with null action handlers", () => {
+    const state = useWorkflowActionsStore.getState();
+    expect(state.onEdit).toBeNull();
+    expect(state.onDuplicate).toBeNull();
+    expect(state.onDelete).toBeNull();
+    expect(state.onOpenAsApp).toBeNull();
   });
 
-  it("sets all actions at once", () => {
-    const mockEdit = jest.fn();
-    const mockDuplicate = jest.fn();
-    const mockDelete = jest.fn();
-    const mockOpenAsApp = jest.fn();
+  it("sets all action handlers at once", () => {
+    const mockWorkflow: Workflow = {
+      id: "test-id",
+      name: "Test Workflow",
+      graph: { nodes: [], edges: [] },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-    const { result } = renderHook(() => useWorkflowActionsStore());
+    const onEdit = jest.fn();
+    const onDuplicate = jest.fn();
+    const onDelete = jest.fn();
+    const onOpenAsApp = jest.fn();
 
-    act(() => {
-      result.current.setActions({
-        onEdit: mockEdit,
-        onDuplicate: mockDuplicate,
-        onDelete: mockDelete,
-        onOpenAsApp: mockOpenAsApp
-      });
+    useWorkflowActionsStore.getState().setActions({
+      onEdit,
+      onDuplicate,
+      onDelete,
+      onOpenAsApp,
     });
 
-    expect(result.current.onEdit).toBe(mockEdit);
-    expect(result.current.onDuplicate).toBe(mockDuplicate);
-    expect(result.current.onDelete).toBe(mockDelete);
-    expect(result.current.onOpenAsApp).toBe(mockOpenAsApp);
+    const state = useWorkflowActionsStore.getState();
+    expect(state.onEdit).toBe(onEdit);
+    expect(state.onDuplicate).toBe(onDuplicate);
+    expect(state.onDelete).toBe(onDelete);
+    expect(state.onOpenAsApp).toBe(onOpenAsApp);
   });
 
-  it("sets only provided actions, keeping others as null", () => {
-    const mockEdit = jest.fn();
+  it("sets individual action handlers", () => {
+    const mockWorkflow: Workflow = {
+      id: "test-id",
+      name: "Test Workflow",
+      graph: { nodes: [], edges: [] },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-    const { result } = renderHook(() => useWorkflowActionsStore());
+    const onEdit = jest.fn();
 
-    act(() => {
-      result.current.setActions({ onEdit: mockEdit });
-    });
+    useWorkflowActionsStore.getState().setActions({ onEdit });
 
-    expect(result.current.onEdit).toBe(mockEdit);
-    expect(result.current.onDuplicate).toBeNull();
-    expect(result.current.onDelete).toBeNull();
-    expect(result.current.onOpenAsApp).toBeNull();
+    expect(useWorkflowActionsStore.getState().onEdit).toBe(onEdit);
+    expect(useWorkflowActionsStore.getState().onDuplicate).toBeNull();
+    expect(useWorkflowActionsStore.getState().onDelete).toBeNull();
+    expect(useWorkflowActionsStore.getState().onOpenAsApp).toBeNull();
   });
 
-  it("clears all actions", () => {
-    const mockEdit = jest.fn();
-    const mockDuplicate = jest.fn();
-
-    const { result } = renderHook(() => useWorkflowActionsStore());
-
-    act(() => {
-      result.current.setActions({ onEdit: mockEdit, onDuplicate: mockDuplicate });
-      result.current.clearActions();
+  it("handles undefined action handlers", () => {
+    useWorkflowActionsStore.getState().setActions({
+      onEdit: undefined,
+      onDuplicate: undefined,
+      onDelete: undefined,
+      onOpenAsApp: undefined,
     });
 
-    expect(result.current.onEdit).toBeNull();
-    expect(result.current.onDuplicate).toBeNull();
-    expect(result.current.onDelete).toBeNull();
-    expect(result.current.onOpenAsApp).toBeNull();
+    const state = useWorkflowActionsStore.getState();
+    expect(state.onEdit).toBeNull();
+    expect(state.onDuplicate).toBeNull();
+    expect(state.onDelete).toBeNull();
+    expect(state.onOpenAsApp).toBeNull();
   });
 
-  it("can set actions multiple times", () => {
-    const mockEdit1 = jest.fn();
-    const mockEdit2 = jest.fn();
+  it("clears all action handlers", () => {
+    const onEdit = jest.fn();
+    const onDuplicate = jest.fn();
 
-    const { result } = renderHook(() => useWorkflowActionsStore());
-
-    act(() => {
-      result.current.setActions({ onEdit: mockEdit1 });
+    useWorkflowActionsStore.setState({
+      onEdit,
+      onDuplicate,
+      onDelete: jest.fn(),
+      onOpenAsApp: jest.fn(),
     });
-    expect(result.current.onEdit).toBe(mockEdit1);
 
-    act(() => {
-      result.current.setActions({ onEdit: mockEdit2 });
-    });
-    expect(result.current.onEdit).toBe(mockEdit2);
+    useWorkflowActionsStore.getState().clearActions();
+
+    const state = useWorkflowActionsStore.getState();
+    expect(state.onEdit).toBeNull();
+    expect(state.onDuplicate).toBeNull();
+    expect(state.onDelete).toBeNull();
+    expect(state.onOpenAsApp).toBeNull();
   });
 
-  it("useWorkflowActions hook returns same state slice", () => {
-    const { result } = renderHook(() => useWorkflowActions());
+  it("replaces all handlers when setActions is called", () => {
+    const onEdit = jest.fn();
+    const onDuplicate = jest.fn();
 
-    expect(result.current.onEdit).toBeNull();
-    expect(typeof result.current.setActions).toBe("function");
-    expect(typeof result.current.clearActions).toBe("function");
-  });
+    useWorkflowActionsStore.getState().setActions({ onEdit });
+    expect(useWorkflowActionsStore.getState().onEdit).toBe(onEdit);
+    expect(useWorkflowActionsStore.getState().onDuplicate).toBeNull();
 
-  it("handles undefined actions gracefully", () => {
-    const { result } = renderHook(() => useWorkflowActionsStore());
-
-    act(() => {
-      result.current.setActions({
-        onEdit: undefined,
-        onDuplicate: undefined
-      } as any);
-    });
-
-    expect(result.current.onEdit).toBeNull();
-    expect(result.current.onDuplicate).toBeNull();
+    useWorkflowActionsStore.getState().setActions({ onDuplicate });
+    expect(useWorkflowActionsStore.getState().onEdit).toBeNull();
+    expect(useWorkflowActionsStore.getState().onDuplicate).toBe(onDuplicate);
   });
 });
