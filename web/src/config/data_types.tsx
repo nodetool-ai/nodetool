@@ -91,8 +91,13 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   image_model: model,
   workflow: dataframe,
   datetime: float,
+  date: float,
   object: dict,
   np_array: tensor,
+  json: dict,
+  document: file,
+  model_3d: model,
+  model3d: model,
   ...comfyIconMap
 };
 
@@ -501,6 +506,17 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "DataObject"
   },
   {
+    value: "date",
+    label: "Date",
+    description: "Calendar date without a time component.",
+    color: colour("scalar"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
     value: "object",
     label: "Object",
     description:
@@ -511,6 +527,30 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     slug: "",
     namespace: "",
     icon: "DataObject"
+  },
+  {
+    value: "json",
+    label: "JSON",
+    description:
+      "Structured JSON data. Used for nested objects, configuration, and API payloads.",
+    color: colour("collection"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "model_3d",
+    label: "Model 3D",
+    description:
+      "3D model data for visualization or processing. Supports GLB and GLTF.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ModelTraining"
   },
   {
     value: "np_array",
