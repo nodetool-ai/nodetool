@@ -451,3 +451,17 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Verification**:
 - ✅ Lint: All packages pass
 - ✅ TypeScript: Web package passes
+
+---
+
+### Context Menu Handler Memoization (2026-01-17)
+
+**What**: Fixed inline arrow functions in 4 context menu components using useCallback memoization.
+
+**Files**:
+- `BackToDashboardButton.tsx` - Memoized navigation handler
+- `ConnectionMatchMenu.tsx` - Memoized option selection handler
+- `PaneContextMenu.tsx` - Memoized 4 handlers (paste, fit view, add comment, add group)
+- `ConnectableNodes.tsx` - Memoized node click handler
+
+**Impact**: Prevents new function references on every render, reducing unnecessary re-renders in context menus and connected components.
