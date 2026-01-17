@@ -212,33 +212,33 @@ PASS src/utils/__tests__/nodeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] computeSearchResults with 500 nodes: 16.45ms
+      [PERF] computeSearchResults with 500 nodes: 23.53ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:573:15)
 
     console.log
-      [PERF] computeSearchResults with 2000 nodes: 49.19ms
+      [PERF] computeSearchResults with 2000 nodes: 53.70ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:586:15)
 
     console.log
-      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 18.26ms
+      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 19.87ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:608:15)
 
     console.log
-      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 9.11ms
+      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 8.97ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:631:15)
 
     console.log
-      [PERF] Average search time for 5 queries: 1.67ms
+      [PERF] Average search time for 5 queries: 2.83ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:665:15)
 
-PASS src/hooks/nodes/__tests__/useNodeContextMenu.test.ts
 PASS src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
 PASS src/stores/__tests__/customEquality.test.ts
+PASS src/hooks/nodes/__tests__/useNodeContextMenu.test.ts
 PASS src/utils/__tests__/connectionValidation.integration.test.ts
 PASS src/__tests__/performance/componentPerformance.test.tsx
   ● Console
@@ -254,7 +254,7 @@ PASS src/__tests__/performance/componentPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:122:15)
 
     console.log
-      [PERF] Large tree (243 components) render: 32.41ms
+      [PERF] Large tree (243 components) render: 22.87ms
 
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:491:15)
 
@@ -315,7 +315,7 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
   ● Console
 
     console.log
-      [PERF] Set deduplication for 200 items: 0.051ms
+      [PERF] Set deduplication for 200 items: 0.027ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:77:15)
 
@@ -340,17 +340,17 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:319:15)
 
     console.log
-      [PERF] Without memo (100 calls): 0.60ms
+      [PERF] Without memo (100 calls): 0.47ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:361:15)
 
     console.log
-      [PERF] With memo (100 calls): 0.01ms
+      [PERF] With memo (100 calls): 0.02ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:362:15)
 
     console.log
-      [PERF] Speed improvement: 42.0x
+      [PERF] Speed improvement: 22.2x
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:363:15)
 
@@ -370,7 +370,7 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:543:15)
 
     console.log
-      [PERF] 100 nodes with 10 properties each: 0.18ms
+      [PERF] 100 nodes with 10 properties each: 0.10ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:578:13)
 
@@ -454,22 +454,22 @@ PASS src/utils/__tests__/PrefixTreeSearch.test.ts
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:356:15)
 
     console.log
-      [PERF] Search 1000 nodes: 0.08ms
+      [PERF] Search 1000 nodes: 0.05ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:372:15)
 
     console.log
-      [PERF] Search 5000 nodes: 0.32ms
+      [PERF] Search 5000 nodes: 0.20ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:388:15)
 
     console.log
-      [PERF] Search times for different result sizes: 0.003ms, 0.049ms, 0.201ms
+      [PERF] Search times for different result sizes: 0.003ms, 0.067ms, 0.193ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:418:15)
 
     console.log
-      [PERF] Index 5000 nodes: 110.53ms
+      [PERF] Index 5000 nodes: 128.00ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:436:15)
 
@@ -480,7 +480,7 @@ PASS src/utils/__tests__/PrefixTreeSearch.test.ts
 
 PASS src/hooks/__tests__/useSelectionActions.test.ts
 PASS src/stores/__tests__/ResultsStore.test.ts
-PASS src/stores/__tests__/GlobalChatStore.test.ts (5.388 s)
+PASS src/stores/__tests__/GlobalChatStore.test.ts (5.521 s)
   ● Console
 
     console.log
@@ -722,13 +722,14 @@ PASS src/utils/__tests__/handleUtils.test.ts
 PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
 PASS src/__tests__/components/chat/containers/ChatView.test.tsx
 PASS src/stores/__tests__/SettingsStore.test.ts
-PASS src/stores/__tests__/FileStore.test.ts
 PASS src/utils/__tests__/highlightText.test.ts
+PASS src/stores/__tests__/FileStore.test.ts
 PASS src/utils/__tests__/dockviewLayout.test.ts
 PASS src/stores/__tests__/ModelPreferencesStore.test.ts
 PASS src/utils/__tests__/findMatchingNodesInWorkflows.test.ts
 PASS src/stores/__tests__/RemoteSettingStore.test.ts
 PASS src/stores/__tests__/LogStore.test.ts
+PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
 PASS src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx
   ● Console
 
@@ -770,13 +771,11 @@ PASS src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx
       at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
       at Object.<anonymous> (src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:251:14)
 
-PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
 PASS src/stores/__tests__/HfCacheStatusStore.test.ts
 PASS src/stores/__tests__/ErrorStore.test.ts
 PASS src/stores/__tests__/NodeFocusStore.test.ts
 PASS src/stores/__tests__/AssetGridStore.test.ts
 PASS src/utils/__tests__/MousePosition.test.ts
-PASS src/hooks/__tests__/useSelectConnected.test.ts
 PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
   ● Console
 
@@ -819,6 +818,7 @@ PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
 PASS src/utils/__tests__/workflowOutputTypeInference.test.ts
+PASS src/hooks/__tests__/useSelectConnected.test.ts
 PASS src/core/chat/__tests__/chatProtocol.test.ts
   ● Console
 
@@ -923,582 +923,11 @@ PASS src/core/chat/__tests__/chatProtocol.test.ts
       at Object.<anonymous> (src/core/chat/__tests__/chatProtocol.test.ts:286:5)
 
 PASS src/stores/__tests__/KeyPressedStore.test.ts
-PASS src/utils/__tests__/ColorUtils.test.ts
 PASS src/utils/__tests__/getAssetThumbUrl.test.ts
-FAIL src/hooks/__tests__/useWorkflowActions.test.ts
-  ● Console
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-    console.error
-      Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-      1. You might have mismatching versions of React and the renderer (such as React DOM)
-      2. You might be breaking the Rules of Hooks
-      3. You might have more than one copy of React in the same app
-      See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at printWarning (node_modules/react/cjs/react.development.js:209:30)
-      at error (node_modules/react/cjs/react.development.js:183:7)
-      at resolveDispatcher (node_modules/react/cjs/react.development.js:1592:7)
-      at Object.useContext (node_modules/react/cjs/react.development.js:1602:20)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › returns loadingExampleId and all handler functions
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleCreateNewWorkflow › creates new workflow and navigates to editor
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleCreateNewWorkflow › navigates with correct workflow ID
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleWorkflowClick › navigates to workflow editor
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleWorkflowClick › navigates using workflow ID from object
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › sets loading state during workflow creation
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › creates workflow with example tag added
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › preserves existing example tag
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › navigates to new workflow after creation
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › clears loading state on error
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › does nothing if already loading
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › uses package_name from example when provided
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › creates workflow with correct properties
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleViewAllTemplates › navigates to templates page
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › uses stable navigate function
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
+PASS src/utils/__tests__/ColorUtils.test.ts
 PASS src/__tests__/stop_command_basic.test.ts
+PASS src/utils/__tests__/providerDisplay.test.ts
+PASS src/stores/__tests__/AudioQueueStore.test.ts
 PASS src/components/menus/__tests__/SecretsMenu.test.tsx
   ● Console
 
@@ -1578,8 +1007,6 @@ PASS src/components/menus/__tests__/SecretsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/utils/__tests__/providerDisplay.test.ts
-PASS src/stores/__tests__/AudioQueueStore.test.ts
 PASS src/stores/__tests__/SecretsStore.test.ts
 PASS src/utils/__tests__/modelNormalization.test.ts
 PASS src/stores/__tests__/NotificationStore.test.ts
@@ -1685,21 +1112,167 @@ PASS src/stores/__tests__/NotificationStore.test.ts
       at node_modules/@testing-library/react/dist/act-compat.js:47:25
       at Object.<anonymous> (src/stores/__tests__/NotificationStore.test.ts:189:10)
 
+PASS src/hooks/__tests__/useWorkflowActions.test.ts
+  ● Console
+
+    console.error
+      Warning: An update to TestComponent inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+          at TestComponent (/home/runner/work/nodetool/nodetool/web/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+    [0m [90m 26 |[39m       [36mif[39m (loadingExampleId) {[36mreturn[39m[33m;[39m}
+     [90m 27 |[39m
+    [31m[1m>[22m[39m[90m 28 |[39m       setLoadingExampleId(example[33m.[39mid)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 29 |[39m       [36mtry[39m {
+     [90m 30 |[39m         [36mconst[39m tags [33m=[39m example[33m.[39mtags [33m||[39m [][33m;[39m
+     [90m 31 |[39m         [36mif[39m ([33m![39mtags[33m.[39mincludes([32m"example"[39m)) {[0m
+
+      at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
+      at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-dom/cjs/react-dom.development.js:27589:9)
+      at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
+      at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
+      at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:28:7)
+      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:138:28)
+
+    console.error
+      Warning: An update to TestComponent inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+          at TestComponent (/home/runner/work/nodetool/nodetool/web/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+    [0m [90m 26 |[39m       [36mif[39m (loadingExampleId) {[36mreturn[39m[33m;[39m}
+     [90m 27 |[39m
+    [31m[1m>[22m[39m[90m 28 |[39m       setLoadingExampleId(example[33m.[39mid)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 29 |[39m       [36mtry[39m {
+     [90m 30 |[39m         [36mconst[39m tags [33m=[39m example[33m.[39mtags [33m||[39m [][33m;[39m
+     [90m 31 |[39m         [36mif[39m ([33m![39mtags[33m.[39mincludes([32m"example"[39m)) {[0m
+
+      at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
+      at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-dom/cjs/react-dom.development.js:27589:9)
+      at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
+      at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
+      at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:28:7)
+      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:157:28)
+
+    console.error
+      Warning: An update to TestComponent inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+          at TestComponent (/home/runner/work/nodetool/nodetool/web/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+    [0m [90m 26 |[39m       [36mif[39m (loadingExampleId) {[36mreturn[39m[33m;[39m}
+     [90m 27 |[39m
+    [31m[1m>[22m[39m[90m 28 |[39m       setLoadingExampleId(example[33m.[39mid)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 29 |[39m       [36mtry[39m {
+     [90m 30 |[39m         [36mconst[39m tags [33m=[39m example[33m.[39mtags [33m||[39m [][33m;[39m
+     [90m 31 |[39m         [36mif[39m ([33m![39mtags[33m.[39mincludes([32m"example"[39m)) {[0m
+
+      at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
+      at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-dom/cjs/react-dom.development.js:27589:9)
+      at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
+      at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
+      at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:28:7)
+      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:171:28)
+
+    console.error
+      Warning: An update to TestComponent inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+          at TestComponent (/home/runner/work/nodetool/nodetool/web/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+    [0m [90m 26 |[39m       [36mif[39m (loadingExampleId) {[36mreturn[39m[33m;[39m}
+     [90m 27 |[39m
+    [31m[1m>[22m[39m[90m 28 |[39m       setLoadingExampleId(example[33m.[39mid)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 29 |[39m       [36mtry[39m {
+     [90m 30 |[39m         [36mconst[39m tags [33m=[39m example[33m.[39mtags [33m||[39m [][33m;[39m
+     [90m 31 |[39m         [36mif[39m ([33m![39mtags[33m.[39mincludes([32m"example"[39m)) {[0m
+
+      at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
+      at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-dom/cjs/react-dom.development.js:27589:9)
+      at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
+      at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
+      at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:28:7)
+      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:231:28)
+
+    console.error
+      Warning: An update to TestComponent inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+          at TestComponent (/home/runner/work/nodetool/nodetool/web/node_modules/@testing-library/react/dist/pure.js:329:5)
+
+    [0m [90m 26 |[39m       [36mif[39m (loadingExampleId) {[36mreturn[39m[33m;[39m}
+     [90m 27 |[39m
+    [31m[1m>[22m[39m[90m 28 |[39m       setLoadingExampleId(example[33m.[39mid)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 29 |[39m       [36mtry[39m {
+     [90m 30 |[39m         [36mconst[39m tags [33m=[39m example[33m.[39mtags [33m||[39m [][33m;[39m
+     [90m 31 |[39m         [36mif[39m ([33m![39mtags[33m.[39mincludes([32m"example"[39m)) {[0m
+
+      at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
+      at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-dom/cjs/react-dom.development.js:27589:9)
+      at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
+      at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
+      at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:28:7)
+      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:240:28)
+
 PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/utils/__tests__/colorConversion.test.ts
+PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
 PASS src/utils/__tests__/groupByDate.test.ts
 PASS src/utils/__tests__/isUrlAccessible.test.ts
-PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
 PASS src/hooks/__tests__/useDelayedHover.test.ts
 PASS src/__tests__/components/chat/composer/MessageInput.test.tsx
 PASS src/utils/__tests__/edgeValue.test.ts
 PASS src/stores/__tests__/MetadataStore.test.ts
-PASS src/hooks/__tests__/useAutosave.test.ts
 PASS src/stores/__tests__/FindInWorkflowStore.test.ts
-PASS src/utils/__tests__/modelFilters.test.ts
+PASS src/hooks/__tests__/useAutosave.test.ts
 PASS src/utils/__tests__/nodeDisplay.test.ts
-PASS src/utils/__tests__/workflowSearch.test.ts
-PASS src/stores/__tests__/BottomPanelStore.test.ts
+PASS src/utils/__tests__/modelFilters.test.ts
 PASS src/utils/__tests__/fileExplorer.test.ts
   ● Console
 
@@ -1874,14 +1447,15 @@ PASS src/utils/__tests__/fileExplorer.test.ts
 
       at debugLog (src/utils/fileExplorer.ts:37:13)
 
+PASS src/utils/__tests__/workflowSearch.test.ts
+PASS src/stores/__tests__/BottomPanelStore.test.ts
 PASS src/stores/__tests__/LayoutStore.test.ts
 PASS src/hooks/nodes/__tests__/useAddToGroup.test.ts
-PASS src/stores/__tests__/graphConversion.test.ts
 PASS src/hooks/__tests__/useFitView.test.ts
+PASS src/stores/__tests__/graphConversion.test.ts
 PASS src/lib/dragdrop/__tests__/serialization.test.ts
 PASS src/stores/__tests__/RecentNodesStore.test.ts
 PASS src/hooks/__tests__/useAlignNodes.test.ts
-PASS src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts
 PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
   ● Console
 
@@ -1998,6 +1572,7 @@ PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
+PASS src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts
 PASS src/utils/__tests__/graphDiff.test.ts
 PASS src/stores/__tests__/NodePlacementStore.test.ts
 PASS src/core/__tests__/graph.test.ts
@@ -2008,172 +1583,18 @@ PASS src/utils/__tests__/NodeTypeMapping.test.ts
 PASS src/utils/__tests__/formatUtils.test.ts
 PASS src/stores/__tests__/VersionHistoryStore.test.ts
 PASS src/stores/__tests__/StatusStore.test.ts
-PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
 PASS src/utils/__tests__/graphCycle.test.ts
 PASS src/utils/__tests__/selectionBounds.test.ts
+PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
 PASS src/hooks/nodes/__tests__/getGroupBounds.test.ts
 PASS src/utils/__tests__/formatDateAndTime.test.ts
 PASS src/lib/dragdrop/__tests__/hooks.test.tsx
 PASS src/hooks/__tests__/useWorkflowRunnerState.test.ts
+PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
 PASS src/stores/__tests__/formatNodeDocumentation.test.ts
 PASS src/components/node/image_editor/__tests__/canvasUtils.test.ts
-FAIL src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
-  ● useRemoveFromGroup › returns a function
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › does nothing when nodesToRemove is undefined
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › does nothing when nodesToRemove is empty array
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › does nothing when all nodes have no parentId
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › updates nodes with parentId to remove from group
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › calculates absolute position when removing from group
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › skips parent nodes that are not found
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › skips parent nodes without position
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › groups nodes by parent before updating
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › sets selected to false when removing from group
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › handles nodes with missing position gracefully
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-PASS src/stores/__tests__/ModelDownloadStore.test.ts
 PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
+PASS src/stores/__tests__/ModelDownloadStore.test.ts
 PASS src/stores/__tests__/GettingStartedStore.test.ts
 PASS src/stores/__tests__/RightPanelStore.test.ts
 PASS src/utils/__tests__/hfCache.test.ts
@@ -2294,14 +1715,14 @@ PASS src/__tests__/components/chat/composer/StopGenerationButton.test.tsx
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
 PASS src/__tests__/ErrorBoundary.test.tsx
-PASS src/components/properties/__tests__/IntegerProperty.test.tsx
 PASS src/utils/__tests__/imageUtils.test.ts
-PASS src/utils/__tests__/errorHandling.test.ts
 PASS src/components/properties/__tests__/FloatProperty.test.tsx
+PASS src/components/properties/__tests__/IntegerProperty.test.tsx
+PASS src/utils/__tests__/errorHandling.test.ts
 PASS src/hooks/__tests__/useFocusPan.test.ts
 PASS src/stores/__tests__/ModelFiltersStore.test.ts
-PASS src/hooks/assets/__tests__/useAssetSelection.test.ts
 PASS src/utils/__tests__/colorHarmonies.test.ts
+PASS src/hooks/assets/__tests__/useAssetSelection.test.ts
 PASS src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx
   ● Console
 
@@ -2344,11 +1765,10 @@ PASS src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx
 PASS src/utils/__tests__/NumberInput.utils.test.ts
 PASS src/stores/__tests__/ModelManagerStore.test.ts
 PASS src/providers/__tests__/ContextMenuProvider.test.tsx
-PASS src/stores/__tests__/ExecutionTimeStore.test.ts
 PASS src/providers/__tests__/ConnectableNodesProvider.test.tsx
-PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
+PASS src/stores/__tests__/ExecutionTimeStore.test.ts
 PASS src/utils/__tests__/identifierValidation.test.ts
-PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
+PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
 PASS src/stores/__tests__/FavoriteWorkflowsStore.test.ts
 PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
   ● Console
@@ -3123,24 +2543,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:162:11)
 
-PASS src/utils/__tests__/createAssetFile.test.ts
-  ● Console
-
-    console.warn
-      [createAssetFile] Truncated streaming text output { maxTextChars: 5, chunks: 2 }
-
-    [0m [90m 245 |[39m         )[33m;[39m
-     [90m 246 |[39m         [36mif[39m (truncated) {
-    [31m[1m>[22m[39m[90m 247 |[39m           log[33m.[39mwarn([32m"[createAssetFile] Truncated streaming text output"[39m[33m,[39m {
-     [90m     |[39m               [31m[1m^[22m[39m
-     [90m 248 |[39m             maxTextChars[33m,[39m
-     [90m 249 |[39m             chunks[33m:[39m textChunks[33m.[39mlength
-     [90m 250 |[39m           })[33m;[39m[0m
-
-      at normalizeOutput (src/utils/createAssetFile.ts:247:15)
-      at createAssetFile (src/utils/createAssetFile.ts:506:22)
-      at Object.<anonymous> (src/utils/__tests__/createAssetFile.test.ts:58:43)
-
+PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
 PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
   ● Console
 
@@ -3339,6 +2742,24 @@ PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
       at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
       at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
       at importSvgIcon (src/utils/useDynamicSvgImport.ts:50:9)
+
+PASS src/utils/__tests__/createAssetFile.test.ts
+  ● Console
+
+    console.warn
+      [createAssetFile] Truncated streaming text output { maxTextChars: 5, chunks: 2 }
+
+    [0m [90m 245 |[39m         )[33m;[39m
+     [90m 246 |[39m         [36mif[39m (truncated) {
+    [31m[1m>[22m[39m[90m 247 |[39m           log[33m.[39mwarn([32m"[createAssetFile] Truncated streaming text output"[39m[33m,[39m {
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 248 |[39m             maxTextChars[33m,[39m
+     [90m 249 |[39m             chunks[33m:[39m textChunks[33m.[39mlength
+     [90m 250 |[39m           })[33m;[39m[0m
+
+      at normalizeOutput (src/utils/createAssetFile.ts:247:15)
+      at createAssetFile (src/utils/createAssetFile.ts:506:22)
+      at Object.<anonymous> (src/utils/__tests__/createAssetFile.test.ts:58:43)
 
 PASS src/hooks/handlers/__tests__/useNodeEvents.test.ts
 PASS src/hooks/nodes/__tests__/useIsGroupable.test.ts
@@ -3934,12 +3355,13 @@ PASS src/stores/__tests__/fuseOptions.test.ts
 PASS src/hooks/handlers/__tests__/useEdgeHandlers.test.ts
 PASS src/utils/__tests__/modelDownloadCheck.test.ts
 PASS src/utils/__tests__/platform.test.ts
+PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (5.896 s)
 PASS src/providers/__tests__/MenuProvider.test.tsx
 PASS src/hooks/handlers/__tests__/useReactFlowEvents.test.ts
 PASS src/utils/__tests__/browser.test.ts
 PASS src/utils/__tests__/truncateString.test.ts
-PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (5.787 s)
 PASS src/stores/__tests__/WorkflowListViewStore.test.ts
+PASS src/__tests__/components/assets/AssetSearchInput.test.tsx (5.088 s)
 PASS src/hooks/__tests__/useIsDarkMode.test.ts
   ● Console
 
@@ -4042,7 +3464,6 @@ PASS src/hooks/__tests__/useIsDarkMode.test.ts
       at notifyMutationObservers (node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:160:22)
       at node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:133:5
 
-PASS src/__tests__/components/assets/AssetSearchInput.test.tsx (5.204 s)
 PASS src/components/node_editor/__tests__/NotificationsList.test.tsx
 PASS src/__tests__/frontendTools.test.ts
 PASS src/components/node_editor/__tests__/Alert.test.tsx
@@ -4086,20 +3507,19 @@ PASS src/components/node_editor/__tests__/Alert.test.tsx
 PASS src/components/buttons/__tests__/CloseButton.test.tsx
 PASS src/components/assets/__tests__/FolderItem.test.tsx
 PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
-PASS src/components/__tests__/Logo.test.tsx
 PASS src/serverState/__tests__/tryCacheFiles.test.ts
+PASS src/components/__tests__/Logo.test.tsx
 PASS src/hooks/editor/__tests__/useModalResize.test.ts
 PASS src/components/properties/__tests__/BoolProperty.test.tsx
 PASS src/stores/__tests__/uuidv4.test.ts
 PASS src/components/node/__tests__/ResultOverlay.test.tsx
-PASS src/__tests__/components/node/CalendarEventView.test.tsx
 PASS src/components/common/__tests__/CopyToClipboardButton.test.tsx
-PASS src/__tests__/components/assets/AssetExplorer.test.tsx
-PASS src/stores/__tests__/PanelStore.test.ts
-PASS src/hooks/__tests__/useLoraModels.test.ts
+PASS src/__tests__/components/node/CalendarEventView.test.tsx
 PASS src/components/__tests__/ProtectedRoute.test.tsx
+PASS src/stores/__tests__/PanelStore.test.ts
+PASS src/__tests__/components/assets/AssetExplorer.test.tsx
+PASS src/hooks/__tests__/useLoraModels.test.ts
 PASS src/lib/websocket/__tests__/GlobalWebSocketManager.test.ts
-PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
 PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
   ● Console
 
@@ -4195,11 +3615,12 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/node_editor/__tests__/ConnectionLine.test.tsx:27:33)
 
+PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
 PASS src/hooks/editor/__tests__/useEditorMode.test.ts
-PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
 PASS src/utils/__tests__/uuidv4.test.ts
-PASS src/serverState/__tests__/useAsset.test.tsx
+PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
 PASS src/hooks/assets/__tests__/useAssetNavigation.test.ts
+PASS src/serverState/__tests__/useAsset.test.tsx
 PASS src/hooks/editor/__tests__/useMonacoEditor.test.ts
 PASS src/components/workspaces/__tests__/WorkspaceManagerStore.test.ts
 PASS src/components/__tests__/InfiniteScroll.test.tsx
@@ -4209,411 +3630,81 @@ PASS src/hooks/editor/__tests__/useCodeLanguage.test.ts
 PASS src/hooks/editor/__tests__/useFullscreenMode.test.ts
 PASS src/components/__tests__/KeyboardProvider.test.tsx
 PASS src/components/node_editor/__tests__/LoadingAnimation.test.tsx
-PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
 PASS src/core/workflow/__tests__/runnerProtocol.test.ts
-PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx (5.461 s)
-
-Summary of all failing tests
-FAIL src/hooks/__tests__/useWorkflowActions.test.ts
-  ● useWorkflowActions › returns loadingExampleId and all handler functions
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleCreateNewWorkflow › creates new workflow and navigates to editor
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleCreateNewWorkflow › navigates with correct workflow ID
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleWorkflowClick › navigates to workflow editor
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleWorkflowClick › navigates using workflow ID from object
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › sets loading state during workflow creation
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › creates workflow with example tag added
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › preserves existing example tag
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › navigates to new workflow after creation
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › clears loading state on error
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › does nothing if already loading
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › uses package_name from example when provided
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleExampleClick › creates workflow with correct properties
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › handleViewAllTemplates › navigates to templates page
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-  ● useWorkflowActions › uses stable navigate function
-
-    TypeError: Cannot read properties of null (reading 'useContext')
-
-    [0m [90m 45 |[39m     mockCreateWorkflow[33m.[39mmockResolvedValue(mockWorkflow)[33m;[39m
-     [90m 46 |[39m     mockNavigate[33m.[39mmockClear()[33m;[39m
-    [31m[1m>[22m[39m[90m 47 |[39m     mockUseNavigate()[33m.[39mmockReturnValue(mockNavigate)[33m;[39m
-     [90m    |[39m     [31m[1m^[22m[39m
-     [90m 48 |[39m   })[33m;[39m
-     [90m 49 |[39m
-     [90m 50 |[39m   it([32m"returns loadingExampleId and all handler functions"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.useContext (node_modules/react/cjs/react.development.js:1618:21)
-      at useNavigate (node_modules/react-router/dist/development/chunk-2BEI23B2.js:6785:32)
-      at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:47:5)
-
-FAIL src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
-  ● useRemoveFromGroup › returns a function
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › does nothing when nodesToRemove is undefined
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › does nothing when nodesToRemove is empty array
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › does nothing when all nodes have no parentId
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › updates nodes with parentId to remove from group
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › calculates absolute position when removing from group
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › skips parent nodes that are not found
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › skips parent nodes without position
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › groups nodes by parent before updating
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › sets selected to false when removing from group
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-  ● useRemoveFromGroup › handles nodes with missing position gracefully
-
-    TypeError: useNodes.mockReturnValue is not a function
-
-    [0m [90m 30 |[39m     [36mconst[39m { useNodes } [33m=[39m [33mNodeContext[39m[33m;[39m
-     [90m 31 |[39m
-    [31m[1m>[22m[39m[90m 32 |[39m     (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue({
-     [90m    |[39m                             [31m[1m^[22m[39m
-     [90m 33 |[39m       updateNode[33m:[39m mockUpdateNode[33m,[39m
-     [90m 34 |[39m       findNode[33m:[39m mockFindNode
-     [90m 35 |[39m     })[33m;[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts:32:29)
-
-
-Test Suites: 2 failed, 198 passed, 200 total
-Tests:       26 failed, 3 skipped, 2548 passed, 2577 total
+PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
+PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx (5.339 s)
+
+Test Suites: 200 passed, 200 total
+Tests:       3 skipped, 2574 passed, 2577 total
 Snapshots:   0 total
-Time:        28.037 s
+Time:        28.667 s
 Ran all test suites.
-make: *** [Makefile:92: test-web] Error 1
+Running electron tests...
+cd electron && npm test
+
+> nodetool-electron@0.6.2-rc.26 test
+> jest
+
+PASS src/__tests__/window.test.ts (6.232 s)
+PASS src/__tests__/config.test.ts (6.351 s)
+PASS src/__tests__/updater.test.ts
+PASS src/__tests__/debug.test.ts
+PASS src/__tests__/torchruntime.test.ts
+PASS src/__tests__/shortcuts.test.ts
+PASS src/__tests__/api.test.ts
+PASS src/__tests__/condaPackageChecker.test.ts
+PASS src/__tests__/utils.test.ts
+PASS src/__tests__/torchPlatformCache.test.ts
+PASS src/__tests__/workflowExecution.test.ts
+PASS src/__tests__/workflowRunner.test.ts
+PASS src/__tests__/logger.behavior.test.ts
+PASS src/__tests__/ipc.test.ts (7.813 s)
+PASS src/__tests__/menu.test.ts
+PASS src/__tests__/settings.test.ts
+PASS src/__tests__/installer.test.ts
+PASS src/__tests__/state.test.ts
+PASS src/__tests__/events.test.ts
+PASS src/__tests__/workflowWindow.test.ts
+PASS src/__tests__/packageManager.wheel.test.ts
+PASS src/__tests__/simpleDownload.test.ts
+PASS src/__tests__/simpleLogger.test.ts
+PASS src/__tests__/basicImports.test.ts
+
+Test Suites: 24 passed, 24 total
+Tests:       206 passed, 206 total
+Snapshots:   0 total
+Time:        8.878 s
+Ran all test suites.
+Running mobile tests...
+cd mobile && npm test
+
+> nodetool-mobile@0.6.2-rc.26 test
+> jest
+
+PASS src/stores/ChatStore.test.ts
+PASS src/services/WebSocketManager.test.ts
+PASS src/hooks/useFileHandling.test.ts
+PASS src/components/chat/ChatView.test.tsx
+PASS src/screens/ChatScreen.test.tsx (6.717 s)
+PASS src/components/chat/MessageContentRenderer.test.tsx
+PASS src/components/chat/MessageView.test.tsx
+PASS src/components/chat/ChatMessageList.test.tsx
+PASS src/components/properties/FloatProperty.test.tsx
+PASS src/utils/theme.test.ts
+PASS src/stores/ThemeStore.test.ts
+PASS src/components/chat/FilePreview.test.tsx
+PASS src/components/properties/IntegerProperty.test.tsx
+PASS src/components/chat/ChatMarkdown.test.tsx
+PASS src/components/properties/StringProperty.test.tsx
+PASS src/components/properties/BoolProperty.test.tsx
+PASS src/hooks/useTheme.test.ts
+PASS src/utils/inputUtils.test.ts
+PASS src/components/chat/ChatComposer.test.tsx (8.299 s)
+PASS src/components/chat/LoadingIndicator.test.tsx
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Test Suites: 20 passed, 20 total
+Tests:       389 passed, 389 total
+Snapshots:   0 total
+Time:        12.594 s
+Ran all test suites.

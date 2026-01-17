@@ -1,5 +1,118 @@
 # Test Coverage Improvements (2026-01-17)
 
+**Coverage Added**: 3 new test files with 30 tests for hooks
+
+**Tests Added**:
+- `useProviderApiKeyValidation.test.ts` - 11 tests for API key validation hook
+- `useRunningJobs.test.tsx` - 10 tests for running jobs hook
+- `useFitNodeEvent.test.ts` - 9 tests for node fitting event hook
+
+**Areas Covered**:
+- API key validation for multiple providers
+- Loading state handling
+- Missing API key detection and display
+- React Query integration for job fetching
+- Job filtering by status (running, queued, suspended, paused)
+- Authentication-based query enabling/disabling
+- Custom event handling for node fitting
+- Event listener registration and cleanup
+- Node lookup via findNode callback
+- Fallback behavior when node not found
+
+**Test Patterns Used**:
+
+1. **Hook Testing with Mocked Dependencies**:
+```typescript
+describe("useProviderApiKeyValidation", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useSecrets as jest.Mock).mockReturnValue({
+      isApiKeySet: mockIsApiKeySet,
+      isLoading: mockIsLoading,
+    });
+  });
+
+  it("returns missing status for provider without API key", () => {
+    mockIsApiKeySet.mockReturnValue(false);
+    const { result } = renderHook(() =>
+      useProviderApiKeyValidation(["openai"])
+    );
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0].isMissing).toBe(true);
+  });
+});
+```
+
+2. **React Query Hook Testing**:
+```typescript
+describe("useRunningJobs", () => {
+  it("filters out completed jobs", async () => {
+    (client.GET as jest.Mock).mockResolvedValue({
+      data: {
+        jobs: [
+          { id: "job-1", status: "running" },
+          { id: "job-2", status: "completed" },
+        ],
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useRunningJobs(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toHaveLength(1);
+    expect(result.current.data?.[0].id).toBe("job-1");
+  });
+});
+```
+
+3. **Custom Event Hook Testing**:
+```typescript
+describe("useFitNodeEvent", () => {
+  it("fits view when node is found via findNode", () => {
+    const mockNode = { id: "node-1" };
+    mockFindNode.mockReturnValue(mockNode);
+
+    renderHook(() => useFitNodeEvent());
+
+    const event = new CustomEvent("nodetool:fit-node", {
+      detail: { nodeId: "node-1" },
+    });
+    window.dispatchEvent(event);
+
+    jest.runAllTimers();
+
+    expect(mockFitView).toHaveBeenCalledWith({
+      padding: 0.4,
+      nodeIds: ["node-1"],
+    });
+  });
+});
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/useProviderApiKeyValidation.test.ts`
+- `web/src/hooks/__tests__/useRunningJobs.test.tsx`
+- `web/src/hooks/__tests__/useFitNodeEvent.test.ts`
+
+**Key Learnings**:
+1. Mock paths must use correct relative paths (e.g., `../../stores/` for hooks tests)
+2. Use `.tsx` extension for test files containing JSX (QueryClientProvider)
+3. Mock `useNodes` as a function that takes a selector, not a simple object
+4. Test cleanup with `jest.useRealTimers()` in afterEach
+5. Use `jest.spyOn` for window event listeners to verify registration
+
+**Status**: All 30 tests passing (203 test suites, 2607 tests total)
+
+---
+
+### Previous Entry (2026-01-17)
+
 **Coverage Added**: 8 new test files with 117 tests
 
 **Tests Added**:
