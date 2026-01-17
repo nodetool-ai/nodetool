@@ -26,21 +26,26 @@ import {
   Close as CloseIcon,
   Compare as CompareIcon,
   History as HistoryIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  Science as ScienceIcon
 } from "@mui/icons-material";
 import { VersionListItem } from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
+import { ABTestDialog } from "./ABTestDialog";
+import { ABTestResultsPanel } from "./ABTestResultsPanel";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import { NodeUIProperties } from "../../stores/NodeStore";
+import { useABTestResultsStore } from "../../stores/ab_test/ABTestResultsStore";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
   onRestore: (version: WorkflowVersion) => void;
   onClose: () => void;
+  onRunABTest?: (baseVersion: number, testVersion: number) => void;
 }
 
 const getSaveType = (version: WorkflowVersion): SaveType => {
@@ -58,7 +63,8 @@ const getSaveType = (version: WorkflowVersion): SaveType => {
 export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   workflowId,
   onRestore,
-  onClose
+  onClose,
+  onRunABTest
 }) => {
   const {
     selectedVersionId,
@@ -78,9 +84,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     isRestoringVersion
   } = useWorkflowVersions(workflowId);
 
+  const currentABTest = useABTestResultsStore((state) => state.currentTest);
+
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [versionToDelete, setVersionToDelete] = useState<string | null>(null);
+  const [abTestDialogOpen, setABTestDialogOpen] = useState(false);
 
   const versions: Array<WorkflowVersion & { save_type: SaveType; size_bytes: number }> = useMemo(() => {
     if (!apiVersions?.versions) {
@@ -246,6 +255,14 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     );
   }
 
+  if (currentABTest) {
+    return (
+      <Box sx={{ width: "100%", height: "100%" }}>
+        <ABTestResultsPanel onClose={() => {}} />
+      </Box>
+    );
+  }
+
   if (error) {
     return (
       <Paper
@@ -305,34 +322,51 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </IconButton>
       </Box>
 
-      <Box sx={{ p: 1, borderBottom: 1, borderColor: "divider" }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 1
-          }}
-        >
-          <Tooltip title="Compare versions">
-            <ToggleButton
-              value="compare"
-              selected={isCompareMode}
-              onChange={handleToggleCompareMode}
-              size="small"
-              sx={{ px: 1 }}
-            >
-              <CompareIcon fontSize="small" sx={{ mr: 0.5 }} />
-              Compare
-            </ToggleButton>
-          </Tooltip>
+        <Box sx={{ p: 1, borderBottom: 1, borderColor: "divider" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 1
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Tooltip title="Compare versions">
+                <ToggleButton
+                  value="compare"
+                  selected={isCompareMode}
+                  onChange={handleToggleCompareMode}
+                  size="small"
+                  sx={{ px: 1 }}
+                >
+                  <CompareIcon fontSize="small" sx={{ mr: 0.5 }} />
+                  Compare
+                </ToggleButton>
+              </Tooltip>
 
-          {isCompareMode && (selectedVersionId || compareVersionId) && (
-            <Button size="small" onClick={handleClearComparison}>
-              Clear
-            </Button>
-          )}
-        </Box>
+              <Tooltip title="Run A/B Test">
+                <span>
+                  <ToggleButton
+                    value="abtest"
+                    onChange={() => setABTestDialogOpen(true)}
+                    size="small"
+                    sx={{ px: 1 }}
+                    disabled={versions.length < 1}
+                  >
+                    <ScienceIcon fontSize="small" sx={{ mr: 0.5 }} />
+                    A/B Test
+                  </ToggleButton>
+                </span>
+              </Tooltip>
+            </Box>
+
+            {isCompareMode && (selectedVersionId || compareVersionId) && (
+              <Button size="small" onClick={handleClearComparison}>
+                Clear
+              </Button>
+            )}
+          </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <FilterIcon fontSize="small" color="action" />
@@ -474,6 +508,19 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ABTestDialog
+        open={abTestDialogOpen}
+        onClose={() => setABTestDialogOpen(false)}
+        versions={versions}
+        currentVersion={undefined}
+        onRunABTest={(baseVersion, testVersion) => {
+          if (onRunABTest) {
+            onRunABTest(baseVersion, testVersion);
+          }
+          setABTestDialogOpen(false);
+        }}
+      />
     </Paper>
   );
 };

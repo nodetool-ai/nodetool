@@ -54,6 +54,12 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### A/B Testing Research (2026-01-17)
+
+**What**: Implemented A/B testing feature for workflow version comparison. Includes ABTestDialog for version selection, ABTestResultsStore for managing test state, and ABTestResultsPanel for visualizing results.
+
+**Files**: web/src/stores/ab_test/ABTestResultsStore.ts, web/src/components/version/ABTestDialog.tsx, web/src/components/version/ABTestResultsPanel.tsx, web/src/components/version/VersionHistoryPanel.tsx, web/src/components/panels/PanelRight.tsx
+
 ### Performance Optimization: Inline Arrow Functions (2026-01-17)
 
 **What**: Memoized 20+ inline arrow functions across 6 components using useCallback to prevent unnecessary re-renders.
