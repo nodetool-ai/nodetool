@@ -8,7 +8,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
-import { colorForType } from "../../config/data_types";
+import { colorForType, IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
 
 interface SearchResultItemProps {
@@ -165,6 +165,8 @@ const SearchResultItem = memo(
   forwardRef<HTMLDivElement, SearchResultItemProps>(
     ({ node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false }, ref) => {
       const theme = useTheme();
+      const outputType =
+        node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
       // Parse description and tags
@@ -216,6 +218,27 @@ const SearchResultItem = memo(
           <div className="result-header">
             <div className="result-main">
               <div className="result-title-row">
+                <IconForType
+                  iconName={outputType}
+                  containerStyle={{
+                    borderRadius: "0 0 3px 0",
+                    marginLeft: "0",
+                    marginTop: "0"
+                  }}
+                  bgStyle={{
+                    backgroundColor: theme.vars.palette.grey[900],
+                    margin: "0",
+                    padding: "1px",
+                    borderRadius: "0 0 3px 0",
+                    boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+                    width: "20px",
+                    height: "20px"
+                  }}
+                  svgProps={{
+                    width: "15px",
+                    height: "15px"
+                  }}
+                />
                 <Typography className="result-title" component="div">
                   <HighlightText 
                     text={node.title} 
