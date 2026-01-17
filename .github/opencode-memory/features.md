@@ -4,7 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-16
+Last updated: 2026-01-17
+
+- **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
 
 - **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
 
