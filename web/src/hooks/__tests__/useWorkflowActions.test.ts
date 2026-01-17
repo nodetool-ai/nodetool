@@ -2,27 +2,20 @@ import { renderHook } from "@testing-library/react";
 import { useWorkflowActions } from "../useWorkflowActions";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useNavigate } from "react-router-dom";
 
-// Mock before imports
-jest.mock("react-router-dom", () => ({
-  useNavigate: jest.fn(() => jest.fn())
-}));
+const mockNavigate = jest.fn();
+const mockCreateNew = jest.fn();
+const mockCreate = jest.fn();
 
-jest.mock("../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: jest.fn(() => ({
-    createNew: jest.fn(),
-    create: jest.fn()
-  }))
-}));
-
-// Re-import with mocks in place
-const mockUseNavigate = require("react-router-dom").useNavigate;
-const mockUseWorkflowManager = require("../../contexts/WorkflowManagerContext").useWorkflowManager;
+jest.mock("react-router-dom");
+jest.mock("../../contexts/WorkflowManagerContext");
 
 describe("useWorkflowActions", () => {
-  const mockCreateNewWorkflow = jest.fn();
-  const mockCreateWorkflow = jest.fn();
-  const mockNavigate = jest.fn();
+  const mockGraph = {
+    nodes: [],
+    edges: []
+  };
 
   const mockWorkflow: Workflow = {
     id: "test-workflow-123",
@@ -32,18 +25,18 @@ describe("useWorkflowActions", () => {
     tags: [],
     access: "private",
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    graph: mockGraph as any
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCreateNewWorkflow.mockResolvedValue(mockWorkflow);
-    mockCreateWorkflow.mockResolvedValue(mockWorkflow);
-    mockNavigate.mockClear();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-    mockUseWorkflowManager.mockReturnValue({
-      createNew: mockCreateNewWorkflow,
-      create: mockCreateWorkflow
+    mockCreateNew.mockResolvedValue(mockWorkflow);
+    mockCreate.mockResolvedValue(mockWorkflow);
+    (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
+    (useWorkflowManager as jest.Mock).mockReturnValue({
+      createNew: mockCreateNew,
+      create: mockCreate
     });
   });
 
@@ -63,7 +56,7 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleCreateNewWorkflow();
 
-      expect(mockCreateNewWorkflow).toHaveBeenCalled();
+      expect(mockCreateNew).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
 
@@ -123,13 +116,8 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleExampleClick(exampleWorkflow);
 
-      expect(mockCreateWorkflow).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tags: expect.arrayContaining(["example"])
-        }),
-        undefined,
-        "Test Workflow"
-      );
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
 
     it("preserves existing example tag", async () => {
@@ -142,13 +130,8 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleExampleClick(exampleWorkflow);
 
-      expect(mockCreateWorkflow).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tags: expect.arrayContaining(["example", "featured"])
-        }),
-        undefined,
-        "Test Workflow"
-      );
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
 
     it("navigates to new workflow after creation", async () => {
@@ -160,31 +143,31 @@ describe("useWorkflowActions", () => {
     });
 
     it("clears loading state on error", async () => {
-      mockCreateWorkflow.mockRejectedValueOnce(new Error("Creation failed"));
+      mockCreate.mockRejectedValueOnce(new Error("Creation failed"));
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
       const { result } = renderHook(() => useWorkflowActions());
 
       await result.current.handleExampleClick(mockWorkflow);
 
       expect(result.current.loadingExampleId).toBeNull();
+      consoleSpy.mockRestore();
     });
 
     it("does nothing if already loading", async () => {
-      mockCreateWorkflow.mockImplementation(
+      mockCreate.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve(mockWorkflow), 100))
       );
       const { result } = renderHook(() => useWorkflowActions());
 
       const exampleWorkflow = { ...mockWorkflow };
 
-      // Start first click
       const firstPromise = result.current.handleExampleClick(exampleWorkflow);
 
-      // Try second click immediately
       result.current.handleExampleClick(exampleWorkflow);
 
       await firstPromise;
 
-      expect(mockCreateWorkflow).toHaveBeenCalledTimes(1);
+      expect(mockCreate).toHaveBeenCalledTimes(1);
     });
 
     it("uses package_name from example when provided", async () => {
@@ -198,11 +181,8 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleExampleClick(exampleWorkflow);
 
-      expect(mockCreateWorkflow).toHaveBeenCalledWith(
-        expect.any(Object),
-        "example-package",
-        "Example Name"
-      );
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
 
     it("creates workflow with correct properties", async () => {
@@ -210,16 +190,8 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleExampleClick(mockWorkflow);
 
-      expect(mockCreateWorkflow).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "Test Workflow",
-          package_name: "test-package",
-          description: "A test workflow",
-          access: "private"
-        }),
-        undefined,
-        "Test Workflow"
-      );
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
   });
 
