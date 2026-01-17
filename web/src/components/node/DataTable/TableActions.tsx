@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, memo } from "react";
 import { Tooltip, IconButton } from "@mui/material";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
@@ -27,7 +27,7 @@ interface TableActionsProps {
   showRowNumbersButton?: boolean;
 }
 
-const TableActions: React.FC<TableActionsProps> = ({
+const TableActions: React.FC<TableActionsProps> = memo(({
   tabulator,
   data,
   selectedRows,
@@ -42,6 +42,7 @@ const TableActions: React.FC<TableActionsProps> = ({
   showResetSortingButton: showSortingButton = true,
   showRowNumbersButton = true
 }) => {
+  TableActions.displayName = 'TableActions';
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -116,7 +117,7 @@ const TableActions: React.FC<TableActionsProps> = ({
     }
   };
 
-  const handleDeleteRows = () => {
+  const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
       onChangeRows(
         data.filter((_, index) => {
@@ -133,13 +134,27 @@ const TableActions: React.FC<TableActionsProps> = ({
       });
       onChangeRows(newData);
     }
-  };
+  }, [data, selectedRows, onChangeRows]);
 
-  const handleResetSorting = () => {
+  const handleResetSorting = useCallback(() => {
     if (tabulator) {
       tabulator.clearSort();
     }
-  };
+  }, [tabulator]);
+
+  const handleDeleteRowsClick = useCallback(() => {
+    if (tabulator?.getSelectedRows().length) {
+      handleDeleteRows();
+    }
+  }, [tabulator, handleDeleteRows]);
+
+  const handleToggleSelect = useCallback(() => {
+    setShowSelect(!showSelect);
+  }, [setShowSelect, showSelect]);
+
+  const handleToggleRowNumbers = useCallback(() => {
+    setShowRowNumbers?.(!showRowNumbers);
+  }, [setShowRowNumbers, showRowNumbers]);
 
   return (
     <div className="table-actions">
@@ -156,11 +171,7 @@ const TableActions: React.FC<TableActionsProps> = ({
               className={
                 tabulator?.getSelectedRows().length === 0 ? "disabled" : ""
               }
-              onClick={() => {
-                if (tabulator?.getSelectedRows().length) {
-                  handleDeleteRows();
-                }
-              }}
+              onClick={handleDeleteRowsClick}
             >
               <DeleteIcon sx={{ fontSize: 12 }} />
             </IconButton>
@@ -178,7 +189,7 @@ const TableActions: React.FC<TableActionsProps> = ({
 
       <Tooltip title="Show Select column">
         <IconButton
-          onClick={() => setShowSelect(!showSelect)}
+          onClick={handleToggleSelect}
           color={showSelect ? "primary" : "default"}
         >
           <CheckBoxIcon sx={{ fontSize: 12 }} />
@@ -188,7 +199,7 @@ const TableActions: React.FC<TableActionsProps> = ({
       {showRowNumbersButton && Array.isArray(data) && setShowRowNumbers && (
         <Tooltip title="Show Row Numbers">
           <IconButton
-            onClick={() => setShowRowNumbers(!showRowNumbers)}
+            onClick={handleToggleRowNumbers}
             color={showRowNumbers ? "primary" : "default"}
           >
             <NumbersIcon sx={{ fontSize: 12 }} />
@@ -203,7 +214,7 @@ const TableActions: React.FC<TableActionsProps> = ({
       </Tooltip>
     </div>
   );
-};
+});
 
 export default TableActions;
 

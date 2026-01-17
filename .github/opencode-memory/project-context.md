@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Handler Memoization (2026-01-17)
+
+**What**: Memoized inline handlers in NodeHeader (4), AssetTable (1), FormatButton (1), and TableActions (7) components. Added React.memo to AssetTable.
+
+**Files**: NodeHeader.tsx, AssetTable.tsx, FormatButton.tsx, TableActions.tsx
+
+**Impact**: Prevented unnecessary re-renders in high-frequency node components and asset management UI by providing stable function references.
+
+---
+
 ### Performance Optimization: Inline Arrow Functions (2026-01-17)
 
 **What**: Memoized 20+ inline arrow functions across 6 components using useCallback to prevent unnecessary re-renders.
