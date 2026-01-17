@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import { Box, IconButton, Tooltip, Divider } from "@mui/material";
 import {
   AlignHorizontalLeft,
@@ -12,11 +12,14 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit
+  CallSplit,
+  Extension
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { PatternSelector } from "../patterns/PatternSelector";
+import { useApplyPattern } from "../../hooks/patterns/useApplyPattern";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -88,6 +91,8 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
 }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const selectionActions = useSelectionActions();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [patternAnchorEl, setPatternAnchorEl] = useState<HTMLElement | null>(null);
 
   const canAlign = selectedNodes.length >= 2;
   const canDistribute = selectedNodes.length >= 2;
@@ -101,6 +106,16 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
     },
     [onClose]
   );
+
+  const handleApplyPattern = useApplyPattern();
+
+  const handleOpenPatternMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setPatternAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleClosePatternMenu = useCallback(() => {
+    setPatternAnchorEl(null);
+  }, []);
 
   const alignmentButtons: ButtonItem[] = useMemo(
     () => [
@@ -180,6 +195,12 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.duplicateSelected
       },
       {
+        icon: <Extension fontSize="small" />,
+        label: "Apply Pattern",
+        slug: "applyPattern",
+        action: () => {}
+      },
+      {
         icon: <Layers fontSize="small" />,
         label: "Group",
         slug: "groupSelected",
@@ -245,8 +266,45 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         }
 
         const actionButton = button as ActionButton;
+
+        if (actionButton.slug === "applyPattern") {
+          return (
+            <Tooltip
+              key={`${actionButton.slug}-${index}`}
+              title={getShortcutTooltip(actionButton.slug, "both", "full", true)}
+              arrow
+              placement="top"
+            >
+              <span>
+                <IconButton
+                  ref={buttonRef}
+                  size="small"
+                  aria-label={actionButton.label}
+                  onClick={handleOpenPatternMenu}
+                  color="default"
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    "&:hover": {
+                      bgcolor: "action.hover"
+                    }
+                  }}
+                >
+                  <Extension fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          );
+        }
+
         return renderButton(actionButton, index);
       })}
+      <PatternSelector
+        anchorEl={patternAnchorEl}
+        onClose={handleClosePatternMenu}
+        onSelectPattern={handleApplyPattern}
+        buttonRef={buttonRef}
+      />
     </Box>
   );
 };

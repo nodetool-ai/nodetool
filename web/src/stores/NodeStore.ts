@@ -1145,3 +1145,5 @@ export const createNodeStore = (
     )
   );
 
+
+export const useNodeStore = createNodeStore;
