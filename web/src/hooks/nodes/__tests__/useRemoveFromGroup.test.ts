@@ -27,9 +27,7 @@ describe("useRemoveFromGroup", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    const { useNodes } = NodeContext;
-
-    (useNodes as jest.Mock).mockReturnValue({
+    jest.spyOn(NodeContext, "useNodes").mockReturnValue({
       updateNode: mockUpdateNode,
       findNode: mockFindNode
     });
