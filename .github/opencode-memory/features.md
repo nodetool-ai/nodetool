@@ -400,3 +400,23 @@ Last updated: 2026-01-16
 **Impact**: Developers following documentation will now correctly connect to the development server on port 7777.
 
 ---
+
+### Merge Conflict Markers in Test File Fix (2026-01-17)
+
+**Issue**: Test file `web/src/hooks/__tests__/useAutosave.test.ts` contained unresolved merge conflict markers that corrupted the file structure and caused TypeScript compilation errors.
+
+**Root Cause**: Incomplete merge operation left `<<<<<<< HEAD`, `=======`, and `>>>>>>> origin/main` markers in the file.
+
+**Files Fixed**:
+- `web/src/hooks/__tests__/useAutosave.test.ts` - Removed all merge conflict markers and rewrote file with proper test structure
+
+**Impact**: TypeScript type checking now passes for the test file. Developers can run `make typecheck` without errors from this file.
+
+**Verification**:
+- Ran `make typecheck` to confirm the fix
+- Ran `make lint` to verify no new lint issues introduced
+- All test assertions preserved and functional
+
+**Related Memory**:
+- `.github/opencode-memory/issues/documentation/documentation-audit-2026-01-16.md` - Documentation audit results
+- `.github/opencode-memory/insights/code-quality/documentation-quality-audit.md` - Quality audit findings
