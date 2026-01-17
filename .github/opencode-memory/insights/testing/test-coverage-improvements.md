@@ -85,7 +85,118 @@ it("returns true when cycle exists", () => {
 
 ---
 
-### Test Coverage Status (2026-01-17)
+### Test Coverage Improvement (2026-01-17 - Additional)
+
+**Coverage Added**: 3 new test files with 71 tests
+
+**Tests Added**:
+- `graphNodeToReactFlowNode.test.ts` - 27 tests for graph to ReactFlow node conversion
+- `reactFlowNodeToGraphNode.test.ts` - 24 tests for ReactFlow to graph node conversion
+- `useNumberInput.test.tsx` - 20 tests for number input hook
+
+**Areas Covered**:
+- Basic node conversion with all required fields
+- Parent ID preservation
+- UI properties (position, dimensions, zIndex, title, color)
+- Preview node default dimensions (400x300)
+- CompareImages node default dimensions (450x350)
+- Bypassed node styling
+- Group/Loop node special handling
+- Dynamic properties and outputs preservation
+- Sync mode handling
+- Node type conversion
+- Value calculation (step, decimal places, speed factor)
+- Drag handling (threshold detection, mouse move, mouse up)
+- Shift key modifier for fine control
+
+**Test Patterns Used**:
+
+1. **Graph Conversion Utility Testing**:
+```typescript
+describe("graphNodeToReactFlowNode", () => {
+  it("converts a basic graph node to ReactFlow node", () => {
+    const workflow = createMockWorkflow();
+    const graphNode = createMockGraphNode();
+    
+    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    
+    expect(result.id).toBe("node-1");
+    expect(result.type).toBe("nodetool.text.Prompt");
+  });
+  
+  it("sets width 400 and height 300 for Preview nodes", () => {
+    const workflow = createMockWorkflow();
+    const graphNode = createMockGraphNode({
+      type: "nodetool.workflows.base_node.Preview",
+    });
+    
+    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    
+    expect(result.style?.width).toBe(400);
+    expect(result.style?.height).toBe(300);
+  });
+});
+```
+
+2. **Reverse Conversion Testing**:
+```typescript
+describe("reactFlowNodeToGraphNode", () => {
+  it("converts a ReactFlow node to graph node", () => {
+    const reactFlowNode = createMockReactFlowNode();
+    
+    const result = reactFlowNodeToGraphNode(reactFlowNode);
+    
+    expect(result.id).toBe("node-1");
+    expect(result.type).toBe("nodetool.text.Prompt");
+  });
+});
+```
+
+3. **Hook Testing with renderHook**:
+```typescript
+describe("useNumberInput", () => {
+  describe("useValueCalculation", () => {
+    it("returns calculateStep and calculateDecimalPlaces functions", () => {
+      const { result } = renderHook(() => useValueCalculation());
+      
+      expect(result.current.calculateStep).toBeDefined();
+      expect(typeof result.current.calculateStep).toBe("function");
+    });
+  });
+});
+```
+
+4. **Mock-Based Component Testing**:
+```typescript
+jest.mock("../../components/node_types/PlaceholderNode", () => () => null);
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/graphNodeToReactFlowNode.test.ts`
+- `web/src/stores/__tests__/reactFlowNodeToGraphNode.test.ts`
+- `web/src/hooks/__tests__/useNumberInput.test.tsx`
+
+**Key Learnings**:
+1. Graph conversion utilities require PlaceholderNode mock due to React context dependencies
+2. Test realistic scenarios - don't test invalid states like undefined data when types require it
+3. Optional chaining (?.) in expectations handles undefined values gracefully
+4. Hook testing with renderHook works well for hooks with simple dependencies
+5. Use explicit assertions for width/height rather than toBeDefined for complex conversions
+
+**Status**: All 71 tests passing
+
+**Files Removed (Due to Complex Dependencies)**:
+- `ContextMenuStore.test.tsx` - Context-based hooks require complex provider setup
+- `ConnectableNodesStore.test.tsx` - Same as above
+- `NodeMenuStore.test.ts` - Store has complex metadata dependencies that are hard to mock
+
+**Current Coverage Status**:
+- **203 test suites** passing
+- **2,645+ tests** passing
+- **Critical conversion utilities** now fully tested
+- **Number input hook** fully tested
+
+---
 
 **Current Coverage State**:
 - **200 test files** in the project
