@@ -7,114 +7,103 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
-**Build AI Workflows Visually. Run Them Anywhere.**
+**Build AI workflows visually. Run them anywhere.**
 
-NodeTool is an open-source visual workflow builder. Connect nodes to generate images, analyze documents, automate tasks, and process data—no coding required. Run models locally or via cloud APIs.
+NodeTool is open-source software for creating AI workflows without code. Drag and drop nodes to generate images, process documents, analyze data, and automate tasks. Run models on your machine or use cloud APIs.
 
 ![Screenshot](screenshot.png)
 
-## Features
+## Why NodeTool
 
-- **Visual Editor**: Drag-and-drop node connections. No coding required.
-- **Local Execution**: Run models on your hardware for privacy. Or use cloud APIs.
-- **Real-time Feedback**: See results stream as workflows execute.
-- **Portable Workflows**: Same workflow runs locally, on RunPod, Cloud Run, or self-hosted servers.
+- **Visual editing**: Connect nodes by dragging lines between them
+- **Run anywhere**: Your laptop, a server, or the cloud
+- **Private by default**: Models run on your hardware unless you choose otherwise
+- **See it happen**: Watch results appear as your workflow runs
 
-## Capabilities
+## What You Can Do
 
-- **Multimodal Support**: Text, image, audio, and video processing.
-- **Local Models**: Run Flux, SDXL, LLMs on Apple Silicon, NVIDIA GPUs, or CPU. Works offline.
-- **HuggingFace Integration**: Access 500,000+ models from the Hub.
-- **Cloud APIs**: Connect to OpenAI, Anthropic, Gemini, Replicate.
-- **Deployment**: Deploy to RunPod, Cloud Run, or self-hosted infrastructure.
-- **Asset Management**: Organize and access media files from workflows.
+- Work with text, images, audio, and video
+- Run models locally on Apple Silicon, NVIDIA GPUs, or CPU (works offline)
+- Access 500,000+ models from HuggingFace
+- Use cloud APIs: OpenAI, Anthropic, Gemini, Replicate
+- Deploy to RunPod, Google Cloud Run, or your own infrastructure
+- Manage and organize your media files
 
-## Use Cases
+## Common Uses
 
-- **Media Generation**: Generate and transform images, videos, and audio.
-- **Document Processing**: Build RAG systems, extract text, query documents.
-- **Data Analysis**: Transform data, create visualizations, generate reports.
-- **Automation**: Build AI agents that plan and execute multi-step tasks.
+- Generate and edit images, videos, and audio
+- Build RAG systems, extract text, search documents
+- Transform data, create charts, generate reports
+- Create AI agents that plan and execute tasks
 
-## State-of-the-Art Cloud Models
+## Cloud Models
 
-NodeTool provides access to the latest high-quality generative AI models for creative workflows:
+Access the latest AI models through simple nodes:
 
-### Video Generation
-- **OpenAI Sora 2 Pro** – Realistic motion with refined physics and synchronized native audio; T2V/I2V up to 15s in 1080p
-- **Google Veo 3.1** – Upgraded realistic motion, extended clips, multi-image references, native 1080p with synced audio
-- **xAI Grok Imagine** – Multimodal text/image to short video with coherent motion and synchronized audio
-- **Alibaba Wan 2.6** – Affordable multi-shot 1080p with stable characters and native audio; T2V/I2V/reference-guided
-- **MiniMax Hailuo 2.3** – High-fidelity video with expressive characters, complex motion and lighting
-- **Kling 2.6** – Text/image to synchronized video with speech, ambient sound, and effects
+**Video**: OpenAI Sora 2 Pro, Google Veo 3.1, xAI Grok Imagine, Alibaba Wan 2.6, MiniMax Hailuo 2.3, Kling 2.6
 
-### Image & Audio Generation
-- **Black Forest Labs FLUX.2** – Photoreal images with multi-reference consistency and accurate text rendering
-- **Google Nano Banana Pro** – Sharper 2K output, intelligent 4K scaling, improved text rendering and character consistency
+**Image & Audio**: Black Forest Labs FLUX.2, Google Nano Banana Pro
 
-Use these models through NodeTool's generic nodes (`TextToVideo`, `ImageToVideo`, `TextToImage`) by selecting the appropriate provider and model in the node properties.
+Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provider and model.
 
-> **Direct API Key Support**: OpenAI Sora 2 Pro, Google Veo 3.1, and MiniMax Hailuo 2.3 have direct NodeTool API key support. Other models can be accessed through [kie.ai](https://kie.ai/), which aggregates multiple AI providers and often offers competitive pricing.
+> Some models need direct API keys. Others work through [kie.ai](https://kie.ai/), which combines multiple providers and often has better prices.
 
-## Get Started
+## Download
 
-| Platform | Download | What You Need |
+| Platform | Get It | Requirements |
 | :--- | :--- | :--- |
-| **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU recommended, 20GB free space |
-| **macOS** | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon |
-| **Linux** | [Download AppImage](https://nodetool.ai) | Nvidia GPU recommended |
+| **Windows** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 20GB space |
+| **macOS** | [Download](https://nodetool.ai) | M1+ Apple Silicon |
+| **Linux** | [Download](https://nodetool.ai) | NVIDIA GPU recommended |
 
-**Hardware for Local AI:**
+**Running AI locally needs:**
 
-- **Apple Silicon**: 16GB+ RAM (text/audio), 24GB+ (image generation)
-- **Windows/Linux**: 4GB+ VRAM (text/audio), 8GB+ (images), 12GB+ (video)
-- **Cloud-Only**: No GPU required—use cloud AI services
+- **Apple Silicon**: 16GB+ RAM for text/audio, 24GB+ for images
+- **Windows/Linux**: 4GB+ VRAM for text/audio, 8GB+ for images, 12GB+ for video
+- **Cloud only**: No GPU needed—just use API services
 
 ______________________________________________________________________
 
 ## Documentation
 
-- **[Getting Started](https://docs.nodetool.ai/getting-started)**
-- **[Node Packs](https://docs.nodetool.ai/packs)**
-- **[Custom Nodes](https://docs.nodetool.ai/development/custom-nodes)**
-- **[Deployment](https://docs.nodetool.ai/deployment)**
-- **[API Reference](https://docs.nodetool.ai/api)**
+- **[Getting Started](https://docs.nodetool.ai/getting-started)** - Build your first workflow
+- **[Node Packs](https://docs.nodetool.ai/packs)** - Available operations and integrations
+- **[Custom Nodes](https://docs.nodetool.ai/development/custom-nodes)** - Extend NodeTool
+- **[Deployment](https://docs.nodetool.ai/deployment)** - Share your work
+- **[API Reference](https://docs.nodetool.ai/api)** - Programmatic access
 
 ______________________________________________________________________
 
-## 🛠️ Development Setup
+## Development Setup
 
-For core library development, see [nodetool-core](https://github.com/nodetool-ai/nodetool-core).
+For core library work, see [nodetool-core](https://github.com/nodetool-ai/nodetool-core).
 
-### Prerequisites
+**Prerequisites:** Python 3.11, Conda, Node.js LTS
 
-- Python 3.11, Conda, Node.js LTS
-
-### Quick Start
+**Quick start:**
 
 ```bash
-# 1. Setup Environment
+# Setup
 conda env update -f environment.yml --prune
 conda activate nodetool
 
-# 2. Install Core
+# Install
 uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
-# 3. Run Backend & Frontend
+# Run
 nodetool serve --reload &
 cd web && npm install && npm start
 ```
 
-### Installing HuggingFace pack (Linux/Windows GPU)
+### HuggingFace Pack (Linux/Windows GPU)
 
-Requires CUDA Driver version for linux: >=525.60.13
-Requires CUDA Driver version for windows: >=527.41
+Requires CUDA driver ≥525.60.13 (Linux) or ≥527.41 (Windows):
 
 ```bash
 uv pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu128
 ```
 
-### Installing MLX pack (Apple Silicon)
+### MLX Pack (Apple Silicon)
 
 ```bash
 uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
@@ -122,46 +111,36 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
 
 ### Electron App
 
-Configure `settings.yaml` with your Conda path and run `make electron`.
+Set your Conda path in `settings.yaml` and run `make electron`.
 
 ### Mobile App
 
-The mobile app allows you to run Mini Apps on iOS and Android devices.
+Run Mini Apps on iOS and Android:
 
 ```bash
 cd mobile && npm install && npm start
 ```
 
-See [mobile/README.md](mobile/README.md) for detailed setup and usage instructions.
+See [mobile/README.md](mobile/README.md) for setup.
 
 ______________________________________________________________________
 
-## 📱 Personal AI Stack
+## Personal AI Stack
 
-NodeTool supports mobile access to self-hosted AI infrastructure. Run models on your own hardware and access them from anywhere via secure connection.
+Run NodeTool on your hardware and access it from mobile devices via secure connection.
 
-### Deployment Patterns
+**Deployment options:**
 
-#### 🏠 **Local Stack**
-```
-[Mobile] → [VPN] → [Home Server] → [Local LLMs] + [Data]
-```
+🏠 **Local**: Mobile → VPN → Home Server → Local models + data
 
-#### 🏢 **Private Cloud**
-```
-[Mobile] → [VPN] → [VPC] → [Self-Hosted NodeTool] → [Private LLMs]
-```
+🏢 **Private Cloud**: Mobile → VPN → VPC → Self-hosted NodeTool → Private models
 
-#### 🌐 **Hybrid**
-```
-[Mobile] → [VPN] → [Local Server] → [Local LLMs] + [Cloud APIs]
-```
+🌐 **Hybrid**: Mobile → VPN → Local Server → Local models + Cloud APIs
 
-### Setup
-
-1. Set up NodeTool Server on your machine or cloud instance
-2. Configure VPN access (Tailscale, WireGuard, etc.)
-3. Install the Mobile App (iOS/Android)
+**Setup:**
+1. Install NodeTool on your machine or cloud
+2. Set up VPN (Tailscale, WireGuard, etc.)
+3. Install mobile app
 4. Connect to your server
 
 See [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/self_hosted.md).
@@ -173,19 +152,18 @@ See [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/self_
 cd electron && npm test && npm run lint
 cd web && npm test && npm run lint
 
-# End-to-end tests (requires nodetool backend)
+# End-to-end (needs backend)
 cd web && npm run test:e2e
 ```
 
 ## Contributing
 
-We welcome contributions!
+We welcome:
+- Bug reports and feature requests
+- Code contributions
+- New node creation
 
-- **Bug reports & Features**: Help us improve.
-- **Code**: Fix bugs or add features.
-- **Nodes**: Create new nodes.
-
-**Pull requests are welcome!** Open an issue for major changes.
+Open an issue before starting major work.
 
 ## License
 
