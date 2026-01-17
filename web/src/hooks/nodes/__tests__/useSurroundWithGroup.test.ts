@@ -57,7 +57,13 @@ describe("useSurroundWithGroup", () => {
     width,
     height,
     measured: width ? { width, height: height || 100 } : undefined,
-    data: { title: "Test Node" }
+    data: {
+      title: "Test Node",
+      properties: {},
+      selectable: true,
+      dynamic_properties: {},
+      workflow_id: "test-workflow"
+    }
   });
 
   beforeEach(() => {
@@ -181,7 +187,8 @@ describe("useSurroundWithGroup", () => {
 
     expect(mockSetNodes).toHaveBeenCalled();
     const updateFn = mockSetNodes.mock.calls[0][0];
-    const updatedNodes = updateFn([]);
+    // Pass the selected nodes as prevNodes to simulate the actual behavior
+    const updatedNodes = updateFn(selectedNodes);
     const childNode = updatedNodes[1];
 
     expect(childNode.position.x).toBeDefined();

@@ -44,6 +44,8 @@ export const useSurroundWithGroup = () => {
 
   const surroundWithGroup = useCallback(
     ({ selectedNodes }: { selectedNodes: Node<NodeData>[] }) => {
+      if (!selectedNodes) {return;}
+      
       const validSelectedNodes = selectedNodes.filter(
         (n): n is Node<NodeData> => !!n
       );
@@ -51,54 +53,56 @@ export const useSurroundWithGroup = () => {
 
       pause();
 
-      const groupMetadata = GROUP_NODE_METADATA;
-      const bounds = getBounds(validSelectedNodes);
-      const selectedNodeIds = new Set(validSelectedNodes.map((n) => n.id));
+      try {
+        const groupMetadata = GROUP_NODE_METADATA;
+        const bounds = getBounds(validSelectedNodes);
+        const selectedNodeIds = new Set(validSelectedNodes.map((n) => n.id));
 
-      const groupNode = createNode(groupMetadata, {
-        x: bounds.x - 20,
-        y: bounds.y - 50
-      });
-
-      if (!groupNode.data.properties) {
-        groupNode.data.properties = {};
-      }
-
-      if (!groupNode.data.title) {
-        groupNode.data.title = "Group";
-      }
-
-      groupNode.data.properties.group_color = theme.vars.palette.c_bg_group;
-      if (!groupNode.data.properties.headline) {
-        groupNode.data.properties.headline = "Group";
-      }
-      groupNode.width = Math.max(bounds.width - bounds.x + 40, 200);
-      groupNode.height = Math.max(bounds.height - bounds.y + 40, 200);
-      groupNode.style = {
-        width: groupNode.width,
-        height: groupNode.height
-      };
-
-      setNodes((prevNodes) => {
-        const updatedChildNodes = prevNodes.map((node) => {
-          if (selectedNodeIds.has(node.id)) {
-            return {
-              ...node,
-              parentId: groupNode.id,
-              expandParent: true,
-              position: {
-                x: node.position.x - bounds.x + 20,
-                y: node.position.y - bounds.y + 50
-              }
-            };
-          }
-          return node;
+        const groupNode = createNode(groupMetadata, {
+          x: bounds.x - 20,
+          y: bounds.y - 50
         });
 
-        return [groupNode, ...updatedChildNodes];
-      });
+        if (!groupNode.data.properties) {
+          groupNode.data.properties = {};
+        }
 
-      resume();
+        if (!groupNode.data.title) {
+          groupNode.data.title = "Group";
+        }
+
+        groupNode.data.properties.group_color = theme.vars.palette.c_bg_group;
+        if (!groupNode.data.properties.headline) {
+          groupNode.data.properties.headline = "Group";
+        }
+        groupNode.width = Math.max(bounds.width - bounds.x + 40, 200);
+        groupNode.height = Math.max(bounds.height - bounds.y + 40, 200);
+        groupNode.style = {
+          width: groupNode.width,
+          height: groupNode.height
+        };
+
+        setNodes((prevNodes) => {
+          const updatedChildNodes = prevNodes.map((node) => {
+            if (selectedNodeIds.has(node.id)) {
+              return {
+                ...node,
+                parentId: groupNode.id,
+                expandParent: true,
+                position: {
+                  x: node.position.x - bounds.x + 20,
+                  y: node.position.y - bounds.y + 50
+                }
+              };
+            }
+            return node;
+          });
+
+          return [groupNode, ...updatedChildNodes];
+        });
+      } finally {
+        resume();
+      }
     },
     [getBounds, createNode, setNodes, pause, resume, theme.vars.palette]
   );
