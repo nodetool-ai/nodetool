@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Accessibility Improvements (2026-01-17)
+
+**What**: Fixed WCAG compliance issues - added aria-labels to IconButtons, keyboard handlers to div buttons, improved image alt text.
+
+**Files**: ImageView.tsx, SwatchPanel.tsx, ProviderSetupPanel.tsx
+
+**Impact**: Screen readers can now announce button actions; all interactive elements keyboard accessible.
+
+---
+
 ### Performance Optimization: Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
@@ -141,7 +151,7 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Result**:
 - ✅ Type checking: All packages pass
 - ✅ Linting: All packages pass (2 warnings fixed)
-- ✅ Tests: All 595 tests pass (206 web + 389 mobile)
+- ✅ Tests: All 595 tests pass (206 web & 389 mobile)
 
 **Files**: Multiple files across web and mobile packages
 
@@ -207,204 +217,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-
-**What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
-
-**Files**: `web/src/hooks/useChatService.ts`, `web/src/hooks/editor/useChatIntegration.ts`, `web/src/components/chat/containers/GlobalChat.tsx`, `web/src/components/chat/containers/StandaloneChat.tsx`
-
-**Implementation**: Converted components from destructuring entire stores to using individual Zustand selectors. Also updated test mocks to support the new selector pattern.
-
-**Impact**: Reduced unnecessary re-renders in chat-related components by ensuring they only update when their specific data changes.
-
----
-
-### Test Mock Fixes for Selective Store Selectors (2026-01-13)
-
-**What**: Updated GlobalChat.test.tsx mocks to work with individual Zustand selectors.
-
-**Why**: When using individual selectors like `const status = useStore(s => s.status)`, the mock needs to handle selector functions properly instead of returning the entire mock state object.
-
-**Files**: `web/src/__tests__/components/chat/containers/GlobalChat.test.tsx`
-
-**Implementation**: Updated mock factory to check if selector is a function and return `selector(mockState)` for selective subscriptions.
-
----
-
-### Keyboard Node Navigation (2026-01-13)
-
-**What**: Added Tab-based keyboard navigation for the node editor, allowing users to navigate between nodes using keyboard shortcuts without mouse interaction.
-
-**Files**: `web/src/stores/NodeFocusStore.ts`, `web/src/hooks/useNodeFocus.ts`, `web/src/config/shortcuts.ts`, `web/src/hooks/useNodeEditorShortcuts.ts`, `web/src/components/node/BaseNode.tsx`
-
-**Implementation**:
-- Created `NodeFocusStore` to track focused node state and navigation mode
-- Created `useNodeFocus` hook providing navigation functions (focusNext, focusPrev, focusUp, focusDown, focusLeft, focusRight)
-- Added keyboard shortcuts: Tab/Shift+Tab for sequential navigation, Alt+Arrows for directional navigation, Enter to select focused node
-- Added visual focus indicator to BaseNode with dashed outline and "FOCUSED" badge
-- Navigation history tracking for "go back" functionality (Alt+ArrowLeft or Ctrl+ArrowLeft)
-
----
-
-### Node Info Panel (2026-01-12)
-
-**What**: Added Node Info Panel - a contextual panel that displays detailed information about selected nodes including type, description, connection counts, execution status, and quick actions (copy ID, focus).
-
-**Files**: `web/src/components/node_editor/NodeInfoPanel.tsx`, `web/src/hooks/useSelectedNodesInfo.ts`, `web/src/components/node_editor/NodeEditor.tsx`
-
-**Implementation**:
-- Created `useSelectedNodesInfo` hook to gather node metadata, connection info, and execution status
-- Built `NodeInfoPanel` component with MUI styling showing node details when nodes are selected
-- Integrated panel into NodeEditor alongside SelectionActionToolbar for cohesive selection UX
-
----
-
-### Test Distribution Functions Fix (2026-01-12)
-
-**What**: Fixed failing tests in `useSelectionActions.test.ts` by correcting expected values for distributeHorizontal and distributeVertical functions.
-
-**Why**: Tests expected even distribution (0, 200, 400) but implementation uses sequential placement with spacing.
-
-**Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
-
----
-
-### Mobile TypeScript Type Definitions Fix (2026-01-12)
-
-**What**: Fixed mobile package TypeScript type checking by installing @types/node package.
-
-**Why**: TypeScript couldn't find type definition files for 'jest', 'node', and 'react-native' even though tsconfig.json specified them in the types array. The @types/node package was missing from package.json.
-
-**Files**: `mobile/package.json`, `mobile/package-lock.json`
-
----
-
-### OpenCode Branch Access Enhancement (2026-01-12)
-
-**What**: Updated all OpenCode workflow files to fetch full git history, enabling access to all branches including main.
-
-**Why**: OpenCode agents need to access other branches (not just the current one) to perform operations like merging main branch and resolving merge conflicts. The default shallow clone with `fetch-depth: 1` only provides access to the current branch.
-
-**Implementation**:
-- Added `fetch-depth: 0` parameter to `actions/checkout@v4` in all four OpenCode workflows
-- This fetches complete git history for all branches and tags
-- Enables agents to run `git merge origin/main` and resolve conflicts
-- Allows agents to see and access any branch in the repository
-
-**Files Changed**:
-- `.github/workflows/opencode.yml` - Interactive OpenCode triggered by comments
-- `.github/workflows/opencode-features.yaml` - Scheduled autonomous feature development
-- `.github/workflows/opencode-hourly-test.yaml` - Scheduled quality assurance workflow
-- `.github/workflows/opencode-hourly-improve.yaml` - Scheduled code quality improvement workflow
-
-**Impact**: OpenCode agents can now:
-- View all branches with `git branch -a`
-- Merge changes from main branch
-- Resolve merge conflicts automatically
-- Check out other branches if needed
-- Access full commit history for better context
-
----
-
-### Zustand Store Subscription Optimization (2026-01-11)
-
-**What**: Fixed components subscribing to entire Zustand stores instead of selective state slices, preventing unnecessary re-renders.
-
-**Why**: Components using `useStore()` without selectors re-render on ANY state change, causing performance issues in frequently updating stores like GlobalChatStore.
-
-**Implementation**:
-- Converted `WorkflowAssistantChat` from destructuring entire store to 17 individual selectors
-- Converted `ChatButton` in AppHeader from destructuring entire store to 3 individual selectors
-- Converted `WelcomePanel` from destructuring entire store to 2 individual selectors
-- Converted `Welcome` page from destructuring entire store to 2 individual selectors
-
-**Impact**: Reduced re-render frequency in chat and workflow assistant components by ensuring they only update when their specific data changes.
-
-**Files Changed**:
-- `web/src/components/panels/WorkflowAssistantChat.tsx`
-- `web/src/components/panels/AppHeader.tsx`
-- `web/src/components/dashboard/WelcomePanel.tsx`
-- `web/src/components/content/Welcome/Welcome.tsx`
-
----
-
-### Security Audit Fixes (2026-01-12)
-
-**What**: Comprehensive security audit and vulnerability patching across web and electron packages.
-
-**Why**: Multiple critical and high severity vulnerabilities were identified in dependencies:
-- DOMPurify XSS (CVE in GHSA-vhxf-7vqr-mrjg)
-- React Router XSS/CSRF (multiple CVEs in GHSA-h5cw, GHSA-2w69, GHSA-8v8x, GHSA-3cgp)
-- React Syntax Highlighter XSS (CVE in GHSA-x7hr-w5r2-h6wg)
-- Express/Qs DoS vulnerability (CVE in GHSA-6rw7-vpxm-498p)
-- Missing Content Security Policy
-
-**Implementation**:
-- Updated `dompurify` from `^3.2.3` to `^3.2.4` in web/package.json
-- Updated `react-router-dom` from `^7.6.0` to `^7.12.0` in web/package.json
-- Updated `react-syntax-highlighter` from `^15.6.1` to `^16.1.0` in web/package.json
-- Added `overrides` for `qs`, `express`, `body-parser` in electron/package.json
-- Added CSP meta tag to web/index.html
-
-**Results**:
-- Web: Reduced from 8 vulnerabilities (2 high) to 2 (1 high, 1 low)
-- Electron: Reduced from 12 vulnerabilities (3 high) to 0
-- All quality checks pass (typecheck, lint)
-
-**Files Changed**:
-- `web/package.json` - Dependency updates
-- `electron/package.json` - Added overrides
-- `web/index.html` - Added CSP meta tag
-
----
-
-### TypeScript any Type Fixes in Error Handling (2026-01-12)
-
-**What**: Improved TypeScript type safety by replacing `any` types with `unknown` in error handling across multiple stores.
-
-**Why**: Using `any` reduces TypeScript's type checking capabilities and can mask potential runtime errors. Using `unknown` forces proper type guards and error checking.
-
-**Implementation**:
-- Updated `createErrorMessage` function to handle `unknown` type with proper type guards
-- Fixed catch blocks in `SecretsStore`, `useAuth`, and `CollectionStore` to use `unknown` with proper error type guards
-- Updated 7 catch blocks total to improve type safety
-
-**Files**:
-- `web/src/stores/SecretsStore.ts`
-- `web/src/stores/useAuth.ts`
-- `web/src/stores/CollectionStore.ts`
-- `web/src/utils/errorHandling.ts`
-
----
-
-_No entries yet - this memory system is new as of 2026-01-10_
-### Mobile TypeScript Type Errors (2026-01-12)
-
-**What**: Fixed mobile package TypeScript errors by updating tsconfig.json to include proper type definitions for React Native, Jest, and Node.js.
-
-**Files**: `mobile/tsconfig.json`
-
-### Test Expectation Fix (2026-01-12)
-
-**What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
-**Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
-
-### Selection Action Toolbar (2026-01-10)
-
-**What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
-**Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
-
----
-
-### Code Quality Improvements (2026-01-15)
-
-**What**: Fixed Zustand store subscription optimization and TypeScript type safety issues.
-
-**Files**:
-- `web/src/index.tsx` - Converted useAuth() to selective selector
-- `web/src/hooks/useRunningJobs.ts` - Converted useAuth() to selective selector
-- `web/src/components/ProtectedRoute.tsx` - Converted useAuth() to selective selector
-- `web/src/hooks/handlers/dropHandlerUtils.ts` - Converted useAuth() to selective selector and replaced catch(error: any) with proper error handling using createErrorMessage
-- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.
 

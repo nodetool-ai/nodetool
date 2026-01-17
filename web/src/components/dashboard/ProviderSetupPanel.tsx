@@ -299,6 +299,16 @@ const ProviderSetupPanel: React.FC = () => {
           <div
             className="collapse-header"
             onClick={() => setIsExpanded(!isExpanded)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setIsExpanded(!isExpanded);
+              }
+            }}
+            tabIndex={0}
+            role="button"
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? "Collapse provider setup" : "Expand provider setup"}
           >
             <div className="section-title">
               <Typography
@@ -311,7 +321,10 @@ const ProviderSetupPanel: React.FC = () => {
                 {configuredCount}/{PROVIDERS.length} configured
               </span>
             </div>
-            <IconButton size="small">
+            <IconButton
+              size="small"
+              aria-hidden="true"
+            >
               {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           </div>
