@@ -87,7 +87,7 @@ describe("useFitView", () => {
         getSelectedNodes: jest.fn(() => []),
         setSelectedNodes: jest.fn(),
         setViewport: jest.fn()
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useFitView());
@@ -117,7 +117,7 @@ describe("useFitView", () => {
         getSelectedNodes: jest.fn(() => selected),
         setSelectedNodes: jest.fn(),
         setViewport: jest.fn()
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useFitView());
@@ -144,7 +144,7 @@ describe("useFitView", () => {
         getSelectedNodes: jest.fn(() => []),
         setSelectedNodes: jest.fn(),
         setViewport: jest.fn()
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useFitView());
@@ -167,7 +167,7 @@ describe("useFitView", () => {
         getSelectedNodes: jest.fn(() => []),
         setSelectedNodes: jest.fn(),
         setViewport: jest.fn()
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useFitView());
@@ -194,7 +194,7 @@ describe("useFitView", () => {
         getSelectedNodes: jest.fn(() => nodes),
         setSelectedNodes: jest.fn(),
         setViewport: jest.fn()
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useFitView());

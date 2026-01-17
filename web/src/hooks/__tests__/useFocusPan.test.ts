@@ -92,8 +92,8 @@ describe("useFocusPan", () => {
 
     mockUseNodes.mockImplementation((selector) => {
       return selector({
-        findNode: jest.fn(() => null)
-      });
+        findNode: jest.fn(() => undefined)
+      } as any);
     });
 
     const { result } = renderHook(() => useFocusPan("nonexistent-node"));
@@ -177,6 +177,6 @@ describe("useFocusPan", () => {
       result.current({} as React.FocusEvent<HTMLElement>);
     });
 
-    expect(didNotPan).toBe(false);
+    expect(_didNotPan).toBe(false);
   });
 });

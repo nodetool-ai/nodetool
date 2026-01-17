@@ -68,7 +68,7 @@ describe("useAlignNodes", () => {
     mockUseNodes.mockImplementation((selector) => {
       return selector({
         getSelectedNodes: jest.fn(() => [createMockNode("node1", 0, 0)])
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useAlignNodes());
@@ -88,7 +88,7 @@ describe("useAlignNodes", () => {
           createMockNode("node2", 150, 100),
           createMockNode("node3", 50, 200)
         ])
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useAlignNodes());
@@ -117,7 +117,7 @@ describe("useAlignNodes", () => {
           createMockNode("node2", 100, 150),
           createMockNode("node3", 200, 50)
         ])
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useAlignNodes());
@@ -146,7 +146,7 @@ describe("useAlignNodes", () => {
           createMockNode("node2", 150, 200, 100, 50),
           createMockNode("node3", 50, 400, 100, 50)
         ])
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useAlignNodes());
@@ -174,7 +174,7 @@ describe("useAlignNodes", () => {
           createMockNode("node1", 0, 0),
           createMockNode("node2", 100, 0)
         ])
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useAlignNodes());
@@ -202,7 +202,7 @@ describe("useAlignNodes", () => {
     mockUseNodes.mockImplementation((selector) => {
       return selector({
         getSelectedNodes: jest.fn(() => selectedNodes)
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useAlignNodes());
@@ -229,7 +229,7 @@ describe("useAlignNodes", () => {
           createMockNode("node1", 0, 0),
           createMockNode("node2", 100, 0)
         ])
-      });
+      } as any);
     });
 
     const { result } = renderHook(() => useAlignNodes());

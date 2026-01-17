@@ -77,7 +77,7 @@ describe("hfCache", () => {
     });
 
     it("returns false when repo_id and id are both null", () => {
-      const model = createMockModel({ repo_id: null, id: null });
+      const model = createMockModel({ repo_id: undefined, id: undefined });
       expect(canCheckHfCache(model)).toBe(false);
     });
   });
@@ -129,7 +129,7 @@ describe("hfCache", () => {
     });
 
     it("returns null when repo_id and id are both null", () => {
-      const model = createMockModel({ repo_id: null, id: null });
+      const model = createMockModel({ repo_id: undefined, id: undefined });
       const result = buildHfCacheRequest(model);
       expect(result).toBeNull();
     });
