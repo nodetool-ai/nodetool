@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -580,4 +580,4 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   );
 };
 
-export default ImageEditorToolbar;
+export default memo(ImageEditorToolbar);
