@@ -63,7 +63,6 @@ const mockTheme = createTheme({
       disabledBackground: "rgba(255,255,255,0.12)",
       active: "rgba(255,255,255,0.54)"
     },
-    // Provide text palette when MUI Typography reads from theme.vars
     text: {
       primary: "#ffffff",
       secondary: "#bdbdbd",
@@ -78,12 +77,10 @@ const mockTheme = createTheme({
     },
     c_link: "#77b4e6",
     c_link_visited: "#5a9ace",
-    // Add color channels for MUI v7 Button component
     common: {
       white: "#ffffff",
       black: "#000000"
     },
-    // Add color channels for proper alpha value calculation
     primaryChannel: "119 180 230",
     secondaryChannel: "156 39 176",
     infoChannel: "33 150 243",
@@ -95,7 +92,6 @@ const mockTheme = createTheme({
     dividerChannel: "47 47 47",
     backgroundDefaultChannel: "32 32 32",
     backgroundPaperChannel: "35 35 35",
-    // Add Alert palette for MUI v7 Alert component
     Alert: {
       primaryColor: "#77b4e6",
       primaryIconColor: "#77b4e6",
@@ -140,28 +136,22 @@ const mockTheme = createTheme({
       warningOutlinedBorder: "rgba(255, 152, 0, 0.5)",
       warningTextColor: "#ff9800"
     },
-    // Add glass effect for ResultOverlay component
-    // Add glass effect for ResultOverlay component
     glass: {
       blur: "blur(12px)"
     },
-    // Add Button palette for MUI v7 Button component
     Button: {
       inheritContainedBg: "rgba(255, 255, 255, 0.08)",
       inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)"
     }
   },
-  // Provide spacing variables expected by MUI components (e.g., Button)
-  // MUI expects spacing to be a function that multiplies by 8px
   spacing: (factor: number) => `${factor * 8}px`,
-  // Add shadows for Button component
   shadows: [
     "none",
     "0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)",
     "0px 3px 1px -2px rgba(0,0,0,0.2),0px 2px 2px 0px rgba(0,0,0,0.14),0px 1px 5px 0px rgba(0,0,0,0.12)",
     "0px 3px 3px -2px rgba(0,0,0,0.2),0px 3px 4px 0px rgba(0,0,0,0.14),0px 1px 8px 0px rgba(0,0,0,0.12)",
     "0px 2px 4px -1px rgba(0,0,0,0.2),0px 4px 5px 0px rgba(0,0,0,0.14),0px 1px 10px 0px rgba(0,0,0,0.12)",
-    ...Array(20).fill("none") // Fill remaining shadow values
+    ...Array(20).fill("none")
   ]
 };
 
