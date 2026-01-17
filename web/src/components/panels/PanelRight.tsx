@@ -24,11 +24,11 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
+import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
+import WorkflowHealthPanel from "./WorkflowHealthPanel";
 
 import WorkspaceTree from "../workspaces/WorkspaceTree";
-import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
-import WorkflowForm from "../workflows/WorkflowForm";
 
 const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
@@ -115,7 +115,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleAssistantToggle,
   handleLogsToggle,
   handleWorkspaceToggle,
-  handleVersionsToggle,
+  handleHealthToggle,
   handleWorkflowToggle,
   activeView,
   panelVisible
@@ -124,9 +124,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleAssistantToggle: () => void;
   handleLogsToggle: () => void;
   handleWorkspaceToggle: () => void;
-  handleVersionsToggle: () => void;
+  handleHealthToggle: () => void;
   handleWorkflowToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow";
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "health" | "workflow";
   panelVisible: boolean;
 }) {
   return (
@@ -229,22 +229,22 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
 
-      {/* Versions Button */}
+      {/* Health Button */}
       <Tooltip
-        title="Version History"
+        title="Workflow Health"
         placement="left-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
           tabIndex={-1}
-          onClick={handleVersionsToggle}
+          onClick={handleHealthToggle}
           className={
-            activeView === "versions" && panelVisible
-              ? "versions active"
-              : "versions"
+            activeView === "health" && panelVisible
+              ? "health active"
+              : "health"
           }
         >
-          <HistoryIcon />
+          <HealthAndSafetyIcon />
         </IconButton>
       </Tooltip>
 
@@ -358,29 +358,8 @@ const PanelRight: React.FC = () => {
                   >
                     <WorkspaceTree />
                   </Box>
-                ) : activeView === "versions" ? (
-                  currentWorkflowId ? (
-                    <VersionHistoryPanel
-                      workflowId={currentWorkflowId}
-                      onRestore={handleRestoreVersion}
-                      onClose={() => handlePanelToggle("versions")}
-                    />
-                  ) : null
-                ) : activeView === "workflow" ? (
-                  activeNodeStore && currentWorkflowId ? (
-                    <Box
-                      sx={{
-                        width: "100%",
-                        height: "100%",
-                        overflow: "auto"
-                      }}
-                    >
-                      <WorkflowForm
-                        workflow={activeNodeStore.getState().getWorkflow()}
-                        onClose={() => handlePanelToggle("workflow")}
-                      />
-                    </Box>
-                  ) : null
+                ) : activeView === "health" ? (
+                  <WorkflowHealthPanel />
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -402,9 +381,9 @@ const PanelRight: React.FC = () => {
         handleAssistantToggle={() => handlePanelToggle("assistant")}
         handleLogsToggle={() => handlePanelToggle("logs")}
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
-        handleVersionsToggle={() => handlePanelToggle("versions")}
+        handleHealthToggle={() => handlePanelToggle("health")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
-        activeView={activeView}
+        activeView={activeView as any}
         panelVisible={isVisible}
       />
     </div>

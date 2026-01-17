@@ -34,6 +34,7 @@ import ConnectionLine from "../node_editor/ConnectionLine";
 import EdgeGradientDefinitions from "../node_editor/EdgeGradientDefinitions";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
+import useWorkflowValidationStore from "../../stores/WorkflowValidationStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
@@ -89,6 +90,16 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   useEffect(() => {
     setIsVisible(!!storedViewport || nodes.length === 0);
   }, [workflowId, storedViewport, nodes.length]);
+
+  const metadata = useMetadataStore((state) => state.metadata);
+  const validateWorkflow = useWorkflowValidationStore((state) => state.validateWorkflow);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      validateWorkflow(nodes, edges, metadata);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [nodes, edges, metadata, validateWorkflow]);
 
   const reactFlowInstance = useReactFlow();
   const pendingNodeType = useNodePlacementStore((state) => state.pendingNodeType);
