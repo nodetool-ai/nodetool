@@ -24,6 +24,7 @@ import image from "../icons/image.svg?react";
 import int from "../icons/int.svg?react";
 import list from "../icons/list.svg?react";
 import model from "../icons/model.svg?react";
+import model_3d from "../icons/model_3d.svg?react";
 import str from "../icons/str.svg?react";
 import tensor from "../icons/tensor.svg?react";
 import text from "../icons/text.svg?react";
@@ -95,8 +96,10 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   workflow: dataframe,
   datetime,
   object: dict,
-  np_array: np_array,
-  document: documentIcon,
+  np_array: tensor,
+  json: dict,
+  document: file,
+  model_3d,
   ...comfyIconMap
 };
 
@@ -126,6 +129,10 @@ export interface DataType {
  */
 function colour(k: SpectraKey) {
   return SpectraNode[k];
+}
+
+function normalizeTypeName(value: string) {
+  return value === "model3d" ? "model_3d" : value;
 }
 
 /**
@@ -394,7 +401,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     name: "",
     slug: "",
     namespace: "",
-    icon: "ModelTraining"
+    icon: "ViewInAr"
   },
   {
     value: "message",
@@ -558,7 +565,8 @@ const iconStyles = (_theme: Theme) => ({
 });
 
 export function datatypeByName(name: string): DataType | null {
-  const foundItem = DATA_TYPES.find((item) => item.value === name);
+  const normalizedName = normalizeTypeName(name);
+  const foundItem = DATA_TYPES.find((item) => item.value === normalizedName);
   return (
     foundItem || DATA_TYPES.find((item) => item.value === "notype") || null
   );
@@ -593,10 +601,11 @@ export const IconForType = memo(function IconForType({
 }: IconForTypeProps) {
   const theme = useTheme();
   const name = iconName?.replace("nodetool.", "") || "notype";
-  const dataType = datatypeByName(name);
+  const normalizedName = normalizeTypeName(name);
+  const dataType = datatypeByName(normalizedName);
   const description = dataType?.description || "";
-  const IconComponent = name
-    ? iconMap[name] || iconMap["any"] || iconMap["notype"]
+  const IconComponent = normalizedName
+    ? iconMap[normalizedName] || iconMap["any"] || iconMap["notype"]
     : iconMap["notype"];
   const resolvedSize = `${ICON_SIZE_MAP[iconSize] ?? ICON_SIZE_MAP.normal}px`;
 
@@ -643,22 +652,26 @@ export const IconForType = memo(function IconForType({
 isEqual);
 
 export function colorForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.color || stc(type);
 }
 
 export function textColorForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.textColor || "#eee";
 }
 
 export function descriptionForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.description || "";
 }
 
 export function labelForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.label || "";
 }
 
