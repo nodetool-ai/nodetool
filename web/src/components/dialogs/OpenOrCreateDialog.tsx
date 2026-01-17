@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Button from "@mui/material/Button";
@@ -379,4 +379,4 @@ const OpenOrCreateDialog = () => {
   );
 };
 
-export default OpenOrCreateDialog;
+export default memo(OpenOrCreateDialog);

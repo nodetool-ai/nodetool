@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, {
+  memo,
   useState,
   useCallback,
   useRef
@@ -610,4 +611,4 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   return ReactDOM.createPortal(content, document.body);
 };
 
-export default ImageEditorModal;
+export default memo(ImageEditorModal);
