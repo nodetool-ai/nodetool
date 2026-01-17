@@ -20,85 +20,83 @@ NodeTool includes a guided setup that handles dependencies automatically.
 
 ## System Requirements
 
-### Minimum Requirements
+### Basics
 
-| Component | Requirement |
-|-----------|-------------|
-| **Operating System** | Windows 10+, macOS 11+, or Linux (Ubuntu 20.04+) |
-| **RAM** | 8 GB (16 GB recommended) |
-| **Storage** | 20 GB free space (SSD recommended) |
-| **Internet** | Required for initial setup and cloud AI features |
+| Component | Need |
+|-----------|------|
+| **OS** | Windows 10+, macOS 11+, Linux (Ubuntu 20.04+) |
+| **RAM** | 8 GB minimum, 16 GB recommended |
+| **Storage** | 20 GB free (SSD recommended) |
+| **Internet** | For setup and cloud AI |
 
-### For Local AI Models (Recommended)
+### For Local AI
 
-Running AI models locally provides privacy and offline operation, but requires more resources:
+Running models locally gives you privacy and offline use, but needs more resources:
 
-| Hardware | Capability |
-|----------|------------|
-| **NVIDIA GPU** (8+ GB VRAM) | Full local AI capabilities including image generation |
-| **Apple Silicon** (M1/M2/M3) | Excellent local performance via MLX optimization |
-| **CPU only** | Works, but slower for AI tasks |
+| Hardware | Can Do |
+|----------|--------|
+| **NVIDIA GPU** (8+ GB VRAM) | All local AI including image generation |
+| **Apple Silicon** (M1/M2/M3) | Excellent performance via MLX |
+| **CPU only** | Works, slower |
 
-> **No GPU?** Use cloud AI providers (OpenAI, Anthropic, etc.) instead of local models. Add your API key in Settings after installation.
+> **No GPU?** Use cloud providers (OpenAI, Anthropic) instead. Add API key in Settings.
 
-### Hardware Requirements by Task
+### What Different Tasks Need
 
-Requirements for common AI tasks:
+**Image generation:**
 
-#### Image Generation
+| Model | Min VRAM | Better With | RAM | Notes |
+|-------|----------|-------------|-----|-------|
+| SD 1.5 | 4 GB | 6 GB | 8 GB | Basic |
+| SDXL | 8 GB | 12 GB | 16 GB | Higher quality |
+| Flux Schnell | 8 GB | 12 GB | 16 GB | Fast |
+| Flux Dev | 12 GB | 16 GB+ | 24 GB | Best quality |
+| ControlNet | +2-4 GB | +4-6 GB | +4 GB | Adds to base |
 
-| Model | Minimum VRAM | Recommended VRAM | RAM | Notes |
-|-------|-------------|------------------|-----|-------|
-| **Stable Diffusion 1.5** | 4 GB | 6 GB | 8 GB | Good for basic image generation |
-| **Stable Diffusion XL (SDXL)** | 8 GB | 12 GB | 16 GB | Higher quality, larger images |
-| **Flux Schnell** | 8 GB | 12 GB | 16 GB | Fast generation, good quality |
-| **Flux Dev** | 12 GB | 16 GB+ | 24 GB | Best quality, slower |
-| **ControlNet (any base)** | +2-4 GB | +4-6 GB | +4 GB | Add to base model requirements |
+**Language models:**
 
-#### Language Models (LLMs)
+| Size | Min VRAM | Better With | RAM (CPU) | Quality |
+|------|----------|-------------|-----------|---------|
+| 7B (Mistral, Llama) | 6 GB | 8 GB | 16 GB | Good |
+| 13B | 10 GB | 12 GB | 24 GB | Better |
+| 20B+ (GPT-OSS) | 16 GB | 24 GB | 32 GB+ | Near-GPT |
+| 70B | 48 GB+ | 80 GB | 64 GB+ | Best, multi-GPU |
 
-| Model Size | Minimum VRAM | Recommended VRAM | RAM (CPU-only) | Speed |
-|------------|-------------|------------------|----------------|-------|
-| **7B parameters** (Mistral, Llama 3.1 8B) | 6 GB | 8 GB | 16 GB | Good for most tasks |
-| **13B parameters** | 10 GB | 12 GB | 24 GB | Better reasoning |
-| **20B+ parameters** (GPT-OSS) | 16 GB | 24 GB | 32 GB+ | Near-GPT quality |
-| **70B parameters** | 48 GB+ | 80 GB | 64 GB+ | Maximum quality, multi-GPU |
+> **Note:** 4-bit quantized models (Q4) use ~50% less VRAM. NodeTool uses them automatically when available.
 
-> **Quantization reduces requirements**: 4-bit quantized models (Q4) use ~50% less VRAM than full precision. NodeTool automatically uses quantized versions when available.
+**Audio:**
 
-#### Audio Processing
+| Task | Min | Better With | Notes |
+|------|-----|-------------|-------|
+| Whisper | 4 GB VRAM / 8 GB RAM | 6 GB VRAM / 16 GB RAM | CPU works, slower |
+| Text-to-Speech | 2 GB VRAM / 4 GB RAM | 4 GB VRAM / 8 GB RAM | Lightweight |
+| Music | 8 GB VRAM | 12 GB VRAM | Model dependent |
 
-| Task | Minimum | Recommended | Notes |
-|------|---------|-------------|-------|
-| **Whisper (transcription)** | 4 GB VRAM or 8 GB RAM | 6 GB VRAM or 16 GB RAM | CPU works but slower |
-| **Text-to-Speech (TTS)** | 2 GB VRAM or 4 GB RAM | 4 GB VRAM or 8 GB RAM | Lightweight |
-| **Music Generation** | 8 GB VRAM | 12 GB VRAM | Model dependent |
+**Video:**
 
-#### Video Processing
+| Task | Min VRAM | Better With | RAM | Notes |
+|------|----------|-------------|-----|-------|
+| Video-to-Video | 12 GB | 16 GB+ | 32 GB | Frame by frame |
+| CogVideoX | 16 GB | 24 GB | 48 GB | Text-to-video |
 
-| Task | Minimum VRAM | Recommended VRAM | RAM | Notes |
-|------|-------------|------------------|-----|-------|
-| **Video-to-Video** | 12 GB | 16 GB+ | 32 GB | Processes frame-by-frame |
-| **CogVideoX** | 16 GB | 24 GB | 48 GB | Text-to-video generation |
+**Apple Silicon:**
 
-#### Apple Silicon (M1/M2/M3/M4)
+Uses unified memory (shared CPU/GPU). NodeTool uses MLX for speed.
 
-Apple Silicon Macs use unified memory shared between CPU and GPU. NodeTool uses MLX for optimized performance.
+| Chip | Memory | Can Handle |
+|------|--------|------------|
+| M1/M2 (8 GB) | 8 GB | Basic LLMs (7B), limited images |
+| M1/M2 Pro (16 GB) | 16 GB | Most LLMs, SDXL, Flux Schnell |
+| M1/M2 Max (32 GB) | 32 GB | Large LLMs (20B+), all images |
+| M1/M2 Ultra (64 GB+) | 64 GB+ | Everything including 70B LLMs |
+| M3/M4 | 8-128 GB | ~20% faster than M2 |
 
-| Chip | Unified Memory | Capability |
-|------|---------------|------------|
-| **M1/M2** (8 GB) | 8 GB | Basic LLMs (7B), limited image gen |
-| **M1/M2 Pro** (16 GB) | 16 GB | Most LLMs, SDXL, Flux Schnell |
-| **M1/M2 Max** (32 GB) | 32 GB | Large LLMs (20B+), all image models |
-| **M1/M2 Ultra** (64 GB+) | 64 GB+ | All models including 70B LLMs |
-| **M3/M4 (any)** | 8-128 GB | ~20% faster than equivalent M2 |
+### Quick Check
 
-### Quick Compatibility Check
-
-- **8 GB VRAM / 16 GB RAM**: Basic image generation, 7B LLMs, audio transcription
-- **12 GB VRAM / 24 GB RAM**: SDXL, Flux, 13B LLMs, most workflows  
-- **16 GB+ VRAM / 32 GB+ RAM**: All local models, video generation, large LLMs
-- **Cloud APIs only**: Any hardware — offload processing to OpenAI, Anthropic, Replicate
+- **8 GB VRAM / 16 GB RAM** - Basic images, 7B LLMs, audio
+- **12 GB VRAM / 24 GB RAM** - SDXL, Flux, 13B LLMs, most workflows  
+- **16 GB+ VRAM / 32 GB+ RAM** - All local models, video, large LLMs
+- **Cloud APIs only** - Any hardware, offload to OpenAI/Anthropic/Replicate
 
 ---
 
