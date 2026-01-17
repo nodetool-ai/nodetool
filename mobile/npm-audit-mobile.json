@@ -271,24 +271,82 @@
         "node_modules/react-native-syntax-highlighter/node_modules/refractor"
       ],
       "fixAvailable": false
+    },
+    "tar": {
+      "name": "tar",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1112255,
+          "name": "tar",
+          "dependency": "tar",
+          "title": "node-tar is Vulnerable to Arbitrary File Overwrite and Symlink Poisoning via Insufficient Path Sanitization",
+          "url": "https://github.com/advisories/GHSA-8qq5-rm4j-mr97",
+          "severity": "high",
+          "cwe": [
+            "CWE-22"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<=7.5.2"
+        }
+      ],
+      "effects": [],
+      "range": "<=7.5.2",
+      "nodes": [
+        "node_modules/tar"
+      ],
+      "fixAvailable": true
+    },
+    "undici": {
+      "name": "undici",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1112153,
+          "name": "undici",
+          "dependency": "undici",
+          "title": "Undici has an unbounded decompression chain in HTTP responses on Node.js Fetch API via Content-Encoding leads to resource exhaustion",
+          "url": "https://github.com/advisories/GHSA-g9mf-h72j-4rw9",
+          "severity": "low",
+          "cwe": [
+            "CWE-770"
+          ],
+          "cvss": {
+            "score": 3.7,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L"
+          },
+          "range": "<6.23.0"
+        }
+      ],
+      "effects": [],
+      "range": "<6.23.0",
+      "nodes": [
+        "node_modules/undici"
+      ],
+      "fixAvailable": true
     }
   },
   "metadata": {
     "vulnerabilities": {
       "info": 0,
-      "low": 0,
+      "low": 1,
       "moderate": 7,
-      "high": 1,
+      "high": 2,
       "critical": 0,
-      "total": 8
+      "total": 10
     },
     "dependencies": {
-      "prod": 787,
-      "dev": 605,
+      "prod": 776,
+      "dev": 606,
       "optional": 43,
-      "peer": 79,
+      "peer": 17,
       "peerOptional": 0,
-      "total": 1409
+      "total": 1410
     }
   }
 }
