@@ -6,6 +6,19 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 
+/**
+ * Fetches workflow and template data for the dashboard.
+ * 
+ * This hook loads user workflows and example templates using React Query,
+ * providing reactive loading states and memoized sorting/filtering.
+ * 
+ * @returns Object containing loading states and filtered/sorted workflow data
+ * 
+ * @example
+ * ```typescript
+ * const { isLoadingWorkflows, sortedWorkflows, isLoadingTemplates, startTemplates } = useDashboardData();
+ * ```
+ */
 const loadWorkflows = async () => {
   const { data, error } = await client.GET("/api/workflows/", {
     params: {
@@ -22,6 +35,16 @@ const loadWorkflows = async () => {
   return data;
 };
 
+/**
+ * Hook to fetch and organize dashboard data including workflows and templates.
+ * 
+ * Uses TanStack Query for efficient data fetching with caching and provides:
+ * - Loading states for workflows and templates
+ * - Sorted workflows based on user preferences (name or date)
+ * - Filtered "start" templates for quick onboarding
+ * 
+ * @returns Dashboard data object with loading states and sorted workflow lists
+ */
 export const useDashboardData = () => {
   const settings = useSettingsStore((state) => state.settings);
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
