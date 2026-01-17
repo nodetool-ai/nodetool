@@ -349,3 +349,80 @@ it('maintains state correctly through multiple operations', () => {
 4. Verify clearAll/reset functionality returns to initial state
 
 **Status**: All 15 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17 - SettingsStore)
+
+**Coverage Added**: Extended SettingsStore test suite with 36 tests (previously 4 tests)
+
+**Tests Added**:
+- Initial state verification for all settings
+- Grid and connection snap settings (setGridSnap, setConnectionSnap)
+- Control settings (setPanControls, setSelectionMode)
+- Order settings (setWorkflowOrder, setAssetsOrder)
+- Display settings (setAssetItemSize, setTimeFormat)
+- Behavior settings (setAlertBeforeTabClose, setSelectNodesOnDrag, setShowWelcomeOnStartup, setSoundNotifications, setInstantUpdate)
+- updateSettings with multiple properties
+- resetSettings restores all defaults
+- Menu and tab state management (setMenuOpen)
+- Extended autosave settings coverage
+- Default values validation
+
+**Areas Covered**:
+- All 13 settings properties with individual setters
+- Default values verification for Settings and AutosaveSettings
+- Menu open/close state with tab selection
+- Partial updates preserve other settings
+- Reset to defaults functionality
+
+**Test Patterns Used**:
+
+1. **Comprehensive Settings Store Testing**:
+```typescript
+describe('Grid and Connection Settings', () => {
+  test('setGridSnap updates value', () => {
+    useSettingsStore.getState().setGridSnap(5);
+    expect(useSettingsStore.getState().settings.gridSnap).toBe(5);
+  });
+
+  test('setGridSnap defaults to 1 when falsy value passed', () => {
+    useSettingsStore.getState().setGridSnap(0);
+    expect(useSettingsStore.getState().settings.gridSnap).toBe(1);
+  });
+});
+```
+
+2. **Behavior Settings Toggle Testing**:
+```typescript
+describe('Behavior Settings', () => {
+  test('setSelectNodesOnDrag toggles value', () => {
+    useSettingsStore.getState().setSelectNodesOnDrag(true);
+    expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(true);
+    useSettingsStore.getState().setSelectNodesOnDrag(false);
+    expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(false);
+  });
+});
+```
+
+3. **Menu State Testing**:
+```typescript
+describe('Menu and Tab State', () => {
+  test('setMenuOpen opens menu with specific tab', () => {
+    useSettingsStore.getState().setMenuOpen(true, 2);
+    expect(useSettingsStore.getState().isMenuOpen).toBe(true);
+    expect(useSettingsStore.getState().settingsTab).toBe(2);
+  });
+});
+```
+
+**Files Updated**:
+- `web/src/stores/__tests__/SettingsStore.test.ts` (extended from 55 to 250+ lines)
+
+**Key Learnings**:
+1. Settings stores with many simple setters benefit from comprehensive individual tests
+2. Test both the setter behavior and the default fallback behavior
+3. Menu/UI state can be tested alongside business settings
+4. Reset functionality should restore entire state, not just individual properties
+
+**Status**: All 36 tests passing
