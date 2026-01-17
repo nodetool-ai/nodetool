@@ -194,3 +194,90 @@ describe("graphEdgeToReactFlowEdge", () => {
 4. Graph conversion utilities are critical for workflow editor functionality
 
 **Status**: All 17 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17 - Additional)
+
+**Tests Added**: 7 new test files with 69 tests
+
+**Tests Added**:
+- `getChildNodes.test.ts` - 7 tests for child node retrieval
+- `getGroupBounds.test.ts` - 10 tests for group bounds calculation
+- `useIsGroupable.test.ts` - 14 tests for node groupable checks
+- `useSurroundWithGroup.test.ts` - 13 tests for surrounding nodes with groups
+- `useRemoveFromGroup.test.ts` - 12 tests for removing nodes from groups
+- `graphCycle.test.ts` - 18 tests for cycle detection in graphs
+- `selectionBounds.test.ts` - 17 tests for selection rectangle calculations
+
+**Areas Covered**:
+- Child node filtering by parent ID
+- Group bounds calculation with padding and dimensions
+- Node type checking (Loop, Group, custom nodes)
+- Group node creation and positioning
+- Node position adjustment when grouping/ungrouping
+- Cycle detection (direct, indirect, multi-path)
+- Selection rectangle normalization and bounds
+
+**Test Patterns Used**:
+
+1. **Pure Utility Function Testing**:
+```typescript
+describe("getChildNodes", () => {
+  it("returns all direct children of specified parent", () => {
+    const nodes = [
+      createMockNode("node-1", "parent-1"),
+      createMockNode("node-2", "parent-1"),
+      createMockNode("node-3", "parent-2")
+    ];
+    const result = getChildNodes(nodes, "parent-1");
+    expect(result).toHaveLength(2);
+  });
+});
+```
+
+2. **Cycle Detection Testing**:
+```typescript
+describe("wouldCreateCycle", () => {
+  it("returns true for simple direct cycle", () => {
+    const edges = [
+      createEdge("a", "b"),
+      createEdge("b", "a")
+    ];
+    const result = wouldCreateCycle(edges, "a", "b");
+    expect(result).toBe(true);
+  });
+});
+```
+
+3. **Selection Bounds Testing**:
+```typescript
+describe("getSelectionRect", () => {
+  it("returns null when selection is too small", () => {
+    const result = getSelectionRect(
+      createPosition(0, 0),
+      createPosition(2, 100)
+    );
+    expect(result).toBeNull();
+  });
+});
+```
+
+**Files Created**:
+- `web/src/hooks/nodes/__tests__/getChildNodes.test.ts`
+- `web/src/hooks/nodes/__tests__/getGroupBounds.test.ts`
+- `web/src/hooks/nodes/__tests__/useIsGroupable.test.ts`
+- `web/src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts`
+- `web/src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts`
+- `web/src/utils/__tests__/graphCycle.test.ts`
+- `web/src/utils/__tests__/selectionBounds.test.ts`
+
+**Key Learnings**:
+1. Mock @xyflow/react functions (getNodesBounds) for isolated testing
+2. Mock React context providers for hook tests
+3. Use beforeEach to set up mock implementations for each test
+4. Test both happy path and edge cases (empty arrays, null values)
+5. Utility functions with clear inputs/outputs are easy to test
+6. Graph algorithms need thorough edge case coverage
+
+**Status**: 69 tests passing
