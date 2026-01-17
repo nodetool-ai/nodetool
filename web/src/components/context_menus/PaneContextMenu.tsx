@@ -132,44 +132,47 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   );
 
   const constantNodeOptions = useMemo(
-    () => [
-      { label: "Bool", nodeTypes: ["nodetool.constant.Bool"] },
-      { label: "Data Frame", nodeTypes: ["nodetool.constant.DataFrame"] },
-      { label: "Date", nodeTypes: ["nodetool.constant.Date"] },
-      { label: "Date Time", nodeTypes: ["nodetool.constant.DateTime"] },
-      { label: "Dict", nodeTypes: ["nodetool.constant.Dict"] },
-      { label: "Document", nodeTypes: ["nodetool.constant.Document"] },
-      { label: "Float", nodeTypes: ["nodetool.constant.Float"] },
-      { label: "Image", nodeTypes: ["nodetool.constant.Image"] },
-      { label: "Integer", nodeTypes: ["nodetool.constant.Integer"] },
-      { label: "JSON", nodeTypes: ["nodetool.constant.JSON"] },
-      { label: "List", nodeTypes: ["nodetool.constant.List"] },
-      {
-        label: "Model 3D",
-        nodeTypes: [
-          "nodetool.constant.Model3D",
-          "nodetool.constant.Model3d",
-          "nodetool.constant.Model_3D"
-        ]
-      },
-      { label: "String", nodeTypes: ["nodetool.constant.String"] },
-      { label: "Video", nodeTypes: ["nodetool.constant.Video"] }
-    ],
+    () =>
+      [
+        { label: "Bool", nodeTypes: ["nodetool.constant.Bool"] },
+        { label: "Data Frame", nodeTypes: ["nodetool.constant.DataFrame"] },
+        { label: "Date", nodeTypes: ["nodetool.constant.Date"] },
+        { label: "Date Time", nodeTypes: ["nodetool.constant.DateTime"] },
+        { label: "Dict", nodeTypes: ["nodetool.constant.Dict"] },
+        { label: "Document", nodeTypes: ["nodetool.constant.Document"] },
+        { label: "Float", nodeTypes: ["nodetool.constant.Float"] },
+        { label: "Image", nodeTypes: ["nodetool.constant.Image"] },
+        { label: "Integer", nodeTypes: ["nodetool.constant.Integer"] },
+        { label: "JSON", nodeTypes: ["nodetool.constant.JSON"] },
+        { label: "List", nodeTypes: ["nodetool.constant.List"] },
+        { label: "Audio", nodeTypes: ["nodetool.constant.Audio"] },
+        {
+          label: "Model 3D",
+          nodeTypes: [
+            "nodetool.constant.Model3D",
+            "nodetool.constant.Model3d",
+            "nodetool.constant.Model_3D"
+          ]
+        },
+        { label: "String", nodeTypes: ["nodetool.constant.String"] },
+        { label: "Video", nodeTypes: ["nodetool.constant.Video"] }
+      ].sort((a, b) => a.label.localeCompare(b.label)),
     []
   );
 
   const inputNodeOptions = useMemo(
-    () => [
-      { label: "String", nodeTypes: ["nodetool.input.StringInput"] },
-      { label: "Integer", nodeTypes: ["nodetool.input.IntegerInput"] },
-      { label: "Float", nodeTypes: ["nodetool.input.FloatInput"] },
-      { label: "Boolean", nodeTypes: ["nodetool.input.BooleanInput"] },
-      { label: "Image", nodeTypes: ["nodetool.input.ImageInput"] },
-      { label: "Audio", nodeTypes: ["nodetool.input.AudioInput"] },
-      { label: "Video", nodeTypes: ["nodetool.input.VideoInput"] },
-      { label: "Document", nodeTypes: ["nodetool.input.DocumentInput"] },
-      { label: "Data Frame", nodeTypes: ["nodetool.input.DataFrameInput"] }
-    ],
+    () =>
+      [
+        { label: "String", nodeTypes: ["nodetool.input.StringInput"] },
+        { label: "Integer", nodeTypes: ["nodetool.input.IntegerInput"] },
+        { label: "Float", nodeTypes: ["nodetool.input.FloatInput"] },
+        { label: "Boolean", nodeTypes: ["nodetool.input.BooleanInput"] },
+        { label: "Image", nodeTypes: ["nodetool.input.ImageInput"] },
+        { label: "Audio", nodeTypes: ["nodetool.input.AudioInput"] },
+        { label: "Video", nodeTypes: ["nodetool.input.VideoInput"] },
+        { label: "Document", nodeTypes: ["nodetool.input.DocumentInput"] },
+        { label: "Data Frame", nodeTypes: ["nodetool.input.DataFrameInput"] }
+      ].sort((a, b) => a.label.localeCompare(b.label)),
     []
   );
 
