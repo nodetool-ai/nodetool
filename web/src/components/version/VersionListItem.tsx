@@ -21,7 +21,8 @@ import {
   Delete as DeleteIcon,
   PushPin as PinIcon,
   PushPinOutlined as PinOutlinedIcon,
-  Compare as CompareIcon
+  Compare as CompareIcon,
+  CompareArrows as CompareArrowsIcon
 } from "@mui/icons-material";
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow } from "date-fns";
@@ -38,6 +39,8 @@ interface VersionListItemProps {
   onDelete: (versionId: string) => void;
   onPin: (versionId: string, pinned: boolean) => void;
   onCompare: (versionId: string) => void;
+  onCompareWithPrevious: (versionId: string, previousVersionId: string) => void;
+  previousVersionId: string | null;
   isRestoring?: boolean;
 }
 
@@ -93,6 +96,8 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   onDelete,
   onPin,
   onCompare,
+  onCompareWithPrevious,
+  previousVersionId,
   isRestoring = false
 }) => {
   const handleClick = useCallback(() => {
@@ -125,6 +130,16 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
       onPin(version.id, !version.is_pinned);
     },
     [version.id, version.is_pinned, onPin]
+  );
+
+  const handleCompareWithPrevious = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (previousVersionId) {
+        onCompareWithPrevious(version.id, previousVersionId);
+      }
+    },
+    [version.id, previousVersionId, onCompareWithPrevious]
   );
 
   const timeAgo = formatDistanceToNow(new Date(version.created_at), {
@@ -236,6 +251,17 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
                 <IconButton size="small" onClick={handleDelete}>
                   <DeleteIcon fontSize="small" />
                 </IconButton>
+              </Tooltip>
+              <Tooltip title="Compare with previous version">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={handleCompareWithPrevious}
+                    disabled={!previousVersionId || isRestoring}
+                  >
+                    <CompareArrowsIcon fontSize="small" />
+                  </IconButton>
+                </span>
               </Tooltip>
             </>
           )}

@@ -97,6 +97,14 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     }));
   }, [apiVersions, filterType]);
 
+  const previousVersionIdMap = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    versions.forEach((version, index) => {
+      map[version.id] = index > 0 ? versions[index - 1].id : null;
+    });
+    return map;
+  }, [versions]);
+
   const selectedVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId),
     [versions, selectedVersionId]
@@ -224,6 +232,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setSelectedVersion(null);
     setCompareVersion(null);
     setCompareMode(false);
+  }, [setSelectedVersion, setCompareVersion, setCompareMode]);
+
+  const handleCompareWithPrevious = useCallback((versionId: string, previousVersionId: string) => {
+    setSelectedVersion(versionId);
+    setCompareVersion(previousVersionId);
+    setCompareMode(true);
   }, [setSelectedVersion, setCompareVersion, setCompareMode]);
 
   if (isLoading) {
@@ -436,6 +450,8 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 onDelete={handleDelete}
                 onPin={handlePin}
                 onCompare={handleCompare}
+                onCompareWithPrevious={handleCompareWithPrevious}
+                previousVersionId={previousVersionIdMap[version.id]}
                 isRestoring={isRestoringVersion}
               />
             ))}
