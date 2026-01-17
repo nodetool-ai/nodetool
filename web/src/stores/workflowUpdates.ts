@@ -26,6 +26,7 @@ import { useNotificationStore } from "./NotificationStore";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
+import useWorkflowProfilerStore from "./WorkflowProfilerStore";
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -132,6 +133,10 @@ export const handleUpdate = (
   const startExecution = useExecutionTimeStore.getState().startExecution;
   const endExecution = useExecutionTimeStore.getState().endExecution;
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
+
+  const profilerStartRecording = useWorkflowProfilerStore.getState().startRecording;
+  const profilerEndRecording = useWorkflowProfilerStore.getState().endRecording;
+  const profilerRecordNodeExecution = useWorkflowProfilerStore.getState().recordNodeExecution;
 
   if (window.__UPDATES__ === undefined) {
     window.__UPDATES__ = [];
@@ -280,6 +285,7 @@ export const handleUpdate = (
         clearEdges(workflow.id);
         clearProgress(workflow.id);
         clearTimings(workflow.id);
+        profilerEndRecording(workflow.id, "completed");
         break;
       case "cancelled":
         runner.addNotification({
@@ -292,6 +298,7 @@ export const handleUpdate = (
         clearProgress(workflow.id);
         clearOutputResults(workflow.id);
         clearTimings(workflow.id);
+        profilerEndRecording(workflow.id, "cancelled");
         break;
       case "failed":
       case "timed_out":
@@ -306,11 +313,13 @@ export const handleUpdate = (
         clearProgress(workflow.id);
         clearOutputResults(workflow.id);
         clearTimings(workflow.id);
+        profilerEndRecording(workflow.id, "failed");
         break;
       case "queued":
         runnerStore.setState({
           statusMessage: "Worker is booting (may take a 15 seconds)..."
         });
+        profilerStartRecording(workflow.id);
         break;
       case "running":
         if (job.message) {
@@ -414,6 +423,16 @@ export const handleUpdate = (
         startExecution(workflow.id, update.node_id);
       } else if (isFinishing) {
         endExecution(workflow.id, update.node_id);
+        const duration = useExecutionTimeStore.getState().getDuration(workflow.id, update.node_id);
+        if (duration !== undefined) {
+          profilerRecordNodeExecution(
+            workflow.id,
+            update.node_id,
+            update.node_type || "unknown",
+            duration,
+            update.status === "completed" ? "completed" : "failed"
+          );
+        }
       }
 
       setStatus(workflow.id, update.node_id, update.status);

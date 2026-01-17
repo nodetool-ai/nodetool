@@ -6,11 +6,7 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 Last updated: 2026-01-17
 
-- **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
-
-- **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
-
-- **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
+- **Workflow Performance Profiler**: Experimental feature for tracking workflow execution metrics, identifying bottlenecks, and analyzing performance across multiple runs. Includes UI panel with execution timeline, bottleneck identification, parallelization analysis, and performance insights. (Research 2026-01-17)
 
 ---
 
