@@ -224,11 +224,12 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
     chunksRef.current = [];
 
     try {
-      const mimeType = `video/${defaultFileType}`;
+      const preferredMimeType = `video/${defaultFileType}`;
+      const actualMimeType = MediaRecorder.isTypeSupported(preferredMimeType)
+        ? preferredMimeType
+        : "video/webm";
       const mediaRecorder = new MediaRecorder(streamRef.current, {
-        mimeType: MediaRecorder.isTypeSupported(mimeType)
-          ? mimeType
-          : "video/webm"
+        mimeType: actualMimeType
       });
 
       mediaRecorder.ondataavailable = (event) => {
@@ -238,11 +239,12 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
       };
 
       mediaRecorder.onstop = () => {
+        const fileExtension = actualMimeType.split("/")[1] || "webm";
         const blob = new Blob(chunksRef.current, {
-          type: `video/${defaultFileType}`
+          type: actualMimeType
         });
-        const file = new File([blob], "recording.webm", {
-          type: `video/${defaultFileType}`
+        const file = new File([blob], `recording.${fileExtension}`, {
+          type: actualMimeType
         });
 
         uploadAsset({

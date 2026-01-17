@@ -9,10 +9,13 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
 }));
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: () => ({
-    id: "test-workflow-id",
-    name: "Test Workflow"
-  })
+  useNodes: (selector: (state: { workflow: { id: string; name: string } }) => unknown) =>
+    selector({
+      workflow: {
+        id: "test-workflow-id",
+        name: "Test Workflow"
+      }
+    })
 }));
 
 // Mock navigator.mediaDevices
