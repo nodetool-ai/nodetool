@@ -349,3 +349,85 @@ it('maintains state correctly through multiple operations', () => {
 4. Verify clearAll/reset functionality returns to initial state
 
 **Status**: All 15 tests passing
+
+---
+
+## Test Coverage Improvements (2026-01-17)
+
+**Tests Added**: 15 tests across 2 new test files
+
+**Tests Added**:
+- `WorkflowManagerStore.test.ts` - 9 tests for `determineNextWorkflowId` pure function
+- `checkHfCache.test.ts` - 6 tests for HuggingFace cache checking API
+
+**Areas Covered**:
+- Workflow manager store logic for determining next workflow when closing tabs
+- API request building for HuggingFace cache checking
+- Error handling for API failures
+- Pattern handling (string, array, null) for allow/ignore patterns
+
+**Test Patterns Used**:
+
+1. **Pure Function Testing**:
+```typescript
+const determineNextWorkflowId = (
+  openWorkflows: WorkflowAttributes[],
+  closingWorkflowId: string,
+  currentWorkflowId: string | null
+): string | null => {
+  // Implementation
+};
+
+describe("determineNextWorkflowId", () => {
+  it("returns next workflow when closing current workflow", () => {
+    const workflows = [createWorkflowAttr("wf1"), createWorkflowAttr("wf2")];
+    const result = determineNextWorkflowId(workflows, "wf2", "wf2");
+    expect(result).toBe("wf2");
+  });
+});
+```
+
+2. **API Mocking**:
+```typescript
+global.fetch = jest.fn();
+
+describe("checkHfCache", () => {
+  const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("returns cache check response on success", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+      status: 200,
+      statusText: "OK",
+      text: async () => "",
+    } as unknown as Response);
+
+    const result = await checkHfCache({ repo_id: "test/repo" });
+    expect(result).toEqual(mockResponse);
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/WorkflowManagerStore.test.ts`
+- `web/src/serverState/__tests__/checkHfCache.test.ts`
+
+**Key Learnings**:
+1. Pure functions extracted from stores can be tested without complex mocking
+2. For complex store dependencies, test the extracted pure functions separately
+3. API functions can be tested by mocking global.fetch
+4. Test edge cases: empty arrays, null values, boundary conditions
+5. Extract complex logic into separate utility functions for testability
+
+**Quality Checks**:
+- ✓ TypeScript compilation passes
+- ✓ ESLint passes (no errors, no warnings in new files)
+- ✓ All 2414+ tests pass
+- ✓ 189 test suites pass
+
+**Status**: All tests passing, quality checks green
