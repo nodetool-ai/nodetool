@@ -26,6 +26,7 @@ import { useNotificationStore } from "./NotificationStore";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
+import useProfilerStore from "./ProfilerStore";
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -132,6 +133,8 @@ export const handleUpdate = (
   const startExecution = useExecutionTimeStore.getState().startExecution;
   const endExecution = useExecutionTimeStore.getState().endExecution;
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
+  // const recordNodeStart = useProfilerStore.getState().recordNodeStart;
+  // const recordNodeEnd = useProfilerStore.getState().recordNodeEnd;
 
   if (window.__UPDATES__ === undefined) {
     window.__UPDATES__ = [];
@@ -385,6 +388,7 @@ export const handleUpdate = (
       });
       runnerStore.setState({ state: "error" });
       endExecution(workflow.id, update.node_id);
+      // recordNodeEnd(workflow.id, update.node_id, Boolean(false));
       setStatus(workflow.id, update.node_id, update.status);
       setError(workflow.id, update.node_id, update.error);
       appendLog({
@@ -412,8 +416,11 @@ export const handleUpdate = (
       if (isStarting && previousStatus !== "running" &&
           previousStatus !== "starting" && previousStatus !== "booting") {
         startExecution(workflow.id, update.node_id);
+        const nodeName = (update as any).node_name || update.node_id;
+        // recordNodeStart(workflow.id, update.node_id, update.node_type, nodeName);
       } else if (isFinishing) {
         endExecution(workflow.id, update.node_id);
+        // recordNodeEnd(workflow.id, update.node_id, Boolean(update.status === "completed"));
       }
 
       setStatus(workflow.id, update.node_id, update.status);

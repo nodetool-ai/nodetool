@@ -24,6 +24,7 @@ import ErrorBoundary from "./ErrorBoundary";
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
 import PanelBottom from "./components/panels/PanelBottom";
+import PanelProfiler from "./components/profiler/PanelProfiler";
 import { CircularProgress } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
@@ -151,6 +152,7 @@ function getRoutes() {
           <PanelLeft />
           <Dashboard />
           <PanelBottom />
+          <PanelProfiler />
         </ProtectedRoute>
       )
     },
@@ -176,6 +178,7 @@ function getRoutes() {
               <PanelLeft />
               <GlobalChat />
               <PanelBottom />
+              <PanelProfiler />
             </div>
           </>
         </ProtectedRoute>
@@ -280,6 +283,7 @@ function getRoutes() {
                 <TabsNodeEditor />
                 <PanelRight />
                 <PanelBottom />
+                <PanelProfiler />
                 <Alert />
               </div>
             </>
