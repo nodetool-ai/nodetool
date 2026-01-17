@@ -18,6 +18,7 @@ import { Workflow, WorkflowVersion, Node as GraphNode, Edge as GraphEdge } from 
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import ArticleIcon from "@mui/icons-material/Article";
+import DescriptionIcon from "@mui/icons-material/Description";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -29,6 +30,7 @@ import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
+import WorkflowDocumentationPanel from "../workflows/WorkflowDocumentationPanel";
 
 const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
@@ -117,6 +119,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle,
   handleVersionsToggle,
   handleWorkflowToggle,
+  handleDocumentationToggle,
   activeView,
   panelVisible
 }: {
@@ -126,7 +129,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
   handleWorkflowToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow";
+  handleDocumentationToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "documentation";
   panelVisible: boolean;
 }) {
   return (
@@ -245,6 +249,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
           }
         >
           <HistoryIcon />
+        </IconButton>
+      </Tooltip>
+
+      {/* Documentation Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Documentation</div>
+            <div className="tooltip-key">
+              <kbd>D</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleDocumentationToggle}
+          className={
+            activeView === "documentation" && panelVisible
+              ? "documentation active"
+              : "documentation"
+          }
+        >
+          <DescriptionIcon />
         </IconButton>
       </Tooltip>
 
@@ -381,6 +411,21 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "documentation" ? (
+                  activeNodeStore && currentWorkflowId ? (
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        overflow: "hidden"
+                      }}
+                    >
+                      <WorkflowDocumentationPanel
+                        workflow={activeNodeStore.getState().getWorkflow()}
+                        onClose={() => handlePanelToggle("documentation")}
+                      />
+                    </Box>
+                  ) : null
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -404,6 +449,7 @@ const PanelRight: React.FC = () => {
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
+        handleDocumentationToggle={() => handlePanelToggle("documentation")}
         activeView={activeView}
         panelVisible={isVisible}
       />

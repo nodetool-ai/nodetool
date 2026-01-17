@@ -48,6 +48,7 @@ Last updated: 2026-01-16
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates
 - **Workflow Saving**: Auto-save and manual save workflows
+- **Workflow Documentation**: Rich text documentation panel for adding workflow-level notes and instructions using Lexical editor
 - **Workflow Loading**: Load and open existing workflows
 - **Workflow Templates**: Pre-built workflow templates for common tasks
 - **Workflow Collections**: Organize workflows into collections

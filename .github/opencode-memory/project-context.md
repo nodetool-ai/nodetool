@@ -54,6 +54,24 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Workflow Documentation Panel (2026-01-17)
+
+**What**: Added a new Documentation panel to the right panel system with rich text editor (Lexical) for workflow-level documentation, accessible via toolbar button or keyboard shortcut (D).
+
+**Files**:
+- `web/src/components/workflows/WorkflowDocumentationPanel.tsx` - New documentation panel component
+- `web/src/stores/RightPanelStore.ts` - Added "documentation" view type
+- `web/src/components/panels/PanelRight.tsx` - Integrated documentation panel with toolbar button
+- `web/src/config/shortcuts.ts` - Added "D" keyboard shortcut for documentation panel
+- `web/src/hooks/useNodeEditorShortcuts.ts` - Added handler for documentation toggle
+
+**Implementation**:
+- Uses Lexical editor (same as CommentNode) for rich text documentation
+- Stores notes in `workflow.settings.notes` for compatibility with API
+- Includes save/cancel functionality with change tracking
+- Info box provides guidance on documentation usage
+- Toolbar button (DescriptionIcon) toggles documentation panel (shortcut: D)
+
 ### Performance Optimization: Inline Arrow Functions (2026-01-17)
 
 **What**: Memoized 20+ inline arrow functions across 6 components using useCallback to prevent unnecessary re-renders.
