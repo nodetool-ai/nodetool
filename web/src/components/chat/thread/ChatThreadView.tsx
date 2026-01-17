@@ -58,14 +58,18 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
   lastUserMessageRef,
   scrollHost
 }) => {
-  const [spacerHeight, setSpacerHeight] = useState(200);
+  const [spacerHeight, setSpacerHeight] = useState(0);
+  const prevSpacerHeightRef = useRef(0);
 
   useEffect(() => {
     let recalcTimeoutId: number | null = null;
 
     const calculateOptimalSpacerHeight = () => {
       if (!scrollHost || !lastUserMessageRef.current) {
-        setSpacerHeight(200);
+        if (prevSpacerHeightRef.current !== 0) {
+          prevSpacerHeightRef.current = 0;
+          setSpacerHeight(0);
+        }
         return;
       }
 
@@ -73,28 +77,26 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
       const lastUserMessageRect = lastUserMessage.getBoundingClientRect();
       const scrollHostRect = scrollHost.getBoundingClientRect();
 
-      // If there's enough content to scroll (scrollHeight > clientHeight), no spacer needed
-      if (scrollHost.scrollHeight > scrollHost.clientHeight) {
-        setSpacerHeight(0);
-        return;
-      }
-
-      // Calculate the exact space needed to bring the user message to the top
+      // Calculate the space needed to bring user message to top
       const currentOffset = lastUserMessageRect.top - scrollHostRect.top;
 
-      // If message is already at or near top, use minimal spacer
-      if (currentOffset <= 0) {
-        setSpacerHeight(150);
+      // If message is already at or near top, no spacer needed
+      if (currentOffset <= 10) {
+        if (prevSpacerHeightRef.current !== 0) {
+          prevSpacerHeightRef.current = 0;
+          setSpacerHeight(0);
+        }
         return;
       }
 
-      // Calculate precise height needed: current offset + small buffer for smooth scrolling
-      const preciseSpacerHeight = currentOffset + 20; // 20px buffer for smooth scrolling
+      // Calculate height needed to push message to top, with small buffer
+      const neededHeight = Math.max(0, currentOffset + 10);
 
-      // Constrain to reasonable bounds
-      const optimalHeight = Math.max(150, Math.min(400, preciseSpacerHeight));
-
-      setSpacerHeight(optimalHeight);
+      // Only update if there's a meaningful change to avoid layout thrashing
+      if (Math.abs(neededHeight - prevSpacerHeightRef.current) > 5) {
+        prevSpacerHeightRef.current = neededHeight;
+        setSpacerHeight(neededHeight);
+      }
     };
 
     const scheduleRecalculation = () => {
@@ -110,10 +112,9 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
     // Calculate initial height
     calculateOptimalSpacerHeight();
 
-    // Use MutationObserver to watch for content changes that might affect layout
+    // Use MutationObserver to watch for content changes
     const mutationObserver = new MutationObserver(scheduleRecalculation);
 
-    // Watch for changes in the message list
     if (lastUserMessageRef.current) {
       mutationObserver.observe(lastUserMessageRef.current.parentElement || lastUserMessageRef.current, {
         childList: true,
@@ -142,7 +143,8 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
       className="scroll-spacer"
       style={{
         height: `${spacerHeight}px`,
-        flexShrink: 0
+        flexShrink: 0,
+        willChange: 'height'
       }}
     />
   );
