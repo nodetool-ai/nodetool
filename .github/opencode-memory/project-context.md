@@ -54,6 +54,23 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Debug Console Statement Removal (2026-01-17)
+
+**What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
+
+**Files**: web/src/components/version/VersionHistoryPanel.tsx, web/src/components/node/image_editor/ImageEditorModal.tsx, web/src/components/node/image_editor/ImageEditorCanvas.tsx, web/src/components/chat/message/MessageContentRenderer.tsx, web/src/components/node_menu/NodeMenu.tsx, web/src/lib/websocket/GlobalWebSocketManager.ts
+
+**Impact**: Cleaned up development debug statements from production code.
+
+---
+
+### Mobile TypeScript Type Definitions Fix (2026-01-17)
+
+**What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
+
+**Files**: mobile/package.json, mobile/package-lock.json
+
+**Impact**: All packages now pass type checking (web, electron, mobile).
 ### Workflow Settings UI Improvements (2026-01-17)
 
 **What**: Removed "Basic Information" headline from workflow settings, added descriptions to Execution and Advanced sections.

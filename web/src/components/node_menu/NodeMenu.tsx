@@ -262,7 +262,6 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   }, [isMenuOpen, menuPosition.x, menuPosition.y]);
 
   if (!isMenuOpen) {
-    console.debug("[NodeMenu] isMenuOpen=false; not rendering menu");
     return null;
   }
 
