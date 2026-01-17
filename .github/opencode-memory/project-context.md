@@ -54,7 +54,19 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### Node Header Icon Fix (2026-01-16)
+### Security Audit (2026-01-17)
+
+**What**: Comprehensive security audit and dependency vulnerability fixes.
+
+**Files**: electron/package.json, web/package.json, mobile/package.json, workflow_runner/js/workflow-runner.js
+
+**Changes**:
+- Added npm overrides for tar (>=7.4.3) to fix GHSA-8qq5-rm4j-mr97
+- Added npm overrides for glob (>=10.5.0) to fix GHSA-5j98-mcp5-4vw2
+- Made workflow_runner token configurable via NODETOOL_TOKEN environment variable
+- Fixed merge conflicts in web/src/hooks/__tests__/useAutosave.test.ts
+
+**Note**: Some mobile vulnerabilities (prismjs, highlight.js, markdown-it) require upstream fixes via react-native-syntax-highlighter
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 

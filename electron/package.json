@@ -79,7 +79,21 @@
   "overrides": {
     "qs": ">=6.14.1",
     "express": ">=4.21.2",
-    "body-parser": ">=1.20.3"
+    "body-parser": ">=1.20.3",
+    "glob": ">=10.5.0",
+    "@electron/rebuild": {
+      "tar": ">=7.4.3"
+    },
+    "app-builder-lib": {
+      "tar": ">=7.4.3"
+    },
+    "dmg-builder": {
+      "tar": ">=7.4.3",
+      "app-builder-lib": ">=23.0.7"
+    },
+    "electron-builder-squirrel-windows": {
+      "app-builder-lib": ">=23.0.7"
+    }
   },
   "permissions": [
     "audioCapture"

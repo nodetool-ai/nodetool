@@ -26,7 +26,7 @@ class WorkflowRunner {
     this.workerUrl = workerUrl;
     this.socket = null;
     this.state = "idle";
-    this.token = "local_token";
+    this.token = process.env.NODETOOL_TOKEN || "local_token";
     this.onMessage = null;
     this.onProgress = null;
     this.onComplete = null;
