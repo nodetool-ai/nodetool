@@ -212,33 +212,33 @@ PASS src/utils/__tests__/nodeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] computeSearchResults with 500 nodes: 23.53ms
+      [PERF] computeSearchResults with 500 nodes: 25.89ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:573:15)
 
     console.log
-      [PERF] computeSearchResults with 2000 nodes: 53.70ms
+      [PERF] computeSearchResults with 2000 nodes: 44.06ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:586:15)
 
     console.log
-      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 19.87ms
+      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 17.61ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:608:15)
 
     console.log
-      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 8.97ms
+      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 6.39ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:631:15)
 
     console.log
-      [PERF] Average search time for 5 queries: 2.83ms
+      [PERF] Average search time for 5 queries: 2.80ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:665:15)
 
 PASS src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
-PASS src/stores/__tests__/customEquality.test.ts
 PASS src/hooks/nodes/__tests__/useNodeContextMenu.test.ts
+PASS src/stores/__tests__/customEquality.test.ts
 PASS src/utils/__tests__/connectionValidation.integration.test.ts
 PASS src/__tests__/performance/componentPerformance.test.tsx
   ● Console
@@ -254,7 +254,7 @@ PASS src/__tests__/performance/componentPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:122:15)
 
     console.log
-      [PERF] Large tree (243 components) render: 22.87ms
+      [PERF] Large tree (243 components) render: 16.80ms
 
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:491:15)
 
@@ -340,7 +340,7 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:319:15)
 
     console.log
-      [PERF] Without memo (100 calls): 0.47ms
+      [PERF] Without memo (100 calls): 0.62ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:361:15)
 
@@ -350,7 +350,7 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:362:15)
 
     console.log
-      [PERF] Speed improvement: 22.2x
+      [PERF] Speed improvement: 40.8x
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:363:15)
 
@@ -370,7 +370,7 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:543:15)
 
     console.log
-      [PERF] 100 nodes with 10 properties each: 0.10ms
+      [PERF] 100 nodes with 10 properties each: 0.18ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:578:13)
 
@@ -445,31 +445,32 @@ PASS src/hooks/__tests__/useFindInWorkflow.test.ts
 PASS src/stores/__tests__/AssetStore.test.ts
 PASS src/stores/__tests__/MiniAppsStore.test.ts
 PASS src/stores/__tests__/ConnectionStore.test.ts
+PASS src/hooks/__tests__/useSelectionActions.test.ts
 PASS src/utils/__tests__/PrefixTreeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] Search 100 nodes: 0.03ms
+      [PERF] Search 100 nodes: 0.06ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:356:15)
 
     console.log
-      [PERF] Search 1000 nodes: 0.05ms
+      [PERF] Search 1000 nodes: 0.09ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:372:15)
 
     console.log
-      [PERF] Search 5000 nodes: 0.20ms
+      [PERF] Search 5000 nodes: 0.31ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:388:15)
 
     console.log
-      [PERF] Search times for different result sizes: 0.003ms, 0.067ms, 0.193ms
+      [PERF] Search times for different result sizes: 0.003ms, 0.054ms, 0.177ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:418:15)
 
     console.log
-      [PERF] Index 5000 nodes: 128.00ms
+      [PERF] Index 5000 nodes: 139.40ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:436:15)
 
@@ -478,9 +479,10 @@ PASS src/utils/__tests__/PrefixTreeSearch.test.ts
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:466:15)
 
-PASS src/hooks/__tests__/useSelectionActions.test.ts
 PASS src/stores/__tests__/ResultsStore.test.ts
-PASS src/stores/__tests__/GlobalChatStore.test.ts (5.521 s)
+PASS src/__tests__/components/chat/containers/ChatView.test.tsx
+PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
+PASS src/stores/__tests__/GlobalChatStore.test.ts (5.243 s)
   ● Console
 
     console.log
@@ -719,15 +721,13 @@ PASS src/stores/__tests__/GlobalChatStore.test.ts (5.521 s)
       at handleChatWebSocketMessage (src/core/chat/chatProtocol.ts:780:11)
 
 PASS src/utils/__tests__/handleUtils.test.ts
-PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
-PASS src/__tests__/components/chat/containers/ChatView.test.tsx
 PASS src/stores/__tests__/SettingsStore.test.ts
 PASS src/utils/__tests__/highlightText.test.ts
-PASS src/stores/__tests__/FileStore.test.ts
 PASS src/utils/__tests__/dockviewLayout.test.ts
+PASS src/stores/__tests__/FileStore.test.ts
 PASS src/stores/__tests__/ModelPreferencesStore.test.ts
-PASS src/utils/__tests__/findMatchingNodesInWorkflows.test.ts
 PASS src/stores/__tests__/RemoteSettingStore.test.ts
+PASS src/utils/__tests__/findMatchingNodesInWorkflows.test.ts
 PASS src/stores/__tests__/LogStore.test.ts
 PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
 PASS src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx
@@ -742,13 +742,13 @@ PASS src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx
           at Tooltip (/home/runner/work/nodetool/nodetool/web/src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:16:15)
           at NodeToolsSelector (/home/runner/work/nodetool/nodetool/web/src/components/chat/composer/NodeToolsSelector.tsx:77:3)
 
-    [0m [90m 214 |[39m
-     [90m 215 |[39m [36mconst[39m renderComponent [33m=[39m (props[33m:[39m any) [33m=>[39m {
-    [31m[1m>[22m[39m[90m 216 |[39m   [36mreturn[39m render([33m<[39m[33mNodeToolsSelector[39m {[33m...[39mprops} [33m/[39m[33m>[39m)[33m;[39m
+    [0m [90m 210 |[39m
+     [90m 211 |[39m [36mconst[39m renderComponent [33m=[39m (props[33m:[39m any) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 212 |[39m   [36mreturn[39m render([33m<[39m[33mNodeToolsSelector[39m {[33m...[39mprops} [33m/[39m[33m>[39m)[33m;[39m
      [90m     |[39m                [31m[1m^[22m[39m
-     [90m 217 |[39m }[33m;[39m
-     [90m 218 |[39m
-     [90m 219 |[39m describe([32m"NodeToolsSelector"[39m[33m,[39m () [33m=>[39m {[0m
+     [90m 213 |[39m }[33m;[39m
+     [90m 214 |[39m
+     [90m 215 |[39m describe([32m"NodeToolsSelector"[39m[33m,[39m () [33m=>[39m {[0m
 
       at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
       at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
@@ -765,17 +765,17 @@ PASS src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx
       at node_modules/@testing-library/react/dist/act-compat.js:47:25
       at renderRoot (node_modules/@testing-library/react/dist/pure.js:190:26)
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
-      at renderComponent (src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:216:16)
-      at src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:250:9
+      at renderComponent (src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:212:16)
+      at src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:241:9
       at Object.<anonymous> (node_modules/expect/build/toThrowMatchers.js:74:11)
       at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
-      at Object.<anonymous> (src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:251:14)
+      at Object.<anonymous> (src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:242:14)
 
 PASS src/stores/__tests__/HfCacheStatusStore.test.ts
 PASS src/stores/__tests__/ErrorStore.test.ts
 PASS src/stores/__tests__/NodeFocusStore.test.ts
-PASS src/stores/__tests__/AssetGridStore.test.ts
 PASS src/utils/__tests__/MousePosition.test.ts
+PASS src/stores/__tests__/AssetGridStore.test.ts
 PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
   ● Console
 
@@ -817,7 +817,6 @@ PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/utils/__tests__/workflowOutputTypeInference.test.ts
 PASS src/hooks/__tests__/useSelectConnected.test.ts
 PASS src/core/chat/__tests__/chatProtocol.test.ts
   ● Console
@@ -922,12 +921,14 @@ PASS src/core/chat/__tests__/chatProtocol.test.ts
       at handleChatWebSocketMessage (src/core/chat/chatProtocol.ts:900:11)
       at Object.<anonymous> (src/core/chat/__tests__/chatProtocol.test.ts:286:5)
 
+PASS src/utils/__tests__/workflowOutputTypeInference.test.ts
+PASS src/utils/__tests__/ColorUtils.test.ts
 PASS src/stores/__tests__/KeyPressedStore.test.ts
 PASS src/utils/__tests__/getAssetThumbUrl.test.ts
-PASS src/utils/__tests__/ColorUtils.test.ts
 PASS src/__tests__/stop_command_basic.test.ts
 PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/stores/__tests__/AudioQueueStore.test.ts
+PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
 PASS src/components/menus/__tests__/SecretsMenu.test.tsx
   ● Console
 
@@ -1007,8 +1008,8 @@ PASS src/components/menus/__tests__/SecretsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/stores/__tests__/SecretsStore.test.ts
 PASS src/utils/__tests__/modelNormalization.test.ts
+PASS src/stores/__tests__/SecretsStore.test.ts
 PASS src/stores/__tests__/NotificationStore.test.ts
   ● Console
 
@@ -1112,6 +1113,7 @@ PASS src/stores/__tests__/NotificationStore.test.ts
       at node_modules/@testing-library/react/dist/act-compat.js:47:25
       at Object.<anonymous> (src/stores/__tests__/NotificationStore.test.ts:189:10)
 
+PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/hooks/__tests__/useWorkflowActions.test.ts
   ● Console
 
@@ -1260,17 +1262,14 @@ PASS src/hooks/__tests__/useWorkflowActions.test.ts
       at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:28:7)
       at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:240:28)
 
-PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/utils/__tests__/colorConversion.test.ts
-PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
-PASS src/utils/__tests__/groupByDate.test.ts
 PASS src/utils/__tests__/isUrlAccessible.test.ts
-PASS src/hooks/__tests__/useDelayedHover.test.ts
-PASS src/__tests__/components/chat/composer/MessageInput.test.tsx
+PASS src/utils/__tests__/groupByDate.test.ts
 PASS src/utils/__tests__/edgeValue.test.ts
+PASS src/hooks/__tests__/useDelayedHover.test.ts
 PASS src/stores/__tests__/MetadataStore.test.ts
-PASS src/stores/__tests__/FindInWorkflowStore.test.ts
 PASS src/hooks/__tests__/useAutosave.test.ts
+PASS src/stores/__tests__/FindInWorkflowStore.test.ts
 PASS src/utils/__tests__/nodeDisplay.test.ts
 PASS src/utils/__tests__/modelFilters.test.ts
 PASS src/utils/__tests__/fileExplorer.test.ts
@@ -1447,15 +1446,14 @@ PASS src/utils/__tests__/fileExplorer.test.ts
 
       at debugLog (src/utils/fileExplorer.ts:37:13)
 
-PASS src/utils/__tests__/workflowSearch.test.ts
 PASS src/stores/__tests__/BottomPanelStore.test.ts
+PASS src/utils/__tests__/workflowSearch.test.ts
 PASS src/stores/__tests__/LayoutStore.test.ts
 PASS src/hooks/nodes/__tests__/useAddToGroup.test.ts
+PASS src/__tests__/components/chat/composer/MessageInput.test.tsx
 PASS src/hooks/__tests__/useFitView.test.ts
 PASS src/stores/__tests__/graphConversion.test.ts
 PASS src/lib/dragdrop/__tests__/serialization.test.ts
-PASS src/stores/__tests__/RecentNodesStore.test.ts
-PASS src/hooks/__tests__/useAlignNodes.test.ts
 PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
   ● Console
 
@@ -1572,29 +1570,34 @@ PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts
+PASS src/hooks/__tests__/useRunningJobs.test.tsx
+PASS src/stores/__tests__/RecentNodesStore.test.ts
+PASS src/hooks/__tests__/useAlignNodes.test.ts
 PASS src/utils/__tests__/graphDiff.test.ts
+PASS src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts
 PASS src/stores/__tests__/NodePlacementStore.test.ts
 PASS src/core/__tests__/graph.test.ts
-PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/utils/__tests__/sanitize.test.ts
-PASS src/stores/__tests__/FavoriteNodesStore.test.ts
+PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/utils/__tests__/NodeTypeMapping.test.ts
+PASS src/stores/__tests__/FavoriteNodesStore.test.ts
 PASS src/utils/__tests__/formatUtils.test.ts
 PASS src/stores/__tests__/VersionHistoryStore.test.ts
 PASS src/stores/__tests__/StatusStore.test.ts
 PASS src/utils/__tests__/graphCycle.test.ts
 PASS src/utils/__tests__/selectionBounds.test.ts
-PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
 PASS src/hooks/nodes/__tests__/getGroupBounds.test.ts
 PASS src/utils/__tests__/formatDateAndTime.test.ts
+PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
 PASS src/lib/dragdrop/__tests__/hooks.test.tsx
+PASS src/hooks/__tests__/useProviderApiKeyValidation.test.ts
+PASS src/stores/__tests__/formatNodeDocumentation.test.ts
 PASS src/hooks/__tests__/useWorkflowRunnerState.test.ts
 PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
-PASS src/stores/__tests__/formatNodeDocumentation.test.ts
 PASS src/components/node/image_editor/__tests__/canvasUtils.test.ts
-PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
 PASS src/stores/__tests__/ModelDownloadStore.test.ts
+PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
+PASS src/hooks/__tests__/useFitNodeEvent.test.ts
 PASS src/stores/__tests__/GettingStartedStore.test.ts
 PASS src/stores/__tests__/RightPanelStore.test.ts
 PASS src/utils/__tests__/hfCache.test.ts
@@ -1715,53 +1718,15 @@ PASS src/__tests__/components/chat/composer/StopGenerationButton.test.tsx
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
 PASS src/__tests__/ErrorBoundary.test.tsx
-PASS src/utils/__tests__/imageUtils.test.ts
 PASS src/components/properties/__tests__/FloatProperty.test.tsx
+PASS src/utils/__tests__/imageUtils.test.ts
 PASS src/components/properties/__tests__/IntegerProperty.test.tsx
 PASS src/utils/__tests__/errorHandling.test.ts
 PASS src/hooks/__tests__/useFocusPan.test.ts
 PASS src/stores/__tests__/ModelFiltersStore.test.ts
-PASS src/utils/__tests__/colorHarmonies.test.ts
 PASS src/hooks/assets/__tests__/useAssetSelection.test.ts
+PASS src/utils/__tests__/colorHarmonies.test.ts
 PASS src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx
-  ● Console
-
-    console.debug
-      [NodeMenuStore] closeNodeMenu executing { isOpen: true }
-
-      at Object.closeNodeMenu (src/stores/NodeMenuStore.ts:408:17)
-
-    console.error
-      Trace: [NodeMenuStore] closeNodeMenu trace
-          at Object.closeNodeMenu (/home/runner/work/nodetool/nodetool/web/src/stores/NodeMenuStore.ts:411:17)
-          at Object.<anonymous> (/home/runner/work/nodetool/nodetool/web/src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx:133:24)
-          at Promise.then.completed (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/utils.js:298:28)
-          at new Promise (<anonymous>)
-          at callAsyncCircusFn (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/utils.js:231:10)
-          at _callCircusTest (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:316:40)
-          at processTicksAndRejections (node:internal/process/task_queues:95:5)
-          at _runTest (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:252:3)
-          at _runTestsForDescribeBlock (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:126:9)
-          at _runTestsForDescribeBlock (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:121:9)
-          at _runTestsForDescribeBlock (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:121:9)
-          at run (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:71:3)
-          at runAndTransformResultsToJestFormat (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-          at jestAdapter (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-          at runTestInternal (/home/runner/work/nodetool/nodetool/web/node_modules/jest-runner/build/runTest.js:367:16)
-          at runTest (/home/runner/work/nodetool/nodetool/web/node_modules/jest-runner/build/runTest.js:444:34)
-          at Object.worker (/home/runner/work/nodetool/nodetool/web/node_modules/jest-runner/build/testWorker.js:106:12)
-
-    [0m [90m 409 |[39m           isOpen[33m:[39m [36mget[39m()[33m.[39misMenuOpen
-     [90m 410 |[39m         })[33m;[39m
-    [31m[1m>[22m[39m[90m 411 |[39m         console[33m.[39mtrace([32m"[NodeMenuStore] closeNodeMenu trace"[39m)[33m;[39m
-     [90m     |[39m                 [31m[1m^[22m[39m
-     [90m 412 |[39m         [36mif[39m ([36mget[39m()[33m.[39misMenuOpen) {
-     [90m 413 |[39m           [36mif[39m ([36mget[39m()[33m.[39mdragToCreate) {
-     [90m 414 |[39m             [36mset[39m({ dragToCreate[33m:[39m [36mfalse[39m })[33m;[39m[0m
-
-      at Object.closeNodeMenu (src/stores/NodeMenuStore.ts:411:17)
-      at Object.<anonymous> (src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx:133:24)
-
 PASS src/utils/__tests__/NumberInput.utils.test.ts
 PASS src/stores/__tests__/ModelManagerStore.test.ts
 PASS src/providers/__tests__/ContextMenuProvider.test.tsx
@@ -1769,7 +1734,7 @@ PASS src/providers/__tests__/ConnectableNodesProvider.test.tsx
 PASS src/stores/__tests__/ExecutionTimeStore.test.ts
 PASS src/utils/__tests__/identifierValidation.test.ts
 PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
-PASS src/stores/__tests__/FavoriteWorkflowsStore.test.ts
+PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
 PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
   ● Console
 
@@ -1777,7 +1742,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -1786,7 +1751,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 82 |[39m
      [90m 83 |[39m   test([32m"renders loading state initially"[39m[33m,[39m () [33m=>[39m {
@@ -1817,7 +1782,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: The tag <ambientLight> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -1826,7 +1791,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 82 |[39m
      [90m 83 |[39m   test([32m"renders loading state initially"[39m[33m,[39m () [33m=>[39m {
@@ -1857,9 +1822,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: The tag <primitive> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.
           at primitive
           at Center (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:35:14)
-          at Model (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:239:18)
+          at Model (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:240:18)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -1868,7 +1833,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 82 |[39m
      [90m 83 |[39m   test([32m"renders loading state initially"[39m[33m,[39m () [33m=>[39m {
@@ -1898,9 +1863,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
     console.error
       Warning: <axesHelper /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at axesHelper
-          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:326:25)
+          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:327:25)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -1909,7 +1874,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 82 |[39m
      [90m 83 |[39m   test([32m"renders loading state initially"[39m[33m,[39m () [33m=>[39m {
@@ -1939,9 +1904,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
     console.error
       Warning: The tag <axesHelper> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.
           at axesHelper
-          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:326:25)
+          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:327:25)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -1950,7 +1915,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 82 |[39m
      [90m 83 |[39m   test([32m"renders loading state initially"[39m[33m,[39m () [33m=>[39m {
@@ -1981,7 +1946,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -1990,7 +1955,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 92 |[39m
      [90m 93 |[39m   test([32m"renders Canvas component with URL"[39m[33m,[39m () [33m=>[39m {
@@ -2020,9 +1985,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
     console.error
       Warning: <axesHelper /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at axesHelper
-          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:326:25)
+          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:327:25)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2031,7 +1996,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 92 |[39m
      [90m 93 |[39m   test([32m"renders Canvas component with URL"[39m[33m,[39m () [33m=>[39m {
@@ -2062,7 +2027,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2071,7 +2036,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m  97 |[39m
      [90m  98 |[39m   test([32m"renders in compact mode without toolbar"[39m[33m,[39m () [33m=>[39m {
@@ -2102,7 +2067,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2111,7 +2076,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 105 |[39m
      [90m 106 |[39m   test([32m"renders toolbar in non-compact mode"[39m[33m,[39m () [33m=>[39m {
@@ -2141,9 +2106,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
     console.error
       Warning: <axesHelper /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at axesHelper
-          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:326:25)
+          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:327:25)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2152,7 +2117,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 105 |[39m
      [90m 106 |[39m   test([32m"renders toolbar in non-compact mode"[39m[33m,[39m () [33m=>[39m {
@@ -2183,7 +2148,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2192,7 +2157,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 115 |[39m     [36mconst[39m handleClick [33m=[39m jest[33m.[39mfn()[33m;[39m
      [90m 116 |[39m     [36mconst[39m user [33m=[39m userEvent[33m.[39msetup()[33m;[39m
@@ -2223,7 +2188,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2232,7 +2197,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 133 |[39m     } [36mas[39m any[33m;[39m
      [90m 134 |[39m
@@ -2262,9 +2227,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
     console.error
       Warning: <axesHelper /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at axesHelper
-          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:326:25)
+          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:327:25)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2273,7 +2238,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 133 |[39m     } [36mas[39m any[33m;[39m
      [90m 134 |[39m
@@ -2304,7 +2269,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2313,7 +2278,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 144 |[39m     } [36mas[39m any[33m;[39m
      [90m 145 |[39m
@@ -2343,9 +2308,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
     console.error
       Warning: <axesHelper /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at axesHelper
-          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:326:25)
+          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:327:25)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2354,7 +2319,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 144 |[39m     } [36mas[39m any[33m;[39m
      [90m 145 |[39m
@@ -2385,7 +2350,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2394,7 +2359,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 149 |[39m
      [90m 150 |[39m   test([32m"renders control buttons in non-compact mode"[39m[33m,[39m () [33m=>[39m {
@@ -2424,9 +2389,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
     console.error
       Warning: <axesHelper /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at axesHelper
-          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:326:25)
+          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:327:25)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2435,7 +2400,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 149 |[39m
      [90m 150 |[39m   test([32m"renders control buttons in non-compact mode"[39m[33m,[39m () [33m=>[39m {
@@ -2466,7 +2431,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       Warning: <ambientLight /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at ambientLight
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2475,7 +2440,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 160 |[39m
      [90m 161 |[39m   test([32m"renders wireframe toggle buttons"[39m[33m,[39m () [33m=>[39m {
@@ -2505,9 +2470,9 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
     console.error
       Warning: <axesHelper /> is using incorrect casing. Use PascalCase for React components, or lowercase for HTML elements.
           at axesHelper
-          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:326:25)
+          at SceneHelpers (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:327:25)
           at Suspense
-          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:300:5)
+          at ModelErrorBoundary (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:301:5)
           at div
           at Canvas (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:8:14)
           at div
@@ -2516,7 +2481,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
           at Box (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/createBox/createBox.js:27:41)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:462:3)
+          at Model3DViewer (/home/runner/work/nodetool/nodetool/web/src/components/asset_viewer/Model3DViewer.tsx:463:3)
 
     [0m [90m 160 |[39m
      [90m 161 |[39m   test([32m"renders wireframe toggle buttons"[39m[33m,[39m () [33m=>[39m {
@@ -2543,7 +2508,25 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:162:11)
 
-PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
+PASS src/stores/__tests__/FavoriteWorkflowsStore.test.ts
+PASS src/utils/__tests__/createAssetFile.test.ts
+  ● Console
+
+    console.warn
+      [createAssetFile] Truncated streaming text output { maxTextChars: 5, chunks: 2 }
+
+    [0m [90m 245 |[39m         )[33m;[39m
+     [90m 246 |[39m         [36mif[39m (truncated) {
+    [31m[1m>[22m[39m[90m 247 |[39m           log[33m.[39mwarn([32m"[createAssetFile] Truncated streaming text output"[39m[33m,[39m {
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 248 |[39m             maxTextChars[33m,[39m
+     [90m 249 |[39m             chunks[33m:[39m textChunks[33m.[39mlength
+     [90m 250 |[39m           })[33m;[39m[0m
+
+      at normalizeOutput (src/utils/createAssetFile.ts:247:15)
+      at createAssetFile (src/utils/createAssetFile.ts:506:22)
+      at Object.<anonymous> (src/utils/__tests__/createAssetFile.test.ts:58:43)
+
 PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
   ● Console
 
@@ -2742,24 +2725,6 @@ PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
       at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
       at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
       at importSvgIcon (src/utils/useDynamicSvgImport.ts:50:9)
-
-PASS src/utils/__tests__/createAssetFile.test.ts
-  ● Console
-
-    console.warn
-      [createAssetFile] Truncated streaming text output { maxTextChars: 5, chunks: 2 }
-
-    [0m [90m 245 |[39m         )[33m;[39m
-     [90m 246 |[39m         [36mif[39m (truncated) {
-    [31m[1m>[22m[39m[90m 247 |[39m           log[33m.[39mwarn([32m"[createAssetFile] Truncated streaming text output"[39m[33m,[39m {
-     [90m     |[39m               [31m[1m^[22m[39m
-     [90m 248 |[39m             maxTextChars[33m,[39m
-     [90m 249 |[39m             chunks[33m:[39m textChunks[33m.[39mlength
-     [90m 250 |[39m           })[33m;[39m[0m
-
-      at normalizeOutput (src/utils/createAssetFile.ts:247:15)
-      at createAssetFile (src/utils/createAssetFile.ts:506:22)
-      at Object.<anonymous> (src/utils/__tests__/createAssetFile.test.ts:58:43)
 
 PASS src/hooks/handlers/__tests__/useNodeEvents.test.ts
 PASS src/hooks/nodes/__tests__/useIsGroupable.test.ts
@@ -3315,8 +3280,8 @@ PASS src/contexts/__tests__/NodeContext.test.tsx
       at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
       at Object.<anonymous> (src/contexts/__tests__/NodeContext.test.tsx:113:41)
 
-PASS src/utils/__tests__/modelFormatting.test.tsx
 PASS src/utils/__tests__/titleizeString.test.ts
+PASS src/utils/__tests__/modelFormatting.test.tsx
 PASS src/__tests__/GlobalChatStore.toolcall.test.ts
 PASS src/utils/__tests__/sentry.test.ts
 PASS src/components/properties/__tests__/Model3DProperty.test.tsx
@@ -3355,13 +3320,13 @@ PASS src/stores/__tests__/fuseOptions.test.ts
 PASS src/hooks/handlers/__tests__/useEdgeHandlers.test.ts
 PASS src/utils/__tests__/modelDownloadCheck.test.ts
 PASS src/utils/__tests__/platform.test.ts
-PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (5.896 s)
 PASS src/providers/__tests__/MenuProvider.test.tsx
+PASS src/__tests__/components/assets/AssetSearchInput.test.tsx
 PASS src/hooks/handlers/__tests__/useReactFlowEvents.test.ts
 PASS src/utils/__tests__/browser.test.ts
 PASS src/utils/__tests__/truncateString.test.ts
+PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (5.61 s)
 PASS src/stores/__tests__/WorkflowListViewStore.test.ts
-PASS src/__tests__/components/assets/AssetSearchInput.test.tsx (5.088 s)
 PASS src/hooks/__tests__/useIsDarkMode.test.ts
   ● Console
 
@@ -3505,21 +3470,23 @@ PASS src/components/node_editor/__tests__/Alert.test.tsx
       at src/components/common/CopyToClipboardButton.tsx:74:9
 
 PASS src/components/buttons/__tests__/CloseButton.test.tsx
-PASS src/components/assets/__tests__/FolderItem.test.tsx
 PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
-PASS src/serverState/__tests__/tryCacheFiles.test.ts
 PASS src/components/__tests__/Logo.test.tsx
+PASS src/components/assets/__tests__/FolderItem.test.tsx
+PASS src/serverState/__tests__/tryCacheFiles.test.ts
 PASS src/hooks/editor/__tests__/useModalResize.test.ts
 PASS src/components/properties/__tests__/BoolProperty.test.tsx
 PASS src/stores/__tests__/uuidv4.test.ts
 PASS src/components/node/__tests__/ResultOverlay.test.tsx
+PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx
 PASS src/components/common/__tests__/CopyToClipboardButton.test.tsx
 PASS src/__tests__/components/node/CalendarEventView.test.tsx
-PASS src/components/__tests__/ProtectedRoute.test.tsx
 PASS src/stores/__tests__/PanelStore.test.ts
+PASS src/components/__tests__/ProtectedRoute.test.tsx
 PASS src/__tests__/components/assets/AssetExplorer.test.tsx
 PASS src/hooks/__tests__/useLoraModels.test.ts
 PASS src/lib/websocket/__tests__/GlobalWebSocketManager.test.ts
+PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
 PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
   ● Console
 
@@ -3615,29 +3582,27 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/node_editor/__tests__/ConnectionLine.test.tsx:27:33)
 
-PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
 PASS src/hooks/editor/__tests__/useEditorMode.test.ts
-PASS src/utils/__tests__/uuidv4.test.ts
 PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
-PASS src/hooks/assets/__tests__/useAssetNavigation.test.ts
+PASS src/utils/__tests__/uuidv4.test.ts
 PASS src/serverState/__tests__/useAsset.test.tsx
+PASS src/hooks/assets/__tests__/useAssetNavigation.test.ts
 PASS src/hooks/editor/__tests__/useMonacoEditor.test.ts
 PASS src/components/workspaces/__tests__/WorkspaceManagerStore.test.ts
-PASS src/components/__tests__/InfiniteScroll.test.tsx
 PASS src/utils/__tests__/serializeValue.test.ts
+PASS src/components/__tests__/InfiniteScroll.test.tsx
 PASS src/hooks/editor/__tests__/useAssistantVisibility.test.ts
 PASS src/hooks/editor/__tests__/useCodeLanguage.test.ts
-PASS src/hooks/editor/__tests__/useFullscreenMode.test.ts
 PASS src/components/__tests__/KeyboardProvider.test.tsx
-PASS src/components/node_editor/__tests__/LoadingAnimation.test.tsx
+PASS src/hooks/editor/__tests__/useFullscreenMode.test.ts
 PASS src/core/workflow/__tests__/runnerProtocol.test.ts
+PASS src/components/node_editor/__tests__/LoadingAnimation.test.tsx
 PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
-PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx (5.339 s)
 
-Test Suites: 200 passed, 200 total
-Tests:       3 skipped, 2574 passed, 2577 total
+Test Suites: 203 passed, 203 total
+Tests:       3 skipped, 2604 passed, 2607 total
 Snapshots:   0 total
-Time:        28.667 s
+Time:        24.713 s
 Ran all test suites.
 Running electron tests...
 cd electron && npm test
@@ -3645,35 +3610,35 @@ cd electron && npm test
 > nodetool-electron@0.6.2-rc.26 test
 > jest
 
-PASS src/__tests__/window.test.ts (6.232 s)
-PASS src/__tests__/config.test.ts (6.351 s)
+PASS src/__tests__/window.test.ts (5.885 s)
+PASS src/__tests__/config.test.ts (5.857 s)
 PASS src/__tests__/updater.test.ts
 PASS src/__tests__/debug.test.ts
-PASS src/__tests__/torchruntime.test.ts
 PASS src/__tests__/shortcuts.test.ts
-PASS src/__tests__/api.test.ts
+PASS src/__tests__/torchruntime.test.ts
 PASS src/__tests__/condaPackageChecker.test.ts
+PASS src/__tests__/api.test.ts
 PASS src/__tests__/utils.test.ts
 PASS src/__tests__/torchPlatformCache.test.ts
-PASS src/__tests__/workflowExecution.test.ts
 PASS src/__tests__/workflowRunner.test.ts
+PASS src/__tests__/workflowExecution.test.ts
 PASS src/__tests__/logger.behavior.test.ts
-PASS src/__tests__/ipc.test.ts (7.813 s)
+PASS src/__tests__/ipc.test.ts (7.351 s)
 PASS src/__tests__/menu.test.ts
 PASS src/__tests__/settings.test.ts
 PASS src/__tests__/installer.test.ts
-PASS src/__tests__/state.test.ts
 PASS src/__tests__/events.test.ts
-PASS src/__tests__/workflowWindow.test.ts
+PASS src/__tests__/state.test.ts
 PASS src/__tests__/packageManager.wheel.test.ts
-PASS src/__tests__/simpleDownload.test.ts
-PASS src/__tests__/simpleLogger.test.ts
+PASS src/__tests__/workflowWindow.test.ts
 PASS src/__tests__/basicImports.test.ts
+PASS src/__tests__/simpleLogger.test.ts
+PASS src/__tests__/simpleDownload.test.ts
 
 Test Suites: 24 passed, 24 total
 Tests:       206 passed, 206 total
 Snapshots:   0 total
-Time:        8.878 s
+Time:        8.287 s
 Ran all test suites.
 Running mobile tests...
 cd mobile && npm test
@@ -3685,7 +3650,7 @@ PASS src/stores/ChatStore.test.ts
 PASS src/services/WebSocketManager.test.ts
 PASS src/hooks/useFileHandling.test.ts
 PASS src/components/chat/ChatView.test.tsx
-PASS src/screens/ChatScreen.test.tsx (6.717 s)
+PASS src/screens/ChatScreen.test.tsx (6.114 s)
 PASS src/components/chat/MessageContentRenderer.test.tsx
 PASS src/components/chat/MessageView.test.tsx
 PASS src/components/chat/ChatMessageList.test.tsx
@@ -3693,18 +3658,18 @@ PASS src/components/properties/FloatProperty.test.tsx
 PASS src/utils/theme.test.ts
 PASS src/stores/ThemeStore.test.ts
 PASS src/components/chat/FilePreview.test.tsx
-PASS src/components/properties/IntegerProperty.test.tsx
 PASS src/components/chat/ChatMarkdown.test.tsx
+PASS src/components/properties/IntegerProperty.test.tsx
 PASS src/components/properties/StringProperty.test.tsx
 PASS src/components/properties/BoolProperty.test.tsx
 PASS src/hooks/useTheme.test.ts
 PASS src/utils/inputUtils.test.ts
-PASS src/components/chat/ChatComposer.test.tsx (8.299 s)
 PASS src/components/chat/LoadingIndicator.test.tsx
+PASS src/components/chat/ChatComposer.test.tsx (7.139 s)
 A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
 
 Test Suites: 20 passed, 20 total
 Tests:       389 passed, 389 total
 Snapshots:   0 total
-Time:        12.594 s
+Time:        10.439 s
 Ran all test suites.
