@@ -11,7 +11,7 @@ import {
   MenuItem,
   FormHelperText
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
@@ -407,8 +407,6 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
 
       {/* Basic Information Section */}
       <div className="settings-section">
-        <Typography className="section-title">Basic Information</Typography>
-        
         <FormControl fullWidth>
           <FormLabel htmlFor="name">Name</FormLabel>
           <OutlinedInput
@@ -461,6 +459,9 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
       {/* Execution Section */}
       <div className="settings-section">
         <Typography className="section-title">Execution</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+          Configure how this workflow runs and can be triggered
+        </Typography>
 
         <FormControl fullWidth>
           <FormLabel>Run Mode</FormLabel>
@@ -517,7 +518,10 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
       {/* Advanced Section */}
       <div className="settings-section">
         <Typography className="section-title">Advanced</Typography>
-        
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+          Advanced configuration for workspaces and API/tool usage
+        </Typography>
+
         <WorkspaceSelect
           value={localWorkflow.workspace_id ?? undefined}
           onChange={handleWorkspaceChange}
@@ -554,4 +558,4 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   );
 };
 
-export default WorkflowForm;
+export default memo(WorkflowForm);

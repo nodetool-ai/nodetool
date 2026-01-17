@@ -1,10 +1,10 @@
 jest.mock("../ApiClient", () => ({
-  BASE_URL: "http://localhost:8000",
+  BASE_URL: "http://localhost:7777",
   DOWNLOAD_URL: "ws://localhost/hf/download"
 }));
 jest.mock("../BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000",
-  DOWNLOAD_URL: "ws://localhost:8000/hf/download"
+  BASE_URL: "http://localhost:7777",
+  DOWNLOAD_URL: "ws://localhost:7777/hf/download"
 }));
 import { useModelDownloadStore } from "../ModelDownloadStore";
 

@@ -4,7 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-16
+Last updated: 2026-01-17
+
+- **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
 
 - **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
 
@@ -248,7 +250,7 @@ Last updated: 2026-01-16
 - **useCallback**: Memoized callbacks for stable references
 - **useMemo**: Memoized expensive calculations
 - **Selective Zustand Subscriptions**: Subscribe only to needed state slices
-- **Virtualization Ready**: Structure supports virtualized lists (not yet implemented)
+- **Virtualized Lists**: Asset list and grid use react-window for efficient rendering of 1000+ items
 
 ---
 
@@ -278,7 +280,6 @@ Last updated: 2026-01-16
 
 *(Update this section when considering these features in the future)*
 
-- **Virtualized Lists**: Large list virtualization for performance
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
@@ -400,3 +401,97 @@ Last updated: 2026-01-16
 **Impact**: Developers following documentation will now correctly connect to the development server on port 7777.
 
 ---
+
+### Documentation Quality Audit & JSDoc Improvements (2026-01-17)
+
+**Areas Improved**: Hook documentation (useAlignNodes)
+
+**Issues Fixed**: Missing JSDoc documentation on useAlignNodes hook
+
+**Improvement Made**: Added comprehensive JSDoc documentation to web/src/hooks/useAlignNodes.ts:
+- Added module-level type documentation
+- Documented AlignNodesOptions type with @param tags
+- Added @returns tag describing the callback function
+- Included @example code block showing usage patterns
+
+**Impact**: Improved hook discoverability and developer experience. Hooks now follow the same documentation standards as critical stores (NodeStore, WorkflowRunner, GlobalChatStore).
+
+**Files Updated**:
+- web/src/hooks/useAlignNodes.ts
+
+**Related Memory**:
+- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+- `.github/opencode-memory/issues/documentation/documentation-quality-audit-2026-01-17.md` - Audit findings
+
+---
+
+### JSDoc Documentation Improvements (2026-01-17)
+
+**Areas Improved**: Hook documentation coverage (5 critical hooks)
+
+**Issues Fixed**: Multiple critical hooks lacked JSDoc documentation
+
+**Improvements Made**: Added comprehensive JSDoc documentation to 5 critical hooks:
+
+1. **useChatService.ts** - Chat service interface
+   - Added module-level documentation explaining the hook's purpose
+   - Documented all return values with descriptions
+   - Included @example code block showing usage patterns
+   - Documented complex thread management and message sending logic
+
+2. **useNodeEditorShortcuts.ts** - Editor keyboard shortcuts (largest hook, 19KB)
+   - Added comprehensive module documentation
+   - Documented all supported keyboard shortcuts
+   - Included examples of common shortcuts (Ctrl+C, Ctrl+V, etc.)
+   - Explained shortcut registration pattern with KeyPressedStore
+
+3. **useNumberInput.ts** - Number input with drag handling
+   - Added documentation to useValueCalculation helper hook
+   - Added documentation to useDragHandling main hook
+   - Documented complex drag behavior (threshold, speed control, shift key)
+   - Included detailed @param and @returns documentation
+   - Added behavior examples (drag zones, shift key, threshold)
+
+4. **useProcessedEdges.ts** - Edge processing and type resolution
+   - Added documentation to ProcessedEdgesOptions interface
+   - Added documentation to ProcessedEdgesResult interface
+   - Added comprehensive module documentation explaining:
+     - Type resolution through Reroute nodes
+     - Visual styling based on data types
+     - Execution status tracking
+     - Performance optimizations
+   - Included usage examples
+
+5. **useNamespaceTree.ts** - Namespace tree for node organization
+   - Added documentation to NamespaceTree interface
+   - Added comprehensive module documentation explaining:
+     - Tree structure and organization pattern
+     - API key validation and namespace disabling
+     - Sorting and first-disabled tracking
+   - Included interface example and structure explanation
+
+**Impact**: Improved developer experience and code discoverability. Critical hooks now follow the same documentation standards as existing well-documented stores (NodeStore, WorkflowRunner, GlobalChatStore).
+
+**Files Updated**:
+- web/src/hooks/useChatService.ts
+- web/src/hooks/useNodeEditorShortcuts.ts
+- web/src/hooks/useNumberInput.ts
+- web/src/hooks/useProcessedEdges.ts
+- web/src/hooks/useNamespaceTree.ts
+
+**Verification**:
+- ✅ TypeScript compilation: No errors
+- ✅ ESLint: No warnings
+- ✅ All documentation follows established JSDoc patterns
+
+**Related Memory**:
+- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+- `.github/opencode-memory/issues/documentation/jsdoc-improvements-2026-01-17.md` - Detailed improvements
+
+---
+
+**Note**: This list represents the current state of NodeTool. Check git history and recent PRs for the most up-to-date information on new features.
+
+---
+
+### Documentation Port Consistency Fixes (2026-01-17)

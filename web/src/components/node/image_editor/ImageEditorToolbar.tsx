@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -254,11 +254,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     [onAction]
   );
 
-  const handleSelectTool = useCallback(() => handleToolSelect("select"), [handleToolSelect]);
-  const handleCropTool = useCallback(() => handleToolSelect("crop"), [handleToolSelect]);
-  const handleDrawTool = useCallback(() => handleToolSelect("draw"), [handleToolSelect]);
-  const handleEraseTool = useCallback(() => handleToolSelect("erase"), [handleToolSelect]);
-
   const handleApplyCrop = useCallback(() => handleActionClick("apply-crop"), [handleActionClick]);
   const handleCancelCrop = useCallback(() => handleActionClick("cancel-crop"), [handleActionClick]);
 
@@ -280,6 +275,13 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     onZoomChange(1);
   }, [onZoomChange]);
 
+  const handleToolClick = useCallback(
+    (newTool: EditTool) => {
+      handleToolSelect(newTool);
+    },
+    [handleToolSelect]
+  );
+
   return (
     <div css={styles(theme)}>
       <div className="toolbar">
@@ -290,7 +292,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Select / Pan" placement="top">
               <IconButton
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
-                onClick={handleSelectTool}
+                onClick={() => handleToolClick("select")}
                 size="small"
               >
                 <PanToolIcon fontSize="small" />
@@ -299,7 +301,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Crop" placement="top">
               <IconButton
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
-                onClick={handleCropTool}
+                onClick={() => handleToolClick("crop")}
                 size="small"
               >
                 <CropIcon fontSize="small" />
@@ -308,7 +310,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Draw / Paint" placement="top">
               <IconButton
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
-                onClick={handleDrawTool}
+                onClick={() => handleToolClick("draw")}
                 size="small"
               >
                 <BrushIcon fontSize="small" />
@@ -317,7 +319,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Erase" placement="top">
               <IconButton
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
-                onClick={handleEraseTool}
+                onClick={() => handleToolClick("erase")}
                 size="small"
               >
                 <AutoFixHighIcon fontSize="small" />
@@ -580,4 +582,4 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   );
 };
 
-export default ImageEditorToolbar;
+export default memo(ImageEditorToolbar);

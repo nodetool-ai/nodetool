@@ -79,11 +79,11 @@ export const tableStyles = (theme: Theme) =>
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderBottom: `6px solid ${"var(--palette-primary-main)"}`
+        borderBottom: `6px solid ${theme.vars.palette.primary.main}`
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderTop: `6px solid ${"var(--palette-primary-main)"}`
+        borderTop: `6px solid ${theme.vars.palette.primary.main}`
       },
 
     // cell
@@ -109,7 +109,7 @@ export const tableStyles = (theme: Theme) =>
       alignItems: "flex-start",
       height: "2em",
       "& .disabled": {
-        color: "var(--action-disabled)"
+        color: theme.vars.palette.action.disabled
       },
       "& button": {
         padding: ".1em",
@@ -127,12 +127,12 @@ export const tableStyles = (theme: Theme) =>
 
     // Datetime picker
     ".datetime-picker": {
-      backgroundColor: "var(--palette-primary-main)"
+      backgroundColor: theme.vars.palette.primary.main
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
       borderRadius: "8px",
-      backgroundColor: "white"
+      backgroundColor: theme.vars.palette.common.white
     },
     ".datetime": {
       "& button": {
@@ -143,9 +143,9 @@ export const tableStyles = (theme: Theme) =>
         top: "0",
         right: ".5em",
         borderRadius: "8px",
-        backgroundColor: "white",
+        backgroundColor: theme.vars.palette.common.white,
         "&:hover svg": {
-          color: "var(--palette-primary-main)"
+          color: theme.vars.palette.primary.main
         },
         "& svg": {
           color: theme.vars.palette.grey[1000],
@@ -164,7 +164,7 @@ export const tableStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[1000],
       fontSize: theme.fontSizeSmall,
       "&::selection": {
-        backgroundColor: "var(--palette-primary-main)"
+        backgroundColor: theme.vars.palette.primary.main
       }
     },
 

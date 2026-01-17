@@ -21,7 +21,7 @@ interface NodeContentProps {
   showAdvancedFields: boolean;
   hasAdvancedFields: boolean;
   onToggleAdvancedFields: () => void;
-  status: string;
+  status?: string;
   workflowId: string;
   showResultOverlay: boolean;
   result: any;
