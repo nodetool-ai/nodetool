@@ -12,7 +12,7 @@ import stc from "string-to-color";
 import any from "../icons/any.svg?react";
 import notype from "../icons/notype.svg?react";
 import asset from "../icons/asset.svg?react";
-import audio from "../icons/audio.svg?react";
+import wav from "../icons/wav.svg?react";
 import bool from "../icons/bool.svg?react";
 import dataframe from "../icons/dataframe.svg?react";
 import dict from "../icons/dict.svg?react";
@@ -24,6 +24,8 @@ import image from "../icons/image.svg?react";
 import int from "../icons/int.svg?react";
 import list from "../icons/list.svg?react";
 import model from "../icons/model.svg?react";
+import language_model from "../icons/language_model.svg?react";
+import image_model from "../icons/image_model.svg?react";
 import model_3d from "../icons/model_3d.svg?react";
 import str from "../icons/str.svg?react";
 import tensor from "../icons/tensor.svg?react";
@@ -37,6 +39,7 @@ import task from "../icons/task.svg?react";
 import documentIcon from "../icons/document.svg?react";
 import np_array from "../icons/np_array.svg?react";
 import datetime from "../icons/datetime.svg?react";
+import date from "../icons/date.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
 
@@ -69,7 +72,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   any,
   notype,
   asset,
-  audio,
+  audio: wav,
   bool,
   dataframe,
   dict,
@@ -89,18 +92,18 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   video,
   database,
   task,
-  language_model: model,
+  language_model,
   thread,
   model_ref: model,
-  image_model: model,
+  image_model,
   workflow: dataframe,
-  datetime: float,
-  date: float,
+  datetime,
+  date,
   object: dict,
-  np_array: tensor,
+  np_array,
   json: dict,
-  document: file,
-  model_3d: model,
+  document: documentIcon,
+  model_3d,
   ...comfyIconMap
 };
 
@@ -155,9 +158,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "notype",
     label: "No Type",
-    description:
-      "No output produced. Used for nodes that perform actions without returning data.",
-    color: "#A7B1BF", // neutral grey
+    description: "No output or type not specified.",
+    color: "#A7B1BF",
     textColor: "dark",
     name: "",
     slug: "",
