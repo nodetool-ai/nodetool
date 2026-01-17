@@ -12,6 +12,7 @@ import { PanelProps } from "./panelConfig";
 import ActivityPanel from "./ActivityPanel";
 import TemplatesPanel from "./TemplatesPanel";
 import MiniAppPanel from "./miniApps/MiniAppPanel";
+import WorkflowProfilerPanel from "./WorkflowProfilerPanel/WorkflowProfilerPanel";
 
 export const createPanelComponents = () => ({
   "getting-started": (props: IDockviewPanelProps<PanelProps>) => (
@@ -131,5 +132,10 @@ export const createPanelComponents = () => ({
         }
       }}
     />
+  ),
+  profiler: (_props: IDockviewPanelProps<PanelProps>) => (
+    <Box sx={{ overflow: "auto", height: "100%" }}>
+      <WorkflowProfilerPanel />
+    </Box>
   )
 });

@@ -316,6 +316,12 @@ Last updated: 2026-01-16
 
 ---
 
+## Research Features (Experimental)
+
+- **Workflow Profiler (Experimental)**: Analyzes workflow execution performance, identifying bottlenecks and parallelization opportunities.
+
+---
+
 ### Documentation Port Consistency Fixes (2026-01-17)
 
 **Areas Improved**:
