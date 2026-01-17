@@ -9,6 +9,7 @@ import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
+import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
 import { NodeTextField } from "../ui_primitives";
@@ -373,6 +374,9 @@ const PropertyDropzone = ({
         </div>
         {contentType.split("/")[0] === "audio" && showRecorder && (
           <WaveRecorder onChange={onChangeAsset} />
+        )}
+        {contentType.split("/")[0] === "video" && showRecorder && (
+          <VideoRecorder onChange={onChangeAsset} />
         )}
       </div>
     </div>

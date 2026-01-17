@@ -17,6 +17,9 @@ const styles = () =>
 const VideoProperty = (props: PropertyProps) => {
   const id = `video-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ video: props.value });
+  const showRecorder =
+    props.nodeType === "nodetool.input.VideoInput" ||
+    props.nodeType === "nodetool.constant.Video";
   return (
     <div className="video-property" css={styles()}>
       <PropertyLabel
@@ -32,6 +35,7 @@ const VideoProperty = (props: PropertyProps) => {
           onChange={props.onChange}
           contentType="video"
           props={props}
+          showRecorder={showRecorder}
         />
       )}
     </div>
