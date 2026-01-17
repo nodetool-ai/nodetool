@@ -168,9 +168,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareVersion
   ]);
 
-  const handlePin = useCallback((_versionId: string, _pinned: boolean) => {
-  }, []);
-
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
       console.log("[handleRestore] Version to restore:", {
@@ -434,7 +431,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 onSelect={handleSelect}
                 onRestore={handleRestore}
                 onDelete={handleDelete}
-                onPin={handlePin}
                 onCompare={handleCompare}
                 isRestoring={isRestoringVersion}
               />

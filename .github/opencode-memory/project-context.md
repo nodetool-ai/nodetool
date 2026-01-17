@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Workflow Versions Panel - Remove Pin Button (2026-01-17)
+
+**What**: Removed pin button and related functionality from workflow versions panel.
+
+**Files**: VersionListItem.tsx, VersionHistoryPanel.tsx
+
+**Impact**: Pin button no longer appears in version history list, simplifying the UI.
+
+---
+
 ### Performance Optimization: Large Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
