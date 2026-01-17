@@ -44,12 +44,12 @@ export const useSurroundWithGroup = () => {
 
   const surroundWithGroup = useCallback(
     ({ selectedNodes }: { selectedNodes: Node<NodeData>[] }) => {
-      if (!selectedNodes) {return;}
+      if (!selectedNodes) { return; }
       
       const validSelectedNodes = selectedNodes.filter(
         (n): n is Node<NodeData> => !!n
       );
-      if (validSelectedNodes.length === 0) {return;}
+      if (validSelectedNodes.length === 0) { return; }
 
       pause();
 

@@ -14,7 +14,7 @@ export function useAddToGroup() {
 
   const addToGroup = useCallback(
     (nodesToAdd: Node<NodeData>[], parentNode?: Node<NodeData> | undefined) => {
-      if (!nodesToAdd) {return;}
+      if (!nodesToAdd) { return; }
       
       nodesToAdd.forEach((node) => {
         if (parentNode && isGroupable(node) && isGroup(parentNode)) {
