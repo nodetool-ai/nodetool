@@ -146,7 +146,6 @@ describe("useAutosave", () => {
       await result.current.triggerAutosave();
     });
 
-<<<<<<< HEAD
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/workflows/test-workflow-123/autosave",
       expect.objectContaining({
@@ -205,7 +204,6 @@ describe("useAutosave", () => {
       await result.current.saveBeforeRun();
     });
 
-<<<<<<< HEAD
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/workflows/test-workflow-123/autosave",
       expect.objectContaining({
@@ -269,7 +267,6 @@ describe("useAutosave", () => {
     });
 
     expect(mockFetch).not.toHaveBeenCalled();
->>>>>>> origin/main
   });
 
   it("handles fetch errors gracefully", async () => {
@@ -317,43 +314,4 @@ describe("useAutosave", () => {
     expect(response?.skipped).toBe(true);
     expect(response?.message).toBe("no workflow");
   });
-});
-
-    expect(consoleError).toHaveBeenCalledWith("Autosave failed:", expect.any(Error));
-
-    consoleError.mockRestore();
-  });
-<<<<<<< HEAD
-=======
-
-  it.skip("returns skipped response when workflowId is null", async () => {
-    const options: UseAutosaveOptions = {
-      ...defaultOptions,
-      workflowId: null
-    };
-
-    const { result } = renderHook(() => useAutosave(options));
-
-    let response: { version: null; message: string; skipped: boolean } | undefined;
-    
-    await act(async () => {
-      response = await new Promise<{ version: null; message: string; skipped: boolean }>((resolve) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/workflows/null/autosave", true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            resolve({ version: null, message: "no workflow", skipped: true });
-          }
-        };
-        xhr.send(JSON.stringify({ save_type: "autosave" }));
-      });
-    });
-
-    expect(response?.skipped).toBe(true);
-    expect(response?.message).toBe("no workflow");
-  });
->>>>>>> origin/main
 });

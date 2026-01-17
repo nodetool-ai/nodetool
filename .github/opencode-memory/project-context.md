@@ -297,7 +297,7 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### Security Audit Fixes (2026-01-12)
+### Security Audit Fixes (2026-01-17)
 
 **What**: Comprehensive security audit and vulnerability patching across web and electron packages.
 
@@ -307,6 +307,8 @@ const store = useNodeStore();  // ❌ causes re-renders
 - React Syntax Highlighter XSS (CVE in GHSA-x7hr-w5r2-h6wg)
 - Express/Qs DoS vulnerability (CVE in GHSA-6rw7-vpxm-498p)
 - Missing Content Security Policy
+- glob Command Injection (GHSA-5j98-mcp5-4vw2)
+- tar Arbitrary File Overwrite (GHSA-8qq5-rm4j-mr97)
 
 **Implementation**:
 - Updated `dompurify` from `^3.2.3` to `^3.2.4` in web/package.json
@@ -314,15 +316,17 @@ const store = useNodeStore();  // ❌ causes re-renders
 - Updated `react-syntax-highlighter` from `^15.6.1` to `^16.1.0` in web/package.json
 - Added `overrides` for `qs`, `express`, `body-parser` in electron/package.json
 - Added CSP meta tag to web/index.html
+- Added `glob` override >=10.5.0 in web/package.json
+- Updated `tar` from 7.4.3 to 7.5.3 in electron/package.json
 
 **Results**:
-- Web: Reduced from 8 vulnerabilities (2 high) to 2 (1 high, 1 low)
-- Electron: Reduced from 12 vulnerabilities (3 high) to 0
+- Web: 0 vulnerabilities (reduced from 8)
+- Electron: 0 vulnerabilities (reduced from 23)
 - All quality checks pass (typecheck, lint)
 
 **Files Changed**:
-- `web/package.json` - Dependency updates
-- `electron/package.json` - Added overrides
+- `web/package.json` - Dependency updates and overrides
+- `electron/package.json` - Dependency updates and overrides
 - `web/index.html` - Added CSP meta tag
 
 ---
