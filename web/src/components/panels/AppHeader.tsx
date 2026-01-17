@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -21,6 +21,7 @@ import { IconForType } from "../../config/data_types";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { getIsElectronDetails } from "../../utils/browser";
 import { isProduction } from "../../stores/ApiClient";
+import CollectionsManager from "../collections/CollectionsManager";
 
 const styles = (theme: Theme) =>
   css({
@@ -322,28 +323,34 @@ const CollectionsButton = memo(function CollectionsButton({
 }: {
   isActive: boolean;
 }) {
-  const navigate = useNavigate();
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
 
   const handleClick = useCallback(() => {
-    navigate("/collections");
-  }, [navigate]);
+    setCollectionsOpen(true);
+  }, []);
 
   return (
-    <Tooltip
-      title="Collections"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <IconButton
-        className={`nav-button collections-button ${isActive ? "active" : ""}`}
-        onClick={handleClick}
-        tabIndex={-1}
-        aria-current={isActive ? "page" : undefined}
+    <>
+      <Tooltip
+        title="Collections"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        placement="bottom"
       >
-        <DatasetIcon />
-        <span className="nav-button-text">Collections</span>
-      </IconButton>
-    </Tooltip>
+        <IconButton
+          className={`nav-button collections-button ${isActive ? "active" : ""}`}
+          onClick={handleClick}
+          tabIndex={-1}
+          aria-current={isActive ? "page" : undefined}
+        >
+          <DatasetIcon />
+          <span className="nav-button-text">Collections</span>
+        </IconButton>
+      </Tooltip>
+      <CollectionsManager
+        open={collectionsOpen}
+        onClose={() => setCollectionsOpen(false)}
+      />
+    </>
   );
 });
 
