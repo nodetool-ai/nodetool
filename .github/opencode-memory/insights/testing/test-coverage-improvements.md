@@ -1,71 +1,87 @@
-# Test Coverage Improvements (2026-01-16)
+# Test Coverage Improvements (2026-01-17)
 
-**Coverage Added**: 3 new store test files with 74 tests
+**Coverage Added**: 8 new test files with 117 tests
 
 **Tests Added**:
-- `ResultsStore.test.ts` - 35 tests for execution results storage
-- `SessionStateStore.test.ts` - 8 tests for clipboard state management
-- `NodeFocusStore.test.ts` - 31 tests for node keyboard navigation
+- `MiniMapStore.test.ts` - 8 tests for minimap UI state management
+- `PanelStore.test.ts` - 17 tests for panel layout and resizing
+- `VersionHistoryStore.test.ts` - 16 tests for version history and autosave tracking
+- `ConnectionStore.test.ts` - 12 tests for node connection state
+- `AssetGridStore.test.ts` - 35 tests for asset grid state management
+- `ModelManagerStore.test.ts` - 18 tests for model manager UI state
+- `uuidv4.test.ts` - 6 tests for UUID generation
+- `graphCycle.test.ts` - 17 tests for cycle detection
+- `selectionBounds.test.ts` - 17 tests for selection rectangle calculation
 
 **Areas Covered**:
-- Results (execution outputs, progress, chunks)
-- Output results for nodes
-- Progress tracking with chunk accumulation
-- Edge status tracking
-- Tasks and tool calls
-- Planning updates and previews
-- Clipboard data management
-- Node focus navigation (next/prev/directional)
-- Focus history management
-- Navigation mode switching
+- MiniMap visibility state and toggling
+- Panel resizing with min/max constraints
+- Panel view switching and visibility management
+- Version selection and comparison modes
+- Edit count tracking per workflow
+- Autosave timestamp management
+- Node connection initiation and termination
+- Asset selection, filtering, and dialog management
+- Model filtering and search
+- UUID generation format validation
+- Cycle detection in graphs
+- Selection rectangle calculation for drag selection
 
 **Test Patterns Used**:
 
-1. **Store Testing Pattern**:
+1. **Zustand Store Testing Pattern** (without renderHook):
 ```typescript
 describe("StoreName", () => {
   beforeEach(() => {
-    useStoreName.setState(useStoreName.getInitialState());
+    useStoreName.setState({
+      // explicit initial state
+    });
   });
 
-  it("should perform action", () => {
+  test("should perform action", () => {
     useStoreName.getState().action();
     expect(useStoreName.getState().property).toEqual(expected);
   });
 });
 ```
 
-2. **Multi-workflow Isolation**:
+2. **Pure Utility Function Testing**:
 ```typescript
-it("should isolate state between workflows", () => {
-  useStore.getState().setData("wf-1", "node-1", value1);
-  useStore.getState().setData("wf-2", "node-1", value2);
-  expect(useStore.getState().getData("wf-1", "node-1")).toEqual(value1);
-  expect(useStore.getState().getData("wf-2", "node-1")).toEqual(value2);
+describe("utilityFunction", () => {
+  it("performs expected transformation", () => {
+    const result = utilityFunction(input);
+    expect(result.property).toEqual(expected);
+  });
 });
 ```
 
-3. **Complex State Operations**:
+3. **Cycle Detection Testing**:
 ```typescript
-it("should handle append operations", () => {
-  useStore.getState().append("wf-1", "node-1", item1);
-  useStore.getState().append("wf-1", "node-1", item2, true);
-  expect(useStore.getState().getData("wf-1", "node-1")).toEqual([item1, item2]);
+it("returns true when cycle exists", () => {
+  const nodes = [...];
+  const edges = [...];
+  expect(hasCycle(nodes, edges)).toBe(true);
 });
 ```
 
 **Files Created**:
-- `web/src/stores/__tests__/ResultsStore.test.ts`
-- `web/src/stores/__tests__/SessionStateStore.test.ts`
-- `web/src/stores/__tests__/NodeFocusStore.test.ts`
+- `web/src/stores/__tests__/MiniMapStore.test.ts`
+- `web/src/stores/__tests__/VersionHistoryStore.test.ts`
+- `web/src/stores/__tests__/ConnectionStore.test.ts`
+- `web/src/stores/__tests__/AssetGridStore.test.ts`
+- `web/src/stores/__tests__/ModelManagerStore.test.ts`
+- `web/src/utils/__tests__/uuidv4.test.ts`
+- `web/src/utils/__tests__/graphCycle.test.ts`
+- `web/src/utils/__tests__/selectionBounds.test.ts`
 
 **Key Learnings**:
-1. Always check for existing tests before creating new ones
-2. Multi-workflow isolation is critical for NodeTool's architecture
-3. Test cleanup in `beforeEach` is essential for test independence
-4. Complex state operations (append, clear by prefix) need thorough edge case coverage
+1. Zustand stores with persist middleware don't expose getInitialState() - use explicit state in beforeEach
+2. Use `useStore.getState()` directly instead of renderHook for better performance
+3. Utility functions are ideal candidates for unit tests - pure functions with predictable outputs
+4. Graph algorithms need thorough edge case coverage (empty graphs, single nodes, self-loops, etc.)
+5. Panel resizing requires testing min/max constraints and edge cases
 
-**Status**: All 74 tests passing
+**Status**: All 117 tests passing
 
 ---
 

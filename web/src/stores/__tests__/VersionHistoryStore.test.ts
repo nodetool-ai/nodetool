@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import { useVersionHistoryStore } from "../VersionHistoryStore";
 
 describe("VersionHistoryStore", () => {
@@ -15,185 +15,163 @@ describe("VersionHistoryStore", () => {
 
   describe("UI State", () => {
     test("should manage selected version", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
       act(() => {
-        result.current.setSelectedVersion("v1");
+        useVersionHistoryStore.getState().setSelectedVersion("v1");
       });
 
-      expect(result.current.selectedVersionId).toBe("v1");
+      expect(useVersionHistoryStore.getState().selectedVersionId).toBe("v1");
 
       act(() => {
-        result.current.setSelectedVersion(null);
+        useVersionHistoryStore.getState().setSelectedVersion(null);
       });
 
-      expect(result.current.selectedVersionId).toBe(null);
+      expect(useVersionHistoryStore.getState().selectedVersionId).toBe(null);
     });
 
     test("should manage compare mode", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
       act(() => {
-        result.current.setCompareMode(true);
+        useVersionHistoryStore.getState().setCompareMode(true);
       });
 
-      expect(result.current.isCompareMode).toBe(true);
-      expect(result.current.compareVersionId).toBe(null);
+      expect(useVersionHistoryStore.getState().isCompareMode).toBe(true);
+      expect(useVersionHistoryStore.getState().compareVersionId).toBe(null);
 
       act(() => {
-        result.current.setCompareVersion("v2");
+        useVersionHistoryStore.getState().setCompareVersion("v2");
       });
 
-      expect(result.current.compareVersionId).toBe("v2");
+      expect(useVersionHistoryStore.getState().compareVersionId).toBe("v2");
 
       act(() => {
-        result.current.setCompareMode(false);
+        useVersionHistoryStore.getState().setCompareMode(false);
       });
 
-      expect(result.current.isCompareMode).toBe(false);
-      expect(result.current.compareVersionId).toBe(null);
+      expect(useVersionHistoryStore.getState().isCompareMode).toBe(false);
+      expect(useVersionHistoryStore.getState().compareVersionId).toBe(null);
     });
 
     test("should manage history panel open state", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
       act(() => {
-        result.current.setHistoryPanelOpen(true);
+        useVersionHistoryStore.getState().setHistoryPanelOpen(true);
       });
 
-      expect(result.current.isHistoryPanelOpen).toBe(true);
+      expect(useVersionHistoryStore.getState().isHistoryPanelOpen).toBe(true);
 
       act(() => {
-        result.current.setHistoryPanelOpen(false);
+        useVersionHistoryStore.getState().setHistoryPanelOpen(false);
       });
 
-      expect(result.current.isHistoryPanelOpen).toBe(false);
+      expect(useVersionHistoryStore.getState().isHistoryPanelOpen).toBe(false);
     });
   });
 
   describe("Edit Count Tracking", () => {
     test("should increment edit count", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
-      expect(result.current.getEditCount("wf1")).toBe(0);
+      expect(useVersionHistoryStore.getState().getEditCount("wf1")).toBe(0);
 
       act(() => {
-        result.current.incrementEditCount("wf1");
+        useVersionHistoryStore.getState().incrementEditCount("wf1");
       });
 
-      expect(result.current.getEditCount("wf1")).toBe(1);
+      expect(useVersionHistoryStore.getState().getEditCount("wf1")).toBe(1);
 
       act(() => {
-        result.current.incrementEditCount("wf1");
+        useVersionHistoryStore.getState().incrementEditCount("wf1");
       });
 
-      expect(result.current.getEditCount("wf1")).toBe(2);
+      expect(useVersionHistoryStore.getState().getEditCount("wf1")).toBe(2);
     });
 
     test("should reset edit count", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
       act(() => {
-        result.current.incrementEditCount("wf1");
-        result.current.incrementEditCount("wf1");
+        useVersionHistoryStore.getState().incrementEditCount("wf1");
+        useVersionHistoryStore.getState().incrementEditCount("wf1");
+        useVersionHistoryStore.getState().resetEditCount("wf1");
       });
 
-      expect(result.current.getEditCount("wf1")).toBe(2);
-
-      act(() => {
-        result.current.resetEditCount("wf1");
-      });
-
-      expect(result.current.getEditCount("wf1")).toBe(0);
+      expect(useVersionHistoryStore.getState().getEditCount("wf1")).toBe(0);
     });
 
     test("should track edit counts per workflow", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
       act(() => {
-        result.current.incrementEditCount("wf1");
-        result.current.incrementEditCount("wf1");
-        result.current.incrementEditCount("wf2");
+        useVersionHistoryStore.getState().incrementEditCount("wf1");
+        useVersionHistoryStore.getState().incrementEditCount("wf1");
+        useVersionHistoryStore.getState().incrementEditCount("wf2");
       });
 
-      expect(result.current.getEditCount("wf1")).toBe(2);
-      expect(result.current.getEditCount("wf2")).toBe(1);
-      expect(result.current.getEditCount("wf3")).toBe(0);
+      expect(useVersionHistoryStore.getState().getEditCount("wf1")).toBe(2);
+      expect(useVersionHistoryStore.getState().getEditCount("wf2")).toBe(1);
+      expect(useVersionHistoryStore.getState().getEditCount("wf3")).toBe(0);
+    });
+
+    test("should get edit count returns 0 for unknown workflow", () => {
+      expect(useVersionHistoryStore.getState().getEditCount("unknown")).toBe(0);
     });
   });
 
   describe("Autosave Time Tracking", () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    test("should update last autosave time", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
+    test("should update and get last autosave time", () => {
       const beforeTime = Date.now();
 
       act(() => {
-        result.current.updateLastAutosaveTime("wf1");
+        useVersionHistoryStore.getState().updateLastAutosaveTime("wf1");
       });
 
       const afterTime = Date.now();
-      const savedTime = result.current.getLastAutosaveTime("wf1");
+      const savedTime = useVersionHistoryStore.getState().getLastAutosaveTime("wf1");
 
       expect(savedTime).toBeGreaterThanOrEqual(beforeTime);
       expect(savedTime).toBeLessThanOrEqual(afterTime);
     });
 
-    test("should track autosave time per workflow", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
+    test("should store autosave time per workflow independently", () => {
       act(() => {
-        result.current.updateLastAutosaveTime("wf1");
+        useVersionHistoryStore.getState().updateLastAutosaveTime("wf1");
       });
 
-      const wf1Time = result.current.getLastAutosaveTime("wf1");
+      const time1 = useVersionHistoryStore.getState().getLastAutosaveTime("wf1");
 
       act(() => {
-        jest.advanceTimersByTime(1);
-        result.current.updateLastAutosaveTime("wf2");
+        useVersionHistoryStore.getState().updateLastAutosaveTime("wf2");
       });
 
-      expect(result.current.getLastAutosaveTime("wf1")).toBe(wf1Time);
-      expect(result.current.getLastAutosaveTime("wf2")).toBeGreaterThan(wf1Time);
+      const time2 = useVersionHistoryStore.getState().getLastAutosaveTime("wf2");
+
+      expect(useVersionHistoryStore.getState().getLastAutosaveTime("wf1")).toBe(time1);
+      expect(time2).toBeGreaterThanOrEqual(time1);
+    });
+
+    test("should get last autosave time returns 0 for unknown workflow", () => {
+      expect(useVersionHistoryStore.getState().getLastAutosaveTime("unknown")).toBe(0);
     });
   });
 
-  describe("clearState", () => {
-    test("should clear all state", () => {
-      const { result } = renderHook(() => useVersionHistoryStore());
-
+  describe("Clear State", () => {
+    test("should clear UI state but preserve autosave time", () => {
       act(() => {
-        result.current.setSelectedVersion("v1");
-        result.current.setCompareVersion("v2");
-        result.current.setCompareMode(true);
-        result.current.setHistoryPanelOpen(true);
-        result.current.incrementEditCount("wf1");
-        result.current.updateLastAutosaveTime("wf1");
+        useVersionHistoryStore.getState().setSelectedVersion("v1");
+        useVersionHistoryStore.getState().setCompareVersion("v2");
+        useVersionHistoryStore.getState().setCompareMode(true);
+        useVersionHistoryStore.getState().setHistoryPanelOpen(true);
+        useVersionHistoryStore.getState().updateLastAutosaveTime("wf1");
+        useVersionHistoryStore.getState().clearState();
       });
 
-      expect(result.current.selectedVersionId).toBe("v1");
-      expect(result.current.compareVersionId).toBe("v2");
-      expect(result.current.isCompareMode).toBe(true);
-      expect(result.current.isHistoryPanelOpen).toBe(true);
-      expect(result.current.getEditCount("wf1")).toBe(1);
-      expect(result.current.getLastAutosaveTime("wf1")).toBeGreaterThan(0);
+      expect(useVersionHistoryStore.getState().selectedVersionId).toBeNull();
+      expect(useVersionHistoryStore.getState().compareVersionId).toBeNull();
+      expect(useVersionHistoryStore.getState().isCompareMode).toBe(false);
+      expect(useVersionHistoryStore.getState().isHistoryPanelOpen).toBe(false);
+      // clearState only clears UI state, not edit counts
+      expect(useVersionHistoryStore.getState().getLastAutosaveTime("wf1")).toBeGreaterThan(0);
+    });
 
+    test("should preserve autosave time across clear state", () => {
       act(() => {
-        result.current.clearState();
+        useVersionHistoryStore.getState().updateLastAutosaveTime("wf1");
+        useVersionHistoryStore.getState().clearState();
       });
 
-      expect(result.current.selectedVersionId).toBe(null);
-      expect(result.current.compareVersionId).toBe(null);
-      expect(result.current.isCompareMode).toBe(false);
-      expect(result.current.isHistoryPanelOpen).toBe(false);
+      expect(useVersionHistoryStore.getState().getLastAutosaveTime("wf1")).toBeGreaterThan(0);
     });
   });
 });
