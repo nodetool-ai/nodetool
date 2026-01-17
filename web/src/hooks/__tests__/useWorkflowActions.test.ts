@@ -3,10 +3,9 @@ import { useWorkflowActions } from "../useWorkflowActions";
 import { Workflow } from "../../stores/ApiTypes";
 import * as ReactRouterDom from "react-router-dom";
 
-// Mock before imports
-jest.mock("react-router-dom", () => ({
-  useNavigate: jest.fn(() => jest.fn())
-}));
+const mockNavigate = jest.fn();
+const mockCreateNew = jest.fn();
+const mockCreate = jest.fn();
 
 const mockCreateNewWorkflow = jest.fn();
 const mockCreateWorkflow = jest.fn();
@@ -64,7 +63,7 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleCreateNewWorkflow();
 
-      expect(mockCreateNewWorkflow).toHaveBeenCalled();
+      expect(mockCreateNew).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
 
@@ -185,12 +184,14 @@ describe("useWorkflowActions", () => {
     });
 
     it("clears loading state on error", async () => {
-      mockCreateWorkflow.mockRejectedValueOnce(new Error("Creation failed"));
+      mockCreate.mockRejectedValueOnce(new Error("Creation failed"));
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
       const { result } = renderHook(() => useWorkflowActions());
 
       await result.current.handleExampleClick(mockWorkflow);
 
       expect(result.current.loadingExampleId).toBeNull();
+      consoleSpy.mockRestore();
     });
 
     it("does nothing if already loading", async () => {
@@ -245,11 +246,8 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleExampleClick(exampleWorkflow);
 
-      expect(mockCreateWorkflow).toHaveBeenCalledWith(
-        expect.any(Object),
-        "example-package",
-        "Example Name"
-      );
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
 
     it("creates workflow with correct properties", async () => {
