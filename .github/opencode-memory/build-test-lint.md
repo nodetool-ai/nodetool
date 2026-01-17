@@ -291,3 +291,60 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+---
+
+## Test Coverage Improvements (2026-01-17)
+
+### Changes Made
+
+**Coverage Status**: 222 test suites, 2905 tests passing
+
+**Tests Fixed**:
+- Fixed failing test in `graphNodeToReactFlowNode.test.ts` - mock function didn't accept override parameters
+
+**Tests Added**:
+1. **WorkspaceManagerStore.test.ts** - Tests for workspace manager state management
+   - Initial state validation
+   - Open/close state transitions
+   - State isolation between render cycles
+
+2. **workflowUpdates.test.ts** - Tests for WebSocket update handling
+   - Subscription management (subscribe/unsubscribe)
+   - Notification update handling
+   - Node update handling (completed/error states)
+   - Edge update handling with cancelled state checks
+
+### Testing Patterns Used
+
+**Zustand Store Testing**:
+```typescript
+import { renderHook, act } from "@testing-library/react";
+import { useWorkspaceManagerStore } from "../WorkspaceManagerStore";
+
+describe("WorkspaceManagerStore", () => {
+  beforeEach(() => {
+    useWorkspaceManagerStore.setState({ isOpen: false });
+  });
+
+  it("initializes with isOpen as false", () => {
+    const { result } = renderHook(() => useWorkspaceManagerStore());
+    expect(result.current.isOpen).toBe(false);
+  });
+});
+```
+
+**WebSocket Update Handler Testing**:
+- Mock external dependencies (Zustand stores, WebSocket manager)
+- Test message type handling
+- Test state-dependent behavior (e.g., cancelled workflows)
+
+### Files Modified
+- `web/src/stores/__tests__/graphNodeToReactFlowNode.test.ts`
+- `web/src/stores/__tests__/WorkspaceManagerStore.test.ts` (NEW)
+- `web/src/stores/__tests__/workflowUpdates.test.ts` (NEW)
+
+### Verification
+- All 222 test suites pass
+- TypeScript compilation: No errors in new files
+- ESLint: No errors in new files
