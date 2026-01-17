@@ -4,17 +4,6 @@
 // learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
 
-// Mock React to prevent createContext issues in test environment
-jest.mock("react", () => ({
-  ...jest.requireActual("react"),
-  createContext: jest.fn(() => ({ Provider: ({ children }: any) => children })),
-  useCallback: (fn: any) => fn,
-  useMemo: (fn: any) => fn(),
-  useState: (initial: any) => [initial, jest.fn()],
-  useEffect: jest.fn(),
-  useRef: (initial: any) => ({ current: initial }),
-}));
-
 // Mock import.meta for Vite environment variables
 Object.defineProperty(globalThis, "import", {
   value: {
