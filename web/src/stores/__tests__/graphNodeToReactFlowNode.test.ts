@@ -1,7 +1,11 @@
 jest.mock("../../components/node_types/PlaceholderNode", () => () => null);
+jest.mock("../NodeStore", () => ({
+  DEFAULT_NODE_WIDTH: 200,
+}));
 
 import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
 import { Workflow, Node as GraphNode } from "../ApiTypes";
+import { DEFAULT_NODE_WIDTH } from "../NodeStore";
 
 describe("graphNodeToReactFlowNode", () => {
   const createMockWorkflow = (): Workflow => ({
@@ -23,6 +27,15 @@ describe("graphNodeToReactFlowNode", () => {
     ...overrides,
   });
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(console, "warn").mockImplementation((..._args: unknown[]) => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("converts a basic graph node to ReactFlow node", () => {
     const workflow = createMockWorkflow();
     const graphNode = createMockGraphNode();
@@ -34,6 +47,20 @@ describe("graphNodeToReactFlowNode", () => {
     expect(result.data.properties).toEqual({ text: "Hello" });
     expect(result.data.workflow_id).toBe("workflow-123");
     expect(result.position).toEqual({ x: 0, y: 0 });
+  });
+
+  it("converts a basic node with required fields", () => {
+    const workflow = createMockWorkflow();
+    const node = createMockGraphNode();
+
+    const result = graphNodeToReactFlowNode(workflow, node);
+
+    expect(result.id).toBe("node-1");
+    expect(result.type).toBe("nodetool.text.Prompt");
+    expect(result.parentId).toBeUndefined();
+    expect(result.dragHandle).toBe(".node-drag-handle");
+    expect(result.selectable).toBeUndefined();
+    expect(result.className).toBeUndefined();
   });
 
   it("preserves parent_id as parentId", () => {
@@ -65,262 +92,400 @@ describe("graphNodeToReactFlowNode", () => {
     expect(result.style?.width).toBeDefined();
   });
 
-  it("sets width 400 and height 300 for Preview nodes without dimensions", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.workflows.base_node.Preview",
+  describe("data conversion", () => {
+    it("maps node data to properties in result", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode({ data: { testProp: "testValue" } });
+
+      const result = graphNodeToReactFlowNode(workflow, node);
+
+      expect(result.data.properties).toEqual({ testProp: "testValue" });
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("maps empty data to empty object", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode({ data: undefined });
 
-    expect(result.style?.width).toBe(400);
-    expect(result.style?.height).toBe(300);
-  });
+      const result = graphNodeToReactFlowNode(workflow, node);
 
-  it("preserves Preview node dimensions if already set", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.workflows.base_node.Preview",
-      ui_properties: { width: 500, height: 400 },
+      expect(result.data.properties).toEqual({});
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("maps dynamic_properties to result", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode({
+        dynamic_properties: { dynamicProp: "value" },
+      });
 
-    expect(result.style?.width).toBe(500);
-    expect(result.style?.height).toBe(400);
-  });
+      const result = graphNodeToReactFlowNode(workflow, node);
 
-  it("sets width 450 and height 350 for CompareImages nodes without dimensions", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.compare.CompareImages",
+      expect(result.data.dynamic_properties).toEqual({ dynamicProp: "value" });
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("maps dynamic_outputs to result", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode({
+        dynamic_outputs: { output1: { type: "text" } } as any,
+      });
 
-    expect(result.style?.width).toBe(450);
-    expect(result.style?.height).toBe(350);
-  });
+      const result = graphNodeToReactFlowNode(workflow, node);
 
-  it("handles bypassed nodes with bypassed class", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      ui_properties: { bypassed: true },
+      expect(result.data.dynamic_outputs).toEqual({ output1: { type: "text" } });
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("maps sync_mode to result", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode({ sync_mode: "on_change" });
 
-    expect(result.className).toBe("bypassed");
-    expect(result.data.bypassed).toBe(true);
-  });
+      const result = graphNodeToReactFlowNode(workflow, node);
 
-  it("sets expandParent to false for Loop nodes", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.group.Loop",
+      expect(result.data.sync_mode).toBe("on_change");
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("sets workflow_id in result data", () => {
+      const workflow = createMockWorkflow({ id: "my-workflow-id" });
+      const node = createMockGraphNode();
 
-    expect(result.expandParent).toBe(false);
+      const result = graphNodeToReactFlowNode(workflow, node);
+
+      expect(result.data.workflow_id).toBe("my-workflow-id");
+    });
   });
 
-  it("sets expandParent to false for Comment nodes", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.workflows.base_node.Comment",
+  describe("title and color from ui_properties", () => {
+    it("preserves ui_properties title", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { title: "My Node" },
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.title).toBe("My Node");
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("preserves ui_properties color", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { color: "#ff0000" },
+      });
 
-    expect(result.expandParent).toBe(false);
-  });
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
 
-  it("sets expandParent to false for Group nodes", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.workflows.base_node.Group",
+      expect(result.data.color).toBe("#ff0000");
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("does not set title when ui_properties is undefined", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode();
 
-    expect(result.expandParent).toBe(false);
-  });
+      const result = graphNodeToReactFlowNode(workflow, node);
 
-  it("sets expandParent to true for regular nodes", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode();
-
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
-
-    expect(result.expandParent).toBe(true);
-  });
-
-  it("preserves ui_properties title", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      ui_properties: { title: "My Node" },
+      expect(result.data.title).toBeUndefined();
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("does not set color when ui_properties is undefined", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode();
 
-    expect(result.data.title).toBe("My Node");
+      const result = graphNodeToReactFlowNode(workflow, node);
+
+      expect(result.data.color).toBeUndefined();
+    });
   });
 
-  it("preserves ui_properties color", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      ui_properties: { color: "#ff0000" },
+  describe("selectable property", () => {
+    it("preserves selectable from ui_properties", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { selectable: false },
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.selectable).toBe(false);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("sets selectable to undefined when not in ui_properties", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode();
 
-    expect(result.data.color).toBe("#ff0000");
+      const result = graphNodeToReactFlowNode(workflow, node);
+
+      expect(result.selectable).toBeUndefined();
+    });
   });
 
-  it("copies dynamic_properties to node data", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      dynamic_properties: { custom_prop: "value" },
+  describe("bypassed property", () => {
+    it("handles bypassed nodes with bypassed class", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { bypassed: true },
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.className).toBe("bypassed");
+      expect(result.data.bypassed).toBe(true);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("does not set bypassed class when ui_properties.bypassed is false", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { bypassed: false },
+      });
 
-    expect(result.data.dynamic_properties).toEqual({ custom_prop: "value" });
-  });
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
 
-  it("copies dynamic_outputs to node data", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      dynamic_outputs: { custom_output: { type: "text", optional: false, type_args: [] } as any },
+      expect(result.className).toBeUndefined();
+      expect(result.data.bypassed).toBe(false);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("defaults bypassed to false when not in ui_properties", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode();
 
-    expect(result.data.dynamic_outputs).toHaveProperty("custom_output");
+      const result = graphNodeToReactFlowNode(workflow, node);
+
+      expect(result.data.bypassed).toBe(false);
+    });
   });
 
-  it("copies sync_mode to node data", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      sync_mode: "on_all",
+  describe("collapsed property", () => {
+    it("sets collapsed to false by default", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode();
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.collapsed).toBe(false);
+    });
+  });
+
+  describe("originalType property", () => {
+    it("sets originalType to node type", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.text.Prompt",
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.originalType).toBe("nodetool.text.Prompt");
+    });
+  });
+
+  describe("size dimensions", () => {
+    it("uses width from ui_properties", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { width: 300, height: 150 },
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.style?.width).toBe(300);
+      expect(result.style?.height).toBe(150);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("uses DEFAULT_NODE_WIDTH when ui_properties.width is undefined", () => {
+      const workflow = createMockWorkflow();
+      const graphGraphNode = createMockGraphNode({
+        ui_properties: { width: undefined, height: 100 },
+      });
 
-    expect(result.data.sync_mode).toBe("on_all");
-  });
+      const result = graphNodeToReactFlowNode(workflow, graphGraphNode);
 
-  it("sets collapsed to false by default", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode();
-
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
-
-    expect(result.data.collapsed).toBe(false);
-  });
-
-  it("applies zIndex for non-group nodes from ui_properties", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      ui_properties: { zIndex: 100 },
+      expect(result.style?.width).toBe(DEFAULT_NODE_WIDTH);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("uses DEFAULT_NODE_WIDTH when ui_properties is undefined", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode();
 
-    expect(result.zIndex).toBe(100);
+      const result = graphNodeToReactFlowNode(workflow, node);
+
+      expect(result.style?.width).toBe(DEFAULT_NODE_WIDTH);
+    });
   });
 
-  it("sets zIndex to -10 for Loop nodes", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.group.Loop",
-      ui_properties: { zIndex: 100 },
+  describe("Preview node special handling", () => {
+    it("sets width 400 and height 300 for Preview nodes without dimensions", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.workflows.base_node.Preview",
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.style?.width).toBe(400);
+      expect(result.style?.height).toBe(300);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("preserves Preview node dimensions if already set", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.workflows.base_node.Preview",
+        ui_properties: { width: 500, height: 400 },
+      });
 
-    expect(result.zIndex).toBe(-10);
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.style?.width).toBe(500);
+      expect(result.style?.height).toBe(400);
+    });
   });
 
-  it("sets zIndex to -10 for Group nodes", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.workflows.base_node.Group",
-      ui_properties: { zIndex: 100 },
+  describe("CompareImages node special handling", () => {
+    it("sets width 450 and height 350 for CompareImages nodes without dimensions", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.compare.CompareImages",
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.style?.width).toBe(450);
+      expect(result.style?.height).toBe(350);
+    });
+  });
+
+  describe("expandParent property", () => {
+    it("sets expandParent to false for Loop nodes", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.group.Loop",
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.expandParent).toBe(false);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("sets expandParent to false for Comment nodes", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.workflows.base_node.Comment",
+      });
 
-    expect(result.zIndex).toBe(-10);
-  });
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
 
-  it("preserves selectable from ui_properties", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      ui_properties: { selectable: false },
+      expect(result.expandParent).toBe(false);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("sets expandParent to false for Group nodes", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.workflows.base_node.Group",
+      });
 
-    expect(result.selectable).toBe(false);
-  });
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
 
-  it("sets dragHandle to node-drag-handle class", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode();
-
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
-
-    expect(result.dragHandle).toBe(".node-drag-handle");
-  });
-
-  it("sets originalType to node type", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      type: "nodetool.text.Prompt",
+      expect(result.expandParent).toBe(false);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("sets expandParent to true for regular nodes", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode();
 
-    expect(result.data.originalType).toBe("nodetool.text.Prompt");
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.expandParent).toBe(true);
+    });
   });
 
-  it("handles undefined data gracefully", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      data: undefined as any,
+  describe("zIndex property", () => {
+    it("sets zIndex to -10 for Loop nodes", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.group.Loop",
+        ui_properties: { zIndex: 100 },
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.zIndex).toBe(-10);
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("sets zIndex to -10 for Group nodes", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.workflows.base_node.Group",
+        ui_properties: { zIndex: 100 },
+      });
 
-    expect(result.data.properties).toEqual({});
-    expect(result.data.dynamic_properties).toEqual({});
-    expect(result.data.dynamic_outputs).toEqual({});
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.zIndex).toBe(-10);
+    });
+
+    it("applies zIndex for non-group nodes from ui_properties", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { zIndex: 100 },
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.zIndex).toBe(100);
+    });
   });
 
-  it("handles empty object data", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      data: {} as any,
+  describe("edge cases", () => {
+    it("sets dragHandle to node-drag-handle class", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode();
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.dragHandle).toBe(".node-drag-handle");
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("handles undefined data gracefully", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        data: undefined as any,
+      });
 
-    expect(result.data.properties).toEqual({});
-  });
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
 
-  it("handles undefined ui_properties", () => {
-    const workflow = createMockWorkflow();
-    const graphNode = createMockGraphNode({
-      ui_properties: undefined,
+      expect(result.data.properties).toEqual({});
+      expect(result.data.dynamic_properties).toEqual({});
+      expect(result.data.dynamic_outputs).toEqual({});
     });
 
-    const result = graphNodeToReactFlowNode(workflow, graphNode);
+    it("handles empty object data", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        data: {} as any,
+      });
 
-    expect(result.position).toEqual({ x: 0, y: 0 });
-    expect(result.selectable).toBeUndefined();
-    expect(result.className).toBeUndefined();
-    expect(result.zIndex).toBeUndefined();
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.properties).toEqual({});
+    });
+
+    it("handles undefined ui_properties", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: undefined,
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.position).toEqual({ x: 0, y: 0 });
+      expect(result.selectable).toBeUndefined();
+      expect(result.className).toBeUndefined();
+      expect(result.zIndex).toBeUndefined();
+    });
+
+    it("uses default position when ui_properties is undefined", () => {
+      const workflow = createMockWorkflow();
+      const node = createMockGraphNode();
+
+      const result = graphNodeToReactFlowNode(workflow, node);
+
+      expect(result.position).toEqual({ x: 0, y: 0 });
+    });
   });
 });
