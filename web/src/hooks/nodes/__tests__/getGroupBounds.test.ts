@@ -29,7 +29,12 @@ describe("getGroupBounds", () => {
     width,
     height,
     measured,
-    data: {}
+    data: {
+      properties: {},
+      selectable: true,
+      dynamic_properties: {},
+      workflow_id: "test-workflow"
+    }
   });
 
   beforeEach(() => {
@@ -64,7 +69,7 @@ describe("getGroupBounds", () => {
   });
 
   it("returns null when parentNode has no id", () => {
-    const parentNode = { id: undefined } as Node<NodeData>;
+    const parentNode = { id: undefined, position: { x: 0, y: 0 }, data: { properties: {}, selectable: true, dynamic_properties: {}, workflow_id: "test" } } as unknown as Node<NodeData>;
     const result = getGroupBounds([], parentNode);
     expect(result).toBeNull();
   });

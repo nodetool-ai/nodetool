@@ -79,7 +79,7 @@ describe('ChatStore', () => {
       
       expect(apiService.getWebSocketUrl).toHaveBeenCalledWith('/ws/chat');
       expect(WebSocketManager).toHaveBeenCalledWith(expect.objectContaining({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         reconnect: true,
       }));
     });

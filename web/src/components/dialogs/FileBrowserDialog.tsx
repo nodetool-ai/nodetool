@@ -471,7 +471,7 @@ function FileBrowserDialog({
     setIsEditingPath(false);
   };
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = useCallback((path: string) => {
     setCurrentPath(path);
     setSearchQuery("");
     if (selectionMode === "directory") {
@@ -479,7 +479,7 @@ function FileBrowserDialog({
     } else {
       setSelectedPath("");
     }
-  };
+  }, [selectionMode]);
 
   const handleStartEditPath = useCallback(() => {
     setIsEditingPath(true);
@@ -612,11 +612,11 @@ function FileBrowserDialog({
 
     const handleClick = useCallback(() => {
       handleFileClick(file);
-    }, [file, handleFileClick]);
+    }, [file]);
 
     const handleDoubleClick = useCallback(() => {
       handleFileDoubleClick(file);
-    }, [file, handleFileDoubleClick]);
+    }, [file]);
 
     return (
       <div

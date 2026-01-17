@@ -2,6 +2,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useSurroundWithGroup } from "../useSurroundWithGroup";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
+import * as NodeContext from "../../../contexts/NodeContext";
 
 // Mock dependencies at the top level
 jest.mock("@xyflow/react", () => ({
@@ -57,13 +58,19 @@ describe("useSurroundWithGroup", () => {
     width,
     height,
     measured: width ? { width, height: height || 100 } : undefined,
-    data: { title: "Test Node" }
+    data: {
+      title: "Test Node",
+      properties: {},
+      selectable: true,
+      dynamic_properties: {},
+      workflow_id: "test-workflow"
+    }
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
-    const { useNodes, useTemporalNodes } = require("../../../contexts/NodeContext");
-    
+    const { useNodes, useTemporalNodes } = NodeContext;
+
     mockCreateNode.mockReturnValue({
       id: "group-1",
       type: "nodetool.workflows.base_node.Group",
@@ -72,12 +79,12 @@ describe("useSurroundWithGroup", () => {
       width: 200,
       height: 200
     } as any);
-    
+
     (useNodes as jest.Mock).mockReturnValue({
       createNode: mockCreateNode,
       setNodes: mockSetNodes
     });
-    
+
     (useTemporalNodes as jest.Mock).mockReturnValue({
       pause: mockPause,
       resume: mockResume
@@ -181,7 +188,8 @@ describe("useSurroundWithGroup", () => {
 
     expect(mockSetNodes).toHaveBeenCalled();
     const updateFn = mockSetNodes.mock.calls[0][0];
-    const updatedNodes = updateFn([]);
+    // Pass the selected nodes as prevNodes to simulate the actual behavior
+    const updatedNodes = updateFn(selectedNodes);
     const childNode = updatedNodes[1];
 
     expect(childNode.position.x).toBeDefined();
@@ -239,7 +247,7 @@ describe("useSurroundWithGroup", () => {
     act(() => {
       try {
         result.current({ selectedNodes });
-      } catch (e) {
+      } catch (_e) {
         // Expected
       }
     });
