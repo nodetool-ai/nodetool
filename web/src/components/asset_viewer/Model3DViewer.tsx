@@ -7,7 +7,8 @@ import React, {
   useCallback,
   useState,
   useEffect,
-  useMemo
+  useMemo,
+  memo
 } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import {
@@ -827,4 +828,4 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   );
 };
 
-export default Model3DViewer;
+export default memo(Model3DViewer);
