@@ -174,7 +174,7 @@ const getStyleProps = (
 const getNodeColors = (metadata: any): string[] => {
   const outputColors = [
     ...new Set(
-      metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
+      metadata?.outputs?.map((output: any) => colorForType(output.type as string)) ||
       []
     )
   ];
@@ -219,9 +219,7 @@ const getHeaderColors = (
     };
   }
 
-  const firstOutputType = metadata?.outputs?.[0]?.type?.type as
-    | string
-    | undefined;
+  const firstOutputType = (metadata?.outputs?.[0]?.type as any) as string | undefined;
   if (!firstOutputType) {
     return { headerColor: "", baseColor: "" };
   }
@@ -444,7 +442,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
         hasParent={hasParent}
-        iconType={metadata?.outputs?.[0]?.type?.type}
+        iconType={metadata?.outputs?.[0]?.type as any}
         iconBaseColor={baseColor}
         workflowId={workflow_id}
         showResultButton={!isOverlayVisible && hasToggleableResult}

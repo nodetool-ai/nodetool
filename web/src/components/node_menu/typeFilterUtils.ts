@@ -27,7 +27,7 @@ export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
 
   metadata.forEach((node) => {
     node.properties.forEach((prop) => addType(prop.type));
-    node.outputs?.forEach((output) => addType(output.type));
+    node.outputs?.forEach((output) => addType(output.type as any));
   });
 
   const allTypes = Array.from(typeMap.values());
@@ -98,12 +98,12 @@ export const filterTypesByOutputType = (
 ): NodeMetadata[] => {
   return outputType
     ? metadata.filter((node) => {
-        return node.outputs.some((output) => {
+        return node.outputs?.some((output) => {
           // Exclude matches that are only connectable because the output is "any"
-          if (output.type.type === "any") {
+          if ((output.type as any).type === "any") {
             return false;
           }
-          return isConnectableCached(output.type, outputType);
+          return isConnectableCached(output.type as any, outputType);
         });
       })
     : metadata;
@@ -147,7 +147,7 @@ export const filterDataByType = (
   if (outputType) {
     if (outputType === "any") {
       filtered = filtered.filter((node) =>
-        node.outputs.some((out) => out.type.type === "any")
+        (node.outputs as any)?.some((out: any) => out.type.type === "any")
       );
     } else {
       filtered = filterTypesByOutputType(filtered, buildTypeMeta(outputType));
@@ -210,17 +210,17 @@ export const filterTypesByOutputExact = (
 
   if (outputType === "any") {
     return metadata.filter((node) =>
-      node.outputs.some((out) => out.type.type === "any")
+      (node.outputs as any)?.some((out: any) => out.type.type === "any")
     );
   }
 
   // Special case: "notype" means the node produces **no** outputs.
   if (outputType === "notype") {
-    return metadata.filter((node) => node.outputs.length === 0);
+      return metadata.filter((node) => (node.outputs?.length) === 0);
   }
 
   return metadata.filter((node) =>
-    node.outputs.some((out) => out.type.type === outputType)
+    node.outputs?.some((out) => out.type.type === outputType)
   );
 };
 

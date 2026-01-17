@@ -265,7 +265,7 @@ const SearchResultItem = memo(
                         key={prop.name}
                         className="io-item"
                         style={{
-                          borderColor: colorForType(prop.type.type)
+                          borderColor: colorForType(prop.type as any)
                         }}
                       >
                         {prop.name}
@@ -279,19 +279,19 @@ const SearchResultItem = memo(
                   </Box>
                 </Box>
               )}
-              {node.outputs.length > 0 && (
+              {(node.outputs as any)?.length > 0 && (
                 <Box className="io-row">
                   <span className="io-label">Output:</span>
                   <Box className="io-items">
-                    {node.outputs.map((output) => (
+                    {node.outputs?.map((output) => (
                       <span
                         key={output.name}
                         className="io-item"
                         style={{
-                          borderColor: colorForType(output.type.type)
+                          borderColor: colorForType(output.type as any)
                         }}
                       >
-                        {output.type.type}
+                        {output.type as any}
                       </span>
                     ))}
                   </Box>

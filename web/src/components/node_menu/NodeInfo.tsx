@@ -316,15 +316,15 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                 <Tooltip
                   enterDelay={TOOLTIP_ENTER_DELAY}
                   placement="top-end"
-                  title={descriptionForType(property.type.type || "")}
+                  title={descriptionForType((property.type as any) || "")}
                 >
                   <Typography
                     className="type"
                     style={{
-                      borderColor: colorForType(property.type.type)
+                      borderColor: colorForType((property.type as any) || ""),
                     }}
                   >
-                    {property.type.type}
+                    {property.type as any}
                   </Typography>
                 </Tooltip>
               </div>
@@ -332,21 +332,21 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           </div>
           <div className="outputs">
             <Typography variant="h4">Outputs</Typography>
-            {nodeMetadata.outputs.map((property) => (
+            {nodeMetadata.outputs?.map((property) => (
               <div key={property.name} className="item">
                 <Typography className="property">{property.name}</Typography>
                 <Tooltip
                   enterDelay={TOOLTIP_ENTER_DELAY}
                   placement="top-end"
-                  title={descriptionForType(property.type.type || "")}
+                  title={descriptionForType((property.type as any) || "")}
                 >
                   <Typography
                     className="type"
                     style={{
-                      borderColor: colorForType(property.type.type)
+                      borderColor: colorForType((property.type as any) || ""),
                     }}
                   >
-                    {property.type.type}
+                    {property.type as any}
                   </Typography>
                 </Tooltip>
               </div>

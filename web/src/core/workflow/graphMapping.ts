@@ -128,7 +128,7 @@ export const sanitizeGraph = (
           }" on node ${edge.source} (type: ${
             sourceNode.type
           }). Available outputs: ${[
-            ...sourceMetadata.outputs.map((o) => o.name),
+            ...(sourceMetadata.outputs?.map((o) => o.name) || []),
             ...Object.keys(sourceDynamicOutputs)
           ].join(", ")}. Removing edge.`
         );

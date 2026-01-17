@@ -22,6 +22,7 @@ import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useCreateNode } from "../../hooks/useCreateNode";
+import { AISuggestionsPanel } from "./AISuggestionsPanel";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -307,6 +308,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 setSelectedOutputType={setSelectedOutputType}
               />
             </Box>
+            <AISuggestionsPanel compact />
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}
