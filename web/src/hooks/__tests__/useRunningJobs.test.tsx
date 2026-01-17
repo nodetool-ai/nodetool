@@ -22,9 +22,11 @@ describe("useRunningJobs", () => {
         },
       },
     });
-    return ({ children }: { children: React.ReactNode }) => (
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
+    Wrapper.displayName = "QueryClientWrapper";
+    return Wrapper;
   };
 
   beforeEach(() => {
@@ -34,7 +36,7 @@ describe("useRunningJobs", () => {
 
   describe("authentication state", () => {
     it("does not fetch when user is not authenticated", () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: null,
         state: "logged_out",
       });
@@ -49,7 +51,7 @@ describe("useRunningJobs", () => {
     });
 
     it("fetches when user is authenticated", () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: { id: "user-123" },
         state: "logged_in",
       });
@@ -67,7 +69,7 @@ describe("useRunningJobs", () => {
     });
 
     it("does not fetch during initialization", () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: { id: "user-123" },
         state: "loading",
       });
@@ -83,7 +85,7 @@ describe("useRunningJobs", () => {
 
   describe("data fetching", () => {
     it("returns empty array when no jobs are running", async () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: { id: "user-123" },
         state: "logged_in",
       });
@@ -105,7 +107,7 @@ describe("useRunningJobs", () => {
     });
 
     it("filters out completed jobs", async () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: { id: "user-123" },
         state: "logged_in",
       });
@@ -135,7 +137,7 @@ describe("useRunningJobs", () => {
     });
 
     it("includes suspended and paused jobs", async () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: { id: "user-123" },
         state: "logged_in",
       });
@@ -163,7 +165,7 @@ describe("useRunningJobs", () => {
     });
 
     it("handles API errors", async () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: { id: "user-123" },
         state: "logged_in",
       });
@@ -187,7 +189,7 @@ describe("useRunningJobs", () => {
 
   describe("query configuration", () => {
     it("uses correct query key", async () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: { id: "user-123" },
         state: "logged_in",
       });
@@ -211,7 +213,7 @@ describe("useRunningJobs", () => {
     });
 
     it("respects staleTime configuration", async () => {
-      (useAuth as jest.Mock).mockReturnValue({
+      (useAuth as unknown as jest.Mock).mockReturnValue({
         user: { id: "user-123" },
         state: "logged_in",
       });
@@ -235,7 +237,7 @@ describe("useRunningJobs", () => {
 
   describe("user state changes", () => {
     it("uses different query key for different users", async () => {
-      (useAuth as jest.Mock)
+      (useAuth as unknown as jest.Mock)
         .mockReturnValueOnce({
           user: { id: "user-1" },
           state: "logged_in",
@@ -250,7 +252,7 @@ describe("useRunningJobs", () => {
         error: null,
       });
 
-      const { result, rerender } = renderHook(() => useRunningJobs(), {
+      const { result, rerender: _rerender } = renderHook(() => useRunningJobs(), {
         wrapper: createWrapper(),
       });
 

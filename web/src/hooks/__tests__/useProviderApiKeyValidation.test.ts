@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { useProviderApiKeyValidation } from "../useProviderApiKeyValidation";
 import { useSecrets } from "../useSecrets";
 
@@ -21,8 +21,8 @@ jest.mock("../../utils/providerDisplay", () => ({
   formatGenericProviderName: jest.fn((name: string) => {
     return name.charAt(0).toUpperCase() + name.slice(1);
   }),
-  isHuggingFaceProvider: jest.fn((name: string) => name === "huggingface"),
-  getProviderBaseName: jest.fn((name: string) => "Hugging Face",
+  isHuggingFaceProvider: jest.fn((_name: string) => _name === "huggingface"),
+  getProviderBaseName: jest.fn((_name: string) => "Hugging Face",
   ),
 }));
 
