@@ -10,17 +10,10 @@ import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import EditIcon from "@mui/icons-material/Edit";
-import DatasetIcon from "@mui/icons-material/Dataset";
-import DescriptionIcon from "@mui/icons-material/Description";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import ModelsButton from "../hugging_face/ModelsButton";
-import WorkspacesButton from "../workspaces/WorkspacesButton";
 import { IconForType } from "../../config/data_types";
-import { useAppHeaderStore } from "../../stores/AppHeaderStore";
-import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../stores/ApiClient";
 
 const styles = (theme: Theme) =>
   css({
@@ -78,25 +71,66 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       gap: "8px"
     },
-    ".nav-group": {
+    // Mode pills - segmented control style
+    ".mode-pills": {
       display: "flex",
       alignItems: "center",
-      gap: "6px",
-      padding: "2px 4px",
-      borderRadius: "10px"
+      backgroundColor: theme.vars.palette.action.hover,
+      borderRadius: "6px",
+      padding: "2px",
+      gap: "2px"
     },
-    ".nav-button": {
+    ".mode-pill": {
       padding: "4px 12px",
-      borderRadius: "20px",
-      fontWeight: 600,
+      borderRadius: "4px",
+      fontWeight: 500,
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       minWidth: "auto",
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      textTransform: "uppercase",
+      fontSize: theme.vars.fontSizeSmall,
+      transition: "all 0.2s ease-out",
+      border: "none",
+      backgroundColor: "transparent",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      "& svg, & .icon-container svg": {
+        width: "16px",
+        height: "16px",
+        fontSize: "16px"
+      },
+      "& .icon-container": {
+        width: "16px",
+        height: "16px"
+      },
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        color: theme.vars.palette.text.primary
+      },
+      "&.active": {
+        backgroundColor: theme.vars.palette.background.paper,
+        color: theme.vars.palette.primary.main,
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
+        "& svg, & .icon-container svg": {
+          color: theme.vars.palette.primary.main
+        }
+      }
+    },
+    // Standalone nav button (Templates)
+    ".nav-button": {
+      padding: "4px 12px",
+      borderRadius: "6px",
+      fontWeight: 500,
+      letterSpacing: "0.02em",
+      color: theme.vars.palette.text.secondary,
+      minWidth: "auto",
+      transition: "all 0.2s ease-out",
       border: "1px solid transparent",
       "& svg": {
         marginRight: "6px",
-        transition: "color 0.3s ease"
+        transition: "color 0.2s ease"
       },
       "& .icon-container": {
         marginRight: "6px"
@@ -113,7 +147,6 @@ const styles = (theme: Theme) =>
         backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.1)",
         border: `1px solid rgba(var(--palette-primary-main-channel) / 0.2)`,
         color: theme.vars.palette.primary.main,
-        boxShadow: "0 0 15px rgba(var(--palette-primary-main-channel) / 0.15)",
         "& svg, & .icon-container svg": {
           color: theme.vars.palette.primary.main
         }
@@ -128,7 +161,8 @@ const styles = (theme: Theme) =>
     ".logo-container": {
       display: "flex",
       alignItems: "center",
-      marginRight: "16px"
+      marginRight: "16px",
+      cursor: "pointer"
     },
     ".buttons-right": {
       display: "flex",
@@ -137,42 +171,98 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       background: "transparent",
       flexShrink: 0,
-      marginRight: "4px"
+      marginRight: "4px",
+      gap: "4px"
     }
     // Mobile styles handled via separate CSS file
   });
 
-// Logo is now part of the header on all devices
-
-const DashboardButton = memo(function DashboardButton({
-  isActive
-}: {
-  isActive: boolean;
-}) {
+// Mode pills component - segmented control for Editor, Chat, Dashboard
+const ModePills = memo(function ModePills({ currentPath }: { currentPath: string }) {
   const navigate = useNavigate();
-  const handleClick = useCallback(() => {
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
+  const lastUsedThreadId = useGlobalChatStore((state) => state.lastUsedThreadId);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+
+  // Determine active mode - only modes are active, not other routes
+  const isEditorActive = currentPath.startsWith("/editor");
+  const isChatActive = currentPath.startsWith("/chat");
+  const isDashboardActive = currentPath.startsWith("/dashboard");
+
+  const handleEditorClick = useCallback(async () => {
+    if (currentWorkflowId) {
+      navigate(`/editor/${currentWorkflowId}`);
+    } else {
+      try {
+        const workflow = await createNewWorkflow();
+        navigate(`/editor/${workflow.id}`);
+      } catch (error) {
+        console.error("Failed to create new workflow:", error);
+      }
+    }
+  }, [navigate, currentWorkflowId, createNewWorkflow]);
+
+  const handleChatClick = useCallback(async () => {
+    try {
+      if (lastUsedThreadId) {
+        switchThread(lastUsedThreadId);
+        navigate(`/chat/${lastUsedThreadId}`);
+      } else {
+        const newThreadId = await createNewThread();
+        switchThread(newThreadId);
+        navigate(`/chat/${newThreadId}`);
+      }
+    } catch {
+      navigate(`/chat`);
+    }
+  }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
+
+  const handleDashboardClick = useCallback(() => {
     navigate("/dashboard");
   }, [navigate]);
 
   return (
-    <Tooltip
-      title="Go to Dashboard"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <IconButton
-        className={`nav-button dashboard-button ${isActive ? "active" : ""}`}
-        onClick={handleClick}
-        tabIndex={-1}
-        aria-current={isActive ? "page" : undefined}
-      >
-        <DashboardIcon />
-        <span className="nav-button-text">Dashboard</span>
-      </IconButton>
-    </Tooltip>
+    <div className="mode-pills">
+      <Tooltip title="Editor" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+        <button
+          className={`mode-pill ${isEditorActive ? "active" : ""}`}
+          onClick={handleEditorClick}
+          tabIndex={-1}
+          aria-current={isEditorActive ? "page" : undefined}
+        >
+          <EditIcon />
+          <span>Editor</span>
+        </button>
+      </Tooltip>
+      <Tooltip title="Chat" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+        <button
+          className={`mode-pill ${isChatActive ? "active" : ""}`}
+          onClick={handleChatClick}
+          tabIndex={-1}
+          aria-current={isChatActive ? "page" : undefined}
+        >
+          <IconForType iconName="message" showTooltip={false} />
+          <span>Chat</span>
+        </button>
+      </Tooltip>
+      <Tooltip title="Dashboard" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+        <button
+          className={`mode-pill ${isDashboardActive ? "active" : ""}`}
+          onClick={handleDashboardClick}
+          tabIndex={-1}
+          aria-current={isDashboardActive ? "page" : undefined}
+        >
+          <DashboardIcon />
+          <span>Dashboard</span>
+        </button>
+      </Tooltip>
+    </div>
   );
 });
 
+// Templates button - positioned closer to right utility icons
 const TemplatesButton = memo(function TemplatesButton({
   isActive
 }: {
@@ -203,210 +293,42 @@ const TemplatesButton = memo(function TemplatesButton({
   );
 });
 
-const ChatButton = memo(function ChatButton({
-  isActive
-}: {
-  isActive: boolean;
-}) {
-  const navigate = useNavigate();
-  const lastUsedThreadId = useGlobalChatStore((state) => state.lastUsedThreadId);
-  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
-  const switchThread = useGlobalChatStore((state) => state.switchThread);
-
-  const handleClick = useCallback(async () => {
-    try {
-      if (lastUsedThreadId) {
-        switchThread(lastUsedThreadId);
-        navigate(`/chat/${lastUsedThreadId}`);
-      } else {
-        const newThreadId = await createNewThread();
-        switchThread(newThreadId);
-        navigate(`/chat/${newThreadId}`);
-      }
-    } catch {
-      navigate(`/chat`);
-    }
-  }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
-
-  return (
-    <Tooltip
-      title="Open Chat"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <IconButton
-        className={`nav-button chat-button ${isActive ? "active" : ""}`}
-        onClick={handleClick}
-        tabIndex={-1}
-        aria-current={isActive ? "page" : undefined}
-      >
-        <IconForType iconName="message" showTooltip={false} />
-        <span className="nav-button-text">Chat</span>
-      </IconButton>
-    </Tooltip>
-  );
-});
-
-const EditorButton = memo(function EditorButton({
-  isActive
-}: {
-  isActive: boolean;
-}) {
-  const navigate = useNavigate();
-  const currentWorkflowId = useWorkflowManager(
-    (state) => state.currentWorkflowId
-  );
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
-
-  const handleClick = useCallback(async () => {
-    if (currentWorkflowId) {
-      navigate(`/editor/${currentWorkflowId}`);
-    } else {
-      // Create a new workflow if none exists
-      try {
-        const workflow = await createNewWorkflow();
-        navigate(`/editor/${workflow.id}`);
-      } catch (error) {
-        console.error("Failed to create new workflow:", error);
-      }
-    }
-  }, [navigate, currentWorkflowId, createNewWorkflow]);
-
-  return (
-    <Tooltip
-      title={currentWorkflowId ? "Open Editor" : "Create New Workflow"}
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <IconButton
-        className={`nav-button editor-button ${isActive ? "active" : ""}`}
-        onClick={handleClick}
-        tabIndex={-1}
-        aria-current={isActive ? "page" : undefined}
-      >
-        <EditIcon />
-        <span className="nav-button-text">Editor</span>
-      </IconButton>
-    </Tooltip>
-  );
-});
-
-const AssetsButton = memo(function AssetsButton({
-  isActive
-}: {
-  isActive: boolean;
-}) {
-  const navigate = useNavigate();
-
-  const handleClick = useCallback(() => {
-    navigate("/assets");
-  }, [navigate]);
-
-  return (
-    <Tooltip title="Assets" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
-      <IconButton
-        className={`nav-button assets-button ${isActive ? "active" : ""}`}
-        onClick={handleClick}
-        tabIndex={-1}
-        aria-current={isActive ? "page" : undefined}
-      >
-        <IconForType iconName="asset" showTooltip={false} />
-        <span className="nav-button-text">Assets</span>
-      </IconButton>
-    </Tooltip>
-  );
-});
-
-const CollectionsButton = memo(function CollectionsButton({
-  isActive
-}: {
-  isActive: boolean;
-}) {
-  const navigate = useNavigate();
-
-  const handleClick = useCallback(() => {
-    navigate("/collections");
-  }, [navigate]);
-
-  return (
-    <Tooltip
-      title="Collections"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <IconButton
-        className={`nav-button collections-button ${isActive ? "active" : ""}`}
-        onClick={handleClick}
-        tabIndex={-1}
-        aria-current={isActive ? "page" : undefined}
-      >
-        <DatasetIcon />
-        <span className="nav-button-text">Collections</span>
-      </IconButton>
-    </Tooltip>
-  );
-});
-
-const DocsButton = memo(function DocsButton() {
-  const handleClick = useCallback(() => {
-    window.open("https://docs.nodetool.ai", "_blank");
-  }, []);
-
-  return (
-    <Tooltip
-      title="Documentation"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <IconButton
-        className="nav-button docs-button"
-        onClick={handleClick}
-        tabIndex={-1}
-      >
-        <DescriptionIcon />
-        <span className="nav-button-text">Docs</span>
-      </IconButton>
-    </Tooltip>
-  );
-});
-
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
   const headerStyles = useMemo(() => styles(theme), [theme]);
-  const { handleOpenHelp } = useAppHeaderStore();
+  const navigate = useNavigate();
+
+  const handleLogoClick = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
 
   return (
     <div css={headerStyles} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate" style={{ WebkitAppRegion: "no-drag" } as any}>
-          <div className="logo-container">
-            <Logo
-              small
-              width="20px"
-              height="20px"
-              fontSize="1em"
-              borderRadius="4px"
-              onClick={handleOpenHelp}
-            />
-          </div>
-          <div className="nav-group">
-            <EditorButton isActive={path.startsWith("/editor")} />
-            <ChatButton isActive={path.startsWith("/chat")} />
-            <AssetsButton isActive={path.startsWith("/assets")} />
-            {(getIsElectronDetails().isElectron || !isProduction) && <ModelsButton />}
-            {(getIsElectronDetails().isElectron || !isProduction) && <WorkspacesButton />}
-            <TemplatesButton isActive={path.startsWith("/templates")} />
-            <CollectionsButton isActive={path.startsWith("/collections")} />
-            <DashboardButton isActive={path.startsWith("/dashboard")} />
-            <DocsButton />
-          </div>
-          <Box sx={{ flexGrow: 0.02 }} />
+          {/* Logo - clicks to Dashboard */}
+          <Tooltip title="Go to Dashboard" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+            <div className="logo-container" onClick={handleLogoClick}>
+              <Logo
+                small
+                width="20px"
+                height="20px"
+                fontSize="1em"
+                borderRadius="4px"
+              />
+            </div>
+          </Tooltip>
+          {/* Mode Pills - Editor, Chat, Dashboard */}
+          <ModePills currentPath={path} />
+          <Box sx={{ flexGrow: 1 }} />
         </div>
         <div
           className="buttons-right"
           style={{ WebkitAppRegion: "no-drag" } as any}
         >
+          {/* Templates button - closer to right utility icons */}
+          <TemplatesButton isActive={path.startsWith("/templates")} />
           <RightSideButtons />
         </div>
       </Toolbar>

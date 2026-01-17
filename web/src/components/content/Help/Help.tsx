@@ -7,8 +7,10 @@ import {
   Tab,
   Box,
   Dialog,
-  DialogContent
+  DialogContent,
+  Link
 } from "@mui/material";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CloseButton from "../../buttons/CloseButton";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
@@ -64,10 +66,16 @@ const helpStyles = (theme: Theme) =>
       height: "calc(100% - 40px)",
       padding: "0 1em 2em 1em"
     },
+    ".tabs-row": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      margin: "0 1em 1em 1em"
+    },
     ".help-tabs": {
-      margin: "0 1em 1em 1em",
       paddingTop: "0",
       lineHeight: "1.5",
+      flex: 1,
       "& .MuiTabs-indicator": {
         backgroundColor: "var(--palette-primary-main)",
         height: "3px",
@@ -90,6 +98,25 @@ const helpStyles = (theme: Theme) =>
         paddingLeft: "0",
         marginRight: "0.5em",
         minWidth: "unset"
+      }
+    },
+    ".docs-link": {
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      color: theme.vars.palette.primary.main,
+      textDecoration: "none",
+      fontSize: "0.9rem",
+      fontWeight: 500,
+      padding: "6px 12px",
+      borderRadius: "6px",
+      transition: "all 0.2s ease",
+      "&:hover": {
+        backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.1)",
+        textDecoration: "none"
+      },
+      "& svg": {
+        fontSize: "1rem"
       }
     },
     ".tabpanel": {
@@ -235,16 +262,27 @@ const Help = ({
               <Typography variant="h2">Help</Typography>
               <CloseButton onClick={handleClose} />
             </div>
-            <Tabs
-              className="help-tabs"
-              value={helpIndex}
-              onChange={handleChange}
-              aria-label="help tabs"
-            >
-              <Tab label="Shortcuts" id="help-tab-0" />
-              <Tab label="Keyboard" id="help-tab-1" />
-              <Tab label="DataTypes" id="help-tab-2" />
-            </Tabs>
+            <div className="tabs-row">
+              <Tabs
+                className="help-tabs"
+                value={helpIndex}
+                onChange={handleChange}
+                aria-label="help tabs"
+              >
+                <Tab label="Shortcuts" id="help-tab-0" />
+                <Tab label="Keyboard" id="help-tab-1" />
+                <Tab label="DataTypes" id="help-tab-2" />
+              </Tabs>
+              <Link
+                href="https://docs.nodetool.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="docs-link"
+              >
+                Documentation
+                <OpenInNewIcon />
+              </Link>
+            </div>
             <div className="content">
               <TabPanel value={helpIndex} index={0}>
                 <ControlsShortcutsTab />
