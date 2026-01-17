@@ -33,6 +33,7 @@ Last updated: 2026-01-16
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
+- **Virtualized Node List**: Windowing virtualization for efficient rendering of large node lists (react-window)
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
 - **Node Info Panel**: Contextual panel showing selected node details (type, description, connections, status, quick actions)
@@ -276,9 +277,8 @@ Last updated: 2026-01-16
 
 ## Features NOT Yet Implemented
 
-*(Update this section when considering these features in the future)*
+*(Update this section when considering these features in future)*
 
-- **Virtualized Lists**: Large list virtualization for performance
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions

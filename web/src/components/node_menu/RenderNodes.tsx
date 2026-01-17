@@ -6,8 +6,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
-import SearchResultItem from "./SearchResultItem";
-import SearchResultsPanel from "./SearchResultsPanel";
+import VirtualizedNodeList from "./VirtualizedNodeList";
 import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
@@ -53,7 +52,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       searchTerm: state.searchTerm
     }));
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
-  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   const handleCreateNode = useCreateNode();
   const handleDragStart = useCallback(
@@ -72,10 +70,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     [setDragToCreate, setActiveDrag]
   );
 
-  const handleDragEnd = useCallback(() => {
-    clearDrag();
-  }, [clearDrag]);
-
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
   }));
@@ -87,23 +81,17 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
-  const elements = useMemo(() => {
-    // If we're searching, render flat ranked results with SearchResultItem
+  const flatSearchNodes = useMemo(() => {
     if (searchTerm && groupedSearchResults.length > 0) {
-      // Flatten all results from groups (now just one "Results" group)
-      const allSearchNodes = groupedSearchResults.flatMap(
-        (group) => group.nodes
-      );
+      return groupedSearchResults.flatMap((group) => group.nodes);
+    }
+    return [];
+  }, [searchTerm, groupedSearchResults]);
 
-      return allSearchNodes.map((node) => (
-        <SearchResultItem
-          key={node.node_type}
-          node={node}
-          onDragStart={handleDragStart(node)}
-          onDragEnd={handleDragEnd}
-          onClick={() => handleCreateNode(node)}
-        />
-      ));
+  const elements = useMemo(() => {
+    // If we're searching, render flat ranked results with VirtualizedNodeList
+    if (searchTerm && groupedSearchResults.length > 0) {
+      return null;
     }
 
     // Otherwise use the original namespace-based grouping
@@ -174,7 +162,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     groupedSearchResults,
     selectedPath,
     handleDragStart,
-    handleDragEnd,
     handleCreateNode,
     showCheckboxes,
     onToggleSelection,
@@ -188,7 +175,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     <div className="nodes" style={style}>
       {nodes.length > 0 ? (
         searchNodes ? (
-          <SearchResultsPanel searchNodes={searchNodes} />
+          <VirtualizedNodeList
+            nodes={flatSearchNodes}
+            isSearchResults={true}
+            showFavoriteButton={showFavoriteButton}
+          />
         ) : (
           elements
         )
