@@ -102,11 +102,11 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setSelected(null);
   }, [setSelected]);
 
-  const handleSelectProvider = useCallback((p: string) => {
+  const _handleSelectProvider = useCallback((p: string) => {
     setSelected(p);
   }, [setSelected]);
 
-  const handleMenuOpen = useCallback((e: React.MouseEvent, p: string) => {
+  const _handleMenuOpen = useCallback((e: React.MouseEvent<HTMLElement>, p: string) => {
     e.preventDefault();
     setMenuAnchor(e.currentTarget);
     setMenuProvider(p);
@@ -121,7 +121,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setMenuOpen(true, 1);
   }, [setMenuOpen]);
 
-  const handleCheckboxChange = useCallback((p: string, enabled: boolean) => {
+  const _handleCheckboxChange = useCallback((p: string, enabled: boolean) => {
     setProviderEnabled(p, enabled);
   }, [setProviderEnabled]);
 

@@ -1,6 +1,5 @@
 import { graphEdgeToReactFlowEdge } from "../graphEdgeToReactFlowEdge";
 import { Edge as GraphEdge } from "../ApiTypes";
-import { Edge } from "@xyflow/react";
 
 describe("graphEdgeToReactFlowEdge", () => {
   describe("basic edge conversion", () => {
@@ -72,7 +71,9 @@ describe("graphEdgeToReactFlowEdge", () => {
       const graphEdge: GraphEdge = {
         id: "edge-1",
         source: "node-1",
+        sourceHandle: "output",
         target: "node-2",
+        targetHandle: "input",
         ui_properties: { className: "custom-edge" }
       };
 
@@ -85,7 +86,9 @@ describe("graphEdgeToReactFlowEdge", () => {
       const graphEdge: GraphEdge = {
         id: "edge-1",
         source: "node-1",
-        target: "node-2"
+        sourceHandle: "output",
+        target: "node-2",
+        targetHandle: "input"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -97,7 +100,9 @@ describe("graphEdgeToReactFlowEdge", () => {
       const graphEdge: GraphEdge = {
         id: "edge-1",
         source: "node-1",
+        sourceHandle: "output",
         target: "node-2",
+        targetHandle: "input",
         ui_properties: { otherProperty: "value" }
       };
 
@@ -112,9 +117,9 @@ describe("graphEdgeToReactFlowEdge", () => {
       const graphEdge: GraphEdge = {
         id: "edge-1",
         source: "node-1",
-        sourceHandle: undefined,
+        sourceHandle: "",
         target: "node-2",
-        targetHandle: undefined
+        targetHandle: ""
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);

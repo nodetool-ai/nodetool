@@ -266,7 +266,7 @@ describe("useAutosave", () => {
       workflowId: null
     };
 
-    const { result } = renderHook(() => useAutosave(options));
+    const { result: _result } = renderHook(() => useAutosave(options));
 
     let response: { version: null; message: string; skipped: boolean } | undefined;
     

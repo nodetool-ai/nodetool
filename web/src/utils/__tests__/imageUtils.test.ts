@@ -6,7 +6,7 @@ const originalCreateObjectURL = URL.createObjectURL;
 const originalRevokeObjectURL = URL.revokeObjectURL;
 
 beforeAll(() => {
-  (URL as any).createObjectURL = jest.fn((blob: Blob) => {
+  (URL as any).createObjectURL = jest.fn((_blob: Blob) => {
     const url = `blob:mock-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     mockBlobUrls.push(url);
     return url;

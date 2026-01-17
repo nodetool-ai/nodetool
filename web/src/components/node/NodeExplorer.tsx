@@ -256,7 +256,7 @@ const NodeExplorer: React.FC = () => {
     [handleNodeFocus]
   );
 
-  const handleNodeEditClick = useCallback(
+  const _handleNodeEditClick = useCallback(
     (event: React.MouseEvent, nodeId: string) => {
       event.stopPropagation();
       handleNodeEdit(nodeId);
