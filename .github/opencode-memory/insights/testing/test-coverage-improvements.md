@@ -349,3 +349,134 @@ it('maintains state correctly through multiple operations', () => {
 4. Verify clearAll/reset functionality returns to initial state
 
 **Status**: All 15 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17 - Additional)
+
+**Coverage Added**: 2 new store test files with 25 tests
+
+**Tests Added**:
+- `MetadataStore.test.ts` - 17 tests for node metadata and model management
+- `InspectedNodeStore.test.ts` - 8 tests for node inspection state
+
+**Areas Covered**:
+- Metadata (node metadata, recommended models, model packs, node types)
+- Node type registration and retrieval
+- Model filtering state
+- Inspected node ID management
+- Toggle inspection functionality
+
+**Test Patterns Used**:
+
+1. **Simple Store Testing Pattern**:
+```typescript
+describe("StoreName", () => {
+  beforeEach(() => {
+    useStoreName.setState(initialState, true);
+  });
+
+  it("initializes with correct default state", () => {
+    expect(useStoreName.getState().property).toEqual(defaultValue);
+  });
+
+  it("performs action correctly", () => {
+    useStoreName.getState().action();
+    expect(useStoreName.getState().property).toEqual(expected);
+  });
+});
+```
+
+2. **State Mutation Testing**:
+```typescript
+it("updates state correctly", () => {
+  useStore.getState().setProperty("new-value");
+  expect(useStore.getState().property).toBe("new-value");
+});
+
+it("handles toggle correctly", () => {
+  expect(useStore.getState().property).toBeNull();
+  useStore.getState().toggle("item-1");
+  expect(useStore.getState().property).toBe("item-1");
+  useStore.getState().toggle("item-1");
+  expect(useStore.getState().property).toBeNull();
+});
+```
+
+3. **Metadata Store Testing**:
+```typescript
+describe("MetadataStore", () => {
+  it("sets and retrieves metadata", () => {
+    const testMetadata = { "node-1": { ... } };
+    useMetadataStore.getState().setMetadata(testMetadata);
+    expect(useMetadataStore.getState().getMetadata("node-1")).toBeDefined();
+  });
+
+  it("adds node types dynamically", () => {
+    const TestNode = () => null;
+    useMetadataStore.getState().addNodeType("test-node", TestNode);
+    expect(useMetadataStore.getState().nodeTypes["test-node"]).toBe(TestNode);
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/MetadataStore.test.ts`
+- `web/src/stores/__tests__/InspectedNodeStore.test.ts`
+
+**Key Learnings**:
+1. Simple Zustand stores with basic operations are straightforward to test
+2. Always reset store state in beforeEach for test isolation
+3. Test both individual operations and combined state changes
+4. Verify initial state and state transitions
+
+**Status**: All 25 tests passing
+
+---
+
+### Test Coverage Improvement (2026-01-17 - Graph Cycle Detection)
+
+**Tests Added**:
+- `graphCycle.test.ts` - Cycle detection utility tests
+
+**Areas Covered**:
+- Null/undefined source and target handling
+- Self-loop detection (same source and target)
+- Empty edge list handling
+- Path existence checking
+- Cycle detection in complex graphs
+- Disconnected node handling
+
+**Test Patterns Used**:
+
+1. **Graph Algorithm Testing**:
+```typescript
+describe("wouldCreateCycle", () => {
+  it("returns false for empty edge list", () => {
+    expect(wouldCreateCycle([], "source", "target")).toBe(false);
+  });
+
+  it("returns true for self-loop", () => {
+    expect(wouldCreateCycle([], "node", "node")).toBe(true);
+  });
+
+  it("detects cycle in linear graph", () => {
+    const edges = [
+      { id: "e1", source: "a", target: "b", sourceHandle: null, targetHandle: null },
+      { id: "e2", source: "b", target: "c", sourceHandle: null, targetHandle: null },
+    ];
+    expect(wouldCreateCycle(edges, "c", "a")).toBe(true);
+  });
+});
+```
+
+**Files Created**:
+- `web/src/utils/__tests__/graphCycle.test.ts`
+
+**Key Learnings**:
+1. Graph algorithms need thorough edge case coverage
+2. Test null/undefined inputs explicitly
+3. Test self-loops, disconnected components, and complex paths
+4. Algorithm should handle malformed edges gracefully
+
+**Status**: All tests passing
