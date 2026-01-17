@@ -3,10 +3,6 @@ import { useWorkflowActions } from "../useWorkflowActions";
 import { Workflow } from "../../stores/ApiTypes";
 import * as ReactRouterDom from "react-router-dom";
 
-const mockNavigate = jest.fn();
-const mockCreateNew = jest.fn();
-const mockCreate = jest.fn();
-
 const mockCreateNewWorkflow = jest.fn();
 const mockCreateWorkflow = jest.fn();
 
@@ -20,9 +16,10 @@ jest.mock("../../contexts/WorkflowManagerContext", () => ({
   })
 }));
 
-// Get typed access to the mocked function
-type UseNavigateMock = () => jest.Mock;
-const mockUseNavigate = (ReactRouterDom as unknown as { useNavigate: UseNavigateMock }).useNavigate;
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: jest.fn()
+}));
 
 describe("useWorkflowActions", () => {
   const mockNavigate = jest.fn();
@@ -44,7 +41,7 @@ describe("useWorkflowActions", () => {
     mockCreateNewWorkflow.mockResolvedValue(mockWorkflow);
     mockCreateWorkflow.mockResolvedValue(mockWorkflow);
     mockNavigate.mockClear();
-    mockUseNavigate().mockReturnValue(mockNavigate);
+    (ReactRouterDom.useNavigate as jest.Mock).mockReturnValue(mockNavigate);
   });
 
   it("returns loadingExampleId and all handler functions", () => {
@@ -63,7 +60,7 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleCreateNewWorkflow();
 
-      expect(mockCreateNew).toHaveBeenCalled();
+      expect(mockCreateNewWorkflow).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
 
@@ -99,7 +96,6 @@ describe("useWorkflowActions", () => {
 
   describe("handleExampleClick", () => {
     it("sets loading state during workflow creation", async () => {
-      // Make the mock return a promise that we control
       let resolveWorkflow: (workflow: Workflow) => void;
       const workflowPromise = new Promise<Workflow>((resolve) => {
         resolveWorkflow = resolve;
@@ -113,18 +109,15 @@ describe("useWorkflowActions", () => {
         tags: ["example"]
       };
 
-      // Start the click handler
       let clickPromise: Promise<void>;
       act(() => {
         clickPromise = result.current.handleExampleClick(exampleWorkflow);
       });
 
-      // Now the loading state should be set
       await waitFor(() => {
         expect(result.current.loadingExampleId).toBe("test-workflow-123");
       });
 
-      // Resolve the workflow creation
       act(() => {
         resolveWorkflow!(mockWorkflow);
       });
@@ -132,9 +125,6 @@ describe("useWorkflowActions", () => {
       await act(async () => {
         await clickPromise!;
       });
-
-      // Note: The loading state is NOT cleared on success, only on error
-      // This is the expected behavior based on the current implementation
     });
 
     it("creates workflow with example tag added", async () => {
@@ -184,7 +174,7 @@ describe("useWorkflowActions", () => {
     });
 
     it("clears loading state on error", async () => {
-      mockCreate.mockRejectedValueOnce(new Error("Creation failed"));
+      mockCreateWorkflow.mockRejectedValueOnce(new Error("Creation failed"));
       const consoleSpy = jest.spyOn(console, "error").mockImplementation();
       const { result } = renderHook(() => useWorkflowActions());
 
@@ -195,7 +185,6 @@ describe("useWorkflowActions", () => {
     });
 
     it("does nothing if already loading", async () => {
-      // Make the first call take time
       let resolveFirst: (workflow: Workflow) => void;
       const firstPromise = new Promise<Workflow>((resolve) => {
         resolveFirst = resolve;
@@ -206,23 +195,19 @@ describe("useWorkflowActions", () => {
 
       const exampleWorkflow = { ...mockWorkflow };
 
-      // Start first click and wait for loading state to be set
       let clickPromise1: Promise<void>;
       act(() => {
         clickPromise1 = result.current.handleExampleClick(exampleWorkflow);
       });
 
-      // Wait for loading state to be set
       await waitFor(() => {
         expect(result.current.loadingExampleId).toBe("test-workflow-123");
       });
 
-      // Try second click - should be blocked due to loadingExampleId being set
       act(() => {
         result.current.handleExampleClick(exampleWorkflow);
       });
 
-      // Resolve the first call
       act(() => {
         resolveFirst!(mockWorkflow);
       });
@@ -231,7 +216,6 @@ describe("useWorkflowActions", () => {
         await clickPromise1!;
       });
 
-      // Only the first createWorkflow should have been called
       expect(mockCreateWorkflow).toHaveBeenCalledTimes(1);
     });
 
@@ -246,7 +230,7 @@ describe("useWorkflowActions", () => {
 
       await result.current.handleExampleClick(exampleWorkflow);
 
-      expect(mockCreate).toHaveBeenCalled();
+      expect(mockCreateWorkflow).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
 
