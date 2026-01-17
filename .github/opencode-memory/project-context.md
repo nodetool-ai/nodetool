@@ -94,9 +94,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 **Impact**: Large components (684-925 lines) now only re-render when props change, improving editor performance with complex workflows.
 
+### Workspace Explorer UX Improvements (2026-01-17)
+
+**What**: Improved error and empty state messages in workspace explorer with helpful guidance and retry button.
+
+**Files**: WorkspaceSelect.tsx, WorkspacesManager.tsx, WorkspaceTree.tsx
+
+**Impact**: Users now see helpful messages instead of "Failed to load workspaces" and "No files in workspace".
+
 ---
 
-### Performance Optimization: Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 20+ large components (500+ lines each) including Welcome, SettingsMenu, Model3DViewer, WorkflowAssistantChat, GlobalChat, and more.
 
