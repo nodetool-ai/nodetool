@@ -1,4 +1,4 @@
-import React, { useCallback, memo } from "react";
+import React, { useCallback } from "react";
 import { Tooltip, IconButton } from "@mui/material";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
@@ -48,7 +48,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     (state) => state.addNotification
   );
 
-  const handleCopyData = () => {
+  const handleCopyData = useCallback(() => {
     let dataToStringify;
     if (isListTable) {
       dataToStringify = Array.isArray(data) ? data : Object.values(data);
@@ -67,15 +67,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       type: "success",
       alert: true
     });
-  };
+  }, [data, isListTable, writeClipboard, addNotification]);
 
-  const handleAddRow = () => {
+  const handleAddRow = useCallback(() => {
     const shouldTreatAsList = isListTable || !dataframeColumns;
     if (shouldTreatAsList) {
       if (Array.isArray(data)) {
         let defaultValue: any = "";
 
-        // If we have existing data, try to match its type
         if (data.length > 0) {
           const firstItem = data[0];
           if (typeof firstItem === "number") {
@@ -86,7 +85,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             defaultValue = "";
           }
         } else if (dataframeColumns?.[0]?.data_type) {
-          // Use the data_type from columns if available
           switch (dataframeColumns[0].data_type) {
             case "int":
               defaultValue = 0;
@@ -115,7 +113,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         onChangeRows({ ...data, [newKey]: "" });
       }
     }
-  };
+  }, [data, isListTable, dataframeColumns, onChangeRows]);
 
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
@@ -142,7 +140,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     }
   }, [tabulator]);
 
-  const handleDeleteRowsClick = useCallback(() => {
+  const handleDeleteClick = useCallback(() => {
     if (tabulator?.getSelectedRows().length) {
       handleDeleteRows();
     }
@@ -153,7 +151,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   }, [setShowSelect, showSelect]);
 
   const handleToggleRowNumbers = useCallback(() => {
-    setShowRowNumbers?.(!showRowNumbers);
+    if (setShowRowNumbers) {
+      setShowRowNumbers(!showRowNumbers);
+    }
   }, [setShowRowNumbers, showRowNumbers]);
 
   return (
@@ -171,7 +171,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               className={
                 tabulator?.getSelectedRows().length === 0 ? "disabled" : ""
               }
-              onClick={handleDeleteRowsClick}
+              onClick={handleDeleteClick}
             >
               <DeleteIcon sx={{ fontSize: 12 }} />
             </IconButton>
@@ -216,7 +216,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   );
 });
 
-export default TableActions;
+export default React.memo(TableActions);
 
 const defaultRow = (columns: ColumnDef[]) => {
   return columns.reduce((acc, col) => {

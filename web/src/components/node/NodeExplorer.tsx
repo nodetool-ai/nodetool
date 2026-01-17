@@ -264,6 +264,27 @@ const NodeExplorer: React.FC = () => {
     [handleNodeEdit]
   );
 
+  const handleEntryClick = useCallback(
+    (nodeId: string) => () => {
+      handleNodeClick(nodeId);
+    },
+    [handleNodeClick]
+  );
+
+  const handleEntryContextMenu = useCallback(
+    (nodeId: string) => (event: React.MouseEvent) => {
+      handleNodeContextMenu(event, nodeId);
+    },
+    [handleNodeContextMenu]
+  );
+
+  const handleEntryEditClick = useCallback(
+    (nodeId: string) => (event: React.MouseEvent) => {
+      handleNodeEditClick(event, nodeId);
+    },
+    [handleNodeEditClick]
+  );
+
   return (
     <Box className="node-explorer" css={explorerStyles}>
       <div className="explorer-header">
@@ -308,10 +329,8 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeClick(entry.node.id)}
-                onContextMenu={(event) => {
-                  handleNodeContextMenu(event, entry.node.id);
-                }}
+                onClick={handleEntryClick(entry.node.id)}
+                onContextMenu={handleEntryContextMenu(entry.node.id)}
               >
                 <div className="node-text">
                   <Typography className="node-title" variant="body1">
@@ -328,10 +347,7 @@ const NodeExplorer: React.FC = () => {
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleNodeEdit(entry.node.id);
-                }}
+                onClick={handleEntryEditClick(entry.node.id)}
               >
                 <NorthEastIcon fontSize="small" />
               </Button>
