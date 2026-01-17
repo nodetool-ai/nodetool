@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Dashboard Inline Handlers (2026-01-17)
+
+**What**: Memoized inline handlers in BackToDashboardButton, GettingStartedPanel, and ProviderSetupPanel components.
+
+**Files**: BackToDashboardButton.tsx, GettingStartedPanel.tsx, ProviderSetupPanel.tsx
+
+**Impact**: Prevented unnecessary re-renders in dashboard components by replacing inline arrow functions with useCallback hooks.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
