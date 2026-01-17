@@ -10,6 +10,8 @@ Last updated: 2026-01-16
 
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
 
+- **Side-by-Side Version Diff View (Experimental)**: Added toggle in Version History Panel to view two versions side-by-side with mini graph visualizations.
+
 ---
 
 ## Core Application Features
@@ -280,7 +282,7 @@ Last updated: 2026-01-16
 
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
-- **Workflow Versioning UI**: Visual diff and merge for workflow versions
+- **Workflow Versioning UI**: Visual diff and merge for workflow versions (includes Side-by-Side Diff View)
 - **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI

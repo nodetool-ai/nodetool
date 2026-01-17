@@ -19,12 +19,20 @@ export interface NodeChange {
   changes: PropertyChange[];
 }
 
+// export interface EdgeChange {
+//   edgeId: string;
+//   source: string;
+//   target: string;
+//   changes: PropertyChange[];
+// }
+
 export interface GraphDiff {
   addedNodes: Node[];
   removedNodes: Node[];
   modifiedNodes: NodeChange[];
   addedEdges: Edge[];
   removedEdges: Edge[];
+  // modifiedEdges: EdgeChange[];
   hasChanges: boolean;
 }
 
@@ -189,12 +197,16 @@ export const computeGraphDiff = (
     }
   }
 
+  // Find modified edges (disabled - requires EdgeChange interface)
+  const modifiedEdges = [];
+
   const hasChanges =
     addedNodes.length > 0 ||
     removedNodes.length > 0 ||
     modifiedNodes.length > 0 ||
     addedEdges.length > 0 ||
-    removedEdges.length > 0;
+    removedEdges.length > 0 ||
+    modifiedEdges.length > 0;
 
   return {
     addedNodes,
