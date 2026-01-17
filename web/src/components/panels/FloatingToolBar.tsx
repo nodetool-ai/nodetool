@@ -199,6 +199,22 @@ const styles = (theme: Theme) =>
       }
     },
 
+    ".floating-action-button.node-menu-attention": {
+      animation: "node-menu-attention 2.4s ease-in-out infinite",
+      "&:hover": {
+        animation: "none",
+        backgroundColor: theme.vars.palette.info.main,
+        color: theme.vars.palette.info.contrastText,
+        boxShadow: `0 6px 16px rgba(0,0,0,.35), 0 0 20px ${theme.vars.palette.info.main}25`
+      },
+      "@media (prefers-reduced-motion: reduce)": {
+        animation: "none",
+        backgroundColor: theme.vars.palette.info.main,
+        color: theme.vars.palette.info.contrastText,
+        boxShadow: `0 4px 12px ${theme.vars.palette.info.main}30`
+      }
+    },
+
     /* Mini app button: vibrant inviting color */
     ".floating-action-button.mini-app": {
       backgroundColor: "info.main",
@@ -237,6 +253,18 @@ const styles = (theme: Theme) =>
       "0%": { transform: "scale(1)" },
       "50%": { transform: "scale(1.1)" },
       "100%": { transform: "scale(1)" }
+    },
+    "@keyframes node-menu-attention": {
+      "0%, 100%": {
+        backgroundColor: "transparent",
+        color: theme.vars.palette.grey[400],
+        boxShadow: "none"
+      },
+      "50%": {
+        backgroundColor: theme.vars.palette.info.main,
+        color: theme.vars.palette.info.contrastText,
+        boxShadow: `0 0 16px ${theme.vars.palette.info.main}40`
+      }
     },
 
     ".minimap-active": {
@@ -420,6 +448,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     }
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
 
+  const isEmptyWorkflow = nodes.length === 0 && edges.length === 0;
+  const shouldHighlightNodeMenu =
+    isEmptyWorkflow && workflow?.name === "New Workflow";
+
   const handleOpenPaneMenu = useCallback(() => {
     setPaneMenuOpen(true);
   }, []);
@@ -506,7 +538,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           icon={<AddCircleIcon />}
           tooltip="Add Node"
           shortcut="openNodeMenu"
-          variant="secondary"
+          variant={shouldHighlightNodeMenu ? "neutral" : "secondary"}
+          className={cn(
+            !shouldHighlightNodeMenu && "node-menu",
+            shouldHighlightNodeMenu && "node-menu-attention"
+          )}
           onClick={handleToggleNodeMenu}
           aria-label="Add node"
         />

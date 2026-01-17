@@ -83,3 +83,10 @@ export const useVideoProviders = () => {
   return useProvidersByCapability("text_to_video");
 };
 
+/**
+ * Get providers that support embeddings.
+ */
+export const useEmbeddingProviders = () => {
+  return useProvidersByCapability("generate_embedding");
+};
+

@@ -140,10 +140,10 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#000"
   },
   info: {
-    main: "#60A5FA",
-    light: "#93C5FD",
-    dark: "#1D4ED8",
-    contrastText: "#0B1220"
+    main: "#22D3EE",
+    light: "#67E8F9",
+    dark: "#0891B2",
+    contrastText: "#03181D"
   },
   success: {
     main: "#50FA7B",
@@ -209,10 +209,10 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#fff"
   },
   secondary: {
-    main: "#8B5CF6", // More vibrant Violet
-    light: "#A78BFA",
-    dark: "#7C3AED",
-    contrastText: "#fff"
+    main: "#E879F9",
+    light: "#F5D0FE",
+    dark: "#C026D3",
+    contrastText: "#0B1220"
   },
   background: {
     default: "#2e2d2d",
