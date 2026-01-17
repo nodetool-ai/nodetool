@@ -28,6 +28,41 @@ import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 
+/**
+ * Hook that registers and manages all keyboard shortcuts for the node editor.
+ * Provides comprehensive keyboard-based workflow editing including:
+ * - Clipboard operations (copy, cut, paste)
+ * - Node manipulation (delete, duplicate, align, group)
+ * - View navigation (zoom, pan, fit view)
+ * - Workflow operations (save, close, create new)
+ * - Node search and selection
+ * 
+ * Shortcuts are registered with KeyPressedStore and respond to configurable
+ * keyboard combinations defined in NODE_EDITOR_SHORTCUTS config.
+ * 
+ * @param active - Whether the hook should register shortcuts (false when editor not active)
+ * @param onShowShortcuts - Optional callback to show keyboard shortcuts help dialog
+ * 
+ * @example
+ * ```typescript
+ * // Enable shortcuts in active editor
+ * useNodeEditorShortcuts(true);
+ * 
+ * // With shortcuts dialog
+ * useNodeEditorShortcuts(true, () => setShowShortcuts(true));
+ * ```
+ * 
+ * @example
+ * **Common Shortcuts**:
+ * - `Ctrl+C` / `Cmd+C` - Copy selected nodes
+ * - `Ctrl+V` / `Cmd+V` - Paste nodes
+ * - `Ctrl+S` / `Cmd+S` - Save workflow
+ * - `Ctrl+A` / `Cmd+A` - Select all nodes
+ * - `Ctrl+F` / `Cmd+F` - Find in workflow
+ * - `Ctrl+/-` - Zoom in/out
+ * - `Delete/Backspace` - Delete selected nodes
+ * - `Alt+Arrows` - Focus navigation
+ */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
 export const useNodeEditorShortcuts = (
