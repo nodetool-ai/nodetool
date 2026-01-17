@@ -44,6 +44,7 @@ Last updated: 2026-01-16
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Node Validation Warnings**: Visual warning indicators on nodes when required inputs are not connected or required properties are not set
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

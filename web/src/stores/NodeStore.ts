@@ -51,6 +51,7 @@ import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
+import useValidationStore, { NodeWarning } from "./ValidationStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
 import {
   graphEdgeToReactFlowEdge
@@ -208,6 +209,7 @@ export interface NodeStoreState {
   toggleBypass: (nodeId: string) => void;
   setBypass: (nodeId: string, bypassed: boolean) => void;
   toggleBypassSelected: () => void;
+  runValidation: () => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -905,6 +907,7 @@ export const createNodeStore = (
               set({ nodes: nodesOrCallback });
             }
             get().setWorkflowDirty(true);
+            get().runValidation();
           },
           setEdges: (edges: Edge[]): void => {
             const metadata = useMetadataStore.getState().metadata;
@@ -923,6 +926,7 @@ export const createNodeStore = (
             }
 
             get().setWorkflowDirty(true);
+            get().runValidation();
           },
           validateConnection: (
             connection: Connection,
@@ -1121,6 +1125,67 @@ export const createNodeStore = (
               )
             }));
             get().setWorkflowDirty(true);
+          },
+          runValidation: (): void => {
+            const workflow = get().workflow;
+            const nodes = get().nodes;
+            const edges = get().edges;
+            const metadata = useMetadataStore.getState().metadata;
+
+            if (!workflow?.id || Object.keys(metadata).length === 0) {
+              return;
+            }
+
+            for (const node of nodes) {
+              if (!node.type) {
+                useValidationStore.getState().setWarnings(workflow.id, node.id, []);
+                continue;
+              }
+              const nodeMetadata = metadata[node.type];
+              if (!nodeMetadata) {
+                useValidationStore.getState().setWarnings(workflow.id, node.id, []);
+                continue;
+              }
+
+              const warnings: NodeWarning[] = [];
+
+              if (nodeMetadata.properties) {
+                for (const property of nodeMetadata.properties) {
+                  const isInputConnected = edges.some(
+                    (edge) => edge.target === node.id && edge.targetHandle === property.name
+                  );
+
+                  const isOptional = property.type.optional === true;
+                  if (!isInputConnected && !isOptional) {
+                    warnings.push({
+                      nodeId: node.id,
+                      type: "missing_input",
+                      message: `Required input "${property.name}" is not connected`,
+                      handle: property.name
+                    });
+                  }
+
+                  const isConstantNode = property.type.type.startsWith("nodetool.constant");
+                  if (!isConstantNode && !isInputConnected) {
+                    const nodeData = node.data;
+                    const value =
+                      nodeData.dynamic_properties?.[property.name] ?? nodeData.properties?.[property.name];
+                    const hasValue = value !== undefined && value !== null && value !== "";
+
+                    if (!hasValue) {
+                      warnings.push({
+                        nodeId: node.id,
+                        type: "missing_property",
+                        message: `Required property "${property.name}" is not set`,
+                        property: property.name
+                      });
+                    }
+                  }
+                }
+              }
+
+              useValidationStore.getState().setWarnings(workflow.id, node.id, warnings);
+            }
           },
           cleanup: () => {
             if (unsubscribeMetadata) {
