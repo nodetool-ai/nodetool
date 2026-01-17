@@ -74,6 +74,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### TypeScript Type Improvements (2026-01-17)
+
+**What**: Improved TypeScript types in StatusStore and ErrorStore. Removed debug console statements from NodeMenuStore. Fixed unused variables in test files.
+
+**Files**: StatusStore.ts, ErrorStore.ts, NodeMenuStore.ts, NodeToolsSelector.test.tsx, and related components
+
+**Impact**: Better type safety while maintaining flexibility for complex objects. Removed debug logging from production code.
+
+---
+
 ### Performance Optimization: Inline Arrow Functions (2026-01-17)
 
 **What**: Extended inline handler memoization to 10+ additional components including color pickers, dashboard, context menus, and mini apps.

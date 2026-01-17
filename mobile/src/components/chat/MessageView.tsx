@@ -73,17 +73,10 @@ function hasMediaContent(content: Message['content']): boolean {
 }
 
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
-  // Return null for system and tool messages as they should not be displayed
-  if (message.role === 'system' || message.role === 'tool') {
-    return null;
-  }
-
+  // All hooks must be called before any early returns
   const isUser = message.role === 'user';
   const { mode } = useTheme();
-  const contentItems = getContentItems(message.content);
-  const textContent = getTextContent(message.content);
-  const hasMedia = hasMediaContent(message.content);
-
+  
   /**
    * Render text content (used as callback for MessageContentRenderer)
    */
@@ -95,6 +88,15 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
     }
     return <ChatMarkdown key={index} content={text} />;
   }, [isUser]);
+
+  // Return null for system and tool messages as they should not be displayed
+  if (message.role === 'system' || message.role === 'tool') {
+    return null;
+  }
+
+  const contentItems = getContentItems(message.content);
+  const textContent = getTextContent(message.content);
+  const hasMedia = hasMediaContent(message.content);
 
   /**
    * Render simple text-only message

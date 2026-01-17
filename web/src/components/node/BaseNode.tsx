@@ -256,7 +256,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [type]
   );
   // Status
-  const status = useStatusStore((state) => state.getStatus(workflow_id, id));
+  const statusValue = useStatusStore((state) => state.getStatus(workflow_id, id));
+  const status = statusValue && statusValue !== null && typeof statusValue !== 'object' ? statusValue : undefined;
   const isLoading = useMemo(
     () => status === "running" || status === "starting" || status === "booting",
     [status]

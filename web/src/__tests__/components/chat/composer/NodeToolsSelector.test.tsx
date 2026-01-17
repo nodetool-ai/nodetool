@@ -128,11 +128,7 @@ jest.mock("../../../../components/node_menu/RenderNodesSelectable", () => ({
   __esModule: true,
   default: ({
     nodes,
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-    selectedNodeTypes,
-    onToggleSelection,
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onSetSelection
+    onToggleSelection
   }: any) => (
     <div data-testid="render-nodes-selectable">
       {nodes.map((node: any) => (
@@ -220,11 +216,6 @@ describe("NodeToolsSelector", () => {
   const baseProps = {
     value: [],
     onChange: mockOnChange
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const mockMetadataStore = {
-    metadata: mockNodeMetadata
   };
 
   beforeEach(() => {

@@ -301,12 +301,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
        * @param searchId - Optional ID to cancel outdated searches
        */
       performSearch: (term: string, searchId?: number) => {
-        console.debug("[NodeMenuStore] performSearch", {
-          term,
-          searchId,
-          isMenuOpen: get().isMenuOpen,
-          selectedPath: get().selectedPath
-        });
         // Check against the local pendingSearchId to detect stale requests
         // Note: searchId comes from scheduleSearch which uses pendingSearchId
         if (searchId !== undefined && searchId !== pendingSearchId) {
@@ -405,10 +399,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         set({ highlightedNamespaces: [...newHighlightedNamespaces] });
       },
       closeNodeMenu: () => {
-        console.debug("[NodeMenuStore] closeNodeMenu executing", {
-          isOpen: get().isMenuOpen
-        });
-        console.trace("[NodeMenuStore] closeNodeMenu trace");
         if (get().isMenuOpen) {
           if (get().dragToCreate) {
             set({ dragToCreate: false });
@@ -434,7 +424,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         }
       },
       openNodeMenu: (params: OpenNodeMenuParams) => {
-        console.debug("[NodeMenuStore] openNodeMenu called", params);
         set({ clickPosition: { x: params.x, y: params.y } });
         const { menuWidth, menuHeight } = get();
 
@@ -523,11 +512,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           menuWidth: 950,
           menuHeight: 900
         });
-
-        // debug: after state set
-        setTimeout(() => {
-          console.debug("[NodeMenuStore] openNodeMenu state", get().isMenuOpen);
-        }, 0);
 
         // Perform search when opening if needed
         if (shouldSearchOnOpen) {
