@@ -2,8 +2,33 @@ import { useCallback, useRef, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 
-/** pans to a node when focused via tab navigation */
-
+/**
+ * Hook for keyboard-focused node panning in the workflow editor.
+ * 
+ * Pans the viewport to center a specific node when that node receives focus
+ * via keyboard navigation (Tab key). This ensures the focused node is always
+ * visible in the viewport when navigating through the workflow using keyboard.
+ * 
+ * @param nodeId - The ID of the node to pan to when focused
+ * @returns Callback function to be attached to the node's onFocus event
+ * 
+ * @example
+ * ```typescript
+ * const handleFocus = useFocusPan('node-123');
+ * 
+ * return (
+ *   <BaseNode 
+ *     id="node-123"
+ *     onFocus={handleFocus}
+ *   />
+ * );
+ * ```
+ * 
+ * @remarks
+ * This hook integrates with the keyboard navigation system by tracking Tab key
+ * presses. The pan animation only triggers when focus is achieved via keyboard,
+ * not when clicked. The animation duration is 200ms for a smooth transition.
+ */
 export const useFocusPan = (nodeId: string) => {
   const wasTabPressedRef = useRef(false);
   const findNode = useNodes((state) => state.findNode);
