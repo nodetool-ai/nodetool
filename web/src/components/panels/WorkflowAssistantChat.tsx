@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
 import ChatView from "../chat/containers/ChatView";
 
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -651,4 +651,4 @@ const WorkflowAssistantChat: React.FC = () => {
   );
 };
 
-export default WorkflowAssistantChat;
+export default memo(WorkflowAssistantChat);

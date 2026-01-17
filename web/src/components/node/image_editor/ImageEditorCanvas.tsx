@@ -6,7 +6,8 @@ import React, {
   useCallback,
   useState,
   forwardRef,
-  useImperativeHandle
+  useImperativeHandle,
+  memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -566,4 +567,4 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
 
 ImageEditorCanvas.displayName = "ImageEditorCanvas";
 
-export default ImageEditorCanvas;
+export default memo(ImageEditorCanvas);

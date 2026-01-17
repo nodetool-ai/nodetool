@@ -21,7 +21,7 @@ import {
   FormControlLabel,
   Checkbox
 } from "@mui/material";
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, memo } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -676,4 +676,4 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
   );
 };
 
-export default WorkspacesManager;
+export default memo(WorkspacesManager);
