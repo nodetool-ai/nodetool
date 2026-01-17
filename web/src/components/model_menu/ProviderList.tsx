@@ -108,7 +108,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
 
   const handleMenuOpen = useCallback((e: React.MouseEvent, p: string) => {
     e.preventDefault();
-    setMenuAnchor(e.currentTarget);
+    setMenuAnchor(e.currentTarget as HTMLElement);
     setMenuProvider(p);
   }, []);
 

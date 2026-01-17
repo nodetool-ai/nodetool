@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFitView, getNodesBounds } from "../useFitView";
 import { Node, Position, XYPosition } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
+import { NodeData } from "../../stores/NodeData";
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({

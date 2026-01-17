@@ -1,4 +1,4 @@
-import { UnifiedModel } from "../stores/ApiTypes";
+import { UnifiedModel } from "../../stores/ApiTypes";
 import {
   isHfModel,
   canCheckHfCache,
@@ -77,7 +77,7 @@ describe("hfCache", () => {
     });
 
     it("returns false when repo_id and id are both null", () => {
-      const model = createMockModel({ repo_id: null, id: null });
+      const model = createMockModel({ type: "local", path: null, repo_id: null, id: undefined as unknown as string });
       expect(canCheckHfCache(model)).toBe(false);
     });
   });
@@ -129,7 +129,7 @@ describe("hfCache", () => {
     });
 
     it("returns null when repo_id and id are both null", () => {
-      const model = createMockModel({ repo_id: null, id: null });
+      const model = createMockModel({ type: "local", path: null, repo_id: null, id: undefined as unknown as string });
       const result = buildHfCacheRequest(model);
       expect(result).toBeNull();
     });

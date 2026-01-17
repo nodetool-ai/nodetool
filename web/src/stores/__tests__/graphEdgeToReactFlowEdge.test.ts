@@ -72,7 +72,9 @@ describe("graphEdgeToReactFlowEdge", () => {
       const graphEdge: GraphEdge = {
         id: "edge-1",
         source: "node-1",
+        sourceHandle: "output",
         target: "node-2",
+        targetHandle: "input",
         ui_properties: { className: "custom-edge" }
       };
 
@@ -85,7 +87,9 @@ describe("graphEdgeToReactFlowEdge", () => {
       const graphEdge: GraphEdge = {
         id: "edge-1",
         source: "node-1",
-        target: "node-2"
+        sourceHandle: "output",
+        target: "node-2",
+        targetHandle: "input"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -97,7 +101,9 @@ describe("graphEdgeToReactFlowEdge", () => {
       const graphEdge: GraphEdge = {
         id: "edge-1",
         source: "node-1",
+        sourceHandle: "output",
         target: "node-2",
+        targetHandle: "input",
         ui_properties: { otherProperty: "value" }
       };
 
@@ -112,9 +118,9 @@ describe("graphEdgeToReactFlowEdge", () => {
       const graphEdge: GraphEdge = {
         id: "edge-1",
         source: "node-1",
-        sourceHandle: undefined,
+        sourceHandle: undefined as unknown as string,
         target: "node-2",
-        targetHandle: undefined
+        targetHandle: undefined as unknown as string
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);

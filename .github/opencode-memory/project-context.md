@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### TypeScript Type Errors Fix (2026-01-17)
+
+**What**: Fixed 15+ TypeScript errors including wrong import paths, missing type properties, and type assertion issues across 8 files.
+
+**Files**: useAlignNodes.test.ts, useFitView.test.ts, hfCache.test.ts, NodeFocusStore.test.ts, ResultsStore.test.ts, graphEdgeToReactFlowEdge.test.ts, ProviderList.tsx, ResultsStore.ts
+
+---
+
 ### Performance Optimization: Inline Arrow Functions (2026-01-17)
 
 **What**: Memoized 20+ inline arrow functions across 6 components using useCallback to prevent unnecessary re-renders.

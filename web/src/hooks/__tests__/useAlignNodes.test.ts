@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import useAlignNodes from "../useAlignNodes";
 import { Node, Position } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
+import { NodeData } from "../../stores/NodeData";
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({

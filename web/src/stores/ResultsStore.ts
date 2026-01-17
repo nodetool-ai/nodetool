@@ -69,7 +69,8 @@ type ResultsStore = {
     workflowId: string,
     nodeId: string,
     progress: number,
-    total: number
+    total: number,
+    chunk?: string
   ) => void;
   getProgress: (
     workflowId: string,
