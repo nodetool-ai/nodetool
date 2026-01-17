@@ -285,8 +285,6 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto("/dashboard");
         await page.waitForLoadState("networkidle");
 
-        const initialUrl = page.url();
-
         // Try browser back shortcut - should be handled by app
         await page.keyboard.press("Alt+ArrowLeft");
         await page.waitForTimeout(300);
@@ -413,9 +411,8 @@ if (process.env.JEST_WORKER_ID) {
           const canvas = page.locator(".react-flow");
           await canvas.click();
 
-          // Get initial viewport state
-          const viewport = page.locator(".react-flow__viewport");
-          const initialStyle = await viewport.getAttribute("style");
+          // Get viewport element
+          const _viewport = page.locator(".react-flow__viewport");
 
           // Zoom in
           await page.keyboard.press("Meta+=");

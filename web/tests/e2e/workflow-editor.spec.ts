@@ -151,9 +151,6 @@ if (process.env.JEST_WORKER_ID) {
           const viewport = page.locator(".react-flow__viewport");
           await expect(viewport).toBeVisible();
 
-          // Get initial transform
-          const initialTransform = await viewport.getAttribute("style");
-
           // Pan by dragging on the background
           const canvasBounds = await canvas.boundingBox();
           if (canvasBounds) {

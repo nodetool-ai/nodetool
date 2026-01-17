@@ -13,7 +13,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Look for settings icon or button
-        const settingsButton = page.locator(
+        const _settingsButton = page.locator(
           'button[aria-label*="settings" i], button[aria-label*="Settings" i], [data-testid="settings-button"], button:has(svg[data-testid="SettingsIcon"])'
         );
 
@@ -28,7 +28,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Look for common settings indicators in the UI
-        const settingsElements = page.locator(
+        const _settingsElements = page.locator(
           '[class*="settings" i], [id*="settings" i]'
         );
 
@@ -45,10 +45,10 @@ if (process.env.JEST_WORKER_ID) {
 
         // Check if the page has dark mode classes or styles
         const body = page.locator("body");
-        const bodyClasses = await body.getAttribute("class");
+        const _bodyClasses = await body.getAttribute("class");
         const htmlElement = page.locator("html");
-        const htmlDataTheme = await htmlElement.getAttribute("data-theme");
-        const htmlColorScheme = await htmlElement.getAttribute("data-color-scheme");
+        const _htmlDataTheme = await htmlElement.getAttribute("data-theme");
+        const _htmlColorScheme = await htmlElement.getAttribute("data-color-scheme");
 
         // The app should have some theme indication
         // This could be via class, data attribute, or CSS variables
@@ -60,7 +60,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Check localStorage for theme settings
-        const themeSettings = await page.evaluate(() => {
+        const _themeSettings = await page.evaluate(() => {
           const settings = localStorage.getItem("settings");
           return settings ? JSON.parse(settings) : null;
         });
@@ -99,7 +99,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Get current localStorage
-        const beforeReload = await page.evaluate(() => {
+        const _beforeReload = await page.evaluate(() => {
           return JSON.stringify(localStorage);
         });
 
@@ -108,7 +108,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Get localStorage after reload
-        const afterReload = await page.evaluate(() => {
+        const _afterReload = await page.evaluate(() => {
           return JSON.stringify(localStorage);
         });
 
@@ -124,7 +124,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Check for layout storage
-        const layoutData = await page.evaluate(() => {
+        const _layoutData = await page.evaluate(() => {
           // Common layout storage keys
           const layoutKeys = [
             "dockview-layout",
@@ -156,7 +156,7 @@ if (process.env.JEST_WORKER_ID) {
         );
 
         // If resize handles exist, the panels are resizable
-        const handleCount = await resizeHandles.count();
+        const _handleCount = await resizeHandles.count();
 
         // Page should be functional
         const body = page.locator("body");
@@ -190,7 +190,7 @@ if (process.env.JEST_WORKER_ID) {
           const viewport = page.locator(".react-flow__viewport");
 
           // Get initial transform
-          const initialTransform = await viewport.getAttribute("style");
+          const _initialTransform = await viewport.getAttribute("style");
 
           // Pan using mouse
           const canvasBounds = await canvas.boundingBox();
@@ -219,7 +219,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Check for model selection in localStorage
-        const selectedModel = await page.evaluate(() => {
+        const _selectedModel = await page.evaluate(() => {
           return localStorage.getItem("selectedModel");
         });
 
@@ -236,7 +236,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Look for model selector or indicator
-        const modelSelectors = page.locator(
+        const _modelSelectors = page.locator(
           '[class*="model" i], select, [role="combobox"]'
         );
 
@@ -252,7 +252,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Look for API key or provider settings
-        const apiKeyElements = page.locator(
+        const _apiKeyElements = page.locator(
           '[class*="api-key" i], [class*="provider" i], [class*="secrets" i]'
         );
 
@@ -269,7 +269,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Check for workflow order settings
-        const workflowOrder = await page.evaluate(() => {
+        const _workflowOrder = await page.evaluate(() => {
           const settings = localStorage.getItem("settings");
           if (settings) {
             try {
@@ -289,7 +289,7 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should remember open workflows", async ({ page }) => {
         // Check for open workflows persistence
-        const openWorkflows = await page.evaluate(() => {
+        const _openWorkflows = await page.evaluate(() => {
           return localStorage.getItem("openWorkflows");
         });
 
@@ -304,7 +304,7 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should remember current workflow", async ({ page }) => {
         // Check for current workflow persistence
-        const currentWorkflow = await page.evaluate(() => {
+        const _currentWorkflow = await page.evaluate(() => {
           return localStorage.getItem("currentWorkflowId");
         });
 
@@ -324,7 +324,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Look for agent mode toggle or indicator
-        const agentModeElements = page.locator(
+        const _agentModeElements = page.locator(
           '[class*="agent" i], input[type="checkbox"], [role="switch"]'
         );
 
@@ -339,7 +339,7 @@ if (process.env.JEST_WORKER_ID) {
         await page.waitForLoadState("networkidle");
 
         // Look for tool selection elements
-        const toolElements = page.locator(
+        const _toolElements = page.locator(
           '[class*="tool" i], [class*="selector" i]'
         );
 

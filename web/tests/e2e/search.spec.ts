@@ -83,11 +83,6 @@ if (process.env.JEST_WORKER_ID) {
         await page.goto("/assets");
         await page.waitForLoadState("networkidle");
 
-        // Look for search input on assets page
-        const searchInput = page.locator(
-          'input[type="text"], input[role="searchbox"], [data-testid="search-input-field"]'
-        );
-
         // Page should load successfully
         await expect(page).toHaveURL(/\/assets/);
 
