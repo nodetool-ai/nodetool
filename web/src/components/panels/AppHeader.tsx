@@ -9,6 +9,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import EditIcon from "@mui/icons-material/Edit";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -189,6 +190,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
   // Determine active mode - only modes are active, not other routes
   const isEditorActive = currentPath.startsWith("/editor");
   const isChatActive = currentPath.startsWith("/chat");
+  const isAppActive = currentPath.startsWith("/apps");
 
   const handleEditorClick = useCallback(async () => {
     if (currentWorkflowId) {
@@ -218,6 +220,12 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
     }
   }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
 
+  const handleAppClick = useCallback(() => {
+    if (currentWorkflowId) {
+      navigate(`/apps/${currentWorkflowId}`);
+    }
+  }, [navigate, currentWorkflowId]);
+
   return (
     <div className="mode-pills">
       <Tooltip title="Editor" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
@@ -240,6 +248,19 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
         >
           <IconForType iconName="message" showTooltip={false} />
           <span>Chat</span>
+        </button>
+      </Tooltip>
+      <Tooltip title={currentWorkflowId ? "Run as App" : "Open a workflow first"} enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+        <button
+          className={`mode-pill ${isAppActive ? "active" : ""}`}
+          onClick={handleAppClick}
+          tabIndex={-1}
+          aria-current={isAppActive ? "page" : undefined}
+          disabled={!currentWorkflowId}
+          style={{ opacity: currentWorkflowId ? 1 : 0.5 }}
+        >
+          <RocketLaunchIcon />
+          <span>App</span>
         </button>
       </Tooltip>
     </div>
