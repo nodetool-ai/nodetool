@@ -82,6 +82,13 @@ describe("imageUtils", () => {
       expect(result.blobUrl).toBeNull();
     });
 
+    it("handles relative URL path (API storage)", () => {
+      const source: ImageData = "/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg";
+      const result = createImageUrl(source, null);
+      expect(result.url).toBe("/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg");
+      expect(result.blobUrl).toBeNull();
+    });
+
     it("converts plain base64 string to data URI", () => {
       const source: ImageData = "abc123";
       const result = createImageUrl(source, null);
