@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Node Comments Feature (2026-01-17)
+
+**What**: Added ability to add custom comments/annotations to nodes for workflow documentation, with 'C' keyboard shortcut.
+
+**Files**: NodeData.ts, NodeComment.tsx, NodeHeader.tsx, BaseNode.tsx, shortcuts.ts, useNodeEditorShortcuts.ts, NodeComment.test.tsx
+
+---
+
 ### Performance Optimization: Large Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.

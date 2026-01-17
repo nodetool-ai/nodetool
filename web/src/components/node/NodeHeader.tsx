@@ -11,6 +11,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip, Button } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined } from "@mui/icons-material";
+import CommentIcon from "@mui/icons-material/Comment";
 import { NodeLogsDialog } from "./NodeLogs";
 
 export interface NodeHeaderProps {
@@ -30,6 +31,9 @@ export interface NodeHeaderProps {
   showInputsButton?: boolean;
   onShowResults?: () => void;
   onShowInputs?: () => void;
+  // Comment indicator props
+  hasComment?: boolean;
+  onToggleComment?: () => void;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -46,7 +50,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showResultButton = false,
   showInputsButton = false,
   onShowResults,
-  onShowInputs
+  onShowInputs,
+  hasComment = false,
+  onToggleComment
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
@@ -270,6 +276,36 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           >
             Show Inputs
           </Button>
+        )}
+        {/* Comment indicator */}
+        {selected && (
+          <Tooltip title={hasComment ? "Edit comment (C)" : "Add comment (C)"} arrow>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleComment?.();
+              }}
+              sx={{
+                padding: "4px",
+                color: hasComment
+                  ? "var(--palette-primary-main)"
+                  : "var(--palette-text-secondary)",
+                "&:hover": {
+                  color: "var(--palette-primary-main)",
+                  backgroundColor: "rgba(255, 255, 255, 0.08)"
+                }
+              }}
+            >
+              <Badge
+                variant="dot"
+                color="primary"
+                invisible={!hasComment}
+              >
+                <CommentIcon sx={{ fontSize: "1rem" }} />
+              </Badge>
+            </IconButton>
+          </Tooltip>
         )}
       </div>
 
