@@ -1,6 +1,34 @@
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../contexts/NodeContext";
 
+/**
+ * Hook to select all nodes connected to the currently selected nodes.
+ * 
+ * Traverses the workflow graph to find nodes connected (upstream/downstream)
+ * to the currently selected nodes. Supports selecting upstream dependencies,
+ * downstream consumers, or both directions.
+ * 
+ * @param options - Configuration options
+ * @param options.direction - Which direction to traverse: "upstream", "downstream", or "both" (default)
+ * @returns Object containing:
+ *   - selectConnected: Function to select all connected nodes
+ *   - getConnectedNodeIds: Function to get IDs of connected nodes
+ *   - connectedNodeCount: Number of connected nodes
+ * 
+ * @example
+ * ```typescript
+ * const { selectConnected, connectedNodeCount } = useSelectConnected({
+ *   direction: "upstream"  // Only select dependencies
+ * });
+ * 
+ * // Select all connected nodes
+ * selectConnected();
+ * 
+ * // Check how many nodes would be selected
+ * console.log(`${connectedNodeCount} nodes will be selected`);
+ * ```
+ */
+
 type Direction = "upstream" | "downstream" | "both";
 
 interface UseSelectConnectedOptions {

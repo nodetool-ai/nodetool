@@ -2,7 +2,32 @@ import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
 
-// Define a type for the expected error structure from the API
+/**
+ * Hook to handle drag-and-drop operations for asset collections.
+ * 
+ * Manages file uploads to collections with progress tracking and error handling.
+ * Files are processed individually and the hook tracks progress, errors, and
+ * drag state for UI feedback.
+ * 
+ * @returns Object containing:
+ *   - dragOverCollection: ID of the collection currently being dragged over, or null
+ *   - indexProgress: Progress object with current/total files being indexed, or null
+ *   - indexErrors: Array of errors encountered during indexing
+ *   - setIndexErrors: Function to clear errors
+ *   - handleDrop: Curried function to handle file drop into a collection
+ *   - handleDragOver: Function to handle drag over events
+ *   - handleDragLeave: Function to handle drag leave events
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   dragOverCollection, 
+ *   indexProgress, 
+ *   handleDrop,
+ *   handleDragOver 
+ * } = useCollectionDragAndDrop();
+ * ```
+ */
 interface ApiErrorDetail {
   loc: string[];
   msg: string;

@@ -2,6 +2,31 @@ import { useQuery } from "@tanstack/react-query";
 import { BASE_URL } from "../stores/BASE_URL";
 import type { ImageModel, LanguageModel, TTSModel, ASRModel, UnifiedModel } from "../stores/ApiTypes";
 
+/**
+ * Hook to fetch recommended models for a specific task type.
+ * 
+ * Retrieves curated model recommendations from the backend API for different
+ * AI task types. Results are cached for 5 minutes to reduce API calls.
+ * 
+ * @param task - The type of AI task: "image", "language", "tts", or "asr"
+ * @returns Query result containing an array of recommended models for the task
+ * 
+ * @example
+ * ```typescript
+ * const { data: imageModels, isLoading } = useRecommendedTaskModels("image");
+ * 
+ * if (isLoading) return <Loading />;
+ * 
+ * return (
+ *   <select>
+ *     {imageModels?.map(model => (
+ *       <option key={model.id} value={model.id}>{model.name}</option>
+ *     ))}
+ *   </select>
+ * );
+ * ```
+ */
+
 type TaskType = "image" | "language" | "tts" | "asr";
 
 const inferProvider = (m: UnifiedModel): string => {

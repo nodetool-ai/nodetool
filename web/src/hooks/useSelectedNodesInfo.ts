@@ -7,6 +7,36 @@ import useMetadataStore from "../stores/MetadataStore";
 import useResultsStore from "../stores/ResultsStore";
 import useErrorStore from "../stores/ErrorStore";
 
+/**
+ * Hook to get detailed information about selected nodes.
+ * 
+ * Collects comprehensive metadata about currently selected nodes including
+ * display names, connection counts, execution status, and error states.
+ * Used by the Node Info Panel to display selected node details.
+ * 
+ * @returns Object containing:
+ *   - nodesInfo: Array of SelectedNodeInfo objects for each selected node
+ *   - totalSelected: Number of currently selected nodes
+ *   - hasSingleNode: Whether exactly one node is selected
+ *   - hasMultipleNodes: Whether more than one node is selected
+ * 
+ * @example
+ * ```typescript
+ * const { nodesInfo, totalSelected, hasSingleNode } = useSelectedNodesInfo();
+ * 
+ * if (totalSelected === 0) return <p>No nodes selected</p>;
+ * 
+ * return (
+ *   <div>
+ *     <h3>{hasSingleNode ? "Node Details" : `${totalSelected} Nodes Selected`}</h3>
+ *     {nodesInfo.map(info => (
+ *       <NodeInfoCard key={info.id} info={info} />
+ *     ))}
+ *   </div>
+ * );
+ * ```
+ */
+
 interface NodeConnectionInfo {
   totalInputs: number;
   connectedInputs: number;
