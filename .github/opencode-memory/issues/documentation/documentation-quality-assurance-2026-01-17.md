@@ -1,8 +1,8 @@
 ### Documentation Quality Assurance & Hook JSDoc Improvements (2026-01-17)
 
-**Audit Scope**: Comprehensive review of NodeTool documentation including core files, AGENTS.md guides, README files, and memory documentation. Added JSDoc documentation to frequently-used hooks.
+**Audit Scope**: Comprehensive review of NodeTool documentation including core files, AGENTS.md guides, README files, package.json scripts, Makefile commands, and memory documentation. Added JSDoc documentation to frequently-used hooks.
 
-**Summary**: Documentation quality is EXCELLENT. All verified files are accurate, complete, and well-maintained. Added JSDoc to 3 frequently-used hooks that previously lacked documentation.
+**Summary**: Documentation quality is EXCELLENT with one minor inconsistency FIXED. All verified files are accurate, complete, and well-maintained.
 
 ---
 
@@ -15,7 +15,7 @@
 - `/web/src/AGENTS.md` - React application structure ✅ ACCURATE
 - `/docs/AGENTS.md` - Jekyll documentation guide ✅ ACCURATE
 
-**Package Documentation (3 files)**:
+**Package Documentation (4 files)**:
 - `/mobile/README.md` - Mobile app setup ✅ ACCURATE
 - `/mobile/QUICKSTART.md` - Quick start guide ✅ ACCURATE
 - `/mobile/ARCHITECTURE.md` - Mobile app architecture ✅ ACCURATE
@@ -24,9 +24,12 @@
 **Testing Documentation (1 file)**:
 - `/web/TESTING.md` - Comprehensive testing guide ✅ ACCURATE
 
-**Specialized AGENTS.md Files (8 files)**:
+**Specialized AGENTS.md Files (2 files)**:
 - `/workflow_runner/AGENTS.md` - Standalone workflow runner ✅ ACCURATE
 - `/scripts/AGENTS.md` - Build and release scripts ✅ ACCURATE
+
+**Build Configuration (1 file)**:
+- `/Makefile` - Build commands **FIXED** (see below)
 
 ---
 
@@ -39,36 +42,43 @@
 - Port 8000: NodeTool server (production mode)
 - All references correct in verified files
 
-#### 2. Command Accuracy ✅ VERIFIED
-All package.json scripts match documentation:
-- `npm start` → Vite dev server on port 3000 ✅
-- `npm run build` → Production build ✅
-- `npm run test:e2e` → Playwright E2E tests ✅
-- `npm run dev` → Vite development mode ✅
-- `make electron` → Build web and start Electron app ✅
-
-#### 3. Package.json Scripts Verification ✅ VERIFIED
+#### 2. Package.json Scripts ✅ VERIFIED (with correction)
 
 **Web (web/package.json)**:
-- `"start": "vite --host 0.0.0.0 --port 3000"` ✅
+- `"start": "vite --host 0.0.0.0 --port 3000"` ✅ (use `npm start`)
 - `"build": "vite build"` ✅
 - `"test": "jest"` ✅
 - `"test:e2e": "playwright test"` ✅
 - `"typecheck": "tsc --noEmit"` ✅
+- `"dev":` **NOT PRESENT** - Web uses `npm start`, not `npm run dev`
 
 **Electron (electron/package.json)**:
 - `"start": "electron ."` ✅
 - `"build": "tsc && vite build && electron-builder"` ✅
-- `"dev": "vite"` ✅
+- `"dev": "vite"` ✅ (Electron has a dev script, web does not)
 - `"test:e2e": "playwright test"` ✅
 
-#### 4. Makefile Verification ✅ VERIFIED
-- `make install` - Install all dependencies ✅
-- `make electron` - Build web and start Electron app ✅
-- `make test` - Run all tests ✅
-- `make lint` - Lint all packages ✅
-- `make typecheck` - Type check all packages ✅
-- No incorrect targets documented
+#### 3. Makefile Verification ✅ FIXED
+
+**Before Fix** (line 183):
+```bash
+@echo "  cd web && npm run dev   - Start web development server"
+```
+
+**After Fix** (line 183):
+```bash
+@echo "  cd web && npm start   - Start web development server"
+```
+
+**Reason**: The web package.json does not have a `dev` script - it uses `npm start` to run Vite. The Electron package has a `dev` script, but web does not.
+
+**Impact**: New developers following the quickstart guide will now use the correct command to start the web development server.
+
+#### 4. Command Accuracy ✅ VERIFIED
+- `npm start` → Vite dev server on port 3000 (web) ✅
+- `npm run build` → Production build ✅
+- `npm run test:e2e` → Playwright E2E tests ✅
+- `make electron` → Build web and start Electron app ✅
 
 #### 5. Link Verification ✅ VERIFIED
 - All internal links use correct relative paths
@@ -103,10 +113,17 @@ All package.json scripts match documentation:
    - Documented padding and nodeId options
    - Included usage examples
 
+4. **`useAlignNodes.ts`**:
+   - Added module-level documentation
+   - Documented `AlignNodesOptions` type
+   - Added @param and @returns tags
+   - Included @example code block
+
 **Files Updated**:
 - `web/src/hooks/useCreateNode.ts`
 - `web/src/hooks/useDuplicate.ts`
 - `web/src/hooks/useFitView.ts`
+- `web/src/hooks/useAlignNodes.ts`
 
 **Verification**:
 - ✅ TypeScript compilation passes
@@ -129,15 +146,25 @@ All package.json scripts match documentation:
 - API documentation comprehensive
 - Troubleshooting guides available
 
-**Accuracy**: ⭐ EXCELLENT
-- Commands match actual package.json scripts
-- Port numbers consistent across documentation
-- Code examples compile and work
-- No obsolete information found
+**Accuracy**: ⭐ EXCELLENT (with one fix)
+- Commands match actual package.json scripts ✅ (after fix)
+- Port numbers consistent across documentation ✅
+- Code examples compile and work ✅
+- No obsolete information found ✅
 
 ---
 
-### No Issues Found
+### Issues Fixed
+
+1. **Makefile quickstart command** (2026-01-17):
+   - **File**: `/Makefile` (line 183)
+   - **Issue**: Referenced `npm run dev` which doesn't exist in web package.json
+   - **Fix**: Changed to `npm start`
+   - **Impact**: New developers will now use the correct command
+
+---
+
+### No Issues Found (Other Than Above)
 
 All verified documentation files are:
 - ✅ Accurate (matches current code)
