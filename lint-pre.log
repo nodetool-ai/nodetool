@@ -4,12 +4,6 @@ cd web && npm run lint
 > nodetool@0.6.2-rc.26 lint
 > eslint src
 
-
-/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useWorkflowActions.test.ts
-  6:7  warning  'mockNavigate' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
-
-✖ 1 problem (0 errors, 1 warning)
-
 Linting electron package...
 cd electron && npm run lint
 

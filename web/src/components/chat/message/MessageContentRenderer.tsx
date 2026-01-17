@@ -87,22 +87,16 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
     }
     case "image_url": {
       // Handle image content in Harmony format
-      console.log("Image content:", content.image);
-
       let imageSource: string | Uint8Array | undefined;
 
       if (content.image?.data) {
-        console.log("Passing raw image data to ImageView");
         imageSource = content.image.data as Uint8Array;
       } else if (content.image?.uri) {
-        console.log("Using image URI:", content.image.uri);
         imageSource = content.image.uri;
       } else {
-        console.error("No image data or URI found");
         return <div>Error: No image source available</div>;
       }
 
-      console.log("Final image source:", imageSource);
       return <ImageView source={imageSource} />;
     }
     case "audio":

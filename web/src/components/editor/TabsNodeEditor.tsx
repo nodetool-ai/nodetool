@@ -362,6 +362,14 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
           params: { path: { id } }
         });
         if (error) {
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            "status" in error &&
+            (error as { status?: number }).status === 404
+          ) {
+            return { __missing: true, id };
+          }
           throw createErrorMessage(error, "Failed to load workflow");
         }
         return data;
@@ -370,6 +378,23 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     }))
   });
 
+  useEffect(() => {
+    const missingIds = idsForTabs.filter((id, index) => {
+      const res = queryResults[index];
+      return Boolean((res?.data as { __missing?: boolean })?.__missing);
+    });
+    if (missingIds.length === 0) {
+      return;
+    }
+    const filtered = storageOpenIds.filter((id) => !missingIds.includes(id));
+    setStorageOpenIds(filtered);
+    try {
+      localStorage.setItem("openWorkflows", JSON.stringify(filtered));
+    } catch {
+      // Ignore storage failures to avoid blocking rendering.
+    }
+  }, [idsForTabs, queryResults, storageOpenIds]);
+
   const tabsToRender = useMemo(() => {
     return idsForTabs.map((id, index) => {
       const loaded = openMap.get(id);
@@ -377,7 +402,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
         return loaded;
       }
       const res = queryResults[index];
-      if (res && res.data) {
+      if (res && res.data && !(res.data as { __missing?: boolean }).__missing) {
         const { graph, ...attrs } = res.data as any;
         return attrs as WorkflowAttributes;
       }

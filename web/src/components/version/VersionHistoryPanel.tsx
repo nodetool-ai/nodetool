@@ -35,7 +35,6 @@ import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistorySto
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
-import { NodeUIProperties } from "../../stores/NodeStore";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -168,28 +167,8 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareVersion
   ]);
 
-  const handlePin = useCallback((_versionId: string, _pinned: boolean) => {
-  }, []);
-
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
-      console.log("[handleRestore] Version to restore:", {
-        id: version.id,
-        version: version.version,
-        name: version.name,
-        saveType: version.save_type,
-        graphNodesCount: version.graph?.nodes?.length ?? 0,
-        graphEdgesCount: version.graph?.edges?.length ?? 0,
-        hasInputSchema: !!(version as any).input_schema,
-        hasOutputSchema: !!(version as any).output_schema,
-        firstNode: version.graph?.nodes?.[0] ? {
-          id: version.graph.nodes[0].id,
-          type: version.graph.nodes[0].type,
-          ui_properties: version.graph.nodes[0].ui_properties,
-          position: (version.graph.nodes[0].ui_properties as NodeUIProperties | undefined)?.position
-        } : null,
-        firstEdge: version.graph?.edges?.[0] || null
-      });
       try {
         await restoreVersion(version.version);
         onRestore(version);
@@ -434,7 +413,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 onSelect={handleSelect}
                 onRestore={handleRestore}
                 onDelete={handleDelete}
-                onPin={handlePin}
                 onCompare={handleCompare}
                 isRestoring={isRestoringVersion}
               />

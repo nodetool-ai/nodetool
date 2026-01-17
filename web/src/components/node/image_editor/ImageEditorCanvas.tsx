@@ -304,7 +304,6 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
         try {
           const container = await waitForContainer();
           const rect = container.getBoundingClientRect();
-          console.log("Container size:", rect.width, "x", rect.height);
 
           // Set main canvas sizes first
           if (mainCanvasRef.current && overlayCanvasRef.current) {
