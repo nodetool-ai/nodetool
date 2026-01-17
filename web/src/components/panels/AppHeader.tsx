@@ -74,14 +74,15 @@ const styles = (theme: Theme) =>
     ".mode-pills": {
       display: "flex",
       alignItems: "center",
-      backgroundColor: theme.vars.palette.action.hover,
-      borderRadius: "6px",
-      padding: "2px",
-      gap: "2px"
+      backgroundColor: "rgba(255, 255, 255, 0.06)",
+      borderRadius: "20px",
+      padding: "3px",
+      gap: "2px",
+      border: "1px solid rgba(255, 255, 255, 0.08)"
     },
     ".mode-pill": {
-      padding: "4px 12px",
-      borderRadius: "4px",
+      padding: "5px 14px",
+      borderRadius: "16px",
       fontWeight: 500,
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
@@ -96,24 +97,24 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "6px",
       "& svg, & .icon-container svg": {
-        width: "16px",
-        height: "16px",
-        fontSize: "16px"
+        width: "15px",
+        height: "15px",
+        fontSize: "15px"
       },
       "& .icon-container": {
-        width: "16px",
-        height: "16px"
+        width: "15px",
+        height: "15px"
       },
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
         color: theme.vars.palette.text.primary
       },
       "&.active": {
-        backgroundColor: theme.vars.palette.background.paper,
-        color: theme.vars.palette.primary.main,
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
+        backgroundColor: "rgba(255, 255, 255, 0.12)",
+        color: theme.vars.palette.text.primary,
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.15)",
         "& svg, & .icon-container svg": {
-          color: theme.vars.palette.primary.main
+          color: theme.vars.palette.text.primary
         }
       }
     },
