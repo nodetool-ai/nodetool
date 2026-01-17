@@ -280,3 +280,72 @@ describe("formatNodeDocumentation", () => {
 
 **Additional Fixes**:
 - Fixed merge conflict markers in `useAutosave.test.ts` that were preventing the file from compiling
+
+---
+
+### Test Coverage Improvement (2026-01-17 - Additional)
+
+**Coverage Added**: 1 new store test file with 15 tests
+
+**Tests Added**:
+- `ModelFiltersStore.test.ts` - 15 tests for model filtering state management
+
+**Areas Covered**:
+- Initial state verification
+- Type tag toggling (add/remove)
+- Size bucket setting and clearing
+- Family toggling (add/remove)
+- Clear all functionality
+- Combined operations and state consistency
+
+**Test Patterns Used**:
+
+1. **Store State Testing Pattern**:
+```typescript
+describe('ModelFiltersStore', () => {
+  const initialState = useModelFiltersStore.getState();
+
+  beforeEach(() => {
+    useModelFiltersStore.setState(initialState, true);
+  });
+
+  it('adds type when not present', () => {
+    useModelFiltersStore.getState().toggleType('chat' as TypeTag);
+    expect(useModelFiltersStore.getState().selectedTypes).toContain('chat');
+  });
+
+  it('removes type when present', () => {
+    useModelFiltersStore.setState({ selectedTypes: ['chat' as TypeTag, 'code' as TypeTag] });
+    useModelFiltersStore.getState().toggleType('chat' as TypeTag);
+    expect(useModelFiltersStore.getState().selectedTypes).toEqual(['code' as TypeTag]);
+  });
+});
+```
+
+2. **Filter State Management**:
+```typescript
+it('maintains state correctly through multiple operations', () => {
+  useModelFiltersStore.getState().toggleType('chat' as TypeTag);
+  useModelFiltersStore.getState().toggleType('code' as TypeTag);
+  useModelFiltersStore.getState().setSizeBucket('3-7B' as SizeBucket);
+  useModelFiltersStore.getState().toggleFamily('llama');
+
+  expect(useModelFiltersStore.getState().selectedTypes).toEqual(['chat', 'code']);
+  expect(useModelFiltersStore.getState().sizeBucket).toBe('3-7B');
+  expect(useModelFiltersStore.getState().families).toEqual(['llama']);
+
+  useModelFiltersStore.getState().clearAll();
+  expect(useModelFiltersStore.getState()).toEqual(initialState);
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/ModelFiltersStore.test.ts`
+
+**Key Learnings**:
+1. Zustand stores with simple state operations are straightforward to test
+2. Always reset store state in beforeEach to ensure test isolation
+3. Test both individual operations and combined state changes
+4. Verify clearAll/reset functionality returns to initial state
+
+**Status**: All 15 tests passing
