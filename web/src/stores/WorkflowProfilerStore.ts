@@ -121,14 +121,14 @@ const useWorkflowProfilerStore = create<WorkflowProfilerState>((set, get) => ({
 
   endRecording: (workflowId: string, status: "completed" | "failed" | "cancelled") => {
     const { currentRunId, profiles } = get();
-    if (!currentRunId) return;
+    if (!currentRunId) {return;}
 
     const endTime = Date.now();
     const workflowProfiles = profiles[workflowId];
-    if (!workflowProfiles) return;
+    if (!workflowProfiles) {return;}
 
     const currentRunIndex = workflowProfiles.findIndex((p) => p.runId === currentRunId);
-    if (currentRunIndex === -1) return;
+    if (currentRunIndex === -1) {return;}
 
     const currentRun = workflowProfiles[currentRunIndex];
     const totalDuration = endTime - currentRun.startTime;
@@ -164,13 +164,13 @@ const useWorkflowProfilerStore = create<WorkflowProfilerState>((set, get) => ({
     status: NodeExecutionMetric["status"]
   ) => {
     const { currentRunId, profiles } = get();
-    if (!currentRunId) return;
+    if (!currentRunId) {return;}
 
     const workflowProfiles = profiles[workflowId];
-    if (!workflowProfiles) return;
+    if (!workflowProfiles) {return;}
 
     const currentRunIndex = workflowProfiles.findIndex((p) => p.runId === currentRunId);
-    if (currentRunIndex === -1) return;
+    if (currentRunIndex === -1) {return;}
 
     const currentRun = workflowProfiles[currentRunIndex];
     const endTime = Date.now();
@@ -203,17 +203,17 @@ const useWorkflowProfilerStore = create<WorkflowProfilerState>((set, get) => ({
 
   updateNodeMetrics: (workflowId: string, nodeId: string, updates: Partial<NodeExecutionMetric>) => {
     const { currentRunId, profiles } = get();
-    if (!currentRunId) return;
+    if (!currentRunId) {return;}
 
     const workflowProfiles = profiles[workflowId];
-    if (!workflowProfiles) return;
+    if (!workflowProfiles) {return;}
 
     const currentRunIndex = workflowProfiles.findIndex((p) => p.runId === currentRunId);
-    if (currentRunIndex === -1) return;
+    if (currentRunIndex === -1) {return;}
 
     const currentRun = workflowProfiles[currentRunIndex];
     const metricIndex = currentRun.nodeMetrics.findIndex((m) => m.nodeId === nodeId);
-    if (metricIndex === -1) return;
+    if (metricIndex === -1) {return;}
 
     const updatedMetrics = [...currentRun.nodeMetrics];
     updatedMetrics[metricIndex] = { ...updatedMetrics[metricIndex], ...updates };
@@ -234,7 +234,7 @@ const useWorkflowProfilerStore = create<WorkflowProfilerState>((set, get) => ({
   getLatestProfile: (workflowId: string) => {
     const { profiles } = get();
     const workflowProfiles = profiles[workflowId];
-    if (!workflowProfiles || workflowProfiles.length === 0) return null;
+    if (!workflowProfiles || workflowProfiles.length === 0) {return null;}
     return workflowProfiles[workflowProfiles.length - 1];
   },
 
@@ -245,7 +245,7 @@ const useWorkflowProfilerStore = create<WorkflowProfilerState>((set, get) => ({
 
   getBottlenecks: (workflowId: string, limit: number = 3) => {
     const latestProfile = get().getLatestProfile(workflowId);
-    if (!latestProfile) return [];
+    if (!latestProfile) {return [];}
 
     const totalDuration = latestProfile.totalDuration || 1;
     const sortedMetrics = [...latestProfile.nodeMetrics].sort((a, b) => b.duration - a.duration);
@@ -317,7 +317,7 @@ const useWorkflowProfilerStore = create<WorkflowProfilerState>((set, get) => ({
     const latestProfile = get().getLatestProfile(workflowId);
     const profiles = get().getProfiles(workflowId);
 
-    if (!latestProfile) return insights;
+    if (!latestProfile) {return insights;}
 
     const bottlenecks = get().getBottlenecks(workflowId, 2);
     bottlenecks.forEach((b) => {

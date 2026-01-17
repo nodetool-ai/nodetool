@@ -82,12 +82,12 @@ export const WorkflowProfilerPanel: React.FC<WorkflowProfilerPanelProps> = ({
   const insights = getPerformanceInsights(graph);
 
   const nodeMetrics = useMemo(() => {
-    if (!latestProfile) return [];
+    if (!latestProfile) {return [];}
     return [...latestProfile.nodeMetrics].sort((a, b) => b.duration - a.duration);
   }, [latestProfile]);
 
   const maxDuration = useMemo(() => {
-    if (!latestProfile) return 1;
+    if (!latestProfile) {return 1;}
     return Math.max(...nodeMetrics.map((m) => m.duration), latestProfile.totalDuration);
   }, [latestProfile, nodeMetrics]);
 
