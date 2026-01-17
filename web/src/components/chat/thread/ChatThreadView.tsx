@@ -5,7 +5,8 @@ import React, {
   useEffect,
   useCallback,
   useState,
-  useMemo
+  useMemo,
+  memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -607,4 +608,4 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   );
 };
 
-export default ChatThreadView;
+export default memo(ChatThreadView);
