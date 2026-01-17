@@ -16,9 +16,7 @@ export const SendMessageButton = forwardRef<
   return (
     <IconButton
       ref={ref}
-      onClick={() => {
-        if (!isDisabled) {onClick();}
-      }}
+      onClick={onClick}
       size="small"
       disableRipple={isDisabled}
       disabled={isDisabled}

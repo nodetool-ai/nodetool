@@ -32,7 +32,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-export const ActionButtons: React.FC<ActionButtonsProps> = ({
+export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(({
   isLoading,
   isStreaming,
   onSend,
@@ -57,9 +57,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span className="button-wrapper">
             <StopGenerationButton
-              onClick={() => {
-                onStop?.();
-              }}
+              onClick={onStop}
             />
           </span>
         </Tooltip>
@@ -85,4 +83,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       )}
     </div>
   );
-};
+});
+
+ActionButtons.displayName = "ActionButtons";
