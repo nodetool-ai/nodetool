@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback } from "react";
 
 const styles = (theme: Theme) =>
   css({
@@ -53,33 +53,37 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
   onTagClick
 }) => {
   const theme = useTheme();
+
+  const handleTagClick = useCallback((tag: string) => {
+    if (onTagClick) {
+      onTagClick(tag);
+    }
+  }, [onTagClick]);
+
+  const handleTagSpanClick = useCallback(
+    (tag: string) => {
+      handleTagClick(tag);
+    },
+    [handleTagClick]
+  );
+
   if (!description) {
     return null;
   }
 
-  const lines = description.split("\n");
-  const firstLine = lines[0] || "";
-  const tagsLine = lines.length > 1 ? lines[1] : "";
-  const restOfDescription =
-    lines.length > 2
-      ? lines
-          .slice(2)
-          .map((line) => line.trim())
-          .join("\n")
-      : "";
+    const handleTagClick = useCallback(
+      (tag: string) => {
+        if (onTagClick) {
+          onTagClick(tag);
+        }
+      },
+      [onTagClick]
+    );
 
-  const tags = tagsLine
-    ? tagsLine
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((t) => t)
-    : [];
-
-  const handleTagClick = (tag: string) => {
-    if (onTagClick) {
-      onTagClick(tag);
-    }
-  };
+    const createTagClickHandler = useCallback(
+      (tag: string) => () => handleTagClick(tag),
+      [handleTagClick]
+    );
 
   return (
     <div css={styles(theme)} className={className}>
@@ -90,7 +94,7 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
             <span
               key={index}
               className="tag"
-              onClick={() => handleTagClick(tag)}
+              onClick={() => handleTagSpanClick(tag)}
               style={{ cursor: onTagClick ? "pointer" : "default" }}
             >
               {tag}

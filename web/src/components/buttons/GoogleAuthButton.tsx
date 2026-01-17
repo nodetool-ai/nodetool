@@ -11,7 +11,8 @@ const styles = (_theme: Theme) => ({
 });
 
 const GoogleAuthButton = () => {
-  const { signInWithProvider, state } = useAuth();
+  const signInWithProvider = useAuth((state) => state.signInWithProvider);
+  const state = useAuth((state) => state.state);
   const handleClick = async () => {
     if (state === "loading" || state === "logged_in") {return;}
     await signInWithProvider("google");

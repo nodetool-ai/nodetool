@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { useCallback } from "react";
 import { Box, Typography, CircularProgress, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
@@ -115,6 +115,14 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
   handleViewAllTemplates
 }) => {
   const theme = useTheme();
+
+  const handleCardClick = useCallback(
+    (example: Workflow) => () => {
+      handleExampleClick(example);
+    },
+    [handleExampleClick]
+  );
+
   return (
     <Box className="examples-list" css={styles(theme)}>
       <Box
@@ -139,7 +147,7 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
               <Box
                 key={example.id}
                 className="example-card"
-                onClick={() => handleExampleClick(example)}
+                onClick={handleCardClick(example)}
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">
@@ -175,4 +183,4 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
   );
 };
 
-export default ExamplesList;
+export default React.memo(ExamplesList);

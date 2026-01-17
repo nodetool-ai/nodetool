@@ -5,7 +5,8 @@ import React, {
   useEffect,
   useMemo,
   useState,
-  useRef
+  useRef,
+  memo
 } from "react";
 import {
   Dialog,
@@ -181,7 +182,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 
 // --- Component ---
 
-export default function FileBrowserDialog({
+function FileBrowserDialog({
   open,
   onClose,
   onConfirm,
@@ -480,6 +481,10 @@ export default function FileBrowserDialog({
     }
   };
 
+  const handleStartEditPath = useCallback(() => {
+    setIsEditingPath(true);
+  }, []);
+
   const handleUp = () => {
     if (currentPath === "~" || currentPath === "/") {return;}
     // Naive parent path
@@ -493,6 +498,10 @@ export default function FileBrowserDialog({
 
     handleNavigate(parent || "~");
   };
+
+  const handleRefresh = useCallback(() => {
+    handleNavigate(currentPath);
+  }, [currentPath, handleNavigate]);
 
   const handleFileClick = (file: FileInfo) => {
     if (file.is_dir) {
@@ -591,22 +600,30 @@ export default function FileBrowserDialog({
 
   // --- Renderers ---
 
-  const Row = ({
+  const Row = memo(function Row({
     index,
     style
   }: {
     index: number;
     style: React.CSSProperties;
-  }) => {
+  }) {
     const file = filteredFiles[index];
     const isSelected = selectedPath === file.path;
+
+    const handleClick = useCallback(() => {
+      handleFileClick(file);
+    }, [file, handleFileClick]);
+
+    const handleDoubleClick = useCallback(() => {
+      handleFileDoubleClick(file);
+    }, [file, handleFileDoubleClick]);
 
     return (
       <div
         style={style}
         className={`list-item ${isSelected ? "selected" : ""}`}
-        onClick={() => handleFileClick(file)}
-        onDoubleClick={() => handleFileDoubleClick(file)}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
       >
         {file.is_dir ? (
           <FolderIcon color="primary" sx={{ fontSize: 20 }} />
@@ -627,7 +644,7 @@ export default function FileBrowserDialog({
         )}
       </div>
     );
-  };
+  });
 
   return (
     <Dialog
@@ -713,7 +730,7 @@ export default function FileBrowserDialog({
                   cursor: "text",
                   minWidth: "100px"
                 }}
-                onClick={() => setIsEditingPath(true)}
+                onClick={handleStartEditPath}
               >
                 <Breadcrumbs className="breadcrumbs" separator="/">
                   {breadcrumbs.map((b, i) => (
@@ -757,9 +774,7 @@ export default function FileBrowserDialog({
             />
 
             <IconButton
-              onClick={() => {
-                handleNavigate(currentPath);
-              }}
+              onClick={handleRefresh}
               size="small"
               style={{ width: 32, height: 32 }}
             >
@@ -849,3 +864,5 @@ export default function FileBrowserDialog({
     </Dialog>
   );
 }
+
+export default memo(FileBrowserDialog);

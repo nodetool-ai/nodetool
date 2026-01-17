@@ -151,8 +151,7 @@ if (process.env.JEST_WORKER_ID) {
         // Should not have fatal connection errors after loading
         expect(hasConnectionError).toBeFalsy();
       });
-
-    test.describe("WebSocket Message Format", () => {
+    });
 
     test.describe("WebSocket Message Format", () => {
       test("should send messages in command-wrapped format", async ({ page }) => {

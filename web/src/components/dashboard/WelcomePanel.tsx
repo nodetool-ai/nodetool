@@ -124,24 +124,30 @@ const panelStyles = (theme: any) =>
 
 const WelcomePanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const sections: Section[] = [
-    ...overviewContents
-  ].map((section) => ({
-    ...section,
-    originalContent: section.content
-  }));
+
+  const sections: Section[] = useMemo(() =>
+    overviewContents.map((section) => ({
+      ...section,
+      originalContent: section.content
+    })),
+    []
+  );
   const settings = useSettingsStore((state) => state.settings);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const theme = useTheme();
 
-  const handleToggleWelcomeOnStartup = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    updateSettings({ showWelcomeOnStartup: event.target.checked });
-  };
+  const handleToggleWelcomeOnStartup = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateSettings({ showWelcomeOnStartup: event.target.checked });
+    },
+    [updateSettings]
+  );
 
-  const highlightText = (text: string, term: string) => {
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  const highlightText = useCallback((text: string, term: string) => {
     if (!term) {return text;}
     const parts = text.split(new RegExp(`(${term})`, "gi"));
     return parts.map((part, index) =>
@@ -153,7 +159,7 @@ const WelcomePanel: React.FC = () => {
         part
       )
     );
-  };
+  }, []);
 
   const performSearch = useCallback(
     (searchTerm: string) => {
@@ -197,7 +203,7 @@ const WelcomePanel: React.FC = () => {
     [performSearch, searchTerm]
   );
 
-  const renderContent = (content: ReactNode): ReactNode => {
+  const renderContent = useCallback((content: ReactNode): ReactNode => {
     if (typeof content === "string") {
       return highlightText(content, searchTerm);
     }
@@ -218,7 +224,7 @@ const WelcomePanel: React.FC = () => {
       ));
     }
     return content;
-  };
+  }, [highlightText, searchTerm]);
 
   return (
     <Box css={panelStyles(theme)} className="welcome-panel-container">
@@ -274,7 +280,7 @@ const WelcomePanel: React.FC = () => {
                 </Typography>
                 <Button
                   size="small"
-                  onClick={() => setSearchTerm("")}
+                  onClick={handleClearSearch}
                   sx={{ mt: 1 }}
                 >
                   Clear search
@@ -309,4 +315,4 @@ const WelcomePanel: React.FC = () => {
   );
 };
 
-export default WelcomePanel;
+export default React.memo(WelcomePanel);

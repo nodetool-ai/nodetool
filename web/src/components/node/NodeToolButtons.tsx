@@ -14,6 +14,7 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import InfoIcon from "@mui/icons-material/Info";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import BlockIcon from "@mui/icons-material/Block";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -124,6 +125,14 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     setAnchorEl(null);
   }, [nodeId, updateNodeData]);
 
+  const handleSelectOnAny = useCallback(() => {
+    handleSelectSyncMode("on_any");
+  }, [handleSelectSyncMode]);
+
+  const handleSelectZipAll = useCallback(() => {
+    handleSelectSyncMode("zip_all");
+  }, [handleSelectSyncMode]);
+
   const handleOpenDropdown = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   }, []);
@@ -179,7 +188,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             color={isBypassed ? "warning" : "default"}
             size="small"
           >
-            {isBypassed ? <PlayArrowIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
+            {isBypassed ? <PowerSettingsNewIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
 
@@ -348,7 +357,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <MenuItem
           selected={syncMode === "on_any"}
-          onClick={() => handleSelectSyncMode("on_any")}
+          onClick={handleSelectOnAny}
           sx={{ py: 0.5, minHeight: "unset", pl: 3 }}
         >
           <ListItemIcon sx={{ minWidth: 32 }}>
@@ -364,7 +373,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <MenuItem
           selected={syncMode === "zip_all"}
-          onClick={() => handleSelectSyncMode("zip_all")}
+          onClick={handleSelectZipAll}
           sx={{ py: 0.5, minHeight: "unset", pl: 3 }}
         >
           <ListItemIcon sx={{ minWidth: 32 }}>

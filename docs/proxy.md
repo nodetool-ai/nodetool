@@ -46,12 +46,12 @@ services:
   - name: nodetool-worker
     path: /
     image: nodetool:latest
-    internal_port: 8000
+    internal_port: 7777
     host_port: null              # auto-select unless using host_port mode
     mem_limit: 8g
     cpus: 4.0
     environment:
-      NODETOOL_API_URL: http://localhost:8000
+      NODETOOL_API_URL: http://localhost:7777
     volumes:
       /data/workspace:
         bind: /workspace

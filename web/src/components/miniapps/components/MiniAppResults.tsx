@@ -51,6 +51,13 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     []
   );
 
+  const handleCopyResult = useCallback(
+    (result: MiniAppResult) => () => {
+      handleCopy(result);
+    },
+    [handleCopy]
+  );
+
   return (
     <section className="results-shell glass-card">
       <div className="results-heading">
@@ -86,7 +93,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
                 >
                   <IconButton
                     size="small"
-                    onClick={() => handleCopy(result)}
+                    onClick={handleCopyResult(result)}
                     aria-label="Copy result"
                     className="result-card-copy-button"
                     sx={{

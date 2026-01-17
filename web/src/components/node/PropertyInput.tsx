@@ -474,6 +474,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const componentType = componentFor(property);
 
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditedName(e.target.value);
+  }, []);
+
   let inputField: React.ReactNode = null;
   if (componentType) {
     if (isDynamicProperty && isEditingName) {
@@ -481,7 +485,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         <form onSubmit={handleNameSubmit} className="property-input-form">
           <input
             value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
+            onChange={handleNameChange}
             onBlur={handleNameSubmit}
             autoFocus
           />
@@ -508,6 +512,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     [isDynamicProperty, property.name]
   );
 
+  const handleEditNameClick = useCallback(() => {
+    setIsEditingName(true);
+  }, []);
+
+  const handleDeleteClick = useCallback(() => {
+    handleDeleteProperty(property.name);
+  }, [handleDeleteProperty, property.name]);
+
   return (
     <div
       className="property-input-container"
@@ -518,18 +530,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       {inputField}
       {isDynamicProperty && (
         <div className="action-icons">
-          {isDynamicProperty && (
-            <Edit
-              className="action-icon"
-              onClick={() => setIsEditingName(true)}
-            />
-          )}
-          {handleDeleteProperty && (
-            <Close
-              className="action-icon close"
-              onClick={() => handleDeleteProperty(property.name)}
-            />
-          )}
+          <Edit
+            className="action-icon"
+            onClick={handleEditNameClick}
+          />
+          <Close
+            className="action-icon close"
+            onClick={handleDeleteClick}
+          />
         </div>
       )}
     </div>
