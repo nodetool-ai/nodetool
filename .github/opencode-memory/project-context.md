@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Audit: Dependency Vulnerabilities (2026-01-17)
+
+**What**: Fixed high-severity dependency vulnerabilities (glob command injection, tar file overwrite) via npm overrides.
+
+**Files**: web/package.json, mobile/package.json, .github/opencode-memory/issues/security/
+
+---
+
 ### Performance Optimization: Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.

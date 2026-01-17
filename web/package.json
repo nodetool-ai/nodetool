@@ -141,7 +141,8 @@
     ]
   },
   "overrides": {
-    "react-is": "18.2.0"
+    "react-is": "18.2.0",
+    "glob": "^10.5.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
