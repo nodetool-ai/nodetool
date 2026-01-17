@@ -8,6 +8,7 @@ import {
   Box,
   Dialog,
   DialogContent,
+  Tooltip,
   Link
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -21,6 +22,7 @@ import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface HelpItem {
   text: string;
@@ -104,18 +106,17 @@ const helpStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: "10px",
-      color: theme.vars.palette.text.primary,
+      color: theme.vars.palette.secondary.contrastText,
+      backgroundColor: theme.vars.palette.secondary.main,
       textDecoration: "none",
       fontSize: "0.85rem",
       fontWeight: 500,
       padding: "8px 14px",
       borderRadius: "8px",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.action.hover,
       transition: "all 0.2s ease",
       flexShrink: 0,
       "&:hover": {
-        backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.15)",
+        backgroundColor: theme.vars.palette.secondary.light,
         borderColor: theme.vars.palette.primary.main,
         textDecoration: "none"
       },
@@ -123,18 +124,15 @@ const helpStyles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
-        lineHeight: 1.2,
-        "& span:first-of-type": {
-          fontSize: "0.7rem",
-          opacity: 0.7
-        },
-        "& span:last-of-type": {
-          fontWeight: 600
-        }
+        textTransform: "uppercase",
+        fontSize: theme.vars.fontSizeSmall,
+        fontFamily: theme.vars.fontFamily2,
+        lineHeight: 1.0,
+        fontWeight: 600,
       },
       "& svg": {
-        fontSize: "1.1rem",
-        color: theme.vars.palette.primary.main
+        fontSize: "2rem",
+        // color: theme.vars.palette.primary.main
       }
     },
     ".tabpanel": {
@@ -291,6 +289,9 @@ const Help = ({
                 <Tab label="Keyboard" id="help-tab-1" />
                 <Tab label="DataTypes" id="help-tab-2" />
               </Tabs>
+              <Tooltip title="Open Nodetool Documentation Website" placement="bottom"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+               >
               <Link
                 href="https://docs.nodetool.ai"
                 target="_blank"
@@ -299,10 +300,11 @@ const Help = ({
               >
                 <div className="docs-button-text">
                   <span>Nodetool</span>
-                  <span>Documentation</span>
+                  <span>Docs</span>
                 </div>
                 <OpenInNewIcon />
               </Link>
+              </Tooltip>
             </div>
             <div className="content">
               <TabPanel value={helpIndex} index={0}>
