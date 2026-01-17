@@ -102,7 +102,7 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://gith
 
 # 3. Run Backend & Frontend
 nodetool serve --reload &
-cd web && npm install && npm start
+cd web && npm ci && npm start
 ```
 
 ### Installing HuggingFace pack (Linux/Windows GPU)
@@ -129,7 +129,7 @@ Configure `settings.yaml` with your Conda path and run `make electron`.
 The mobile app allows you to run Mini Apps on iOS and Android devices.
 
 ```bash
-cd mobile && npm install && npm start
+cd mobile && npm ci && npm start
 ```
 
 See [mobile/README.md](mobile/README.md) for detailed setup and usage instructions.

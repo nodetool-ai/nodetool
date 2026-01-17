@@ -400,3 +400,33 @@ Last updated: 2026-01-16
 **Impact**: Developers following documentation will now correctly connect to the development server on port 7777.
 
 ---
+
+### Documentation Quality Assurance (2026-01-17)
+
+**Areas Improved**:
+- Added `npm ci` recommendation for deterministic installs
+- Added `dev` script alias to web package.json for consistency
+- Created documentation insights folder with best practices
+- Updated AGENTS.md and README files to use `npm ci`
+
+**Issues Fixed**:
+- web/package.json: Added `dev` script alias for `npm start`
+- AGENTS.md: Updated to recommend `npm ci` for CI/CD
+- README.md: Updated web and mobile install commands
+- mobile/README.md: Updated installation to use `npm ci`
+
+**Impact**: Documentation now consistently recommends `npm ci` for deterministic builds, matching CI/CD best practices. The `dev` script provides a standard alias for development servers.
+
+**Files Updated**:
+- web/package.json - Added `dev` script alias
+- AGENTS.md - Updated npm commands to use `npm ci`
+- README.md - Updated web and mobile install commands
+- mobile/README.md - Updated installation section
+- .github/opencode-memory/insights/documentation/ - NEW folder
+- .github/opencode-memory/insights/documentation/README.md - NEW
+- .github/opencode-memory/insights/documentation/documentation-best-practices.md - NEW
+
+**Related Memory**:
+- `.github/opencode-memory/insights/documentation/documentation-best-practices.md` - Comprehensive documentation guidelines
+
+---

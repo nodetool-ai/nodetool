@@ -88,13 +88,14 @@ NodeTool follows a client-server architecture with multiple components:
 
 2. **Web UI Development:**
 
-   ```bash
-   cd web
-   npm install
-   npm start
-   ```
+    ```bash
+    cd web
+    npm ci
+    npm start  # or npm run dev
+    ```
 
-   - Access at <http://localhost:3000>
+    - Access at <http://localhost:3000>
+    - Use `npm run dev` as an alias for `npm start`
 
 3. **Electron App Development:**
 
@@ -126,10 +127,10 @@ NodeTool follows a client-server architecture with multiple components:
    # 3. Verify nodetool installation
    nodetool --help
 
-   # 4. Install web dependencies and Playwright browsers
-   cd web
-   npm install
-   npx playwright install chromium
+    # 4. Install web dependencies and Playwright browsers
+    cd web
+    npm ci
+    npx playwright install chromium
 
    # 5. Run e2e tests (automatically starts servers)
    npm run test:e2e

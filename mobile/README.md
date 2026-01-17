@@ -30,7 +30,7 @@ React Native mobile application for running NodeTool Mini Apps and AI Chat.
 
 ```bash
 cd mobile
-npm install
+npm ci
 ```
 
 ## Configuration
