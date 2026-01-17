@@ -27,6 +27,10 @@ jest.mock("@xyflow/react", () => ({
   }
 }));
 
+// Import mocked modules after jest.mock calls
+import * as xyflowReact from "@xyflow/react";
+import * as NodeContext from "../../contexts/NodeContext";
+
 describe("useFocusPan", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -40,7 +44,7 @@ describe("useFocusPan", () => {
 
   it("does not pan when Tab was not pressed", () => {
     const setCenter = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
+    (xyflowReact.useReactFlow as jest.Mock).mockReturnValue({
       getViewport: jest.fn(() => ({ zoom: 1 })),
       setCenter
     });
@@ -56,7 +60,7 @@ describe("useFocusPan", () => {
 
   it("pans to node when Tab was pressed", () => {
     const setCenter = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
+    (xyflowReact.useReactFlow as jest.Mock).mockReturnValue({
       getViewport: jest.fn(() => ({ zoom: 1 })),
       setCenter
     });
@@ -80,12 +84,12 @@ describe("useFocusPan", () => {
 
   it("does not pan when node is not found", () => {
     const setCenter = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
+    (xyflowReact.useReactFlow as jest.Mock).mockReturnValue({
       getViewport: jest.fn(() => ({ zoom: 1 })),
       setCenter
     });
 
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+    (NodeContext.useNodes as jest.Mock).mockImplementation((selector) => {
       return selector({
         findNode: jest.fn(() => null)
       });
@@ -107,7 +111,7 @@ describe("useFocusPan", () => {
 
   it.skip("uses current zoom level from viewport", () => {
     const setCenter = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
+    (xyflowReact.useReactFlow as jest.Mock).mockReturnValue({
       getViewport: jest.fn(() => ({ zoom: 0.5 })),
       setCenter
     });
@@ -156,8 +160,8 @@ describe("useFocusPan", () => {
     });
 
     let didNotPan = false;
-    const originalSetCenter = require("@xyflow/react").useReactFlow().setCenter;
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
+    const originalSetCenter = xyflowReact.useReactFlow().setCenter;
+    (xyflowReact.useReactFlow as jest.Mock).mockReturnValue({
       getViewport: jest.fn(() => ({ zoom: 1 })),
       setCenter: () => {
         didNotPan = true;

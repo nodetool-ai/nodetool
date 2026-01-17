@@ -54,6 +54,22 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Merge Conflict Markers Fix (2026-01-17)
+
+**What**: Removed unresolved git merge conflict markers from 3 files causing TypeScript and ESLint parsing errors.
+
+**Files**: `NodeDescription.tsx`, `NodeLogs.tsx`, `useAutosave.test.ts`
+
+---
+
+### ESLint require() Imports Fix (2026-01-17)
+
+**What**: Replaced `require()` calls with ES6 imports in test files to fix `@typescript-eslint/no-require-imports` violations.
+
+**Files**: `useAlignNodes.test.ts`, `useFitView.test.ts`, `useFocusPan.test.ts`
+
+---
+
 ### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
