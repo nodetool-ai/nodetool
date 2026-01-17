@@ -8,6 +8,8 @@ Last updated: 2026-01-16
 
 - **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
 
+- **Workflow Performance Profiler**: Analyzes workflow structure for bottlenecks, estimates execution time, identifies parallelizable nodes, and provides a performance score with visual indicators
+
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
 
 ---
