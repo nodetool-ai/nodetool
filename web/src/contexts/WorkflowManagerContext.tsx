@@ -11,8 +11,7 @@
 // -----------------------------------------------
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { Workflow } from "../stores/ApiTypes";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import React from "react";
@@ -68,13 +67,14 @@ export const useWorkflowManager = <T,>(
 export const FetchCurrentWorkflow: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const { setCurrentWorkflowId, getNodeStore, fetchWorkflow, addWorkflow } =
+  const { setCurrentWorkflowId, getNodeStore, fetchWorkflow, createNew } =
     useWorkflowManager((state) => ({
       setCurrentWorkflowId: state.setCurrentWorkflowId,
       getNodeStore: state.getNodeStore,
       fetchWorkflow: state.fetchWorkflow,
-      addWorkflow: state.addWorkflow
+      createNew: state.createNew
     }));
+  const navigate = useNavigate();
   // Extract workflow id from the route.
   const { workflow: workflowId } = useParams();
   const isWorkflowLoaded = Boolean(workflowId && getNodeStore(workflowId));
@@ -92,47 +92,19 @@ export const FetchCurrentWorkflow: React.FC<{
       try {
         const fetched = await fetchWorkflow(workflowId);
         if (!fetched && !isCancelled) {
-          const workflow: Workflow = {
-            id: workflowId,
-            name: "New Workflow",
-            description: "",
-            access: "private",
-            thumbnail: "",
-            updated_at: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            graph: {
-              nodes: [],
-              edges: []
-            },
-            settings: {
-              hide_ui: false
-            },
-            run_mode: "workflow"
-          };
-          addWorkflow(workflow);
+          const workflow = await createNew();
+          if (!isCancelled) {
+            navigate(`/editor/${workflow.id}`, { replace: true });
+          }
         }
       } catch {
         if (isCancelled) {
           return;
         }
-        const workflow: Workflow = {
-          id: workflowId,
-          name: "New Workflow",
-          description: "",
-          access: "private",
-          thumbnail: "",
-          updated_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          graph: {
-            nodes: [],
-            edges: []
-          },
-          settings: {
-            hide_ui: false
-          },
-          run_mode: "workflow"
-        };
-        addWorkflow(workflow);
+        const workflow = await createNew();
+        if (!isCancelled) {
+          navigate(`/editor/${workflow.id}`, { replace: true });
+        }
       }
     };
     ensureWorkflow();
@@ -144,7 +116,8 @@ export const FetchCurrentWorkflow: React.FC<{
     fetchWorkflow,
     isWorkflowLoaded,
     setCurrentWorkflowId,
-    addWorkflow
+    createNew,
+    navigate
   ]);
 
   return children;
