@@ -30,6 +30,36 @@ import { useNodeFocus } from "./useNodeFocus";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
+/**
+ * Custom hook for managing keyboard shortcuts in the workflow node editor.
+ * 
+ * Registers and handles all keyboard shortcuts for node editor operations including
+ * copy/paste, undo/redo, alignment, zoom, tab navigation, and more. Integrates with
+ * the KeyPressedStore to register global keyboard event handlers.
+ * 
+ * The hook manages shortcut state including:
+ * - Clipboard operations (copy, cut, paste)
+ * - Node manipulation (duplicate, delete, group, align)
+ * - Viewport controls (zoom in/out, fit view, zoom presets)
+ * - Tab management (switch tabs, close workflows)
+ * - Selection operations (select all, select connected, find in workflow)
+ * - Keyboard navigation (navigate between nodes)
+ * 
+ * @param active - Whether the shortcut handlers should be active
+ * @param onShowShortcuts - Optional callback to show keyboard shortcuts dialog
+ * @returns Object containing save-as-example dialog state and handlers
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   packageNameDialogOpen,
+ *   handleSaveExampleConfirm,
+ *   handleSaveExampleCancel
+ * } = useNodeEditorShortcuts(true, () => setShowShortcuts(true));
+ * ```
+ * 
+ * @see {@link https://github.com/nodetool-ai/nodetool/blob/main/web/src/config/shortcuts.ts | Shortcut Configuration}
+ */
 export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void

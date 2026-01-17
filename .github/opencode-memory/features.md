@@ -402,20 +402,38 @@ Last updated: 2026-01-16
 
 ### Documentation Quality Audit & JSDoc Improvements (2026-01-17)
 
-**Areas Improved**: Hook documentation (useAlignNodes)
+**Areas Improved**: Hook documentation (useAlignNodes, useNodeEditorShortcuts, useSelectionActions, useFocusPan)
 
-**Issues Fixed**: Missing JSDoc documentation on useAlignNodes hook
+**Issues Fixed**: Missing JSDoc documentation on key workflow editor hooks
 
-**Improvement Made**: Added comprehensive JSDoc documentation to web/src/hooks/useAlignNodes.ts:
-- Added module-level type documentation
-- Documented AlignNodesOptions type with @param tags
-- Added @returns tag describing the callback function
-- Included @example code block showing usage patterns
+**Improvement Made**: Added comprehensive JSDoc documentation to multiple hooks:
 
-**Impact**: Improved hook discoverability and developer experience. Hooks now follow the same documentation standards as critical stores (NodeStore, WorkflowRunner, GlobalChatStore).
+1. **useNodeEditorShortcuts.ts** (633 lines):
+   - Comprehensive module-level documentation
+   - Documented all parameters and return values
+   - Included @example code block
+   - Documented 40+ supported shortcuts across clipboard, manipulation, viewport, tab, selection, and navigation categories
+
+2. **useSelectionActions.ts** (336 lines):
+   - Enhanced SelectionActionsReturn interface with individual @property docs
+   - Added comprehensive hook-level documentation
+   - Documented alignment and distribution algorithms
+   - Included @example code block with usage patterns
+   - Documented spacing constants (HORIZONTAL_SPACING: 40px, VERTICAL_SPACING: 20px)
+
+3. **useFocusPan.ts** (53 lines):
+   - Replaced minimal comment with comprehensive JSDoc
+   - Documented keyboard navigation integration
+   - Explained Tab key tracking mechanism
+   - Added @see references to related hooks
+   - Included @example code block
+
+**Impact**: Improved hook discoverability and developer experience. All workflow editor hooks now follow consistent documentation standards with critical stores (NodeStore, WorkflowRunner, GlobalChatStore).
 
 **Files Updated**:
-- web/src/hooks/useAlignNodes.ts
+- web/src/hooks/useNodeEditorShortcuts.ts
+- web/src/hooks/useSelectionActions.ts
+- web/src/hooks/useFocusPan.ts
 
 **Related Memory**:
 - `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards

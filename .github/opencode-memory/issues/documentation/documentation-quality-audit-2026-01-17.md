@@ -1,8 +1,8 @@
-### Documentation Quality Audit (2026-01-17)
+### Documentation Quality Assurance (2026-01-17)
 
-**Audit Scope**: Comprehensive review of NodeTool documentation quality including AGENTS.md files, README files, JSDoc comments, port consistency, and code examples.
+**Audit Scope**: Comprehensive review of NodeTool documentation quality and targeted JSDoc improvements for key workflow editor hooks.
 
-**Summary**: Documentation quality remains EXCELLENT. All critical documentation is accurate, complete, and well-maintained. Minor improvement made to hook documentation.
+**Summary**: Documentation quality remains EXCELLENT. Made targeted improvements to hook JSDoc documentation for better developer experience. All critical documentation verified accurate and complete.
 
 ---
 
@@ -30,7 +30,7 @@
 - `web/src/stores/WorkflowRunner.ts` - Excellent JSDoc ✅
 - `web/src/stores/GlobalChatStore.ts` - Excellent JSDoc ✅
 - `web/src/core/graph.ts` - Excellent JSDoc ✅
-- `web/src/hooks/useAlignNodes.ts` - Added JSDoc documentation ✅
+- `web/src/hooks/useAlignNodes.ts` - Excellent JSDoc (added 2026-01-17) ✅
 
 ---
 
@@ -57,7 +57,7 @@ Critical files with JSDoc documentation:
 - WorkflowRunner.ts: Complete protocol documentation ✅
 - GlobalChatStore.ts: Comprehensive state machine docs ✅
 - graph.ts: Graph algorithm documentation ✅
-- useWorkflowGraphUpdater.ts: Hook documentation ✅
+- useAlignNodes.ts: Hook documentation ✅
 
 #### 4. Link Verification ✅ VERIFIED
 - All internal links use correct relative paths
@@ -74,15 +74,38 @@ Critical files with JSDoc documentation:
 
 ### Improvements Made
 
-**Added JSDoc documentation to `useAlignNodes.ts`**:
-- Added module-level documentation
-- Documented `AlignNodesOptions` type
-- Added @param and @returns tags
-- Included @example code block
-- Improved hook discoverability and usability
+**Added JSDoc documentation to key workflow editor hooks**:
+
+1. **`useNodeEditorShortcuts.ts`** (633 lines):
+   - Added comprehensive module-level documentation
+   - Documented all parameters and return values
+   - Included @example code block showing usage
+   - Documented supported shortcut categories:
+     - Clipboard operations (copy, cut, paste)
+     - Node manipulation (duplicate, delete, group, align)
+     - Viewport controls (zoom in/out, fit view, zoom presets)
+     - Tab management (switch tabs, close workflows)
+     - Selection operations (select all, select connected, find)
+     - Keyboard navigation (navigate between nodes)
+
+2. **`useSelectionActions.ts`** (336 lines):
+   - Enhanced SelectionActionsReturn interface with individual @property docs
+   - Added comprehensive hook-level documentation
+   - Documented alignment and distribution algorithms
+   - Included @example code block with usage patterns
+   - Documented spacing constants (HORIZONTAL_SPACING: 40px, VERTICAL_SPACING: 20px)
+
+3. **`useFocusPan.ts`** (53 lines):
+   - Replaced minimal comment with comprehensive JSDoc
+   - Documented keyboard navigation integration
+   - Explained Tab key tracking mechanism
+   - Added @see references to related hooks
+   - Included @example code block
 
 **Files Updated**:
-- `web/src/hooks/useAlignNodes.ts`
+- `web/src/hooks/useNodeEditorShortcuts.ts`
+- `web/src/hooks/useSelectionActions.ts`
+- `web/src/hooks/useFocusPan.ts`
 
 ---
 
@@ -91,6 +114,7 @@ Critical files with JSDoc documentation:
 1. Continue adding JSDoc to hooks that lack documentation
 2. Consider adding screenshots to visual documentation (workflow editor, dashboard)
 3. Add more @example blocks to complex hooks
+4. Add `npm ci` as recommended install command for CI/CD scenarios
 
 ---
 
@@ -111,6 +135,6 @@ All verified documentation files are:
 
 - [Documentation Audit 2026-01-16](documentation-audit-2026-01-16.md) - Previous comprehensive audit
 - [Documentation Quality Audit](documentation-quality-audit.md) - Code quality insights
-- [Documentation Best Practices](documentation-best-practices.md) - Standards guide
+- [Documentation Best Practices](../code-quality/documentation-best-practices.md) - Standards guide
 - [Features List](../../features.md) - Current feature inventory
 - [Project Context](../../project-context.md) - Architecture overview
