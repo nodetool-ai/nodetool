@@ -54,6 +54,18 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Audit: Dependency Vulnerabilities Fixed (2026-01-17)
+
+**What**: Fixed high severity security vulnerabilities in dependencies:
+- glob command injection (GHSA-5j98-mcp5-4vw2) - Added npm override in web/package.json
+- tar arbitrary file overwrite (GHSA-8qq5-rm4j-mr97) - Updated tar to ^7.5.3 in electron and mobile
+
+**Impact**: Web reduced to 9 low severity, Electron to 15 (10 low, 5 moderate), Mobile to 9 (1 high, 7 moderate, 1 low)
+
+**Files**: web/package.json, electron/package.json, mobile/package.json
+
+---
+
 ### Performance Optimization: Large Component Memoization (2026-01-17)
 
 **What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
