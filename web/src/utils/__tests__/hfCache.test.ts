@@ -1,4 +1,4 @@
-import { UnifiedModel } from "../stores/ApiTypes";
+import { UnifiedModel } from "../../stores/ApiTypes";
 import {
   isHfModel,
   canCheckHfCache,

@@ -1,7 +1,8 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFitView, getNodesBounds } from "../useFitView";
-import { Node, Position, XYPosition } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
+import { Node, Position, XYPosition, useReactFlow } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
+import { useNodes } from "../../contexts/NodeContext";
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({
@@ -55,15 +56,17 @@ const createMockNode = (
 describe("useFitView", () => {
   let fitView: jest.Mock;
   let fitBounds: jest.Mock;
+  const mockUseReactFlow = jest.mocked(useReactFlow);
+  const mockUseNodes = jest.mocked(useNodes);
 
   beforeEach(() => {
     fitView = jest.fn();
     fitBounds = jest.fn();
-    (require("@xyflow/react").useReactFlow as jest.Mock).mockReturnValue({
+    mockUseReactFlow.mockReturnValue({
       fitView,
       fitBounds,
       getViewport: jest.fn(() => ({ x: 0, y: 0, zoom: 1 }))
-    });
+    } as any);
     jest.useFakeTimers();
     jest.clearAllMocks();
   });
@@ -78,7 +81,7 @@ describe("useFitView", () => {
   });
 
   it("fits all nodes when no nodes are selected", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+    mockUseNodes.mockImplementation((selector) => {
       return selector({
         nodes: [createMockNode("node1", 0, 0, 100, 50)],
         getSelectedNodes: jest.fn(() => []),
@@ -105,7 +108,7 @@ describe("useFitView", () => {
       createMockNode("node1", 0, 0, 100, 50),
       createMockNode("node2", 200, 0, 100, 50)
     ];
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+    mockUseNodes.mockImplementation((selector) => {
       return selector({
         nodes: [
           createMockNode("node1", 0, 0, 100, 50),
@@ -131,7 +134,7 @@ describe("useFitView", () => {
   });
 
   it("fits specific node IDs when provided", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+    mockUseNodes.mockImplementation((selector) => {
       return selector({
         nodes: [
           createMockNode("node1", 0, 0, 100, 50),
@@ -158,7 +161,7 @@ describe("useFitView", () => {
   });
 
   it("uses custom padding when provided", () => {
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+    mockUseNodes.mockImplementation((selector) => {
       return selector({
         nodes: [createMockNode("node1", 0, 0, 100, 50)],
         getSelectedNodes: jest.fn(() => []),
@@ -185,7 +188,7 @@ describe("useFitView", () => {
       createMockNode("node1", 100, 100, 100, 50),
       createMockNode("node2", 300, 100, 100, 50)
     ];
-    (require("../../contexts/NodeContext").useNodes as jest.Mock).mockImplementation((selector) => {
+    mockUseNodes.mockImplementation((selector) => {
       return selector({
         nodes,
         getSelectedNodes: jest.fn(() => nodes),
