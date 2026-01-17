@@ -396,7 +396,7 @@ _No entries yet - this memory system is new as of 2026-01-10_
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.
 
-- **Perf Fix: Inline Handler Memoization (2026-01-16)**: Memoized 20+ inline arrow functions, added React.memo to 5 dialogs. Files: ImageEditorToolbar.tsx, NodeColorSelector.tsx, NodeLogs.tsx, NodeDescription.tsx, model_menu/*.tsx, FileBrowserDialog.tsx
+- **Pattern Library Research (2026-01-17)**: Implemented reusable workflow subflow system with local storage persistence. Files: PatternStore.ts, usePatternLibrary.ts, useApplyPattern.ts, PatternLibraryPanel.tsx, PatternSelector.tsx, SelectionActionToolbar.tsx integration
 - **Zoom Presets (2026-01-14)**: Added zoom in/out buttons, presets dropdown (25-200%), keyboard shortcuts. Files: ViewportStatusIndicator.tsx, shortcuts.ts
 - **Node Execution Time (2026-01-14)**: Shows execution duration on completed nodes. Files: ExecutionTimeStore.ts, NodeExecutionTime.tsx
 - **Keyboard Node Navigation (2026-01-13)**: Tab/Shift+Tab and Alt+Arrows to navigate nodes. Files: NodeFocusStore.ts, useNodeFocus.ts
