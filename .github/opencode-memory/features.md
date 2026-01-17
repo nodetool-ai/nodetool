@@ -281,6 +281,7 @@ Last updated: 2026-01-16
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
+- **Workflow Analytics Profiler**: Analyze workflow performance and identify bottlenecks
 - **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI

@@ -54,13 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### Performance Optimization: Component Memoization (2026-01-17)
+### Workflow Analytics Profiler (2026-01-17)
 
-**What**: Added React.memo to 3 large components (ImageEditorToolbar, ImageEditorModal, OpenOrCreateDialog) to prevent unnecessary re-renders.
+**What**: Added Workflow Analytics panel to bottom panel tabs, showing performance metrics, bottlenecks, and node breakdown.
 
-**Files**: ImageEditorToolbar.tsx, ImageEditorModal.tsx, OpenOrCreateDialog.tsx
+**Files**: `web/src/stores/WorkflowAnalyticsStore.ts`, `web/src/components/node_editor/WorkflowAnalyticsPanel.tsx`, `web/src/components/panels/PanelBottom.tsx`, `web/src/stores/BottomPanelStore.ts`, `web/src/utils/formatDateAndTime.ts`
 
-**Impact**: Reduced re-renders in image editing and workflow creation workflows. Bundle size unchanged (5.74 MB).
+**Impact**: Users can now analyze workflow performance, identify bottlenecks, and optimize their AI workflows.
 
 ---
 
