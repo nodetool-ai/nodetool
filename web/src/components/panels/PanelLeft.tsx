@@ -112,9 +112,9 @@ const styles = (
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         willChange: "transform, box-shadow",
         backgroundColor: "transparent",
-        // Make icons smaller within toolbar buttons
+        // Match IconForType "small" size (20px)
         "& svg": {
-          fontSize: "1rem",
+          fontSize: "1.25rem",
           "[data-mui-color-scheme='dark'] &": {
             color: theme.vars.palette.grey[100]
           }

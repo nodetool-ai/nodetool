@@ -625,7 +625,7 @@ interface IconForTypeProps extends IconProps {
 type IconSizeOption = "small" | "normal" | "medium" | "large";
 
 const ICON_SIZE_MAP: Record<IconSizeOption, number> = {
-  small: 16,
+  small: 20,
   normal: 24,
   medium: 32,
   large: 40
