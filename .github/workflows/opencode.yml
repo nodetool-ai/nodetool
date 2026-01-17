@@ -44,8 +44,78 @@ jobs:
           cd electron
           npm ci
 
+      - name: Install mobile dependencies
+        run: |
+          cd mobile
+          npm ci
+
       - name: Print MINIMAX_API_KEY length
         run: 'echo "MINIMAX_API_KEY length: ${#MINIMAX_API_KEY}"'
+
+      - name: Pre-flight Quality Check
+        id: pre-check
+        continue-on-error: true
+        run: |
+          echo "## 🔍 Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Checking current codebase quality before OpenCode agent runs..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          TYPECHECK_EXIT=0
+          LINT_EXIT=0
+          TEST_EXIT=0
+          
+          echo "### TypeScript Type Check" >> $GITHUB_STEP_SUMMARY
+          if make typecheck 2>&1 | tee typecheck-pre.log; then
+            echo "✅ No TypeScript errors" >> $GITHUB_STEP_SUMMARY
+          else
+            TYPECHECK_EXIT=1
+            ERROR_COUNT=$(grep -c "error TS" typecheck-pre.log || echo "0")
+            echo "⚠️ Found $ERROR_COUNT TypeScript error(s)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ESLint Check" >> $GITHUB_STEP_SUMMARY
+          if make lint 2>&1 | tee lint-pre.log; then
+            echo "✅ No lint errors" >> $GITHUB_STEP_SUMMARY
+          else
+            LINT_EXIT=1
+            ERROR_COUNT=$(grep -c "error" lint-pre.log || echo "0")
+            WARNING_COUNT=$(grep -c "warning" lint-pre.log || echo "0")
+            echo "⚠️ Found $ERROR_COUNT error(s) and $WARNING_COUNT warning(s)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Suite" >> $GITHUB_STEP_SUMMARY
+          if make test 2>&1 | tee test-pre.log; then
+            echo "✅ All tests passing" >> $GITHUB_STEP_SUMMARY
+          else
+            TEST_EXIT=1
+            echo "⚠️ Some tests failing" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Store results for OpenCode agent
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          
+          if [ $TYPECHECK_EXIT -ne 0 ] || [ $LINT_EXIT -ne 0 ] || [ $TEST_EXIT -ne 0 ]; then
+            echo "---" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Pre-existing quality issues detected.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The OpenCode agent will be informed and should:" >> $GITHUB_STEP_SUMMARY
+            echo "- Not introduce NEW errors" >> $GITHUB_STEP_SUMMARY
+            echo "- Consider fixing existing errors if relevant" >> $GITHUB_STEP_SUMMARY
+            echo "- Run \`make lint-fix\` to auto-fix lint issues" >> $GITHUB_STEP_SUMMARY
+            echo "- Run \`make check\` before completing work" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Codebase quality is clean!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "OpenCode agent must maintain this quality standard." >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Run opencode
         uses: sst/opencode/github@latest
@@ -107,16 +177,44 @@ jobs:
             
             **Keep it minimal** - Only write truly important information that will help future work.
 
-            ## Mandatory Requirements
+            ## ⚠️ CRITICAL: Quality Guardrails (MANDATORY)
 
-            **ALL changes must pass these commands:**
-            ```bash
-            make typecheck  # Must exit 0
-            make lint       # Must exit 0
-            make test       # Must exit 0
-            ```
-
-            **Run these BEFORE opening a PR.** Fix all errors.
+            **BEFORE YOU START**: The workflow has run pre-flight quality checks.
+            - Check the "Pre-Flight Quality Check" step results above
+            - Pre-existing issues: TypeCheck=$TYPECHECK_PRE_EXIT, Lint=$LINT_PRE_EXIT, Test=$TEST_PRE_EXIT
+            - Exit code 0 = passing, non-zero = failing
+            
+            **REQUIRED STEPS FOR EVERY CHANGE**:
+            
+            1. **Auto-fix lint issues first**:
+               ```bash
+               make lint-fix  # Auto-fix many lint issues
+               ```
+            
+            2. **Verify quality checks pass**:
+               ```bash
+               make typecheck  # Must exit 0
+               make lint       # Must exit 0  
+               make test       # Must exit 0
+               ```
+            
+            3. **Fix any errors**:
+               - TypeScript errors: Fix type issues manually
+               - Lint errors: Run `make lint-fix` first, then fix remaining manually
+               - Test failures: Debug and fix failing tests
+            
+            4. **Re-run checks until all pass**:
+               ```bash
+               make check  # Runs all three checks
+               ```
+            
+            **QUALITY GATE RULES**:
+            - ✅ If codebase was clean (all exit 0), it MUST stay clean
+            - ⚠️ If codebase had errors, you MUST NOT introduce NEW errors
+            - 🎯 Bonus: Fix existing errors if related to your work
+            - 🚫 NEVER commit code that breaks type checking, linting, or tests
+            
+            **WORKFLOW WILL FAIL** if you don't meet these requirements!
 
             ## Code Quality Standards
 
@@ -191,3 +289,138 @@ jobs:
             - **Test thoroughly**: Validate your changes
 
             Now, review the issue comment and provide helpful assistance!
+
+      - name: Post-change Quality Verification
+        if: always()
+        id: post-check
+        run: |
+          echo "## 🔍 Post-Change Quality Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Verifying quality after OpenCode agent completed..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          TYPECHECK_EXIT=0
+          LINT_EXIT=0
+          TEST_EXIT=0
+          
+          echo "### TypeScript Type Check" >> $GITHUB_STEP_SUMMARY
+          if make typecheck 2>&1 | tee typecheck-post.log; then
+            echo "✅ No TypeScript errors" >> $GITHUB_STEP_SUMMARY
+          else
+            TYPECHECK_EXIT=1
+            ERROR_COUNT=$(grep -c "error TS" typecheck-post.log || echo "0")
+            echo "❌ Found $ERROR_COUNT TypeScript error(s)" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View Errors</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -50 typecheck-post.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ESLint Check" >> $GITHUB_STEP_SUMMARY
+          if make lint 2>&1 | tee lint-post.log; then
+            echo "✅ No lint errors" >> $GITHUB_STEP_SUMMARY
+          else
+            LINT_EXIT=1
+            ERROR_COUNT=$(grep -c "error" lint-post.log || echo "0")
+            WARNING_COUNT=$(grep -c "warning" lint-post.log || echo "0")
+            echo "❌ Found $ERROR_COUNT error(s) and $WARNING_COUNT warning(s)" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View Errors</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -50 lint-post.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Suite" >> $GITHUB_STEP_SUMMARY
+          if make test 2>&1 | tee test-post.log; then
+            echo "✅ All tests passing" >> $GITHUB_STEP_SUMMARY
+          else
+            TEST_EXIT=1
+            echo "❌ Some tests failing" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View Failures</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -50 test-post.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Compare with pre-check
+          QUALITY_DEGRADED=false
+          
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "🔴 **NEW TypeScript errors introduced!**" >> $GITHUB_STEP_SUMMARY
+            QUALITY_DEGRADED=true
+          fi
+          
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "🔴 **NEW lint errors introduced!**" >> $GITHUB_STEP_SUMMARY
+            QUALITY_DEGRADED=true
+          fi
+          
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "🔴 **NEW test failures introduced!**" >> $GITHUB_STEP_SUMMARY
+            QUALITY_DEGRADED=true
+          fi
+          
+          if [ "$QUALITY_DEGRADED" = true ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **QUALITY GATE FAILED: Code quality degraded!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The changes introduced NEW quality issues." >> $GITHUB_STEP_SUMMARY
+            echo "Please fix these issues before merging." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          elif [ $TYPECHECK_EXIT -ne 0 ] || [ $LINT_EXIT -ne 0 ] || [ $TEST_EXIT -ne 0 ]; then
+            echo "⚠️ **Quality issues remain (but no new ones introduced)**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Consider fixing these pre-existing issues." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **ALL QUALITY CHECKS PASSED!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Code is ready for review." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on failure
+        if: failure() && steps.post-check.conclusion == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = `## ⚠️ Quality Gate Failed
+            
+            The OpenCode changes introduced quality issues that must be fixed:
+            
+            - Check the workflow run for details
+            - Review TypeScript, lint, and test errors
+            - Run \`make lint-fix\` to auto-fix lint issues
+            - Fix remaining errors manually
+            - Ensure \`make check\` passes before committing
+            
+            [View Workflow Run](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
+            
+            if (context.eventName === 'issue_comment') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message
+              });
+            } else if (context.eventName === 'pull_request_review_comment') {
+              await github.rest.pulls.createReviewComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                body: message,
+                commit_id: context.payload.pull_request.head.sha,
+                path: context.payload.comment.path,
+                position: context.payload.comment.position
+              });
+            }

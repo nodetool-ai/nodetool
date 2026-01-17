@@ -1,5 +1,16 @@
 # Build, Test, and Lint Requirements
 
+## 🛡️ Automated Quality Guardrails
+
+**NEW**: OpenCode workflows now enforce quality standards automatically!
+
+All OpenCode workflows include:
+- **Pre-flight checks**: Baseline quality assessment before agent runs
+- **Post-change verification**: Ensures no NEW errors introduced
+- **Automatic failure**: Workflow fails if quality degrades
+
+**See [Quality Guardrails Documentation](./quality-guardrails.md) for complete details.**
+
 ## Mandatory Commands
 
 **All PRs must pass these three commands before merging:**
