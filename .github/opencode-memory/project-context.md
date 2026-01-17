@@ -59,6 +59,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 **What**: Removed "Basic Information" headline from workflow settings, added descriptions to Execution and Advanced sections.
 
 **Files**: web/src/components/workflows/WorkflowForm.tsx
+### Workflow Versions Panel - Remove Pin Button (2026-01-17)
+
+**What**: Removed pin button and related functionality from workflow versions panel.
+
+**Files**: VersionListItem.tsx, VersionHistoryPanel.tsx
+
+**Impact**: Pin button no longer appears in version history list, simplifying the UI.
 
 ---
 
