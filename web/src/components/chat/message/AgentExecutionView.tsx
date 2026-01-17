@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -681,4 +681,4 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
   );
 };
 
-export default AgentExecutionView;
+export default memo(AgentExecutionView);
