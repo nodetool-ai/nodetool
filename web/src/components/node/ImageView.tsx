@@ -97,6 +97,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
             <IconButton
               onClick={handleCopyToClipboard}
               size="small"
+              aria-label={copied ? "Image copied to clipboard" : "Copy image to clipboard"}
               sx={{
                 backgroundColor: "rgba(0, 0, 0, 0.5)",
                 color: "white",
@@ -113,7 +114,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
       <img
         ref={imageRef}
         src={imageUrl}
-        alt=""
+        alt="Generated image output"
         onLoad={handleImageLoad}
         style={{
           width: "100%",
