@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Audit (2026-01-17)
+
+**What**: Verified codebase is well-optimized - 5.78 MB bundle with code splitting, all Zustand subscriptions selective, handlers memoized, proper cleanup.
+
+**Files**: .github/opencode-memory/insights/performance/audit-2026-01-17-evening.md
+
+**Impact**: Confirmed production-ready performance with all optimizations in place.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
