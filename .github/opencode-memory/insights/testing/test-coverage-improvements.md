@@ -1,5 +1,81 @@
 # Test Coverage Improvements (2026-01-17)
 
+**Coverage Added**: 1 new test file with 20 tests for utility functions
+
+**Tests Added**:
+- `reduceUnionType.test.ts` - 20 tests for union type reduction logic
+
+**Areas Covered**:
+- Non-union type passthrough
+- Union type reduction rules (int_float → float, str_text → str, etc.)
+- Union with undefined type_args
+- Empty type_args array handling
+- Single type arg unions
+- Type args sorting before rule matching
+
+**Test Patterns Used**:
+
+1. **Pure Function Testing Pattern**:
+```typescript
+describe("reduceUnionType", () => {
+  it("returns the same type for non-union types", () => {
+    const type: TypeMetadata = { type: "str" };
+    expect(reduceUnionType(type)).toBe("str");
+  });
+
+  it("reduces int_float union to float", () => {
+    const type: TypeMetadata = {
+      type: "union",
+      type_args: [
+        { type: "int" },
+        { type: "float" }
+      ]
+    };
+    expect(reduceUnionType(type)).toBe("float");
+  });
+});
+```
+
+2. **Rule-Based Type Reduction Testing**:
+```typescript
+it("reduces str_text union to str", () => {
+  const type: TypeMetadata = {
+    type: "union",
+    type_args: [
+      { type: "str" },
+      { type: "text" }
+    ]
+  };
+  expect(reduceUnionType(type)).toBe("str");
+});
+```
+
+3. **Edge Case Coverage**:
+```typescript
+it("returns str for union with undefined type_args", () => {
+  const type: TypeMetadata = {
+    type: "union",
+    type_args: undefined
+  };
+  expect(reduceUnionType(type)).toBe("str");
+});
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/reduceUnionType.test.ts`
+
+**Key Learnings**:
+1. Pure utility functions are ideal test candidates with clear input/output expectations
+2. Test all rule combinations defined in the reduction rules object
+3. Include edge cases for undefined and empty array inputs
+4. Verify that type args are sorted alphabetically before rule matching
+
+**Status**: All 20 tests passing (204 test suites, 2626 tests total)
+
+---
+
+### Previous Entry (2026-01-17)
+
 **Coverage Added**: 3 new test files with 30 tests for hooks
 
 **Tests Added**:
