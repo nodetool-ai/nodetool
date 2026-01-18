@@ -278,6 +278,22 @@ Last updated: 2026-01-17
 
 ---
 
+## Advanced Analytics (Research)
+
+### Performance Profiling (Experimental)
+- **Performance Profiler Panel**: Side panel for analyzing workflow performance and identifying bottlenecks
+- **Performance Timeline**: Visual bar chart showing execution duration for each node
+- **useWorkflowPerformance Hook**: Analyzes execution data, identifies bottlenecks, provides optimization suggestions
+- **PerformanceProfilerStore**: Zustand store for performance profiles and historical data
+- **Bottleneck Detection**: Automatically identifies nodes taking >20% of max duration or >100ms
+- **Parallelism Scoring**: Calculates workflow parallelism score based on node dependencies
+- **Optimization Suggestions**: Generates actionable recommendations for performance improvements
+- **Potential Savings Calculation**: Estimates time savings from parallelization and optimization
+
+Files: `web/src/stores/PerformanceProfilerStore.ts`, `web/src/hooks/useWorkflowPerformance.ts`, `web/src/components/performance/PerformanceProfilerPanel.tsx`, `web/src/components/performance/PerformanceTimeline.tsx`
+
+---
+
 ## Features NOT Yet Implemented
 
 *(Update this section when considering these features in the future)*
@@ -285,12 +301,10 @@ Last updated: 2026-01-17
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
