@@ -1,3 +1,24 @@
+/**
+ * Hook that handles dropping assets and files onto the workflow editor canvas.
+ * Supports creating nodes from assets, handling file drops, and managing multi-node placement.
+ * 
+ * This hook integrates with the ReactFlow canvas to position new nodes at the drop location
+ * and handles various file types including images, JSON, CSV, and documents.
+ * 
+ * @returns Object containing onDrop and onDragOver event handlers for the drop zone
+ * 
+ * @example
+ * ```typescript
+ * const { onDrop, onDragOver } = useDropHandler();
+ * 
+ * return (
+ *   <div onDrop={onDrop} onDragOver={onDragOver}>
+ *     <ReactFlow />
+ *   </div>
+ * );
+ * ```
+ */
+
 import { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
