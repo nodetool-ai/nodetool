@@ -71,6 +71,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Performance Profiling Feature (2026-01-18)
+
+**What**: Implemented Workflow Performance Profiling feature with bottleneck detection, performance scoring, and optimization recommendations.
+
+**Files**: web/src/stores/PerformanceStore.ts, web/src/hooks/useWorkflowPerformance.ts, web/src/components/node/PerformanceProfiler/
+
+**Impact**: Users can now analyze workflow performance, identify slow nodes, and receive automated optimization suggestions.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
