@@ -36,8 +36,8 @@ interface WorkflowProfilerPanelProps {
 }
 
 const formatDuration = (ms: number): string => {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 1000) {return `${ms}ms`;}
+  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
   return `${Math.floor(ms / 60000)}m ${((ms % 60000) / 1000).toFixed(0)}s`;
 };
 
@@ -81,8 +81,8 @@ const ComplexityBar: React.FC<{ value: number; max?: number }> = ({ value, max =
   const percentage = Math.min((value / max) * 100, 100);
 
   const getColor = () => {
-    if (percentage > 70) return theme.vars.palette.error.main;
-    if (percentage > 40) return theme.vars.palette.warning.main;
+    if (percentage > 70) {return theme.vars.palette.error.main;}
+    if (percentage > 40) {return theme.vars.palette.warning.main;}
     return theme.vars.palette.success.main;
   };
 
