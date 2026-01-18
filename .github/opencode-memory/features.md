@@ -4,7 +4,13 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-17
+Last updated: 2026-01-18
+
+- **Documentation Quality Audit**: All 14 AGENTS.md files verified complete, 11 README files accurate, 2 testing guides comprehensive, all quality checks passing (typecheck, lint, tests)
+
+- **Lint Fix**: Fixed unused type warning in useSurroundWithGroup.ts by properly applying SurroundWithGroupOptions type
+
+- **Mobile Type Definitions**: Fixed mobile typecheck by installing @types/jest and @types/node packages
 
 - **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
 
