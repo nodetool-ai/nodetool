@@ -361,7 +361,7 @@ export const InteractiveGraphVisualDiff: React.FC<InteractiveGraphVisualDiffProp
     diff.removedEdges.length > 0;
 
   const selectedNode = useMemo(() => {
-    if (!selectedNodeId) return null;
+    if (!selectedNodeId) {return null;}
     return (newGraph?.nodes || oldGraph?.nodes || []).find(n => n.id === selectedNodeId);
   }, [selectedNodeId, newGraph, oldGraph]);
 
@@ -520,7 +520,7 @@ export const InteractiveGraphVisualDiff: React.FC<InteractiveGraphVisualDiffProp
           {layout.edges.map(edge => {
             const sourcePos = layout.positions[edge.source];
             const targetPos = layout.positions[edge.target];
-            if (!sourcePos || !targetPos) return null;
+            if (!sourcePos || !targetPos) {return null;}
 
             const isHighlighted = selectedNodeId
               ? edge.source === selectedNodeId || edge.target === selectedNodeId
@@ -543,7 +543,7 @@ export const InteractiveGraphVisualDiff: React.FC<InteractiveGraphVisualDiffProp
           {(newGraph?.nodes || oldGraph?.nodes || []).map(node => {
             const pos = layout.positions[node.id];
             const status = nodeStatusMap[node.id] || "unchanged";
-            if (!pos) return null;
+            if (!pos) {return null;}
 
             return (
               <InteractiveMiniNode
