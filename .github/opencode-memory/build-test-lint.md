@@ -291,3 +291,39 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+---
+
+## Test Coverage Patterns (2026-01-18)
+
+### Tests Added
+
+**Frontend Tool Registry Tests** (`src/lib/tools/__tests__/frontendTools.test.ts`):
+- 18 tests covering:
+  - Tool registration and unregistration
+  - Manifest generation (including hidden tool filtering)
+  - Tool execution with arguments and context
+  - Error handling in tool execution
+  - Complex parameter schemas
+
+**Note**: WebSocketManager tests (`src/lib/websocket/__tests__/WebSocketManager.test.ts`) were removed due to jsdom environment limitations with WebSocket testing. Consider using a dedicated WebSocket testing library or integration tests for that code.
+
+### Testing Patterns Used
+
+1. **Module-level isolation**: Each test registers and unregisters tools to avoid cross-test pollution
+2. **Unique naming**: Tools use unique suffixes to prevent collisions with other tests
+3. **Async/await patterns**: Properly test async tool execution
+4. **Error testing**: Use `expect(...).rejects.toThrow()` for async errors
+
+### Files Tested
+
+| File | Tests Added | Coverage Area |
+|------|-------------|---------------|
+| `src/lib/tools/frontendTools.ts` | 18 tests | Tool registry, manifest, execution |
+
+### Running New Tests
+
+```bash
+# Run frontend tools tests
+npm test -- --testPathPattern="frontendTools.test.ts"
+```
