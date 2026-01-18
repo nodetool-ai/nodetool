@@ -1,5 +1,25 @@
 import { create } from "zustand";
 
+/**
+ * Store for tracking node execution timing during workflow runs.
+ * 
+ * Records start and end timestamps for each node execution to calculate
+ * duration. Timings are stored per workflow to allow multiple workflows
+ * to track execution times independently. When a workflow completes,
+ * timings can be cleared using clearTimings().
+ * 
+ * @example
+ * ```typescript
+ * // Start tracking a node execution
+ * useExecutionTimeStore.getState().startExecution(workflowId, nodeId);
+ * 
+ * // End tracking after completion
+ * useExecutionTimeStore.getState().endExecution(workflowId, nodeId);
+ * 
+ * // Get the duration in milliseconds
+ * const duration = useExecutionTimeStore.getState().getDuration(workflowId, nodeId);
+ * ```
+ */
 interface ExecutionTiming {
   startTime: number;
   endTime?: number;

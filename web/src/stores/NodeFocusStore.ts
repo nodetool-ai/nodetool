@@ -2,6 +2,33 @@ import { create } from "zustand";
 import { Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";
 
+/**
+ * Store for managing keyboard navigation focus state in the node editor.
+ * 
+ * Provides functionality for:
+ * - Focusing on individual nodes for keyboard-only navigation
+ * - Entering/exiting navigation mode for keyboard-only editing
+ * - Sequential navigation (next/prev) and directional navigation (up/down/left/right)
+ * - Focus history tracking for "go back" functionality
+ * 
+ * Navigation shortcuts:
+ * - Tab/Shift+Tab: Navigate to next/previous node
+ * - Alt+Arrows: Navigate in a direction
+ * - Enter: Select the focused node
+ * - Alt+ArrowLeft: Go back in navigation history
+ * 
+ * @example
+ * ```typescript
+ * // Focus on a specific node
+ * useNodeFocusStore.getState().setFocusedNode(nodeId);
+ * 
+ * // Navigate to next node
+ * useNodeFocusStore.getState().navigateFocus("next", nodes);
+ * 
+ * // Enter keyboard navigation mode
+ * useNodeFocusStore.getState().enterNavigationMode();
+ * ```
+ */
 interface NodeFocusState {
   focusedNodeId: string | null;
   isNavigationMode: boolean;
@@ -16,6 +43,17 @@ interface NodeFocusState {
   clearFocusHistory: () => void;
 }
 
+/**
+ * Helper function to find the nearest node in a given direction.
+ * 
+ * Uses a scoring algorithm that considers both distance and direction alignment.
+ * Nodes further in the specified direction but closer overall are preferred.
+ * 
+ * @param nodes - Array of nodes to search through
+ * @param currentNodeId - The currently focused node ID
+ * @param direction - The direction to search in (up, down, left, right)
+ * @returns The nearest node in the specified direction, or null if none found
+ */
 const getDirectionalNode = (
   nodes: Node<NodeData>[],
   currentNodeId: string | null,
