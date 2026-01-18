@@ -1,5 +1,120 @@
 # Test Coverage Improvements (2026-01-18)
 
+**Coverage Added (2026-01-18)**: 3 new test files with 86 tests for critical stores and hooks
+
+**Tests Added**:
+- `workflowUpdates.test.ts` - 28 tests for workflow update handling
+  - Job status updates (running, completed, cancelled, failed, suspended, paused, queued, timed_out)
+  - Node status updates (running, error, completed)
+  - Log, notification, progress, preview, output updates
+  - Planning, tool call, task updates
+  - Edge updates and global updates array handling
+  - Suspension reason handling from run_state
+
+- `ModelMenuStore.test.ts` - 37 tests for model menu functionality
+  - Provider secret mapping (OpenAI, Anthropic, Google, HuggingFace, Replicate, Fal, AIME)
+  - Provider list computation from models
+  - Model filtering by provider, search term, and enabled status
+  - Search token matching and Fuse.js fuzzy search
+  - Alphabetical sorting and favorite/recent models
+  - Store state management (search, provider, tab, models)
+
+- `useChatService.test.tsx` - 21 tests for chat service hook
+  - Status, threads, progress, statusMessage from store
+  - Message sending with model selection and thread creation
+  - Thread selection and navigation
+  - New thread creation and error handling
+  - Thread preview generation (title, content, empty states)
+  - Delete thread, stop generation functions
+  - Planning/task updates from store
+
+**Coverage Before**: 236 test suites, 3,092 tests
+**Coverage After**: 239 test suites, 3,179 tests
+**Net Gain**: +3 test files, +87 tests
+
+**Test Patterns Used**:
+
+1. **Store Function Testing** (ModelMenuStore):
+```typescript
+describe("requiredSecretForProvider", () => {
+  it("returns OPENAI_API_KEY for openai provider", () => {
+    expect(requiredSecretForProvider("openai")).toBe("OPENAI_API_KEY");
+  });
+
+  it("is case insensitive", () => {
+    expect(requiredSecretForProvider("OPENAI")).toBe("OPENAI_API_KEY");
+  });
+});
+```
+
+2. **Callback Hook Testing** (workflowUpdates):
+```typescript
+describe("handleUpdate - Job Updates", () => {
+  it("handles job running status", () => {
+    const runnerStore = createMockRunnerStore();
+    const jobUpdate: JobUpdate = {
+      type: "job_update",
+      job_id: "job-123",
+      status: "running"
+    };
+
+    handleUpdate(mockWorkflow, jobUpdate, runnerStore);
+
+    expect(runnerStore.setState).toHaveBeenCalledWith({ state: "running" });
+  });
+});
+```
+
+3. **Router-Aware Hook Testing** (useChatService):
+```typescript
+const createWrapper = () => {
+  return ({ children }: { children: React.ReactNode }) => (
+    <MemoryRouter>{children}</MemoryRouter>
+  );
+};
+
+it("returns threads from store", () => {
+  const { result } = renderHook(() => useChatService(mockSelectedModel), {
+    wrapper: createWrapper()
+  });
+
+  expect(result.current.threads).toEqual(mockThreads);
+});
+```
+
+4. **Zustand Store Testing Pattern** (ModelMenuStore):
+```typescript
+describe("createModelMenuStore", () => {
+  beforeEach(() => {
+    const store = createModelMenuStore<ModelSelectorModel>();
+    store.setState(store.getInitialState());
+  });
+
+  it("creates store with correct initial state", () => {
+    const store = createModelMenuStore<ModelSelectorModel>();
+    const state = store.getState();
+
+    expect(state.search).toBe("");
+    expect(state.selectedProvider).toBeNull();
+    expect(state.activeSidebarTab).toBe("favorites");
+  });
+});
+```
+
+**Key Learnings**:
+1. Named exports require correct import syntax (`import { useNotificationStore }` not default import)
+2. Router hooks (useNavigate) require MemoryRouter wrapper in tests
+3. Store methods accessed via `getState()` need proper mock setup
+4. Hook memoization (useCallback) can cause mock state issues across tests
+5. Complex store mocks should include all methods accessed in source code (addNotification)
+6. Test isolation requires proper beforeEach setup for each describe block
+
+**Status**: All 3,179 tests passing (239 suites, 4 skipped)
+
+---
+
+# Test Coverage Improvements (2026-01-18)
+
 **Coverage Added**: 13 new test files with 424 tests for utility functions and store utilities
 
 **Tests Added**:
