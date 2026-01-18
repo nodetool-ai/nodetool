@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Timer Memory Leak Fix (2026-01-18)
+
+**What**: Fixed 2 timer memory leaks in ColorPickerModal and MiniAppResults by adding timeout tracking refs and cleanup via useEffect return functions.
+
+**Files**: web/src/components/color_picker/ColorPickerModal.tsx, web/src/components/miniapps/components/MiniAppResults.tsx
+
+**Impact**: Prevents state updates on unmounted components, eliminating React warnings and potential memory leaks.
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).

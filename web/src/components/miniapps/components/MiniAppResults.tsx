@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Typography, IconButton, Tooltip } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -18,6 +18,18 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
 }) => {
   const hasResults = results.length > 0;
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Ref for tracking copy timeout to prevent memory leaks
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear copy timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = useCallback(
     async (result: MiniAppResult) => {
@@ -43,7 +55,10 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
 
         await navigator.clipboard.writeText(textToCopy);
         setCopiedId(result.id);
-        setTimeout(() => setCopiedId(null), 2000);
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+        copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
       } catch (error) {
         console.error("Failed to copy:", error);
       }

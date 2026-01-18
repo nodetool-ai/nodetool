@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -219,6 +219,18 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     ]
   });
 
+  // Ref for tracking copy timeout to prevent memory leaks
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear copy timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Convert hex to HSB for the picker
   const hsb = useMemo(() => {
     const rgb = hexToRgb(color);
@@ -311,7 +323,10 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
       navigator.clipboard.writeText(textToCopy);
       setCopiedFormat(format);
-      setTimeout(() => setCopiedFormat(null), 1500);
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = setTimeout(() => setCopiedFormat(null), 1500);
     },
     [color, alpha]
   );
