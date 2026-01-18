@@ -48,11 +48,17 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
-> ### FeatureYYYY-MM-DD)
-> **What**: One sentence
-> **Files**: Main files changed
-> ```
+> Feature (date): One line. Files: x, y
+
+### Enhanced Workflow Versioning Research (2026-01-18)
+
+**What**: Implemented interactive visual diff with property-level change display for workflow version comparison.
+
+**Files**: EnhancedVersionDiff.tsx, InteractiveGraphVisualDiff.tsx, EnhancedVersionDiff.test.tsx, docs/research/enhanced-versioning.md
+
+**Impact**: Users can now see detailed changes between workflow versions with interactive graph comparison and zoom controls.
+
+---
 
 ### Debug Console Statement Removal (2026-01-17)
 

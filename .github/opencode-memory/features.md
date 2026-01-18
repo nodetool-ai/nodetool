@@ -33,6 +33,9 @@ Last updated: 2026-01-17
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
+- **Version History Panel**: Browse and compare workflow versions with visual diff
+- **Enhanced Version Diff**: Property-level change display with before/after values, expandable details, and summary statistics
+- **Interactive Visual Diff**: Interactive SVG-based graph comparison with zoom controls and node selection
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
@@ -284,7 +287,7 @@ Last updated: 2026-01-17
 
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
-- **Workflow Versioning UI**: Visual diff and merge for workflow versions
+- **Workflow Merging**: Merge conflicts and conflict resolution for workflow versions
 - **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
