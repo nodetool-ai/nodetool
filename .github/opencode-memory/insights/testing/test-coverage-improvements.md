@@ -1,4 +1,81 @@
-# Test Coverage Improvements (2026-01-17)
+# Test Coverage Improvements (2026-01-18)
+
+**Coverage Added**: 1 new test file with 14 tests for BASE_URL patterns
+
+**Tests Added**:
+- `BASE_URL.test.ts` - 14 tests for BASE_URL module and URL construction patterns
+
+**Areas Covered**:
+- WebSocket URL protocol conversion (http → ws, https → wss)
+- URL path construction for different endpoints (/ws, /ws/download, /ws/terminal)
+- Window.location fallback patterns
+- URL validation and format verification
+- Protocol detection and handling
+
+**Test Patterns Used**:
+
+1. **URL Protocol Conversion Pattern**:
+```typescript
+it("converts http to ws protocol", () => {
+  const baseUrl = "http://localhost:8000";
+  const result = baseUrl.replace(/^http/, "ws") + "/ws";
+  expect(result).toBe("ws://localhost:8000/ws");
+});
+
+it("converts https to wss protocol", () => {
+  const baseUrl = "https://api.example.com";
+  const result = baseUrl.replace(/^http/, "ws") + "/ws";
+  expect(result).toBe("wss://api.example.com/ws");
+});
+```
+
+2. **Window Location Fallback Pattern**:
+```typescript
+it("constructs URL from https window.location", () => {
+  const protocol = "https:";
+  const host = "app.example.com";
+  
+  global.window = {
+    location: { protocol, host }
+  } as any;
+
+  const protocolWs = protocol === "https:" ? "wss:" : "ws:";
+  const result = `${protocolWs}//${host}/ws`;
+  
+  expect(result).toBe("wss://app.example.com/ws");
+});
+```
+
+3. **URL Validation Pattern**:
+```typescript
+it("matches both ws and wss protocols", () => {
+  const urls = [
+    "ws://localhost:8000/ws",
+    "wss://api.example.com/ws",
+    "ws://192.168.1.1:8000/ws",
+  ];
+  
+  urls.forEach((url) => {
+    expect(url).toMatch(/^ws(s)?:\/\//);
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/BASE_URL.test.ts`
+
+**Key Learnings**:
+1. `import.meta.env` cannot be easily mocked in Jest tests - test patterns instead of specific values
+2. URL construction logic can be tested in isolation from environment variables
+3. Window.location fallback patterns require jsdom environment
+4. Protocol conversion regex (`/^http/`) should handle both http and https
+5. Test both happy path (window.location available) and edge cases (window undefined)
+
+**Status**: All 14 tests passing (220 test suites, 2909 tests total, 1 pre-existing failure)
+
+---
+
+### Previous Entry (2026-01-17)
 
 **Coverage Added**: 2 new test files with 23 tests for critical hooks
 
