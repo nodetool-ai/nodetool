@@ -268,11 +268,46 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        /**
         * Creates a new workflow using the backend API.
         * Ensures the workflow exists server-side for autosave and edits.
+        * Generates a unique name like NEW_001, NEW_002, etc.
         * @returns {Promise<Workflow>} The created workflow
         */
        createNew: async () => {
+         // Get existing workflow names from cache or fetch them
+         let existingNames: string[] = [];
+         try {
+           const cachedData = get().queryClient?.getQueryData<{ workflows: Workflow[] }>(["workflows"]);
+           if (cachedData?.workflows) {
+             existingNames = cachedData.workflows.map(w => w.name);
+           } else {
+             // Fallback: fetch workflows if not cached
+             const data = await get().load("", 1000);
+             if (data?.workflows) {
+               existingNames = data.workflows.map((w: Workflow) => w.name);
+             }
+           }
+         } catch (e) {
+           log.warn("[createNew] Could not fetch existing workflow names:", e);
+         }
+
+         // Find the highest NEW_XXX number
+         const pattern = /^NEW_(\d{3})$/;
+         let highestNumber = 0;
+         for (const name of existingNames) {
+           const match = name.match(pattern);
+           if (match) {
+             const num = parseInt(match[1], 10);
+             if (num > highestNumber) {
+               highestNumber = num;
+             }
+           }
+         }
+
+         // Generate the next name
+         const nextNumber = highestNumber + 1;
+         const newName = `NEW_${nextNumber.toString().padStart(3, "0")}`;
+
          return get().create({
-           name: "New Workflow",
+           name: newName,
            description: "",
            access: "private",
            graph: {
