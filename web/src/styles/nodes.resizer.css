@@ -3,8 +3,8 @@
 /* --------------------------------------------- */
 /* Resizer lines and handles                      */
 /* --------------------------------------------- */
-.base-node .node-resizer .react-flow__resize-control.top.line,
-.base-node .node-resizer .react-flow__resize-control.bottom.line {
+/* Only hide the top resize line */
+.base-node .node-resizer .react-flow__resize-control.top.line {
   display: none;
 }
 
@@ -26,6 +26,17 @@
 /* Right-side resize cursor */
 .base-node .react-flow__resize-control.handle.right {
   cursor: ew-resize;
+}
+
+/* Bottom resize cursor */
+.base-node .node-resizer .react-flow__resize-control.bottom.line {
+  cursor: ns-resize;
+}
+
+/* Corner resize handles */
+.base-node .node-resizer .react-flow__resize-control.handle.bottom-right,
+.base-node .node-resizer .react-flow__resize-control.handle.bottom.right {
+  cursor: nwse-resize;
 }
 
 /* Bottom-right resize handle (used by PreviewNode and result-toggle nodes) */
