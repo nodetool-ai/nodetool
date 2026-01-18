@@ -73,7 +73,7 @@ const resizer = (
   </div>
 );
 
-const TOOLBAR_SHOW_DELAY = 150; // ms delay before showing toolbar after selection
+const TOOLBAR_SHOW_DELAY = 200; // ms delay before showing toolbar after selection
 
 const Toolbar = memo(function Toolbar({
   id,
