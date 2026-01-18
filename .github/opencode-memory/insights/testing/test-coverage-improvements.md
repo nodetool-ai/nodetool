@@ -910,3 +910,93 @@ it("falls back to URI when createAssetFile fails", async () => {
 **Maintained By**: Automated OpenCode testing agent
 
 **Last Updated**: 2026-01-18
+
+---
+
+### Test Coverage Improvement (2026-01-18 - Additional)
+
+**Coverage Added**: 2 new test files with 35 tests for critical utilities and hooks
+
+**Tests Added**:
+- `graphCycle.test.ts` - 18 tests for graph cycle detection utility
+- `useChatService.test.ts` - 17 tests for chat service hook
+
+**Areas Covered**:
+- Graph cycle detection (null/undefined handling, direct cycles, indirect cycles, branching graphs, diamond patterns, disconnected components)
+- Chat service return values (status, threads, progress, stopGeneration)
+- Message sending (model validation, thread creation, navigation)
+- Thread management (creation, switching, preview generation)
+- Error handling in async operations
+
+**Test Patterns Used**:
+
+1. **Utility Function Testing** (graphCycle):
+```typescript
+describe("graphCycle", () => {
+  it("returns true for simple direct cycle (A->B, adding B->A)", () => {
+    const edges: Edge[] = [
+      { id: "e1", source: "A", target: "B" }
+    ];
+    const result = wouldCreateCycle(edges, "B", "A");
+    expect(result).toBe(true);
+  });
+
+  it("detects cycle in diamond pattern", () => {
+    const edges: Edge[] = [
+      { id: "e1", source: "A", target: "B" },
+      { id: "e2", source: "A", target: "C" },
+      { id: "e3", source: "B", target: "D" },
+      { id: "e4", source: "C", target: "D" }
+    ];
+    const result = wouldCreateCycle(edges, "D", "A");
+    expect(result).toBe(true);
+  });
+});
+```
+
+2. **Hook Testing with Dynamic Store Mocks** (useChatService):
+```typescript
+describe("useChatService", () => {
+  beforeEach(() => {
+    const mockUseGlobalChatStore = require("../../stores/GlobalChatStore");
+    mockUseGlobalChatStore.default.mockImplementation((selector: any) => {
+      const state = getDefaultMockReturn();
+      return selector(state);
+    });
+  });
+
+  it("creates new thread when currentThreadId is null", async () => {
+    mockCreateNewThread.mockResolvedValue("new-thread");
+    const { result } = renderHook(() => useChatService(mockSelectedModel));
+    await result.current.sendMessage(message);
+    expect(mockCreateNewThread).toHaveBeenCalled();
+  });
+});
+```
+
+3. **Callback Testing with Selectors** (useChatService):
+```typescript
+it("returns thread title when available", () => {
+  const { result } = renderHook(() => useChatService(mockSelectedModel));
+  const preview = result.current.getThreadPreview("thread-1");
+  expect(preview).toBe("Test Thread");
+});
+```
+
+**Files Created**:
+- `web/src/utils/__tests__/graphCycle.test.ts`
+- `web/src/hooks/__tests__/useChatService.test.ts`
+
+**Key Learnings**:
+1. Dynamic store mocking with `mockImplementation` allows testing different states
+2. Use `waitFor` for testing navigation and async operations with timeouts
+3. Reset all mocks in `beforeEach` to prevent test pollution
+4. Test both success and error paths for async operations
+5. Cycle detection requires testing multiple edge cases (null values, self-loops, branching, disconnected components)
+
+**Coverage Impact**:
+- **Before**: 223 test suites, 2,921 tests
+- **After**: 225 test suites, 2,956 tests
+- **Net Gain**: +2 test suites, +35 tests
+
+**Status**: All tests passing
