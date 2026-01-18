@@ -31,15 +31,15 @@ export const PerformanceTimeline: React.FC<PerformanceTimelineProps> = ({ profil
 
   const formatTime = (ms: number): string => {
     const offset = ms - profile.startedAt;
-    if (offset < 1000) return `${offset}ms`;
-    if (offset < 60000) return `${(offset / 1000).toFixed(1)}s`;
+    if (offset < 1000) {return `${offset}ms`;}
+    if (offset < 60000) {return `${(offset / 1000).toFixed(1)}s`;}
     const minutes = Math.floor(offset / 60000);
     const seconds = ((offset % 60000) / 1000).toFixed(0);
     return `${minutes}m ${seconds}s`;
   };
 
   const timeMarkers = useMemo(() => {
-    if (maxDuration === 0) return [];
+    if (maxDuration === 0) {return [];}
     const markers: number[] = [];
     const step = maxDuration / 5;
     for (let i = 0; i <= 5; i++) {

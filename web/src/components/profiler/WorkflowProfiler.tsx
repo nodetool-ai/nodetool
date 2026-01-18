@@ -34,7 +34,7 @@ export const WorkflowProfiler: React.FC<WorkflowProfilerProps> = ({ workflowId, 
   const profile = profiles[workflowId];
 
   const handleExport = () => {
-    if (!profile) return;
+    if (!profile) {return;}
 
     const dataStr = JSON.stringify(profile, null, 2);
     const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
@@ -48,8 +48,8 @@ export const WorkflowProfiler: React.FC<WorkflowProfilerProps> = ({ workflowId, 
   };
 
   const formatDuration = (ms: number): string => {
-    if (ms < 1000) return `${ms}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    if (ms < 1000) {return `${ms}ms`;}
+    if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
     const minutes = Math.floor(ms / 60000);
     const seconds = ((ms % 60000) / 1000).toFixed(1);
     return `${minutes}m ${seconds}s`;
