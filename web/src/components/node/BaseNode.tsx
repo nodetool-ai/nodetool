@@ -41,6 +41,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
+import { useNodes } from "../../contexts/NodeContext";
 
 
 // Node sizing constants
@@ -84,6 +85,7 @@ const Toolbar = memo(function Toolbar({
   dragging?: boolean;
 }) {
   const { activeSelect } = useSelect();
+  const selectedCount = useNodes((state) => state.getSelectedNodes().length);
   const [delayedSelected, setDelayedSelected] = useState(false);
 
   // Delay showing toolbar to avoid flash when clicking to drag
@@ -96,7 +98,8 @@ const Toolbar = memo(function Toolbar({
     }
   }, [selected, dragging]);
 
-  const isVisible = delayedSelected && !activeSelect && !dragging;
+  // Only show toolbar when exactly one node is selected
+  const isVisible = delayedSelected && !activeSelect && !dragging && selectedCount === 1;
   return (
     <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
       <NodeToolButtons nodeId={id} />

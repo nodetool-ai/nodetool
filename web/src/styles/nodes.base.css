@@ -84,12 +84,6 @@
   opacity: 1;
 }
 
-/* Hide node toolbar while dragging or while mouse is pressed */
-.react-flow__node.dragging .react-flow__node-toolbar,
-.react-flow__node:active .react-flow__node-toolbar {
-  display: none !important;
-  pointer-events: none;
-}
 
 /* --------------------------------------------- */
 /* Special cases                                  */
