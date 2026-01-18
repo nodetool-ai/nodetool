@@ -18,7 +18,20 @@ describe("useDuplicateNodes", () => {
   const mockGetSelectedNodes = jest.fn();
   const mockGenerateNodeIds = jest.fn((count) => Array.from({ length: count }, (_, i) => `new-node-${i}`));
 
-  const mockUseNodesReturn = {
+  const mockUseNodesReturn: {
+    nodes: Array<{
+      id: string;
+      position: { x: number; y: number };
+      data: Record<string, unknown>;
+      parentId?: string;
+      selected?: boolean;
+    }>;
+    edges: Array<{ id: string; source: string; target: string }>;
+    setNodes: jest.Mock;
+    setEdges: jest.Mock;
+    getSelectedNodes: jest.Mock;
+    generateNodeIds: jest.Mock;
+  } = {
     nodes: [],
     edges: [],
     setNodes: mockSetNodes,
@@ -154,7 +167,7 @@ describe("useDuplicateNodes", () => {
   });
 
   it("deselects original nodes", () => {
-    const selectedNodes = [
+    const _selectedNodes = [
       {
         id: "node-1",
         position: { x: 100, y: 200 },

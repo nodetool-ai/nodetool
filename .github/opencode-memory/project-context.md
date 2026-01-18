@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Test TypeScript Type Fixes (2026-01-18)
+
+**What**: Fixed 22 TypeScript errors and 9 lint warnings in test files by correcting mock types to match API schema (node_type not type, title not name, etc.).
+
+**Files**: 8 test files in hooks/__tests__ and stores/__tests__
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).

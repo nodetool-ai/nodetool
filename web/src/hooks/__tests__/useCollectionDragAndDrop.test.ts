@@ -26,7 +26,7 @@ describe("useCollectionDragAndDrop", () => {
     jest.clearAllMocks();
     
     jest.spyOn(React, "useState")
-      .mockImplementation((initial: any) => {
+      .mockImplementation(((initial: any) => {
         if (initial === null) {
           return [null, mockSetDragOverCollection];
         }
@@ -34,7 +34,7 @@ describe("useCollectionDragAndDrop", () => {
           return [initial, mockSetIndexErrors];
         }
         return [null, mockSetIndexProgress];
-      });
+      }) as any);
   });
 
   describe("handleDragOver", () => {

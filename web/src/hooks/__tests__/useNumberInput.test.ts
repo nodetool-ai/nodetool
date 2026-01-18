@@ -1,6 +1,6 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { useValueCalculation, useDragHandling } from "../useNumberInput";
-import { InputProps, NumberInputState } from "../components/inputs/NumberInput";
+import { InputProps, NumberInputState } from "../../components/inputs/NumberInput";
 
 describe("useNumberInput", () => {
   describe("useValueCalculation", () => {
@@ -29,17 +29,28 @@ describe("useNumberInput", () => {
     const createMockProps = (overrides: Partial<InputProps> = {}): InputProps => ({
       min: 0,
       max: 100,
-      step: 1,
       inputType: "int",
       value: 50,
       onChange: () => {},
       onChangeComplete: () => {},
+      id: "test-input",
+      nodeId: "test-node",
+      name: "test",
       ...overrides,
     });
 
     const createMockState = (overrides: Partial<NumberInputState> = {}): NumberInputState => ({
+      isDefault: false,
       localValue: "50",
+      originalValue: 50,
+      dragStartX: 0,
+      decimalPlaces: 1,
       isDragging: false,
+      hasExceededDragThreshold: false,
+      dragInitialValue: 50,
+      currentDragValue: 50,
+      lastClientX: 100,
+      actualSliderWidth: 200,
       ...overrides,
     });
 
