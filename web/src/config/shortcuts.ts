@@ -750,6 +750,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  {
+    title: "Workflow Notes",
+    slug: "toggleNotes",
+    keyCombo: ["Control", "N"],
+    category: "panel" as const,
+    description: "Show or hide workflow notes panel",
+    registerCombo: true
   }
 ] as Shortcut[];
 

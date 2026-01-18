@@ -46,6 +46,7 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
 
 declare global {
   interface Window {
@@ -77,6 +78,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+  const handleViewChange = useRightPanelStore((state) => state.handleViewChange);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -98,6 +100,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active && selectedNodes.length > 0) {
         toggleInspectedNode(selectedNodes[0].id);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Notes Panel (Ctrl+N / Meta+N)
+  const notesCombo = isMac() ? ["meta", "n"] : ["control", "n"];
+  useCombo(
+    notesCombo,
+    () => {
+      if (active) {
+        handleViewChange("notes");
       }
     },
     true,
