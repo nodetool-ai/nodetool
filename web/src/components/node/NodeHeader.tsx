@@ -8,10 +8,11 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { Badge, IconButton, Tooltip, Button } from "@mui/material";
+import { Badge, IconButton, Tooltip, Button, Popover } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
+import { colorPickerColors } from "../../constants/colors";
 
 export interface NodeHeaderProps {
   id: string;
@@ -50,9 +51,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
   const nodeWorkflowId = useNodes((state) => state.workflow?.id);
   const logs = useLogsStore((state) => state.getLogs(workflowId || nodeWorkflowId || "", id));
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
+  const [colorAnchorEl, setColorAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const logCount = logs?.length || 0;
 
@@ -179,6 +182,20 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     setLogsDialogOpen(false);
   }, []);
 
+  const handleColorClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setColorAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleColorClose = useCallback(() => {
+    setColorAnchorEl(null);
+  }, []);
+
+  const handleColorChange = useCallback((color: string | null) => {
+    updateNodeData(id, { color: color || undefined });
+    handleColorClose();
+  }, [id, updateNodeData, handleColorClose]);
+
   const hasIcon = Boolean(iconType);
 
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
@@ -233,6 +250,26 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         >
           {metadataTitle}
         </span>
+        {data.color && (
+          <Tooltip title="Custom color" arrow>
+            <IconButton
+              size="small"
+              onClick={handleColorClick}
+              sx={{
+                padding: "2px",
+                marginLeft: "4px",
+                "& .color-swatch": {
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "2px",
+                  border: "1px solid rgba(255,255,255,0.3)"
+                }
+              }}
+            >
+              <div className="color-swatch" style={{ backgroundColor: data.color }} />
+            </IconButton>
+          </Tooltip>
+        )}
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
@@ -270,6 +307,53 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           >
             Show Inputs
           </Button>
+        )}
+        {/* Color Picker */}
+        {data.color && (
+          <Popover
+            open={Boolean(colorAnchorEl)}
+            anchorEl={colorAnchorEl}
+            onClose={handleColorClose}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "left"
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left"
+            }}
+          >
+            <div style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "4px",
+              padding: "8px",
+              maxWidth: "200px"
+            }}>
+              {colorPickerColors.map((color, index) => (
+                <Tooltip key={index} title={color || "Remove color"} arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleColorChange(color)}
+                    sx={{
+                      width: "24px",
+                      height: "24px",
+                      borderRadius: "50%",
+                      border: color === null ? "1px dashed rgba(255,255,255,0.3)" : "none",
+                      backgroundColor: color || "transparent",
+                      "&:hover": {
+                        transform: "scale(1.1)"
+                      }
+                    }}
+                  >
+                    {color === null && (
+                      <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)" }}>✕</span>
+                    )}
+                  </IconButton>
+                </Tooltip>
+              ))}
+            </div>
+          </Popover>
         )}
       </div>
 
