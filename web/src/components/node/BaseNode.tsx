@@ -15,7 +15,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Container } from "@mui/material";
+import { Button, Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -42,15 +42,15 @@ import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
 import { useNodeFocus } from "../../hooks/useNodeFocus";
 import { useNodes } from "../../contexts/NodeContext";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { isProduction } from "../../stores/ApiClient";
 
-
-// Node sizing constants
+// CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-import { isProduction } from "../../stores/ApiClient";
-
 const MIN_NODE_HEIGHT = 100;
 
 const resizer = (
@@ -539,28 +539,46 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {title && <EditableTitle nodeId={id} title={title} />}
 
       {selected && metadata.namespace && (
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: -25,
-            left: "50%",
-            transform: "translateX(-50%)",
-            bgcolor: "background.paper",
-            color: "text.secondary",
-            px: 1,
-            py: 0.25,
-            borderRadius: 1,
-            fontSize: "0.65rem",
-            fontWeight: 400,
-            zIndex: 1000,
-            border: "1px solid",
-            borderColor: "divider",
-            whiteSpace: "nowrap",
-            pointerEvents: "none"
-          }}
-        >
-          {metadata.namespace}
-        </Box>
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY * 2} title="Open Node Menu here" placement="bottom" arrow>
+          <Button
+            variant="text"
+            className="node-namespace nodrag nopan"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              // Open nodeMenu at that namespace
+              const namespacePath = metadata.namespace?.split(".") || [];
+              useNodeMenuStore.getState().openNodeMenu({
+                x: e.clientX,
+                y: e.clientY,
+                selectedPath: namespacePath
+              });
+            }}
+            sx={{
+              position: "absolute",
+              bottom: -25,
+              left: "50%",
+              transform: "translateX(-50%)",
+              bgcolor: "background.paper",
+              color: "text.secondary",
+              px: 1,
+              py: 0.25,
+              borderRadius: 1,
+              fontSize: "0.65rem",
+              fontWeight: 400,
+              zIndex: 1000,
+              border: "1px solid",
+              borderColor: "divider",
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+              "&:hover": {
+                bgcolor: "action.hover"
+              }
+            }}
+          >
+            {metadata.namespace}
+          </Button>
+        </Tooltip>
       )}
     </Container>
   );
