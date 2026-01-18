@@ -51,7 +51,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     ({ index, style }: ListChildComponentProps) => {
       const node = searchNodes[index];
       return (
-        <div style={style}>
+        <div style={{ ...style, overflow: "visible" }}>
           <SearchResultItem
             node={node}
             onDragStart={handleDragStart(node)}
