@@ -33,6 +33,7 @@ Last updated: 2026-01-17
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
+- **Performance Profiling**: Visual performance analysis with execution time metrics, bottleneck detection, and optimization suggestions
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
@@ -290,7 +291,6 @@ Last updated: 2026-01-17
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
