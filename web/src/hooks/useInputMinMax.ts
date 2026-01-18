@@ -13,6 +13,28 @@ interface UseInputMinMaxOptions {
   propertyMax?: number | null;
 }
 
+/**
+ * Custom hook for determining min/max bounds for numeric input fields.
+ * 
+ * Looks up min/max constraints from node properties or context, with
+ * special handling for FloatInput and IntegerInput node types. Falls
+ * back to provided property values or defaults (0-100).
+ * 
+ * @param options - Configuration including node ID, property name, and optional bounds
+ * @returns Object containing resolved min and max values
+ * 
+ * @example
+ * ```typescript
+ * const { min, max } = useInputMinMax({
+ *   nodeId: "node-123",
+ *   propertyName: "value",
+ *   propertyMin: 0,
+ *   propertyMax: 100
+ * });
+ * 
+ * <input type="range" min={min} max={max} />
+ * ```
+ */
 export const useInputMinMax = ({
   nodeType,
   nodeId,
