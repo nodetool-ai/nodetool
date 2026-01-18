@@ -492,6 +492,48 @@ Last updated: 2026-01-17
 
 ---
 
+### Hook JSDoc Documentation Improvements (2026-01-18)
+
+**Areas Improved**: Code documentation for critical hooks
+
+**Issues Fixed**: 10 hooks lacked JSDoc documentation
+
+**Improvements Made**: Added comprehensive JSDoc documentation to frequently-used hooks:
+
+1. `useWorkflowActions.ts` - Workflow creation and navigation handlers
+2. `useCollectionDragAndDrop.ts` - File drag-and-drop operations
+3. `useSelectionActions.ts` - Node alignment and distribution
+4. `useDashboardData.ts` - Workflow and template data loading
+5. `useSelectedNodesInfo.ts` - Node information gathering
+6. `useNodeFocus.ts` - Keyboard node navigation
+7. `useDelayedHover.ts` - Delayed hover behavior
+8. `useSelectConnected.ts` - Connected node traversal
+9. `useInputMinMax.ts` - Numeric input bounds
+10. `useRealtimeAudioStream.ts` - Real-time audio streaming
+
+All hooks now include module-level JSDoc with @param, @returns, and @example tags following established documentation patterns.
+
+**Impact**: Improved developer experience with consistent documentation across all hooks. Code examples provide clear usage patterns.
+
+**Files Updated**:
+- `web/src/hooks/useWorkflowActions.ts`
+- `web/src/hooks/useCollectionDragAndDrop.ts`
+- `web/src/hooks/useSelectionActions.ts`
+- `web/src/hooks/useDashboardData.ts`
+- `web/src/hooks/useSelectedNodesInfo.ts`
+- `web/src/hooks/useNodeFocus.ts`
+- `web/src/hooks/useDelayedHover.ts`
+- `web/src/hooks/useSelectConnected.ts`
+- `web/src/hooks/useInputMinMax.ts`
+- `web/src/hooks/useRealtimeAudioStream.ts`
+
+**Verification**:
+- ✅ TypeScript compilation: No errors
+- ✅ ESLint: No errors
+- ✅ All documentation follows established JSDoc patterns
+
+---
+
 **Note**: This list represents the current state of NodeTool. Check git history and recent PRs for the most up-to-date information on new features.
 
 ---

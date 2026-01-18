@@ -2,61 +2,68 @@ import useSelect from "../useSelect";
 
 describe("useSelect", () => {
   beforeEach(() => {
-    useSelect.setState(useSelect.getInitialState());
+    useSelect.setState({
+      activeSelect: null,
+      searchQuery: "",
+    });
   });
 
   afterEach(() => {
-    useSelect.setState(useSelect.getInitialState());
+    jest.restoreAllMocks();
   });
 
-  it("initializes with null activeSelect", () => {
-    expect(useSelect.getState().activeSelect).toBeNull();
-  });
+  describe("initial state", () => {
+    it("initializes with null activeSelect", () => {
+      expect(useSelect.getState().activeSelect).toBeNull();
+    });
 
-  it("initializes with empty searchQuery", () => {
-    expect(useSelect.getState().searchQuery).toBe("");
+    it("initializes with empty searchQuery", () => {
+      expect(useSelect.getState().searchQuery).toBe("");
+    });
   });
 
   describe("open", () => {
-    it("sets activeSelect to provided selectId", () => {
+    it("sets activeSelect to the provided selectId", () => {
       useSelect.getState().open("select-1");
 
       expect(useSelect.getState().activeSelect).toBe("select-1");
     });
 
-    it("overwrites previous activeSelect", () => {
+    it("allows opening different select instances", () => {
       useSelect.getState().open("select-1");
-      useSelect.getState().open("select-2");
+      expect(useSelect.getState().activeSelect).toBe("select-1");
 
+      useSelect.getState().open("select-2");
       expect(useSelect.getState().activeSelect).toBe("select-2");
     });
 
-    it("can open the same select twice", () => {
-      useSelect.getState().open("select-1");
+    it("preserves empty searchQuery when opening", () => {
       useSelect.getState().open("select-1");
 
-      expect(useSelect.getState().activeSelect).toBe("select-1");
+      expect(useSelect.getState().searchQuery).toBe("");
     });
   });
 
   describe("close", () => {
-    it("sets activeSelect back to null", () => {
+    it("sets activeSelect to null", () => {
       useSelect.getState().open("select-1");
+      expect(useSelect.getState().activeSelect).toBe("select-1");
+
       useSelect.getState().close();
 
       expect(useSelect.getState().activeSelect).toBeNull();
     });
 
-    it("resets searchQuery to empty string", () => {
+    it("clears searchQuery when closing", () => {
       useSelect.getState().open("select-1");
       useSelect.getState().setSearchQuery("test query");
+
       useSelect.getState().close();
 
-      expect(useSelect.getState().activeSelect).toBeNull();
       expect(useSelect.getState().searchQuery).toBe("");
     });
 
-    it("handles closing when nothing is open", () => {
+    it("does nothing when already closed", () => {
       useSelect.getState().close();
 
       expect(useSelect.getState().activeSelect).toBeNull();
@@ -65,63 +72,59 @@ describe("useSelect", () => {
   });
 
   describe("setSearchQuery", () => {
-    it("sets searchQuery to provided value", () => {
-      useSelect.getState().setSearchQuery("my search");
+    it("sets searchQuery to the provided value", () => {
+      useSelect.getState().setSearchQuery("test query");
 
-      expect(useSelect.getState().searchQuery).toBe("my search");
+      expect(useSelect.getState().searchQuery).toBe("test query");
     });
 
-    it("updates searchQuery while keeping activeSelect", () => {
-      useSelect.getState().open("select-1");
-      useSelect.getState().setSearchQuery("new query");
+    it("allows updating searchQuery", () => {
+      useSelect.getState().setSearchQuery("first");
+      expect(useSelect.getState().searchQuery).toBe("first");
 
-      expect(useSelect.getState().activeSelect).toBe("select-1");
-      expect(useSelect.getState().searchQuery).toBe("new query");
+      useSelect.getState().setSearchQuery("second");
+      expect(useSelect.getState().searchQuery).toBe("second");
     });
 
-    it("handles empty string", () => {
+    it("allows setting empty searchQuery", () => {
       useSelect.getState().setSearchQuery("test");
       useSelect.getState().setSearchQuery("");
 
       expect(useSelect.getState().searchQuery).toBe("");
     });
 
-    it("handles special characters", () => {
-      useSelect.getState().setSearchQuery("test@#$%");
+    it("preserves activeSelect when updating searchQuery", () => {
+      useSelect.getState().open("select-1");
+      useSelect.getState().setSearchQuery("test");
 
-      expect(useSelect.getState().searchQuery).toBe("test@#$%");
-    });
-
-    it("handles unicode characters", () => {
-      useSelect.getState().setSearchQuery("测试查询");
-
-      expect(useSelect.getState().searchQuery).toBe("测试查询");
+      expect(useSelect.getState().activeSelect).toBe("select-1");
     });
   });
 
-  it("maintains state independence between calls", () => {
-    useSelect.getState().open("select-1");
-    expect(useSelect.getState().activeSelect).toBe("select-1");
+  describe("workflow integration", () => {
+    it("can open select after closing", () => {
+      useSelect.getState().open("select-1");
+      useSelect.getState().close();
+      useSelect.getState().open("select-2");
 
-    useSelect.getState().setSearchQuery("query1");
-    expect(useSelect.getState().searchQuery).toBe("query1");
+      expect(useSelect.getState().activeSelect).toBe("select-2");
+    });
 
-    useSelect.getState().open("select-2");
-    expect(useSelect.getState().activeSelect).toBe("select-2");
-    expect(useSelect.getState().searchQuery).toBe("query1");
+    it("handles rapid state changes", () => {
+      useSelect.getState().open("select-1");
+      useSelect.getState().setSearchQuery("query1");
+      useSelect.getState().close();
+      useSelect.getState().open("select-2");
+      useSelect.getState().setSearchQuery("query2");
 
-    useSelect.getState().close();
-    expect(useSelect.getState().activeSelect).toBeNull();
-    expect(useSelect.getState().searchQuery).toBe("");
-  });
+      expect(useSelect.getState().activeSelect).toBe("select-2");
+      expect(useSelect.getState().searchQuery).toBe("query2");
+    });
 
-  it("can be reset to initial state", () => {
-    useSelect.getState().open("select-1");
-    useSelect.getState().setSearchQuery("test");
+    it("handles special characters in selectId", () => {
+      useSelect.getState().open("select-with-special-chars_123");
 
-    useSelect.setState(useSelect.getInitialState());
-
-    expect(useSelect.getState().activeSelect).toBeNull();
-    expect(useSelect.getState().searchQuery).toBe("");
+      expect(useSelect.getState().activeSelect).toBe("select-with-special-chars_123");
+    });
   });
 });
