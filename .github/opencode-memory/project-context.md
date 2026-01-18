@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Workflow Notes Feature (2026-01-18)
+
+**What**: Added Workflow Notes feature - allows users to add/edit notes for workflow documentation with localStorage persistence and keyboard shortcut (Ctrl+N).
+
+**Files**: WorkflowNotesStore.ts, WorkflowNotesPanel.tsx, PanelRight.tsx, shortcuts.ts, NodeEditor.tsx
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).

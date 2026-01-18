@@ -60,6 +60,7 @@ Last updated: 2026-01-17
 - **Version History**: Track workflow changes over time
 - **Workflow Export/Import**: Export workflows as JSON files
 - **Workflow Actions**: Batch operations on workflows
+- **Workflow Notes**: Add and edit notes/documentation for workflows (Ctrl+N to toggle)
 
 ### Workflow Execution
 - **Run Workflows**: Execute workflows with real-time progress
