@@ -4,23 +4,15 @@ cd web && npm run typecheck
 > nodetool@0.6.2-rc.26 typecheck
 > tsc --noEmit
 
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(31,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(32,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(49,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(66,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(85,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(87,13): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(106,13): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(124,9): error TS2353: Object literal may only specify known properties, and 'description' does not exist in type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }'.
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(148,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(149,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(169,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(186,9): error TS2739: Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(208,34): error TS2345: Argument of type '{ output1: { type: string; }; }' is not assignable to parameter of type 'Record<string, { type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }>'.
-  Property 'output1' is incompatible with index signature.
-    Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(223,25): error TS2561: Object literal may only specify known properties, but 'output2' does not exist in type '{ output1: { type: string; }; }'. Did you mean to write 'output1'?
-src/hooks/nodes/__tests__/useDynamicOutput.test.ts(237,51): error TS2345: Argument of type '{ type: string; }' is not assignable to parameter of type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }'.
-  Type '{ type: string; }' is missing the following properties from type '{ type: string; optional: boolean; values?: (string | number)[] | null | undefined; type_args: ...[]; type_name?: string | null | undefined; }': optional, type_args
-src/hooks/nodes/__tests__/useDynamicProperty.test.ts(217,28): error TS2561: Object literal may only specify known properties, but 'prop2' does not exist in type '{ prop1: string; }'. Did you mean to write 'prop1'?
-make: *** [Makefile:147: typecheck-web] Error 2
+Type checking electron package...
+cd electron && npm run typecheck
+
+> nodetool-electron@0.6.2-rc.26 typecheck
+> tsc --noEmit
+
+Type checking mobile package...
+cd mobile && npm run typecheck
+
+> nodetool-mobile@0.6.2-rc.26 typecheck
+> tsc --noEmit
+
