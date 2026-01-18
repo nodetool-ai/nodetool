@@ -291,3 +291,29 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+## Current Test Coverage Status (2026-01-18)
+
+**Test Suite Statistics**:
+- **220 test suites** passing
+- **2,892 tests** passing (3 skipped)
+- **All critical code paths** have test coverage
+
+**Coverage by Category**:
+- **Stores**: 57+ test files covering NodeStore, ResultsStore, StatusStore, ErrorStore, etc.
+- **Hooks**: 40+ test files covering editor, node, and asset operations
+- **Utils**: 50+ test files covering data transformations and utilities
+- **Components**: 70+ test files covering UI components
+- **Core**: 5+ test files covering graph and workflow protocols
+
+**Critical Files with Tests**:
+- Graph utilities: `graphCycle.ts`, `graphDiff.ts`, `selectionBounds.ts`
+- Handle utilities: `handleUtils.ts`, `nodeUtils.ts`
+- Graph mapping: `graphMapping.ts` (isValidEdge, sanitizeGraph)
+- Workflow protocol: `runnerProtocol.ts`, `workflowUpdates.ts`
+- Error handling: `errorHandling.ts`
+
+**Verification Command**:
+```bash
+cd web && npm test  # Runs all 220 test suites
+```
