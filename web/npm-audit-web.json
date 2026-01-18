@@ -30,34 +30,75 @@
       ],
       "fixAvailable": true
     },
-    "dompurify": {
-      "name": "dompurify",
-      "severity": "moderate",
-      "isDirect": true,
+    "@jest/core": {
+      "name": "@jest/core",
+      "severity": "low",
+      "isDirect": false,
       "via": [
-        {
-          "source": 1105772,
-          "name": "dompurify",
-          "dependency": "dompurify",
-          "title": "DOMPurify allows Cross-site Scripting (XSS)",
-          "url": "https://github.com/advisories/GHSA-vhxf-7vqr-mrjg",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-79"
-          ],
-          "cvss": {
-            "score": 4.5,
-            "vectorString": "CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:C/C:L/I:L/A:N"
-          },
-          "range": "<3.2.4"
-        }
+        "jest-config"
       ],
       "effects": [],
-      "range": "<3.2.4",
+      "range": ">=26.6.0",
       "nodes": [
-        "node_modules/dompurify"
+        "node_modules/@jest/core"
       ],
       "fixAvailable": true
+    },
+    "create-jest": {
+      "name": "create-jest",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "jest-config"
+      ],
+      "effects": [
+        "jest-cli"
+      ],
+      "range": ">=29.7.0",
+      "nodes": [
+        "node_modules/create-jest"
+      ],
+      "fixAvailable": {
+        "name": "jest",
+        "version": "26.5.3",
+        "isSemVerMajor": true
+      }
+    },
+    "diff": {
+      "name": "diff",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1112148,
+          "name": "diff",
+          "dependency": "diff",
+          "title": "jsdiff has a Denial of Service vulnerability in parsePatch and applyPatch",
+          "url": "https://github.com/advisories/GHSA-73rr-hh4g-fpgx",
+          "severity": "low",
+          "cwe": [
+            "CWE-400",
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<8.0.3"
+        }
+      ],
+      "effects": [
+        "ts-node"
+      ],
+      "range": "<8.0.3",
+      "nodes": [
+        "node_modules/diff"
+      ],
+      "fixAvailable": {
+        "name": "ts-node",
+        "version": "1.7.1",
+        "isSemVerMajor": true
+      }
     },
     "glob": {
       "name": "glob",
@@ -88,187 +129,106 @@
       ],
       "fixAvailable": true
     },
-    "prismjs": {
-      "name": "prismjs",
-      "severity": "moderate",
-      "isDirect": false,
+    "jest": {
+      "name": "jest",
+      "severity": "low",
+      "isDirect": true,
       "via": [
-        {
-          "source": 1105770,
-          "name": "prismjs",
-          "dependency": "prismjs",
-          "title": "PrismJS DOM Clobbering vulnerability",
-          "url": "https://github.com/advisories/GHSA-x7hr-w5r2-h6wg",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-79",
-            "CWE-94"
-          ],
-          "cvss": {
-            "score": 4.9,
-            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:L/I:L/A:N"
-          },
-          "range": "<1.30.0"
-        }
+        "@jest/core",
+        "jest-cli"
       ],
       "effects": [
-        "refractor"
+        "ts-jest"
       ],
-      "range": "<1.30.0",
+      "range": ">=26.6.0",
       "nodes": [
-        "node_modules/refractor/node_modules/prismjs"
+        "node_modules/jest"
       ],
       "fixAvailable": {
-        "name": "react-syntax-highlighter",
-        "version": "16.1.0",
+        "name": "jest",
+        "version": "26.5.3",
         "isSemVerMajor": true
       }
     },
-    "react-router": {
-      "name": "react-router",
-      "severity": "high",
+    "jest-cli": {
+      "name": "jest-cli",
+      "severity": "low",
       "isDirect": false,
       "via": [
-        {
-          "source": 1112051,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router has CSRF issue in Action/Server Action Request Processing",
-          "url": "https://github.com/advisories/GHSA-h5cw-625j-3rxh",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-346",
-            "CWE-352"
-          ],
-          "cvss": {
-            "score": 6.5,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:N"
-          },
-          "range": ">=7.0.0 <=7.11.0"
-        },
-        {
-          "source": 1112053,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router vulnerable to XSS via Open Redirects",
-          "url": "https://github.com/advisories/GHSA-2w69-qvjg-hvjx",
-          "severity": "high",
-          "cwe": [
-            "CWE-79"
-          ],
-          "cvss": {
-            "score": 8,
-            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:H/I:H/A:N"
-          },
-          "range": ">=7.0.0 <=7.11.0"
-        },
-        {
-          "source": 1112055,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router SSR XSS in ScrollRestoration",
-          "url": "https://github.com/advisories/GHSA-8v8x-cx79-35w7",
-          "severity": "high",
-          "cwe": [
-            "CWE-79"
-          ],
-          "cvss": {
-            "score": 8.2,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:L/A:N"
-          },
-          "range": ">=7.0.0 <7.12.0"
-        },
-        {
-          "source": 1112056,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router has unexpected external redirect via untrusted paths",
-          "url": "https://github.com/advisories/GHSA-9jcx-v3wj-wh4m",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-601"
-          ],
-          "cvss": {
-            "score": 6.5,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N"
-          },
-          "range": ">=7.0.0 <7.9.6"
-        },
-        {
-          "source": 1112062,
-          "name": "react-router",
-          "dependency": "react-router",
-          "title": "React Router has XSS Vulnerability",
-          "url": "https://github.com/advisories/GHSA-3cgp-3xvw-98x8",
-          "severity": "high",
-          "cwe": [
-            "CWE-79"
-          ],
-          "cvss": {
-            "score": 7.6,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:L/A:N"
-          },
-          "range": ">=7.0.0 <=7.8.2"
-        }
+        "@jest/core",
+        "create-jest",
+        "jest-config"
       ],
       "effects": [
-        "react-router-dom"
+        "jest"
       ],
-      "range": "7.0.0 - 7.12.0-pre.0",
+      "range": ">=26.6.0",
       "nodes": [
-        "node_modules/react-router"
-      ],
-      "fixAvailable": true
-    },
-    "react-router-dom": {
-      "name": "react-router-dom",
-      "severity": "moderate",
-      "isDirect": true,
-      "via": [
-        "react-router"
-      ],
-      "effects": [],
-      "range": "7.0.0-pre.0 - 7.11.0",
-      "nodes": [
-        "node_modules/react-router-dom"
-      ],
-      "fixAvailable": true
-    },
-    "react-syntax-highlighter": {
-      "name": "react-syntax-highlighter",
-      "severity": "moderate",
-      "isDirect": true,
-      "via": [
-        "refractor"
-      ],
-      "effects": [],
-      "range": "6.0.0 - 15.6.6",
-      "nodes": [
-        "node_modules/react-syntax-highlighter"
+        "node_modules/jest-cli"
       ],
       "fixAvailable": {
-        "name": "react-syntax-highlighter",
-        "version": "16.1.0",
+        "name": "jest",
+        "version": "26.5.3",
         "isSemVerMajor": true
       }
     },
-    "refractor": {
-      "name": "refractor",
-      "severity": "moderate",
+    "jest-config": {
+      "name": "jest-config",
+      "severity": "low",
       "isDirect": false,
       "via": [
-        "prismjs"
+        "ts-node"
       ],
       "effects": [
-        "react-syntax-highlighter"
+        "@jest/core",
+        "create-jest",
+        "jest-cli"
       ],
-      "range": "<=4.6.0",
+      "range": ">=26.6.0",
       "nodes": [
-        "node_modules/refractor"
+        "node_modules/jest-config"
       ],
       "fixAvailable": {
-        "name": "react-syntax-highlighter",
-        "version": "16.1.0",
+        "name": "jest",
+        "version": "26.5.3",
+        "isSemVerMajor": true
+      }
+    },
+    "ts-jest": {
+      "name": "ts-jest",
+      "severity": "low",
+      "isDirect": true,
+      "via": [
+        "jest"
+      ],
+      "effects": [],
+      "range": ">=27.0.0-alpha.0",
+      "nodes": [
+        "node_modules/ts-jest"
+      ],
+      "fixAvailable": {
+        "name": "ts-jest",
+        "version": "26.5.6",
+        "isSemVerMajor": true
+      }
+    },
+    "ts-node": {
+      "name": "ts-node",
+      "severity": "low",
+      "isDirect": true,
+      "via": [
+        "diff"
+      ],
+      "effects": [
+        "jest-config"
+      ],
+      "range": "<=1.4.3 || >=1.7.2",
+      "nodes": [
+        "node_modules/ts-node"
+      ],
+      "fixAvailable": {
+        "name": "ts-node",
+        "version": "1.7.1",
         "isSemVerMajor": true
       }
     }
@@ -276,19 +236,19 @@
   "metadata": {
     "vulnerabilities": {
       "info": 0,
-      "low": 1,
-      "moderate": 5,
-      "high": 2,
+      "low": 9,
+      "moderate": 0,
+      "high": 1,
       "critical": 0,
-      "total": 8
+      "total": 10
     },
     "dependencies": {
-      "prod": 637,
+      "prod": 620,
       "dev": 596,
       "optional": 78,
-      "peer": 331,
+      "peer": 332,
       "peerOptional": 0,
-      "total": 1639
+      "total": 1623
     }
   }
 }
