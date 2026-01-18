@@ -8,7 +8,7 @@ import { useTheme } from "@mui/material/styles";
 /**
  * Options for surroundWithGroup function.
  */
-type SurroundWithGroupOptions = {
+type _SurroundWithGroupOptions = {
   /** Array of nodes to surround with a group */
   selectedNodes: Node<NodeData>[];
 };

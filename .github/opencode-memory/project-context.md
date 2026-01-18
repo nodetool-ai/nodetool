@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Audit (2026-01-18)
+
+**What**: Comprehensive performance audit confirms codebase is well-optimized with 55% bundle reduction, selective subscriptions, memoization, and virtualization all in place.
+
+**Files**: .github/opencode-memory/insights/performance/audit-2026-01-18.md, web/src/hooks/nodes/useSurroundWithGroup.ts, web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
+
+**Impact**: Codebase verified performant. Fixed lint warning and test mock for useNodeStoreRef. All quality checks pass (3086/3092 tests).
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).

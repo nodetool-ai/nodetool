@@ -6,7 +6,8 @@ import {
 
 // Mock the dependencies
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn(),
+  useNodeStoreRef: jest.fn()
 }));
 
 jest.mock("../../../stores/WorkflowRunner", () => ({
@@ -26,13 +27,14 @@ jest.mock("../../../stores/SettingsStore", () => ({
   useSettingsStore: jest.fn()
 }));
 
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
 import { subgraph } from "../../../core/graph";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 
 const mockUseNodes = useNodes as jest.Mock;
+const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
  
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
@@ -89,6 +91,15 @@ describe("useInputNodeAutoRun", () => {
       edges: defaultMockEdges,
       workflow: defaultMockWorkflow,
       findNode: mockFindNode
+    });
+
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: defaultMockNodes,
+        edges: defaultMockEdges,
+        findNode: mockFindNode,
+        workflow: defaultMockWorkflow
+      })
     });
 
     mockUseWebsocketRunner.mockImplementation((selector) => {
