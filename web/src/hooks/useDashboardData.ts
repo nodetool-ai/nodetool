@@ -22,6 +22,20 @@ const loadWorkflows = async () => {
   return data;
 };
 
+/**
+ * Custom hook for fetching dashboard data.
+ * 
+ * Loads workflows and templates from the API, providing sorted workflow lists
+ * and filtered start templates for the dashboard. Uses TanStack Query for
+ * data fetching and caching.
+ * 
+ * @returns Object containing loading states and data for workflows and templates
+ * 
+ * @example
+ * ```typescript
+ * const { isLoadingWorkflows, sortedWorkflows, startTemplates } = useDashboardData();
+ * ```
+ */
 export const useDashboardData = () => {
   const settings = useSettingsStore((state) => state.settings);
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);

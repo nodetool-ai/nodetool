@@ -3,6 +3,26 @@ import { useNavigate } from "react-router-dom";
 import { Workflow } from "../stores/ApiTypes";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 
+/**
+ * Custom hook for workflow-related actions and navigation.
+ * 
+ * Provides handlers for creating new workflows, opening existing workflows,
+ * and copying example workflows. Integrates with the workflow manager
+ * and React Router for navigation.
+ * 
+ * @returns Object containing workflow action handlers and loading state
+ * 
+ * @example
+ * ```typescript
+ * const { handleCreateNewWorkflow, handleWorkflowClick } = useWorkflowActions();
+ * 
+ * // Create a new workflow
+ * await handleCreateNewWorkflow();
+ * 
+ * // Open an existing workflow
+ * handleWorkflowClick(existingWorkflow);
+ * ```
+ */
 export const useWorkflowActions = () => {
   const navigate = useNavigate();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);

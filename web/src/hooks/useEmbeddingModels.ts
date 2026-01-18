@@ -4,6 +4,23 @@ import { client } from "../stores/ApiClient";
 import type { EmbeddingModel } from "../stores/ApiTypes";
 import { useEmbeddingProviders } from "./useProviders";
 
+/**
+ * Custom hook for fetching embedding models grouped by provider.
+ * 
+ * Uses TanStack Query's useQueries to parallel fetch embedding models
+ * from all configured embedding providers. Provides loading states
+ * and error handling for the model list.
+ * 
+ * @param options - Optional configuration including provider filtering
+ * @returns Object containing models array, loading states, and error info
+ * 
+ * @example
+ * ```typescript
+ * const { models, isLoading, error } = useEmbeddingModelsByProvider({
+ *   allowedProviders: ["openai", "cohere"]
+ * });
+ * ```
+ */
 export const useEmbeddingModelsByProvider = (options?: {
   allowedProviders?: string[];
 }) => {

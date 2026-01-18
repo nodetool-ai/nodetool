@@ -13,6 +13,26 @@ interface SelectConnectedResult {
   connectedNodeCount: number;
 }
 
+/**
+ * Custom hook for selecting connected nodes in the workflow graph.
+ * 
+ * Traverses the workflow graph from selected nodes to find connected
+ * upstream (inputs) and/or downstream (outputs) nodes. Useful for
+ * selecting entire subgraphs connected to a starting point.
+ * 
+ * @param options - Configuration options including traversal direction
+ * @returns Object containing selection functions and connected node count
+ * 
+ * @example
+ * ```typescript
+ * const { selectConnected, getConnectedNodeIds, connectedNodeCount } = useSelectConnected({
+ *   direction: "downstream"
+ * });
+ * 
+ * // Select all nodes downstream from currently selected nodes
+ * selectConnected();
+ * ```
+ */
 export const useSelectConnected = (
   options: UseSelectConnectedOptions = {}
 ): SelectConnectedResult => {

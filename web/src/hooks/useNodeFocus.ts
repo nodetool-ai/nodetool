@@ -23,6 +23,20 @@ interface UseNodeFocusReturn {
   getFocusedNode: () => Node<NodeData> | undefined;
 }
 
+/**
+ * Custom hook for keyboard-based node navigation.
+ * 
+ * Provides keyboard navigation functionality for the node editor, allowing
+ * users to navigate between nodes using Tab/Arrow keys. Supports sequential
+ * navigation (next/prev) and directional navigation (up/down/left/right).
+ * 
+ * @returns Object containing focus state and navigation functions
+ * 
+ * @example
+ * ```typescript
+ * const { focusedNodeId, focusNext, focusPrev, enterNavigationMode } = useNodeFocus();
+ * ```
+ */
 export const useNodeFocus = (): UseNodeFocusReturn => {
   const nodes = useNodes((state) => state.nodes);
   const setNodes = useNodes((state) => state.setNodes);
