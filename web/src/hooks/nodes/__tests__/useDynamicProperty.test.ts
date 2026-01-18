@@ -197,14 +197,15 @@ describe("useDynamicProperty", () => {
   });
 
   it("memoizes callbacks based on dependencies", () => {
+    const initialProps: { nodeId: string; dynamicProperties: Record<string, string> } = {
+      nodeId: "node-1",
+      dynamicProperties: { prop1: "value1" }
+    };
     const { result, rerender } = renderHook(
-      ({ nodeId, dynamicProperties }) =>
+      ({ nodeId, dynamicProperties }: { nodeId: string; dynamicProperties: Record<string, string> }) =>
         useDynamicProperty(nodeId, dynamicProperties),
       {
-        initialProps: {
-          nodeId: "node-1",
-          dynamicProperties: { prop1: "value1" }
-        }
+        initialProps
       }
     );
 
@@ -212,10 +213,11 @@ describe("useDynamicProperty", () => {
     const firstAdd = result.current.handleAddProperty;
     const firstUpdate = result.current.handleUpdatePropertyName;
 
-    rerender({
+    const newProps: { nodeId: string; dynamicProperties: Record<string, string> } = {
       nodeId: "node-1",
       dynamicProperties: { prop2: "value2" }
-    });
+    };
+    rerender(newProps);
 
     expect(result.current.handleDeleteProperty).not.toBe(firstDelete);
     expect(result.current.handleAddProperty).not.toBe(firstAdd);

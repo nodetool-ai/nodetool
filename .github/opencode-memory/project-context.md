@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Performance Audit & Type Fixes (2026-01-18)
+
+**What**: Comprehensive performance audit confirms codebase is well-optimized. Fixed TypeScript errors in test files (useDynamicOutput.test.ts, useDynamicProperty.test.ts).
+
+**Files**: web/src/hooks/nodes/__tests__/useDynamicOutput.test.ts, web/src/hooks/nodes/__tests__/useDynamicProperty.test.ts, .github/opencode-memory/insights/performance/audit-2026-01-18.md
+
+**Status**: Bundle 5.74MB, 2939 tests pass, all optimizations verified (selective subscriptions, memoization, virtualization, cleanup)
+
+---
+
 ### Mobile TypeScript Type Definitions Fix (2026-01-17)
 
 **What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
