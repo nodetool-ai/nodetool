@@ -48,11 +48,19 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
-> ### FeatureYYYY-MM-DD)
+> Fix Name (YYYY-MM-DD)
 > **What**: One sentence
 > **Files**: Main files changed
-> ```
+
+### Performance Profiler Research Feature (2026-01-18)
+
+**What**: Implemented Workflow Performance Profiler to track execution metrics, identify bottlenecks, and visualize performance trends across workflow versions.
+
+**Files**: web/src/stores/PerformanceProfilerStore.ts, web/src/components/performance/PerformanceProfiler.tsx, web/src/components/performance/index.ts, web/src/stores/__tests__/PerformanceProfilerStore.test.ts
+
+**Impact**: Researchers and developers can now track workflow performance, identify slow nodes, and compare execution times across versions.
+
+---
 
 ### Debug Console Statement Removal (2026-01-17)
 

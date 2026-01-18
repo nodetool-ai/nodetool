@@ -290,7 +290,14 @@ Last updated: 2026-01-17
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
+
+---
+
+## Research Features (Experimental)
+
+*These are experimental features being researched and prototyped.*
+
+- **Performance Profiler (Research)**: Tracks workflow execution performance metrics including execution time, bottleneck identification, and performance trends across versions. Located in `web/src/components/performance/` and `web/src/stores/PerformanceProfilerStore.ts`. Status: Prototype complete.
 
 ---
 
