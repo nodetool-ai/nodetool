@@ -85,7 +85,9 @@
 .react-flow .react-flow__connection-path {
   stroke: var(--palette-grey-400);
   stroke-width: 2.5 !important;
-  transition: stroke-opacity 0.2s, stroke-width 0.1s;
+  transition:
+    stroke-opacity 0.2s,
+    stroke-width 0.1s;
 }
 
 /* Dim static edges by default */
@@ -156,7 +158,10 @@
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
   transform-origin: right center;
-  transition: transform 0.15s, height 0.05s, opacity 0.2s linear;
+  transition:
+    transform 0.15s,
+    height 0.05s,
+    opacity 0.2s linear;
   width: var(--handle_width);
   height: var(--handle_height);
   /* Subtle, darker base so it doesn't pop over glass */
@@ -229,7 +234,9 @@
   border-left-width: 3px;
   border-left-style: double;
   /* Subtle glow to make it more noticeable */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 1px 0 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 .react-flow__node .react-flow__handle-left.collect-handle:hover {
@@ -238,11 +245,15 @@
 }
 
 /* Enhance visibility during connection */
-.react-flow.is-connecting .react-flow__node .react-flow__handle-left.collect-handle.is-connectable {
+.react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle-left.collect-handle.is-connectable {
   height: calc(var(--handle_height) * 2);
   transform: translate(0, -50%) scale(1.15, 1);
   opacity: 1;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* DYNAMIC OUTPUTS */
@@ -306,9 +317,7 @@ ul.multi-outputs li::marker {
   font-size: var(--fontSizeNormal);
   font-weight: bold;
   border: 0;
-  text-shadow: 0 0 3px var(--palette-grey-1000);
-  background-color: var(--palette-grey-900);
-  border-radius: 0.4em;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
   width: 100%;
   padding: 0.25em 0.5em;
   margin-bottom: 0.2em;
