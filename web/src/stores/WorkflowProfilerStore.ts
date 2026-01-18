@@ -117,9 +117,9 @@ const analyzeBottlenecks = (
   for (const [nodeId, duration] of durations) {
     const percentage = (duration / totalDuration) * 100;
     let severity: Bottleneck["severity"] = "low";
-    if (percentage > 50) severity = "critical";
-    else if (percentage > 30) severity = "high";
-    else if (percentage > 15) severity = "medium";
+    if (percentage > 50) {severity = "critical";}
+    else if (percentage > 30) {severity = "high";}
+    else if (percentage > 15) {severity = "medium";}
 
     if (duration > threshold || percentage > 10) {
       let recommendation = "";

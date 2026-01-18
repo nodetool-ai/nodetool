@@ -43,30 +43,30 @@ const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({ workflowId }) =
 
   const getHeatmapColor = (nodeId: string): string => {
     const duration = nodeTimings[nodeId];
-    if (duration === undefined) return "transparent";
+    if (duration === undefined) {return "transparent";}
 
     if (heatmapMode === "relative") {
       const ratio = duration / maxDuration;
-      if (ratio < 0.2) return theme.vars?.palette?.success?.light || "#4caf50";
-      if (ratio < 0.4) return theme.vars?.palette?.warning?.light || "#ffeb3b";
-      if (ratio < 0.6) return theme.vars?.palette?.warning?.main || "#ff9800";
-      if (ratio < 0.8) return theme.vars?.palette?.error?.light || "#f44336";
+      if (ratio < 0.2) {return theme.vars?.palette?.success?.light || "#4caf50";}
+      if (ratio < 0.4) {return theme.vars?.palette?.warning?.light || "#ffeb3b";}
+      if (ratio < 0.6) {return theme.vars?.palette?.warning?.main || "#ff9800";}
+      if (ratio < 0.8) {return theme.vars?.palette?.error?.light || "#f44336";}
       return theme.vars?.palette?.error?.main || "#d32f2f";
     }
 
-    if (duration < 1000) return theme.vars?.palette?.success?.light || "#4caf50";
-    if (duration < 5000) return theme.vars?.palette?.warning?.light || "#ffeb3b";
-    if (duration < 10000) return theme.vars?.palette?.warning?.main || "#ff9800";
+    if (duration < 1000) {return theme.vars?.palette?.success?.light || "#4caf50";}
+    if (duration < 5000) {return theme.vars?.palette?.warning?.light || "#ffeb3b";}
+    if (duration < 10000) {return theme.vars?.palette?.warning?.main || "#ff9800";}
     return theme.vars?.palette?.error?.main || "#d32f2f";
   };
 
   const formatDuration = (ms: number): string => {
-    if (ms < 1000) return `${Math.round(ms)}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    if (ms < 1000) {return `${Math.round(ms)}ms`;}
+    if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
     return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
   };
 
-  if (!showHeatmap) return null;
+  if (!showHeatmap) {return null;}
 
   const timedNodes = Object.entries(nodeTimings).filter(([_, t]) => t > 0);
 
