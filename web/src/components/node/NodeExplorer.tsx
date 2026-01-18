@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Button,
@@ -125,7 +125,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const NodeExplorer: React.FC = () => {
+const NodeExplorer: React.FC = memo(() => {
   const theme = useTheme();
   const explorerStyles = styles(theme);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
@@ -264,6 +264,20 @@ const NodeExplorer: React.FC = () => {
     [handleNodeEdit]
   );
 
+  const handleNodeClickWrapper = useCallback(
+    (nodeId: string) => () => {
+      handleNodeClick(nodeId);
+    },
+    [handleNodeClick]
+  );
+
+  const handleNodeEditWrapper = useCallback(
+    (nodeId: string) => (event: React.MouseEvent) => {
+      _handleNodeEditClick(event, nodeId);
+    },
+    [_handleNodeEditClick]
+  );
+
   return (
     <Box className="node-explorer" css={explorerStyles}>
       <div className="explorer-header">
@@ -308,7 +322,7 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeClick(entry.node.id)}
+                onClick={handleNodeClickWrapper(entry.node.id)}
                 onContextMenu={(event) => {
                   handleNodeContextMenu(event, entry.node.id);
                 }}
@@ -328,10 +342,7 @@ const NodeExplorer: React.FC = () => {
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleNodeEdit(entry.node.id);
-                }}
+                onClick={handleNodeEditWrapper(entry.node.id)}
               >
                 <NorthEastIcon fontSize="small" />
               </Button>
@@ -341,6 +352,7 @@ const NodeExplorer: React.FC = () => {
       )}
     </Box>
   );
-};
+});
 
+NodeExplorer.displayName = "NodeExplorer";
 export default NodeExplorer;

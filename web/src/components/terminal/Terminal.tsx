@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, memo } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export const Terminal: React.FC = () => {
+export const Terminal: React.FC = memo(() => {
   const theme = useTheme();
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
@@ -436,6 +436,7 @@ export const Terminal: React.FC = () => {
       <div className="terminal-wrapper" ref={terminalRef} />
     </Box>
   );
-};
+});
 
+Terminal.displayName = "Terminal";
 export default Terminal;

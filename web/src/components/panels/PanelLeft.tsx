@@ -388,6 +388,10 @@ const VerticalToolbar = memo(function VerticalToolbar({
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
+  const handleWorkflowGridClick = useCallback(() => onViewChange("workflowGrid"), [onViewChange]);
+  const handleAssetsClick = useCallback(() => onViewChange("assets"), [onViewChange]);
+  const handleJobsClick = useCallback(() => onViewChange("jobs"), [onViewChange]);
+
   return (
     <div className="vertical-toolbar">
       <Tooltip
@@ -404,7 +408,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("workflowGrid")}
+          onClick={handleWorkflowGridClick}
           className={
             activeView === "workflowGrid" && panelVisible ? "active" : ""
           }
@@ -419,7 +423,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("assets")}
+          onClick={handleAssetsClick}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
           <IconForType iconName="asset" showTooltip={false} />
@@ -439,7 +443,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("jobs")}
+          onClick={handleJobsClick}
           className={activeView === "jobs" && panelVisible ? "active" : ""}
         >
           <WorkHistoryIcon />
@@ -467,6 +471,11 @@ const PanelContent = memo(function PanelContent({
   const navigate = useNavigate();
   const path = useLocation().pathname;
 
+  const handleFullscreenClick = useCallback(() => {
+    navigate("/assets");
+    handlePanelToggle("assets");
+  }, [navigate, handlePanelToggle]);
+
   return (
     <>
       {activeView === "assets" && (
@@ -477,10 +486,7 @@ const PanelContent = memo(function PanelContent({
           <Tooltip title="Fullscreen" placement="right-start">
             <Button
               className={`${path === "/assets" ? "active" : ""}`}
-              onClick={() => {
-                navigate("/assets");
-                handlePanelToggle("assets");
-              }}
+              onClick={handleFullscreenClick}
               tabIndex={-1}
               style={{
                 float: "right",
