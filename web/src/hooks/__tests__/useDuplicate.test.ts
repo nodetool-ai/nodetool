@@ -154,15 +154,6 @@ describe("useDuplicateNodes", () => {
   });
 
   it("deselects original nodes", () => {
-    const selectedNodes = [
-      {
-        id: "node-1",
-        position: { x: 100, y: 200 },
-        data: { positionAbsolute: { x: 100, y: 200 } },
-        parentId: undefined,
-      },
-    ];
-
     mockUseNodesReturn.nodes = [
       { id: "node-1", position: { x: 100, y: 200 }, data: { positionAbsolute: { x: 100, y: 200 } }, selected: true },
       { id: "node-2", position: { x: 300, y: 400 }, data: {}, selected: false },

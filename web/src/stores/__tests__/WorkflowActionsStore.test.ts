@@ -1,5 +1,4 @@
 import { useWorkflowActionsStore } from "../WorkflowActionsStore";
-import { Workflow } from "../ApiTypes";
 
 describe("WorkflowActionsStore", () => {
   beforeEach(() => {
