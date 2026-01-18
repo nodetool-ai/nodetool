@@ -48,11 +48,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
-> ### FeatureYYYY-MM-DD)
-> **What**: One sentence
-> **Files**: Main files changed
-> ```
+> Feature Name (date): One line
+> Files: Main files changed
+
+### Workflow Performance Profiler (2026-01-18)
+
+**What**: Added visual performance profiler with bottleneck detection, execution history tracking, and performance metrics panel (toggle via Ctrl+P).
+
+**Files**: PerformanceStore.ts, PerformanceProfilerPanel.tsx, PerformancePanelStore.ts, NodeEditor.tsx
+
+---
 
 ### Debug Console Statement Removal (2026-01-17)
 

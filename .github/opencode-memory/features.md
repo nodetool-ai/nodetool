@@ -70,6 +70,7 @@ Last updated: 2026-01-17
 - **Cancel Execution**: Stop running workflows
 - **Audio Queue**: Queue and manage audio generation tasks
 - **Node Execution Time**: Display execution duration for completed nodes
+- **Performance Profiler**: Visual performance analysis with bottleneck detection, execution history tracking, and performance metrics
 
 ### Asset Management
 - **Asset Explorer**: File browser for managing workflow assets
@@ -290,7 +291,6 @@ Last updated: 2026-01-17
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 

@@ -46,6 +46,8 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import PerformanceProfilerPanel from "./PerformanceProfilerPanel";
+import usePerformancePanelStore from "../../stores/PerformancePanelStore";
 
 declare global {
   interface Window {
@@ -77,6 +79,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+  const togglePerformancePanel = usePerformancePanelStore((state) => state.toggle);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -98,6 +101,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active && selectedNodes.length > 0) {
         toggleInspectedNode(selectedNodes[0].id);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Performance Profiler Panel (Ctrl+P / Meta+P)
+  const performanceCombo = isMac() ? ["meta", "p"] : ["control", "p"];
+  useCombo(
+    performanceCombo,
+    () => {
+      if (active) {
+        togglePerformancePanel();
       }
     },
     true,
@@ -163,6 +179,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 visible={selectedNodes.length >= 2}
               />
               <NodeInfoPanel />
+              <PerformanceProfilerPanel workflowId={workflowId} />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
