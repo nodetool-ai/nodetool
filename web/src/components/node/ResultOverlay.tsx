@@ -17,7 +17,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
 }) => {
   return (
     <Box
-      className="result-overlay"
+      className="result-overlay node-drag-handle"
       sx={{
         position: "relative",
         display: "flex",
