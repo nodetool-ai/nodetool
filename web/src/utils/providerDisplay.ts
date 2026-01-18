@@ -39,7 +39,14 @@ export const isCloudProvider = (provider?: string): boolean => {
 export const isHuggingFaceInferenceProvider = (provider?: string): boolean => {
   if (!provider) {return false;}
   const providerLower = provider.toLowerCase().trim();
-  return providerLower.includes("hf_inference") || providerLower.includes("huggingface_inference");
+  return (
+    providerLower.includes("hf_inference") ||
+    providerLower.includes("hf-inference") ||
+    providerLower.includes("hf inference") ||
+    providerLower.includes("huggingface_inference") ||
+    providerLower.includes("huggingface-inference") ||
+    providerLower.includes("huggingface inference")
+  );
 };
 
 const insertSpacesBeforeCapitals = (value: string): string => {

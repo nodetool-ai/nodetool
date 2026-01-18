@@ -3,7 +3,7 @@ import { serverState } from '../state';
 
 // Mock the fetch global
 global.fetch = jest.fn();
-const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+const mockFetch = global.fetch as unknown as jest.MockFunction;
 
 // Mock timers for setInterval/clearInterval
 jest.useFakeTimers();
