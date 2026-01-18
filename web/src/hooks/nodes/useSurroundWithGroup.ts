@@ -67,7 +67,8 @@ export const useSurroundWithGroup = () => {
   }, []);
 
   const surroundWithGroup = useCallback(
-    ({ selectedNodes }: { selectedNodes: Node<NodeData>[] }) => {
+    (options: SurroundWithGroupOptions) => {
+      const { selectedNodes } = options;
       if (!selectedNodes) { return; }
       
       const validSelectedNodes = selectedNodes.filter(
