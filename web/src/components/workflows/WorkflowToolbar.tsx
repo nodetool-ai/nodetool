@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { FC, useCallback } from "react";
+import { FC, useCallback, memo } from "react";
 import { Button, Tooltip, Box, IconButton } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
@@ -246,4 +246,4 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   );
 };
 
-export default WorkflowToolbar;
+export default memo(WorkflowToolbar);

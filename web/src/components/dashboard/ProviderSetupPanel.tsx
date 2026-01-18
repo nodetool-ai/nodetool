@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   Typography,
   Box,
@@ -445,4 +445,4 @@ const ProviderSetupPanel: React.FC = () => {
   );
 };
 
-export default ProviderSetupPanel;
+export default memo(ProviderSetupPanel);

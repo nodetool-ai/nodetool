@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { memo } from "react";
 import { Box, Typography, CircularProgress, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
@@ -184,4 +184,4 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
   );
 };
 
-export default TemplatesPanel;
+export default memo(TemplatesPanel);

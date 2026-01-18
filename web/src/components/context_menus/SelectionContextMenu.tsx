@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import { Divider, Typography, MenuItem, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
@@ -360,4 +360,4 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   );
 };
 
-export default SelectionContextMenu;
+export default memo(SelectionContextMenu);

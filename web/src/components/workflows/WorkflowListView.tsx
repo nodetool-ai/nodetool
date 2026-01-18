@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { memo } from "react";
 import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -204,4 +204,4 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   );
 };
 
-export default WorkflowListView;
+export default memo(WorkflowListView);

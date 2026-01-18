@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { memo } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import {
   Box,
@@ -210,4 +210,4 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   );
 };
 
-export default WorkflowsList;
+export default memo(WorkflowsList);

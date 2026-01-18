@@ -6,7 +6,8 @@ import React, {
   useState,
   useEffect,
   useMemo,
-  useRef
+  useRef,
+  memo
 } from "react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -485,4 +486,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default memo(Dashboard);

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -15,7 +15,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { serializeValue } from "../../utils/serializeValue";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
-const PropertyContextMenu: React.FC = () => {
+const PropertyContextMenuComponent: React.FC = () => {
   const theme = useTheme();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
@@ -224,4 +224,4 @@ const PropertyContextMenu: React.FC = () => {
   );
 };
 
-export default PropertyContextMenu;
+export default memo(PropertyContextMenuComponent);
