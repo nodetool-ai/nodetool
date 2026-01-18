@@ -1,6 +1,68 @@
-# Test Coverage Improvements (2026-01-17)
+# Test Coverage Improvements (2026-01-18)
 
-**Coverage Added**: 2 new test files with 23 tests for critical hooks
+**Coverage Added**: 26 new tests for providerDisplay utility functions
+
+**Tests Added**:
+- `providerDisplay.test.ts` - Extended with 26 new tests
+
+**New Test Areas**:
+- `isHuggingFaceLocalProvider` - 6 tests for local HF provider detection
+- `isLocalProvider` - 11 tests for local provider detection (ollama, llama_cpp, mlx)
+- `isCloudProvider` - 5 tests for cloud provider detection
+- `isHuggingFaceInferenceProvider` - 6 tests for HF inference provider detection
+- `getModelUrl` - 12 tests for model URL generation
+
+**Bug Fixed**:
+- `isHuggingFaceInferenceProvider` - Added support for hyphenated variants (`hf-inference`)
+
+**Test Patterns Used**:
+
+1. **Provider Detection Testing**:
+```typescript
+describe("isLocalProvider", () => {
+  it("should return true for Ollama variants", () => {
+    expect(isLocalProvider("ollama")).toBe(true);
+    expect(isLocalProvider("my-ollama")).toBe(true);
+  });
+
+  it("should return true for llama_cpp variants", () => {
+    expect(isLocalProvider("llama_cpp")).toBe(true);
+    expect(isLocalProvider("llama-cpp")).toBe(true);
+    expect(isLocalProvider("llamacpp")).toBe(true);
+  });
+});
+```
+
+2. **Model URL Generation Testing**:
+```typescript
+describe("getModelUrl", () => {
+  it("should return Ollama URLs for ollama models", () => {
+    expect(getModelUrl("ollama", "gemma:2b"))
+      .toBe("https://ollama.com/library/gemma");
+  });
+
+  it("should infer provider from model type", () => {
+    expect(getModelUrl(undefined, "gemma:2b", "llama_model"))
+      .toBe("https://ollama.com/library/gemma");
+  });
+
+  it("should infer HF from model ID format", () => {
+    expect(getModelUrl(undefined, "user/repo"))
+      .toBe("https://huggingface.co/user/repo");
+  });
+});
+```
+
+**Files Modified**:
+- `web/src/utils/__tests__/providerDisplay.test.ts` - Extended with 26 new tests
+- `web/src/utils/providerDisplay.ts` - Fixed isHuggingFaceInferenceProvider to support hyphens
+
+**Key Learnings**:
+1. Provider detection requires handling multiple variants (underscores, hyphens, spaces)
+2. Model URL inference needs to handle multiple provider detection strategies
+3. Test both exact matches and partial matches for provider names
+
+**Status**: All 2918 tests passing (220 test suites)
 
 **Tests Added**:
 - `useCollectionDragAndDrop.test.ts` - 13 tests for drag-and-drop file indexing

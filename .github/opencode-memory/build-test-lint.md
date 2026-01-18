@@ -155,6 +155,48 @@ make all                  # install + typecheck + lint + test + build
 5. **Isolate Tests**: Each test should be independent
 6. **Follow Patterns**: Look at existing tests in the same area
 
+## Test Coverage Status (2026-01-18)
+
+### Current Coverage
+
+- **Test Suites**: 220 passed
+- **Tests**: 2918 passed (3 skipped)
+- **Coverage Areas**:
+  - Core utilities: graphCycle, modelNormalization, providerDisplay, nodeSearch, etc.
+  - Stores: NodeStore, WorkflowManagerStore, GlobalChatStore, StatusStore, etc.
+  - Hooks: useNodeEditorShortcuts, useNumberInput, useAlignNodes, etc.
+  - Components: BaseNode, PropertyPanel, NodeMenu, etc.
+
+### Priority Areas for Testing
+
+1. **High Priority**:
+   - `WorkflowRunner.ts` (16.33% coverage) - Workflow execution logic
+   - `GlobalChatStore.ts` (15.68% coverage) - Chat state management
+   - `useAuth.ts` (15.68% coverage) - Authentication hooks
+
+2. **Medium Priority**:
+   - Utility functions with complex logic
+   - Context providers
+   - Form validation
+
+### Test Patterns Used
+
+- **Store Testing**: Using renderHook with Zustand stores, act() for state updates
+- **Utility Testing**: Pure function tests with various inputs including edge cases
+- **Hook Testing**: Testing behavior with mocked dependencies
+- **Component Testing**: React Testing Library with userEvent for interactions
+
+### Recent Improvements
+
+1. **Fixed test**: `graphNodeToReactFlowNode.test.ts` - Fixed mock function parameter handling
+2. **Fixed test**: `api.test.ts` (electron) - Fixed TypeScript `as` casting syntax
+3. **Added tests**: `providerDisplay.test.ts` - Added 26 new tests covering:
+   - isHuggingFaceLocalProvider
+   - isLocalProvider
+   - isCloudProvider
+   - isHuggingFaceInferenceProvider
+   - getModelUrl
+
 ## Linting Rules
 
 ### TypeScript
