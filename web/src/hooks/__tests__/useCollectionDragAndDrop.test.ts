@@ -25,7 +25,7 @@ describe("useCollectionDragAndDrop", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    jest.spyOn(React, "useState")
+    (jest.spyOn(React, "useState") as any)
       .mockImplementation((initial: any) => {
         if (initial === null) {
           return [null, mockSetDragOverCollection];

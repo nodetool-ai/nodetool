@@ -16,9 +16,9 @@ describe("useNodeFocus", () => {
   const mockSetNodes = jest.fn();
 
   const mockFocusStore = {
-    focusedNodeId: null,
+    focusedNodeId: null as string | null,
     isNavigationMode: false,
-    focusHistory: [],
+    focusHistory: [] as string[],
     enterNavigationMode: jest.fn(),
     exitNavigationMode: jest.fn(),
     setFocusedNode: jest.fn(),
@@ -28,13 +28,17 @@ describe("useNodeFocus", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset store state
+    mockFocusStore.focusedNodeId = null;
+    mockFocusStore.isNavigationMode = false;
+    mockFocusStore.focusHistory = [];
     (useNodes as jest.Mock).mockImplementation((selector) => {
       if (typeof selector === "function") {
         return selector({ nodes: mockNodes, setNodes: mockSetNodes });
       }
       return { nodes: mockNodes, setNodes: mockSetNodes };
     });
-    (useNodeFocusStore as jest.Mock).mockImplementation((selector) => {
+    (useNodeFocusStore as any).mockImplementation((selector: any) => {
       if (typeof selector === "function") {
         return selector(mockFocusStore);
       }
