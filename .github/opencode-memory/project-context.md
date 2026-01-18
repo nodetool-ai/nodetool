@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Vulnerability Fixes (2026-01-18)
+
+**What**: Fixed glob command injection (GHSA-5j98-mcp5-4vw2) via npm overrides and audit fix across all packages. Fixed tar arbitrary file overwrite (GHSA-8qq5-rm4j-mr97) in mobile.
+
+**Files**: electron/package.json (glob override), web/package.json, mobile/package.json
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
