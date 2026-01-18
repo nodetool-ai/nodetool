@@ -24,16 +24,19 @@ describe("useCollectionDragAndDrop", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     jest.spyOn(React, "useState")
-      .mockImplementation((initial: any) => {
+      .mockImplementation((initial: unknown) => {
         if (initial === null) {
-          return [null, mockSetDragOverCollection];
+          return [null, mockSetDragOverCollection] as [null, typeof mockSetDragOverCollection];
         }
         if (Array.isArray(initial)) {
-          return [initial, mockSetIndexErrors];
+          return [initial, mockSetIndexErrors] as [typeof initial, typeof mockSetIndexErrors];
         }
-        return [null, mockSetIndexProgress];
+        if (initial === "") {
+          return ["", mockSetIndexProgress] as [typeof initial, typeof mockSetIndexProgress];
+        }
+        return [null, mockSetDragOverCollection] as [null, typeof mockSetDragOverCollection];
       });
   });
 

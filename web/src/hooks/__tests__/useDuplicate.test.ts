@@ -2,6 +2,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useDuplicateNodes } from "../useDuplicate";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
+import { Edge } from "@xyflow/react";
 
 jest.mock("@xyflow/react");
 jest.mock("../../contexts/NodeContext");
@@ -18,7 +19,14 @@ describe("useDuplicateNodes", () => {
   const mockGetSelectedNodes = jest.fn();
   const mockGenerateNodeIds = jest.fn((count) => Array.from({ length: count }, (_, i) => `new-node-${i}`));
 
-  const mockUseNodesReturn = {
+  const mockUseNodesReturn: {
+    nodes: any[];
+    edges: Edge[];
+    setNodes: typeof mockSetNodes;
+    setEdges: typeof mockSetEdges;
+    getSelectedNodes: typeof mockGetSelectedNodes;
+    generateNodeIds: typeof mockGenerateNodeIds;
+  } = {
     nodes: [],
     edges: [],
     setNodes: mockSetNodes,
@@ -166,7 +174,7 @@ describe("useDuplicateNodes", () => {
     mockUseNodesReturn.nodes = [
       { id: "node-1", position: { x: 100, y: 200 }, data: { positionAbsolute: { x: 100, y: 200 } }, selected: true },
       { id: "node-2", position: { x: 300, y: 400 }, data: {}, selected: false },
-    ];
+    ] as any;
     mockGetSelectedNodes.mockReturnValue([mockUseNodesReturn.nodes[0]]);
     mockGetNodesBounds.mockReturnValue({ width: 50, height: 30, x: 100, y: 200 });
 
