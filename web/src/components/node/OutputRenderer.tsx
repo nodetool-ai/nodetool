@@ -5,9 +5,10 @@ import React, {
   memo,
   useState,
   useRef,
-  useEffect
+  useEffect,
+  lazy,
+  Suspense
 } from "react";
-import Plot from "react-plotly.js";
 
 import {
   Asset,
@@ -16,7 +17,6 @@ import {
   Message,
   NPArray,
   TaskPlan,
-  PlotlyConfig,
   Task,
   CalendarEvent
 } from "../../stores/ApiTypes";
@@ -33,7 +33,6 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "lodash/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
-import Model3DViewer from "../asset_viewer/Model3DViewer";
 import {
   typeFor,
   renderSVGDocument,
@@ -52,7 +51,10 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
-// import left for future reuse of audio stream component when needed
+
+// Lazy-loaded heavy components for code-splitting
+const PlotlyRenderer = lazy(() => import("./output/PlotlyRenderer"));
+const Model3DViewer = lazy(() => import("../asset_viewer/Model3DViewer"));
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -323,24 +325,39 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
   const renderContent = useMemo(() => {
-    let config: PlotlyConfig | undefined;
+    const renderWithSuspense = (children: React.ReactNode) => (
+      <Suspense
+        fallback={
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(0,0,0,0.1)"
+            }}
+          >
+            Loading...
+          </div>
+        }
+      >
+        {children}
+      </Suspense>
+    );
+
     switch (type) {
-      case "plotly_config":
-        config = value as PlotlyConfig;
-        return (
+      case "plotly_config": {
+        const config = value;
+        return renderWithSuspense(
           <div
             className="render-content"
             style={{ width: "100%", height: "100%" }}
           >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
+            <PlotlyRenderer config={config} />
           </div>
         );
+      }
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":
@@ -429,11 +446,28 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
-            <Model3DViewer
-              url={url}
-              compact={true}
-              onClick={handleModel3DClick(url, contentType)}
-            />
+            <Suspense
+              fallback={
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "rgba(0,0,0,0.1)"
+                  }}
+                >
+                  Loading 3D viewer...
+                </div>
+              }
+            >
+              <Model3DViewer
+                url={url}
+                compact={true}
+                onClick={handleModel3DClick(url, contentType)}
+              />
+            </Suspense>
           </div>
         );
       }

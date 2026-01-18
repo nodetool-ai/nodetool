@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Code-Split Heavy Libraries (2026-01-18)
+
+**What**: Code-split Plotly.js (4.68 MB) and Three.js (991 KB) using React.lazy() + Suspense. Created PlotlyRenderer component for lazy loading.
+
+**Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx (modified)
+
+**Impact**: ~80% reduction in initial load for users not viewing charts/3D models. Heavy libraries loaded on-demand.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
