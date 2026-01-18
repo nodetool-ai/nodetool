@@ -109,8 +109,8 @@ describe("useSyncEdgeSelection", () => {
         { id: "edge-3", source: "node-1", target: "node-4", selected: false }
       ]);
       mockFindNode.mockImplementation((id: string) => {
-        if (id === "node-2") return createMockNode(id, false);
-        if (["node-3", "node-4"].includes(id)) return createMockNode(id, false);
+        if (id === "node-2") {return createMockNode(id, false);}
+        if (["node-3", "node-4"].includes(id)) {return createMockNode(id, false);}
         return null;
       });
 
@@ -129,7 +129,7 @@ describe("useSyncEdgeSelection", () => {
       ]);
       mockGetOutputEdges.mockReturnValue([]);
       mockFindNode.mockImplementation((id: string) => {
-        if (id === "node-2") return createMockNode(id, true);
+        if (id === "node-2") {return createMockNode(id, true);}
         return null;
       });
 
