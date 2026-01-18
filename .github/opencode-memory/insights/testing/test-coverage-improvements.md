@@ -303,6 +303,83 @@ describe("useFitNodeEvent", () => {
 
 ---
 
+### Test Coverage Improvement (2026-01-18)
+
+**Coverage Added**: 2 new test files with 45 tests for critical workflow update and edge processing
+
+**Tests Added**:
+- `workflowUpdates.test.ts` - 25 tests for workflow WebSocket update handling
+- `useProcessedEdges.test.ts` - 20 tests for edge type resolution and styling
+
+**Areas Covered**:
+- Job update handling (running, completed, cancelled, failed, suspended, paused)
+- Node update handling (running, error, result)
+- Edge update handling and status tracking
+- Subscription management (subscribe/unsubscribe)
+- Edge type resolution through Reroute nodes
+- Gradient key generation for different type connections
+- Message counter display on edges
+- Bypassed node edge styling
+- Execution status tracking
+
+**Test Patterns Used**:
+
+1. **Workflow Update Testing Pattern**:
+```typescript
+describe("handleUpdate", () => {
+  it("handles job_update with running status", () => {
+    const jobUpdate: JobUpdate = {
+      type: "job_update",
+      job_id: "job-123",
+      status: "running",
+    };
+
+    handleUpdate(mockWorkflow, jobUpdate, mockRunnerStore as any);
+
+    expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "running" });
+    expect(mockRunnerStore.setState).toHaveBeenCalledWith({ job_id: "job-123" });
+  });
+});
+```
+
+2. **Edge Processing Hook Testing**:
+```typescript
+describe("useProcessedEdges", () => {
+  it("returns empty arrays when no edges provided", () => {
+    const { result } = renderHook(() =>
+      useProcessedEdges({
+        edges: [],
+        nodes: [],
+        dataTypes: mockDataTypes,
+        getMetadata: mockGetMetadata,
+      })
+    );
+
+    expect(result.current.processedEdges).toHaveLength(0);
+    expect(result.current.activeGradientKeys.size).toBe(0);
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/workflowUpdates.test.ts`
+- `web/src/hooks/__tests__/useProcessedEdges.test.ts`
+
+**Key Learnings**:
+1. Workflow update handling requires careful mocking of multiple store dependencies
+2. Runner store addNotification is called directly on the state object from getState()
+3. Edge processing requires proper type mapping and mock setup for handleUtils
+4. Mock paths must use correct relative paths from test file location
+
+**Coverage Impact**:
+- **Before**: 223 test suites, 2,942 tests
+- **After**: 225 test suites, 2,987 tests
+- **Net Gain**: +2 test suites, +45 tests
+
+**Status**: All 45 tests passing (225 test suites, 2,987 tests total with 3 skipped, 1 pre-existing flaky performance test)
+
+---
+
 ### Previous Entry (2026-01-17)
 
 **Coverage Added**: 8 new test files with 117 tests
