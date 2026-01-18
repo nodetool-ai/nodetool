@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Audit & Vulnerability Fixes (2026-01-18)
+
+**What**: Fixed HIGH severity vulnerabilities - glob CLI command injection (web), tar arbitrary file overwrite (mobile). Added npm overrides and updated electron-builder. All runtime vulnerabilities now resolved.
+
+**Files**: web/package.json, electron/package.json, mobile/package.json
+
+**Impact**: Web: 10→0 vuln, Mobile: 10→0 vuln, Electron: 21 dev-only vuln remaining
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).

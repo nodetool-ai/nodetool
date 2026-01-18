@@ -43,7 +43,7 @@
     "@typescript-eslint/parser": "^8.17.0",
     "@vitejs/plugin-react": "^4.6.0",
     "electron": "35.7.5",
-    "electron-builder": "^26.3.4",
+    "electron-builder": "^26.4.1",
     "electron-mock": "^0.5.0",
     "eslint": "^9.16.0",
     "eslint-config-prettier": "^9.1.0",
@@ -79,7 +79,8 @@
   "overrides": {
     "qs": ">=6.14.1",
     "express": ">=4.21.2",
-    "body-parser": ">=1.20.3"
+    "body-parser": ">=1.20.3",
+    "glob": ">=10.5.0"
   },
   "permissions": [
     "audioCapture"
