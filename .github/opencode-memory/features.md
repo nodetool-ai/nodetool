@@ -233,6 +233,7 @@ Last updated: 2026-01-17
 - **Status Messages**: Display status updates to users
 - **Notifications**: Toast notifications for user actions
 - **Terminal Component**: Terminal-style log viewer
+- **Performance Profiler**: Visual workflow performance profiling with heatmap overlays, execution timeline, and bottleneck detection (Experimental)
 
 ### Data Structures
 - **Graph Nodes**: Custom node data structures
@@ -285,12 +286,10 @@ Last updated: 2026-01-17
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
