@@ -539,3 +539,42 @@ All hooks now include module-level JSDoc with @param, @returns, and @example tag
 ---
 
 ### Documentation Port Consistency Fixes (2026-01-17)
+
+---
+
+### Test Coverage Improvement (2026-01-18)
+
+**Areas Improved**: Model menu store testing
+
+**Tests Added**: 46 new tests for ModelMenuStore
+
+**Coverage Improvements**:
+- `requiredSecretForProvider` function: 9 test cases (API key detection for all providers)
+- `computeProvidersList` function: 10 test cases (provider extraction and counting)
+- `filterModelsList` function: 15 test cases (search, filtering, sorting)
+- Store state management: 11 test cases (search, provider, sidebar tabs)
+
+**Key Features Tested**:
+- Model filtering by provider
+- Search functionality with fuzzy matching
+- Provider-specific API key requirements
+- Alphabetical sorting
+- Edge cases (empty inputs, null values, special characters)
+
+**Patterns Used**:
+- Pure function testing for filter/search logic
+- Store factory pattern for isolated testing
+- Comprehensive edge case coverage
+
+**Files Added**:
+- `web/src/stores/__tests__/ModelMenuStore.test.ts`
+
+**Verification**:
+- ✅ All 46 tests pass
+- ✅ TypeScript compilation passes
+- ✅ ESLint passes (no errors)
+- ✅ No regressions in existing tests (225 test suites, 2985 tests total)
+
+**Related Memory**:
+- `.github/opencode-memory/insights.md` - Testing patterns documented
+- `.github/opencode-memory/build-test-lint.md` - Test coverage updates

@@ -124,6 +124,47 @@ screen.getByTestId('save-button')
 
 ---
 
+### Store Testing Patterns
+
+**Insight**: Zustand stores require specific testing patterns for proper isolation and state management.
+
+**Key Patterns**:
+1. Create isolated store instances for testing using factory functions
+2. Reset store state in `beforeEach` using `setState(getInitialState())`
+3. Test store actions in isolation from components
+4. Use `renderHook` from React Testing Library for hook-based stores
+
+**Example**:
+```typescript
+// Factory function for creating test store
+const createTestStore = () => createModelMenuStore<ModelSelectorModel>();
+
+describe("ModelMenuStore", () => {
+  const testStore = createTestStore();
+  
+  beforeEach(() => {
+    testStore.setState(testStore.getInitialState());
+  });
+
+  it("updates search value", () => {
+    const { result } = renderHook(() => testStore());
+    act(() => {
+      result.current.setSearch("gpt");
+    });
+    expect(result.current.search).toBe("gpt");
+  });
+});
+```
+
+**Benefits**:
+- Tests are isolated and repeatable
+- No state leakage between tests
+- Factory pattern allows testing different store configurations
+
+**Date**: 2026-01-18
+
+---
+
 ## Code Quality Insights
 
 ### TypeScript Strict Mode
