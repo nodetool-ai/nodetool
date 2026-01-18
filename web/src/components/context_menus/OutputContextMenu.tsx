@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, memo } from "react";
 //mui
 import { Divider, Menu } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -446,5 +446,5 @@ const OutputContextMenu: React.FC = () => {
   );
 };
 
-export default OutputContextMenu;
+export default memo(OutputContextMenu);
 

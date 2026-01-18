@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
@@ -200,4 +200,4 @@ const NodeContextMenu: React.FC = () => {
   );
 };
 
-export default NodeContextMenu;
+export default memo(NodeContextMenu);

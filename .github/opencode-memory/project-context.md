@@ -54,6 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Component Memoization (2026-01-18)
+
+**What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
+
+**Files**: 12 files in web/src/components/
+
+**Impact**: Reduced unnecessary re-renders in dashboard, workflow management, and context menu components.
 ### Quality Checks Fixes (2026-01-18)
 
 **What**: Fixed TypeScript type errors and lint warnings in test files.
