@@ -188,23 +188,26 @@ const LexicalPlugins = ({
   return (
     <>
       <Global styles={styles(theme)} />
-      <RichTextPlugin
-        contentEditable={
-          <ContentEditable
-            className={`editor editor-input nodrag ${
-              isFocused ? "focused  nowheel" : ""
-            } ${wordWrapEnabled ? "word-wrap" : "no-wrap"}`.trim()}
-            spellCheck={false}
-            onClick={(e) => e.stopPropagation()}
-            onFocus={handleFocus}
-            onBlur={handleInternalBlur}
-          />
-        }
-        placeholder={
-          <div className="editor-placeholder">{isFocused ? "" : "// ..."}</div>
-        }
-        ErrorBoundary={() => null}
-      />
+      {/* Wrap in a block container to avoid Chrome flex + contenteditable focus issues */}
+      <div style={{ display: "block", flex: 1, minHeight: 0, overflow: "auto" }}>
+        <RichTextPlugin
+          contentEditable={
+            <ContentEditable
+              className={`editor editor-input nodrag ${
+                isFocused ? "focused  nowheel" : ""
+              } ${wordWrapEnabled ? "word-wrap" : "no-wrap"}`.trim()}
+              spellCheck={false}
+              onClick={(e) => e.stopPropagation()}
+              onFocus={handleFocus}
+              onBlur={handleInternalBlur}
+            />
+          }
+          placeholder={
+            <div className="editor-placeholder">{isFocused ? "" : "// ..."}</div>
+          }
+          ErrorBoundary={() => null}
+        />
+      </div>
       <HistoryPlugin />
       <OnChangePlugin onChange={onChange} />
       <LinkPlugin />
