@@ -11,6 +11,32 @@ type UseRealtimeAudioStream = {
   version: number;
 };
 
+/**
+ * Hook for streaming audio input to a workflow in real-time.
+ * 
+ * Captures microphone audio, converts it to PCM16LE format,
+ * and streams it to the workflow input node via WebSocket.
+ * Automatically stops streaming when the workflow completes.
+ * 
+ * @param inputNodeName - Optional name of the input node to stream to
+ * @returns Object containing streaming state and control functions
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isStreaming, 
+ *   start, 
+ *   stop, 
+ *   toggle,
+ *   stream,
+ *   version 
+ * } = useRealtimeAudioStream("audio-input");
+ * 
+ * <Button onClick={isStreaming ? stop : start}>
+ *   {isStreaming ? "Stop Recording" : "Start Recording"}
+ * </Button>
+ * ```
+ */
 export const useRealtimeAudioStream = (
   inputNodeName?: string
 ): UseRealtimeAudioStream => {
@@ -193,11 +219,17 @@ export const useRealtimeAudioStream = (
   }, [runnerState, isStreaming, stop]);
 
   return {
+    /** Whether audio streaming is currently active */
     isStreaming,
+    /** Start audio streaming */
     start,
+    /** Stop audio streaming */
     stop,
+    /** Toggle streaming state */
     toggle,
+    /** The current audio MediaStream, or null if not streaming */
     stream: audioStreamRef.current,
+    /** Version counter that increments on stream state changes */
     version
   };
 };

@@ -44,6 +44,28 @@ const mapUnifiedToTTSModel = (u: UnifiedModel): TTSModel => ({
   selected_voice: "",
 });
 
+/**
+ * Hook for fetching recommended models for a specific task type.
+ * 
+ * Queries the backend for curated model recommendations based on
+ * the task type (image generation, language model, TTS, ASR).
+ * Models are mapped to the appropriate provider type.
+ * 
+ * @param task - The task type to get recommendations for
+ * @returns Query result containing recommended models
+ * 
+ * @example
+ * ```typescript
+ * const { data: imageModels, isLoading } = useRecommendedTaskModels("image");
+ * 
+ * // Display in model selector
+ * {isLoading ? (
+ *   <Loading />
+ * ) : (
+ *   <Select models={imageModels} />
+ * )}
+ * ```
+ */
 export const useRecommendedTaskModels = <T extends TaskType>(task: T) => {
   return useQuery({
     queryKey: ["recommended", task],
