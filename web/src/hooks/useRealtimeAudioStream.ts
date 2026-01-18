@@ -2,6 +2,30 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useInputStream } from "./useInputStream";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 
+/**
+ * Hook for streaming real-time audio from microphone to a workflow input node.
+ * 
+ * Captures microphone input at 22kHz sample rate, converts to PCM16LE,
+ * and streams chunks to the workflow via WebSocket. Used by real-time
+ * audio processing nodes like RealtimeAgent.
+ * 
+ * @param inputNodeName - Optional name of the input node to stream to
+ * @returns Object with streaming state and control functions
+ * 
+ * @example
+ * ```typescript
+ * const { isStreaming, start, stop, toggle } = useRealtimeAudioStream("audio_input");
+ * 
+ * // Start recording
+ * start();
+ * 
+ * // Or toggle recording state
+ * toggle();
+ * 
+ * // Stop when done
+ * stop();
+ * ```
+ */
 type UseRealtimeAudioStream = {
   isStreaming: boolean;
   start: () => void;

@@ -2,9 +2,11 @@
 
 This document lists all existing features in NodeTool to help OpenCode agents avoid creating redundant functionality. **Always read this file before planning new features.**
 
-**When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
+**When adding features**: Add ONE line per feature using format: `- **Feature Name`: Brief description (max 10 words)`
 
-Last updated: 2026-01-17
+Last updated: 2026-01-18
+
+- **Hook JSDoc Documentation**: Added comprehensive JSDoc documentation to 14 undocumented hooks (useSelectionActions, useSelectedNodesInfo, useSelectConnected, useWorkflowActions, useDelayedHover, useFocusPan, useInputMinMax, useMenuHandler, useRenderLogger, useCollectionDragAndDrop, useDashboardData, useEmbeddingModels, useRealtimeAudioStream, useRecommendedTaskModels)
 
 - **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
 

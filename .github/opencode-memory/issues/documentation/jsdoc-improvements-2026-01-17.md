@@ -91,15 +91,26 @@
 - useRecommendedModels.ts ✅ (Curated model recommendations)
 - useFindInWorkflow.ts ✅ (Search in workflow functionality)
 
+**Updated (2026-01-18 - Documentation QA Session)**:
+- useSelectionActions.ts ✅ (HIGH PRIORITY - batch node operations)
+- useSelectedNodesInfo.ts ✅ (HIGH PRIORITY - node info panel)
+- useSelectConnected.ts ✅ (MEDIUM PRIORITY - graph traversal)
+- useWorkflowActions.ts ✅ (HIGH PRIORITY - dashboard workflow management)
+- useDelayedHover.ts ✅ (LOW PRIORITY - hover delay utility)
+- useFocusPan.ts ✅ (MEDIUM PRIORITY - keyboard navigation)
+- useInputMinMax.ts ✅ (LOW PRIORITY - input bounds)
+- useMenuHandler.ts ✅ (LOW PRIORITY - menu event handling)
+- useRenderLogger.tsx ✅ (LOW PRIORITY - debug utility)
+- useCollectionDragAndDrop.ts ✅ (MEDIUM PRIORITY - file indexing)
+- useDashboardData.ts ✅ (HIGH PRIORITY - dashboard data)
+- useEmbeddingModels.ts ✅ (MEDIUM PRIORITY - embedding models)
+- useRealtimeAudioStream.ts ✅ (MEDIUM PRIORITY - audio streaming)
+- useRecommendedTaskModels.ts ✅ (MEDIUM PRIORITY - task recommendations)
+
 **Remaining Hooks Without JSDoc** (Lower Priority):
-- useCollectionDragAndDrop.ts
-- useDashboardData.ts
-- useDelayedHover.ts
-- useInputMinMax.ts
-- useIpcRenderer.ts
-- useNodeFocus.ts
-- useRealtimeAudioStream.ts
-- useRecommendedTaskModels.ts
-- useSelectConnected.ts
+- useEmbeddingModels.ts (now documented)
+- useWorkflowRunnerState.ts
+- useModelsByProvider.ts (already has documentation)
+- useLoraModels.ts (already has documentation)
 
 **Recommendation**: Continue adding JSDoc to remaining hooks, prioritizing by complexity and usage frequency.

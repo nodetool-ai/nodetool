@@ -1,6 +1,29 @@
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../contexts/NodeContext";
 
+/**
+ * Hook to select nodes connected to the currently selected nodes.
+ * 
+ * Performs graph traversal upstream (sources) and/or downstream (targets)
+ * to find all connected nodes. Useful for selecting entire subgraphs.
+ * 
+ * @param options - Configuration for traversal direction
+ * @returns Object with selection and traversal functions
+ * 
+ * @example
+ * ```typescript
+ * const { selectConnected, connectedNodeCount } = useSelectConnected();
+ * 
+ * // Select all connected nodes (upstream and downstream)
+ * selectConnected();
+ * 
+ * // Get count without selecting
+ * console.log(`${connectedNodeCount} nodes connected`);
+ * 
+ * // Only traverse upstream (data sources)
+ * const { getConnectedNodeIds } = useSelectConnected({ direction: "upstream" });
+ * ```
+ */
 type Direction = "upstream" | "downstream" | "both";
 
 interface UseSelectConnectedOptions {

@@ -7,6 +7,24 @@ import useMetadataStore from "../stores/MetadataStore";
 import useResultsStore from "../stores/ResultsStore";
 import useErrorStore from "../stores/ErrorStore";
 
+/**
+ * Hook to gather detailed information about currently selected nodes.
+ * 
+ * Provides metadata, connection status, execution state, and error information
+ * for all selected nodes. Used by the Node Info Panel to display node details.
+ * 
+ * @returns Object containing nodes info array and selection state helpers
+ * 
+ * @example
+ * ```typescript
+ * const { nodesInfo, totalSelected, hasSingleNode } = useSelectedNodesInfo();
+ * 
+ * nodesInfo.forEach(node => {
+ *   console.log(`${node.label}: ${node.type}`);
+ *   console.log(`Connections: ${node.connections.connectedInputs}/${node.connections.totalInputs} inputs`);
+ * });
+ * ```
+ */
 interface NodeConnectionInfo {
   totalInputs: number;
   connectedInputs: number;

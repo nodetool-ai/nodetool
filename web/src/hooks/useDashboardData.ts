@@ -6,6 +6,31 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 
+/**
+ * Hook that fetches and processes data for the dashboard.
+ * 
+ * Loads workflows from the API, loads templates from the workflow manager,
+ * and provides sorted/filtered lists for display. Handles loading states
+ * and sorting based on user preferences.
+ * 
+ * @returns Object with loading states and processed workflow/template lists
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isLoadingWorkflows, 
+ *   sortedWorkflows,
+ *   isLoadingTemplates,
+ *   startTemplates 
+ * } = useDashboardData();
+ * 
+ * // Display recent workflows
+ * sortedWorkflows.map(w => <WorkflowTile workflow={w} />);
+ * 
+ * // Display starter templates
+ * startTemplates.map(t => <TemplateCard template={t} />);
+ * ```
+ */
 const loadWorkflows = async () => {
   const { data, error } = await client.GET("/api/workflows/", {
     params: {
