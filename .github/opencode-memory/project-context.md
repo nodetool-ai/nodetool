@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Audit Fixes (2026-01-18)
+
+**What**: Fixed multiple security vulnerabilities including glob/tar command injection, XSS in workflow names, overly permissive CSP and CORS. Added DOMPurify sanitization for dangerouslySetInnerHTML usage.
+
+**Files**: web/package.json, web/index.html, web/src/components/workflows/WorkflowTile.tsx, web/src/components/dialogs/OpenOrCreateDialog.tsx, electron/package.json, electron/src/window.ts, mobile/package.json
+
+---
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).

@@ -8,7 +8,7 @@ import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
-import { escapeHtml } from "../../utils/highlightText";
+import DOMPurify from "dompurify";
 
 interface WorkflowTileProps {
   workflow: Workflow;
@@ -22,7 +22,16 @@ interface WorkflowTileProps {
 }
 
 const addBreaks = (text: string) => {
-  return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+  return DOMPurify.sanitize(escaped.replace(/([-_.])/g, "$1<br>"), {
+    ALLOWED_TAGS: ["wbr", "b", "i", "em", "strong", "span"],
+    ALLOWED_ATTR: []
+  });
 };
 
 export const WorkflowTile = ({
