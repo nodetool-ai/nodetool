@@ -21,9 +21,11 @@ import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SpeedIcon from "@mui/icons-material/Speed";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
+import PerformancePanel from "./PerformancePanel";
 
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
@@ -117,6 +119,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle,
   handleVersionsToggle,
   handleWorkflowToggle,
+  handlePerformanceToggle,
   activeView,
   panelVisible
 }: {
@@ -126,7 +129,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
   handleWorkflowToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow";
+  handlePerformanceToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "performance";
   panelVisible: boolean;
 }) {
   return (
@@ -273,6 +277,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <SettingsIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Performance Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Performance</div>
+            <div className="tooltip-key">
+              <kbd>P</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handlePerformanceToggle}
+          className={
+            activeView === "performance" && panelVisible
+              ? "performance active"
+              : "performance"
+          }
+        >
+          <SpeedIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -324,6 +354,10 @@ const PanelRight: React.FC = () => {
     storeState.setNodes(newNodes);
     storeState.setEdges(newEdges);
     storeState.setWorkflowDirty(true);
+  };
+
+  const handlePerformanceToggle = () => {
+    handlePanelToggle("performance");
   };
 
   return (
@@ -381,6 +415,18 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "performance" ? (
+                  currentWorkflowId ? (
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        overflow: "auto"
+                      }}
+                    >
+                      <PerformancePanel workflowId={currentWorkflowId} />
+                    </Box>
+                  ) : null
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -404,6 +450,7 @@ const PanelRight: React.FC = () => {
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
+        handlePerformanceToggle={handlePerformanceToggle}
         activeView={activeView}
         panelVisible={isVisible}
       />

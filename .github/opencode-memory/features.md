@@ -278,6 +278,8 @@ Last updated: 2026-01-17
 
 ---
 
+- **Workflow Performance Profiler**: Analyzes workflow execution performance, identifies bottlenecks, displays node timing details with percentage of total runtime (Experimental)
+
 ## Features NOT Yet Implemented
 
 *(Update this section when considering these features in the future)*
