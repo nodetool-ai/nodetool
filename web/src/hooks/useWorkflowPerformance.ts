@@ -136,8 +136,8 @@ const calculatePerformanceScore = (
   totalDuration: number,
   bottleneckCount: number
 ): number => {
-  if (totalCount === 0) return 0;
-  if (executedCount === 0) return 0;
+  if (totalCount === 0) {return 0;}
+  if (executedCount === 0) {return 0;}
 
   const executionRate = executedCount / totalCount;
   const bottleneckRatio = bottleneckCount / executedCount;
