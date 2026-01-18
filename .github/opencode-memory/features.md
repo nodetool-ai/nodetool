@@ -285,12 +285,16 @@ Last updated: 2026-01-17
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
+- **Advanced Analytics**: Workflow performance analytics and profiling (PARTIALLY IMPLEMENTED: Workflow Profiler Panel)
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
+- **Performance Profiling UI**: Built-in performance profiling tools (IMPLEMENTED: WorkflowProfilerPanel)
+
+## Experimental Research Features
+
+- **Workflow Performance Profiler (Experimental)**: Analyzes workflows for bottlenecks, parallelization opportunities, and structural issues. Includes bottleneck detection, parallel opportunity identification, and structural issue detection (cycles, orphan nodes, deep nesting). Files: WorkflowProfilerStore.ts, useWorkflowProfiler.ts, WorkflowProfilerPanel.tsx
 
 ---
 
