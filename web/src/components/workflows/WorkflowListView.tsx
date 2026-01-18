@@ -123,21 +123,18 @@ const listStyles = (theme: Theme) =>
     },
     ".actions": {
       position: "absolute",
-      top: "8px",
+      top: "50%",
+      transform: "translateY(-50%)",
       right: "0.35em",
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-end",
-      width: "100px",
+      gap: "2px",
       button: {
         opacity: 0,
-        padding: "0",
         color: theme.vars.palette.grey[100],
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[500]
-        },
-        svg: {
-          fontSize: "1.5em"
         }
       }
     },

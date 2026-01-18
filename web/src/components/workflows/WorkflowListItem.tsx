@@ -8,9 +8,10 @@ import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useWorkflowActionsStore } from "../../stores/WorkflowActionsStore";
 import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
-import { useIsWorkflowFavorite } from "../../stores/FavoriteWorkflowsStore";
+import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/FavoriteWorkflowsStore";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import EditIcon from "@mui/icons-material/Edit";
 
 interface WorkflowListItemProps {
@@ -45,6 +46,16 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const clearActions = useWorkflowActionsStore((state) => state.clearActions);
   const showGraphPreview = useShowGraphPreview();
   const isFavorite = useIsWorkflowFavorite(workflow.id);
+  const { toggleFavorite } = useFavoriteWorkflowActions();
+
+  const handleToggleFavorite = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFavorite(workflow.id);
+    },
+    [toggleFavorite, workflow.id]
+  );
 
   const handleEdit = useCallback(
     (e: React.MouseEvent) => {
@@ -124,12 +135,22 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>
       <Box className="actions">
         <IconButton
+          className="favorite-button"
+          size="small"
+          onClick={handleToggleFavorite}
+          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          sx={{ padding: "4px" }}
+        >
+          {isFavorite ? <StarIcon sx={{ fontSize: "1rem", color: "warning.main" }} /> : <StarBorderIcon sx={{ fontSize: "1rem" }} />}
+        </IconButton>
+        <IconButton
           className="edit-button"
           size="small"
           onClick={handleEdit}
           title="Edit workflow settings"
+          sx={{ padding: "4px" }}
         >
-          <EditIcon />
+          <EditIcon sx={{ fontSize: "1rem" }} />
         </IconButton>
       </Box>
     </Box>
