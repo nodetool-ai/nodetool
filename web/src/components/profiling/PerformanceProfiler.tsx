@@ -41,13 +41,13 @@ interface PerformanceProfilerProps {
 }
 
 const formatDuration = (ms: number): string => {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 1000) {return `${ms}ms`;}
+  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
   return `${Math.floor(ms / 60000)}m ${((ms % 60000) / 1000).toFixed(0)}s`;
 };
 
 const formatMemory = (mb: number): string => {
-  if (mb < 1024) return `${mb.toFixed(0)}MB`;
+  if (mb < 1024) {return `${mb.toFixed(0)}MB`;}
   return `${(mb / 1024).toFixed(2)}GB`;
 };
 
@@ -63,9 +63,9 @@ const getGradeColor = (grade: string): string => {
 };
 
 const getComplexityColor = (complexity: number, theme: Theme): string => {
-  if (complexity <= 3) return theme.palette.success.main;
-  if (complexity <= 6) return theme.palette.info.main;
-  if (complexity <= 10) return theme.palette.warning.main;
+  if (complexity <= 3) {return theme.palette.success.main;}
+  if (complexity <= 6) {return theme.palette.info.main;}
+  if (complexity <= 10) {return theme.palette.warning.main;}
   return theme.palette.error.main;
 };
 
@@ -204,7 +204,7 @@ export const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
   }, []);
 
   const sortedMetrics = useMemo(() => {
-    if (!currentProfile) return [];
+    if (!currentProfile) {return [];}
     return [...currentProfile.nodeMetrics].sort((a, b) => b.estimatedRuntime - a.estimatedRuntime);
   }, [currentProfile]);
 

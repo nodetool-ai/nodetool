@@ -180,10 +180,10 @@ const generateSuggestions = (
 };
 
 const calculateGrade = (score: number): 'A' | 'B' | 'C' | 'D' | 'F' => {
-  if (score >= 90) return 'A';
-  if (score >= 75) return 'B';
-  if (score >= 60) return 'C';
-  if (score >= 40) return 'D';
+  if (score >= 90) {return 'A';}
+  if (score >= 75) {return 'B';}
+  if (score >= 60) {return 'C';}
+  if (score >= 40) {return 'D';}
   return 'F';
 };
 
