@@ -96,6 +96,13 @@ export const useAutosave = (
   );
 
   /**
+   * Check if a workflow is empty (has no nodes)
+   */
+  const isWorkflowEmpty = useCallback((workflow: Workflow): boolean => {
+    return !workflow.graph?.nodes || workflow.graph.nodes.length === 0;
+  }, []);
+
+  /**
    * Perform autosave by calling the backend autosave endpoint
    */
   const triggerAutosave = useCallback(async () => {
@@ -105,6 +112,11 @@ export const useAutosave = (
 
     const workflow = getWorkflow();
     if (!workflow || !isDirty()) {
+      return;
+    }
+
+    // Never autosave empty workflows
+    if (isWorkflowEmpty(workflow)) {
       return;
     }
 
@@ -137,6 +149,7 @@ export const useAutosave = (
     workflowId,
     getWorkflow,
     isDirty,
+    isWorkflowEmpty,
     callAutosaveEndpoint,
     updateLastAutosaveTime,
     addNotification
@@ -155,6 +168,11 @@ export const useAutosave = (
       return;
     }
 
+    // Never save empty workflows
+    if (isWorkflowEmpty(workflow)) {
+      return;
+    }
+
     try {
       await callAutosaveEndpoint("checkpoint", {
         description: "Before execution",
@@ -168,6 +186,7 @@ export const useAutosave = (
     workflowId,
     getWorkflow,
     isDirty,
+    isWorkflowEmpty,
     callAutosaveEndpoint
   ]);
 
@@ -226,7 +245,8 @@ export const useAutosave = (
     const handleBeforeUnload = async () => {
       if (workflowId && isDirty()) {
         const workflow = getWorkflow();
-        if (workflow) {
+        // Never save empty workflows
+        if (workflow && !isWorkflowEmpty(workflow)) {
           await callAutosaveEndpoint("autosave", {
             description: "Before close"
           });
@@ -245,6 +265,7 @@ export const useAutosave = (
     workflowId,
     isDirty,
     getWorkflow,
+    isWorkflowEmpty,
     callAutosaveEndpoint
   ]);
 
