@@ -750,6 +750,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  // ---------- PERFORMANCE PROFILER -------------------------------------------
+  {
+    title: "Performance Profiler",
+    slug: "performanceProfiler",
+    keyCombo: ["Control", "P"],
+    category: "panel" as const,
+    description: "Open Performance Profiler panel",
+    registerCombo: true
   }
 ] as Shortcut[];
 

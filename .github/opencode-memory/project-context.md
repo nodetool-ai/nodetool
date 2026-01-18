@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Profiler Research Feature (2026-01-18)
+
+**What**: Implemented Workflow Performance Profiler - analyzes workflows for performance bottlenecks with estimated runtime, memory usage, and optimization suggestions.
+
+**Files**: web/src/stores/PerformanceProfileStore.ts, web/src/components/profiling/PerformanceProfiler.tsx, web/src/hooks/usePerformanceProfiler.ts, web/src/config/shortcuts.ts, web/src/stores/__tests__/PerformanceProfileStore.test.ts, web/src/components/profiling/__tests__/PerformanceProfiler.test.tsx
+
+**Impact**: Users can now analyze workflows for performance issues, identify bottlenecks, and get optimization suggestions. Keyboard shortcut Ctrl+P opens the profiler panel.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
