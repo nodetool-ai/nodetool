@@ -44,8 +44,9 @@ export function graphNodeToReactFlowNode(
 
   const isBypassed = ui_properties?.bypassed || false;
 
-  // PreviewNodes should not be selectable via selectNodesOnDrag
-  const selectable = isPreviewNode ? false : ui_properties?.selectable;
+  // PreviewNodes are selectable via click and selection box, 
+  // but should be ignored when dragging (handled in drag handler)
+  const selectable = ui_properties?.selectable;
 
   return {
     type: node.type,
