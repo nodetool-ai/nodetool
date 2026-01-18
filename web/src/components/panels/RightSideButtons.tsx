@@ -66,6 +66,8 @@ const RightSideButtons: React.FC = () => {
             handleOpenHelp();
           }}
           tabIndex={-1}
+          data-testid="help-button"
+          aria-label="Help"
         >
           <QuestionMarkIcon />
         </Button>
