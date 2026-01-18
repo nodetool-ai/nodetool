@@ -2,13 +2,18 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo } from "react";
-import { Box } from "@mui/material";
+import React, { memo, useMemo, useRef, useEffect } from "react";
+import { Box, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
-import { FixedSizeList } from "react-window";
+import { VariableSizeList } from "react-window";
 import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
+import { groupByDate } from "../../utils/groupByDate";
+
+type ListItem = 
+  | { type: "header"; label: string }
+  | { type: "workflow"; workflow: Workflow; index: number };
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -135,6 +140,17 @@ const listStyles = (theme: Theme) =>
           fontSize: "1.5em"
         }
       }
+    },
+    ".date-header": {
+      padding: "8px 12px 4px",
+      color: theme.vars.palette.grey[300],
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.background.paper
     }
   });
 
@@ -156,8 +172,45 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   );
   const showGraphPreview = useShowGraphPreview();
 
-  const ITEM_HEIGHT = showGraphPreview ? 150 : 50;
+  const WORKFLOW_HEIGHT = showGraphPreview ? 150 : 50;
+  const HEADER_HEIGHT = 32;
   const CONTAINER_HEIGHT = window.innerHeight - 210;
+
+  // Group workflows by date and create a flat list with headers
+  const flatList = useMemo(() => {
+    const items: ListItem[] = [];
+    let currentGroup = "";
+    let workflowIndex = 0;
+
+    // Sort workflows by updated_at descending (most recent first)
+    const sortedWorkflows = [...workflows].sort((a, b) => 
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+
+    for (const workflow of sortedWorkflows) {
+      const group = groupByDate(workflow.updated_at);
+      if (group !== currentGroup) {
+        currentGroup = group;
+        items.push({ type: "header", label: group });
+      }
+      items.push({ type: "workflow", workflow, index: workflowIndex });
+      workflowIndex++;
+    }
+
+    return items;
+  }, [workflows]);
+
+  const listRef = useRef<VariableSizeList>(null);
+
+  // Reset list cache when flatList changes
+  useEffect(() => {
+    listRef.current?.resetAfterIndex(0);
+  }, [flatList]);
+
+  const getItemSize = (index: number) => {
+    const item = flatList[index];
+    return item.type === "header" ? HEADER_HEIGHT : WORKFLOW_HEIGHT;
+  };
 
   const Row = ({
     index,
@@ -166,7 +219,17 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     index: number;
     style: React.CSSProperties;
   }) => {
-    const workflow = workflows[index];
+    const item = flatList[index];
+
+    if (item.type === "header") {
+      return (
+        <div style={style}>
+          <Typography className="date-header">{item.label}</Typography>
+        </div>
+      );
+    }
+
+    const { workflow, index: workflowIndex } = item;
     return (
       <div style={style}>
         <WorkflowListItem
@@ -181,7 +244,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           onDelete={onDelete}
           onEdit={onEdit}
           onOpenAsApp={onOpenAsApp}
-          isAlternate={index % 2 === 1}
+          isAlternate={workflowIndex % 2 === 1}
         />
       </div>
     );
@@ -189,17 +252,18 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
 
   return (
     <Box className="container list" css={listStyles(theme)}>
-      <FixedSizeList
+      <VariableSizeList
+        ref={listRef}
         height={CONTAINER_HEIGHT}
         width="100%"
-        itemCount={workflows.length}
-        itemSize={ITEM_HEIGHT}
+        itemCount={flatList.length}
+        itemSize={getItemSize}
         onScroll={({ scrollOffset }) =>
           onScroll?.({ currentTarget: { scrollTop: scrollOffset } } as any)
         }
       >
         {Row}
-      </FixedSizeList>
+      </VariableSizeList>
     </Box>
   );
 };
