@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { useValueCalculation, useDragHandling } from "../useNumberInput";
 import { InputProps, NumberInputState } from "../../components/inputs/NumberInput";
 
