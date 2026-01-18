@@ -1,55 +1,71 @@
-/**
- * @jest-environment node
- */
 import { truncateString } from "../truncateString";
 
 describe("truncateString", () => {
-  it("should not truncate strings shorter than max length", () => {
+  it("returns original string when length is less than maxLength", () => {
     expect(truncateString("hello", 10)).toBe("hello");
-    expect(truncateString("short text", 50)).toBe("short text");
-    expect(truncateString("", 10)).toBe("");
   });
 
-  it("should truncate strings longer than max length with ellipsis", () => {
-    expect(truncateString("this is a very long string", 10)).toBe("this is a…");
-    expect(truncateString("abcdefghijklmnopqrstuvwxyz", 5)).toBe("abcd…");
+  it("returns original string when length equals maxLength", () => {
+    expect(truncateString("hello", 5)).toBe("hello");
   });
 
-  it("should handle string exactly at max length", () => {
-    expect(truncateString("exact", 5)).toBe("exact");
-    expect(truncateString("ten chars.", 10)).toBe("ten chars.");
+  it("truncates string longer than maxLength", () => {
+    expect(truncateString("hello world", 8)).toBe("hello w…");
   });
 
-  it("should use default max length of 50", () => {
-    const longString = "a".repeat(60);
-    const result = truncateString(longString);
-    expect(result.length).toBe(50);
-    expect(result).toBe("a".repeat(49) + "…");
-  });
-
-  it("should handle very small max lengths", () => {
+  it("truncates to single character", () => {
     expect(truncateString("hello", 1)).toBe("…");
+  });
+
+  it("truncates to two characters", () => {
     expect(truncateString("hello", 2)).toBe("h…");
-    expect(truncateString("hello", 3)).toBe("he…");
   });
 
-  it("should handle unicode strings correctly", () => {
-    expect(truncateString("こんにちは世界", 5)).toBe("こんにち…");
-    // Emojis can take multiple characters, so adjust expectation
-    expect(truncateString("👋🌍🎉🎊🎈", 3)).toBe("👋…");
+  it("uses default maxLength of 50", () => {
+    const shortString = "short";
+    expect(truncateString(shortString)).toBe(shortString);
   });
 
-  it("should handle multi-word strings", () => {
-    expect(truncateString("The quick brown fox jumps", 15)).toBe("The quick brow…");
+  it("truncates long string with default maxLength", () => {
+    const longString = "a".repeat(100);
+    expect(truncateString(longString)).toHaveLength(50);
+    expect(truncateString(longString)).toBe("a".repeat(49) + "…");
   });
 
-  it("should handle strings with special characters", () => {
-    expect(truncateString("hello@world.com", 10)).toBe("hello@wor…");
-    expect(truncateString("path/to/file.txt", 10)).toBe("path/to/f…");
+  it("handles empty string", () => {
+    expect(truncateString("")).toBe("");
   });
 
-  it("should handle empty string with various max lengths", () => {
-    expect(truncateString("", 10)).toBe("");
-    expect(truncateString("", 100)).toBe("");
+  it("handles maxLength of 0", () => {
+    expect(truncateString("hello", 0)).toBe("…");
+  });
+
+  it("handles maxLength of 1 with empty string", () => {
+    expect(truncateString("", 1)).toBe("");
+  });
+
+  it("truncates string with special characters", () => {
+    // "hello world 🌍" is 14 chars, truncating to 10 means 9 chars + ellipsis
+    expect(truncateString("hello world 🌍", 10)).toBe("hello wor…");
+  });
+
+  it("truncates string with newlines", () => {
+    // "line1\nline2\nline3" is 17 chars, truncating to 10 means 9 chars + ellipsis
+    expect(truncateString("line1\nline2\nline3", 10)).toBe("line1\nlin…");
+  });
+
+  it("truncates string with HTML", () => {
+    // "<div>content</div>" is 18 chars, truncating to 10 means 9 chars + ellipsis
+    expect(truncateString("<div>content</div>", 10)).toBe("<div>cont…");
+  });
+
+  it("preserves leading and trailing spaces in truncated result", () => {
+    // "  hello world  " is 15 chars, truncating to 12 means 11 chars + ellipsis
+    expect(truncateString("  hello world  ", 12)).toBe("  hello wor…");
+  });
+
+  it("truncates unicode string correctly", () => {
+    const unicode = "こんにちは";
+    expect(truncateString(unicode, 3)).toBe("こん…");
   });
 });

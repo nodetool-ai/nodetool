@@ -1,265 +1,260 @@
-import { act } from "@testing-library/react";
 import { useAudioQueue } from "../AudioQueueStore";
 
 describe("AudioQueueStore", () => {
   beforeEach(() => {
-    // Reset store to initial state
-    const store = useAudioQueue.getState();
-    store.stopAll();
+    useAudioQueue.setState({ currentPlayingId: null, currentPlayingItem: null, queue: [] });
   });
 
-  describe("initial state", () => {
-    it("has no currently playing item", () => {
-      const { currentPlayingId } = useAudioQueue.getState();
-      expect(currentPlayingId).toBeNull();
-    });
-
-    it("has empty queue", () => {
-      const { queue } = useAudioQueue.getState();
-      expect(queue).toEqual([]);
-    });
+  it("initializes with null currentPlayingId and empty queue", () => {
+    expect(useAudioQueue.getState().currentPlayingId).toBeNull();
+    expect(useAudioQueue.getState().queue).toEqual([]);
   });
 
-  describe("enqueue", () => {
-    it("starts playing immediately when queue is empty", () => {
-      const onPlay = jest.fn();
-      const onStop = jest.fn();
-      const item = { id: "audio1", onPlay, onStop };
+  it("enqueues item and plays immediately when nothing is playing", () => {
+    const onPlay = jest.fn();
+    const onStop = jest.fn();
 
-      act(() => {
-        useAudioQueue.getState().enqueue(item);
-      });
-
-      expect(onPlay).toHaveBeenCalledTimes(1);
-      expect(useAudioQueue.getState().currentPlayingId).toBe("audio1");
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay,
+      onStop
     });
 
-    it("adds to queue when something is already playing", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
-
-      const onPlay2 = jest.fn();
-      const onStop2 = jest.fn();
-      const item2 = { id: "audio2", onPlay: onPlay2, onStop: onStop2 };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().enqueue(item2);
-      });
-
-      expect(onPlay1).toHaveBeenCalledTimes(1);
-      expect(onPlay2).not.toHaveBeenCalled();
-      expect(useAudioQueue.getState().currentPlayingId).toBe("audio1");
-      expect(useAudioQueue.getState().queue).toHaveLength(1);
-      expect(useAudioQueue.getState().queue[0].id).toBe("audio2");
-    });
-
-    it("removes duplicate from queue before adding", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
-
-      const onPlay2 = jest.fn();
-      const onStop2 = jest.fn();
-      const item2 = { id: "audio2", onPlay: onPlay2, onStop: onStop2 };
-
-      const onPlay2Updated = jest.fn();
-      const onStop2Updated = jest.fn();
-      const item2Updated = { id: "audio2", onPlay: onPlay2Updated, onStop: onStop2Updated };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().enqueue(item2);
-        useAudioQueue.getState().enqueue(item2Updated);
-      });
-
-      // Should only have one item in queue with id "audio2"
-      const queueItems = useAudioQueue.getState().queue;
-      expect(queueItems).toHaveLength(1);
-      expect(queueItems[0].id).toBe("audio2");
-    });
+    expect(useAudioQueue.getState().currentPlayingId).toBe("audio-1");
+    expect(useAudioQueue.getState().queue).toEqual([]);
+    expect(onPlay).toHaveBeenCalled();
   });
 
-  describe("dequeue", () => {
-    it("stops currently playing item and plays next", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
+  it("enqueues item to queue when something is playing", () => {
+    const onPlay1 = jest.fn();
+    const onStop1 = jest.fn();
+    const onPlay2 = jest.fn();
+    const onStop2 = jest.fn();
 
-      const onPlay2 = jest.fn();
-      const onStop2 = jest.fn();
-      const item2 = { id: "audio2", onPlay: onPlay2, onStop: onStop2 };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().enqueue(item2);
-        useAudioQueue.getState().dequeue("audio1");
-      });
-
-      expect(onPlay2).toHaveBeenCalledTimes(1);
-      expect(useAudioQueue.getState().currentPlayingId).toBe("audio2");
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay: onPlay1,
+      onStop: onStop1
     });
 
-    it("removes item from queue without affecting current playback", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
-
-      const onPlay2 = jest.fn();
-      const onStop2 = jest.fn();
-      const item2 = { id: "audio2", onPlay: onPlay2, onStop: onStop2 };
-
-      const onPlay3 = jest.fn();
-      const onStop3 = jest.fn();
-      const item3 = { id: "audio3", onPlay: onPlay3, onStop: onStop3 };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().enqueue(item2);
-        useAudioQueue.getState().enqueue(item3);
-        useAudioQueue.getState().dequeue("audio2");
-      });
-
-      expect(useAudioQueue.getState().currentPlayingId).toBe("audio1");
-      expect(useAudioQueue.getState().queue).toHaveLength(1);
-      expect(useAudioQueue.getState().queue[0].id).toBe("audio3");
+    useAudioQueue.getState().enqueue({
+      id: "audio-2",
+      onPlay: onPlay2,
+      onStop: onStop2
     });
+
+    expect(useAudioQueue.getState().currentPlayingId).toBe("audio-1");
+    expect(useAudioQueue.getState().queue).toHaveLength(1);
+    expect(useAudioQueue.getState().queue[0].id).toBe("audio-2");
+    expect(onPlay2).not.toHaveBeenCalled();
   });
 
-  describe("finishCurrent", () => {
-    it("plays next item in queue", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
+  it("removes duplicate when enqueuing same ID", () => {
+    const onPlay = jest.fn();
+    const onStop = jest.fn();
 
-      const onPlay2 = jest.fn();
-      const onStop2 = jest.fn();
-      const item2 = { id: "audio2", onPlay: onPlay2, onStop: onStop2 };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().enqueue(item2);
-        useAudioQueue.getState().finishCurrent();
-      });
-
-      expect(onPlay2).toHaveBeenCalledTimes(1);
-      expect(useAudioQueue.getState().currentPlayingId).toBe("audio2");
-      expect(useAudioQueue.getState().queue).toHaveLength(0);
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay,
+      onStop
     });
 
-    it("clears current when queue is empty", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().finishCurrent();
-      });
-
-      expect(useAudioQueue.getState().currentPlayingId).toBeNull();
-      expect(useAudioQueue.getState().queue).toHaveLength(0);
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay,
+      onStop
     });
+
+    // When same ID is enqueued while playing, it gets added to queue
+    // The duplicate check only removes from queue, not from current playing
+    expect(useAudioQueue.getState().queue).toHaveLength(1);
+    expect(useAudioQueue.getState().queue[0].id).toBe("audio-1");
   });
 
-  describe("stopAll", () => {
-    it("stops current playback and clears queue", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
+  it("dequeues item that is currently playing", () => {
+    const onPlay1 = jest.fn();
+    const onStop1 = jest.fn();
+    const onPlay2 = jest.fn();
+    const onStop2 = jest.fn();
 
-      const onPlay2 = jest.fn();
-      const onStop2 = jest.fn();
-      const item2 = { id: "audio2", onPlay: onPlay2, onStop: onStop2 };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().enqueue(item2);
-        useAudioQueue.getState().stopAll();
-      });
-
-      expect(useAudioQueue.getState().currentPlayingId).toBeNull();
-      expect(useAudioQueue.getState().queue).toHaveLength(0);
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay: onPlay1,
+      onStop: onStop1
     });
 
-    it("handles stopAll when nothing is playing", () => {
-      act(() => {
-        useAudioQueue.getState().stopAll();
-      });
-
-      expect(useAudioQueue.getState().currentPlayingId).toBeNull();
-      expect(useAudioQueue.getState().queue).toHaveLength(0);
+    useAudioQueue.getState().enqueue({
+      id: "audio-2",
+      onPlay: onPlay2,
+      onStop: onStop2
     });
+
+    useAudioQueue.getState().dequeue("audio-1");
+
+    expect(onStop1).toHaveBeenCalled();
+    expect(onPlay2).toHaveBeenCalled();
+    expect(useAudioQueue.getState().currentPlayingId).toBe("audio-2");
+    expect(useAudioQueue.getState().queue).toHaveLength(0);
   });
 
-  describe("isPlaying", () => {
-    it("returns true when item is currently playing", () => {
-      const onPlay = jest.fn();
-      const onStop = jest.fn();
-      const item = { id: "audio1", onPlay, onStop };
+  it("dequeues item from queue only", () => {
+    const onPlay1 = jest.fn();
+    const onStop1 = jest.fn();
+    const onPlay2 = jest.fn();
+    const onStop2 = jest.fn();
 
-      act(() => {
-        useAudioQueue.getState().enqueue(item);
-      });
-
-      expect(useAudioQueue.getState().isPlaying("audio1")).toBe(true);
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay: onPlay1,
+      onStop: onStop1
     });
 
-    it("returns false when item is not playing", () => {
-      expect(useAudioQueue.getState().isPlaying("audio1")).toBe(false);
+    useAudioQueue.getState().enqueue({
+      id: "audio-2",
+      onPlay: onPlay2,
+      onStop: onStop2
     });
 
-    it("returns false when item is in queue but not playing", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
+    useAudioQueue.getState().dequeue("audio-2");
 
-      const onPlay2 = jest.fn();
-      const onStop2 = jest.fn();
-      const item2 = { id: "audio2", onPlay: onPlay2, onStop: onStop2 };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().enqueue(item2);
-      });
-
-      expect(useAudioQueue.getState().isPlaying("audio2")).toBe(false);
-    });
+    expect(onStop1).not.toHaveBeenCalled();
+    expect(onPlay2).not.toHaveBeenCalled();
+    expect(useAudioQueue.getState().queue).toHaveLength(0);
   });
 
-  describe("isQueued", () => {
-    it("returns true when item is in queue", () => {
-      const onPlay1 = jest.fn();
-      const onStop1 = jest.fn();
-      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
+  it("finishes current and plays next from queue", () => {
+    const onPlay1 = jest.fn();
+    const onStop1 = jest.fn();
+    const onPlay2 = jest.fn();
+    const onStop2 = jest.fn();
 
-      const onPlay2 = jest.fn();
-      const onStop2 = jest.fn();
-      const item2 = { id: "audio2", onPlay: onPlay2, onStop: onStop2 };
-
-      act(() => {
-        useAudioQueue.getState().enqueue(item1);
-        useAudioQueue.getState().enqueue(item2);
-      });
-
-      expect(useAudioQueue.getState().isQueued("audio2")).toBe(true);
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay: onPlay1,
+      onStop: onStop1
     });
 
-    it("returns false when item is not in queue", () => {
-      expect(useAudioQueue.getState().isQueued("audio1")).toBe(false);
+    useAudioQueue.getState().enqueue({
+      id: "audio-2",
+      onPlay: onPlay2,
+      onStop: onStop2
     });
 
-    it("returns false when item is currently playing", () => {
-      const onPlay = jest.fn();
-      const onStop = jest.fn();
-      const item = { id: "audio1", onPlay, onStop };
+    useAudioQueue.getState().finishCurrent();
 
-      act(() => {
-        useAudioQueue.getState().enqueue(item);
-      });
+    // finishCurrent doesn't call onStop - it just plays the next item
+    // onStop is only called when dequeue is used to explicitly stop an item
+    expect(onStop1).not.toHaveBeenCalled();
+    expect(onPlay2).toHaveBeenCalled();
+    expect(useAudioQueue.getState().currentPlayingId).toBe("audio-2");
+    expect(useAudioQueue.getState().queue).toHaveLength(0);
+  });
 
-      expect(useAudioQueue.getState().isQueued("audio1")).toBe(false);
+  it("sets currentPlayingId to null when queue is empty", () => {
+    const onPlay = jest.fn();
+    const onStop = jest.fn();
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay,
+      onStop
     });
+
+    useAudioQueue.getState().finishCurrent();
+
+    expect(useAudioQueue.getState().currentPlayingId).toBeNull();
+    expect(useAudioQueue.getState().queue).toHaveLength(0);
+  });
+
+  it("stops all playback and clears queue", () => {
+    const onPlay1 = jest.fn();
+    const onStop1 = jest.fn();
+    const onPlay2 = jest.fn();
+    const onStop2 = jest.fn();
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay: onPlay1,
+      onStop: onStop1
+    });
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-2",
+      onPlay: onPlay2,
+      onStop: onStop2
+    });
+
+    useAudioQueue.getState().stopAll();
+
+    expect(onStop1).toHaveBeenCalled();
+    expect(useAudioQueue.getState().currentPlayingId).toBeNull();
+    expect(useAudioQueue.getState().queue).toEqual([]);
+  });
+
+  it("checks if ID is currently playing", () => {
+    const onPlay = jest.fn();
+    const onStop = jest.fn();
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay,
+      onStop
+    });
+
+    expect(useAudioQueue.getState().isPlaying("audio-1")).toBe(true);
+    expect(useAudioQueue.getState().isPlaying("audio-2")).toBe(false);
+  });
+
+  it("checks if ID is in queue", () => {
+    const onPlay1 = jest.fn();
+    const onStop1 = jest.fn();
+    const onPlay2 = jest.fn();
+    const onStop2 = jest.fn();
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay: onPlay1,
+      onStop: onStop1
+    });
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-2",
+      onPlay: onPlay2,
+      onStop: onStop2
+    });
+
+    expect(useAudioQueue.getState().isQueued("audio-1")).toBe(false);
+    expect(useAudioQueue.getState().isQueued("audio-2")).toBe(true);
+  });
+
+  it("handles multiple items in queue", () => {
+    const onPlay1 = jest.fn();
+    const onStop1 = jest.fn();
+    const onPlay2 = jest.fn();
+    const onStop2 = jest.fn();
+    const onPlay3 = jest.fn();
+    const onStop3 = jest.fn();
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-1",
+      onPlay: onPlay1,
+      onStop: onStop1
+    });
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-2",
+      onPlay: onPlay2,
+      onStop: onStop2
+    });
+
+    useAudioQueue.getState().enqueue({
+      id: "audio-3",
+      onPlay: onPlay3,
+      onStop: onStop3
+    });
+
+    expect(useAudioQueue.getState().queue).toHaveLength(2);
+    expect(useAudioQueue.getState().queue[0].id).toBe("audio-2");
+    expect(useAudioQueue.getState().queue[1].id).toBe("audio-3");
   });
 });

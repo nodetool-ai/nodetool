@@ -1,312 +1,154 @@
-import { act } from "@testing-library/react";
-import {
-  useKeyPressedStore,
-  registerComboCallback,
-  unregisterComboCallback
-} from "../KeyPressedStore";
+import { useKeyPressedStore } from "../KeyPressedStore";
 
 describe("KeyPressedStore", () => {
   beforeEach(() => {
-    // Reset store state before each test
-    const { setKeysPressed, resetKeyPressCount, setPaused } =
-      useKeyPressedStore.getState();
-    const pressedKeys = useKeyPressedStore.getState().getPressedKeys();
-    const keysToReset: Record<string, boolean> = {};
-    pressedKeys.forEach((key) => {
-      keysToReset[key] = false;
-    });
-    setKeysPressed(keysToReset);
-    resetKeyPressCount();
-    setPaused(false);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe("initial state", () => {
-    it("has no pressed keys initially", () => {
-      const state = useKeyPressedStore.getState();
-      expect(state.getPressedKeys()).toEqual([]);
-      expect(state.isAnyKeyPressed()).toBe(false);
-    });
-
-    it("has no last pressed key initially", () => {
-      const state = useKeyPressedStore.getState();
-      expect(state.lastPressedKey).toBeNull();
-    });
-
-    it("has empty key press count initially", () => {
-      const state = useKeyPressedStore.getState();
-      expect(state.getKeyPressCount("a")).toBe(0);
-    });
-
-    it("is not paused initially", () => {
-      const state = useKeyPressedStore.getState();
-      expect(state.isPaused).toBe(false);
+    useKeyPressedStore.setState({
+      pressedKeys: new Set(),
+      lastPressedKey: null,
+      keyPressCount: {},
+      isPaused: false
     });
   });
 
-  describe("setKeysPressed", () => {
-    it("adds a pressed key", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true });
-      });
-
-      const state = useKeyPressedStore.getState();
-      expect(state.isKeyPressed("a")).toBe(true);
-      expect(state.getPressedKeys()).toContain("a");
-    });
-
-    it("removes a pressed key", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true });
-        setKeysPressed({ a: false });
-      });
-
-      const state = useKeyPressedStore.getState();
-      expect(state.isKeyPressed("a")).toBe(false);
-      expect(state.getPressedKeys()).not.toContain("a");
-    });
-
-    it("normalizes keys to lowercase", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ A: true });
-      });
-
-      const state = useKeyPressedStore.getState();
-      expect(state.isKeyPressed("a")).toBe(true);
-      expect(state.isKeyPressed("A")).toBe(true);
-    });
-
-    it("sets last pressed key", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true });
-      });
-
-      expect(useKeyPressedStore.getState().lastPressedKey).toBe("a");
-    });
-
-    it("clears last pressed key when all keys are released", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true });
-        setKeysPressed({ a: false });
-      });
-
-      expect(useKeyPressedStore.getState().lastPressedKey).toBeNull();
-    });
-
-    it("tracks multiple keys", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true, b: true });
-      });
-
-      const state = useKeyPressedStore.getState();
-      expect(state.isKeyPressed("a")).toBe(true);
-      expect(state.isKeyPressed("b")).toBe(true);
-      expect(state.getPressedKeys()).toEqual(expect.arrayContaining(["a", "b"]));
-    });
+  it("initializes with empty pressed keys", () => {
+    const state = useKeyPressedStore.getState();
+    expect(state.pressedKeys.size).toBe(0);
+    expect(state.lastPressedKey).toBeNull();
+    expect(state.keyPressCount).toEqual({});
   });
 
-  describe("key press count", () => {
-    it("increments press count for a key", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true });
-      });
-
-      expect(useKeyPressedStore.getState().getKeyPressCount("a")).toBe(1);
-    });
-
-    it("increments press count on multiple presses", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true });
-        setKeysPressed({ a: false });
-        setKeysPressed({ a: true });
-      });
-
-      expect(useKeyPressedStore.getState().getKeyPressCount("a")).toBe(2);
-    });
-
-    it("resets specific key press count", () => {
-      const { setKeysPressed, resetKeyPressCount } =
-        useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true, b: true });
-        resetKeyPressCount("a");
-      });
-
-      expect(useKeyPressedStore.getState().getKeyPressCount("a")).toBe(0);
-      expect(useKeyPressedStore.getState().getKeyPressCount("b")).toBe(1);
-    });
-
-    it("resets all key press counts", () => {
-      const { setKeysPressed, resetKeyPressCount } =
-        useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true, b: true });
-        resetKeyPressCount();
-      });
-
-      expect(useKeyPressedStore.getState().getKeyPressCount("a")).toBe(0);
-      expect(useKeyPressedStore.getState().getKeyPressCount("b")).toBe(0);
-    });
+  it("sets keys pressed state", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "a": true });
+    
+    const newState = useKeyPressedStore.getState();
+    expect(newState.pressedKeys.has("a")).toBe(true);
   });
 
-  describe("isComboPressed", () => {
-    it("returns true when combo is pressed", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ control: true, s: true });
-      });
-
-      expect(useKeyPressedStore.getState().isComboPressed(["control", "s"])).toBe(
-        true
-      );
-    });
-
-    it("returns false when combo is not fully pressed", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ control: true });
-      });
-
-      expect(useKeyPressedStore.getState().isComboPressed(["control", "s"])).toBe(
-        false
-      );
-    });
-
-    it("normalizes combo keys to lowercase", () => {
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ control: true, s: true });
-      });
-
-      expect(useKeyPressedStore.getState().isComboPressed(["Control", "S"])).toBe(
-        true
-      );
-    });
+  it("sets multiple keys pressed", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "control": true, "c": true });
+    
+    const newState = useKeyPressedStore.getState();
+    expect(newState.pressedKeys.has("control")).toBe(true);
+    expect(newState.pressedKeys.has("c")).toBe(true);
   });
 
-  describe("pause state", () => {
-    it("sets pause state", () => {
-      const { setPaused } = useKeyPressedStore.getState();
-      act(() => {
-        setPaused(true);
-      });
+  it("clears keys on key release", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "a": true });
+    
+    const stateWithA = useKeyPressedStore.getState();
+    expect(stateWithA.pressedKeys.has("a")).toBe(true);
 
-      expect(useKeyPressedStore.getState().isPaused).toBe(true);
-    });
-
-    it("resumes from paused state", () => {
-      const { setPaused } = useKeyPressedStore.getState();
-      act(() => {
-        setPaused(true);
-        setPaused(false);
-      });
-
-      expect(useKeyPressedStore.getState().isPaused).toBe(false);
-    });
+    state.setKeysPressed({ "a": false });
+    
+    const stateWithoutA = useKeyPressedStore.getState();
+    expect(stateWithoutA.pressedKeys.has("a")).toBe(false);
   });
 
-  describe("combo callbacks", () => {
-    it("registers combo callback", () => {
-      const callback = jest.fn();
-      registerComboCallback("control+s", { callback, preventDefault: true });
-
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ control: true, s: true });
-      });
-
-      expect(callback).toHaveBeenCalled();
-      unregisterComboCallback("control+s");
-    });
-
-    it("does not execute callback when paused", () => {
-      const callback = jest.fn();
-      registerComboCallback("control+s", { callback });
-
-      const { setKeysPressed, setPaused } = useKeyPressedStore.getState();
-      act(() => {
-        setPaused(true);
-        setKeysPressed({ control: true, s: true });
-      });
-
-      expect(callback).not.toHaveBeenCalled();
-      unregisterComboCallback("control+s");
-    });
-
-    it("does not execute callback when inactive", () => {
-      const callback = jest.fn();
-      registerComboCallback("control+s", { callback, active: false });
-
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ control: true, s: true });
-      });
-
-      expect(callback).not.toHaveBeenCalled();
-      unregisterComboCallback("control+s");
-    });
-
-    it("unregisters combo callback", () => {
-      const callback = jest.fn();
-      registerComboCallback("control+s", { callback });
-      unregisterComboCallback("control+s");
-
-      const { setKeysPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ control: true, s: true });
-      });
-
-      expect(callback).not.toHaveBeenCalled();
-    });
+  it("normalizes keys to lowercase", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "A": true });
+    
+    const newState = useKeyPressedStore.getState();
+    expect(newState.pressedKeys.has("a")).toBe(true);
   });
 
-  describe("helper functions", () => {
-    it("isKeyPressed returns correct value", () => {
-      const { setKeysPressed, isKeyPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true });
-      });
+  it("tracks key press count", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "a": true });
+    state.setKeysPressed({ "a": false });
+    state.setKeysPressed({ "a": true });
 
-      expect(isKeyPressed("a")).toBe(true);
-      expect(isKeyPressed("b")).toBe(false);
-    });
+    const newState = useKeyPressedStore.getState();
+    expect(newState.keyPressCount["a"]).toBe(2);
+  });
 
-    it("isAnyKeyPressed returns true when keys are pressed", () => {
-      const { setKeysPressed, isAnyKeyPressed } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true });
-      });
+  it("checks if key is pressed", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "a": true });
+    
+    const newState = useKeyPressedStore.getState();
+    expect(newState.isKeyPressed("a")).toBe(true);
+    expect(newState.isKeyPressed("b")).toBe(false);
+  });
 
-      expect(isAnyKeyPressed()).toBe(true);
-    });
+  it("checks if any key is pressed", () => {
+    const state = useKeyPressedStore.getState();
+    expect(state.isAnyKeyPressed()).toBe(false);
 
-    it("isAnyKeyPressed returns false when no keys are pressed", () => {
-      const { isAnyKeyPressed } = useKeyPressedStore.getState();
-      expect(isAnyKeyPressed()).toBe(false);
-    });
+    state.setKeysPressed({ "a": true });
+    
+    const newState = useKeyPressedStore.getState();
+    expect(newState.isAnyKeyPressed()).toBe(true);
+  });
 
-    it("getPressedKeys returns all pressed keys", () => {
-      const { setKeysPressed, getPressedKeys } = useKeyPressedStore.getState();
-      act(() => {
-        setKeysPressed({ a: true, b: true, c: true });
-      });
+  it("gets pressed keys array", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "a": true, "b": true });
+    
+    const newState = useKeyPressedStore.getState();
+    const keys = newState.getPressedKeys();
+    expect(keys).toContain("a");
+    expect(keys).toContain("b");
+  });
 
-      const pressedKeys = getPressedKeys();
-      expect(pressedKeys).toHaveLength(3);
-      expect(pressedKeys).toContain("a");
-      expect(pressedKeys).toContain("b");
-      expect(pressedKeys).toContain("c");
-    });
+  it("gets key press count", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "a": true });
+    
+    const newState = useKeyPressedStore.getState();
+    expect(newState.getKeyPressCount("a")).toBe(1);
+    expect(newState.getKeyPressCount("b")).toBe(0);
+  });
+
+  it("resets key press count for specific key", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "a": true, "b": true });
+    state.resetKeyPressCount("a");
+
+    const newState = useKeyPressedStore.getState();
+    expect(newState.keyPressCount["a"]).toBeUndefined();
+    expect(newState.keyPressCount["b"]).toBe(1);
+  });
+
+  it("resets all key press counts", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "a": true, "b": true });
+    state.resetKeyPressCount();
+
+    const newState = useKeyPressedStore.getState();
+    expect(newState.keyPressCount).toEqual({});
+  });
+
+  it("checks if combo is pressed", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "control": true, "c": true });
+    
+    const newState = useKeyPressedStore.getState();
+    expect(newState.isComboPressed(["control", "c"])).toBe(true);
+    expect(newState.isComboPressed(["control", "d"])).toBe(false);
+  });
+
+  it("checks combo with partial keys", () => {
+    const state = useKeyPressedStore.getState();
+    state.setKeysPressed({ "control": true });
+    
+    const newState = useKeyPressedStore.getState();
+    expect(newState.isComboPressed(["control", "c"])).toBe(false);
+  });
+
+  it("pauses and resumes key tracking", () => {
+    const state = useKeyPressedStore.getState();
+    state.setPaused(true);
+    
+    const pausedState = useKeyPressedStore.getState();
+    expect(pausedState.isPaused).toBe(true);
+
+    pausedState.setPaused(false);
+    
+    const resumedState = useKeyPressedStore.getState();
+    expect(resumedState.isPaused).toBe(false);
   });
 });

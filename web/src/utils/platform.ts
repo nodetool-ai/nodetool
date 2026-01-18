@@ -1,2 +1,2 @@
 export const isMac = (): boolean =>
-  typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
+  typeof navigator !== "undefined" && navigator.userAgent.toLowerCase().includes("mac");
