@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 //mui
 import { Divider, Menu } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -275,4 +275,4 @@ const InputContextMenu: React.FC = () => {
   );
 };
 
-export default InputContextMenu;
+export default memo(InputContextMenu);
