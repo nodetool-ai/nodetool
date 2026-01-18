@@ -60,6 +60,20 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     closeContextMenu();
   }, [closeContextMenu]);
 
+  const handlePasteAndClose = useCallback(() => {
+    handlePaste();
+    closeAllMenus();
+  }, [handlePaste, closeAllMenus]);
+
+  const handleFitViewAndClose = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      fitView({ padding: 0.5 });
+      closeAllMenus();
+    },
+    [fitView, closeAllMenus]
+  );
+
 
   const addComment = (event: React.MouseEvent) => {
     // Fake metadata for comments
@@ -265,10 +279,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         }}
       >
         <ContextMenuItem
-          onClick={() => {
-            handlePaste();
-            closeAllMenus();
-          }}
+          onClick={handlePasteAndClose}
           label="Paste"
           addButtonClassName={`action ${!isClipboardValid ? "disabled" : ""}`}
           IconComponent={<SouthEastIcon />}
@@ -288,13 +299,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           }
         />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              fitView({ padding: 0.5 });
-            }
-            closeAllMenus();
-          }}
+          onClick={handleFitViewAndClose}
           label="Fit Screen"
           IconComponent={<FitScreenIcon />}
           tooltip={getShortcutTooltip("fit-view")}

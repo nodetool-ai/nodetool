@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Inline Arrow Functions (2026-01-18)
+
+**What**: Added useCallback hooks to memoize inline arrow functions in dashboard and context menu components. Optimized WorkflowsList (100+ items), ProviderSetupPanel (5 providers), PaneContextMenu, and BackToDashboardButton.
+
+**Files**: BackToDashboardButton.tsx, WorkflowsList.tsx, ProviderSetupPanel.tsx, PaneContextMenu.tsx
+
+**Impact**: Prevents new function creation on each render for list items and menu items, reducing memory allocations and improving performance for large workflow lists.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
