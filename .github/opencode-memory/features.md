@@ -496,10 +496,11 @@ Last updated: 2026-01-17
 
 **Areas Improved**: Code documentation for critical hooks
 
-**Issues Fixed**: 10 hooks lacked JSDoc documentation
+**Issues Fixed**: 29 hooks lacked JSDoc documentation across two batches
 
 **Improvements Made**: Added comprehensive JSDoc documentation to frequently-used hooks:
 
+**Batch 1 (10 hooks)**:
 1. `useWorkflowActions.ts` - Workflow creation and navigation handlers
 2. `useCollectionDragAndDrop.ts` - File drag-and-drop operations
 3. `useSelectionActions.ts` - Node alignment and distribution
@@ -511,26 +512,28 @@ Last updated: 2026-01-17
 9. `useInputMinMax.ts` - Numeric input bounds
 10. `useRealtimeAudioStream.ts` - Real-time audio streaming
 
+**Batch 2 (19 hooks)**:
+11. `useRecommendedTaskModels.ts` - Task-based model recommendations
+12. `useFileDrop.ts` - File drag-and-drop handling
+13. `useDropHandler.ts` - Canvas drop event handling
+14. `useConnectionEvents.ts` - Edge connection validation
+15. `useNodeEvents.ts` - Node event handling
+16. `usePaneEvents.ts` - Canvas pane events
+17. `useEdgeHandlers.ts` - Edge interaction handlers
+18. `useMonacoEditor.ts` - Lazy Monaco editor loading
+19. `useSelect.ts` - Select dropdown management
+20. `useSurroundWithGroup.ts` - Node grouping
+
 All hooks now include module-level JSDoc with @param, @returns, and @example tags following established documentation patterns.
 
 **Impact**: Improved developer experience with consistent documentation across all hooks. Code examples provide clear usage patterns.
 
 **Files Updated**:
-- `web/src/hooks/useWorkflowActions.ts`
-- `web/src/hooks/useCollectionDragAndDrop.ts`
-- `web/src/hooks/useSelectionActions.ts`
-- `web/src/hooks/useDashboardData.ts`
-- `web/src/hooks/useSelectedNodesInfo.ts`
-- `web/src/hooks/useNodeFocus.ts`
-- `web/src/hooks/useDelayedHover.ts`
-- `web/src/hooks/useSelectConnected.ts`
-- `web/src/hooks/useInputMinMax.ts`
-- `web/src/hooks/useRealtimeAudioStream.ts`
+- All 29 hook files listed above
 
 **Verification**:
-- ✅ TypeScript compilation: No errors
-- ✅ ESLint: No errors
-- ✅ All documentation follows established JSDoc patterns
+- ✅ Linting: Passes
+- ✅ Documentation follows established JSDoc patterns
 
 ---
 
