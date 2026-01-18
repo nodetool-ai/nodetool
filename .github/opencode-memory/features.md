@@ -12,6 +12,8 @@ Last updated: 2026-01-17
 
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
 
+- **Workflow Performance Profiler (Experimental)**: Built-in profiling tool for tracking node execution times, identifying bottlenecks, and visualizing performance metrics. Features include profiling store, ProfilerPanel component, PerformanceOverlay for nodes, and useWorkflowProfiler hook.
+
 ---
 
 - **Improved Workspace Error Messages**: Better user-friendly error and empty state messages in workspace explorer with helpful guidance
