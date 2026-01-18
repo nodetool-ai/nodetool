@@ -6,11 +6,73 @@
  */
 
 import { Page, Route } from "@playwright/test";
-import workflows from "./workflows.json";
-import threads from "./threads.json";
-import messages from "./messages.json";
-import models from "./models.json";
-import templates from "./templates.json";
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const loadJson = <T>(filename: string): T => {
+  const content = readFileSync(join(__dirname, filename), "utf-8");
+  return JSON.parse(content) as T;
+};
+
+interface Workflow {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  access: string;
+  thumbnail: string | null;
+  tags: string[];
+  graph: {
+    nodes: unknown[];
+    edges: unknown[];
+  };
+}
+
+interface Thread {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  messages_count: number;
+}
+
+interface Message {
+  id: string;
+  thread_id: string;
+  role: string;
+  content: string;
+  created_at: string;
+}
+
+interface Models {
+  huggingface: unknown[];
+  recommended: unknown[];
+  recommended_language: unknown[];
+  recommended_image: unknown[];
+  providers: unknown[];
+}
+
+interface TemplateWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+}
+
+interface Templates {
+  workflows: TemplateWorkflow[];
+}
+
+const workflows = loadJson<{ workflows: Workflow[] }>("workflows.json");
+const threads = loadJson<{ threads: Thread[] }>("threads.json");
+const messages = loadJson<Record<string, Message[]>>("messages.json");
+const models = loadJson<Models>("models.json");
+const templates = loadJson<Templates>("templates.json");
 
 export { workflows, threads, messages, models, templates };
 
