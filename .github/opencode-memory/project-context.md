@@ -94,13 +94,27 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 **Impact**: Large components (684-925 lines) now only re-render when props change, improving editor performance with complex workflows.
 
-### Workspace Explorer UX Improvements (2026-01-17)
+---
 
-**What**: Improved error and empty state messages in workspace explorer with helpful guidance and retry button.
+### Workflow Performance Profiler Research (2026-01-18)
 
-**Files**: WorkspaceSelect.tsx, WorkspacesManager.tsx, WorkspaceTree.tsx
+**What**: Implemented a built-in performance profiling system for workflow analysis including PerformanceProfilerStore, ProfilerPanel component, PerformanceOverlay indicators, and useWorkflowProfiler hook.
 
-**Impact**: Users now see helpful messages instead of "Failed to load workspaces" and "No files in workspace".
+**Files**: 
+- `web/src/stores/PerformanceProfilerStore.ts` - State management for profiling data
+- `web/src/components/node_editor/ProfilerPanel.tsx` - Visual profiling panel
+- `web/src/components/node/PerformanceOverlay.tsx` - Performance indicators on nodes
+- `web/src/hooks/useWorkflowProfiler.ts` - Integration hook for workflows
+- `web/src/stores/__tests__/PerformanceProfilerStore.test.ts` - Unit tests
+
+**Impact**: Users can now profile workflow execution, identify performance bottlenecks, and visualize node execution times directly in the editor. Extends the existing ExecutionTimeStore with richer analytics and bottleneck detection.
+
+**Evaluation**:
+- Feasibility: ⭐⭐⭐⭐⭐ (Frontend-only, leverages existing timing infrastructure)
+- Impact: ⭐⭐⭐⭐ (Useful for optimizing complex workflows)
+- Complexity: ⭐⭐⭐ (Moderate - integrates with existing execution tracking)
+
+**Recommendation**: Ready for further development - integrate with workflow execution lifecycle for automatic profiling.
 
 ---
 
