@@ -44,6 +44,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import QuickAccessFavoritesBar from "./QuickAccessFavoritesBar";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -164,6 +165,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               />
               <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
+              <QuickAccessFavoritesBar />
               <CommandMenu
                 open={commandMenuOpen}
                 setOpen={setCommandMenuOpen}

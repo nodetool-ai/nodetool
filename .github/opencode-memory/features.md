@@ -48,6 +48,7 @@ Last updated: 2026-01-17
 - **Recent Nodes**: Track recently used nodes for quick access
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
+- **Quick Access Favorites Bar**: Always-visible collapsible toolbar for instant access to favorite nodes (click to add, drag to canvas)
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates

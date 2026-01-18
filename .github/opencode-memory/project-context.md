@@ -54,6 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Quick Access Favorites Bar (2026-01-18)
+
+**What**: Added always-visible collapsible toolbar at bottom of editor for instant access to favorite nodes (click to add, drag to canvas).
+
+**Files**: web/src/components/node_editor/QuickAccessFavoritesBar.tsx, web/src/components/node_editor/NodeEditor.tsx
+
+**Impact**: Users can now add favorite nodes instantly without opening the NodeMenu.
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
