@@ -19,8 +19,8 @@ describe("useDuplicateNodes", () => {
   const mockGenerateNodeIds = jest.fn((count) => Array.from({ length: count }, (_, i) => `new-node-${i}`));
 
   const mockUseNodesReturn = {
-    nodes: [],
-    edges: [],
+    nodes: [] as any[],
+    edges: [] as any[],
     setNodes: mockSetNodes,
     setEdges: mockSetEdges,
     getSelectedNodes: mockGetSelectedNodes,
