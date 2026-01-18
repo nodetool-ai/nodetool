@@ -558,6 +558,9 @@ const PanelLeft: React.FC = () => {
     [handlePanelToggle]
   );
 
+  const handlePanelToggleClick = useCallback(() => {
+    handlePanelToggle(activeView);
+  }, [handlePanelToggle, activeView]);
 
 
   return (
@@ -568,7 +571,7 @@ const PanelLeft: React.FC = () => {
         <VerticalToolbar
           activeView={activeView}
           onViewChange={onViewChange}
-          handlePanelToggle={() => handlePanelToggle(activeView)}
+          handlePanelToggle={handlePanelToggleClick}
         />
 
         {/* Drawer content - appears right of toolbar when visible */}

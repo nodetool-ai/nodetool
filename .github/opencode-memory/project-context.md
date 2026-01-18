@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Performance Audit & Handler Memoization (2026-01-18)
+
+**What**: Comprehensive performance audit confirmed 42+ memoized components, proper cleanup patterns, and virtualized lists. Fixed inline handler in PanelLeft.tsx.
+
+**Files**: web/src/components/panels/PanelLeft.tsx, .github/opencode-memory/insights/performance/audit-2026-01-18.md
+
+**Impact**: Verified codebase follows React best practices. Optimized panel toggle handler to prevent unnecessary re-renders.
+
+---
+
 ### Mobile TypeScript Type Definitions Fix (2026-01-17)
 
 **What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
