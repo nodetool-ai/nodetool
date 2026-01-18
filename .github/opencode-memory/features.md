@@ -71,6 +71,12 @@ Last updated: 2026-01-17
 - **Audio Queue**: Queue and manage audio generation tasks
 - **Node Execution Time**: Display execution duration for completed nodes
 
+### Performance Analytics
+- **Workflow Profiler**: Built-in performance profiling tool with execution timeline, bottleneck identification, and critical path analysis
+- **Performance Timeline**: Gantt-chart style visualization showing node execution order and parallelization opportunities
+- **Performance Summary**: Key metrics including total duration, parallelization efficiency, and bottleneck detection
+- **Execution Export**: Export performance profiles as JSON for further analysis
+
 ### Asset Management
 - **Asset Explorer**: File browser for managing workflow assets
 - **Asset Grid**: Grid view of assets with thumbnails
@@ -290,7 +296,6 @@ Last updated: 2026-01-17
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
