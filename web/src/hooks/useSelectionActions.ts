@@ -27,6 +27,37 @@ const getNodeWidth = (node: { measured?: { width?: number } }) =>
 const getNodeHeight = (node: { measured?: { height?: number } }) =>
   node.measured?.height ?? 0;
 
+/**
+ * Custom hook for performing batch operations on selected nodes in the workflow editor.
+ * 
+ * Provides functions for aligning, distributing, deleting, duplicating, grouping,
+ * and bypassing selected nodes. All operations act on nodes that are currently
+ * selected in the editor.
+ * 
+ * @returns SelectionActionsReturn object containing all batch operation functions
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   alignLeft,
+ *   alignCenter,
+ *   distributeHorizontal,
+ *   deleteSelected,
+ *   duplicateSelected,
+ *   groupSelected,
+ *   bypassSelected
+ * } = useSelectionActions();
+ * 
+ * // Align selected nodes to the left edge
+ * alignLeft();
+ * 
+ * // Distribute selected nodes horizontally with equal spacing
+ * distributeHorizontal();
+ * 
+ * // Delete all selected nodes
+ * deleteSelected();
+ * ```
+ */
 export const useSelectionActions = (): SelectionActionsReturn => {
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
   const deleteNode = useNodes((state) => state.deleteNode);

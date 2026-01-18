@@ -23,6 +23,59 @@ interface UseNodeFocusReturn {
   getFocusedNode: () => Node<NodeData> | undefined;
 }
 
+/**
+ * Custom hook for managing keyboard-based node navigation in the workflow editor.
+ * 
+ * Provides comprehensive keyboard navigation including:
+ * - Sequential navigation (Tab/Shift+Tab for next/previous)
+ * - Directional navigation (Up/Down/Left/Right arrows)
+ * - Focus history tracking for "go back" functionality
+ * - Focus mode toggle to switch between mouse and keyboard interaction
+ * 
+ * When navigation mode is active, users can navigate between nodes using keyboard
+ * without using the mouse. The focused node is highlighted with a visual indicator.
+ * 
+ * @returns UseNodeFocusReturn object containing focus state and navigation functions
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   focusedNodeId,
+ *   isNavigationMode,
+ *   focusHistory,
+ *   enterNavigationMode,
+ *   exitNavigationMode,
+ *   setFocusedNode,
+ *   focusNext,
+ *   focusPrev,
+ *   focusUp,
+ *   focusDown,
+ *   focusLeft,
+ *   focusRight,
+ *   selectFocused,
+ *   goBack,
+ *   getFocusedNode
+ * } = useNodeFocus();
+ * 
+ * // Enter keyboard navigation mode
+ * enterNavigationMode();
+ * 
+ * // Navigate to next node
+ * focusNext();
+ * 
+ * // Navigate left
+ * focusLeft();
+ * 
+ * // Select the focused node
+ * selectFocused();
+ * 
+ * // Go back to previously focused node
+ * goBack();
+ * 
+ * // Exit navigation mode
+ * exitNavigationMode();
+ * ```
+ */
 export const useNodeFocus = (): UseNodeFocusReturn => {
   const nodes = useNodes((state) => state.nodes);
   const setNodes = useNodes((state) => state.setNodes);

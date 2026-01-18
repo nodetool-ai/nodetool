@@ -5,6 +5,29 @@ import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 
+/**
+ * Custom hook for grouping selected nodes within a parent group node.
+ * 
+ * Creates a new group node that encloses all specified nodes, converting them
+ * to child nodes of the group. The group node is automatically sized to fit
+ * all contained nodes with appropriate padding.
+ * 
+ * The hook handles:
+ * - Calculating the bounding box of selected nodes
+ * - Creating a new group node with proper metadata
+ * - Updating parent-child relationships for all nodes
+ * - Pausing and resuming temporal state for undo/redo support
+ * 
+ * @returns Callback function to group selected nodes
+ * 
+ * @example
+ * ```typescript
+ * const surroundWithGroup = useSurroundWithGroup();
+ * 
+ * // Group selected nodes
+ * surroundWithGroup({ selectedNodes });
+ * ```
+ */
 export const useSurroundWithGroup = () => {
   const theme = useTheme();
   const { createNode, setNodes } = useNodes((state) => ({
