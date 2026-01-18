@@ -72,19 +72,33 @@ const resizer = (
   </div>
 );
 
+const TOOLBAR_SHOW_DELAY = 150; // ms delay before showing toolbar after selection
+
 const Toolbar = memo(function Toolbar({
   id,
-  selected
+  selected,
+  dragging
 }: {
   id: string;
   selected: boolean;
+  dragging?: boolean;
 }) {
   const { activeSelect } = useSelect();
-  if (activeSelect || !selected) {
-    return null;
-  }
+  const [delayedSelected, setDelayedSelected] = useState(false);
+
+  // Delay showing toolbar to avoid flash when clicking to drag
+  useEffect(() => {
+    if (selected && !dragging) {
+      const timer = setTimeout(() => setDelayedSelected(true), TOOLBAR_SHOW_DELAY);
+      return () => clearTimeout(timer);
+    } else {
+      setDelayedSelected(false);
+    }
+  }, [selected, dragging]);
+
+  const isVisible = delayedSelected && !activeSelect && !dragging;
   return (
-    <NodeToolbar position={Position.Top} offset={0}>
+    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
       <NodeToolButtons nodeId={id} />
     </NodeToolbar>
   );
@@ -241,7 +255,7 @@ const getHeaderColors = (
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
-  const { id, type, data, selected, parentId } = props;
+  const { id, type, data, selected, parentId, dragging } = props;
   const { workflow_id, title } = data;
   const { focusedNodeId } = useNodeFocus();
   const isFocused = focusedNodeId === id;
@@ -439,7 +453,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : {})
       }}
     >
-      {selected && <Toolbar id={id} selected={selected} />}
+      {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />}
       <NodeHeader
         id={id}
@@ -556,6 +570,7 @@ export default memo(BaseNode, (prevProps, nextProps) => {
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
+    prevProps.dragging === nextProps.dragging &&
     prevFocused === nextFocused &&
     prevProps.parentId === nextProps.parentId &&
     isEqual(prevProps.data, nextProps.data)
