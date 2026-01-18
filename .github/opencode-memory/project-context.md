@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Code Quality Fixes (2026-01-18)
+
+**What**: Removed unused `SurroundWithGroupOptions` type and installed missing mobile type definitions (@types/jest, @types/node).
+
+**Files**: web/src/hooks/nodes/useSurroundWithGroup.ts, mobile/package.json
+
+**Impact**: All quality checks pass (typecheck, lint, tests).
+
+---
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
