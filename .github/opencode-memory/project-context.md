@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Audit (2026-01-18)
+
+**What**: Web package now has 0 vulnerabilities. Fixed glob command injection (GHSA-5j98-mcp5-4vw2) via npm override. Verified XSS mitigation, Electron security config, and CSP.
+
+**Files**: web/package.json (added glob override), .github/opencode-memory/issues/security/security-vulnerability-fixes.md (updated)
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
