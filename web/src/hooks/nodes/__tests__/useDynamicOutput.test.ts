@@ -28,8 +28,8 @@ describe("useDynamicOutput", () => {
   describe("handleDeleteOutput", () => {
     it("deletes an output from dynamicOutputs", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {
-        output1: { type: "text" },
-        output2: { type: "image" }
+        output1: { type: "text", optional: false, type_args: [] },
+        output2: { type: "image", optional: false, type_args: [] }
       };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
@@ -40,13 +40,13 @@ describe("useDynamicOutput", () => {
       });
 
       expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
-        dynamic_outputs: { output2: { type: "image" } }
+        dynamic_outputs: { output2: { type: "image", optional: false, type_args: [] } }
       });
     });
 
     it("handles deleting the only output", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {
-        output1: { type: "text" }
+        output1: { type: "text", optional: false, type_args: [] }
       };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
@@ -63,7 +63,7 @@ describe("useDynamicOutput", () => {
 
     it("handles deleting non-existent output gracefully", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {
-        output1: { type: "text" }
+        output1: { type: "text", optional: false, type_args: [] }
       };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
@@ -74,7 +74,7 @@ describe("useDynamicOutput", () => {
       });
 
       expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
-        dynamic_outputs: { output1: { type: "text" } }
+        dynamic_outputs: { output1: { type: "text", optional: false, type_args: [] } }
       });
     });
   });
@@ -82,9 +82,9 @@ describe("useDynamicOutput", () => {
   describe("handleAddOutput", () => {
     it("adds a new output with type metadata", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {
-        existing: { type: "text" }
+        existing: { type: "text", optional: false, type_args: [] }
       };
-      const newOutput: TypeMetadata = { type: "image" };
+      const newOutput: TypeMetadata = { type: "image", optional: false, type_args: [] };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
       );
@@ -95,15 +95,15 @@ describe("useDynamicOutput", () => {
 
       expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
         dynamic_outputs: {
-          existing: { type: "text" },
-          newOutput: { type: "image" }
+          existing: { type: "text", optional: false, type_args: [] },
+          newOutput: { type: "image", optional: false, type_args: [] }
         }
       });
     });
 
     it("adds output to empty dynamicOutputs", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {};
-      const newOutput: TypeMetadata = { type: "audio" };
+      const newOutput: TypeMetadata = { type: "audio", optional: false, type_args: [] };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
       );
@@ -113,7 +113,7 @@ describe("useDynamicOutput", () => {
       });
 
       expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
-        dynamic_outputs: { firstOutput: { type: "audio" } }
+        dynamic_outputs: { firstOutput: { type: "audio", optional: false, type_args: [] } }
       });
     });
 
@@ -121,7 +121,8 @@ describe("useDynamicOutput", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {};
       const newOutput: TypeMetadata = {
         type: "dataframe",
-        description: "A dataframe output"
+        optional: false,
+        type_args: []
       };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
@@ -135,7 +136,8 @@ describe("useDynamicOutput", () => {
         dynamic_outputs: {
           dataOutput: {
             type: "dataframe",
-            description: "A dataframe output"
+            optional: false,
+            type_args: []
           }
         }
       });
@@ -145,8 +147,8 @@ describe("useDynamicOutput", () => {
   describe("handleRenameOutput", () => {
     it("renames an output from old to new name", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {
-        oldName: { type: "text" },
-        other: { type: "image" }
+        oldName: { type: "text", optional: false, type_args: [] },
+        other: { type: "image", optional: false, type_args: [] }
       };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
@@ -158,15 +160,15 @@ describe("useDynamicOutput", () => {
 
       expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
         dynamic_outputs: {
-          newName: { type: "text" },
-          other: { type: "image" }
+          newName: { type: "text", optional: false, type_args: [] },
+          other: { type: "image", optional: false, type_args: [] }
         }
       });
     });
 
     it("handles renaming to the same name", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {
-        output1: { type: "text" }
+        output1: { type: "text", optional: false, type_args: [] }
       };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
@@ -183,7 +185,7 @@ describe("useDynamicOutput", () => {
 
     it("handles renaming non-existent output", () => {
       const dynamicOutputs: Record<string, TypeMetadata> = {
-        output1: { type: "text" }
+        output1: { type: "text", optional: false, type_args: [] }
       };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
@@ -195,7 +197,7 @@ describe("useDynamicOutput", () => {
 
       expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
         dynamic_outputs: {
-          output1: { type: "text" },
+          output1: { type: "text", optional: false, type_args: [] },
           newName: undefined
         }
       });
@@ -204,12 +206,12 @@ describe("useDynamicOutput", () => {
 
   it("memoizes callbacks based on dependencies", () => {
     const { result, rerender } = renderHook(
-      ({ nodeId, dynamicOutputs }) =>
+      ({ nodeId, dynamicOutputs }: { nodeId: string; dynamicOutputs: Record<string, TypeMetadata> }) =>
         useDynamicOutput(nodeId, dynamicOutputs),
       {
         initialProps: {
           nodeId: "node-1",
-          dynamicOutputs: { output1: { type: "text" } }
+          dynamicOutputs: { output1: { type: "text", optional: false, type_args: [] } }
         }
       }
     );
@@ -220,8 +222,8 @@ describe("useDynamicOutput", () => {
 
     rerender({
       nodeId: "node-1",
-      dynamicOutputs: { output2: { type: "image" } }
-    });
+      dynamicOutputs: { output2: { type: "image", optional: false, type_args: [] } }
+    } as any);
 
     expect(result.current.handleDeleteOutput).not.toBe(firstDelete);
     expect(result.current.handleAddOutput).not.toBe(firstAdd);
@@ -234,11 +236,11 @@ describe("useDynamicOutput", () => {
     );
 
     act(() => {
-      result.current.handleAddOutput("newOutput", { type: "text" });
+      result.current.handleAddOutput("newOutput", { type: "text", optional: false, type_args: [] });
     });
 
-    expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
-      dynamic_outputs: { newOutput: { type: "text" } }
-    });
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
+        dynamic_outputs: { newOutput: { type: "text", optional: false, type_args: [] } }
+      });
   });
 });

@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { isProduction } from "../../stores/ApiClient";
 import { useSecrets } from "../useSecrets";
-import useNamespaceTree, { NamespaceTree } from "../useNamespaceTree";
+import useNamespaceTree from "../useNamespaceTree";
 
 jest.mock("../../stores/MetadataStore", () => ({
   __esModule: true,
