@@ -1,3 +1,17 @@
+/**
+ * Hook for selecting connected nodes in a workflow graph.
+ * 
+ * Provides functionality to traverse the graph upstream and/or downstream
+ * from selected nodes and select all connected nodes.
+ * 
+ * @example
+ * ```typescript
+ * const { selectConnected, connectedNodeCount } = useSelectConnected({ direction: "downstream" });
+ * 
+ * // Select all nodes connected downstream from selected nodes
+ * selectConnected();
+ * ```
+ */
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../contexts/NodeContext";
 
@@ -10,6 +24,26 @@ interface UseSelectConnectedOptions {
 interface SelectConnectedResult {
   selectConnected: () => void;
   getConnectedNodeIds: () => string[];
+  connectedNodeCount: number;
+}
+
+/**
+ * Hook options for selecting connected nodes.
+ */
+interface UseSelectConnectedOptions {
+  /** Direction to traverse: "upstream", "downstream", or "both" (default) */
+  direction?: "upstream" | "downstream" | "both";
+}
+
+/**
+ * Result interface for the useSelectConnected hook.
+ */
+interface SelectConnectedResult {
+  /** Selects all connected nodes in the specified direction */
+  selectConnected: () => void;
+  /** Returns an array of node IDs that are connected to selected nodes */
+  getConnectedNodeIds: () => string[];
+  /** The count of connected nodes found */
   connectedNodeCount: number;
 }
 

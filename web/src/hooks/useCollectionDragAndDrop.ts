@@ -18,6 +18,38 @@ interface IndexResponseData {
   error?: string | null;
 }
 
+/**
+ * Hook for handling drag-and-drop file operations on collections.
+ * 
+ * This hook provides handlers for dragging files onto collections and
+ * indexing them through the API. It manages drag state, progress tracking,
+ * and error handling.
+ * 
+ * @returns Object containing drag state, progress, errors, and event handlers
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   dragOverCollection,
+ *   indexProgress,
+ *   indexErrors,
+ *   handleDrop,
+ *   handleDragOver,
+ *   handleDragLeave 
+ * } = useCollectionDragAndDrop();
+ * 
+ * return (
+ *   <div 
+ *     onDrop={handleDrop(collectionName)}
+ *     onDragOver={(e) => handleDragOver(e, collectionName)}
+ *     onDragLeave={handleDragLeave}
+ *   >
+ *     Drop files here
+ *   </div>
+ * );
+ * ```
+ */
+
 export const useCollectionDragAndDrop = () => {
   const queryClient = useQueryClient();
   const [dragOverCollection, setDragOverCollection] = useState<string | null>(

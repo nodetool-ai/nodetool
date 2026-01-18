@@ -6,7 +6,13 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 
-const loadWorkflows = async () => {
+/**
+ * Loads workflows from the API with selected columns.
+ * 
+ * @returns WorkflowList response containing workflows array
+ * @throws Error if API request fails
+ */
+const loadWorkflows = async (): Promise<WorkflowList> => {
   const { data, error } = await client.GET("/api/workflows/", {
     params: {
       query: {
@@ -22,6 +28,25 @@ const loadWorkflows = async () => {
   return data;
 };
 
+/**
+ * Hook to fetch and organize dashboard data including workflows and templates.
+ * 
+ * This hook provides the data needed for the dashboard view:
+ * - User's workflows (sorted by name or date based on settings)
+ * - Start templates (workflows tagged with "start" or "getting-started")
+ * 
+ * @returns Object containing loading states and organized data
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isLoadingWorkflows, 
+ *   sortedWorkflows, 
+ *   isLoadingTemplates, 
+ *   startTemplates 
+ * } = useDashboardData();
+ * ```
+ */
 export const useDashboardData = () => {
   const settings = useSettingsStore((state) => state.settings);
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);

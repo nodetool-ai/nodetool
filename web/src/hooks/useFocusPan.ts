@@ -2,7 +2,23 @@ import { useCallback, useRef, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 
-/** pans to a node when focused via tab navigation */
+/**
+ * Hook for panning the canvas to a node when it receives focus via keyboard navigation.
+ * 
+ * This hook listens for Tab key presses and pans the ReactFlow canvas to center
+ * on the specified node when it receives focus. This provides a better user
+ * experience for keyboard navigation in the node editor.
+ * 
+ * @param nodeId - The ID of the node to pan to when focused
+ * @returns Focus event handler to attach to the node's onFocus event
+ * 
+ * @example
+ * ```typescript
+ * const handleFocus = useFocusPan(node.id);
+ * 
+ * <Node onFocus={handleFocus} />
+ * ```
+ */
 
 export const useFocusPan = (nodeId: string) => {
   const wasTabPressedRef = useRef(false);

@@ -7,34 +7,66 @@ import useMetadataStore from "../stores/MetadataStore";
 import useResultsStore from "../stores/ResultsStore";
 import useErrorStore from "../stores/ErrorStore";
 
+/**
+ * Information about node connections.
+ */
 interface NodeConnectionInfo {
+  /** Total number of input ports on the node */
   totalInputs: number;
+  /** Number of input ports that are connected */
   connectedInputs: number;
+  /** Total number of output ports on the node */
   totalOutputs: number;
+  /** Number of output ports that are connected */
   connectedOutputs: number;
 }
 
+/**
+ * Detailed information about a selected node.
+ */
 interface SelectedNodeInfo {
+  /** The node's unique identifier */
   id: string;
+  /** The display label for the node */
   label: string;
+  /** The node type (e.g., "nodetool.input.TextInput") */
   type: string;
+  /** The node's namespace */
   namespace: string;
+  /** The node's description from metadata */
   description: string | undefined;
+  /** The node's position in the canvas */
   position: { x: number; y: number };
+  /** Connection information for the node */
   connections: NodeConnectionInfo;
+  /** Whether the node has an error */
   hasError: boolean;
+  /** The error message if the node has an error */
   errorMessage: string | undefined;
+  /** The execution status of the node */
   executionStatus: "pending" | "running" | "completed" | "error" | undefined;
+  /** Timestamp of last execution */
   lastExecutedAt: string | undefined;
 }
 
+/**
+ * Result interface for the useSelectedNodesInfo hook.
+ */
 interface UseSelectedNodesInfoReturn {
+  /** Array of information about each selected node */
   nodesInfo: SelectedNodeInfo[];
+  /** Total number of selected nodes */
   totalSelected: number;
+  /** Whether exactly one node is selected */
   hasSingleNode: boolean;
+  /** Whether more than one node is selected */
   hasMultipleNodes: boolean;
 }
 
+/**
+ * Helper function to get the display name for a node.
+ * Prefers custom name from properties, then metadata title, then type name.
+ */
 const getNodeDisplayName = (
   node: Node<NodeData>,
   metadataStore: ReturnType<typeof useMetadataStore.getState>
