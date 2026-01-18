@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -225,6 +225,18 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     });
   }, []);
 
+  const handleTileDoubleClick = useCallback((index: number) => {
+    if (!selectionMode && onDoubleClick) {
+      onDoubleClick(index);
+    }
+  }, [selectionMode, onDoubleClick]);
+
+  const handleTileClick = useCallback((index: number, event: React.MouseEvent) => {
+    if (selectionMode) {
+      toggleSelect(index, event);
+    }
+  }, [selectionMode, toggleSelect]);
+
   const showSelectionFeatures = enableSelection && images.length >= 2;
 
   // Map each ImageSource to a persistent URL. Strings map to themselves.
@@ -323,16 +335,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             <div
               key={idx}
               className={`tile ${isSelected ? "selected" : ""}`}
-              onDoubleClick={() => {
-                if (!selectionMode && onDoubleClick) {
-                  onDoubleClick(idx);
-                }
-              }}
-              onClick={(e) => {
-                if (selectionMode) {
-                  toggleSelect(idx, e);
-                }
-              }}
+              onDoubleClick={() => handleTileDoubleClick(idx)}
+              onClick={(e) => handleTileClick(idx, e)}
             >
               {urlMapRef.current.get(img) ? (
                 <img
@@ -425,4 +429,4 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   );
 };
 
-export default PreviewImageGrid;
+export default memo(PreviewImageGrid);

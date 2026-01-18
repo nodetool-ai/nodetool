@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Button,
@@ -256,6 +256,28 @@ const NodeExplorer: React.FC = () => {
     [handleNodeFocus]
   );
 
+  const handleNodeButtonClick = useCallback(
+    (event: React.MouseEvent, nodeId: string) => {
+      event.stopPropagation();
+      handleNodeEdit(nodeId);
+    },
+    [handleNodeEdit]
+  );
+
+  const handleListItemClick = useCallback(
+    (nodeId: string) => {
+      handleNodeClick(nodeId);
+    },
+    [handleNodeClick]
+  );
+
+  const handleListItemContextMenu = useCallback(
+    (event: React.MouseEvent, nodeId: string) => {
+      handleNodeContextMenu(event, nodeId);
+    },
+    [handleNodeContextMenu]
+  );
+
   const _handleNodeEditClick = useCallback(
     (event: React.MouseEvent, nodeId: string) => {
       event.stopPropagation();
@@ -308,9 +330,9 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeClick(entry.node.id)}
+                onClick={() => handleListItemClick(entry.node.id)}
                 onContextMenu={(event) => {
-                  handleNodeContextMenu(event, entry.node.id);
+                  handleListItemContextMenu(event, entry.node.id);
                 }}
               >
                 <div className="node-text">
@@ -329,8 +351,7 @@ const NodeExplorer: React.FC = () => {
                 size="small"
                 aria-label="Edit node"
                 onClick={(event) => {
-                  event.stopPropagation();
-                  handleNodeEdit(entry.node.id);
+                  handleNodeButtonClick(event, entry.node.id);
                 }}
               >
                 <NorthEastIcon fontSize="small" />
@@ -343,4 +364,4 @@ const NodeExplorer: React.FC = () => {
   );
 };
 
-export default NodeExplorer;
+export default memo(NodeExplorer);

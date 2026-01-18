@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Performance Optimization: Additional Component Memoization (2026-01-18)
+
+**What**: Added React.memo and useCallback handlers to PreviewImageGrid and NodeExplorer to prevent unnecessary re-renders from inline arrow functions.
+
+**Files**: web/src/components/node/PreviewImageGrid.tsx, web/src/components/node/NodeExplorer.tsx
+
+**Impact**: Image grid and node explorer now use stable function references, reducing re-renders in lists with many items.
+
+---
+
 ### Mobile TypeScript Type Definitions Fix (2026-01-17)
 
 **What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
