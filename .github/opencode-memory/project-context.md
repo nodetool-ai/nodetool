@@ -61,6 +61,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: 12 files in web/src/components/
 
 **Impact**: Reduced unnecessary re-renders in dashboard, workflow management, and context menu components.
+### Performance Profiler Research Feature (2026-01-18)
+
+**What**: Implemented Workflow Performance Profiler - visual performance analysis with bottleneck detection and optimization suggestions.
+
+**Files**: web/src/stores/PerformanceProfilerStore.ts, web/src/components/panels/PerformanceProfilerPanel.tsx, web/src/hooks/usePerformanceProfiler.ts, web/src/components/node_editor/PerformanceOverlay.tsx, web/src/stores/__tests__/PerformanceProfilerStore.test.ts
+
+**Impact**: Users can now profile workflow execution, identify bottlenecks, and receive optimization suggestions.
 ### Quality Checks Fixes (2026-01-18)
 
 **What**: Fixed TypeScript type errors and lint warnings in test files.
