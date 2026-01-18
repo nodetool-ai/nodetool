@@ -4,6 +4,33 @@ import { useNodes } from "../contexts/NodeContext";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 
+/**
+ * Hook for keyboard-based node navigation in the workflow editor.
+ * 
+ * Provides methods to navigate between nodes using keyboard shortcuts
+ * (Tab for sequential, Alt+Arrows for directional). Supports focus history
+ * for "go back" functionality.
+ * 
+ * @returns Object containing focus state and navigation callbacks
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   focusedNodeId, 
+ *   isNavigationMode,
+ *   focusNext, 
+ *   focusPrev,
+ *   focusUp,
+ *   focusDown
+ * } = useNodeFocus();
+ * 
+ * // Navigate to next node
+ * focusNext();
+ * 
+ * // Go back to previously focused node
+ * goBack();
+ * ```
+ */
 interface UseNodeFocusReturn {
   focusedNodeId: string | null;
   isNavigationMode: boolean;

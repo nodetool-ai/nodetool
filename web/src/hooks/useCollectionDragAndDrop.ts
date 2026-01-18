@@ -2,6 +2,36 @@ import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
 
+/**
+ * Hook for drag-and-drop file indexing into collections.
+ * 
+ * Handles dropping files onto collections, uploading and indexing them
+ * via the backend API. Provides progress tracking and error handling.
+ * 
+ * @returns Object containing drag state, progress, and event handlers
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   dragOverCollection, 
+ *   indexProgress, 
+ *   indexErrors,
+ *   handleDrop,
+ *   handleDragOver,
+ *   handleDragLeave 
+ * } = useCollectionDragAndDrop();
+ * 
+ * return (
+ *   <div
+ *     onDragOver={(e) => handleDragOver(e, "my-collection")}
+ *     onDrop={handleDrop("my-collection")}
+ *     onDragLeave={handleDragLeave}
+ *   >
+ *     Drop files here to index
+ *   </div>
+ * );
+ * ```
+ */
 // Define a type for the expected error structure from the API
 interface ApiErrorDetail {
   loc: string[];

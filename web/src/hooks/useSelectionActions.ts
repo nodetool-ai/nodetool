@@ -3,6 +3,28 @@ import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
+/**
+ * Hook providing batch operations for selected nodes in the workflow editor.
+ * 
+ * Supports aligning nodes (left, center, right, top, middle, bottom),
+ * distributing nodes evenly, duplicating, deleting, grouping, and bypassing.
+ * 
+ * @returns Object containing all selection action callbacks
+ * 
+ * @example
+ * ```typescript
+ * const actions = useSelectionActions();
+ * 
+ * // Align selected nodes to the left
+ * actions.alignLeft();
+ * 
+ * // Distribute selected nodes horizontally
+ * actions.distributeHorizontal();
+ * 
+ * // Delete selected nodes
+ * actions.deleteSelected();
+ * ```
+ */
 interface SelectionActionsReturn {
   alignLeft: () => void;
   alignCenter: () => void;

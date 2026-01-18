@@ -4,6 +4,25 @@ import { client } from "../stores/ApiClient";
 import type { EmbeddingModel } from "../stores/ApiTypes";
 import { useEmbeddingProviders } from "./useProviders";
 
+/**
+ * Hook that fetches embedding models from all providers.
+ * 
+ * Queries each embedding model provider in parallel and aggregates results.
+ * Provides loading, fetching, and error states along with combined model list.
+ * 
+ * @param options - Optional filter for specific providers
+ * @returns Object with models array and query states
+ * 
+ * @example
+ * ```typescript
+ * const { models, isLoading, error } = useEmbeddingModelsByProvider();
+ * 
+ * // Filter to specific providers
+ * const { models } = useEmbeddingModelsByProvider({
+ *   allowedProviders: ["huggingface", "openai"]
+ * });
+ * ```
+ */
 export const useEmbeddingModelsByProvider = (options?: {
   allowedProviders?: string[];
 }) => {
