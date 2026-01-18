@@ -35,6 +35,8 @@ import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import DownloadIcon from "@mui/icons-material/Download";
+import StarIcon from "@mui/icons-material/Star";
+import { useQuickAccessPanelStore } from "../../stores/QuickAccessPanelStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -690,6 +692,28 @@ const DownloadWorkflowButton = memo(function DownloadWorkflowButton() {
   );
 });
 
+const QuickAccessButton = memo(function QuickAccessButton() {
+  const { isOpen, togglePanel } = useQuickAccessPanelStore((state) => ({
+    isOpen: state.isOpen,
+    togglePanel: state.togglePanel
+  }));
+
+  return (
+    <Tooltip
+      title={getShortcutTooltip("toggleQuickAccess")}
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
+      <Button
+        className={`action-button ${isOpen ? "active" : ""}`}
+        onClick={togglePanel}
+        tabIndex={-1}
+      >
+        <StarIcon />
+      </Button>
+    </Tooltip>
+  );
+});
+
 interface AppToolbarProps {
   setWorkflowToEdit: (workflow: Workflow) => void;
 }
@@ -711,6 +735,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <EditWorkflowButton setWorkflowToEdit={setWorkflowToEdit} />
             <SaveWorkflowButton />
             <DownloadWorkflowButton />
+            <QuickAccessButton />
             <AutoLayoutButton autoLayout={autoLayout} />
             <WorkflowModeSelect />
             <RunWorkflowButton />

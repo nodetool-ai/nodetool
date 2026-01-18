@@ -56,11 +56,17 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ### Debug Console Statement Removal (2026-01-17)
 
-**What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
+**What**: Removed debug console.log statements from 6 production files.
 
-**Files**: web/src/components/version/VersionHistoryPanel.tsx, web/src/components/node/image_editor/ImageEditorModal.tsx, web/src/components/node/image_editor/ImageEditorCanvas.tsx, web/src/components/chat/message/MessageContentRenderer.tsx, web/src/components/node_menu/NodeMenu.tsx, web/src/lib/websocket/GlobalWebSocketManager.ts
+**Files**: VersionHistoryPanel.tsx, ImageEditorModal.tsx, ImageEditorCanvas.tsx, MessageContentRenderer.tsx, NodeMenu.tsx, GlobalWebSocketManager.ts
 
-**Impact**: Cleaned up development debug statements from production code.
+---
+
+### Quick Access Panel (2026-01-18)
+
+**What**: Added collapsible Quick Access panel for favorite and recently used nodes with toolbar button and keyboard shortcut (Q).
+
+**Files**: web/src/stores/QuickAccessPanelStore.ts, web/src/components/panels/QuickAccessPanel.tsx, web/src/components/panels/AppToolbar.tsx, web/src/hooks/useNodeEditorShortcuts.ts, web/src/config/shortcuts.ts, web/src/components/node_editor/NodeEditor.tsx
 
 ---
 

@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useQuickAccessPanelStore } from "../stores/QuickAccessPanelStore";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -422,6 +423,10 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const toggleQuickAccess = useQuickAccessPanelStore(
+    (state) => state.togglePanel
+  );
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -464,6 +469,7 @@ export const useNodeEditorShortcuts = (
       groupSelected: { callback: handleGroup },
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
+      toggleQuickAccess: { callback: toggleQuickAccess },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
@@ -576,6 +582,7 @@ export const useNodeEditorShortcuts = (
     handleGroup,
     handleInspectorToggle,
     handleWorkflowSettingsToggle,
+    toggleQuickAccess,
     handleShowKeyboardShortcuts,
     handleSave,
     handleSaveExample,

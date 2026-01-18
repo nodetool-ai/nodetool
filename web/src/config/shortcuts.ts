@@ -524,6 +524,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Operator panel",
     registerCombo: false
   },
+  {
+    title: "Quick Access",
+    slug: "toggleQuickAccess",
+    keyCombo: ["Q"],
+    category: "panel",
+    description: "Show or hide Quick Access panel for favorite and recent nodes",
+    registerCombo: false
+  },
   // K is conflicting with CommandMenu shortcut
   // {
   //   title: "Keyboard Shortcuts",
