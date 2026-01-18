@@ -214,7 +214,7 @@ describe("useDynamicProperty", () => {
 
     rerender({
       nodeId: "node-1",
-      dynamicProperties: { prop2: "value2" }
+      dynamicProperties: { prop1: "value2" }
     });
 
     expect(result.current.handleDeleteProperty).not.toBe(firstDelete);
