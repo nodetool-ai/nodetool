@@ -330,7 +330,7 @@ const usePerformanceProfilerStore = create<PerformanceProfilerStore>((set, get) 
 
   getHistoricalAverages: () => {
     const historical = get().historicalMetrics;
-    if (historical.length === 0) return {};
+    if (historical.length === 0) {return {};}
 
     const averages: Record<string, { total: number; count: number }> = {};
 

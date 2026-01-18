@@ -21,12 +21,12 @@ export const PerformanceOverlay: React.FC<PerformanceOverlayProps> = ({ workflow
   const { getDuration } = useExecutionTimeStore();
 
   const maxAverageDuration = useMemo(() => {
-    if (!currentMetrics) return 1;
+    if (!currentMetrics) {return 1;}
     const metrics = Object.values(currentMetrics.nodeMetrics);
     return Math.max(...metrics.map(m => m.averageDuration), 1);
   }, [currentMetrics]);
 
-  if (!currentMetrics) return null;
+  if (!currentMetrics) {return null;}
 
   return (
     <Box

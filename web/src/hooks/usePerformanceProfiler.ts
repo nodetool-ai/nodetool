@@ -46,7 +46,7 @@ export const usePerformanceProfiler = (
   const nodeStartTimesRef = useRef<Map<string, number>>(new Map());
 
   const handleStartProfiling = useCallback(() => {
-    if (!enabled) return;
+    if (!enabled) {return;}
 
     const workflowId = workflowIdRef.current || "unknown";
     const workflowName = "Current Workflow";
@@ -56,18 +56,18 @@ export const usePerformanceProfiler = (
   }, [enabled, startProfiling]);
 
   const handleStopProfiling = useCallback(() => {
-    if (!enabled) return;
+    if (!enabled) {return;}
     endProfiling();
   }, [enabled, endProfiling]);
 
   const handleRecordNodeStart = useCallback((nodeId: string) => {
-    if (!enabled || !isProfiling) return;
+    if (!enabled || !isProfiling) {return;}
     nodeStartTimesRef.current.set(nodeId, Date.now());
     recordNodeStart(nodeId);
   }, [enabled, isProfiling, recordNodeStart]);
 
   const handleRecordNodeEnd = useCallback((nodeId: string, duration: number, success: boolean) => {
-    if (!enabled || !isProfiling) return;
+    if (!enabled || !isProfiling) {return;}
     recordNodeDuration(nodeId, duration);
     recordNodeEnd(nodeId, success);
     nodeStartTimesRef.current.delete(nodeId);
