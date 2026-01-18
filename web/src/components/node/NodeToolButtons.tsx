@@ -161,15 +161,17 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           }
           enterDelay={TOOLTIP_ENTER_DELAY}
         >
-          <IconButton
-            className="nodrag"
-            onClick={handlers.handleRunFromHere}
-            tabIndex={-1}
-            disabled={conditions.isWorkflowRunning}
-            size="small"
-          >
-            <PlayArrowIcon fontSize="small" />
-          </IconButton>
+          <span>
+            <IconButton
+              className="nodrag"
+              onClick={handlers.handleRunFromHere}
+              tabIndex={-1}
+              disabled={conditions.isWorkflowRunning}
+              size="small"
+            >
+              <PlayArrowIcon fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
 
         <Tooltip
