@@ -46,29 +46,10 @@ export default function useDragHandlers() {
   // Removed: createCommentNode helper and related drag-to-create logic
 
   /* NODE DRAG START */
-  const onNodeDragStart = useCallback(
-    (_event: any, node: Node<NodeData>, nodes: Node<NodeData>[]) => {
-      setLastParentNode(undefined);
-      resetWiggleDetection(); // Reset wiggle detection for new drag
-
-      // If selectNodesOnDrag is enabled, deselect preview nodes that were auto-selected
-      // Preview nodes should only be selected by click or selection box, not by drag
-      if (settings.selectNodesOnDrag) {
-        const previewNodeIds = nodes
-          .filter((n) => n.type === "nodetool.workflows.base_node.Preview")
-          .map((n) => n.id);
-
-        if (previewNodeIds.length > 0) {
-          const currentNodes = reactFlow.getNodes();
-          const updatedNodes = currentNodes.map((n) =>
-            previewNodeIds.includes(n.id) ? { ...n, selected: false } : n
-          );
-          reactFlow.setNodes(updatedNodes);
-        }
-      }
-    },
-    [settings.selectNodesOnDrag, reactFlow]
-  );
+  const onNodeDragStart = useCallback((_event: any) => {
+    setLastParentNode(undefined);
+    resetWiggleDetection(); // Reset wiggle detection for new drag
+  }, []);
 
   /* NODE DRAG */
   const onNodeDrag = useCallback(
