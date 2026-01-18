@@ -1041,3 +1041,125 @@ it("falls back to URI when createAssetFile fails", async () => {
 **Maintained By**: Automated OpenCode testing agent
 
 **Last Updated**: 2026-01-18
+
+---
+
+### Test Coverage Improvement (2026-01-18 - Additional)
+
+**Coverage Added**: 3 new test files with 98 tests for critical utilities and authentication
+
+**Tests Added**:
+- `colorConversion.test.ts` - 65 tests for comprehensive color conversion utilities
+- `PrefixTreeSearch.test.ts` - 24 tests for prefix tree search optimization
+- `useAuth.test.ts` - 9 tests for authentication store operations
+
+**Areas Covered**:
+- Color conversion (HEX, RGB, HSL, HSB, CMYK, LAB color spaces)
+- Color parsing (hex, rgb(), rgba(), hsl(), hsla(), named colors)
+- Color harmonies and WCAG compliance (contrast ratio, accessibility)
+- Color blindness simulation (protanopia, deuteranopia, tritanopia)
+- Prefix tree search indexing and searching
+- Fuzzy search with substring matching
+- Authentication state management (login, logout, session handling)
+- OAuth provider integration
+
+**Test Patterns Used**:
+
+1. **Color Conversion Testing Pattern**:
+```typescript
+describe("rgbToHsl and hslToRgb", () => {
+  test("converts red to HSL", () => {
+    const hsl = rgbToHsl({ r: 255, g: 0, b: 0 });
+    expect(hsl.h).toBe(0);
+    expect(hsl.s).toBe(100);
+    expect(hsl.l).toBe(50);
+  });
+
+  test("converts HSL back to RGB (roundtrip)", () => {
+    const original: RGB = { r: 128, g: 64, b: 200 };
+    const hsl = rgbToHsl(original);
+    const backToRgb = hslToRgb(hsl);
+    expect(Math.abs(backToRgb.r - original.r)).toBeLessThanOrEqual(1);
+    expect(Math.abs(backToRgb.g - original.g)).toBeLessThanOrEqual(1);
+    expect(Math.abs(backToRgb.b - original.b)).toBeLessThanOrEqual(1);
+  });
+});
+```
+
+2. **WCAG Compliance Testing Pattern**:
+```typescript
+describe("getWcagCompliance", () => {
+  test("white on black meets AAA", () => {
+    const result = getWcagCompliance(
+      { r: 255, g: 255, b: 255 },
+      { r: 0, g: 0, b: 0 }
+    );
+    expect(result.ratio).toBe(21);
+    expect(result.aa).toBe(true);
+    expect(result.aaa).toBe(true);
+  });
+});
+```
+
+3. **Prefix Tree Search Testing Pattern**:
+```typescript
+describe("PrefixTreeSearch", () => {
+  beforeEach(() => {
+    search = new PrefixTreeSearch();
+    search.indexNodes(mockNodes);
+  });
+
+  test("finds nodes by title prefix", () => {
+    const results = search.search("text");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some(r => r.node.title.toLowerCase().includes("text"))).toBe(true);
+  });
+
+  test("is case insensitive", () => {
+    const upperResults = search.search("TEXT");
+    const lowerResults = search.search("text");
+    expect(upperResults.length).toBe(lowerResults.length);
+  });
+});
+```
+
+4. **Authentication Store Testing Pattern**:
+```typescript
+describe("signInWithProvider", () => {
+  test("sets state to loading", async () => {
+    (supabase.auth.signInWithOAuth as jest.Mock).mockResolvedValue({ error: null });
+    const promise = useAuth.getState().signInWithProvider("google");
+    expect(useAuth.getState().state).toBe("loading");
+    await promise;
+  });
+
+  test("successfully initiates OAuth flow", async () => {
+    (supabase.auth.signInWithOAuth as jest.Mock).mockResolvedValue({ error: null });
+    await useAuth.getState().signInWithProvider("google");
+    expect(supabase.auth.signInWithOAuth).toHaveBeenCalled();
+  });
+});
+```
+
+**Files Created**:
+- `web/src/utils/__tests__/colorConversion.test.ts`
+- `web/src/utils/__tests__/PrefixTreeSearch.test.ts`
+- `web/src/stores/__tests__/useAuth.test.ts`
+
+**Key Learnings**:
+1. Color conversion functions require testing all color space conversions and roundtrip accuracy
+2. Edge cases like -0 vs 0, NaN values, and boundary conditions need special handling
+3. WCAG compliance testing requires calculating actual contrast ratios and verifying thresholds
+4. Color blindness simulation matrices need flexible assertions (check color changed, not exact values)
+5. Prefix tree search tests should verify performance characteristics and large dataset handling
+6. Authentication store tests need proper Supabase client mocking to avoid network calls
+7. Test expectations must match actual function behavior, not assumed behavior
+
+**Coverage Impact**:
+- **Before**: 237 test suites, 3,119 tests
+- **After**: 240 test suites, 3,217 tests
+- **Net Gain**: +3 test files, +98 tests
+
+**Status**: All 3,217 tests passing (240 test suites, 3 skipped)
+
+---
