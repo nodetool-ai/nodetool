@@ -47,8 +47,8 @@ const getPerformanceLevel = (
   duration: number,
   avgDuration: number
 ): "good" | "medium" | "poor" => {
-  if (duration < avgDuration * 0.5) return "good";
-  if (duration > avgDuration * 1.5) return "poor";
+  if (duration < avgDuration * 0.5) {return "good";}
+  if (duration > avgDuration * 1.5) {return "poor";}
   return "medium";
 };
 
