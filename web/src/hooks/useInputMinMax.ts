@@ -13,6 +13,38 @@ interface UseInputMinMaxOptions {
   propertyMax?: number | null;
 }
 
+/**
+ * Custom hook for retrieving input min/max bounds from node properties.
+ * 
+ * This hook retrieves the min and max bounds for numeric input nodes
+ * (FloatInput, IntegerInput) by looking up the node's stored properties.
+ * It supports both property-level bounds (from the input definition)
+ * and node-level bounds (from the input's configuration).
+ * 
+ * The hook prioritizes node-level bounds over property-level bounds,
+ * falling back to default values (0-100) when no bounds are defined.
+ * 
+ * @param options - Configuration object containing:
+ *   - nodeType: The type of the node (e.g., "nodetool.input.FloatInput")
+ *   - nodeId: The ID of the node to get bounds for
+ *   - propertyName: The property name (usually "value")
+ *   - propertyMin: Optional fallback min from property definition
+ *   - propertyMax: Optional fallback max from property definition
+ * @returns Object containing min and max bounds for the input
+ * 
+ * @example
+ * ```typescript
+ * const { min, max } = useInputMinMax({
+ *   nodeType: 'nodetool.input.FloatInput',
+ *   nodeId: 'node-123',
+ *   propertyName: 'value',
+ *   propertyMin: 0,
+ *   propertyMax: 100
+ * });
+ * 
+ * return <Slider min={min} max={max} />;
+ * ```
+ */
 export const useInputMinMax = ({
   nodeType,
   nodeId,
