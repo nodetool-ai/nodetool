@@ -139,6 +139,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
           cursor: "pointer"
         }}
         onDoubleClick={() => setOpenViewer(true)}
+        draggable={false}
       />
       {imageDimensions && (
         <ImageDimensions
