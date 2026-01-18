@@ -467,6 +467,12 @@ _No entries yet - this memory system is new as of 2026-01-10_
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.
 
+### Version Timeline Research Feature (2026-01-18)
+
+**What**: Prototyped Workflow Version Timeline View with experiment branching, metrics tracking, and annotations for research workflow comparison.
+
+**Files**: VersionTimeline.tsx, VersionTimelineItem.tsx, VersionMetricsPanel.tsx, VersionTimelineStore.ts, version-timeline-branching.md (insights)
+
 **Impact**: Reduced unnecessary re-renders in auth-related components by ensuring they only update when their specific state changes. Improved TypeScript type safety by using proper error handling with AppError type guards.
 
 ---
