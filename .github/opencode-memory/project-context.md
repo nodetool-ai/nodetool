@@ -54,6 +54,21 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Audit Fixes (2026-01-18)
+
+**What**: Fixed all critical/high severity dependency vulnerabilities across all packages.
+
+**Changes**:
+- Web: Added glob override (>=10.5.0), updated plotly.js to 3.1.0 - **0 vulnerabilities**
+- Electron: Removed tar dep, added overrides for tar/node-gyp - **0 vulnerabilities**
+- Mobile: Verified tar 7.5.2 is patched - **0 vulnerabilities**
+
+**Files**: web/package.json, electron/package.json
+
+**Impact**: Resolved command injection (glob) and arbitrary file write (tar) vulnerabilities.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).

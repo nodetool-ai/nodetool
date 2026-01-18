@@ -70,7 +70,7 @@
     "openapi-fetch": "^0.14.0",
     "openapi-typescript": "^7.8.0",
     "papaparse": "^5.4.1",
-    "plotly": "^1.0.6",
+    "plotly.js": "^3.1.0",
     "prismjs": "^1.30.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -141,7 +141,8 @@
     ]
   },
   "overrides": {
-    "react-is": "18.2.0"
+    "react-is": "18.2.0",
+    "glob": ">=10.5.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
