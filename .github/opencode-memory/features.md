@@ -291,6 +291,7 @@ Last updated: 2026-01-17
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
 - **Performance Profiling UI**: Built-in performance profiling tools
+- **Workflow Pattern Detector** (Experimental): Analyzes workflows for patterns, performance issues, and optimization opportunities
 
 ---
 

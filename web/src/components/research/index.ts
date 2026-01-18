@@ -1,0 +1,1 @@
+export { WorkflowPatternDetector } from './WorkflowPatternDetector';

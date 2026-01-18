@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Workflow Pattern Detector Research Feature (2026-01-18)
+
+**What**: Implemented experimental Workflow Pattern Detector that analyzes workflows for patterns, performance issues, and optimization opportunities.
+
+**Files**: web/src/components/research/WorkflowPatternDetector.tsx, web/src/components/research/index.ts, web/src/components/research/WORKFLOW_PATTERN_DETECTOR.md
+
+**Impact**: New research feature for analyzing workflow structure, detecting issues, and suggesting optimizations.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
