@@ -14,8 +14,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const loadJson = <T>(filename: string): T => {
-  const content = readFileSync(join(__dirname, filename), "utf-8");
-  return JSON.parse(content) as T;
+  const filePath = join(__dirname, filename);
+  try {
+    const content = readFileSync(filePath, "utf-8");
+    return JSON.parse(content) as T;
+  } catch (error) {
+    if (error instanceof Error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new Error(`Mock data file not found: ${filePath}`);
+      }
+      if (error instanceof SyntaxError) {
+        throw new Error(`Invalid JSON in mock data file ${filename}: ${error.message}`);
+      }
+      throw new Error(`Failed to load mock data from ${filename}: ${error.message}`);
+    }
+    throw error;
+  }
 };
 
 interface Workflow {
