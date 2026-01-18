@@ -128,11 +128,11 @@ export const getShortcutTooltip = (
   };
 
   // Helper to render combo as <kbd> elements
-  const renderSeries = (comboStr: string): React.ReactNode[] => {
+  const renderSeries = (comboStr: string, prefix = ""): React.ReactNode[] => {
     const parts = comboStr.split(" + ");
     return parts.flatMap((part, idx) => {
       const nodes: React.ReactNode[] = [
-        React.createElement("kbd", { key: `k-${idx}` }, humanizeKey(part))
+        React.createElement("kbd", { key: `${prefix}k-${idx}` }, humanizeKey(part))
       ];
       if (idx < parts.length - 1) {nodes.push("+");}
       return nodes;
@@ -144,7 +144,7 @@ export const getShortcutTooltip = (
   const keyChildren: React.ReactNode[] = showBoth
     ? winCombo === macCombo
       ? renderSeries(winCombo)
-      : [...renderSeries(winCombo), " / ", ...renderSeries(macCombo)]
+      : [...renderSeries(winCombo, "win-"), " / ", ...renderSeries(macCombo, "mac-")]
     : renderSeries(os === "mac" ? macCombo : winCombo);
 
   if (mode === "combo") {
