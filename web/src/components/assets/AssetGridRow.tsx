@@ -152,7 +152,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             />
           </span>
 
-          <IconButton size="small" tabIndex={-1}>
+          <IconButton size="small" tabIndex={-1} aria-label={isExpanded ? `Collapse ${divider.type} files` : `Expand ${divider.type} files`}>
             {isExpanded ? <ExpandLess /> : <ExpandMore />}
           </IconButton>
         </div>

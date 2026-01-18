@@ -353,7 +353,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
             <div className="header-actions">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <Tooltip title="Close (Esc)">
-                <IconButton size="small" onClick={handleApply}>
+                <IconButton size="small" onClick={handleApply} aria-label="Close color picker">
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

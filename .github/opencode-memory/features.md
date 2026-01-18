@@ -4,7 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-17
+Last updated: 2026-01-18
+
+- **Accessibility Audit & Improvements**: Comprehensive WCAG 2.1 Level AA audit with ARIA labels added to IconButtons across toolbar, color picker, assets, and workflow components
 
 - **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
 

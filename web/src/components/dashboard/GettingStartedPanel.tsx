@@ -601,7 +601,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                       >
                         Popular Models
                       </Typography>
-                      <IconButton size="small" sx={{ p: 0 }}>
+                      <IconButton size="small" sx={{ p: 0 }} aria-label={modelsExpanded ? "Collapse popular models" : "Expand popular models"}>
                         {modelsExpanded ? (
                           <ExpandLessIcon fontSize="small" />
                         ) : (

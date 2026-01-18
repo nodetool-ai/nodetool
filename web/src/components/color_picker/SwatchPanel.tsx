@@ -229,7 +229,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           <Typography className="section-title">Recent</Typography>
           {recentColors.length > 0 && (
             <Tooltip title="Clear recent colors">
-              <IconButton size="small" onClick={clearRecentColors}>
+              <IconButton size="small" onClick={clearRecentColors} aria-label="Clear recent colors">
                 <DeleteIcon sx={{ fontSize: 14 }} />
               </IconButton>
             </Tooltip>
@@ -286,7 +286,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
             <div key={palette.id} className="palette-section">
               <div className="palette-header">
                 <Typography className="palette-name">{palette.name}</Typography>
-                <IconButton size="small" onClick={handlePaletteRemove(palette.id)}>
+                <IconButton size="small" onClick={handlePaletteRemove(palette.id)} aria-label={`Remove palette ${palette.name}`}>
                   <DeleteIcon sx={{ fontSize: 12 }} />
                 </IconButton>
               </div>
