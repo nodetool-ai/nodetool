@@ -22,6 +22,38 @@ const loadWorkflows = async () => {
   return data;
 };
 
+/**
+ * Custom hook for loading dashboard data including workflows and templates.
+ * 
+ * Uses TanStack Query to fetch workflow lists and template data with
+ * automatic caching and loading states. Provides sorted workflows
+ * based on user settings and filters start templates by tags.
+ * 
+ * @returns Object containing:
+ *   - isLoadingWorkflows: Whether workflows are currently loading
+ *   - sortedWorkflows: Array of workflows sorted by name or date
+ *   - isLoadingTemplates: Whether templates are currently loading
+ *   - startTemplates: Array of getting-started templates (tagged "start" or "getting-started")
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isLoadingWorkflows, 
+ *   sortedWorkflows, 
+ *   startTemplates 
+ * } = useDashboardData();
+ * 
+ * if (isLoadingWorkflows) {
+ *   return <LoadingSpinner />;
+ * }
+ * 
+ * return (
+ *   <div>
+ *     {sortedWorkflows.map(w => <WorkflowCard key={w.id} workflow={w} />)}
+ *   </div>
+ * );
+ * ```
+ */
 export const useDashboardData = () => {
   const settings = useSettingsStore((state) => state.settings);
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);

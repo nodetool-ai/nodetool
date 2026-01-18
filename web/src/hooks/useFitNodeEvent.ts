@@ -5,8 +5,29 @@ import { useFitView } from "./useFitView";
 import { NodeData } from "../stores/NodeData";
 
 /**
- * Hook to listen for custom "nodetool:fit-node" events and fit the view to the specified node.
- * This allows components outside the ReactFlowProvider to trigger node focusing.
+ * Custom hook for handling custom "nodetool:fit-node" events.
+ * 
+ * This hook allows components outside the ReactFlowProvider to trigger
+ * viewport fitting to specific nodes. It listens for custom window events
+ * and animates the viewport to center on the specified node with padding.
+ * 
+ * The hook is useful for scenarios where external components (e.g., chat,
+ * sidebar panels) need to programmatically focus nodes in the workflow editor.
+ * 
+ * @example
+ * ```typescript
+ * // In any component:
+ * const fitToNode = (nodeId: string) => {
+ *   window.dispatchEvent(new CustomEvent('nodetool:fit-node', {
+ *     detail: { nodeId: 'node-123' }
+ *   }));
+ * };
+ * 
+ * // Or with the full node object:
+ * window.dispatchEvent(new CustomEvent('nodetool:fit-node', {
+ *   detail: { nodeId: 'node-123', node: nodeObject }
+ * }));
+ * ```
  */
 export const useFitNodeEvent = () => {
   const findNode = useNodes((state) => state.findNode);

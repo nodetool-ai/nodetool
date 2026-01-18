@@ -23,6 +23,45 @@ interface UseNodeFocusReturn {
   getFocusedNode: () => Node<NodeData> | undefined;
 }
 
+/**
+ * Custom hook for keyboard-based node focus navigation in the workflow editor.
+ * 
+ * Provides comprehensive keyboard navigation for moving focus between nodes
+ * using Tab, Arrow keys, and Enter. Supports sequential navigation (Tab/Shift+Tab)
+ * and directional navigation (Up/Down/Left/Right). Maintains focus history
+ * for "go back" functionality.
+ * 
+ * @returns Object containing:
+ *   - focusedNodeId: ID of currently focused node or null
+ *   - isNavigationMode: Whether keyboard navigation mode is active
+ *   - focusHistory: Array of previously focused node IDs
+ *   - enterNavigationMode: Activate keyboard navigation mode
+ *   - exitNavigationMode: Deactivate keyboard navigation mode
+ *   - setFocusedNode: Programmatically set focus to a specific node
+ *   - focusNext: Move focus to next node in document order
+ *   - focusPrev: Move focus to previous node in document order
+ *   - focusUp/Down/Left/Right: Move focus in cardinal directions
+ *   - selectFocused: Select the currently focused node
+ *   - goBack: Move focus back to previously focused node
+ *   - clearFocusHistory: Clear the focus navigation history
+ *   - getFocusedNode: Get the full node object for focused node
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   focusedNodeId,
+ *   isNavigationMode,
+ *   focusNext,
+ *   focusPrev,
+ *   selectFocused
+ * } = useNodeFocus();
+ * 
+ * // Keyboard navigation is handled by the hook
+ * // Use focusNext/prev for sequential navigation
+ * // Use focusUp/Down/Left/Right for directional navigation
+ * // Press Enter to select the focused node
+ * ```
+ */
 export const useNodeFocus = (): UseNodeFocusReturn => {
   const nodes = useNodes((state) => state.nodes);
   const setNodes = useNodes((state) => state.setNodes);
