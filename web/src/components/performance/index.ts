@@ -1,0 +1,1 @@
+export { PerformanceProfilerPanel } from "./PerformanceProfilerPanel";
