@@ -1,4 +1,17 @@
 import { useCallback, useRef, useState } from "react";
+import * as monaco from "monaco-editor";
+
+// Configure Monaco loader to use local files instead of CDN
+// This must be done before importing @monaco-editor/react
+let loaderConfigured = false;
+async function configureMonacoLoader() {
+  if (loaderConfigured) {
+    return;
+  }
+  const loader = await import("@monaco-editor/loader");
+  loader.default.config({ monaco });
+  loaderConfigured = true;
+}
 
 /**
  * Monaco editor component type definition.
@@ -36,18 +49,18 @@ export type MonacoEditorResult = {
 
 /**
  * Hook for lazy-loading and managing Monaco editor instance.
- * 
+ *
  * This hook handles dynamic importing of the Monaco editor library,
  * providing lazy loading to avoid loading the heavy editor until needed.
- * 
+ *
  * @returns Object containing Monaco editor state and control functions
- * 
+ *
  * @example
  * ```typescript
  * const { MonacoEditor, loadMonacoIfNeeded, handleMonacoFormat } = useMonacoEditor();
- * 
+ *
  * useEffect(() => { loadMonacoIfNeeded(); }, [loadMonacoIfNeeded]);
- * 
+ *
  * if (!MonacoEditor) return <Loading />;
  * return <MonacoEditor value={code} language="typescript" />;
  * ```
@@ -59,20 +72,32 @@ export function useMonacoEditor(): MonacoEditorResult {
   const [monacoLoadError, setMonacoLoadError] = useState<string | null>(null);
 
   const monacoRef = useRef<any>(null);
+  // Use refs to track loading state without causing callback recreation
+  const isLoadingRef = useRef(false);
+  const isLoadedRef = useRef(false);
 
   const monacoOnMount = useCallback((editor: any) => {
     monacoRef.current = editor;
   }, []);
 
   const loadMonacoIfNeeded = useCallback(async () => {
-    if (MonacoEditor || monacoLoadError) {return;}
+    // Use refs for guards to keep callback reference stable
+    if (isLoadedRef.current || isLoadingRef.current) {
+      return;
+    }
+    isLoadingRef.current = true;
     try {
+      // Configure loader to use local monaco-editor instead of CDN
+      await configureMonacoLoader();
       const mod = await import("@monaco-editor/react");
       setMonacoEditor(() => mod.default as unknown as MonacoComponent);
+      isLoadedRef.current = true;
     } catch {
       setMonacoLoadError("Failed to load code editor");
+    } finally {
+      isLoadingRef.current = false;
     }
-  }, [MonacoEditor, monacoLoadError]);
+  }, []); // No dependencies - callback is now stable
 
   const handleMonacoFind = useCallback(() => {
     try {
@@ -102,8 +127,3 @@ export function useMonacoEditor(): MonacoEditorResult {
     handleMonacoFormat
   } as const;
 }
-
-
-
-
-
