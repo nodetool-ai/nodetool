@@ -1,6 +1,6 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { useValueCalculation, useDragHandling } from "../useNumberInput";
-import { InputProps, NumberInputState } from "../components/inputs/NumberInput";
+import { InputProps, NumberInputState } from "../../components/inputs/NumberInput";
 
 describe("useNumberInput", () => {
   describe("useValueCalculation", () => {
@@ -27,21 +27,31 @@ describe("useNumberInput", () => {
 
   describe("useDragHandling", () => {
     const createMockProps = (overrides: Partial<InputProps> = {}): InputProps => ({
+      nodeId: "test-node",
+      name: "test-input",
+      id: "test-input-id",
       min: 0,
       max: 100,
-      step: 1,
-      inputType: "int",
       value: 50,
       onChange: () => {},
       onChangeComplete: () => {},
+      inputType: "int",
       ...overrides,
     });
 
     const createMockState = (overrides: Partial<NumberInputState> = {}): NumberInputState => ({
+      isDefault: true,
       localValue: "50",
+      originalValue: 50,
+      dragStartX: 0,
+      decimalPlaces: 0,
       isDragging: false,
+      hasExceededDragThreshold: false,
+      lastClientX: 100,
+      currentDragValue: 50,
+      actualSliderWidth: 200,
       ...overrides,
-    });
+    } as NumberInputState);
 
     const createContainerRef = () => ({
       current: {
@@ -58,6 +68,7 @@ describe("useNumberInput", () => {
 
     const createDragStateRef = () => ({
       current: {
+        isDefault: true,
         isDragging: false,
         dragStartX: 0,
         currentDragValue: 50,

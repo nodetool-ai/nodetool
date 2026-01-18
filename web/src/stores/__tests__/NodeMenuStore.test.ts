@@ -2,17 +2,22 @@ import { NodeMetadata } from "../ApiTypes";
 import { useNodeMenuStore } from "../NodeMenuStore";
 
 const createMockNodeMetadata = (overrides: Partial<NodeMetadata> = {}): NodeMetadata => ({
-  type: "test_node",
-  name: "Test Node",
+  node_type: "test_node",
+  title: "Test Node",
   namespace: "test",
   description: "A test node",
-  category: "test",
-  inputs: [],
+  layout: "default",
+  properties: [],
   outputs: [],
-  default_values: {},
+  the_model_info: {},
+  recommended_models: [],
+  basic_fields: ["node_type", "title", "namespace", "description"],
+  is_dynamic: false,
+  is_streaming_output: false,
+  supports_dynamic_outputs: false,
   expose_as_tool: false,
   ...overrides,
-});
+} as NodeMetadata);
 
 describe("NodeMenuStore", () => {
   beforeEach(() => {
@@ -84,7 +89,7 @@ describe("NodeMenuStore", () => {
         isMenuOpen: true,
         searchTerm: "test",
         searchResults: [createMockNodeMetadata()],
-        groupedSearchResults: [{ category: "test", nodes: [createMockNodeMetadata()] }],
+        groupedSearchResults: [{ title: "test", nodes: [createMockNodeMetadata()] }],
         selectedPath: ["test"],
         highlightedNamespaces: ["test"],
       });
@@ -149,7 +154,7 @@ describe("NodeMenuStore", () => {
     it("moves selection down when not at end", () => {
       useNodeMenuStore.setState({
         groupedSearchResults: [
-          { category: "test", nodes: [createMockNodeMetadata(), createMockNodeMetadata({ type: "node2" })] }
+          { title: "test", nodes: [createMockNodeMetadata(), createMockNodeMetadata({ node_type: "node2" })] }
         ],
         selectedIndex: 0,
       });
@@ -161,7 +166,7 @@ describe("NodeMenuStore", () => {
     it("wraps selection to start when at end", () => {
       useNodeMenuStore.setState({
         groupedSearchResults: [
-          { category: "test", nodes: [createMockNodeMetadata(), createMockNodeMetadata({ type: "node2" })] }
+          { title: "test", nodes: [createMockNodeMetadata(), createMockNodeMetadata({ node_type: "node2" })] }
         ],
         selectedIndex: 1,
       });
@@ -173,7 +178,7 @@ describe("NodeMenuStore", () => {
     it("moves selection up when not at start", () => {
       useNodeMenuStore.setState({
         groupedSearchResults: [
-          { category: "test", nodes: [createMockNodeMetadata(), createMockNodeMetadata({ type: "node2" })] }
+          { title: "test", nodes: [createMockNodeMetadata(), createMockNodeMetadata({ node_type: "node2" })] }
         ],
         selectedIndex: 1,
       });
@@ -185,7 +190,7 @@ describe("NodeMenuStore", () => {
     it("wraps selection to end when at start", () => {
       useNodeMenuStore.setState({
         groupedSearchResults: [
-          { category: "test", nodes: [createMockNodeMetadata(), createMockNodeMetadata({ type: "node2" })] }
+          { title: "test", nodes: [createMockNodeMetadata(), createMockNodeMetadata({ node_type: "node2" })] }
         ],
         selectedIndex: 0,
       });
@@ -205,9 +210,9 @@ describe("NodeMenuStore", () => {
     });
 
     it("gets selected node", () => {
-      const node = createMockNodeMetadata({ type: "selected" });
+      const node = createMockNodeMetadata({ node_type: "selected" });
       useNodeMenuStore.setState({
-        groupedSearchResults: [{ category: "test", nodes: [node] }],
+        groupedSearchResults: [{ title: "test", nodes: [node] }],
         selectedIndex: 0,
       });
 
@@ -285,7 +290,7 @@ describe("NodeMenuStore", () => {
 
   describe("hover state", () => {
     it("sets hovered node", () => {
-      const node = createMockNodeMetadata({ type: "hovered" });
+      const node = createMockNodeMetadata({ node_type: "hovered" });
       useNodeMenuStore.getState().setHoveredNode(node);
       expect(useNodeMenuStore.getState().hoveredNode).toEqual(node);
     });

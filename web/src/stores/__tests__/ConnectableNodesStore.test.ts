@@ -2,22 +2,28 @@ import { NodeMetadata, TypeMetadata } from "../ApiTypes";
 
 describe("ConnectableNodesStore", () => {
   const createMockNodeMetadata = (overrides: Partial<NodeMetadata> = {}): NodeMetadata => ({
-    type: "test_node",
-    name: "Test Node",
+    node_type: "test_node",
+    title: "Test Node",
     namespace: "test",
     description: "A test node",
-    category: "test",
-    inputs: [],
+    layout: "default",
+    properties: [],
     outputs: [],
-    default_values: {},
+    the_model_info: {},
+    recommended_models: [],
+    basic_fields: ["node_type", "title", "namespace", "description"],
+    is_dynamic: false,
+    is_streaming_output: false,
+    supports_dynamic_outputs: false,
     ...overrides,
-  });
+  } as NodeMetadata);
 
   const createMockTypeMetadata = (overrides: Partial<TypeMetadata> = {}): TypeMetadata => ({
-    input: { type: "text", required: false },
-    output: { type: "text", required: false },
+    type: "text",
+    optional: false,
+    type_args: [],
     ...overrides,
-  });
+  } as TypeMetadata);
 
   beforeEach(() => {
     jest.resetModules();
