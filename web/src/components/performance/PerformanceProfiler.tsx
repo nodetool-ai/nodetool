@@ -82,8 +82,8 @@ interface PerformanceProfilerProps {
 }
 
 const formatDuration = (ms: number): string => {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 1000) {return `${ms}ms`;}
+  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
   const minutes = Math.floor(ms / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
   return `${minutes}m ${seconds}s`;
@@ -314,7 +314,7 @@ const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
   const getStatus = useCallback((nodeId: string): ProfilerNodeData['status'] => {
     const edgeKey = `${workflowId}:${nodeId}`;
     const edge = edges[edgeKey];
-    if (!edge) return 'pending';
+    if (!edge) {return 'pending';}
     
     switch (edge.status) {
       case 'running': return 'running';
@@ -387,10 +387,10 @@ const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
           : 0;
 
         let severity: BottleneckInfo['severity'];
-        if (percentage >= 50) severity = 'critical';
-        else if (percentage >= 30) severity = 'high';
-        else if (percentage >= 15) severity = 'medium';
-        else severity = 'low';
+        if (percentage >= 50) {severity = 'critical';}
+        else if (percentage >= 30) {severity = 'high';}
+        else if (percentage >= 15) {severity = 'medium';}
+        else {severity = 'low';}
 
         let suggestion = '';
         if (n.nodeType.includes('llm') || n.nodeType.includes('model')) {
@@ -475,7 +475,7 @@ const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
   }, [workflowId, runnerState, analyzeWorkflow]);
 
   const timelineData = useMemo(() => {
-    if (!profile) return { nodes: [], maxDuration: 1000, maxStartTime: 0 };
+    if (!profile) {return { nodes: [], maxDuration: 1000, maxStartTime: 0 };}
 
     const completedNodes = profile.nodes.filter(
       (n: ProfilerNodeData) => n.startTime !== undefined && n.duration !== undefined
