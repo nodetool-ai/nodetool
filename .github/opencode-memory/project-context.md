@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Lint Warnings and TypeCheck Fixes (2026-01-18)
+
+**What**: Fixed 10 unused variable warnings in test files and mobile typecheck failure by installing missing type definitions.
+
+**Files**: useDuplicate.test.ts, useNamespaceTree.test.ts, useNumberInput.test.ts, ConnectableNodesStore.test.ts, WorkflowActionsStore.test.ts, downloadPreviewAssets.test.ts, mobile/package.json
+
+**Impact**: All packages now pass type checking (web, electron, mobile) with zero lint warnings.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
@@ -71,11 +81,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: mobile/package.json, mobile/package-lock.json
 
 **Impact**: All packages now pass type checking (web, electron, mobile).
+
 ### Workflow Settings UI Improvements (2026-01-17)
 
 **What**: Removed "Basic Information" headline from workflow settings, added descriptions to Execution and Advanced sections.
 
 **Files**: web/src/components/workflows/WorkflowForm.tsx
+
 ### Workflow Versions Panel - Remove Pin Button (2026-01-17)
 
 **What**: Removed pin button and related functionality from workflow versions panel.
@@ -93,57 +105,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, EditorController.tsx, AssetViewer.tsx, AgentExecutionView.tsx
 
 **Impact**: Large components (684-925 lines) now only re-render when props change, improving editor performance with complex workflows.
-
-### Workspace Explorer UX Improvements (2026-01-17)
-
-**What**: Improved error and empty state messages in workspace explorer with helpful guidance and retry button.
-
-**Files**: WorkspaceSelect.tsx, WorkspacesManager.tsx, WorkspaceTree.tsx
-
-**Impact**: Users now see helpful messages instead of "Failed to load workspaces" and "No files in workspace".
-
----
-
-
-**What**: Added React.memo to 20+ large components (500+ lines each) including Welcome, SettingsMenu, Model3DViewer, WorkflowAssistantChat, GlobalChat, and more.
-
-**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, WorkflowAssistantChat.tsx, GlobalChat.tsx, and 15+ others
-
-**Impact**: Reduced unnecessary re-renders in large editor workflows. Bundle size unchanged (5.74 MB).
-
----
-
-### Performance Optimization: Handler Memoization (2026-01-17)
-
-**What**: Memoized inline handlers in NodeHeader (4), AssetTable (1), FormatButton (1), and TableActions (7) components. Added React.memo to AssetTable.
-
-**Files**: NodeHeader.tsx, AssetTable.tsx, FormatButton.tsx, TableActions.tsx
-
-**Impact**: Prevented unnecessary re-renders in high-frequency node components and asset management UI by providing stable function references.
-
----
-
-### TypeScript Type Improvements (2026-01-17)
-
-**What**: Improved TypeScript types in StatusStore and ErrorStore. Removed debug console statements from NodeMenuStore. Fixed unused variables in test files.
-
-**Files**: StatusStore.ts, ErrorStore.ts, NodeMenuStore.ts, NodeToolsSelector.test.tsx, and related components
-
-**Impact**: Better type safety while maintaining flexibility for complex objects. Removed debug logging from production code.
-
----
-
-### Performance Optimization: Inline Arrow Functions (2026-01-17)
-
-**What**: Extended inline handler memoization to 10+ additional components including color pickers, dashboard, context menus, and mini apps.
-
-**Files**: Login.tsx, GradientBuilder.tsx, SwatchPanel.tsx, HarmonyPicker.tsx, ColorPickerModal.tsx, LayoutMenu.tsx, WelcomePanel.tsx, ExamplesList.tsx, SelectionContextMenu.tsx, MiniAppResults.tsx
-
-**Impact**: Reduced re-renders in color picker, dashboard panels, context menus, and mini apps by providing stable function references.
-
----
-
-### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 
