@@ -16,8 +16,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useState } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
-import KeyboardShortcutsView from "./KeyboardShortcutsView";
-import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
+import KeyboardShortcutsGrid from "./KeyboardShortcutsGrid";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
 
 interface HelpItem {
@@ -57,15 +56,16 @@ const helpStyles = (theme: Theme) =>
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: "0.5em",
-      padding: "0em 1em",
+      padding: "0.5em 1.5em",
       borderBottom: `1px solid ${theme.vars.palette.grey[600]}`
     },
     ".content": {
-      height: "calc(100% - 40px)",
-      padding: "0 1em 2em 1em"
+      flex: 1,
+      padding: "0 1.5em 1.5em 1.5em",
+      overflow: "hidden"
     },
     ".help-tabs": {
-      margin: "0 1em 1em 1em",
+      margin: "0 1.5em 0.5em 1.5em",
       paddingTop: "0",
       lineHeight: "1.5",
       "& .MuiTabs-indicator": {
@@ -93,9 +93,10 @@ const helpStyles = (theme: Theme) =>
       }
     },
     ".tabpanel": {
-      height: "calc(100% - 40px)",
-      padding: "1em 0",
-      fontSize: "var(--fontSizeBig)"
+      height: "100%",
+      padding: "0.5em 0",
+      fontSize: "var(--fontSizeBig)",
+      overflow: "hidden"
     },
     ".tabpanel-content": {
       height: "100%",
@@ -197,15 +198,15 @@ const Help = ({
     <Dialog
       open={open}
       onClose={handleClose}
-      fullWidth
-      maxWidth="md"
+      fullScreen
+      data-testid="help-dialog"
       sx={{
         "& .MuiDialog-paper": {
-          width: "70vw",
-          minWidth: "600px",
-          maxWidth: "1000px",
-          height: "85vh",
-          margin: "auto",
+          margin: "2rem",
+          width: "calc(100vw - 4rem)",
+          height: "calc(100vh - 4rem)",
+          maxWidth: "none",
+          maxHeight: "none",
           borderRadius: (theme as any)?.rounded?.dialog ?? 2,
           border: `1px solid ${theme.vars.palette.grey[700]}`,
           backgroundColor:
@@ -228,11 +229,11 @@ const Help = ({
         }
       }}
     >
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, overflow: "hidden" }}>
         <div css={helpStyles(theme)}>
           <div className="help">
             <div className="top">
-              <Typography variant="h2">Help</Typography>
+              <Typography variant="h2">Keyboard Shortcuts</Typography>
               <CloseButton onClick={handleClose} />
             </div>
             <Tabs
@@ -241,16 +242,16 @@ const Help = ({
               onChange={handleChange}
               aria-label="help tabs"
             >
-              <Tab label="Shortcuts" id="help-tab-0" />
-              <Tab label="Keyboard" id="help-tab-1" />
+              <Tab label="All Shortcuts" id="help-tab-0" data-testid="shortcuts-tab" />
+              <Tab label="Shortcuts List" id="help-tab-1" />
               <Tab label="DataTypes" id="help-tab-2" />
             </Tabs>
             <div className="content">
               <TabPanel value={helpIndex} index={0}>
-                <ControlsShortcutsTab />
+                <KeyboardShortcutsGrid />
               </TabPanel>
               <TabPanel value={helpIndex} index={1}>
-                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+                <ControlsShortcutsTab />
               </TabPanel>
               <TabPanel value={helpIndex} index={2}>
                 <DataTypesList
