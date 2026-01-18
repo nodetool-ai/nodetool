@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Workflow Performance Profiler (2026-01-18)
+
+**What**: Added experimental workflow performance profiler to analyze bottlenecks, parallelization, and optimization suggestions.
+
+**Files**: web/src/stores/WorkflowProfilerStore.ts, web/src/hooks/useWorkflowProfiler.ts, web/src/components/node_editor/WorkflowProfiler.tsx, web/src/stores/__tests__/WorkflowProfilerStore.test.ts
+
+**Impact**: Users can now analyze their workflows for performance issues and get optimization recommendations.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
