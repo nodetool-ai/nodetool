@@ -18,6 +18,24 @@ interface SelectionActionsReturn {
   bypassSelected: () => void;
 }
 
+/**
+ * Custom hook providing selection-based node actions.
+ * 
+ * Provides alignment (left, center, right, top, middle, bottom),
+ * distribution (horizontal, vertical), and manipulation actions
+ * (delete, duplicate, group, bypass) for selected nodes.
+ * 
+ * @returns Object containing all selection action functions
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   alignLeft,
+ *   distributeHorizontal,
+ *   deleteSelected
+ * } = useSelectionActions();
+ * ```
+ */
 const NODE_WIDTH = 280;
 const HORIZONTAL_SPACING = 40;
 const VERTICAL_SPACING = 20;

@@ -35,6 +35,20 @@ interface UseSelectedNodesInfoReturn {
   hasMultipleNodes: boolean;
 }
 
+/**
+ * Custom hook for gathering information about selected nodes.
+ * 
+ * Provides detailed information for each selected node including type,
+ * connections, execution status, and error state. Used by the Node
+ * Info Panel to display node details.
+ * 
+ * @returns Object containing node info arrays and selection state
+ * 
+ * @example
+ * ```typescript
+ * const { nodesInfo, totalSelected, hasSingleNode } = useSelectedNodesInfo();
+ * ```
+ */
 const getNodeDisplayName = (
   node: Node<NodeData>,
   metadataStore: ReturnType<typeof useMetadataStore.getState>
