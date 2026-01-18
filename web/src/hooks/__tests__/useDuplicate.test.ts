@@ -154,7 +154,7 @@ describe("useDuplicateNodes", () => {
   });
 
   it("deselects original nodes", () => {
-    const selectedNodes = [
+    const _selectedNodes = [
       {
         id: "node-1",
         position: { x: 100, y: 200 },

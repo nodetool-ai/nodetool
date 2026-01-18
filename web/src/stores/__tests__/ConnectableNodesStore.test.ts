@@ -1,7 +1,7 @@
 import { NodeMetadata, TypeMetadata } from "../ApiTypes";
 
 describe("ConnectableNodesStore", () => {
-  const createMockNodeMetadata = (overrides: Partial<NodeMetadata> = {}): NodeMetadata => ({
+  const _createMockNodeMetadata = (overrides: Partial<NodeMetadata> = {}): NodeMetadata => ({
     title: "Test Node",
     node_type: "test_node",
     namespace: "test",
@@ -14,7 +14,7 @@ describe("ConnectableNodesStore", () => {
     ...overrides,
   } as NodeMetadata);
 
-  const createMockTypeMetadata = (overrides: Partial<TypeMetadata> = {}): TypeMetadata => ({
+  const _createMockTypeMetadata = (overrides: Partial<TypeMetadata> = {}): TypeMetadata => ({
     type: "text",
     optional: false,
     type_args: [],

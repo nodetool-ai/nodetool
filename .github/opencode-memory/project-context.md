@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Test Type and Lint Fixes (2026-01-18)
+
+**What**: Fixed TypeScript type errors in useDynamicOutput.test.ts and useDynamicProperty.test.ts. Fixed 10 lint warnings about unused variables across 6 test files.
+
+**Files**: web/src/hooks/nodes/__tests__/useDynamicOutput.test.ts, web/src/hooks/nodes/__tests__/useDynamicProperty.test.ts, web/src/hooks/__tests__/useDuplicate.test.ts, web/src/hooks/__tests__/useNamespaceTree.test.ts, web/src/hooks/__tests__/useNumberInput.test.ts, web/src/stores/__tests__/ConnectableNodesStore.test.ts, web/src/stores/__tests__/WorkflowActionsStore.test.ts, web/src/utils/__tests__/downloadPreviewAssets.test.ts
+
+**Impact**: All type checks and lints pass for web and electron packages.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
