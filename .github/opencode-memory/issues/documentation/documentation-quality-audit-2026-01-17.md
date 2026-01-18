@@ -72,7 +72,52 @@ Critical files with JSDoc documentation:
 
 ---
 
-### Improvements Made
+### Improvements Made (2026-01-18)
+
+**Added JSDoc documentation to 4 critical hooks**:
+
+1. **useSelectionActions.ts** - Batch node operations hook (336 lines)
+   - Added module-level documentation describing all batch operations
+   - Documented SelectionActionsReturn interface
+   - Included @example code block showing usage patterns
+   - Covers: alignLeft, alignCenter, alignRight, alignTop, alignMiddle, alignBottom, distributeHorizontal, distributeVertical, deleteSelected, duplicateSelected, groupSelected, bypassSelected
+
+2. **useNodeFocus.ts** - Keyboard navigation hook (119 lines)
+   - Added comprehensive module documentation for keyboard navigation
+   - Documented UseNodeFocusReturn interface with all navigation functions
+   - Included @example showing navigation mode, directional navigation, and focus history usage
+   - Covers: Tab/Shift+Tab navigation, Alt+Arrow directional navigation, focus history, go back functionality
+
+3. **useFocusPan.ts** - Viewport panning hook (54 lines)
+   - Replaced minimal inline comment with full JSDoc documentation
+   - Documented keyboard navigation detection and automatic panning behavior
+   - Included @example showing hook usage with node onFocus handler
+
+4. **useSurroundWithGroup.ts** - Node grouping hook (112 lines)
+   - Added module-level documentation for grouping functionality
+   - Documented bounding box calculation and group node creation
+   - Included @example showing how to group selected nodes
+
+All documentation follows established patterns:
+- Module-level description explaining hook purpose
+- @param tags for all parameters
+- @returns tag describing return value
+- @example code block with working TypeScript examples
+
+**Files Updated**:
+- `web/src/hooks/useSelectionActions.ts`
+- `web/src/hooks/useNodeFocus.ts`
+- `web/src/hooks/useFocusPan.ts`
+- `web/src/hooks/nodes/useSurroundWithGroup.ts`
+
+**Verification**:
+- ✅ TypeScript compilation: No errors on modified files
+- ✅ ESLint: No warnings on modified files
+- ✅ All documentation follows established JSDoc patterns
+
+---
+
+### Previous Improvements (2026-01-17)
 
 **Added JSDoc documentation to `useAlignNodes.ts`**:
 - Added module-level documentation
@@ -88,26 +133,6 @@ Critical files with JSDoc documentation:
 4. **useHuggingFaceModels.ts** - HuggingFace model fetching
 5. **useRecommendedModels.ts** - Curated model recommendations
 6. **useFindInWorkflow.ts** - Workflow search functionality
-
-All documentation follows established patterns:
-- Module-level description explaining hook purpose
-- @param tags for all parameters
-- @returns tag describing return value
-- @example code block with working TypeScript examples
-
-**Files Updated**:
-- `web/src/hooks/useAlignNodes.ts`
-- `web/src/hooks/useIsDarkMode.ts`
-- `web/src/hooks/useSecrets.ts`
-- `web/src/hooks/useOllamaModels.ts`
-- `web/src/hooks/useHuggingFaceModels.ts`
-- `web/src/hooks/useRecommendedModels.ts`
-- `web/src/hooks/useFindInWorkflow.ts`
-
-**Verification**:
-- ✅ TypeScript compilation: No errors on modified files
-- ✅ ESLint: No warnings on modified files
-- ✅ All documentation follows established JSDoc patterns
 
 ---
 
