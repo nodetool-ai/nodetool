@@ -27,6 +27,7 @@ Last updated: 2026-01-17
 - **Viewport Status Indicator**: Real-time zoom percentage with zoom presets (25%-200%), zoom in/out buttons, and fit view
 - **Zoom Presets**: Quick access to common zoom levels (25%, 50%, 75%, 100%, 150%, 200%) via dropdown menu and keyboard shortcuts
 - **Minimap**: Overview minimap for workflow navigation
+- **Node Color Coding**: Assign custom colors to nodes for visual organization with color picker in node header
 - **Multi-Select**: Select and manipulate multiple nodes simultaneously
 - **Copy/Paste**: Copy and paste nodes within and across workflows
 - **Find in Workflow**: Search for nodes by name, type, or properties

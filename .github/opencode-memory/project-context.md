@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Node Color Coding Feature (2026-01-18)
+
+**What**: Added custom color assignment to nodes with color indicator in header and color picker for visual organization.
+
+**Files**: web/src/components/node/BaseNode.tsx, web/src/components/node/NodeHeader.tsx
+
+**Impact**: Users can now assign custom colors to nodes for better visual organization of workflows.
+
+---
+
 ### Mobile TypeScript Type Definitions Fix (2026-01-17)
 
 **What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
