@@ -499,7 +499,7 @@ const PanelContent = memo(function PanelContent({
           sx={{
             width: "100%",
             height: "100%",
-            overflow: "auto",
+            overflow: "hidden",
             margin: "10px 0"
           }}
         >
