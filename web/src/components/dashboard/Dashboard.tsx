@@ -6,7 +6,8 @@ import React, {
   useState,
   useEffect,
   useMemo,
-  useRef
+  useRef,
+  memo
 } from "react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -68,7 +69,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC = memo(() => {
   const theme = useTheme();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
@@ -483,6 +484,7 @@ const Dashboard: React.FC = () => {
       </Box>
     </Box>
   );
-};
+});
 
+Dashboard.displayName = "Dashboard";
 export default Dashboard;

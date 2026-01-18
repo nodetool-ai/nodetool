@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization: Component Memoization (2026-01-18)
+
+**What**: Added React.memo to 3 large components (Dashboard, Terminal, NodeExplorer) and memoized 10+ inline handlers across 5 components to prevent unnecessary re-renders.
+
+**Files**: Dashboard.tsx, Terminal.tsx, NodeExplorer.tsx, ImageEditorToolbar.tsx, PanelLeft.tsx
+
+**Impact**: Reduced re-renders in large editor workflows. Build verified at 5.77 MB.
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
