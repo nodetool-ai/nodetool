@@ -50,9 +50,15 @@ const store = useNodeStore();  // ❌ causes re-renders
 > Add ONE concise entry here for significant changes. Format:
 >/Fix Name ( ```
 > ### FeatureYYYY-MM-DD)
-> **What**: One sentence
+> **What**: One line
 > **Files**: Main files changed
 > ```
+
+### Workflow Performance Profiler Research (2026-01-18)
+
+**What**: Implemented experimental workflow performance profiler for analyzing structure, complexity, and bottlenecks.
+
+**Files**: WorkflowProfilerStore.ts, useWorkflowProfiler.ts, WorkflowProfilerPanel.tsx, docs/research/WORKFLOW_PROFILER.md
 
 ### Debug Console Statement Removal (2026-01-17)
 
