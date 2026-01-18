@@ -233,6 +233,7 @@ Last updated: 2026-01-17
 - **Status Messages**: Display status updates to users
 - **Notifications**: Toast notifications for user actions
 - **Terminal Component**: Terminal-style log viewer
+- **Workflow Performance Profiler** (Experimental): Analyzes execution timing, identifies bottlenecks, and suggests optimizations
 
 ### Data Structures
 - **Graph Nodes**: Custom node data structures
@@ -290,7 +291,6 @@ Last updated: 2026-01-17
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
