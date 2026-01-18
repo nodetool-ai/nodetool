@@ -354,7 +354,26 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     []
   );
 
-  const isScrollable = isContentFocused && result !== undefined;
+  const isSingleImageOrVideo = useMemo(() => {
+    if (result === null || result === undefined) {
+      return false;
+    }
+    const checkType = (item: any): boolean => {
+      if (item && typeof item === "object" && "type" in item) {
+        const t = item.type;
+        return t === "image" || t === "video";
+      }
+      return false;
+    };
+    // Only consider it "single" if it's not an array or array with 1 item
+    if (Array.isArray(result)) {
+      return result.length === 1 && checkType(result[0]);
+    }
+    return checkType(result);
+  }, [result]);
+
+  const isScrollable =
+    isContentFocused && result !== undefined && !isSingleImageOrVideo;
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 
