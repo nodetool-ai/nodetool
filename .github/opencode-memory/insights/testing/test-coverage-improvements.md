@@ -756,3 +756,96 @@ it("falls back to URI when createAssetFile fails", async () => {
 6. Reset store state in `beforeEach` for test isolation
 
 **Status**: All 92 tests passing (210 test suites, 2693 tests total)
+
+---
+
+### Test Coverage Improvement (2026-01-18)
+
+**Coverage Added**: 2 new test files with 17 tests for critical hooks
+
+**Tests Added**:
+- `useChatService.test.ts` - 11 tests for chat service interface
+- `useCreateNode.test.ts` - 6 tests for node creation hook
+
+**Areas Covered**:
+- Chat service state (status, progress, statusMessage)
+- Chat service functions (sendMessage, onNewThread, onSelectThread, deleteThread)
+- Thread preview generation
+- Planning and task updates
+- Node creation with position handling (clickPosition vs centerPosition)
+- Coordinate transformation (screenToFlowPosition)
+- Recent node tracking
+- Node menu management
+
+**Test Patterns Used**:
+
+1. **Chat Service Hook Testing with Zustand Selectors**:
+```typescript
+const mockState = {
+  status: "connected",
+  sendMessage: jest.fn(),
+  // ... other state properties
+};
+
+jest.mock("../../stores/GlobalChatStore", () => ({
+  __esModule: true,
+  default: (selector: (state: any) => any) => selector(mockState),
+}));
+
+describe("useChatService", () => {
+  it("returns chat status from store", () => {
+    const { result } = renderHook(() => useChatService({ id: "model-1", type: "openai" }));
+    expect(result.current.status).toBe("connected");
+  });
+});
+```
+
+2. **Node Creation Hook Testing with Multiple Dependencies**:
+```typescript
+const mockScreenToFlowPosition = jest.fn((pos: any) => ({ x: pos.x, y: pos.y }));
+
+jest.mock("@xyflow/react", () => ({
+  useReactFlow: () => ({
+    screenToFlowPosition: mockScreenToFlowPosition,
+  }),
+}));
+
+describe("useCreateNode", () => {
+  it("calls screenToFlowPosition with clickPosition when no centerPosition", () => {
+    const { result } = renderHook(() => useCreateNode());
+    const mockMetadata = { node_type: "test-node", name: "Test Node" };
+    
+    act(() => {
+      result.current(mockMetadata);
+    });
+    
+    expect(mockScreenToFlowPosition).toHaveBeenCalledWith({ x: 100, y: 200 });
+  });
+});
+```
+
+3. **State Selector Pattern for Complex Hooks**:
+```typescript
+// Mock stores that use selector functions
+jest.mock("../../stores/NodeMenuStore", () => ({
+  __esModule: true,
+  default: (selector: (state: any) => any) => selector(mockNodeMenuState),
+}));
+
+jest.mock("../../stores/RecentNodesStore", () => ({
+  useRecentNodesStore: (selector: (state: any) => any) => selector(mockRecentNodesState),
+}));
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/useChatService.test.ts`
+- `web/src/hooks/__tests__/useCreateNode.test.ts`
+
+**Key Learnings**:
+1. Zustand store mocks must call the selector function with the state object
+2. Mock external dependencies (ReactFlow, react-router) at the module level
+3. Use `act()` for any state updates triggered by hook callbacks
+4. Clear mocks in `beforeEach` to ensure test isolation
+5. Test both success and error paths for complex hooks
+
+**Status**: All 17 tests passing (222 test suites, 2912 tests total)
