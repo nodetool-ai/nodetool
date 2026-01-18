@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Test File TypeScript Fixes (2026-01-18)
+
+**What**: Fixed TypeScript errors in 8 test files by correcting mock types, property names, and import paths.
+
+**Files**: useCollectionDragAndDrop.test.ts, useDuplicate.test.ts, useNodeFocus.test.ts, useNumberInput.test.ts, checkHfCache.test.ts, ConnectableNodesStore.test.ts, NodeMenuStore.test.ts, graphNodeToReactFlowNode.test.ts
+
+**Impact**: All quality checks now pass (typecheck, lint, tests).
+
+---
+
 ### Debug Console Statement Removal (2026-01-17)
 
 **What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).

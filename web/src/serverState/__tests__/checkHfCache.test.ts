@@ -1,4 +1,4 @@
-import { checkHfCache } from "../checkHfCache";
+import { checkHfCache, HfCacheCheckResponse } from "../checkHfCache";
 
 global.fetch = jest.fn();
 
