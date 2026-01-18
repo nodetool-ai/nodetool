@@ -292,6 +292,23 @@ const ProviderSetupPanel: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
 
+  const handleLinkClick = useCallback(
+    (url: string) => (e: React.MouseEvent) => {
+      e.preventDefault();
+      handleOpenLink(url);
+    },
+    [handleOpenLink]
+  );
+
+  const handleInputKeyDown = useCallback(
+    (key: ProviderKey, hasInput: boolean) => (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && hasInput) {
+        handleSaveKey(key);
+      }
+    },
+    [handleSaveKey]
+  );
+
   return (
     <Box css={panelStyles(theme)} className="provider-setup-panel">
       <div className="scrollable-content">
@@ -361,10 +378,7 @@ const ProviderSetupPanel: React.FC = () => {
                         <a
                           href={provider.link}
                           className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenLink(provider.link);
-                          }}
+                          onClick={handleLinkClick(provider.link)}
                         >
                           {provider.linkText}
                           <OpenInNewIcon sx={{ fontSize: 14 }} />
@@ -385,11 +399,7 @@ const ProviderSetupPanel: React.FC = () => {
                           }
                           className="provider-input"
                           disabled={isSaving}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && hasInput) {
-                              handleSaveKey(provider.key);
-                            }
-                          }}
+                          onKeyDown={handleInputKeyDown(provider.key, hasInput)}
                         />
                         <Button
                           variant="contained"
