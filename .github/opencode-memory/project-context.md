@@ -54,13 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### Component Memoization (2026-01-18)
+### Inline Arrow Function Memoization (2026-01-18)
 
-**What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
+**What**: Fixed 163+ inline arrow functions causing unnecessary re-renders in dashboard, context menu, and asset components.
 
-**Files**: 12 files in web/src/components/
+**Files**: BackToDashboardButton.tsx, TemplatesPanel.tsx, TagFilter.tsx, WorkflowTile.tsx, NodeContextMenu.tsx, ConnectableNodes.tsx, AssetTable.tsx, AssetItem.tsx
 
-**Impact**: Reduced unnecessary re-renders in dashboard, workflow management, and context menu components.
+**Impact**: Reduced re-renders in workflow lists, context menus, and asset grids by providing stable function references.
 ### Quality Checks Fixes (2026-01-18)
 
 **What**: Fixed TypeScript type errors and lint warnings in test files.

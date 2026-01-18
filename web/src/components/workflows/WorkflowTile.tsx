@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
@@ -22,7 +22,7 @@ interface WorkflowTileProps {
 }
 
 const addBreaks = (text: string) => {
-  return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
+  return escapeHtml(text).replace(/([-_.])/g, "$1<br>");
 };
 
 export const WorkflowTile = ({
@@ -37,10 +37,29 @@ export const WorkflowTile = ({
 }: WorkflowTileProps) => {
   const settings = useSettingsStore((state) => state.settings);
 
+  const handleDoubleClick = useCallback(() => {
+    onDoubleClickWorkflow(workflow);
+  }, [onDoubleClickWorkflow, workflow]);
+
+  const handleClick = useCallback(() => {
+    onSelect(workflow);
+  }, [onSelect, workflow]);
+
+  const handleOpenClick = useCallback(() => {
+    onClickOpen(workflow);
+  }, [onClickOpen, workflow]);
+
+  const handleDuplicateClick = useCallback(
+    (event: React.MouseEvent) => {
+      onDuplicateWorkflow(event, workflow);
+    },
+    [onDuplicateWorkflow, workflow]
+  );
+
   return (
     <Box
-      onDoubleClick={() => onDoubleClickWorkflow(workflow)}
-      onClick={() => onSelect(workflow)}
+      onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
       className={`workflow grid${isSelected ? " selected" : ""}`}
       sx={{ display: "flex", flexDirection: "column" }}
     >
@@ -78,7 +97,7 @@ export const WorkflowTile = ({
           size="small"
           className="open-button"
           color="primary"
-          onClick={() => onClickOpen(workflow)}
+          onClick={handleOpenClick}
         >
           Open
         </Button>
@@ -92,7 +111,7 @@ export const WorkflowTile = ({
               <Button
                 size="small"
                 color="primary"
-                onClick={(event) => onDuplicateWorkflow(event, workflow)}
+                onClick={handleDuplicateClick}
               >
                 Duplicate
               </Button>

@@ -5,7 +5,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-import { useMemo } from "react";
+import { useMemo, useCallback, memo } from "react";
 
 interface TagFilterProps {
   tags: Record<string, Workflow[]>;
@@ -21,6 +21,21 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
     [tags]
   );
 
+  const handleGettingStartedClick = useCallback(() => {
+    onSelectTag("getting-started");
+  }, [onSelectTag]);
+
+  const handleShowAllClick = useCallback(() => {
+    onSelectTag(null);
+  }, [onSelectTag]);
+
+  const handleTagClick = useCallback(
+    (tag: string) => () => {
+      onSelectTag(tag);
+    },
+    [onSelectTag]
+  );
+
   return (
     <Box className="tag-menu">
       <div className="button-row">
@@ -30,7 +45,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
           <Button
-            onClick={() => onSelectTag("getting-started")}
+            onClick={handleGettingStartedClick}
             variant="outlined"
             className={selectedTag === "getting-started" ? "selected" : ""}
           >
@@ -45,7 +60,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
               <Button
-                onClick={() => onSelectTag(tag)}
+                onClick={handleTagClick(tag)}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
               >
@@ -59,7 +74,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
           <Button
-            onClick={() => onSelectTag(null)}
+            onClick={handleShowAllClick}
             className={selectedTag === null ? "selected" : ""}
           >
             SHOW ALL
@@ -70,4 +85,4 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
   );
 };
 
-export default TagFilter;
+export default memo(TagFilter);

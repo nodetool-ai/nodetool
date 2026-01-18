@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo } from "react";
+import React, { memo, useMemo, useCallback } from "react";
 import { ButtonGroup, Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
@@ -325,6 +325,18 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     [asset?.content_type, asset?.name]
   );
 
+  const handleItemClick = useCallback(() => {
+    handleClick(onSelect, onClickParent, isParent);
+  }, [handleClick, onSelect, onClickParent, isParent]);
+
+  const handleDeleteClick = useCallback(() => {
+    handleDelete();
+  }, [handleDelete]);
+
+  const handleAudioClick = useCallback(() => {
+    onSetCurrentAudioAsset?.(asset);
+  }, [onSetCurrentAudioAsset, asset]);
+
   const result = (
     <div
       css={styles(theme)}
@@ -344,7 +356,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           onDoubleClick(asset);
         }
       }}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
+      onClick={handleItemClick}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -353,7 +365,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <DeleteButton<Asset>
             className="asset-delete"
             item={asset}
-            onClick={() => handleDelete()}
+            onClick={handleDeleteClick}
           />
         </ButtonGroup>
       )}
@@ -392,7 +404,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
-              onClick={() => onSetCurrentAudioAsset?.(asset)}
+              onClick={handleAudioClick}
               className="placeholder"
               titleAccess={asset.content_type || "Audio file"}
             />
