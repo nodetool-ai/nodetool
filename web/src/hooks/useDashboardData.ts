@@ -22,6 +22,28 @@ const loadWorkflows = async () => {
   return data;
 };
 
+/**
+ * Hook for loading dashboard data including workflows and templates.
+ * 
+ * Fetches the user's workflows and available templates from the API,
+ * then derives sorted workflows based on user settings and identifies
+ * start/getting-started templates for onboarding.
+ * 
+ * @returns Dashboard data including loading states and derived lists
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isLoadingWorkflows, 
+ *   sortedWorkflows,
+ *   isLoadingTemplates,
+ *   startTemplates 
+ * } = useDashboardData();
+ * 
+ * // Display in UI
+ * {isLoadingWorkflows ? <Loading /> : <WorkflowList workflows={sortedWorkflows} />}
+ * ```
+ */
 export const useDashboardData = () => {
   const settings = useSettingsStore((state) => state.settings);
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
@@ -60,9 +82,13 @@ export const useDashboardData = () => {
   }, [workflowsData, settings.workflowOrder]);
 
   return {
+    /** Whether workflows are currently loading */
     isLoadingWorkflows,
+    /** Workflows sorted according to user settings */
     sortedWorkflows,
+    /** Whether templates are currently loading */
     isLoadingTemplates,
+    /** Templates tagged with "start" or "getting-started" for onboarding */
     startTemplates
   };
 };

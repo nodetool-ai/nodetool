@@ -18,6 +18,35 @@ interface IndexResponseData {
   error?: string | null;
 }
 
+/**
+ * Hook for managing drag-and-drop operations in asset collections.
+ * 
+ * Handles file drops onto collections, uploads files to the server,
+ * and tracks indexing progress and errors for each file.
+ * 
+ * @returns Object containing drag state, progress tracking, and handlers
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   dragOverCollection, 
+ *   indexProgress, 
+ *   indexErrors,
+ *   handleDrop,
+ *   handleDragOver,
+ *   handleDragLeave 
+ * } = useCollectionDragAndDrop();
+ * 
+ * // Use in a collection drop zone
+ * <div 
+ *   onDragOver={(e) => handleDragOver(e, "my-collection")}
+ *   onDragLeave={handleDragLeave}
+ *   onDrop={handleDrop("my-collection")}
+ * >
+ *   Drop files here
+ * </div>
+ * ```
+ */
 export const useCollectionDragAndDrop = () => {
   const queryClient = useQueryClient();
   const [dragOverCollection, setDragOverCollection] = useState<string | null>(
@@ -128,12 +157,19 @@ export const useCollectionDragAndDrop = () => {
   }, []);
 
   return {
+    /** The currently hovered collection name, or null if no collection is being hovered */
     dragOverCollection,
+    /** Progress information for the current indexing operation */
     indexProgress,
+    /** Array of errors that occurred during indexing */
     indexErrors,
+    /** Function to clear the index errors array */
     setIndexErrors,
+    /** Handler for dropping files onto a collection */
     handleDrop,
+    /** Handler for drag over events on a collection */
     handleDragOver,
+    /** Handler for drag leave events */
     handleDragLeave
   };
 };

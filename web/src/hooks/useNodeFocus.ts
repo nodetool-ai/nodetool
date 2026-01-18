@@ -23,6 +23,38 @@ interface UseNodeFocusReturn {
   getFocusedNode: () => Node<NodeData> | undefined;
 }
 
+/**
+ * Hook for keyboard navigation in the node editor.
+ * 
+ * Manages focus state for nodes, enabling keyboard-only navigation
+ * between nodes using Tab, arrow keys, and other shortcuts.
+ * Supports navigation history for "go back" functionality.
+ * 
+ * @returns Object containing focus state and navigation functions
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   focusedNodeId,
+ *   isNavigationMode,
+ *   focusNext,
+ *   focusPrev,
+ *   focusUp,
+ *   focusDown,
+ *   selectFocused,
+ *   goBack
+ * } = useNodeFocus();
+ * 
+ * // Navigate to next node
+ * focusNext();
+ * 
+ * // Select the currently focused node
+ * selectFocused();
+ * 
+ * // Go back to previously focused node
+ * goBack();
+ * ```
+ */
 export const useNodeFocus = (): UseNodeFocusReturn => {
   const nodes = useNodes((state) => state.nodes);
   const setNodes = useNodes((state) => state.setNodes);
@@ -98,21 +130,37 @@ export const useNodeFocus = (): UseNodeFocusReturn => {
   }, [nodes, focusedNodeId]);
 
   return {
+    /** The ID of the currently focused node, or null if no node is focused */
     focusedNodeId,
+    /** Whether keyboard navigation mode is active */
     isNavigationMode,
+    /** Array of node IDs representing the navigation history */
     focusHistory,
+    /** Enable keyboard navigation mode */
     enterNavigationMode,
+    /** Disable keyboard navigation mode */
     exitNavigationMode,
+    /** Set the focused node by ID */
     setFocusedNode: setFocusedNodeStore,
+    /** Focus the next node in the node list */
     focusNext,
+    /** Focus the previous node in the node list */
     focusPrev,
+    /** Focus the node above the current one */
     focusUp,
+    /** Focus the node below the current one */
     focusDown,
+    /** Focus the node to the left of the current one */
     focusLeft,
+    /** Focus the node to the right of the current one */
     focusRight,
+    /** Select the focused node (marks it as selected) */
     selectFocused,
+    /** Navigate back to the previously focused node */
     goBack,
+    /** Clear the focus history */
     clearFocusHistory: clearFocusHistoryStore,
+    /** Get the full node object for the currently focused node */
     getFocusedNode
   };
 };

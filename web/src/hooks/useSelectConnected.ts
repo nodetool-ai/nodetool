@@ -13,6 +13,31 @@ interface SelectConnectedResult {
   connectedNodeCount: number;
 }
 
+/**
+ * Hook for selecting nodes connected to the currently selected nodes.
+ * 
+ * Traverses the graph upstream, downstream, or both directions to find
+ * all nodes connected to the currently selected nodes. Useful for
+ * batch operations on connected subgraphs.
+ * 
+ * @param options - Configuration for traversal direction
+ * @returns Object containing selection and traversal functions
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   selectConnected,
+ *   getConnectedNodeIds,
+ *   connectedNodeCount
+ * } = useSelectConnected({ direction: "downstream" });
+ * 
+ * // Select all downstream nodes
+ * selectConnected();
+ * 
+ * // Get count of connected nodes
+ * console.log(`Connected: ${connectedNodeCount}`);
+ * ```
+ */
 export const useSelectConnected = (
   options: UseSelectConnectedOptions = {}
 ): SelectConnectedResult => {
@@ -97,8 +122,11 @@ export const useSelectConnected = (
   }, [getSelectedNodes, getConnectedNodeIds, nodes, setSelectedNodes]);
 
   return {
+    /** Select all connected nodes in addition to currently selected nodes */
     selectConnected,
+    /** Get an array of node IDs that are connected to selected nodes */
     getConnectedNodeIds,
+    /** The count of nodes connected to the selected nodes */
     connectedNodeCount
   };
 };

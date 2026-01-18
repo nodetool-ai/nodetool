@@ -1,5 +1,31 @@
 import { useCallback, useRef } from "react";
 
+/**
+ * Hook for implementing delayed hover behavior.
+ * 
+ * Useful for tooltips, dropdowns, and other UI elements that should
+ * not appear immediately on mouse enter. Delays the callback execution
+ * by the specified delay duration.
+ * 
+ * @param callback - Function to call after the delay
+ * @param delay - Delay in milliseconds before callback is invoked
+ * @returns Event handlers for mouse enter and leave
+ * 
+ * @example
+ * ```typescript
+ * const { handleMouseEnter, handleMouseLeave } = useDelayedHover(
+ *   () => setTooltipVisible(true),
+ *   300  // 300ms delay
+ * );
+ * 
+ * <div 
+ *   onMouseEnter={handleMouseEnter}
+ *   onMouseLeave={handleMouseLeave}
+ * >
+ *   Hover for tooltip
+ * </div>
+ * ```
+ */
 export function useDelayedHover(callback: () => void, delay: number) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const callbackRef = useRef(callback);
@@ -18,5 +44,10 @@ export function useDelayedHover(callback: () => void, delay: number) {
     }
   }, []);
 
-  return { handleMouseEnter, handleMouseLeave };
+  return { 
+    /** Handler to call on mouse enter - triggers delayed callback */
+    handleMouseEnter, 
+    /** Handler to call on mouse leave - clears pending timer */
+    handleMouseLeave 
+  };
 }
