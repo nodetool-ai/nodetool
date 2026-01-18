@@ -54,19 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### Debug Console Statement Removal (2026-01-17)
+### Test File TypeScript Errors Fix (2026-01-18)
 
-**What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
+**What**: Fixed TypeScript type errors in 8 test files to make typecheck pass.
 
-**Files**: web/src/components/version/VersionHistoryPanel.tsx, web/src/components/node/image_editor/ImageEditorModal.tsx, web/src/components/node/image_editor/ImageEditorCanvas.tsx, web/src/components/chat/message/MessageContentRenderer.tsx, web/src/components/node_menu/NodeMenu.tsx, web/src/lib/websocket/GlobalWebSocketManager.ts
+**Files**: web/src/hooks/__tests__/useCollectionDragAndDrop.test.ts, useDuplicate.test.ts, useNodeFocus.test.ts, useNumberInput.test.ts, web/src/serverState/__tests__/checkHfCache.test.ts, web/src/stores/__tests__/ConnectableNodesStore.test.ts, NodeMenuStore.test.ts, graphNodeToReactFlowNode.test.ts
 
-**Impact**: Cleaned up development debug statements from production code.
-
----
-
-### Mobile TypeScript Type Definitions Fix (2026-01-17)
-
-**What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
+**Impact**: All web package tests pass, typecheck passes for web and electron packages.
 
 **Files**: mobile/package.json, mobile/package-lock.json
 

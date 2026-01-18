@@ -8,11 +8,12 @@ import { Workflow, Node as GraphNode } from "../ApiTypes";
 import { DEFAULT_NODE_WIDTH } from "../NodeStore";
 
 describe("graphNodeToReactFlowNode", () => {
-  const createMockWorkflow = (): Workflow => ({
-    id: "workflow-123",
-    name: "Test Workflow",
-    graph: { nodes: [], edges: [] },
-    engine: "mem",
+  const createMockWorkflow = (overrides: Partial<Workflow> = {}): Workflow => ({
+    id: overrides.id ?? "workflow-123",
+    name: overrides.name ?? "Test Workflow",
+    access: overrides.access ?? "private",
+    graph: overrides.graph ?? { nodes: [], edges: [] },
+    ...overrides,
   } as unknown as Workflow);
 
   const createMockGraphNode = (overrides: Partial<GraphNode> = {}): GraphNode => ({

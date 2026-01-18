@@ -34,7 +34,7 @@ describe("useNodeFocus", () => {
       }
       return { nodes: mockNodes, setNodes: mockSetNodes };
     });
-    (useNodeFocusStore as jest.Mock).mockImplementation((selector) => {
+    (useNodeFocusStore as unknown as jest.Mock).mockImplementation((selector) => {
       if (typeof selector === "function") {
         return selector(mockFocusStore);
       }
@@ -136,7 +136,7 @@ describe("useNodeFocus", () => {
   });
 
   it("selects the focused node", () => {
-    mockFocusStore.focusedNodeId = "node-2";
+    (mockFocusStore as { focusedNodeId: string | null }).focusedNodeId = "node-2";
 
     const { result } = renderHook(() => useNodeFocus());
     act(() => {
@@ -144,7 +144,7 @@ describe("useNodeFocus", () => {
     });
 
     expect(mockSetNodes).toHaveBeenCalledWith(
-      mockNodes.map((node: any) => ({
+      mockNodes.map((node: { id: string }) => ({
         ...node,
         selected: node.id === "node-2",
       }))
@@ -152,7 +152,7 @@ describe("useNodeFocus", () => {
   });
 
   it("does not update nodes when no focused node", () => {
-    mockFocusStore.focusedNodeId = null;
+    (mockFocusStore as { focusedNodeId: string | null }).focusedNodeId = null;
 
     const { result } = renderHook(() => useNodeFocus());
     act(() => {
@@ -163,7 +163,7 @@ describe("useNodeFocus", () => {
   });
 
   it("goes back in focus history", () => {
-    mockFocusStore.focusHistory = ["node-1", "node-2", "node-3"];
+    (mockFocusStore as { focusHistory: string[] }).focusHistory = ["node-1", "node-2", "node-3"];
 
     const { result } = renderHook(() => useNodeFocus());
     act(() => {
@@ -174,7 +174,7 @@ describe("useNodeFocus", () => {
   });
 
   it("does nothing when history has one item", () => {
-    mockFocusStore.focusHistory = ["node-1"];
+    (mockFocusStore as { focusHistory: string[] }).focusHistory = ["node-1"];
 
     const { result } = renderHook(() => useNodeFocus());
     act(() => {
@@ -185,7 +185,7 @@ describe("useNodeFocus", () => {
   });
 
   it("does nothing when history is empty", () => {
-    mockFocusStore.focusHistory = [];
+    (mockFocusStore as { focusHistory: string[] }).focusHistory = [];
 
     const { result } = renderHook(() => useNodeFocus());
     act(() => {
@@ -204,30 +204,30 @@ describe("useNodeFocus", () => {
   });
 
   it("returns undefined when no focused node", () => {
-    mockFocusStore.focusedNodeId = null;
+    (mockFocusStore as { focusedNodeId: string | null }).focusedNodeId = null;
 
     const { result } = renderHook(() => useNodeFocus());
     expect(result.current.getFocusedNode()).toBeUndefined();
   });
 
   it("returns the focused node when found", () => {
-    mockFocusStore.focusedNodeId = "node-2";
+    (mockFocusStore as { focusedNodeId: string | null }).focusedNodeId = "node-2";
 
     const { result } = renderHook(() => useNodeFocus());
     expect(result.current.getFocusedNode()).toEqual(mockNodes[1]);
   });
 
   it("returns undefined when focused node not found in nodes", () => {
-    mockFocusStore.focusedNodeId = "non-existent";
+    (mockFocusStore as { focusedNodeId: string | null }).focusedNodeId = "non-existent";
 
     const { result } = renderHook(() => useNodeFocus());
     expect(result.current.getFocusedNode()).toBeUndefined();
   });
 
   it("returns state from store", () => {
-    mockFocusStore.focusedNodeId = "node-1";
+    (mockFocusStore as { focusedNodeId: string | null }).focusedNodeId = "node-1";
     mockFocusStore.isNavigationMode = true;
-    mockFocusStore.focusHistory = ["node-1", "node-2"];
+    (mockFocusStore as { focusHistory: string[] }).focusHistory = ["node-1", "node-2"];
 
     const { result } = renderHook(() => useNodeFocus());
 
