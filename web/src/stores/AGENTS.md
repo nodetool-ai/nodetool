@@ -23,12 +23,17 @@ This guide helps AI agents understand the state management stores in NodeTool's 
 
 - `AppHeaderStore.ts`: Manages the application header state
 - `PanelStore.ts`: Controls panel visibility and dimensions
+- `BottomPanelStore.ts`: Manages bottom panel state (logs, results, terminal)
+- `RightPanelStore.ts`: Manages right panel state (inspector, assistant)
 - `ContextMenuStore.ts`: Manages context menu visibility and position
 - `KeyPressedStore.ts`: Tracks keyboard input state
 - `StatusStore.ts`: Manages application status messages
 - `NotificationStore.ts`: Handles notification system
 - `SettingsStore.ts`: Application settings and preferences
 - `RemoteSettingStore.ts`: Remote settings synchronization
+- `LayoutStore.ts`: Manages dockview layout persistence
+- `GettingStartedStore.ts`: Manages getting started screen state
+- `FindInWorkflowStore.ts`: Manages find in workflow search state
 
 ### Assets Management
 
@@ -42,15 +47,33 @@ This guide helps AI agents understand the state management stores in NodeTool's 
 - `NodeStore.ts`: Central store for node graph state
 - `NodeData.ts`: Data structures for node types and properties
 - `NodeMenuStore.ts`: Controls node selection menu state
+- `NodeFocusStore.ts`: Manages keyboard navigation focus state (Tab/Arrow key navigation)
+- `NodePlacementStore.ts`: Manages node placement state and collision avoidance
 - `ConnectableNodesStore.ts`: Manages node connection possibilities
 - `ConnectionStore.ts`: Handles node connections and edges
 - `ResultsStore.ts`: Stores node execution results
 - `WorkflowRunner.ts`: Controls workflow execution
+- `WorkflowManagerStore.ts`: Manages workflow context and multiple open workflows
+- `WorkflowActionsStore.ts`: Provides workflow action handlers (create, open, save, delete)
+- `WorkflowListViewStore.ts`: Manages workflow list view state
+- `VersionHistoryStore.ts`: Manages workflow version history
+- `ExecutionTimeStore.ts`: Tracks node execution timing for performance monitoring
+- `MiniAppsStore.ts`: Manages mini app state and workflows
+- `MiniMapStore.ts`: Manages minimap visibility and state
+- `FavoriteNodesStore.ts`: Manages favorite nodes for quick access
+- `FavoriteWorkflowsStore.ts`: Manages favorite workflows
+- `RecentNodesStore.ts`: Tracks recently used nodes
+- `InspectedNodeStore.ts`: Manages inspected node state
 
 ### Model Management
 
 - `ModelStore.ts`: Manages AI model definitions and state
 - `ModelDownloadStore.ts`: Handles model download operations
+- `ModelManagerStore.ts`: Manages model manager UI state
+- `ModelMenuStore.ts`: Manages model selection menu state
+- `ModelFiltersStore.ts`: Manages model filtering options
+- `ModelPreferencesStore.ts`: Manages model preference settings
+- `HfCacheStatusStore.ts`: Manages HuggingFace cache status and monitoring
 
 ### Session and System State
 
@@ -58,6 +81,9 @@ This guide helps AI agents understand the state management stores in NodeTool's 
 - `LogStore.ts`: Application logging system
 - `ErrorStore.ts`: Error handling and reporting
 - `UpdatesStore.ts`: Manages application updates
+- `SecretsStore.ts`: Manages API keys and secrets securely
+- `AudioQueueStore.ts`: Manages audio generation task queue
+- `WorkspaceManagerStore.ts`: Manages workspace state and organization
 
 ## Utility Functions
 
