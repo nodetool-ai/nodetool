@@ -294,6 +294,14 @@ Last updated: 2026-01-17
 
 ---
 
+## Research Features (Experimental)
+
+*These features are under active research and development*
+
+- **Workflow Performance Profiler**: Analyzes workflow structure for performance bottlenecks, complexity metrics, and optimization suggestions (2026-01-18). Files: `WorkflowProfilerStore.ts`, `useWorkflowProfiler.ts`, `WorkflowProfilerPanel.tsx`
+
+---
+
 ## How to Use This File
 
 ### Before Planning Features
