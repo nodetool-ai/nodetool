@@ -1,3 +1,15 @@
+/**
+ * LogStore
+ *
+ * Centralized logging store for workflow and node execution logs.
+ * Provides:
+ * - Log storage with severity levels (info, warning, error)
+ * - Per-node log retrieval
+ * - Log truncation for large content (20K char limit)
+ * - Global log limit (5000 entries total)
+ * - Log clearing functionality
+ */
+
 import { create } from "zustand";
 
 type Log = {

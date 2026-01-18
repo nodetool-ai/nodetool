@@ -1,3 +1,20 @@
+/**
+ * useAssetDownload
+ *
+ * Hook for downloading assets from the application.
+ * Provides a download handler that:
+ * - Creates a download link from asset URL or data URL
+ * - Determines filename from asset metadata or URL
+ * - Handles data URLs (base64) with MIME type detection
+ * - Handles external URLs with path parsing
+ * - Triggers browser download in a new tab/window
+ *
+ * @param params - Configuration object
+ * @param params.currentAsset - Optional Asset object with metadata
+ * @param params.url - Optional direct URL to download
+ * @returns Object containing handleDownload function
+ */
+
 import { useCallback } from "react";
 import type { Asset } from "../../stores/ApiTypes";
 

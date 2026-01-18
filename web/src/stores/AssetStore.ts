@@ -1,3 +1,18 @@
+/**
+ * AssetStore
+ *
+ * Central store for managing workflow assets including:
+ * - Asset CRUD operations (create, read, update, delete)
+ * - Folder management and hierarchical organization
+ * - Asset search functionality
+ * - File uploads with progress tracking
+ * - Asset download (browser and Electron)
+ * - Folder tree construction
+ *
+ * Integrates with React Query for caching and invalidation.
+ * Uses ApiClient for HTTP communication with the backend.
+ */
+
 import { create } from "zustand";
 import { client, authHeader } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";

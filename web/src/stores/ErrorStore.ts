@@ -1,3 +1,14 @@
+/**
+ * ErrorStore
+ *
+ * Stores and manages errors for individual nodes within workflows.
+ * Provides:
+ * - Per-node error storage keyed by workflowId:nodeId
+ * - Error setting and retrieval
+ * - Error clearing for nodes or entire workflows
+ * - Support for multiple error types (Error, string, object)
+ */
+
 import { create } from "zustand";
 
 type NodeError = Error | string | null | Record<string, unknown>;

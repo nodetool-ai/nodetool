@@ -1,3 +1,17 @@
+/**
+ * LayoutStore
+ *
+ * Manages user dashboard layouts using Dockview serialization.
+ * Provides:
+ * - Multiple named layout storage (UserLayout)
+ * - Active layout tracking
+ * - Layout CRUD operations (add, delete, update)
+ * - Persistence to localStorage
+ * - Serialized Dockview format support
+ *
+ * Users can save different workspace configurations.
+ */
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { SerializedDockview } from "dockview";

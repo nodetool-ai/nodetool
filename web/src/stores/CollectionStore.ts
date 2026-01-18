@@ -1,3 +1,17 @@
+/**
+ * CollectionStore
+ *
+ * Manages asset collections for organizing workflows and files.
+ * Provides functionality for:
+ * - Fetching and listing collections
+ * - Creating and deleting collections
+ * - Drag-and-drop file indexing into collections
+ * - Progress tracking for batch operations
+ * - Error handling for indexing operations
+ *
+ * Uses zustand devtools for development debugging.
+ */
+
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { CollectionList as CollectionListType } from "./ApiTypes";

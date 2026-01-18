@@ -1,3 +1,20 @@
+/**
+ * AssetGridStore
+ *
+ * UI state store for the asset grid/view component.
+ * Manages:
+ * - Grid/list view mode and item sizing
+ * - Current folder navigation and selection
+ * - Asset filtering, sorting, and search
+ * - Multi-select operations
+ * - Dialog states (delete, rename, move, create folder)
+ * - Asset preview and comparison views
+ * - Global asset search functionality
+ * - Audio playback state
+ *
+ * Acts as a client-side controller for asset browser UI.
+ */
+
 import { create } from "zustand";
 import { Asset, AssetWithPath } from "./ApiTypes";
 import { SizeFilterKey } from "../utils/formatUtils";
