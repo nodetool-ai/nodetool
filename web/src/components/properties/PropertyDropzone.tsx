@@ -220,6 +220,7 @@ const PropertyDropzone = ({
                 style={{ width: "100%", height: "auto" }}
                 onLoad={handleImageLoad}
                 onDoubleClick={() => setOpenViewer(true)}
+                draggable={false}
               />
               {imageDimensions && (
                 <ImageDimensions
