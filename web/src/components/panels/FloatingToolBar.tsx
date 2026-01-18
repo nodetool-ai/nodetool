@@ -486,6 +486,31 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     toggleBottomPanel("terminal");
   }, [toggleBottomPanel]);
 
+  const handleToggleTerminalAndCloseMenu = useCallback(() => {
+    handleToggleTerminal();
+    handleCloseActionsMenu();
+  }, [handleToggleTerminal, handleCloseActionsMenu]);
+
+  const handleEditWorkflowAndCloseMenu = useCallback(() => {
+    handleEditWorkflow();
+    handleCloseActionsMenu();
+  }, [handleEditWorkflow, handleCloseActionsMenu]);
+
+  const handleDownloadAndCloseMenu = useCallback(() => {
+    handleDownload();
+    handleCloseActionsMenu();
+  }, [handleDownload, handleCloseActionsMenu]);
+
+  const handleRunAsAppAndCloseMenu = useCallback(() => {
+    handleRunAsApp();
+    handleCloseActionsMenu();
+  }, [handleRunAsApp, handleCloseActionsMenu]);
+
+  const handleToggleMiniMapAndCloseMenu = useCallback(() => {
+    handleToggleMiniMap();
+    handleCloseAdvancedMenu();
+  }, [handleToggleMiniMap, handleCloseAdvancedMenu]);
+
   const handleToggleInstantUpdate = useCallback(() => {
     setInstantUpdate(!instantUpdate);
   }, [instantUpdate, setInstantUpdate]);
@@ -630,12 +655,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           }
         }}
       >
-        <MenuItem
-          onClick={() => {
-            handleToggleTerminal();
-            handleCloseActionsMenu();
-          }}
-        >
+        <MenuItem onClick={handleToggleTerminalAndCloseMenu}>
           <ListItemIcon>
             <TerminalIcon fontSize="small" />
           </ListItemIcon>
@@ -643,12 +663,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             primary={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
           />
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleEditWorkflow();
-            handleCloseActionsMenu();
-          }}
-        >
+        <MenuItem onClick={handleEditWorkflowAndCloseMenu}>
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
@@ -660,23 +675,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           </ListItemIcon>
           <ListItemText primary="Advanced" />
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleDownload();
-            handleCloseActionsMenu();
-          }}
-        >
+        <MenuItem onClick={handleDownloadAndCloseMenu}>
           <ListItemIcon>
             <DownloadIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Download JSON" />
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleRunAsApp();
-            handleCloseActionsMenu();
-          }}
-        >
+        <MenuItem onClick={handleRunAsAppAndCloseMenu}>
           <ListItemIcon>
             <RocketLaunchIcon fontSize="small" />
           </ListItemIcon>
@@ -698,10 +703,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       >
         <MenuItem
           className={cn(isMiniMapVisible && "minimap-active")}
-          onClick={() => {
-            handleToggleMiniMap();
-            handleCloseAdvancedMenu();
-          }}
+          onClick={handleToggleMiniMapAndCloseMenu}
         >
           <ListItemIcon>
             <MapIcon fontSize="small" />

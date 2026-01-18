@@ -308,10 +308,8 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeClick(entry.node.id)}
-                onContextMenu={(event) => {
-                  handleNodeContextMenu(event, entry.node.id);
-                }}
+                onClick={handleNodeClick.bind(null, entry.node.id)}
+                onContextMenu={(event) => handleNodeContextMenu(event, entry.node.id)}
               >
                 <div className="node-text">
                   <Typography className="node-title" variant="body1">
@@ -328,10 +326,7 @@ const NodeExplorer: React.FC = () => {
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleNodeEdit(entry.node.id);
-                }}
+                onClick={_handleNodeEditClick.bind(null, entry.node.id)}
               >
                 <NorthEastIcon fontSize="small" />
               </Button>

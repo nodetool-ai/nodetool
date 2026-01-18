@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback } from "react";
 import { Tooltip, Typography } from "@mui/material";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
@@ -44,6 +44,10 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const showStopButton = (isLoading || isStreaming) && onStop;
   const theme = useTheme();
 
+  const handleStop = useCallback(() => {
+    onStop?.();
+  }, [onStop]);
+
   return (
     <div className="chat-action-buttons" css={styles(theme)}>
       {/* {onNewChat && (
@@ -56,11 +60,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       {showStopButton && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span className="button-wrapper">
-            <StopGenerationButton
-              onClick={() => {
-                onStop?.();
-              }}
-            />
+            <StopGenerationButton onClick={handleStop} />
           </span>
         </Tooltip>
       )}
