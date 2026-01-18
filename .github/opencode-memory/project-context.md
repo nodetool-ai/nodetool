@@ -61,6 +61,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: 12 files in web/src/components/
 
 **Impact**: Reduced unnecessary re-renders in dashboard, workflow management, and context menu components.
+### Quality Checks Fixes (2026-01-18)
+
+**What**: Fixed TypeScript type errors and lint warnings in test files.
+
+**Files**: web/src/hooks/nodes/__tests__/useDynamicOutput.test.ts, web/src/hooks/nodes/__tests__/useDynamicProperty.test.ts, and 4 other test files
+
+**Impact**: All quality checks now pass (typecheck, lint, tests).
 
 ---
 
