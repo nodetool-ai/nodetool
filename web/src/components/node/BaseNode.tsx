@@ -50,6 +50,8 @@ const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
 import { isProduction } from "../../stores/ApiClient";
 
+const MIN_NODE_HEIGHT = 100;
+
 const resizer = (
   <div className="node-resizer">
     <div className="resizer">
@@ -59,10 +61,12 @@ const resizer = (
           params: ResizeParams & { direction: number[] }
         ) => {
           const [dirX, dirY] = params.direction;
-          return dirX !== 0 && dirY === 0;
+          // Allow both horizontal and vertical resizing
+          return dirX !== 0 || dirY !== 0;
         }}
         minWidth={200}
         maxWidth={MAX_NODE_WIDTH}
+        minHeight={MIN_NODE_HEIGHT}
       />
     </div>
   </div>
@@ -420,18 +424,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         "--node-primary-color": baseColor || "var(--palette-primary-main)",
         ...(hasToggleableResult
           ? {
-              // Match PreviewNode behavior: show the corner resize handle on hover
-              "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-                opacity: 0,
-                position: "absolute",
-                right: "-8px",
-                bottom: "-9px",
-                transition: "opacity 0.2s"
-              },
-              "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
-                opacity: 1
-              }
+            // Match PreviewNode behavior: show the corner resize handle on hover
+            "& .react-flow__resize-control.nodrag.bottom.right.handle": {
+              opacity: 0,
+              position: "absolute",
+              right: "-8px",
+              bottom: "-9px",
+              transition: "opacity 0.2s"
+            },
+            "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
+              opacity: 1
             }
+          }
           : {})
       }}
     >
