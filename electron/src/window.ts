@@ -249,14 +249,21 @@ function initializePermissionHandlers(): void {
   );
 
   // Add CORS headers for localhost API requests to allow cross-origin access
-  // This handles the localhost vs 127.0.0.1 mismatch
+  // This handles the localhost vs 127.0.0.1 mismatch but restricts to local development only
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ["http://localhost:*/*", "http://127.0.0.1:*/*"] },
     (details, callback) => {
       const responseHeaders = { ...details.responseHeaders };
-      responseHeaders["Access-Control-Allow-Origin"] = ["*"];
-      responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
-      responseHeaders["Access-Control-Allow-Headers"] = ["*"];
+      // Only allow localhost origins to prevent security issues
+      // Use referrer header to determine the requesting origin
+      const referrer = details.referrer;
+      if (referrer && (referrer.includes('localhost') || referrer.includes('127.0.0.1'))) {
+        responseHeaders["Access-Control-Allow-Origin"] = [referrer];
+      } else {
+        responseHeaders["Access-Control-Allow-Origin"] = ["http://localhost:7777"];
+      }
+      responseHeaders["Access-Control-Allow-Methods"] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
+      responseHeaders["Access-Control-Allow-Headers"] = ["Authorization", "Content-Type"];
       callback({ responseHeaders });
     }
   );

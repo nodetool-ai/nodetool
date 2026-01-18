@@ -386,6 +386,22 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Security Audit & Vulnerability Patches (2026-01-18)
+
+**What**: Comprehensive security audit fixing all Critical and High severity vulnerabilities across web, electron, and mobile packages.
+
+**Key Fixes**:
+- Fixed glob CLI command injection (HIGH) via npm override in web/package.json
+- Fixed tar arbitrary file overwrite (HIGH) by updating electron-builder to 26.4.1
+- Fixed CORS wildcard origin vulnerability (MEDIUM) in electron/src/window.ts
+- Verified dangerouslySetInnerHTML usage is properly sanitized with DOMPurify
+
+**Results**: All packages now show 0 vulnerabilities in npm audit.
+
+**Files**: web/package.json, electron/package.json, electron/src/window.ts, mobile/package.json
+
+---
+
 ### Security Audit Fixes (2026-01-12)
 
 **What**: Comprehensive security audit and vulnerability patching across web and electron packages.
