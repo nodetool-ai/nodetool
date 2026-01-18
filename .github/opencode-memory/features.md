@@ -4,13 +4,11 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-17
+Last updated: 2026-01-18
 
-- **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
+- **Component Memoization**: Added React.memo to 12 large components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu) to prevent unnecessary re-renders
 
-- **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
-
-- **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
+- **Quality Checks Fixes**: Fixed TypeScript type errors and lint warnings in 6 test files across web/src/hooks/nodes/__tests__/
 
 ---
 
