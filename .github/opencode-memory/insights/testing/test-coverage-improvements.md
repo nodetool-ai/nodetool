@@ -1,4 +1,106 @@
-# Test Coverage Improvements (2026-01-17)
+# Test Coverage Improvements (2026-01-18)
+
+**Coverage Added**: 2 new test files with 42 tests for critical WebSocket and drag-drop functionality
+
+**Tests Added**:
+- `WebSocketManager.test.ts` - 25 tests for WebSocket state machine and connection handling
+- `useDropZone.test.tsx` - 17 tests for drop zone hook functionality
+
+**Areas Covered**:
+- WebSocket connection state transitions (disconnected, connecting, connected, disconnecting)
+- Message queuing during connection
+- Reconnection handling and backoff
+- Event handling (open, message, error, close)
+- Connection timeout handling
+- Drag enter/leave state management
+- Drag over validation and drop effect
+- Drop event handling with position tracking
+- Class name generation for drag states
+- Disabled state handling
+
+**Test Patterns Used**:
+
+1. **WebSocket State Machine Testing**:
+```typescript
+describe("WebSocketManager", () => {
+  it("queues messages while connecting when reconnect enabled", () => {
+    manager.connect().catch(() => {});
+    
+    const message = { type: "test" };
+    manager.send(message);
+    
+    expect(mockWebSocket.send).not.toHaveBeenCalled();
+    
+    triggerOpen();
+    
+    expect(mockWebSocket.send).toHaveBeenCalled();
+  });
+});
+```
+
+2. **Mock WebSocket Event Handling**:
+```typescript
+const capturedOnOpen = jest.fn();
+Object.defineProperty(global, "WebSocket", {
+  writable: true,
+  value: jest.fn(() => ({
+    ...mockWebSocket,
+    set onopen(handler: (() => void) | null) {
+      capturedOnOpen.mockImplementation(handler);
+    }
+  }))
+});
+```
+
+3. **Drag Event Testing**:
+```typescript
+describe("useDropZone", () => {
+  it("calls onDrop with deserialized data", async () => {
+    const dragData = { type: "node", payload: { id: "test" } };
+    mockDeserializeDragData.mockReturnValue(dragData);
+
+    const { result } = renderHook(() =>
+      useDropZone({ accepts: ["node"], onDrop: mockOnDrop })
+    );
+
+    const event = {
+      preventDefault: jest.fn(),
+      stopPropagation: jest.fn(),
+      clientX: 100,
+      clientY: 200,
+      dataTransfer: createMockDataTransfer()
+    } as unknown as React.DragEvent;
+
+    await waitFor(async () => {
+      await result.current.onDrop(event);
+    });
+
+    expect(mockOnDrop).toHaveBeenCalledWith(
+      dragData,
+      expect.any(Object),
+      { x: 100, y: 200 }
+    );
+  });
+});
+```
+
+**Files Created**:
+- `web/src/lib/websocket/__tests__/WebSocketManager.test.ts`
+- `web/src/lib/dragdrop/__tests__/useDropZone.test.tsx`
+
+**Key Learnings**:
+1. WebSocket mocking requires careful setup of event handlers via property setters
+2. Message queuing only works when `reconnect: true` is configured
+3. State transitions happen asynchronously, need to trigger events manually in tests
+4. Mock store hooks need to be set up before renderHook for proper subscription
+5. Drag events require proper DataTransfer mock with setData/getData methods
+6. useCallback dependencies affect test stability - mock state before hook creation
+
+**Status**: All 42 tests passing (223 test suites, 2948 tests total)
+
+---
+
+### Previous Entry (2026-01-17)
 
 **Coverage Added**: 2 new test files with 23 tests for critical hooks
 
