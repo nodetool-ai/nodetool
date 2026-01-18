@@ -756,3 +756,118 @@ it("falls back to URI when createAssetFile fails", async () => {
 6. Reset store state in `beforeEach` for test isolation
 
 **Status**: All 92 tests passing (210 test suites, 2693 tests total)
+
+---
+
+### Test Coverage Improvement (2026-01-18)
+
+**Coverage Added**: 2 new test files with 29 tests for critical store and hook
+
+**Tests Added**:
+- `workflowUpdates.test.ts` - 18 tests for WebSocket update handling
+- `useEmbeddingModels.test.tsx` - 11 tests for embedding model fetching
+
+**Areas Covered**:
+- WebSocket message handling for workflow execution
+- Job status mapping (running, queued, suspended, paused, completed, cancelled, failed, timed_out)
+- Edge updates with cancellation/error state handling
+- Node progress updates
+- Preview updates
+- Provider filtering and model fetching
+- Error handling for API failures
+- Loading and fetching state tracking
+- Empty provider and model handling
+- Provider filtering by allowedProviders option
+
+**Test Patterns Used**:
+
+1. **Workflow Update Handler Testing**:
+```typescript
+describe("workflowUpdates", () => {
+  it("should map running status to running state", () => {
+    const jobUpdate: MsgpackData = {
+      type: "job_update",
+      job_id: "job-123",
+      status: "running"
+    };
+
+    handleUpdate(mockWorkflow, jobUpdate, mockRunnerStore);
+
+    expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "running" });
+    expect(mockRunnerStore.setState).toHaveBeenCalledWith({ job_id: "job-123" });
+  });
+});
+```
+
+2. **React Query Hook Testing with QueryClientProvider**:
+```typescript
+describe("useEmbeddingModels", () => {
+  let queryClient: QueryClient;
+
+  const createWrapper = () => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          gcTime: 0,
+        },
+      },
+    });
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    return Wrapper;
+  };
+
+  it("fetches models for all providers", async () => {
+    mockClient.GET.mockResolvedValueOnce({
+      data: [{ id: "model-1", name: "Model 1" }]
+    });
+
+    const { result } = renderHook(() => useEmbeddingModelsByProvider(), {
+      wrapper: createWrapper()
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.models).toHaveLength(1);
+  });
+});
+```
+
+3. **State Machine Testing for Job Status**:
+```typescript
+it("should map failed status to error state", () => {
+  const jobUpdate: MsgpackData = {
+    type: "job_update",
+    status: "failed",
+    error: "Test error"
+  };
+
+  handleUpdate(mockWorkflow, jobUpdate, mockRunnerStore);
+
+  expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "error" });
+  expect(mockRunnerStore.addNotification).toHaveBeenCalledWith({
+    type: "error",
+    alert: true,
+    content: "Job failed Test error",
+    timeout: 30000
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/workflowUpdates.test.ts`
+- `web/src/hooks/__tests__/useEmbeddingModels.test.tsx`
+
+**Key Learnings**:
+1. Simple mock objects for Zustand store tests work better than complex mocking
+2. React Query hooks require QueryClientProvider wrapper in tests
+3. Test mock paths should be relative to the test file location
+4. Job status state machine tests should verify all status transitions
+5. Use `mockResolvedValueOnce` with proper count for multi-provider hooks
+6. JSX in test files requires `.tsx` extension
+
+**Status**: All 29 new tests passing (222 test suites, 2924 tests total)
