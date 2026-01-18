@@ -1,10 +1,14 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Typography, IconButton, Tooltip, Box } from "@mui/material";
+import { Typography, IconButton, Tooltip } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import AssetViewer from "../assets/AssetViewer";
 import { isElectron } from "../../utils/browser";
 import { createImageUrl } from "../../utils/imageUtils";
+import ImageDimensions from "./ImageDimensions";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -36,6 +40,17 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     setImageDimensions(null);
   }, [imageUrl]);
 
+
+
+  const styles = css({
+    ".image-dimensions": {
+      opacity: 0,
+      transition: "opacity 0.2s ease"
+    },
+    "&:hover .image-dimensions": {
+      opacity: 1
+    }
+  });
   const handleCopyToClipboard = useCallback(async () => {
     if (!imageUrl) { return; }
 
@@ -65,6 +80,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
 
   return (
     <div
+     css={styles}
       className="image-output"
       style={{
         position: "relative",
@@ -125,23 +141,10 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         onDoubleClick={() => setOpenViewer(true)}
       />
       {imageDimensions && (
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: 4,
-            right: 4,
-            bgcolor: "rgba(0, 0, 0, 0.6)",
-            color: "white",
-            px: 0.5,
-            py: 0.25,
-            borderRadius: 0.5,
-            fontSize: "0.65rem",
-            fontFamily: "monospace",
-            pointerEvents: "none"
-          }}
-        >
-          {imageDimensions.width} × {imageDimensions.height}
-        </Box>
+        <ImageDimensions
+          width={imageDimensions.width}
+          height={imageDimensions.height}
+        />
       )}
     </div>
   );
