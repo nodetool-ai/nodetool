@@ -44,8 +44,10 @@ const styles = (theme: Theme) =>
       textDecoration: "line-through"
     },
     ".editor-input p, .editor-input ol,.editor-input ul": {
+      color: theme.vars.palette.text.primary,
       fontWeight: "300",
-      fontSize: theme.fontSizeSmall
+      fontSize: theme.fontSizeSmall,
+      lineHeight: "1.5em"
     },
     ".editor-text-code": {
       backgroundColor: theme.vars.palette.action.selected,
@@ -120,7 +122,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 400,
       p: {
-        lineHeight: "1.25em",
+        lineHeight: "1.5em",
         paddingTop: 0,
         marginTop: 0,
         marginBlockEnd: "0.5em"
