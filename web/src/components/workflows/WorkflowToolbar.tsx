@@ -121,13 +121,13 @@ const styles = (theme: Theme) =>
       height: "28px",
       minWidth: "28px",
       borderRadius: "6px",
-      color: theme.vars.palette.grey[400],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.primary.main,
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: "all 0.2s ease",
       "&:hover": {
-        color: theme.vars.palette.grey[100],
-        borderColor: theme.vars.palette.grey[500],
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        color: theme.vars.palette.primary.light,
+        // borderColor: theme.vars.palette.primary.light,
+        backgroundColor: theme.vars.palette.primary.dark
       }
     }
   });

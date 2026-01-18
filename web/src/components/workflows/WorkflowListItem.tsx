@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useEffect } from "react";
-import { Box, Typography, IconButton } from "@mui/material";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
+import { Box, Typography, IconButton, Tooltip } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
@@ -91,7 +91,32 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     [openContextMenu, workflow]
   );
 
-  return (
+  // Build tooltip content from description and tags
+  const tooltipContent = useMemo(() => {
+    const hasDescription = workflow.description && workflow.description.trim().length > 0;
+    const hasTags = workflow.tags && workflow.tags.length > 0;
+    
+    if (!hasDescription && !hasTags) {
+      return null;
+    }
+    
+    return (
+      <Box sx={{ fontSize: "0.75rem", maxWidth: 300 }}>
+        {hasDescription && (
+          <Typography sx={{ fontSize: "inherit", mb: hasTags ? 0.5 : 0 }}>
+            {workflow.description}
+          </Typography>
+        )}
+        {hasTags && (
+          <Typography sx={{ fontSize: "inherit", fontStyle: "italic", color: "grey.400" }}>
+            {workflow.tags!.join(", ")}
+          </Typography>
+        )}
+      </Box>
+    );
+  }, [workflow.description, workflow.tags]);
+
+  const workflowItem = (
     <Box
       key={workflow.id}
       className={
@@ -155,6 +180,22 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       </Box>
     </Box>
   );
+
+  if (tooltipContent) {
+    return (
+      <Tooltip 
+        title={tooltipContent} 
+        placement="right" 
+        arrow
+        enterDelay={500}
+        enterNextDelay={500}
+      >
+        {workflowItem}
+      </Tooltip>
+    );
+  }
+
+  return workflowItem;
 };
 
 export default memo(WorkflowListItem, isEqual);

@@ -169,7 +169,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   );
   const showGraphPreview = useShowGraphPreview();
 
-  const WORKFLOW_HEIGHT = showGraphPreview ? 150 : 50;
+  const WORKFLOW_HEIGHT = showGraphPreview ? 150 : 36;
   const HEADER_HEIGHT = 32;
   const CONTAINER_HEIGHT = window.innerHeight - 210;
 
