@@ -47,3 +47,16 @@ export const useTemporalNodes = <T,>(
   }
   return useStoreWithEqualityFn(store.temporal, selector, isEqual);
 };
+
+/**
+ * Returns the raw node store reference without subscribing to any state.
+ * Use this when you need to call store.getState() in callbacks without
+ * causing re-renders on state changes.
+ */
+export const useNodeStoreRef = (): NodeStore => {
+  const store = useContext(NodeContext);
+  if (!store) {
+    throw new Error("useNodeStoreRef must be used within a NodeProvider");
+  }
+  return store;
+};

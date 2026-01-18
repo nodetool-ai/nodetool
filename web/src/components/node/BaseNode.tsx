@@ -40,7 +40,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
-import { useNodeFocus } from "../../hooks/useNodeFocus";
+import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -260,8 +260,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isDarkMode = useIsDarkMode();
   const { id, type, data, selected, parentId, dragging } = props;
   const { workflow_id, title } = data;
-  const { focusedNodeId } = useNodeFocus();
-  const isFocused = focusedNodeId === id;
+  // Subscribe directly to focusedNodeId with equality check to avoid re-renders
+  const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -597,5 +597,3 @@ export default memo(BaseNode, (prevProps, nextProps) => {
     isEqual(prevProps.data, nextProps.data)
   );
 });
-
-import { useNodeFocusStore } from "../../stores/NodeFocusStore";
