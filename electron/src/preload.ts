@@ -566,6 +566,27 @@ const api = {
     openFolder: (options?: DialogOpenFolderRequest) =>
       ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
   },
+
+  // ============================================================================
+  // service: LaunchAgent service operations (macOS only)
+  // ============================================================================
+  service: {
+    /** Get the current status of the LaunchAgent service */
+    getStatus: () => ipcRenderer.invoke(IpcChannels.SERVICE_GET_STATUS),
+
+    /** Install the server as a LaunchAgent service */
+    install: (port?: number) =>
+      ipcRenderer.invoke(IpcChannels.SERVICE_INSTALL, { port }),
+
+    /** Uninstall the LaunchAgent service */
+    uninstall: () => ipcRenderer.invoke(IpcChannels.SERVICE_UNINSTALL),
+
+    /** Start the LaunchAgent service */
+    start: () => ipcRenderer.invoke(IpcChannels.SERVICE_START),
+
+    /** Stop the LaunchAgent service */
+    stop: () => ipcRenderer.invoke(IpcChannels.SERVICE_STOP),
+  },
 };
 
 contextBridge.exposeInMainWorld("api", api);

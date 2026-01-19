@@ -188,6 +188,15 @@ declare global {
         openFile: (options?: DialogOpenFileRequest) => Promise<DialogOpenResult>;
         openFolder: (options?: DialogOpenFolderRequest) => Promise<DialogOpenResult>;
       };
+
+      // LaunchAgent service operations (macOS only)
+      service: {
+        getStatus: () => Promise<LaunchAgentStatus>;
+        install: (port?: number) => Promise<LaunchAgentResult>;
+        uninstall: () => Promise<LaunchAgentResult>;
+        start: () => Promise<LaunchAgentResult>;
+        stop: () => Promise<LaunchAgentResult>;
+      };
     };
 
     // Alias exposed by preload for legacy pages.
@@ -447,6 +456,12 @@ export enum IpcChannels {
   // Dialog channels
   DIALOG_OPEN_FILE = "dialog-open-file",
   DIALOG_OPEN_FOLDER = "dialog-open-folder",
+  // LaunchAgent service channels (macOS only)
+  SERVICE_GET_STATUS = "service-get-status",
+  SERVICE_INSTALL = "service-install",
+  SERVICE_UNINSTALL = "service-uninstall",
+  SERVICE_START = "service-start",
+  SERVICE_STOP = "service-stop",
 }
 
 
@@ -500,6 +515,26 @@ export interface DialogOpenFolderRequest {
 export interface DialogOpenResult {
   canceled: boolean;
   filePaths: string[];
+}
+
+// LaunchAgent service types (macOS only)
+export interface LaunchAgentStatus {
+  installed: boolean;
+  running: boolean;
+  pid?: number;
+  label: string;
+  plistPath: string;
+  error?: string;
+}
+
+export interface LaunchAgentResult {
+  success: boolean;
+  message: string;
+  status?: LaunchAgentStatus;
+}
+
+export interface ServiceInstallRequest {
+  port?: number;
 }
 
 // Request/Response types for each IPC channel
@@ -580,6 +615,12 @@ export interface IpcRequest {
   // Dialog
   [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenFileRequest;
   [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenFolderRequest;
+  // LaunchAgent service (macOS only)
+  [IpcChannels.SERVICE_GET_STATUS]: void;
+  [IpcChannels.SERVICE_INSTALL]: ServiceInstallRequest;
+  [IpcChannels.SERVICE_UNINSTALL]: void;
+  [IpcChannels.SERVICE_START]: void;
+  [IpcChannels.SERVICE_STOP]: void;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -650,6 +691,12 @@ export interface IpcResponse {
   // Dialog
   [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenResult;
   [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenResult;
+  // LaunchAgent service (macOS only)
+  [IpcChannels.SERVICE_GET_STATUS]: LaunchAgentStatus;
+  [IpcChannels.SERVICE_INSTALL]: LaunchAgentResult;
+  [IpcChannels.SERVICE_UNINSTALL]: LaunchAgentResult;
+  [IpcChannels.SERVICE_START]: LaunchAgentResult;
+  [IpcChannels.SERVICE_STOP]: LaunchAgentResult;
 }
 
 
