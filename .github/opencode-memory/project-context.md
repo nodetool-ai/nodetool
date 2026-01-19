@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### useInputNodeAutoRun Tests Fix (2026-01-19)
+
+**What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
+
+**Files**: web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
+
+**Impact**: All 15 tests now pass, type checking and linting pass.
+
+---
+
 ### FavoriteWorkflowsStore Test Fix (2026-01-19)
 
 **What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
