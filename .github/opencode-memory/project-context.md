@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Vulnerability Fixes (2026-01-19)
+
+**What**: Fixed high severity dependency vulnerabilities (glob command injection, tar file overwrite, prismjs XSS) across all packages using npm overrides.
+
+**Files**: web/package.json, electron/package.json, mobile/package.json
+
+**Impact**: All packages now have 0 vulnerabilities (down from 10 web, 23 electron, 10 mobile).
+
+---
+
 ### FavoriteWorkflowsStore Test Fix (2026-01-19)
 
 **What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
