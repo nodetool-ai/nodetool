@@ -287,12 +287,19 @@ Last updated: 2026-01-18
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
+- **Advanced Analytics**: Workflow performance analytics and profiling (partially addressed by Performance Profiling UI)
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
+
+---
+
+## Research Features (Experimental)
+
+*Features being explored or prototyped*
+
+- **Performance Profiling UI** (2026-01-19): Built-in performance profiling tools with bottleneck detection and optimization suggestions. Files: `web/src/stores/WorkflowProfilerStore.ts`, `web/src/components/node_editor/WorkflowProfilerPanel.tsx`
 
 ---
 

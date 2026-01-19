@@ -61,7 +61,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/components/dashboard/GettingStartedPanel.tsx, web/src/components/workspaces/WorkspacesManager.tsx
 
 **Impact**: Stable function references reduce re-renders in workspace management and model download UI.
-### useInputNodeAutoRun Tests Fix (2026-01-19)
+
+---
+
+### Performance Profiling UI (2026-01-19)
+
+**What**: Added WorkflowProfilerStore and WorkflowProfilerPanel for analyzing workflow execution performance and identifying bottlenecks.
+
+**Files**: web/src/stores/WorkflowProfilerStore.ts, web/src/components/node_editor/WorkflowProfilerPanel.tsx, web/src/stores/__tests__/WorkflowProfilerStore.test.ts
 
 **What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
 
