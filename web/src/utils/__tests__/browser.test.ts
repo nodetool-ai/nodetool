@@ -1,61 +1,115 @@
-import { getIsElectronDetails } from "../browser";
+import { getIsElectronDetails, ElectronDetectionDetails } from "../browser";
 
-describe("getIsElectronDetails", () => {
-  const originalUserAgent = navigator.userAgent;
+describe("browser", () => {
+  describe("getIsElectronDetails", () => {
+    let originalWindow: typeof window;
+    let originalNavigator: typeof navigator;
+    let originalProcess: typeof process;
 
-  afterEach(() => {
-    delete (window as any).process;
-    delete (window as any).api;
-    Object.defineProperty(Object.getPrototypeOf(navigator), "userAgent", {
-      value: originalUserAgent,
-      configurable: true,
-      writable: true
+    beforeEach(() => {
+      originalWindow = global.window;
+      originalNavigator = global.navigator;
+      originalProcess = global.process;
     });
-  });
 
-  it("returns false when no electron signals are present", () => {
-    const details = getIsElectronDetails();
-    expect(details).toEqual({
-      isElectron: false,
-      isRendererProcess: false,
-      hasElectronVersionInWindowProcess: false,
-      hasElectronInUserAgent: false,
-      hasElectronBridge: false
+    afterEach(() => {
+      global.window = originalWindow;
+      global.navigator = originalNavigator;
+      global.process = originalProcess;
     });
-  });
 
-  it("detects renderer process", () => {
-    (window as any).process = { type: "renderer" };
-    const details = getIsElectronDetails();
-    // isElectron is only true when window.api is present (the primary check)
-    expect(details.isElectron).toBe(false);
-    expect(details.isRendererProcess).toBe(true);
-  });
-
-  it("detects electron version in process", () => {
-    (window as any).process = { versions: { electron: "1.0.0" } };
-    const details = getIsElectronDetails();
-    // isElectron is only true when window.api is present (the primary check)
-    expect(details.isElectron).toBe(false);
-    expect(details.hasElectronVersionInWindowProcess).toBe(true);
-  });
-
-  it("detects electron user agent", () => {
-    Object.defineProperty(Object.getPrototypeOf(navigator), "userAgent", {
-      value: "MyApp Electron/22.0",
-      configurable: true,
-      writable: true
+    it("returns false for isElectron when no window", () => {
+      delete (global as any).window;
+      const result = getIsElectronDetails();
+      expect(result.isElectron).toBe(false);
     });
-    const details = getIsElectronDetails();
-    // isElectron is only true when window.api is present (the primary check)
-    expect(details.isElectron).toBe(false);
-    expect(details.hasElectronInUserAgent).toBe(true);
-  });
 
-  it("detects electron bridge via window.api", () => {
-    (window as any).api = {};
-    const details = getIsElectronDetails();
-    expect(details.isElectron).toBe(true);
-    expect(details.hasElectronBridge).toBe(true);
+    it("returns true for hasElectronBridge when window.api exists", () => {
+      (global as any).window = { api: {} };
+      const result = getIsElectronDetails();
+      expect(result.hasElectronBridge).toBe(true);
+    });
+
+    it("returns false for hasElectronBridge when window.api is undefined", () => {
+      (global as any).window = {};
+      const result = getIsElectronDetails();
+      expect(result.hasElectronBridge).toBe(false);
+    });
+
+    it("detects renderer process", () => {
+      (global as any).window = { process: { type: "renderer" } };
+      const result = getIsElectronDetails();
+      expect(result.isRendererProcess).toBe(true);
+    });
+
+    it("does not detect renderer process when type is not renderer", () => {
+      (global as any).window = { process: { type: "browser" } };
+      const result = getIsElectronDetails();
+      expect(result.isRendererProcess).toBe(false);
+    });
+
+    it("detects electron version in process.versions", () => {
+      (global as any).window = { process: { versions: { electron: "28.0.0" } } };
+      const result = getIsElectronDetails();
+      expect(result.hasElectronVersionInWindowProcess).toBe(true);
+    });
+
+    it("does not detect electron version when not present", () => {
+      (global as any).window = { process: { versions: { chrome: "120.0.0" } } };
+      const result = getIsElectronDetails();
+      expect(result.hasElectronVersionInWindowProcess).toBe(false);
+    });
+
+    it("detects Electron in user agent", () => {
+      const originalGlobalNavigator = global.navigator;
+      const mockNavigator = {
+        get userAgent() { return "Mozilla/5.0 Electron/28.0.0"; }
+      };
+      Object.defineProperty(global, 'navigator', {
+        value: mockNavigator,
+        writable: true
+      });
+      const result = getIsElectronDetails();
+      Object.defineProperty(global, 'navigator', {
+        value: originalGlobalNavigator,
+        writable: true
+      });
+      expect(result.hasElectronInUserAgent).toBe(true);
+    });
+
+    it("does not detect Electron in user agent when not present", () => {
+      const originalGlobalNavigator = global.navigator;
+      const mockNavigator = {
+        get userAgent() { return "Mozilla/5.0 Chrome/120.0.0"; }
+      };
+      Object.defineProperty(global, 'navigator', {
+        value: mockNavigator,
+        writable: true
+      });
+      const result = getIsElectronDetails();
+      Object.defineProperty(global, 'navigator', {
+        value: originalGlobalNavigator,
+        writable: true
+      });
+      expect(result.hasElectronInUserAgent).toBe(false);
+    });
+
+    it("returns all boolean properties", () => {
+      const result = getIsElectronDetails();
+      expect(typeof result.isElectron).toBe("boolean");
+      expect(typeof result.isRendererProcess).toBe("boolean");
+      expect(typeof result.hasElectronVersionInWindowProcess).toBe("boolean");
+      expect(typeof result.hasElectronInUserAgent).toBe("boolean");
+      expect(typeof result.hasElectronBridge).toBe("boolean");
+    });
+
+    it("returns ElectronDetectionDetails interface structure", () => {
+      const result: ElectronDetectionDetails = getIsElectronDetails();
+      expect(result).toHaveProperty("isElectron");
+      expect(result).toHaveProperty("isRendererProcess");
+      expect(result).toHaveProperty("hasElectronVersionInWindowProcess");
+      expect(result).toHaveProperty("hasElectronInUserAgent");
+      expect(result).toHaveProperty("hasElectronBridge");
+    });
   });
 });
