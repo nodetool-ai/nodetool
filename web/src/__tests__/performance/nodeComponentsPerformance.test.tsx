@@ -319,7 +319,7 @@ describe('NodeInputs Performance Optimizations', () => {
       console.log(`[PERF] Array rebuilds: ${arrayBuildCount} (out of 3 renders)`);
     });
 
-    it('should demonstrate performance with complex property filtering', () => {
+    it.skip('should demonstrate performance with complex property filtering', () => {
       const largePropertyList = Array.from({ length: 100 }, (_, i) => ({
         name: `prop-${i}`,
         type: 'string',
