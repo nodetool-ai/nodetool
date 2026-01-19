@@ -544,3 +544,12 @@ _No entries yet - this memory system is new as of 2026-01-10_
 **Verification**:
 - ✅ Lint: All packages pass
 - ✅ TypeScript: Web package passes
+
+### Workflow Performance Profiler (2026-01-19)
+
+**What**: Implemented research feature for analyzing workflow execution performance with real-time metrics, bottleneck detection, and optimization suggestions.
+
+**Files**: web/src/stores/PerformanceProfilerStore.ts, web/src/components/node_editor/PerformanceProfilerPanel.tsx, web/src/components/node_editor/PerformanceProfilerToggleButton.tsx, web/src/hooks/usePerformanceProfiler.ts, web/src/stores/__tests__/PerformanceProfilerStore.test.ts
+
+**Impact**: Users can now analyze workflow performance, identify bottlenecks, and get optimization suggestions. Feature marked as experimental research feature.
+
