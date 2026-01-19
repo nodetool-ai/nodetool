@@ -123,7 +123,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         "workflow list" +
         (isSelected ? " selected" : "") +
         (isCurrent ? " current" : "") +
-        (isAlternate ? " alternate" : "")
+        (isAlternate ? " alternate" : "") +
+        (isFavorite ? " favorite" : "")
       }
       onContextMenu={handleContextMenu}
       onClick={(e) => {
@@ -152,11 +153,14 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             label={workflow.name}
           />
         )}
-        <Typography className={`name${isFavorite ? " favorite" : ""}`}>
+        <Typography className="name">
           {workflow.name}
         </Typography>
       </Box>
-      <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>
+      <Box className="date-container">
+        {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "0.85rem", color: "warning.main" }} />}
+        <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>
+      </Box>
       <Box className="actions">
         <IconButton
           className="favorite-button"
