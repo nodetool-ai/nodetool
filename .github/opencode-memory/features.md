@@ -280,6 +280,8 @@ Last updated: 2026-01-18
 
 ---
 
+- **Workflow Profiler (Experimental)**: Analyzes workflow performance, identifies bottlenecks, and suggests optimizations
+
 ## Features NOT Yet Implemented
 
 *(Update this section when considering these features in the future)*
@@ -292,7 +294,6 @@ Last updated: 2026-01-18
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 

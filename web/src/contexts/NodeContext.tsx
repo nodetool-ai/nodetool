@@ -38,6 +38,25 @@ export const useNodes = <T,>(
   return useStoreWithEqualityFn(store, selector, equalityFn ?? shallow);
 };
 
+export const useEdges = <T,>(
+  selector: (state: NodeStoreState) => T,
+  equalityFn?: (a: T, b: T) => boolean
+): T => {
+  const store = useContext(NodeContext);
+  if (!store) {
+    throw new Error("useEdges must be used within a NodeProvider");
+  }
+  return useStoreWithEqualityFn(store, selector, equalityFn ?? shallow);
+};
+
+export const useSelectedNodes = (): string[] => {
+  const store = useContext(NodeContext);
+  if (!store) {
+    throw new Error("useSelectedNodes must be used within a NodeProvider");
+  }
+  return useStoreWithEqualityFn(store, (state) => state.getSelectedNodeIds(), shallow);
+};
+
 export const useTemporalNodes = <T,>(
   selector: (state: TemporalState<PartializedNodeStore>) => T
 ): T => {

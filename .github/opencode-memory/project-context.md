@@ -54,6 +54,21 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Workflow Profiler Research (2026-01-19)
+
+**What**: Built experimental Workflow Performance Profiler feature with bottleneck detection, layer analysis, and optimization suggestions.
+
+**Files**:
+- `web/src/stores/WorkflowProfilerStore.ts` - Performance analysis store
+- `web/src/hooks/useWorkflowProfiler.ts` - Profiler hook
+- `web/src/components/panels/WorkflowProfilerPanel.tsx` - UI panel
+- `web/src/components/panels/PanelRight.tsx` - Integration with right panel
+- `web/src/contexts/NodeContext.tsx` - Added useEdges and useSelectedNodes hooks
+- `web/src/stores/__tests__/WorkflowProfilerStore.test.ts` - Tests
+- `web/src/hooks/__tests__/useWorkflowProfiler.test.ts` - Tests
+
+---
+
 ### Handler Memoization (2026-01-19)
 
 **What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
@@ -61,6 +76,9 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/components/dashboard/GettingStartedPanel.tsx, web/src/components/workspaces/WorkspacesManager.tsx
 
 **Impact**: Stable function references reduce re-renders in workspace management and model download UI.
+
+---
+
 ### useInputNodeAutoRun Tests Fix (2026-01-19)
 
 **What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
