@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ServerStatus } from "../types";
 
 interface UpdateProgressData {
@@ -19,36 +19,137 @@ interface BootMessageProps {
   onReinstall?: () => void;
 }
 
+interface FeaturedModel {
+  name: string;
+  icon: string;
+  category: string;
+  description: string;
+}
+
+const FEATURED_MODELS: FeaturedModel[] = [
+  {
+    name: "Nano Banana Pro",
+    icon: "🍌",
+    category: "Image Generation",
+    description: "Google DeepMind's Nano Banana Pro delivers sharper 2K imagery, intelligent 4K scaling, improved text rendering, and enhanced character consistency.",
+  },
+  {
+    name: "Sora 2",
+    icon: "🎬",
+    category: "Video Generation",
+    description: "OpenAI's latest AI video model supporting text-to-video and image-to-video with realistic motion, physics consistency, and improved style control.",
+  },
+  {
+    name: "Veo 3.1",
+    icon: "🎥",
+    category: "Video Generation",
+    description: "Google DeepMind's next-gen video model producing high-fidelity, cinematic visuals with advanced scene understanding and natural motion.",
+  },
+  {
+    name: "Kling 2.6",
+    icon: "🔊",
+    category: "Audio-Visual",
+    description: "Kling AI's audio-visual model that produces synchronized video, speech, ambient sound, and sound effects from text or image inputs.",
+  },
+  {
+    name: "Suno API",
+    icon: "🎵",
+    category: "Music Generation",
+    description: "Transform text prompts into stunning AI-generated tracks with vocals and instruments. V5 delivers hyper-dynamic, natural compositions.",
+  },
+];
+
 const KiePromotion: React.FC = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  const nextSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % FEATURED_MODELS.length);
+  }, []);
+
+  const prevSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + FEATURED_MODELS.length) % FEATURED_MODELS.length);
+  }, []);
+
+  const goToSlide = useCallback((index: number) => {
+    setCurrentIndex(index);
+    setIsAutoPlaying(false);
+    // Resume auto-play after 10 seconds of inactivity
+    setTimeout(() => setIsAutoPlaying(true), 10000);
+  }, []);
+
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    const interval = setInterval(nextSlide, 5000);
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, nextSlide]);
+
   const handleOpenKie = async () => {
     try {
       await window.api?.system?.openExternal?.("https://kie.ai/");
     } catch (error) {
-      // Silently fail if unable to open external link
       console.error("Failed to open Kie.ai link:", error);
     }
   };
 
+  const currentModel = FEATURED_MODELS[currentIndex];
+
   return (
     <div className="kie-promotion">
       <div className="kie-promotion-header">
-        <span className="kie-promotion-icon" aria-hidden="true">🚀</span>
-        <h3>While You Wait...</h3>
+        <div className="kie-logo">
+          <span className="kie-logo-text">Kie.ai</span>
+          <span className="kie-logo-badge">Featured Models</span>
+        </div>
       </div>
-      <div className="kie-promotion-content">
-        <p className="kie-promotion-title">
-          Need API access to state-of-the-art AI models?
+
+      <div className="kie-carousel">
+        <button 
+          className="kie-carousel-nav kie-carousel-prev" 
+          onClick={prevSlide}
+          type="button"
+          aria-label="Previous model"
+        >
+          ‹
+        </button>
+        
+        <div className="kie-carousel-content">
+          <div className="kie-model-card">
+            <div className="kie-model-icon">{currentModel.icon}</div>
+            <div className="kie-model-info">
+              <span className="kie-model-category">{currentModel.category}</span>
+              <h4 className="kie-model-name">{currentModel.name}</h4>
+              <p className="kie-model-description">{currentModel.description}</p>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          className="kie-carousel-nav kie-carousel-next" 
+          onClick={nextSlide}
+          type="button"
+          aria-label="Next model"
+        >
+          ›
+        </button>
+      </div>
+
+      <div className="kie-carousel-dots">
+        {FEATURED_MODELS.map((_, index) => (
+          <button
+            key={index}
+            className={`kie-carousel-dot ${index === currentIndex ? 'active' : ''}`}
+            onClick={() => goToSlide(index)}
+            type="button"
+            aria-label={`Go to model ${index + 1}`}
+          />
+        ))}
+      </div>
+
+      <div className="kie-promotion-footer">
+        <p className="kie-tagline">
+          Access all SOTA models through one affordable API
         </p>
-        <p className="kie-promotion-description">
-          We recommend <strong>Kie.ai</strong> for their incredible pricing and broad support 
-          for all the latest SOTA models. Get access to GPT-4, Claude, Gemini, and many more 
-          through a single, affordable API.
-        </p>
-        <ul className="kie-features">
-          <li>✨ Access to all major AI models</li>
-          <li>💰 Unbeatable pricing</li>
-          <li>⚡ Fast, reliable API</li>
-        </ul>
         <button 
           className="kie-cta-button"
           onClick={handleOpenKie}
