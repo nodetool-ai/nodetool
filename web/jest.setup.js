@@ -1,6 +1,13 @@
 // Set timezone to UTC to ensure consistent test results
 process.env.TZ = 'UTC';
 
+// Mock import.meta for Vite compatibility
+global.import = {
+  meta: {
+    hot: undefined,
+  },
+};
+
 // Mock canvas before jsdom requires it
 const Module = require("module");
 const originalRequire = Module.prototype.require;
