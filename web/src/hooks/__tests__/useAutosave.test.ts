@@ -52,7 +52,7 @@ describe("useAutosave", () => {
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
       description: "Test workflow",
-      graph: { nodes: [], edges: [] },
+      graph: { nodes: [{ id: "node-1", type: "test", sync_mode: "start" }], edges: [] },
       tags: [],
       thumbnail: null,
       is_public: false,
