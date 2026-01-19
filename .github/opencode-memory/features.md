@@ -278,6 +278,16 @@ Last updated: 2026-01-17
 
 ---
 
+## Research Features (Experimental)
+
+*(Research features under development - API may change)*
+
+- **WorkflowChangeTimeline**: Visual timeline showing workflow version history with change indicators
+- **VersionCompareWithCurrent**: Compare any historical version with the current workflow state
+- **Visual Diff Enhancement**: GraphVisualDiff with improved node/edge visualization
+
+---
+
 ## Features NOT Yet Implemented
 
 *(Update this section when considering these features in the future)*

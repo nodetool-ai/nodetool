@@ -48,11 +48,21 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
-> ### FeatureYYYY-MM-DD)
-> **What**: One sentence
-> **Files**: Main files changed
-> ```
+> >/Fix Name ( ```
+> > ### FeatureYYYY-MM-DD)
+> > **What**: One sentence
+> > **Files**: Main files changed
+> > ```
+
+### Workflow Versioning Research Features (2026-01-19)
+
+**What**: Added experimental research features for workflow versioning - WorkflowChangeTimeline (visual timeline with change indicators) and VersionCompareWithCurrent (compare historical versions with current workflow).
+
+**Files**: web/src/components/version/WorkflowChangeTimeline.tsx, web/src/components/version/VersionCompareWithCurrent.tsx, web/src/components/version/WORKFLOW_VERSIONING_RESEARCH.md
+
+**Impact**: Users can now visualize workflow evolution over time and compare any historical version with the current state. Features marked as experimental for user testing.
+
+---
 
 ### FavoriteWorkflowsStore Test Fix (2026-01-19)
 
