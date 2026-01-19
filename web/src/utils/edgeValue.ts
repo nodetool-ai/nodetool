@@ -62,6 +62,7 @@ export const resolveExternalEdgeValue = (
     };
   }
 
+  // When cached result is missing, try to get fallback value from the source node
   const sourceNode = findNode(edge.source);
   if (!sourceNode || !isLiteralSourceNode(sourceNode.type)) {
     return { value: undefined, hasValue: false, isFallback: false };

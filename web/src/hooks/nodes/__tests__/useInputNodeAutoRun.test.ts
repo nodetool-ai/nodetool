@@ -348,11 +348,21 @@ describe("useInputNodeAutoRun", () => {
       complexNodes.find((n) => n.id === id)
     );
 
+    // Override the beforeEach mock setup for this specific test
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: complexNodes,
+        edges: complexEdges,
+        workflow: defaultMockWorkflow,
+        findNode: mockFindNode
+      })
+    });
+
     // Subgraph from input-1 includes: input-1, downstream-1, downstream-2
     // But NOT external-1
     mockSubgraph.mockReturnValue({
       nodes: [complexNodes[1], complexNodes[2], complexNodes[3]],
-      edges: [complexEdges[1], complexEdges[2]]
+      edges: [complexEdges[0], complexEdges[1], complexEdges[2]]
     });
 
     // external-1 has a cached result
@@ -454,10 +464,20 @@ describe("useInputNodeAutoRun", () => {
       multiExternalNodes.find((n) => n.id === id)
     );
 
+    // Override the beforeEach mock setup for this specific test
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: multiExternalNodes,
+        edges: multiExternalEdges,
+        workflow: defaultMockWorkflow,
+        findNode: mockFindNode
+      })
+    });
+
     // Subgraph from input-1: input-1, downstream-1, downstream-2
     mockSubgraph.mockReturnValue({
       nodes: [multiExternalNodes[2], multiExternalNodes[3], multiExternalNodes[4]],
-      edges: [multiExternalEdges[2], multiExternalEdges[3]]
+      edges: [multiExternalEdges[0], multiExternalEdges[2], multiExternalEdges[3]]
     });
 
     // Both external nodes have cached results
@@ -554,9 +574,19 @@ describe("useInputNodeAutoRun", () => {
       nodesWithLiterals.find((n) => n.id === id)
     );
 
+    // Override the beforeEach mock setup for this specific test
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: nodesWithLiterals,
+        edges: literalEdges,
+        workflow: defaultMockWorkflow,
+        findNode: mockFindNode
+      })
+    });
+
     mockSubgraph.mockReturnValue({
       nodes: [nodesWithLiterals[0], nodesWithLiterals[3]],
-      edges: [literalEdges[0]]
+      edges: [literalEdges[0], literalEdges[1], literalEdges[2]]
     });
 
     // Enable instantUpdate

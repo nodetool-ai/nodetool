@@ -106,6 +106,7 @@ const collectCachedValuesForSubgraph = (
       getResult,
       findNode
     );
+
     if (!hasValue) {
       continue;
     }
@@ -217,6 +218,7 @@ export const useNodeAutoRun = (
     const externalInputEdges = findExternalInputEdges(edges, subgraphNodeIds);
 
     // Collect cached values for all external dependencies
+    // getResult is stable from useResultsStore, no need to include in deps
     const propertyOverrides = collectCachedValuesForSubgraph(
       externalInputEdges,
       workflow.id,
@@ -247,12 +249,13 @@ export const useNodeAutoRun = (
     });
 
     run({}, workflow, nodesWithCachedValues, downstream.edges);
+    // getResult is stable from useResultsStore, no need to include in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     nodeType,
     nodeId,
     nodeStore,
     isWorkflowRunning,
-    getResult,
     run,
     propertyName
   ]);
