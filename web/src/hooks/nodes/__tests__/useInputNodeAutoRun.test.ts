@@ -344,6 +344,15 @@ describe("useInputNodeAutoRun", () => {
       findNode: (id: string) => complexNodes.find((n) => n.id === id)
     });
 
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: complexNodes,
+        edges: complexEdges,
+        workflow: defaultMockWorkflow,
+        findNode: (id: string) => complexNodes.find((n) => n.id === id)
+      })
+    });
+
     mockFindNode.mockImplementation((id: string) =>
       complexNodes.find((n) => n.id === id)
     );
@@ -361,6 +370,12 @@ describe("useInputNodeAutoRun", () => {
         return { output: "cached external value" };
       }
       return undefined;
+    });
+
+    // Setup useResultsStore mock to return getResult
+    mockUseResultsStore.mockImplementation((selector: Function) => {
+      const state = { getResult: mockGetResult };
+      return selector(state);
     });
 
     // Enable instantUpdate
@@ -450,6 +465,15 @@ describe("useInputNodeAutoRun", () => {
       findNode: (id: string) => multiExternalNodes.find((n) => n.id === id)
     });
 
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: multiExternalNodes,
+        edges: multiExternalEdges,
+        workflow: defaultMockWorkflow,
+        findNode: (id: string) => multiExternalNodes.find((n) => n.id === id)
+      })
+    });
+
     mockFindNode.mockImplementation((id: string) =>
       multiExternalNodes.find((n) => n.id === id)
     );
@@ -469,6 +493,12 @@ describe("useInputNodeAutoRun", () => {
         return { output: 100 };
       }
       return undefined;
+    });
+
+    // Setup useResultsStore mock to return getResult
+    mockUseResultsStore.mockImplementation((selector: Function) => {
+      const state = { getResult: mockGetResult };
+      return selector(state);
     });
 
     // Enable instantUpdate
@@ -550,6 +580,15 @@ describe("useInputNodeAutoRun", () => {
       findNode: (id: string) => nodesWithLiterals.find((n) => n.id === id)
     });
 
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: nodesWithLiterals,
+        edges: literalEdges,
+        workflow: defaultMockWorkflow,
+        findNode: (id: string) => nodesWithLiterals.find((n) => n.id === id)
+      })
+    });
+
     mockFindNode.mockImplementation((id: string) =>
       nodesWithLiterals.find((n) => n.id === id)
     );
@@ -557,6 +596,12 @@ describe("useInputNodeAutoRun", () => {
     mockSubgraph.mockReturnValue({
       nodes: [nodesWithLiterals[0], nodesWithLiterals[3]],
       edges: [literalEdges[0]]
+    });
+
+    // Setup useResultsStore mock - getResult returns undefined for fallback test
+    mockUseResultsStore.mockImplementation((selector: Function) => {
+      const state = { getResult: () => undefined };
+      return selector(state);
     });
 
     // Enable instantUpdate

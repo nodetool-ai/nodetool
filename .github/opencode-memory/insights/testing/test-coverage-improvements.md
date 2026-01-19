@@ -1,5 +1,59 @@
 # Test Coverage Improvements (2026-01-19)
 
+**Test Coverage Added**: Fixed all 3 failing useInputNodeAutoRun tests
+
+**Issues Fixed**:
+- **Monaco Editor Test**: Fixed `ReferenceError: define is not defined` by properly mocking Monaco editor's AMD module loading pattern
+- **useInputNodeAutoRun Tests (COMPLETED)**: Fixed missing `useNodeStoreRef` and `useResultsStore` mocks that were causing cached values not to be injected
+
+**Changes Made**:
+
+1. **useInputNodeAutoRun Test Fix** (`web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts`):
+   - Added `mockUseNodeStoreRef` setup to return complex nodes and edges for tests with external dependencies
+   - Added `mockUseResultsStore.mockImplementation` to properly return `getResult` function when selector is applied
+   - Fixed `mockSubgraph` node indices to match the actual node IDs in test data
+   - Fixed test setup to use correct node indices (complexNodes[1] instead of complexNodes[0] for "input-1")
+
+2. **Test Pattern Used**:
+```typescript
+// Mock useNodeStoreRef to return the complex test data
+mockUseNodeStoreRef.mockReturnValue({
+  getState: () => ({
+    nodes: complexNodes,
+    edges: complexEdges,
+    workflow: defaultMockWorkflow,
+    findNode: (id: string) => complexNodes.find((n) => n.id === id)
+  })
+});
+
+// Mock useResultsStore to return getResult function when selector is applied
+mockUseResultsStore.mockImplementation((selector: Function) => {
+  const state = { getResult: mockGetResult };
+  return selector(state);
+});
+```
+
+**Root Cause Analysis**:
+The tests were failing because:
+1. `useNodeStoreRef` mock returned default nodes/edges instead of test-specific complex nodes
+2. `useResultsStore` mock returned the function directly instead of applying the selector
+3. The hook's internal `executeDownstreamSubgraph` function uses `nodeStore.getState()` to get edges, which needs the correct mock setup
+
+**Test Results**:
+- **Before Fix**: 3 useInputNodeAutoRun tests failing with "Expected cached value, Received: undefined"
+- **After Fix**: All 15 useInputNodeAutoRun tests passing
+- **Full Test Suite**: 236 test suites, 3,092 tests (3,089 passing, 3 skipped)
+
+**Key Learnings**:
+1. When testing hooks that use `useStoreRef().getState()`, both `mockUseNodes` AND `mockUseNodeStoreRef` need to be set up with the same test data
+2. Zustand store mocks need to apply selectors correctly - return the full state, then let the selector extract the function
+3. Complex node graph tests need careful attention to which nodes are in the subgraph vs which are external dependencies
+4. The `mockSubgraph` return value determines which nodes are considered "in the subgraph" for external edge detection
+
+---
+
+**Previous Entry (2026-01-19 - Earlier)**
+
 **Test Coverage Added**: Fixed critical failing tests to maintain high coverage
 
 **Issues Fixed**:

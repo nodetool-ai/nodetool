@@ -291,3 +291,25 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+## Current Test Status (2026-01-19)
+
+**Test Results**:
+- **Test Suites**: 236 passing
+- **Tests**: 3,092 total (3,089 passing, 3 skipped)
+- **Coverage**: ~70% for critical paths
+- **Status**: ✅ All tests passing
+
+**Test Coverage Summary**:
+- ✅ All critical Zustand stores have comprehensive tests
+- ✅ All major React hooks have comprehensive tests
+- ✅ All important utility functions have comprehensive tests
+- ✅ Graph conversion utilities (graphNodeToReactFlowNode, reactFlowEdgeToGraphEdge)
+- ✅ Node hooks (useInputNodeAutoRun, useDynamicProperty, useSelect, etc.)
+- ✅ Workflow execution and result handling
+
+**Key Test Files**:
+- Stores: 49+ test files in `web/src/stores/__tests__/`
+- Hooks: 20+ test files in `web/src/hooks/__tests__/` and `web/src/hooks/nodes/__tests__/`
+- Utilities: 40+ test files in `web/src/utils/__tests__/`
+- Components: 90+ test files in various `__tests__/` directories
