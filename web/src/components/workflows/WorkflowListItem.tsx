@@ -143,9 +143,6 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           }}
         />
       )}
-      {isFavorite && (
-        <StarIcon className="favorite-indicator" sx={{ fontSize: "1rem", color: "warning.main", mr: 0.5, flexShrink: 0 }} />
-      )}
       <Box className="preview-container" sx={{ flexGrow: 1, width: "100%", mr: 0 }}>
         {showGraphPreview && (
           <WorkflowMiniPreview
@@ -155,7 +152,9 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             label={workflow.name}
           />
         )}
-        <Typography className="name">{workflow.name}</Typography>
+        <Typography className={`name${isFavorite ? " favorite" : ""}`}>
+          {workflow.name}
+        </Typography>
       </Box>
       <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>
       <Box className="actions">

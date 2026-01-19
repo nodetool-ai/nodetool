@@ -500,11 +500,14 @@ const PanelContent = memo(function PanelContent({
             width: "100%",
             height: "100%",
             overflow: "hidden",
-            margin: "10px 0"
+            display: "flex",
+            flexDirection: "column"
           }}
         >
-          <h3 style={{ paddingLeft: "1em" }}>Workflows</h3>
-          <WorkflowList />
+          <h3 style={{ paddingLeft: "1em", flexShrink: 0, margin: "10px 0" }}>Workflows</h3>
+          <Box sx={{ flex: 1, overflow: "hidden" }}>
+            <WorkflowList />
+          </Box>
         </Box>
       )}
       {activeView === "jobs" && (

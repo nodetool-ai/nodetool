@@ -7,7 +7,7 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -232,7 +232,12 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Create new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+        placement="top"
+        title="Create new workflow"
+        >
           <IconButton
             className="add-button"
             onClick={handleCreateWorkflow}

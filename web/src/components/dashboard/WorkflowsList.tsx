@@ -15,6 +15,7 @@ import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import AddIcon from "@mui/icons-material/Add";
+import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 
 interface WorkflowsListProps {
   sortedWorkflows: Workflow[];
@@ -161,7 +162,13 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <ToggleButton value="name">Name</ToggleButton>
             <ToggleButton value="updated_at">Date</ToggleButton>
           </ToggleButtonGroup>
-          <Tooltip title="Create New Workflow">
+          <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          placement="top"
+          title="Create New Workflow"
+          arrow
+          >
             <Button
               className="create-button"
               startIcon={<AddIcon />}
