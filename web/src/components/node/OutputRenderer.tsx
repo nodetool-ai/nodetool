@@ -5,9 +5,11 @@ import React, {
   memo,
   useState,
   useRef,
-  useEffect
+  useEffect,
+  lazy,
+  Suspense
 } from "react";
-import Plot from "react-plotly.js";
+import LoadingAnimation from "../node_editor/LoadingAnimation";
 
 import {
   Asset,
@@ -33,7 +35,6 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "lodash/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
-import Model3DViewer from "../asset_viewer/Model3DViewer";
 import {
   typeFor,
   renderSVGDocument,
@@ -53,6 +54,11 @@ import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
+
+const Plot = lazy(() =>
+  import("react-plotly.js").then((mod) => ({ default: mod.default as React.ComponentType<any> }))
+);
+const Model3DViewer = lazy(() => import("../asset_viewer/Model3DViewer").then((mod) => ({ default: mod.default })));
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -332,13 +338,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             className="render-content"
             style={{ width: "100%", height: "100%" }}
           >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
+            <Suspense fallback={<LoadingAnimation />}>
+              <Plot
+                data={config.config.data as Plotly.Data[]}
+                layout={config.config.layout as Partial<Plotly.Layout>}
+                config={config.config.config as Partial<Plotly.Config>}
+                frames={config.config.frames as Plotly.Frame[] | undefined}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </Suspense>
           </div>
         );
       case "image_comparison":
@@ -429,11 +437,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
-            <Model3DViewer
-              url={url}
-              compact={true}
-              onClick={handleModel3DClick(url, contentType)}
-            />
+            <Suspense fallback={<LoadingAnimation />}>
+              <Model3DViewer
+                url={url}
+                compact={true}
+                onClick={handleModel3DClick(url, contentType)}
+              />
+            </Suspense>
           </div>
         );
       }

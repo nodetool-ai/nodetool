@@ -237,19 +237,26 @@ const WorkflowList = () => {
     setShowFavoritesOnly((prev) => !prev);
   }, []);
 
+  const handleCloseDeleteDialog = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+  }, []);
+
+  const handleCloseEditModal = useCallback(() => {
+    setWorkflowToEdit(null);
+  }, []);
 
 
   return (
     <>
       <WorkflowDeleteDialog
         open={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
+        onClose={handleCloseDeleteDialog}
         workflowsToDelete={workflowsToDelete}
       />
       {workflowToEdit && (
         <WorkflowFormModal
           open={!!workflowToEdit}
-          onClose={() => setWorkflowToEdit(null)}
+          onClose={handleCloseEditModal}
           workflow={workflowToEdit}
         />
       )}

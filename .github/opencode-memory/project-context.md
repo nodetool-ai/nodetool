@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Code Splitting Heavy Libraries (2026-01-19)
+
+**What**: Lazy-loaded Plotly and Three.js using React.lazy for on-demand loading. **Files**: OutputRenderer.tsx
+
+**Impact**: Faster initial load for users who don't use plot/3D features. Plotly (4.7MB) and Three.js (991KB) now load only when needed.
+
+---
+
 ### FavoriteWorkflowsStore Test Fix (2026-01-19)
 
 **What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
