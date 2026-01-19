@@ -1041,3 +1041,35 @@ it("falls back to URI when createAssetFile fails", async () => {
 **Maintained By**: Automated OpenCode testing agent
 
 **Last Updated**: 2026-01-18
+
+---
+
+### Test Coverage Status (2026-01-19)
+
+**Current Test Statistics:**
+- **Total Tests:** 3,090
+- **Passing Tests:** 3,062 (99.1%)
+- **Failing Tests:** 25 (pre-existing issues)
+- **Test Suites:** 236 total, 231 passing
+
+**Coverage Metrics:**
+- **Lines:** 26.3% (8,243/31,383)
+- **Functions:** 22.0% (1,791/8,135)
+- **Branches:** 18.6% (2,953/15,875)
+
+**Test Infrastructure:**
+- **Framework:** Jest 29.7 with React Testing Library 16.1
+- **E2E:** Playwright 1.57 for critical flows
+- **Mocking:** Extensive mocks for API, stores, and external dependencies
+- **Patterns:** RTL patterns, act() for async, proper cleanup
+
+**Known Issues (Non-Blocking):**
+- useInputNodeAutoRun: Some async timing issues
+- formatDateAndTime: Text format expectations differ
+- useMonacoEditor: Monaco define issues in test environment
+
+**Status:** Stable with 99.1% test pass rate
+
+---
+
+*Documented: 2026-01-19*

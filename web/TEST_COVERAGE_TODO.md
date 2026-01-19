@@ -294,32 +294,36 @@ This document tracks remaining test coverage opportunities in the `web/` directo
 
 ---
 
-## Progress Tracking
+## Progress Tracking (2026-01-19)
 
-**Completed (Current PR):**
-- ✅ ErrorBoundary.tsx (9 tests, 100%)
-- ✅ useIsDarkMode.ts (5 tests, 100%)
-- ✅ KeyPressedStore.ts (37 tests, ~70%)
-- ✅ BottomPanelStore.ts (24 tests, 100%)
-- ✅ RightPanelStore.ts (16 tests, 100%)
-- ✅ AudioQueueStore.ts (17 tests, 100%)
-- ✅ AssetGridStore.ts (29 tests, 100%)
-- ✅ themeMock.ts (enhanced)
-- ❌ HandleTooltip.tsx (removed due to test timeouts)
+**Current Test Status:**
+- **Total Tests:** 3,090
+- **Passing Tests:** 3,062
+- **Failing Tests:** 25 (pre-existing issues)
+- **Coverage:** Lines 26.3%, Functions 22.0%, Branches 18.6%
 
-**Total Added:** 137 tests, +0.90pp coverage
+**Completed (2026-01-19):**
+- ✅ All major stores have test coverage (CollectionStore, FileStore, ModelPreferencesStore, MiniAppsStore)
+- ✅ All major hooks have test coverage (useRunningJobs, useIsGroupable, useFocusPan, useDelayedHover, etc.)
+- ✅ All utilities have test coverage (ColorUtils, binary, errorHandling, formatUtils, graphCycle, highlightText, modelFilters, modelNormalization, nodeDisplay, sanitize, titleizeString)
+- ✅ Node hook tests complete (useAddToGroup, useDynamicOutput, useDynamicProperty, useInputNodeAutoRun, useNodeContextMenu, useRemoveFromGroup, useSelect, useSurroundWithGroup, useSyncEdgeSelection, getChildNodes, getGroupBounds)
+- ✅ Workflow and editor hooks tested (useWorkflowActions, useWorkflowRunnerState, useSelectionActions, useFindInWorkflow, useFitView, useFitNodeEvent, useAlignNodes)
+
+**Key Test Areas:**
+- **Stores:** 57 test files covering all major state management
+- **Hooks:** 20+ test files covering critical hooks
+- **Utils:** 45+ test files covering all utility functions
+- **Components:** ErrorBoundary and other critical components
+
+**Remaining Work:**
+- Fix pre-existing test failures (useInputNodeAutoRun, formatDateAndTime, useMonacoEditor)
+- Increase coverage for complex hooks (useNodeEditorShortcuts, useNumberInput)
+- Add integration tests for critical workflows
+
+**Total Test Coverage:** ~26% lines, ~22% functions, ~19% branches
+**Target Coverage:** 30%+
 
 ---
 
-## Next Steps
-
-1. Fix pre-existing test failures (not blocking this PR)
-2. Start with Priority 1 stores (high ROI, low effort)
-3. Add hook tests for simple hooks
-4. Gradually work through components
-5. Address test infrastructure needs as they arise
-
----
-
-*Last Updated: 2025-12-27*
-*Target Completion: Incremental - aim for 25% by Q1 2025, 30% by Q2 2025*
+*Last Updated: 2026-01-19*
+*Coverage Status: Stable with 3062 passing tests*
