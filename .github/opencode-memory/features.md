@@ -537,6 +537,30 @@ All hooks now include module-level JSDoc with @param, @returns, and @example tag
 
 ---
 
+### Documentation Quality Audit (2026-01-19)
+
+**Areas Improved**: Documentation accuracy and completeness
+
+**Issues Fixed**:
+- Removed invalid reference to non-existent `.github/claude-instructions.md` from AGENTS.md
+- Fixed incorrect file extension in `web/src/hooks/AGENTS.md` (`useCopyPaste.ts` → `useCopyPaste.tsx`)
+- Enhanced `web/README.md` with comprehensive documentation (38 → 115 lines)
+
+**Verification Results**:
+- All npm commands verified against package.json ✅
+- Port consistency verified (7777 dev, 8000 prod) ✅
+- Linting passes (web, electron) ✅
+- Web tests: 3086/3092 pass ✅
+- Electron tests: 206/206 pass ✅
+- Mobile type checking fails (regression - missing type definitions) ⚠️
+
+**Files Audited**: 23 documentation files across all packages
+
+**Related Memory**:
+- `.github/opencode-memory/issues/documentation/documentation-quality-audit-2026-01-19.md`
+
+---
+
 **Note**: This list represents the current state of NodeTool. Check git history and recent PRs for the most up-to-date information on new features.
 
 ---
