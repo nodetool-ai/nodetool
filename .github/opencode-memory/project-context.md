@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Test Fixes for Quality Checks (2026-01-19)
+
+**What**: Fixed TypeScript errors and test failures in FavoriteWorkflowsStore, formatDateAndTime, and useAutosave tests. Also fixed lint warning for unused type.
+
+**Files**: web/src/stores/__tests__/FavoriteWorkflowsStore.test.ts, web/src/utils/__tests__/formatDateAndTime.test.ts, web/src/hooks/__tests__/useAutosave.test.ts, web/src/hooks/nodes/useSurroundWithGroup.ts
+
+---
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
