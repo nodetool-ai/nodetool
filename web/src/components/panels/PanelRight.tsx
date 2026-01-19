@@ -171,7 +171,7 @@ const JobItem = ({ job }: { job: Job }) => {
   };
 
   const getStatusIcon = () => {
-    if (job.error) return <ErrorOutlineIcon color="error" />;
+    if (job.error) {return <ErrorOutlineIcon color="error" />;}
     switch (job.status) {
       case "running": return <CircularProgress size={24} />;
       case "queued":
