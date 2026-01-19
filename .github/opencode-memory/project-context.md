@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Workflow Performance Profiler Research (2026-01-19)
+
+**What**: Implemented experimental Workflow Performance Profiler feature to analyze workflows for bottlenecks and optimization opportunities.
+
+**Files**: web/src/components/research/WorkflowProfiler.tsx, web/src/components/research/ProfilerPanel.tsx, web/src/components/research/__tests__/WorkflowProfiler.test.tsx, web/src/hooks/research/useProfiler.ts
+
+**Impact**: Users can now analyze workflows to identify performance issues, high-runtime nodes, and get optimization suggestions.
+
+---
+
 ### Lint Warning Fix (2026-01-19)
 
 **What**: Fixed unused type definition warning by using `SurroundWithGroupOptions` type in function signature instead of inline type.
