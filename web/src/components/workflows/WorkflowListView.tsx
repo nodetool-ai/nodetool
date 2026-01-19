@@ -50,9 +50,8 @@ const listStyles = (theme: Theme) =>
       cursor: "pointer",
       outline: "none",
       border: "none",
-      borderLeft: `3px solid transparent`,
-      borderRadius: 6,
-      transition: "background 0.18s ease, border-color 0.2s ease",
+      borderRadius: 3,
+      transition: "background 0.18s ease",
       "& .MuiCheckbox-root": {
         margin: "0 0.75em 0 0",
         padding: 0
@@ -97,12 +96,20 @@ const listStyles = (theme: Theme) =>
       textOverflow: "ellipsis",
       paddingRight: "140px"
     },
-    ".name.favorite": {
-      color: theme.vars.palette.warning.light
-    },
-    ".date": {
+    ".date-container": {
       position: "absolute",
       right: "0.75em",
+      display: "flex",
+      alignItems: "center",
+      gap: "4px"
+    },
+    ".favorite-indicator": {
+      flexShrink: 0
+    },
+    ".workflow:hover .date-container": {
+      opacity: 0
+    },
+    ".date": {
       color: theme.vars.palette.grey[300],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
@@ -111,9 +118,6 @@ const listStyles = (theme: Theme) =>
       minWidth: "80px",
       userSelect: "none",
       textAlign: "right"
-    },
-    ".workflow:hover .date": {
-      opacity: 0
     },
     ".workflow:hover .duplicate-button, .workflow:hover .delete-button": {
       opacity: 1
