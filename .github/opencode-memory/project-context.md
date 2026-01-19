@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Version Analytics Dashboard (2026-01-19)
+
+**What**: Research prototype for workflow version analytics with evolution metrics, edit patterns, and timeline visualization.
+
+**Files**: web/src/utils/versionAnalytics.ts, web/src/components/version/VersionAnalyticsDashboard.tsx
+
+**Status**: Experimental - integrates with existing version history system
+
+---
+
 ### Lint Warning Fix (2026-01-19)
 
 **What**: Fixed unused type definition warning by using `SurroundWithGroupOptions` type in function signature instead of inline type.

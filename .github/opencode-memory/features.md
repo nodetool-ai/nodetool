@@ -284,13 +284,26 @@ Last updated: 2026-01-17
 
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
-- **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
+
+---
+
+## Implemented Research Features
+
+*(Features prototyped by OpenCode agents)*
+
+- **Version History UI**: Visual diff and comparison for workflow versions (COMPLETE)
+  - Components: VersionHistoryPanel, VersionDiff, GraphVisualDiff
+  - Store: VersionHistoryStore
+  - Utility: graphDiff.ts
+
+- **Version Analytics Dashboard** (2026-01-19): Research prototype for workflow evolution analytics
+  - Utility: versionAnalytics.ts (metrics, evolution tracking, edit patterns)
+  - Component: VersionAnalyticsDashboard (metrics cards, timeline view, edit heatmap)
+  - Status: Experimental - integrates with existing version history system
 
 ---
 
