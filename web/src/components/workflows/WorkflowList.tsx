@@ -16,7 +16,7 @@ import {
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import isEqual from "lodash/isEqual";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
@@ -103,6 +103,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
 
 const WorkflowList = () => {
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const [filterValue, setFilterValue] = useState("");
   const [workflowsToDelete, setWorkflowsToDelete] = useState<
     WorkflowAttributes[]
@@ -232,6 +233,30 @@ const WorkflowList = () => {
     setWorkflowToEdit(workflow);
   }, []);
 
+  const handleRename = useCallback(
+    async (workflow: Workflow, newName: string) => {
+      try {
+        await client.PUT("/api/workflows/{id}", {
+          params: { path: { id: workflow.id } },
+          body: { ...workflow, name: newName }
+        });
+        // Update the cache optimistically
+        queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {
+          if (!old) {return old;}
+          return {
+            ...old,
+            workflows: old.workflows.map((w) =>
+              w.id === workflow.id ? { ...w, name: newName } : w
+            )
+          };
+        });
+      } catch (err) {
+        console.error("Failed to rename workflow:", err);
+      }
+    },
+    [queryClient]
+  );
+
   const handleToggleFavorites = useCallback(() => {
     setShowFavoritesOnly((prev) => !prev);
   }, []);
@@ -312,6 +337,7 @@ const WorkflowList = () => {
               onDuplicateWorkflow={duplicateWorkflow}
               onDelete={onDelete}
               onEdit={handleEdit}
+              onRename={handleRename}
               onSelect={onSelect}
               selectedWorkflows={selectedWorkflows}
               workflowCategory="user"

@@ -22,7 +22,16 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
         },
       },
     }),
-    { name: "workflow-list-view" }
+    {
+      name: "workflow-list-view",
+      partialize: (state) => ({ showGraphPreview: state.showGraphPreview }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        showGraphPreview:
+          (persistedState as Partial<WorkflowListViewState>)?.showGraphPreview ??
+          currentState.showGraphPreview,
+      }),
+    }
   )
 );
 
