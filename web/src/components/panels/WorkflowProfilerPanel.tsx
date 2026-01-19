@@ -214,7 +214,7 @@ const WorkflowProfilerPanel: React.FC<WorkflowProfilerPanelProps> = ({
     }
   }, [isOpen, nodes, edges, analyze, profile]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   const hasProfile = !!profile;
 

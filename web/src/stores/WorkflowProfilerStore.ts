@@ -167,7 +167,7 @@ const useWorkflowProfilerStore = create<WorkflowProfilerStore>((set, get) => ({
 
     bottleneckNodes.forEach((b) => {
       const metric = metrics.get(b.nodeId);
-      if (metric) metric.isBottleneck = true;
+      if (metric) {metric.isBottleneck = true;}
     });
 
     const profile: WorkflowProfile = {
@@ -198,7 +198,7 @@ const useWorkflowProfilerStore = create<WorkflowProfilerStore>((set, get) => ({
 
   updateActualTime: (workflowId: string, nodeId: string, actualTime: number) => {
     const profile = get().profiles[workflowId];
-    if (!profile) return;
+    if (!profile) {return;}
 
     const updatedProfile = {
       ...profile,
@@ -344,7 +344,7 @@ function findCriticalPath(
     const hasNextLayer = nodes.some(
       (n) => nodeLayer[n.id] === currentLayer + 1
     );
-    if (!hasNextLayer) break;
+    if (!hasNextLayer) {break;}
     currentLayer++;
   }
 
@@ -357,12 +357,12 @@ function canRunInParallel(
   edges: Edge[]
 ): boolean {
   const incomingEdges = edges.filter((e) => e.target === node.id);
-  if (incomingEdges.length === 0) return true;
-  if (incomingEdges.length > 1) return false;
+  if (incomingEdges.length === 0) {return true;}
+  if (incomingEdges.length > 1) {return false;}
 
   const sourceId = incomingEdges[0].source;
   const sourceNode = nodes.find((n) => n.id === sourceId);
-  if (!sourceNode) return false;
+  if (!sourceNode) {return false;}
 
   const outgoingFromSource = edges.filter((e) => e.source === sourceId);
   return outgoingFromSource.length > 1;
