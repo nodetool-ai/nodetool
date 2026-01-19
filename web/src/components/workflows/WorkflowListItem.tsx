@@ -101,20 +101,38 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     }
     
     return (
-      <Box sx={{ fontSize: "0.75rem", maxWidth: 300 }}>
+      <Box sx={{ maxWidth: 300 }}>
+        <Typography sx={{ fontSize: "var(--fontSizeNormal)", fontWeight: 500, mb: 0.5 }}>
+          {workflow.name}
+        </Typography>
         {hasDescription && (
-          <Typography sx={{ fontSize: "inherit", mb: hasTags ? 0.5 : 0 }}>
+          <Typography
+          sx={{ fontSize: "var(--fontSizeSmall)",color: "grey.200", mb: hasTags ? 0.5 : 0 }}>
             {workflow.description}
           </Typography>
         )}
         {hasTags && (
-          <Typography sx={{ fontSize: "inherit", fontStyle: "italic", color: "grey.400" }}>
-            {workflow.tags!.join(", ")}
-          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px", mt: 2 }}>
+            {workflow.tags!.map((tag) => (
+              <Typography
+                key={tag}
+                sx={{
+                  fontSize: "0.7rem",
+                  color: "grey.900",
+                  backgroundColor: "grey.200",
+                  borderRadius: "1em",
+                  padding: "0.15em 0.5em",
+                  fontFamily: "var(--fontFamily2)"
+                }}
+              >
+                {tag}
+              </Typography>
+            ))}
+          </Box>
         )}
       </Box>
     );
-  }, [workflow.description, workflow.tags]);
+  }, [workflow.name, workflow.description, workflow.tags]);
 
   const workflowItem = (
     <Box
