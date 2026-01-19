@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Workflow Performance Profiler (2026-01-19)
+
+**What**: Implemented experimental workflow performance profiler to identify execution bottlenecks and visualize timing data.
+
+**Files**: `web/src/stores/WorkflowProfilerStore.ts`, `web/src/components/profiler/*`, `docs/RESEARCH_WORKFLOW_PROFILER.md`
+
+**Impact**: Users can now analyze workflow execution performance with statistics, bottleneck identification, and timeline visualization.
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).

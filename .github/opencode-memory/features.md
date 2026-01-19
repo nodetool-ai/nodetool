@@ -290,7 +290,12 @@ Last updated: 2026-01-17
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
+
+### Partially Implemented
+
+- **Performance Profiling UI**: Basic profiling implemented (2026-01-19)
+  - Files: `web/src/stores/WorkflowProfilerStore.ts`, `web/src/components/profiler/*`
+  - Status: MVP complete, needs historical data and comparison features
 
 ---
 
