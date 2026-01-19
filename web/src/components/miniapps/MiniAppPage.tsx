@@ -24,6 +24,7 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 import ThemeToggle from "../ui/ThemeToggle";
 import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
+import { usePanelStore } from "../../stores/PanelStore";
 
 const MiniAppPage: React.FC = () => {
   const theme = useTheme();
@@ -40,7 +41,7 @@ const MiniAppPage: React.FC = () => {
     isLoading,
     error
   } = useQuery({
-    queryKey: ["unknown"],
+    queryKey: ["workflow", workflowId],
     queryFn: async () => await fetchWorkflow(workflowId ?? ""),
     enabled: !!workflowId,
     staleTime: 0,
@@ -156,9 +157,21 @@ const MiniAppPage: React.FC = () => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
+  const { isVisible, panelSize } = usePanelStore((state) => state.panel);
+  const leftOffset = isVisible ? panelSize : 50;
+
   return (
     <NodeContext.Provider value={activeNodeStore ?? null}>
-      <Box css={styles} component="section" className="mini-app-page">
+      <Box
+        css={styles}
+        component="section"
+        className="mini-app-page"
+        sx={{
+          marginLeft: `${leftOffset}px`,
+          width: `calc(100% - ${leftOffset}px)`,
+          transition: "margin-left 0.2s ease-out, width 0.2s ease-out"
+        }}
+      >
         {/* <MiniAppHero
         workflows={workflows}
         selectedWorkflowId={selectedWorkflowId}
@@ -184,10 +197,6 @@ const MiniAppPage: React.FC = () => {
                 {workflow?.name}
               </Typography>
               <Box display="flex" alignItems="center" gap={2}>
-                <MiniWorkflowGraph
-                  workflow={workflow}
-                  isRunning={runnerState === "running"}
-                />
                 <ThemeToggle />
               </Box>
             </Box>
@@ -270,6 +279,14 @@ const MiniAppPage: React.FC = () => {
               </Box>
             </div>
           </>
+        )}
+        {workflow && (
+          <Box mt={4} height={200}>
+            <MiniWorkflowGraph
+              workflow={workflow}
+              isRunning={runnerState === "running"}
+            />
+          </Box>
         )}
       </Box>
     </NodeContext.Provider>

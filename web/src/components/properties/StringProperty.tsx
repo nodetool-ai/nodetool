@@ -100,10 +100,6 @@ const StringProperty = ({
             opacity: 0.8,
             zIndex: 10
           },
-          ".string-value-input": {
-            fontSize: "var(--fontSizeSmaller)",
-            lineHeight: "1.25em"
-          },
           ".string-action-buttons .MuiIconButton-root": {
             margin: "0 0 0 5px",
             padding: 0
@@ -147,11 +143,11 @@ const StringProperty = ({
               sx={
                 isConstant
                   ? {
-                      "& .MuiInputBase-inputMultiline": {
-                        // Constant nodes intentionally allow larger editing surface.
-                        maxHeight: "300px"
-                      }
+                    "& .MuiInputBase-inputMultiline": {
+                      // Constant nodes intentionally allow larger editing surface.
+                      maxHeight: "300px"
                     }
+                  }
                   : undefined
               }
               value={value || ""}

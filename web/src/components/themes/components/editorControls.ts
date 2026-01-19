@@ -67,8 +67,8 @@ export const editorControlsComponents: Components<Theme> = {
             [`&.${editorUiClasses.scopeNode} .MuiOutlinedInput-input`]: {
               padding: `${editor.padYNode} ${editor.padXNode}`,
               minHeight: "1.7em",
-              lineHeight: "1.2em",
-              fontSize: theme.fontSizeTiny
+              lineHeight: "1.5em",
+              fontSize: theme.fontSizeSmall
             },
 
             // Multiline textarea

@@ -154,18 +154,18 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
       inputDefinitions
         .map((definition, index) => {
           const property = createPropertyFromDefinition(definition);
-          
+
           // Check json_schema_extra first (like PropertyInput.tsx does)
           let Component: React.ComponentType<PropertyProps> | undefined;
           if (property.json_schema_extra?.type) {
             Component = JSON_SCHEMA_EXTRA_TYPE_MAP[property.json_schema_extra.type as string];
           }
-          
+
           // Fall back to type-based mapping
           if (!Component) {
             Component = PROPERTY_COMPONENT_MAP[property.type.type];
           }
-          
+
           if (!Component) {
             return null;
           }
@@ -222,7 +222,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                   {definition.data.description && (
                     <Typography
                       id={`${inputId}-description`}
-                      variant="body2"
+                      variant="caption"
                       color="text.secondary"
                     >
                       {definition.data.description}
