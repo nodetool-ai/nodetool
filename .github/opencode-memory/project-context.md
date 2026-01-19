@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Workflow Version Diff Viewer Research (2026-01-19)
+
+**What**: Implemented experimental WorkflowDiff feature for visual comparison of workflow versions with added/removed/modified node and edge detection.
+
+**Files**: web/src/components/version/WorkflowDiff/{types,algorithm,WorkflowDiffView,useWorkflowDiff,index}.ts, __tests__/WorkflowDiff.test.ts
+
+**Impact**: Users can now compare workflow versions to track changes, debug issues, and review collaborative edits.
+
+---
+
 ### Handler Memoization (2026-01-19)
 
 **What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
