@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Component Memoization (2026-01-19)
+
+**What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
+
+**Files**: web/src/components/panels/FloatingToolBar.tsx, web/src/components/node_menu/QuickActionTiles.tsx
+
+**Impact**: Two remaining large components now memoized, preventing unnecessary re-renders.
+
+---
+
 ### AssetTree Sort Memoization (2026-01-19)
 
 **What**: Memoized sort operation in AssetTree component using useMemo/useCallback and added React.memo wrapper.
@@ -71,6 +81,9 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/components/dashboard/GettingStartedPanel.tsx, web/src/components/workspaces/WorkspacesManager.tsx
 
 **Impact**: Stable function references reduce re-renders in workspace management and model download UI.
+
+---
+
 ### useInputNodeAutoRun Tests Fix (2026-01-19)
 
 **What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
@@ -91,85 +104,8 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### Lint Warning Fix (2026-01-19)
-
-**What**: Fixed unused type definition warning by using `SurroundWithGroupOptions` type in function signature instead of inline type.
-
-**Files**: web/src/hooks/nodes/useSurroundWithGroup.ts
-
-**Impact**: No lint warnings or errors.
-
----
-
-### Performance Audit & Terminal Memoization (2026-01-19)
-
-**What**: Comprehensive performance audit - all major optimizations already in place. Added React.memo to Terminal.tsx (441 lines).
-
-**Files**: web/src/components/terminal/Terminal.tsx
-
-**Impact**: Verified 20+ large components properly memoized. Terminal component now memoized for reduced re-renders.
-### Quality Checks Fixes (2026-01-18)
-
-**What**: Fixed TypeScript type errors and lint warnings in test files.
-
-**Files**: web/src/hooks/nodes/__tests__/useDynamicOutput.test.ts, web/src/hooks/nodes/__tests__/useDynamicProperty.test.ts, and 4 other test files
-
-**Impact**: All quality checks now pass (typecheck, lint, tests).
-
----
-
-### Debug Console Statement Removal (2026-01-17)
-
-**What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
-
-**Files**: web/src/components/version/VersionHistoryPanel.tsx, web/src/components/node/image_editor/ImageEditorModal.tsx, web/src/components/node/image_editor/ImageEditorCanvas.tsx, web/src/components/chat/message/MessageContentRenderer.tsx, web/src/components/node_menu/NodeMenu.tsx, web/src/lib/websocket/GlobalWebSocketManager.ts
-
-**Impact**: Cleaned up development debug statements from production code.
-
----
-
-### Mobile TypeScript Type Definitions Fix (2026-01-17)
-
-**What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
-
-**Files**: mobile/package.json, mobile/package-lock.json
-
-**Impact**: All packages now pass type checking (web, electron, mobile).
-### Workflow Settings UI Improvements (2026-01-17)
-
-**What**: Removed "Basic Information" headline from workflow settings, added descriptions to Execution and Advanced sections.
-
-**Files**: web/src/components/workflows/WorkflowForm.tsx
-### Workflow Versions Panel - Remove Pin Button (2026-01-17)
-
-**What**: Removed pin button and related functionality from workflow versions panel.
-
-**Files**: VersionListItem.tsx, VersionHistoryPanel.tsx
-
-**Impact**: Pin button no longer appears in version history list, simplifying the UI.
-
----
-
-### Performance Optimization: Large Component Memoization (2026-01-17)
-
-**What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
-
-**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, EditorController.tsx, AssetViewer.tsx, AgentExecutionView.tsx
-
-**Impact**: Large components (684-925 lines) now only re-render when props change, improving editor performance with complex workflows.
-
-### Workspace Explorer UX Improvements (2026-01-17)
-
-**What**: Improved error and empty state messages in workspace explorer with helpful guidance and retry button.
-
-**Files**: WorkspaceSelect.tsx, WorkspacesManager.tsx, WorkspaceTree.tsx
-
-**Impact**: Users now see helpful messages instead of "Failed to load workspaces" and "No files in workspace".
-
----
-
-
-**What**: Added React.memo to 20+ large components (500+ lines each) including Welcome, SettingsMenu, Model3DViewer, WorkflowAssistantChat, GlobalChat, and more.
+> **Format**: `Feature (date): One line. Files: x, y`
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
 
 **Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, WorkflowAssistantChat.tsx, GlobalChat.tsx, and 15+ others
 
