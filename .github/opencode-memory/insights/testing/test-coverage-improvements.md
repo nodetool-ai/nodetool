@@ -1041,3 +1041,109 @@ it("falls back to URI when createAssetFile fails", async () => {
 **Maintained By**: Automated OpenCode testing agent
 
 **Last Updated**: 2026-01-18
+
+---
+
+### Test Coverage Improvement (2026-01-19)
+
+**Coverage Added**: 2 new test files with 32 tests for critical workflow update handling and URL configuration
+
+**Tests Added**:
+- `BASE_URL.test.ts` - 3 tests for BASE_URL module structure and exports
+- `workflowUpdates.test.ts` - 29 tests for workflow execution update handling
+
+**Areas Covered**:
+- BASE_URL module structure and exports (BASE_URL, URL constants)
+- Workflow update message handling (job_update, node_update, log_update, notification, edge_update, etc.)
+- Workflow state transitions (idle, running, cancelled, error, suspended, paused)
+- Node progress tracking and preview updates
+- WebSocket subscription management (subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates)
+
+**Test Patterns Used**:
+
+1. **Store Mock Pattern** (workflowUpdates):
+```typescript
+jest.mock('../ResultsStore', () => ({
+  __esModule: true,
+  default: {
+    getState: () => ({
+      setResult: jest.fn(),
+      setProgress: jest.fn(),
+      setPreview: jest.fn(),
+      setEdge: jest.fn(),
+      clearEdges: jest.fn()
+    })
+  }
+}));
+```
+
+2. **State Transition Testing**:
+```typescript
+it('sets state to running when job status is running', () => {
+  const jobUpdate: JobUpdate = {
+    type: 'job_update',
+    job_id: 'job-123',
+    status: 'running'
+  };
+
+  handleUpdate(mockWorkflow, jobUpdate, mockRunnerStore);
+
+  expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: 'running' });
+});
+```
+
+3. **Non-Throwing Behavior Testing**:
+```typescript
+it('processes log_update without throwing', () => {
+  const logUpdate: LogUpdate = {
+    type: 'log_update',
+    node_id: 'node-1',
+    node_name: 'Test Node',
+    content: 'Test log message',
+    severity: 'info'
+  };
+
+  expect(() => {
+    handleUpdate(mockWorkflow, logUpdate, mockRunnerStore);
+  }).not.toThrow();
+});
+```
+
+4. **WebSocket Subscription Testing**:
+```typescript
+describe('subscribeToWorkflowUpdates', () => {
+  it('returns unsubscribe function', () => {
+    const unsubscribe = subscribeToWorkflowUpdates('workflow-1', mockWorkflow, mockRunnerStore);
+    expect(typeof unsubscribe).toBe('function');
+  });
+
+  it('calls globalWebSocketManager.subscribe', () => {
+    const { globalWebSocketManager } = require('../../lib/websocket/GlobalWebSocketManager');
+    
+    subscribeToWorkflowUpdates('workflow-1', mockWorkflow, mockRunnerStore);
+    
+    expect(globalWebSocketManager.subscribe).toHaveBeenCalledWith(
+      'workflow-1',
+      expect.any(Function)
+    );
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/BASE_URL.test.ts`
+- `web/src/stores/__tests__/workflowUpdates.test.ts`
+
+**Key Learnings**:
+1. Store mocks must be set up before importing the module under test
+2. `runner.addNotification` is accessed via `runnerStore.getState().addNotification` for Zustand stores
+3. Test complex state transitions by verifying `setState` calls with expected state values
+4. For complex update handlers, use non-throwing behavior tests as primary verification
+5. Mock paths must use correct relative paths from test file location (`../../lib/websocket/`)
+
+**Coverage Impact**:
+- **Before**: 249 test suites, 3,516 tests
+- **After**: 251 test suites, 3,548 tests
+- **Net Gain**: +2 test files, +32 tests
+
+**Status**: All tests passing
