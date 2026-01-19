@@ -6,14 +6,6 @@ import { Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 
 /**
- * Options for surroundWithGroup function.
- */
-type SurroundWithGroupOptions = {
-  /** Array of nodes to surround with a group */
-  selectedNodes: Node<NodeData>[];
-};
-
-/**
  * Hook for grouping selected nodes within a group/loop node.
  * 
  * Creates a group node that contains the selected nodes as children,
