@@ -28,7 +28,10 @@ import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 const styles = (theme: Theme) =>
   css({
     "&": {
-      margin: "0px"
+      margin: "0px",
+      height: "100%",
+      display: "flex",
+      flexDirection: "column"
     },
 
     ".toolbar-header": {
@@ -56,7 +59,9 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.5em 0.75em 0.75em"
+      padding: "0.5em 0.75em 0.75em",
+      flex: 1,
+      overflow: "hidden"
     },
     // Toggle category
     ".toggle-category": {

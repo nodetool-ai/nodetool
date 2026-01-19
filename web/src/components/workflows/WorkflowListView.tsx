@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useMemo, useRef, useEffect } from "react";
+import React, { memo, useMemo, useRef, useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -97,6 +97,9 @@ const listStyles = (theme: Theme) =>
       textOverflow: "ellipsis",
       paddingRight: "140px"
     },
+    ".name.favorite": {
+      color: theme.vars.palette.warning.light
+    },
     ".date": {
       position: "absolute",
       right: "0.75em",
@@ -168,10 +171,23 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     (state) => state.currentWorkflowId
   );
   const showGraphPreview = useShowGraphPreview();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(500);
 
   const WORKFLOW_HEIGHT = showGraphPreview ? 150 : 36;
   const HEADER_HEIGHT = 32;
-  const CONTAINER_HEIGHT = window.innerHeight - 210;
+
+  // Measure container height dynamically
+  useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        setContainerHeight(containerRef.current.clientHeight);
+      }
+    };
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
 
   // Group workflows by date and create a flat list with headers
   const flatList = useMemo(() => {
@@ -248,10 +264,15 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   };
 
   return (
-    <Box className="container list" css={listStyles(theme)}>
+    <Box 
+      ref={containerRef} 
+      className="container list" 
+      css={listStyles(theme)}
+      sx={{ height: "100%", width: "100%" }}
+    >
       <VariableSizeList
         ref={listRef}
-        height={CONTAINER_HEIGHT}
+        height={containerHeight}
         width="100%"
         itemCount={flatList.length}
         itemSize={getItemSize}
