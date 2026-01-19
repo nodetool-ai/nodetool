@@ -1,3 +1,29 @@
+/**
+ * Manages the notification system for user feedback.
+ *
+ * Handles toast notifications, alerts, and progress updates throughout
+ * the application. Notifications support multiple types (info, error,
+ * warning, success, progress) and can be auto-dismissed or persistent.
+ *
+ * Features:
+ * - Multiple notification types (info, debug, error, warning, progress, node, job, success)
+ * - Auto-dismiss with configurable timeouts
+ * - Alert notifications that interrupt user flow
+ * - Logging integration for debugging
+ * - Last displayed timestamp tracking for synchronization
+ *
+ * @example
+ * ```typescript
+ * import { useNotificationStore } from './NotificationStore';
+ *
+ * const store = useNotificationStore();
+ * store.addNotification({
+ *   type: 'success',
+ *   content: 'Workflow saved successfully',
+ *   timeout: 5000
+ * });
+ * ```
+ */
 import { create } from "zustand";
 import { uuidv4 } from "./uuidv4";
 import log from "loglevel";

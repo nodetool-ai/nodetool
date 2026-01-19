@@ -1,3 +1,26 @@
+/**
+ * Manages API keys and secrets securely.
+ *
+ * Provides CRUD operations for user API keys (OpenAI, Anthropic, etc.)
+ * and other sensitive credentials. Secrets are stored on the server
+ * and never exposed to the client beyond what's needed for operation.
+ *
+ * Features:
+ * - Fetch secrets list with pagination
+ * - Create/update secrets with optional descriptions
+ * - Delete secrets
+ * - Error handling with proper type guards
+ * - Loading and error states for UI feedback
+ *
+ * @example
+ * ```typescript
+ * import useSecretsStore from './SecretsStore';
+ *
+ * const store = useSecretsStore();
+ * await store.updateSecret('openai_api_key', 'sk-...', 'OpenAI API Key');
+ * await store.fetchSecrets();
+ * ```
+ */
 import { create } from "zustand";
 import { client } from "./ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";

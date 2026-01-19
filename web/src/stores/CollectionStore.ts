@@ -1,3 +1,28 @@
+/**
+ * Manages asset collections for organizing workflow assets.
+ *
+ * Collections group related assets (images, documents, etc.) for better
+ * organization. Supports CRUD operations, drag-and-drop file indexing,
+ * and progress tracking for bulk operations.
+ *
+ * Features:
+ * - List and manage collections
+ * - Create/delete collections
+ * - Drag-and-drop file indexing into collections
+ * - Progress tracking for bulk operations
+ * - Error handling for failed indexing
+ * - Electron environment detection
+ * - Multi-select for batch operations
+ *
+ * @example
+ * ```typescript
+ * import { useCollectionStore } from './CollectionStore';
+ *
+ * const store = useCollectionStore();
+ * await store.fetchCollections();
+ * store.setDeleteTarget('my-collection');
+ * ```
+ */
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { CollectionList as CollectionListType } from "./ApiTypes";

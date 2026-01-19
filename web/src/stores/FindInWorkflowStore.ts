@@ -1,3 +1,28 @@
+/**
+ * Manages the "Find in Workflow" search functionality.
+ *
+ * Provides keyboard-driven search through all nodes in the current workflow.
+ * Supports searching by node name, type, properties, and displays results
+ * with navigation between matches. Integrates with keyboard shortcuts
+ * (Ctrl/Cmd+F) for quick access.
+ *
+ * Features:
+ * - Real-time search as you type
+ * - Multiple match highlighting
+ * - Keyboard navigation (Enter, Shift+Enter, Esc)
+ * - Results count display
+ * - Clears search on close
+ *
+ * @example
+ * ```typescript
+ * import { useFindInWorkflowStore } from './FindInWorkflowStore';
+ *
+ * const store = useFindInWorkflowStore();
+ * store.openFind();
+ * store.setSearchTerm('image');
+ * store.navigateNext();
+ * ```
+ */
 import { create } from "zustand";
 import { Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";

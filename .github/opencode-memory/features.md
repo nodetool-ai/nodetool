@@ -492,48 +492,26 @@ Last updated: 2026-01-17
 
 ---
 
-### Hook JSDoc Documentation Improvements (2026-01-18)
+### Store JSDoc Documentation Improvements (2026-01-19)
 
-**Areas Improved**: Code documentation for critical hooks
+**Areas Improved**: Code documentation for 9 critical Zustand stores
 
-**Issues Fixed**: 29 hooks lacked JSDoc documentation across two batches
+**Issues Fixed**: Critical stores lacked JSDoc documentation
 
-**Improvements Made**: Added comprehensive JSDoc documentation to frequently-used hooks:
+**Improvements Made**: Added comprehensive JSDoc to:
+- BottomPanelStore.ts - Panel resize, visibility, and view management
+- FindInWorkflowStore.ts - Search functionality and keyboard navigation
+- NotificationStore.ts - Toast notification system
+- SecretsStore.ts - API key and credential management
+- PanelStore.ts - Left sidebar management
+- LayoutStore.ts - Dockview layout persistence
+- AppHeaderStore.ts - Application header state
+- CollectionStore.ts - Asset collection management
+- WorkspaceManagerStore.ts - Workspace organization
 
-**Batch 1 (10 hooks)**:
-1. `useWorkflowActions.ts` - Workflow creation and navigation handlers
-2. `useCollectionDragAndDrop.ts` - File drag-and-drop operations
-3. `useSelectionActions.ts` - Node alignment and distribution
-4. `useDashboardData.ts` - Workflow and template data loading
-5. `useSelectedNodesInfo.ts` - Node information gathering
-6. `useNodeFocus.ts` - Keyboard node navigation
-7. `useDelayedHover.ts` - Delayed hover behavior
-8. `useSelectConnected.ts` - Connected node traversal
-9. `useInputMinMax.ts` - Numeric input bounds
-10. `useRealtimeAudioStream.ts` - Real-time audio streaming
+**Impact**: Developers can now understand store purpose, features, and usage patterns without reading implementation details.
 
-**Batch 2 (19 hooks)**:
-11. `useRecommendedTaskModels.ts` - Task-based model recommendations
-12. `useFileDrop.ts` - File drag-and-drop handling
-13. `useDropHandler.ts` - Canvas drop event handling
-14. `useConnectionEvents.ts` - Edge connection validation
-15. `useNodeEvents.ts` - Node event handling
-16. `usePaneEvents.ts` - Canvas pane events
-17. `useEdgeHandlers.ts` - Edge interaction handlers
-18. `useMonacoEditor.ts` - Lazy Monaco editor loading
-19. `useSelect.ts` - Select dropdown management
-20. `useSurroundWithGroup.ts` - Node grouping
-
-All hooks now include module-level JSDoc with @param, @returns, and @example tags following established documentation patterns.
-
-**Impact**: Improved developer experience with consistent documentation across all hooks. Code examples provide clear usage patterns.
-
-**Files Updated**:
-- All 29 hook files listed above
-
-**Verification**:
-- ✅ Linting: Passes
-- ✅ Documentation follows established JSDoc patterns
+**Files Updated**: 9 store files in web/src/stores/
 
 ---
 

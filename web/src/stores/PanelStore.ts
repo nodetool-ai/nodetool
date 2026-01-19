@@ -1,3 +1,25 @@
+/**
+ * Manages the left panel state for the node editor.
+ *
+ * Controls the collapsible left sidebar that displays assets, workflows,
+ * collections, packs, and jobs. Persists panel size and visibility to
+ * localStorage for session continuity.
+ *
+ * Features:
+ * - Resizable panel with min/max width constraints
+ * - Multiple view types (assets, workflowGrid, collections, packs, jobs)
+ * - Persistent storage of panel state
+ * - Smooth open/close animations via panel width
+ *
+ * @example
+ * ```typescript
+ * import { usePanelStore } from './PanelStore';
+ *
+ * const store = usePanelStore();
+ * store.handleViewChange('assets');
+ * store.setSize(400);
+ * ```
+ */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 

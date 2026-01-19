@@ -1,3 +1,25 @@
+/**
+ * Manages the bottom panel state for the node editor.
+ *
+ * Controls the collapsible bottom panel that displays terminal output,
+ * workflow logs, and execution results. Persists panel size and visibility
+ * to localStorage for session continuity.
+ *
+ * Features:
+ * - Resizable panel with min/max height constraints
+ * - Multiple view types (terminal, logs, results)
+ * - Persistent storage of panel state
+ * - Smooth open/close animations via panel size
+ *
+ * @example
+ * ```typescript
+ * import { useBottomPanelStore } from './BottomPanelStore';
+ *
+ * const store = useBottomPanelStore();
+ * store.handleViewChange('terminal');
+ * store.setSize(400);
+ * ```
+ */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
