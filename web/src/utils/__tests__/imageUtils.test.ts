@@ -1,141 +1,140 @@
-import { createImageUrl, ImageSource, ImageData } from "../imageUtils";
+/**
+ * @jest-environment jsdom
+ */
+import { createImageUrl, ImageSource, ImageData } from '../imageUtils';
 
-const mockBlobUrls: string[] = [];
+// Mock URL for testing
+global.URL.createObjectURL = jest.fn(() => 'blob:test-url');
+global.URL.revokeObjectURL = jest.fn();
 
-const originalCreateObjectURL = URL.createObjectURL;
-const originalRevokeObjectURL = URL.revokeObjectURL;
-
-beforeAll(() => {
-  (URL as any).createObjectURL = jest.fn((_blob: Blob) => {
-    const url = `blob:mock-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    mockBlobUrls.push(url);
-    return url;
+describe('imageUtils', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
-  (URL as any).revokeObjectURL = jest.fn((url: string) => {
-    const index = mockBlobUrls.indexOf(url);
-    if (index > -1) {
-      mockBlobUrls.splice(index, 1);
-    }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
-});
 
-afterAll(() => {
-  (URL as any).createObjectURL = originalCreateObjectURL;
-  (URL as any).revokeObjectURL = originalRevokeObjectURL;
-  mockBlobUrls.forEach((url) => URL.revokeObjectURL(url));
-});
-
-describe("imageUtils", () => {
-  describe("createImageUrl", () => {
-    beforeEach(() => {
-      mockBlobUrls.length = 0;
-    });
-
-    afterAll(() => {
-      mockBlobUrls.forEach((url) => URL.revokeObjectURL(url));
-    });
-
-    it("returns empty url for null source", () => {
+  describe('createImageUrl', () => {
+    it('returns empty url for null source', () => {
       const result = createImageUrl(null, null);
-      expect(result.url).toBe("");
+      expect(result.url).toBe('');
       expect(result.blobUrl).toBeNull();
     });
 
-    it("returns empty url for undefined source", () => {
+    it('returns empty url for undefined source', () => {
       const result = createImageUrl(undefined, null);
-      expect(result.url).toBe("");
+      expect(result.url).toBe('');
       expect(result.blobUrl).toBeNull();
     });
 
-    it("handles ImageSource with uri", () => {
-      const source: ImageSource = { uri: "https://example.com/image.png" };
+    it('returns url from ImageSource with uri', () => {
+      const source: ImageSource = { uri: 'https://example.com/image.png' };
       const result = createImageUrl(source, null);
-      expect(result.url).toBe("https://example.com/image.png");
+      expect(result.url).toBe('https://example.com/image.png');
       expect(result.blobUrl).toBeNull();
     });
 
-    it("handles ImageSource with data", () => {
-      const source: ImageSource = { data: "base64data" };
+    it('returns empty url when uri is undefined and no data', () => {
+      const source: ImageSource = { uri: undefined };
       const result = createImageUrl(source, null);
-      expect(result.url).toBe("data:image/png;base64,base64data");
+      expect(result.url).toBe('');
       expect(result.blobUrl).toBeNull();
     });
 
-    it("handles raw data URI string", () => {
-      const source: ImageData = "data:image/jpeg;base64,abc123";
-      const result = createImageUrl(source, null);
-      expect(result.url).toBe("data:image/jpeg;base64,abc123");
+    it('handles data URI string directly', () => {
+      const dataUri = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const result = createImageUrl(dataUri, null);
+      expect(result.url).toBe(dataUri);
       expect(result.blobUrl).toBeNull();
     });
 
-    it("handles raw blob URI string", () => {
-      const source: ImageData = "blob:http://example.com/uuid";
-      const result = createImageUrl(source, null);
-      expect(result.url).toBe("blob:http://example.com/uuid");
+    it('handles blob URI string directly', () => {
+      const blobUri = 'blob:http://localhost:3000/some-uuid';
+      const result = createImageUrl(blobUri, null);
+      expect(result.url).toBe(blobUri);
       expect(result.blobUrl).toBeNull();
     });
 
-    it("handles raw http URI string", () => {
-      const source: ImageData = "http://example.com/image.png";
-      const result = createImageUrl(source, null);
-      expect(result.url).toBe("http://example.com/image.png");
+    it('handles http URI string directly', () => {
+      const httpUri = 'http://example.com/image.png';
+      const result = createImageUrl(httpUri, null);
+      expect(result.url).toBe(httpUri);
       expect(result.blobUrl).toBeNull();
     });
 
-    it("handles relative URL path (API storage)", () => {
-      const source: ImageData = "/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg";
-      const result = createImageUrl(source, null);
-      expect(result.url).toBe("/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg");
+    it('handles absolute path string', () => {
+      const path = '/assets/image.png';
+      const result = createImageUrl(path, null);
+      expect(result.url).toBe(path);
       expect(result.blobUrl).toBeNull();
     });
 
-    it("converts plain base64 string to data URI", () => {
-      const source: ImageData = "abc123";
-      const result = createImageUrl(source, null);
-      expect(result.url).toBe("data:image/png;base64,abc123");
+    it('wraps base64 string without prefix', () => {
+      const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const result = createImageUrl(base64, null);
+      expect(result.url).toBe('data:image/png;base64,' + base64);
       expect(result.blobUrl).toBeNull();
     });
 
-    it("converts Uint8Array to blob URL", () => {
-      const source: ImageData = new Uint8Array([137, 80, 78, 71, 13, 10]);
-      const result = createImageUrl(source, null);
-      expect(result.url).toContain("blob:");
-      expect(result.blobUrl).toContain("blob:");
+    it('handles Uint8Array by creating blob URL', () => {
+      const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]); // PNG header
+      const result = createImageUrl(bytes, null);
+      expect(result.url).toBe('blob:test-url');
+      expect(result.blobUrl).toBe('blob:test-url');
     });
 
-    it("converts number array to blob URL", () => {
-      const source: ImageData = [137, 80, 78, 71, 13, 10];
-      const result = createImageUrl(source, null);
-      expect(result.url).toContain("blob:");
-      expect(result.blobUrl).toContain("blob:");
+    it('handles number array by creating blob URL', () => {
+      const bytes: number[] = [137, 80, 78, 71, 13, 10, 26, 10]; // PNG header
+      const result = createImageUrl(bytes, null);
+      expect(result.url).toBe('blob:test-url');
+      expect(result.blobUrl).toBe('blob:test-url');
     });
 
-    it("revokes previous blob URL when new one is created", () => {
-      const source1: ImageData = new Uint8Array([1, 2, 3]);
-      const result1 = createImageUrl(source1, null);
-      expect(result1.blobUrl).toContain("blob:");
-      const blobUrl = result1.blobUrl;
-
-      const source2: ImageData = new Uint8Array([4, 5, 6]);
-      const result2 = createImageUrl(source2, blobUrl);
-      expect(result2.blobUrl).toContain("blob:");
-      expect(result2.blobUrl).not.toBe(blobUrl);
+    it('revokes previous blob URL when new source provided', () => {
+      const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+      
+      const firstResult = createImageUrl(bytes, null);
+      expect(firstResult.blobUrl).toBe('blob:test-url');
+      
+      const secondResult = createImageUrl(bytes, firstResult.blobUrl);
+      
+      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith(firstResult.blobUrl);
+      expect(secondResult.blobUrl).toBe('blob:test-url');
     });
 
-    it("handles empty ImageSource object", () => {
-      const source: ImageSource = {};
-      const result = createImageUrl(source, null);
-      expect(result.url).toBe("");
-      expect(result.blobUrl).toBeNull();
+    it('does not revoke blob URL when previous is null', () => {
+      const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+      
+      createImageUrl(bytes, null);
+      
+      expect(global.URL.revokeObjectURL).not.toHaveBeenCalled();
     });
 
-    it("prefers uri over data in ImageSource", () => {
-      const source: ImageSource = {
-        uri: "https://example.com/image.png",
-        data: "base64data"
+    it('handles ImageSource with uri and data preferring uri', () => {
+      const source: ImageSource = { 
+        uri: 'https://example.com/image.png',
+        data: new Uint8Array([1, 2, 3])
       };
       const result = createImageUrl(source, null);
-      expect(result.url).toBe("https://example.com/image.png");
+      expect(result.url).toBe('https://example.com/image.png');
+      expect(result.blobUrl).toBeNull();
+    });
+
+    it('uses data when uri is not provided in ImageSource', () => {
+      const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+      const source: ImageSource = { 
+        uri: undefined,
+        data: bytes
+      };
+      const result = createImageUrl(source, null);
+      expect(result.url).toBe('blob:test-url');
+    });
+
+    it('returns empty url for invalid data type', () => {
+      const result = createImageUrl({} as ImageData, null);
+      expect(result.url).toBe('');
       expect(result.blobUrl).toBeNull();
     });
   });

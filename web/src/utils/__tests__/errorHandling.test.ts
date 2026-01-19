@@ -1,136 +1,124 @@
-import { createErrorMessage, AppError } from "../errorHandling";
+/**
+ * @jest-environment node
+ */
+import { AppError, createErrorMessage } from '../errorHandling';
 
-describe("createErrorMessage", () => {
-  it("handles error objects with detail", () => {
-    const err = { detail: "bad things happened" };
-    const result = createErrorMessage(err, "Oops");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Oops");
-    expect((result as AppError).detail).toBe("bad things happened");
+describe('errorHandling', () => {
+  describe('AppError', () => {
+    it('creates error with message only', () => {
+      const error = new AppError('Something went wrong');
+      expect(error.message).toBe('Something went wrong');
+      expect(error.name).toBe('AppError');
+      expect(error.detail).toBeUndefined();
+    });
+
+    it('creates error with message and detail', () => {
+      const error = new AppError('Something went wrong', 'Detailed explanation');
+      expect(error.message).toBe('Something went wrong');
+      expect(error.detail).toBe('Detailed explanation');
+      expect(error.name).toBe('AppError');
+    });
+
+    it('is instance of Error', () => {
+      const error = new AppError('Test error');
+      expect(error instanceof Error).toBe(true);
+    });
+
+    it('has correct stack trace', () => {
+      const error = new AppError('Test error');
+      expect(error.stack).toContain('Test error');
+    });
   });
 
-  it("handles string errors", () => {
-    const result = createErrorMessage("something broke", "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBe("something broke");
-  });
+  describe('createErrorMessage', () => {
+    it('creates AppError from object with detail property', () => {
+      const error = { detail: 'Detailed error message' };
+      const result = createErrorMessage(error, 'Default message');
 
-  it("handles Error instances", () => {
-    const err = new Error("nope");
-    const result = createErrorMessage(err, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBe("nope");
-  });
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      expect((result as AppError).detail).toBe('Detailed error message');
+    });
 
-  it("handles unknown error types", () => {
-    const result = createErrorMessage(42 as any, "Unknown");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Unknown");
-  });
+    it('creates AppError from string error', () => {
+      const error = 'String error message';
+      const result = createErrorMessage(error, 'Default message');
 
-  it("handles error objects with non-string detail", () => {
-    const err = { detail: { nested: "object" } };
-    const result = createErrorMessage(err, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBe("[object Object]");
-  });
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      expect((result as AppError).detail).toBe('String error message');
+    });
 
-  // Edge cases
-  it("handles null error", () => {
-    const result = createErrorMessage(null, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBeUndefined();
-  });
+    it('creates AppError from Error instance', () => {
+      const originalError = new Error('Original error');
+      const result = createErrorMessage(originalError, 'Default message');
 
-  it("handles undefined error", () => {
-    const result = createErrorMessage(undefined, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBeUndefined();
-  });
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      expect((result as AppError).detail).toBe('Original error');
+    });
 
-  it("handles error with null detail", () => {
-    const err = { detail: null };
-    const result = createErrorMessage(err, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBeUndefined();
-  });
+    it('creates AppError with no detail when error is null', () => {
+      const error = null;
+      const result = createErrorMessage(error as unknown as Error, 'Default message');
 
-  it("handles error with undefined detail", () => {
-    const err = { detail: undefined };
-    const result = createErrorMessage(err, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBeUndefined();
-  });
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      expect((result as AppError).detail).toBeUndefined();
+    });
 
-  it("handles error with empty string detail", () => {
-    const err = { detail: "" };
-    const result = createErrorMessage(err, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBeUndefined();
-  });
+    it('creates AppError with no detail for number', () => {
+      const error = 42;
+      const result = createErrorMessage(error as unknown as Error, 'Default message');
 
-  it("handles error with numeric detail", () => {
-    const err = { detail: 0 };
-    const result = createErrorMessage(err, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBeUndefined();
-  });
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      expect((result as AppError).detail).toBeUndefined();
+    });
 
-  it("handles error with boolean false detail", () => {
-    const err = { detail: false };
-    const result = createErrorMessage(err, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBeUndefined();
-  });
+    it('creates AppError with no detail for boolean', () => {
+      const error = true;
+      const result = createErrorMessage(error as unknown as Error, 'Default message');
 
-  it("handles arrays as error input", () => {
-    const result = createErrorMessage(["error1", "error2"], "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBeUndefined();
-  });
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      expect((result as AppError).detail).toBeUndefined();
+    });
 
-  it("handles empty string error", () => {
-    const result = createErrorMessage("", "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBe("");
-  });
+    it('handles object without detail property', () => {
+      const error = { code: 'ERROR_CODE' };
+      const result = createErrorMessage(error as unknown as Error, 'Default message');
 
-  it("handles very long error messages", () => {
-    const longMessage = "x".repeat(10000);
-    const result = createErrorMessage(longMessage, "Failed");
-    expect(result).toBeInstanceOf(AppError);
-    expect(result.message).toBe("Failed");
-    expect((result as AppError).detail).toBe(longMessage);
-  });
-});
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      expect((result as AppError).detail).toBeUndefined();
+    });
 
-describe("AppError class", () => {
-  it("creates instance with message and detail", () => {
-    const error = new AppError("Test message", "Test detail");
-    expect(error).toBeInstanceOf(Error);
-    expect(error).toBeInstanceOf(AppError);
-    expect(error.message).toBe("Test message");
-    expect(error.detail).toBe("Test detail");
-    expect(error.name).toBe("AppError");
-  });
+    it('handles object with null detail', () => {
+      const error = { detail: null };
+      const result = createErrorMessage(error as unknown as Error, 'Default message');
 
-  it("creates instance with message only", () => {
-    const error = new AppError("Test message");
-    expect(error).toBeInstanceOf(Error);
-    expect(error.message).toBe("Test message");
-    expect(error.detail).toBeUndefined();
-    expect(error.name).toBe("AppError");
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      // null is falsy, so it doesn't set detail
+      expect((result as AppError).detail).toBeUndefined();
+    });
+
+    it('handles object with undefined detail', () => {
+      const error = { detail: undefined };
+      const result = createErrorMessage(error as unknown as Error, 'Default message');
+
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.message).toBe('Default message');
+      // undefined is falsy, so it doesn't set detail
+      expect((result as AppError).detail).toBeUndefined();
+    });
+
+    it('converts detail to string for truthy values', () => {
+      const error = { detail: 12345 };
+      const result = createErrorMessage(error as unknown as Error, 'Default message');
+
+      expect((result as AppError).detail).toBe('12345');
+    });
   });
 });

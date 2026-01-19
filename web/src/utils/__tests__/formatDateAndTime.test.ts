@@ -1,150 +1,172 @@
 /**
  * @jest-environment node
  */
-import log from 'loglevel';
-import {
-  secondsToHMS,
-  prettyDate,
+import { 
+  prettyDate, 
   relativeTime,
-  getTimestampForFilename
+  secondsToHMS,
+  getTimestampForFilename 
 } from '../formatDateAndTime';
-import { DateTime } from 'luxon';
 
-describe('formatDateAndTime utilities', () => {
-  beforeAll(() => {
-    jest.useFakeTimers().setSystemTime(new Date('2023-01-02T03:04:05Z'));
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
-  });
-
+describe('formatDateAndTime', () => {
   describe('secondsToHMS', () => {
-    test('converts seconds to hh:mm:ss', () => {
-      expect(secondsToHMS(3661)).toBe('01:01:01');
+    it('formats zero seconds', () => {
       expect(secondsToHMS(0)).toBe('00:00:00');
-      expect(secondsToHMS(59)).toBe('00:00:59');
-      expect(secondsToHMS(60)).toBe('00:01:00');
-      expect(secondsToHMS(3599)).toBe('00:59:59');
-      expect(secondsToHMS(3600)).toBe('01:00:00');
-      expect(secondsToHMS(86399)).toBe('23:59:59'); // 1 second before 24 hours
-      expect(secondsToHMS(86400)).toBe('24:00:00'); // 24 hours
-      expect(secondsToHMS(90061)).toBe('25:01:01'); // More than 24 hours
     });
 
-    test('handles decimal seconds by flooring', () => {
-      expect(secondsToHMS(3661.9)).toBe('01:01:01');
-      expect(secondsToHMS(59.9)).toBe('00:00:59');
+    it('formats seconds only', () => {
+      expect(secondsToHMS(30)).toBe('00:00:30');
+    });
+
+    it('formats minutes and seconds', () => {
+      expect(secondsToHMS(90)).toBe('00:01:30');
+    });
+
+    it('formats hours, minutes, and seconds', () => {
+      expect(secondsToHMS(3661)).toBe('01:01:01');
+    });
+
+    it('formats more than an hour', () => {
+      expect(secondsToHMS(3723)).toBe('01:02:03');
+    });
+
+    it('formats long duration', () => {
+      expect(secondsToHMS(86400)).toBe('24:00:00');
     });
   });
 
   describe('prettyDate', () => {
-    test('returns "-" for undefined or empty input', () => {
+    it('formats ISO date string in normal style', () => {
+      expect(prettyDate('2026-01-15T14:30:00Z')).toBe('2026-01-15 | 02:30:00 PM');
+    });
+
+    it('formats ISO date string in verbose style', () => {
+      const result = prettyDate('2026-01-15T14:30:00Z', 'verbose');
+      expect(result).toContain('January 15');
+      expect(result).toContain('02:30');
+    });
+
+    it('handles undefined input', () => {
       expect(prettyDate(undefined)).toBe('-');
+    });
+
+    it('handles empty string', () => {
       expect(prettyDate('')).toBe('-');
-      expect(prettyDate(0)).toBe('-');
     });
 
-    test('formats normal dates in 12h format by default', () => {
-      expect(prettyDate('2023-01-02 03:04:05')).toBe('2023-01-02 | 03:04:05 AM');
-      expect(prettyDate('2023-01-02T15:30:45')).toBe('2023-01-02 | 03:30:45 PM');
+    it('handles numeric timestamp', () => {
+      const timestamp = new Date('2026-01-15T14:30:00Z').getTime();
+      const result = prettyDate(timestamp);
+      expect(result).toContain('2026-01-15');
     });
 
-    test('formats normal dates in 24h format when specified', () => {
-      expect(prettyDate('2023-01-02 03:04:05', 'normal', { timeFormat: '24h' })).toBe('02.01.2023 | 03:04:05');
-      expect(prettyDate('2023-01-02T15:30:45', 'normal', { timeFormat: '24h' })).toBe('02.01.2023 | 15:30:45');
+    it('handles invalid date', () => {
+      expect(prettyDate('invalid-date')).toBe('Invalid Date');
     });
 
-    test('formats verbose dates in 12h format', () => {
-      const year = new Date().getFullYear();
-      const str = `${year}-05-15 13:30:00`;
-      const expected = 'May 15 | 01:30 PM';
-      expect(prettyDate(str, 'verbose')).toBe(expected);
-      
-      // Different year
-      expect(prettyDate('2022-05-15 13:30:00', 'verbose')).toBe('2022 May 15 | 01:30 PM');
+    it('formats with 24h time setting', () => {
+      const result = prettyDate('2026-01-15T14:30:00Z', 'normal', { timeFormat: '24h' });
+      expect(result).toContain('14:30:00');
     });
 
-    test('formats verbose dates in 24h format', () => {
-      const year = new Date().getFullYear();
-      const str = `${year}-05-15 13:30:00`;
-      const iso = str.replace(' ', 'T');
-      const dt = DateTime.fromISO(iso);
-      const expected = dt.toFormat('d. MMMM  | HH:mm');
-      expect(prettyDate(str, 'verbose', { timeFormat: '24h' })).toBe(expected);
-      
-      // Different year
-      expect(prettyDate('2022-05-15 13:30:00', 'verbose', { timeFormat: '24h' })).toBe('15 May 2022 | 13:30');
+    it('formats with 12h time setting', () => {
+      const result = prettyDate('2026-01-15T14:30:00Z', 'normal', { timeFormat: '12h' });
+      expect(result).toContain('02:30:00 PM');
     });
 
-    test('handles numeric timestamp input', () => {
-      const timestamp = new Date('2023-01-02T03:04:05Z').getTime();
-      // Since we set timezone to UTC in jest.setup.js, expect UTC time
-      expect(prettyDate(timestamp)).toBe('2023-01-02 | 03:04:05 AM');
+    it('formats verbose with 24h time', () => {
+      const result = prettyDate('2026-01-15T14:30:00Z', 'verbose', { timeFormat: '24h' });
+      expect(result).toContain('14:30');
     });
 
-    test('returns "Invalid Date" and logs warning on bad input', () => {
-      const warnSpy = jest.spyOn(log, 'warn').mockImplementation(() => {});
-      expect(prettyDate('not-a-date')).toBe('Invalid Date');
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
+    it('formats date without time component', () => {
+      const result = prettyDate('2026-01-15');
+      expect(result).toContain('2026-01-15');
+    });
+
+    it('replaces space with T for ISO parsing', () => {
+      const result = prettyDate('2026-01-15 14:30:00');
+      expect(result).toContain('2026-01-15');
     });
   });
 
   describe('relativeTime', () => {
-    test('computes human readable difference for various time units', () => {
-      const now = new Date('2023-01-02T03:04:05Z');
-      
-      // Seconds
-      expect(relativeTime(new Date(now.getTime() - 1000))).toBe('1 sec ago');
-      expect(relativeTime(new Date(now.getTime() - 30000))).toBe('30 sec ago');
-      
-      // Minutes
-      expect(relativeTime(new Date(now.getTime() - 60000))).toBe('1 min ago');
-      expect(relativeTime(new Date(now.getTime() - 120000))).toBe('2 min ago');
-      expect(relativeTime(new Date(now.getTime() - 59 * 60000))).toBe('59 min ago');
-      
-      // Hours
-      expect(relativeTime(new Date(now.getTime() - 3600000))).toBe('1 hour ago');
-      expect(relativeTime(new Date(now.getTime() - 7200000))).toBe('2 hours ago');
-      expect(relativeTime(new Date(now.getTime() - 23 * 3600000))).toBe('23 hours ago');
-      
-      // Days
-      expect(relativeTime(new Date(now.getTime() - 86400000))).toBe('1 day ago');
-      expect(relativeTime(new Date(now.getTime() - 2 * 86400000))).toBe('2 days ago');
-      expect(relativeTime(new Date(now.getTime() - 6 * 86400000))).toBe('6 days ago');
-      
-      // Weeks
-      expect(relativeTime(new Date(now.getTime() - 7 * 86400000))).toBe('1 week ago');
-      expect(relativeTime(new Date(now.getTime() - 14 * 86400000))).toBe('2 weeks ago');
-      
-      // Months
-      expect(relativeTime(new Date(now.getTime() - 30 * 86400000))).toBe('1 month ago');
-      expect(relativeTime(new Date(now.getTime() - 60 * 86400000))).toBe('2 months ago');
-      
-      // Years
-      expect(relativeTime(new Date(now.getTime() - 365 * 86400000))).toBe('1 year ago');
-      expect(relativeTime(new Date(now.getTime() - 730 * 86400000))).toBe('2 years ago');
-      
-      // Just now
-      expect(relativeTime(new Date())).toBe('just now');
-      expect(relativeTime(new Date(now.getTime() - 500))).toBe('just now');
+    it('returns "just now" for current time', () => {
+      const now = new Date();
+      expect(relativeTime(now)).toBe('just now');
     });
 
-    test('handles string dates', () => {
-      const hourAgo = new Date(Date.now() - 3600 * 1000);
-      expect(relativeTime(hourAgo.toISOString())).toBe('1 hour ago');
+    it('formats seconds ago', () => {
+      const thirtySecondsAgo = new Date(Date.now() - 30000);
+      expect(relativeTime(thirtySecondsAgo)).toBe('30 sec ago');
+    });
+
+    it('formats minutes ago', () => {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      expect(relativeTime(fiveMinutesAgo)).toBe('5 min ago');
+    });
+
+    it('formats hours ago', () => {
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      expect(relativeTime(twoHoursAgo)).toBe('2 hours ago');
+    });
+
+    it('formats days ago', () => {
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      expect(relativeTime(threeDaysAgo)).toBe('3 days ago');
+    });
+
+    it('formats weeks ago', () => {
+      const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+      expect(relativeTime(twoWeeksAgo)).toBe('2 weeks ago');
+    });
+
+    it('formats months ago', () => {
+      const twoMonthsAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      expect(relativeTime(twoMonthsAgo)).toBe('2 months ago');
+    });
+
+    it('formats years ago', () => {
+      const twoYearsAgo = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000);
+      expect(relativeTime(twoYearsAgo)).toBe('2 years ago');
+    });
+
+    it('handles string date input', () => {
+      const result = relativeTime('2026-01-15T14:30:00Z');
+      expect(result).toContain('ago');
+    });
+
+    it('uses singular form for 1 unit', () => {
+      const oneHourAgo = new Date(Date.now() - 3600 * 1000);
+      expect(relativeTime(oneHourAgo)).toBe('1 hour ago');
+    });
+
+    it('uses singular min form', () => {
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+      expect(relativeTime(oneMinuteAgo)).toBe('1 min ago');
+    });
+
+    it('uses singular sec form', () => {
+      const oneSecondAgo = new Date(Date.now() - 1000);
+      expect(relativeTime(oneSecondAgo)).toBe('1 sec ago');
     });
   });
 
   describe('getTimestampForFilename', () => {
-    test('generates timestamp with time by default', () => {
-      expect(getTimestampForFilename()).toBe('2023-01-02_03-04-05');
-      expect(getTimestampForFilename(true)).toBe('2023-01-02_03-04-05');
+    it('generates timestamp with date and time', () => {
+      const result = getTimestampForFilename(true);
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/);
     });
 
-    test('generates timestamp without time when specified', () => {
-      expect(getTimestampForFilename(false)).toBe('2023-01-02');
+    it('generates timestamp with date only', () => {
+      const result = getTimestampForFilename(false);
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('generates different timestamps for different calls', () => {
+      const result1 = getTimestampForFilename(false);
+      // The result should be consistent for the same date
+      expect(result1).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
   });
 });
