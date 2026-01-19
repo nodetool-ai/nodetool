@@ -18,34 +18,56 @@ Memoized inline event handlers in high-frequency components to prevent unnecessa
      - `handleCancelAdd`: Closes add workspace form and resets state
    - Updated 6 onClick handlers to use memoized callbacks
 
+3. **SettingsMenu.tsx** (919 lines)
+   - Added `useCallback` for 10 handlers:
+     - `handleClick`: Menu open/close toggle
+     - `handleClose`: Dialog close handler
+     - `copyAuthToken`: Copy auth token to clipboard
+     - `scrollToSection`: Smooth scroll to section
+     - `handleShowWelcomeChange`: Toggle welcome screen setting
+     - `handleSelectNodesOnDragChange`: Toggle select nodes on drag
+     - `handleSoundNotificationsChange`: Toggle sound notifications
+     - `handleOpenFolder`: Open export folder in file explorer
+     - `handleAutosaveEnabledChange`: Toggle autosave
+     - `handleAutosaveIntervalChange`: Change autosave interval
+   - Replaced 8 inline arrow function handlers with memoized callbacks
+
+4. **AppToolbar.tsx** (726 lines)
+   - Added `useCallback` for `handleStop` in `StopWorkflowButton`
+   - Added `useCallback` for `handleEdit` in `EditWorkflowButton`
+   - Replaced 2 inline arrow function handlers with memoized callbacks
+
 ### Performance Impact
 
 - **Reduced re-renders**: Memoized handlers provide stable function references
 - **Better child component performance**: Components receiving handlers as props won't re-render when parent re-renders unless dependencies change
 - **Memory efficiency**: Fewer function allocations during renders
+- **Total handlers memoized this session**: 17
 
 ### Technical Details
 
 ```typescript
 // Before: Inline arrow function (creates new function on every render)
-<Button onClick={() => startDownload(model.repo_id, ...)} />
+<Button onClick={() => cancel()} />
 
 // After: Memoized callback (stable reference)
-const handleDownload = useCallback(() => {
-  startDownload(model.repo_id, ...);
-}, [startDownload, model.repo_id, ...]);
+const handleStop = useCallback(() => {
+  cancel();
+}, [cancel]);
 
-<Button onClick={handleDownload} />
+<Button onClick={handleStop} />
 ```
 
 ### Files Modified
 
 - `web/src/components/dashboard/GettingStartedPanel.tsx`
 - `web/src/components/workspaces/WorkspacesManager.tsx`
+- `web/src/components/menus/SettingsMenu.tsx`
+- `web/src/components/panels/AppToolbar.tsx`
 
 ### Verification
 
-- TypeScript: ✅ Pass
+- TypeScript: ✅ Pass (web, electron)
 - ESLint: ✅ Pass (0 errors, 0 warnings)
 - All existing tests continue to pass
 

@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Handler Memoization (2026-01-19)
+
+**What**: Memoized 17 inline event handlers in SettingsMenu and AppToolbar using useCallback.
+
+**Files**: web/src/components/menus/SettingsMenu.tsx, web/src/components/panels/AppToolbar.tsx
+
+**Impact**: Stable function references reduce re-renders in settings and toolbar components.
+
+---
+
 ### Component Memoization (2026-01-19)
 
 **What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.

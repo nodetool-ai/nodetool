@@ -126,20 +126,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setMenuOpen(true, newValue);
   };
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setMenuOpen(!isMenuOpen);
-  };
+  }, [isMenuOpen, setMenuOpen]);
+
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const handleClose = () => {
+
+  const handleClose = useCallback(() => {
     setMenuOpen(false);
-  };
+  }, [setMenuOpen]);
 
   const id = isMenuOpen ? "docs" : undefined;
 
-  const copyAuthToken = () => {
+  const copyAuthToken = useCallback(() => {
     if (user && (user as any).auth_token) {
       navigator.clipboard.writeText((user as any).auth_token);
       addNotification({
@@ -148,34 +150,59 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         content: "Nodetool API Token copied to Clipboard!"
       });
     }
-  };
+  }, [user, addNotification]);
 
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = useCallback((sectionId: string) => {
     setActiveSection(sectionId);
 
-    // Use setTimeout to ensure DOM has updated
     setTimeout(() => {
       const element = document.getElementById(sectionId);
-
-      // Always use the main settings-content container as it contains both tabs
       const container = document.querySelector(".settings-content");
 
       if (element && container) {
         const containerRect = container.getBoundingClientRect();
         const elementRect = element.getBoundingClientRect();
         const scrollTop =
-          container.scrollTop + elementRect.top - containerRect.top - 20; // 20px offset for padding
+          container.scrollTop + elementRect.top - containerRect.top - 20;
 
         container.scrollTo({
           top: scrollTop,
           behavior: "smooth"
         });
       } else if (element) {
-        // Fallback to original method
         element.scrollIntoView({ behavior: "smooth" });
       }
     }, 10);
-  };
+  }, []);
+
+  const handleShowWelcomeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setShowWelcomeOnStartup(e.target.checked);
+  }, [setShowWelcomeOnStartup]);
+
+  const handleSelectNodesOnDragChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectNodesOnDrag(e.target.checked ?? false);
+  }, [setSelectNodesOnDrag]);
+
+  const handleSoundNotificationsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSoundNotifications(e.target.checked ?? true);
+  }, [setSoundNotifications]);
+
+  const handleOpenFolder = useCallback(() => {
+    const api = (window as any)?.api;
+    if (api?.shell?.showItemInFolder) {
+      api.shell.showItemInFolder(lastExportPath);
+    } else if (api?.showItemInFolder) {
+      api.showItemInFolder(lastExportPath);
+    }
+  }, [lastExportPath]);
+
+  const handleAutosaveEnabledChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    updateAutosaveSettings({ enabled: e.target.checked });
+  }, [updateAutosaveSettings]);
+
+  const handleAutosaveIntervalChange = useCallback((e: any) => {
+    updateAutosaveSettings({ intervalMinutes: Number(e.target.value) });
+  }, [updateAutosaveSettings]);
 
   const exportMutation = useMutation({
     mutationFn: async () => {
@@ -439,16 +466,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  onClick={() => {
-                                    const api = (window as any)?.api;
-                                    if (api?.shell?.showItemInFolder) {
-                                      api.shell.showItemInFolder(
-                                        lastExportPath
-                                      );
-                                    } else if (api?.showItemInFolder) {
-                                      api.showItemInFolder(lastExportPath);
-                                    }
-                                  }}
+                                  onClick={handleOpenFolder}
                                   style={{ alignSelf: "flex-start" }}
                                 >
                                   Open Folder
@@ -468,9 +486,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </InputLabel>
                           <Switch
                             checked={!!settings.showWelcomeOnStartup}
-                            onChange={(e) =>
-                              setShowWelcomeOnStartup(e.target.checked)
-                            }
+                            onChange={handleShowWelcomeChange}
                             inputProps={{ "aria-label": id }}
                           />
                         </FormControl>
@@ -491,9 +507,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                               }
                             }}
                             checked={!!settings.selectNodesOnDrag}
-                            onChange={(e) =>
-                              setSelectNodesOnDrag(e.target.checked ?? false)
-                            }
+                            onChange={handleSelectNodesOnDragChange}
                             inputProps={{ "aria-label": id }}
                           />
                         </FormControl>
@@ -512,18 +526,16 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             <InputLabel htmlFor={id}>
                               Sound Notifications
                             </InputLabel>
-                            <Switch
-                              sx={{
-                                "&.MuiSwitch-root": {
-                                  margin: "16px 0 0"
-                                }
-                              }}
-                              checked={!!settings.soundNotifications}
-                              onChange={(e) =>
-                                setSoundNotifications(e.target.checked ?? true)
+                          <Switch
+                            sx={{
+                              "&.MuiSwitch-root": {
+                                margin: "16px 0 0"
                               }
-                              inputProps={{ "aria-label": id }}
-                            />
+                            }}
+                            checked={!!settings.soundNotifications}
+                            onChange={handleSoundNotificationsChange}
+                            inputProps={{ "aria-label": id }}
+                          />
                           </FormControl>
                           <Typography className="description">
                             Play a system beep sound when workflows complete,
@@ -583,9 +595,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </InputLabel>
                           <Switch
                             checked={settings.autosave?.enabled ?? true}
-                            onChange={(e) =>
-                              updateAutosaveSettings({ enabled: e.target.checked })
-                            }
+                            onChange={handleAutosaveEnabledChange}
                             inputProps={{ "aria-label": "autosave-enabled" }}
                           />
                         </FormControl>
@@ -603,11 +613,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             id="autosave-interval"
                             value={settings.autosave?.intervalMinutes ?? 10}
                             variant="standard"
-                            onChange={(e) =>
-                              updateAutosaveSettings({
-                                intervalMinutes: Number(e.target.value)
-                              })
-                            }
+                            onChange={handleAutosaveIntervalChange}
                             disabled={!settings.autosave?.enabled}
                           >
                             <MenuItem value={1}>1 minute</MenuItem>
