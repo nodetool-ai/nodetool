@@ -161,10 +161,11 @@ const calculateNodePositions = (graph: Graph): CalculatedGraph => {
   });
 
   // Process edges - only include edges where both source and target nodes exist
+  // Use index to ensure unique keys when multiple edges connect the same nodes
   const previewEdges: PreviewEdge[] = edges
     .filter((e) => nodeMap.has(e.source) && nodeMap.has(e.target))
-    .map((e) => ({
-      id: `${e.source}-${e.target}`,
+    .map((e, index) => ({
+      id: e.id || `${e.source}-${e.target}-${index}`,
       source: e.source,
       target: e.target
     }));

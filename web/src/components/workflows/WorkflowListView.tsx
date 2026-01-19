@@ -81,7 +81,8 @@ const listStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      justifyContent: "center"
+      justifyContent: "center",
+      position: "relative"
     },
     ".name": {
       fontSize: theme.fontSizeSmall,
@@ -120,15 +121,10 @@ const listStyles = (theme: Theme) =>
       userSelect: "none",
       textAlign: "right"
     },
-    ".workflow:hover .duplicate-button, .workflow:hover .delete-button": {
-      opacity: 1
-    },
     ".duplicate-button svg": {
       transform: "scale(0.7)"
     },
-    ".workflow:hover button": {
-      opacity: 1
-    },
+    // List view (no preview) - actions on the right, no background
     ".actions": {
       position: "absolute",
       top: "50%",
@@ -138,13 +134,30 @@ const listStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "flex-end",
       gap: "2px",
+      zIndex: 10,
+      opacity: 0,
+      transition: "opacity 0.15s ease",
       button: {
-        opacity: 0,
+        opacity: 1,
         color: theme.vars.palette.grey[100],
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[500]
         }
       }
+    },
+    ".workflow:hover .actions": {
+      opacity: 1
+    },
+    // Preview mode - actions overlay on top of preview with background
+    ".workflow.with-preview .actions": {
+      top: "4px",
+      right: "4px",
+      transform: "none",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      borderRadius: "4px",
+      padding: "4px 6px",
+      backdropFilter: "blur(4px)",
+      gap: "4px"
     },
     ".date-header": {
       padding: "8px 12px 4px",
