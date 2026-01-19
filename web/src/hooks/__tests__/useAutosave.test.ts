@@ -177,7 +177,7 @@ describe("useAutosave", () => {
     expect(typeof body.client_id).toBe("string");
   });
 
-  it.skip("updates lastAutosaveTime when autosave succeeds", async () => {
+  it("updates lastAutosaveTime when autosave succeeds", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
