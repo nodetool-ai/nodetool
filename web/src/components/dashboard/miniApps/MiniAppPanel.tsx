@@ -298,4 +298,4 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
   );
 };
 
-export default MiniAppPanel;
+export default React.memo(MiniAppPanel);
