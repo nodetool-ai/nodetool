@@ -387,17 +387,15 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           />
         </MenuItem>
 
-        {isDevelopment && (
-          <>
-            <Divider />
-            <MenuItem onClick={handlers.handleCopyMetadataToClipboard}>
-              <ListItemIcon>
-                <DataArrayIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Copy NodeData</ListItemText>
-            </MenuItem>
-          </>
-        )}
+        {isDevelopment && [
+          <Divider key="dev-divider" />,
+          <MenuItem key="copy-metadata" onClick={handlers.handleCopyMetadataToClipboard}>
+            <ListItemIcon>
+              <DataArrayIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Copy NodeData</ListItemText>
+          </MenuItem>
+        ]}
       </Menu>
     </>
   );
