@@ -16,6 +16,7 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -135,6 +136,20 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
     hoverShadow:
       "0 8px 24px rgba(14, 165, 233, 0.35), 0 0 16px rgba(56, 189, 248, 0.25)",
     iconColor: "#e0f2fe"
+  },
+  {
+    key: "comment",
+    label: "Comment",
+    nodeType: "nodetool.utils.Comment",
+    icon: <EditNoteIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(245, 158, 11, 0.4), rgba(251, 191, 36, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(251, 191, 36, 0.6), rgba(252, 211, 77, 0.5))",
+    shadow: "0 4px 12px rgba(245, 158, 11, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(251, 191, 36, 0.35), 0 0 16px rgba(252, 211, 77, 0.25)",
+    iconColor: "#fef3c7"
   }
 ];
 

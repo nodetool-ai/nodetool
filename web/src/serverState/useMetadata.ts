@@ -1,6 +1,7 @@
 import { NodeTypes } from "@xyflow/react";
 import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
+import CommentNode from "../components/node_types/CommentNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
@@ -31,6 +32,33 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false
+  },
+  "nodetool.utils.Comment": {
+    title: "Comment",
+    description: "Add a comment to document your workflow",
+    namespace: "utils",
+    node_type: "nodetool.utils.Comment",
+    layout: "default",
+    basic_fields: [],
+    is_dynamic: false,
+    properties: [
+      {
+        name: "comment",
+        type: {
+          type: "str",
+          optional: true,
+          type_args: []
+        },
+        required: false,
+        default: ""
+      }
+    ],
+    outputs: [],
+    the_model_info: {},
+    recommended_models: [],
+    expose_as_tool: false,
+    supports_dynamic_outputs: false,
+    is_streaming_output: false
   }
 };
 
@@ -41,7 +69,9 @@ export const loadMetadata = async () => {
     return "error";
   }
 
-  const nodeTypes: NodeTypes = {};
+  const nodeTypes: NodeTypes = {
+    "nodetool.utils.Comment": CommentNode
+  };
   const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata };
   
   data.forEach((md: NodeMetadata) => {
