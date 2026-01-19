@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      padding: "0.5em 0.75em",
+      padding: "0.5em 0",
       background: "transparent",
       backdropFilter: "blur(4px)",
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
@@ -56,7 +56,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.5em 0.75em 0.75em"
+      padding: "0.5em 0 0.75em"
     },
     // Toggle category
     ".toggle-category": {

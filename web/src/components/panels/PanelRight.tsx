@@ -30,6 +30,7 @@ import StopIcon from "@mui/icons-material/Stop";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
+import PanelHeadline from "../ui/PanelHeadline";
 
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
@@ -497,10 +498,10 @@ const PanelRight: React.FC = () => {
                       width: "100%",
                       height: "100%",
                       overflow: "auto",
-                      margin: "10px 0"
+                      padding: "0 1em"
                     }}
                   >
-                    <h3 style={{ paddingLeft: "1em" }}>Running Jobs</h3>
+                    <PanelHeadline title="Running Jobs" />
                     <RunningJobsList />
                   </Box>
                 ) : activeView === "workspace" ? (

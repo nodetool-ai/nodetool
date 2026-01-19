@@ -23,6 +23,7 @@ import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
+import PanelHeadline from "../ui/PanelHeadline";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
@@ -157,7 +158,7 @@ const styles = (
     ".panel-inner-content": {
       display: "flex",
       flex: 1,
-      height: "100%",
+      height: "100%", 
       overflow: "hidden"
     },
 
@@ -341,38 +342,40 @@ const PanelContent = memo(function PanelContent({
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%", margin: "0 20px" }}
+          sx={{ width: "100%", height: "100%", margin: "0 1em" }}
         >
-          <Tooltip title="Fullscreen" placement="right-start">
-            <Button
-              className={`${path === "/assets" ? "active" : ""}`}
-              onClick={() => {
-                navigate("/assets");
-                handlePanelToggle("assets");
-              }}
-              tabIndex={-1}
-              style={{
-                float: "right",
-                margin: "15px 0 0 0"
-              }}
-            >
-              <Fullscreen />
-            </Button>
-          </Tooltip>
-          <h3>Assets</h3>
+          <PanelHeadline
+            title="Assets"
+            actions={
+              <Tooltip title="Fullscreen" placement="right-start">
+                <Button
+                  className={`${path === "/assets" ? "active" : ""}`}
+                  onClick={() => {
+                    navigate("/assets");
+                    handlePanelToggle("assets");
+                  }}
+                  tabIndex={-1}
+                  size="small"
+                >
+                  <Fullscreen />
+                </Button>
+              </Tooltip>
+            }
+          />
           <AssetGrid maxItemSize={5} />
         </Box>
       )}
       {activeView === "workflowGrid" && (
         <Box
+          className="workflow-grid-container"
           sx={{
             width: "100%",
             height: "100%",
-            overflow: "auto",
-            margin: "10px 0"
+            margin: "0 1em",
+            overflow: "auto"
           }}
         >
-          <h3 style={{ paddingLeft: "1em" }}>Workflows</h3>
+          <PanelHeadline title="Workflows" />
           <WorkflowList />
         </Box>
       )}

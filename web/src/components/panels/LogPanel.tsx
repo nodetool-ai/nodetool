@@ -21,6 +21,7 @@ import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 import useLogsStore from "../../stores/LogStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import PanelHeadline from "../ui/PanelHeadline";
 
 type Row = LogRow & { workflowId: string; workflowName: string; key: string };
 
@@ -41,9 +42,7 @@ const containerStyles = (theme: Theme) =>
       padding: 12
     },
     ".filters": {
-      position: "relative",
       display: "block",
-      paddingRight: 48,
       rowGap: 8,
       minHeight: 40
     },
@@ -54,13 +53,6 @@ const containerStyles = (theme: Theme) =>
       alignItems: "center",
       flexWrap: "wrap",
       minWidth: 0
-    },
-    ".filters-right": {
-      position: "absolute",
-      top: 0,
-      right: 0,
-      display: "flex",
-      alignItems: "center"
     },
     ".table": {
       display: "flex",
@@ -194,6 +186,24 @@ const LogPanel: React.FC = () => {
       css={containerStyles(theme)}
       className={isFullscreen ? "fullscreen" : undefined}
     >
+      <PanelHeadline
+        title="Logs"
+        actions={
+          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+            <IconButton
+              size="small"
+              onClick={() => setIsFullscreen((v) => !v)}
+              aria-label="Toggle fullscreen"
+            >
+              {isFullscreen ? (
+                <FullscreenExitIcon fontSize="small" />
+              ) : (
+                <FullscreenIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        }
+      />
       <Box className="filters">
         <Box className="filters-left">
           <FormControl size="small" sx={{ flex: "1" }}>
@@ -245,21 +255,6 @@ const LogPanel: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-        </Box>
-        <Box className="filters-right">
-          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
-            <IconButton
-              size="small"
-              onClick={() => setIsFullscreen((v) => !v)}
-              aria-label="Toggle fullscreen"
-            >
-              {isFullscreen ? (
-                <FullscreenExitIcon fontSize="small" />
-              ) : (
-                <FullscreenIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
         </Box>
       </Box>
 

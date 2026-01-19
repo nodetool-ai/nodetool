@@ -6,12 +6,12 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Typography,
   IconButton
 } from "@mui/material";
 import React from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import CollectionList from "./CollectionList";
+import PanelHeadline from "../ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
   css({
@@ -92,16 +92,18 @@ const CollectionsManager: React.FC<CollectionsManagerProps> = ({
       }}
     >
       <DialogTitle className="dialog-title" css={styles(theme)}>
-        <Typography variant="h5" component="div">
-          Collections
-        </Typography>
-        <IconButton
-          className="close-button"
-          onClick={onClose}
-          size="small"
-        >
-          <CloseIcon />
-        </IconButton>
+        <PanelHeadline
+          title="Collections"
+          actions={
+            <IconButton
+              className="close-button"
+              onClick={onClose}
+              size="small"
+            >
+              <CloseIcon />
+            </IconButton>
+          }
+        />
       </DialogTitle>
       <DialogContent sx={{ p: 0, overflow: "hidden" }}>
         <div css={styles(theme)}>

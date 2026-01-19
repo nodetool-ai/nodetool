@@ -23,6 +23,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
 import WorkspaceSelect from "./WorkspaceSelect";
+import PanelHeadline from "../ui/PanelHeadline";
 
 // Types
 export interface TreeViewItem {
@@ -343,9 +344,7 @@ const WorkspaceTree: React.FC = () => {
   if (!workflowId) {
     return (
       <Box css={workspaceTreeStyles(theme)}>
-        <Typography variant="h6" className="workspace-header">
-          Workspace Explorer
-        </Typography>
+        <PanelHeadline title="Workspace Explorer" />
         <Typography color="text.secondary">
           No workflow selected. Open a workflow to access its workspace files.
         </Typography>
@@ -355,16 +354,16 @@ const WorkspaceTree: React.FC = () => {
 
   return (
     <Box css={workspaceTreeStyles(theme)}>
-      <div className="workspace-header">
-        <Typography variant="h6">
-          Workspace Explorer
-        </Typography>
-        <Tooltip title="Refresh">
-          <IconButton onClick={handleRefresh} size="small">
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
-      </div>
+      <PanelHeadline
+        title="Workspace Explorer"
+        actions={
+          <Tooltip title="Refresh">
+            <IconButton onClick={handleRefresh} size="small">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       {/* Workspace Selection */}
       <div className="workspace-selector">

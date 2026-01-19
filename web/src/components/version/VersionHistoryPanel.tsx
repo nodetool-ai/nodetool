@@ -25,7 +25,6 @@ import {
 import {
   Close as CloseIcon,
   Compare as CompareIcon,
-  History as HistoryIcon,
   FilterList as FilterIcon
 } from "@mui/icons-material";
 import { VersionListItem } from "./VersionListItem";
@@ -36,6 +35,7 @@ import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import { NodeUIProperties } from "../../stores/NodeStore";
+import PanelHeadline from "../ui/PanelHeadline";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -258,15 +258,14 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           p: 3
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <HistoryIcon color="primary" />
-            <Typography variant="h6">Version History</Typography>
-          </Box>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
+        <PanelHeadline
+          title="Version History"
+          actions={
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          }
+        />
         <Typography color="error">Failed to load versions</Typography>
         <Typography variant="caption" color="text.secondary">
           {String(error)}
@@ -277,32 +276,28 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
   return (
     <Paper
+      className="version-history-panel"
       elevation={3}
       sx={{
         width: "100%",
         height: "100%",
         display: "flex",
+        padding: "0 1em",
         flexDirection: "column",
         overflow: "hidden"
       }}
     >
       <Box
-        sx={{
-          p: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: 1,
-          borderColor: "divider"
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <HistoryIcon color="primary" />
-          <Typography variant="h6">Version History</Typography>
-        </Box>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+      className="version-history-panel-header"
+       sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <PanelHeadline
+          title="Version History"
+          actions={
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          }
+        />
       </Box>
 
       <Box sx={{ p: 1, borderBottom: 1, borderColor: "divider" }}>
