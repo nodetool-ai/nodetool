@@ -89,14 +89,15 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
 
   return (
     <div css={styles(theme)}>
-      <Tooltip title={isPicking ? "Picking color..." : "Pick color from screen"}>
-        <span>
-          <IconButton
-            className="eyedropper-button"
-            onClick={handleClick}
-            disabled={disabled || isPicking}
-            size="small"
-          >
+        <Tooltip title={isPicking ? "Picking color..." : "Pick color from screen"}>
+          <span>
+            <IconButton
+              className="eyedropper-button"
+              aria-label="Pick color from screen"
+              onClick={handleClick}
+              disabled={disabled || isPicking}
+              size="small"
+            >
             {isPicking ? (
               <CircularProgress size={18} />
             ) : (

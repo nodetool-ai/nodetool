@@ -387,7 +387,11 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
           <Typography className="asset-content-type-title">
             {getTypeDisplayName(type)} ({count})
           </Typography>
-          <IconButton size="small" tabIndex={-1}>
+          <IconButton
+            size="small"
+            aria-label={isExpanded ? `Collapse ${getTypeDisplayName(type)} section` : `Expand ${getTypeDisplayName(type)} section`}
+            tabIndex={-1}
+          >
             {isExpanded ? <ExpandLess /> : <ExpandMore />}
           </IconButton>
         </div>

@@ -351,6 +351,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
           <Tooltip title="Remove stop">
             <IconButton
               size="small"
+              aria-label="Remove stop"
               onClick={handleRemoveStopClick(selectedStopIndex)}
               disabled={gradient.stops.length <= 2}
             >

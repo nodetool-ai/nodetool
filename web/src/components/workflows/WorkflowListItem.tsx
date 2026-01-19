@@ -183,6 +183,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         <IconButton
           className="favorite-button"
           size="small"
+          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           onClick={handleToggleFavorite}
           title={isFavorite ? "Remove from favorites" : "Add to favorites"}
           sx={{ padding: "4px" }}
@@ -192,6 +193,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         <IconButton
           className="edit-button"
           size="small"
+          aria-label="Edit workflow settings"
           onClick={handleEdit}
           title="Edit workflow settings"
           sx={{ padding: "4px" }}

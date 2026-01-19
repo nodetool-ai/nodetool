@@ -249,7 +249,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 {workflow?.name}
               </Typography>
               <Tooltip title="Open in Editor">
-                <IconButton size="small" onClick={handleOpenInEditor}>
+                <IconButton size="small" aria-label="Open in editor" onClick={handleOpenInEditor}>
                   <EditIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

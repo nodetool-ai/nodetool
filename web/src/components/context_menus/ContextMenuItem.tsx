@@ -126,6 +126,7 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
           ) : (
             <IconButton
               className={`action ${addButtonClassName || ""}`}
+              aria-label={label}
               onClick={onClick}
             >
               {IconComponent}

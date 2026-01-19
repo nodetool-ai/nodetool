@@ -101,6 +101,7 @@ const WorkflowGenerator: React.FC = () => {
               endAdornment: (
                 <IconButton
                   type="submit"
+                  aria-label="Send workflow description"
                   disabled={isLoading || !prompt.trim()}
                   sx={{ mr: 0.5 }}
                 >

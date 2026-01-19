@@ -214,7 +214,11 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             placement="top"
             enterDelay={TOOLTIP_ENTER_DELAY}
           >
-            <IconButton className="checkbox-button" onClick={toggleCheckboxes}>
+            <IconButton
+              className="checkbox-button"
+              aria-label={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
+              onClick={toggleCheckboxes}
+            >
               <CheckBoxIcon />
             </IconButton>
           </Tooltip>
@@ -227,6 +231,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             >
               <IconButton
                 className={`favorite-button ${showFavoritesOnly ? "active" : ""}`}
+                aria-label={`${showFavoritesOnly ? "Show all workflows" : "Show favorites only"}`}
                 onClick={onToggleFavorites}
               >
                 {showFavoritesOnly ? <StarIcon /> : <StarBorderIcon />}
@@ -241,6 +246,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           >
             <IconButton
               className={`preview-toggle-button ${showGraphPreview ? "active" : ""}`}
+              aria-label={`${showGraphPreview ? "Hide" : "Show"} graph preview`}
               onClick={handleToggleGraphPreview}
             >
               {showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
@@ -257,6 +263,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           >
             <IconButton
               className="add-button"
+              aria-label="Create new workflow"
               onClick={handleCreateWorkflow}
               size="large"
             >

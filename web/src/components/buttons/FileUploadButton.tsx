@@ -50,17 +50,18 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
 
   return (
     <div className="file-upload-button">
-      <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={tooltip} placement="bottom">
-        {props.compact ? (
-          <IconButton
-            className="upload-file compact"
-            onClick={handleClick}
-            size="small"
-            tabIndex={-1}
-            sx={{
-              color: theme.vars.palette.grey[400]
-            }}
-          >
+          <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={tooltip} placement="bottom">
+            {props.compact ? (
+              <IconButton
+                className="upload-file compact"
+                aria-label="Upload files"
+                onClick={handleClick}
+                size="small"
+                tabIndex={-1}
+                sx={{
+                  color: theme.vars.palette.grey[400]
+                }}
+              >
             <FileUploadIcon />
           </IconButton>
         ) : (
