@@ -2196,26 +2196,19 @@ body::before {
   height: 0;
 }
 
-/* Kie.ai Promotion Styles */
+/* Provider Carousel Styles */
 .boot-panel-installing {
   max-width: 800px;
 }
 
-.kie-promotion {
+.provider-carousel-container {
   margin-top: 32px;
-  padding: 28px;
-  background: linear-gradient(
-    145deg,
-    rgba(139, 92, 246, 0.12) 0%,
-    rgba(59, 130, 246, 0.08) 50%,
-    rgba(16, 185, 129, 0.06) 100%
-  );
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  border-radius: 20px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
   text-align: center;
   animation: fadeInUp 0.5s ease-out;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 @keyframes fadeInUp {
@@ -2229,46 +2222,32 @@ body::before {
   }
 }
 
-.kie-promotion-header {
-  margin-bottom: 24px;
-}
-
-.kie-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.kie-logo-text {
-  font-size: 28px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 50%, #34d399 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.kie-logo-badge {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 4px 10px;
-  background: rgba(139, 92, 246, 0.2);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 999px;
-  color: #a78bfa;
-}
-
-/* Carousel Styles */
-.kie-carousel {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.provider-carousel-header {
   margin-bottom: 20px;
 }
 
-.kie-carousel-nav {
+.provider-carousel-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c_text_primary);
+}
+
+.provider-carousel-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--c_text_secondary);
+}
+
+/* Carousel */
+.provider-carousel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.provider-carousel-nav {
   flex-shrink: 0;
   width: 40px;
   height: 40px;
@@ -2285,28 +2264,30 @@ body::before {
   line-height: 1;
 }
 
-.kie-carousel-nav:hover {
+.provider-carousel-nav:hover {
   background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(139, 92, 246, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
   transform: scale(1.05);
 }
 
-.kie-carousel-content {
+.provider-carousel-content {
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
 
-.kie-model-card {
+.provider-carousel-card {
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  text-align: left;
+  text-align: center;
   animation: cardSlide 0.3s ease-out;
+  min-height: 160px;
 }
 
 @keyframes cardSlide {
@@ -2320,57 +2301,74 @@ body::before {
   }
 }
 
-.kie-model-icon {
-  flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+.provider-carousel-card-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
-  border-radius: 14px;
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  gap: 8px;
 }
 
-.kie-model-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.kie-model-category {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #60a5fa;
-  margin-bottom: 4px;
-}
-
-.kie-model-name {
-  margin: 0 0 8px 0;
+.provider-carousel-name {
+  margin: 0;
   font-size: 18px;
   font-weight: 600;
   color: var(--c_text_primary);
 }
 
-.kie-model-description {
+.provider-carousel-description {
   margin: 0;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--c_text_secondary);
+  max-width: 400px;
+}
+
+.provider-carousel-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.provider-carousel-tag {
+  font-size: 10px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: var(--c_text_tertiary);
+}
+
+.provider-carousel-link {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: var(--c_text_secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.provider-carousel-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--c_text_primary);
 }
 
 /* Carousel Dots */
-.kie-carousel-dots {
+.provider-carousel-dots {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 300px;
+  margin: 0 auto;
 }
 
-.kie-carousel-dot {
+.provider-carousel-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -2381,60 +2379,13 @@ body::before {
   padding: 0;
 }
 
-.kie-carousel-dot:hover {
+.provider-carousel-dot:hover {
   background: rgba(255, 255, 255, 0.4);
 }
 
-.kie-carousel-dot.active {
-  background: linear-gradient(135deg, #8b5cf6 0%, #60a5fa 100%);
-  width: 24px;
+.provider-carousel-dot.active {
+  background: var(--c_text_primary);
+  width: 20px;
   border-radius: 4px;
-}
-
-/* Footer */
-.kie-promotion-footer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.kie-tagline {
-  margin: 0;
-  font-size: 14px;
-  color: var(--c_text_secondary);
-}
-
-.kie-cta-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 32px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35);
-}
-
-.kie-cta-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.45);
-  background: linear-gradient(135deg, #9f75f8 0%, #7c7ff5 100%);
-}
-
-.kie-cta-button:active {
-  transform: translateY(0);
-}
-
-.kie-disclaimer {
-  margin: 4px 0 0 0;
-  font-size: 11px;
-  color: var(--c_text_tertiary);
-  font-style: italic;
 }
 
