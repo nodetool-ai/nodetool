@@ -1,7 +1,7 @@
 /// <reference types="vite-plugin-svgr/client" />
 import React, { useEffect, useRef, useState } from "react";
-import Any from "../icons/enum.svg?react";
-import AssistantIcon from "../icons/assistant.svg?react";
+import Any from "../icons/data_types/nodetool/enum.svg?react";
+import AssistantIcon from "../icons/data_types/nodetool/assistant.svg?react";
 
 type SvgComponentType = React.FunctionComponent<
   React.SVGProps<SVGSVGElement> & { title?: string }
@@ -34,7 +34,7 @@ export function useDynamicSvgImport(iconName: string) {
     const importSvgIcon = async (): Promise<void> => {
       try {
         const iconModule = await import(
-          /* @vite-ignore */ `../icons/${iconName}.svg?react`
+          /* @vite-ignore */ `../icons/data_types/nodetool/${iconName}.svg?react`
         );
 
         const icon = (iconModule.default ||

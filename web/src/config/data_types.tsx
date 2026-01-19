@@ -9,38 +9,38 @@ import type { Theme } from "@mui/material/styles";
 
 // icons
 import stc from "string-to-color";
-import any from "../icons/any.svg?react";
-import notype from "../icons/notype.svg?react";
-import asset from "../icons/asset.svg?react";
-import wav from "../icons/wav.svg?react";
-import bool from "../icons/bool.svg?react";
-import chunk from "../icons/chunk.svg?react";
-import dataframe from "../icons/dataframe.svg?react";
-import dict from "../icons/dict.svg?react";
-import _enum from "../icons/enum.svg?react"; // 'enum' is a reserved keyword
-import file from "../icons/file.svg?react";
-import float from "../icons/float.svg?react";
-import folder from "../icons/folder.svg?react";
-import image from "../icons/image.svg?react";
-import int from "../icons/int.svg?react";
-import list from "../icons/list.svg?react";
-import model from "../icons/model.svg?react";
-import language_model from "../icons/language_model.svg?react";
-import image_model from "../icons/image_model.svg?react";
-import model_3d from "../icons/model_3d.svg?react";
-import str from "../icons/str.svg?react";
-import tensor from "../icons/tensor.svg?react";
-import text from "../icons/text.svg?react";
-import thread from "../icons/thread.svg?react";
-import thread_message from "../icons/thread_message.svg?react";
-import union from "../icons/union.svg?react";
-import video from "../icons/video.svg?react";
-import database from "../icons/database.svg?react";
-import task from "../icons/task.svg?react";
-import documentIcon from "../icons/document.svg?react";
-import np_array from "../icons/np_array.svg?react";
-import datetime from "../icons/datetime.svg?react";
-import date from "../icons/date.svg?react";
+import any from "../icons/data_types/nodetool/any.svg?react";
+import notype from "../icons/data_types/nodetool/notype.svg?react";
+import asset from "../icons/data_types/nodetool/asset.svg?react";
+import audio from "../icons/data_types/nodetool/audio.svg?react";
+import bool from "../icons/data_types/nodetool/bool.svg?react";
+import chunk from "../icons/data_types/nodetool/chunk.svg?react";
+import dataframe from "../icons/data_types/nodetool/dataframe.svg?react";
+import dict from "../icons/data_types/nodetool/dict.svg?react";
+import _enum from "../icons/data_types/nodetool/enum.svg?react"; // 'enum' is a reserved keyword
+import file from "../icons/data_types/nodetool/file.svg?react";
+import float from "../icons/data_types/nodetool/float.svg?react";
+import folder from "../icons/data_types/nodetool/folder.svg?react";
+import image from "../icons/data_types/nodetool/image.svg?react";
+import int from "../icons/data_types/nodetool/int.svg?react";
+import list from "../icons/data_types/nodetool/list.svg?react";
+import model from "../icons/data_types/nodetool/model.svg?react";
+import language_model from "../icons/data_types/nodetool/language_model.svg?react";
+import image_model from "../icons/data_types/nodetool/image_model.svg?react";
+import model_3d from "../icons/data_types/nodetool/model_3d.svg?react";
+import str from "../icons/data_types/nodetool/str.svg?react";
+import tensor from "../icons/data_types/nodetool/tensor.svg?react";
+import text from "../icons/data_types/nodetool/text.svg?react";
+import thread from "../icons/data_types/nodetool/thread.svg?react";
+import thread_message from "../icons/data_types/nodetool/thread_message.svg?react";
+import union from "../icons/data_types/nodetool/union.svg?react";
+import video from "../icons/data_types/nodetool/video.svg?react";
+import database from "../icons/data_types/nodetool/database.svg?react";
+import task from "../icons/data_types/nodetool/task.svg?react";
+import documentIcon from "../icons/data_types/nodetool/document.svg?react";
+import np_array from "../icons/data_types/nodetool/np_array.svg?react";
+import datetime from "../icons/data_types/nodetool/datetime.svg?react";
+import date from "../icons/data_types/nodetool/date.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
 
@@ -73,7 +73,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   any,
   notype,
   asset,
-  audio: wav,
+  audio,
   bool,
   chunk,
   dataframe,
