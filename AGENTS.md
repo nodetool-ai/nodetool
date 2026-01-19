@@ -227,7 +227,6 @@ NodeTool follows a client-server architecture with multiple components:
    - See `/web/TESTING.md` for comprehensive testing guide
    - See `/web/TEST_HELPERS.md` for test utilities and patterns
    - See `.github/copilot-instructions.md` for AI-specific guidelines
-   - See `.github/claude-instructions.md` for Claude AI guidelines
 
 4. **Test Structure:**
    - Component tests: `src/components/__tests__/`
