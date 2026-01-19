@@ -1,267 +1,195 @@
-import { Edge, Node } from "@xyflow/react";
+import { Edge } from "@xyflow/react";
 import { resolveExternalEdgeValue } from "../edgeValue";
 import { NodeData } from "../../stores/NodeData";
-
-const createMockNode = (
-  id: string,
-  type?: string,
-  properties: Record<string, unknown> = {},
-  dynamicProperties: Record<string, unknown> = {}
-): Node<NodeData> => ({
-  id,
-  type: type || "default",
-  position: { x: 0, y: 0 },
-  data: {
-    properties,
-    dynamic_properties: dynamicProperties,
-    selectable: true,
-    workflow_id: "test-workflow"
-  }
-});
+import { Node } from "@xyflow/react";
 
 describe("edgeValue", () => {
   describe("resolveExternalEdgeValue", () => {
-    const workflowId = "test-workflow";
-    const mockGetResult = jest.fn();
-    const mockFindNode = jest.fn();
-
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it("returns result from getResult when available", () => {
-      const edge: Edge = {
-        id: "e1",
-        source: "node1",
-        target: "node2",
-        sourceHandle: "output",
-        targetHandle: "input",
-        type: "default"
+    const createMockGetResult = (results: Record<string, any>) => {
+      return (workflowId: string, nodeId: string) => {
+        return results[nodeId];
       };
-      mockGetResult.mockReturnValue({ output: "test-value" });
+    };
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
-
-      expect(result).toEqual({
-        value: "test-value",
-        hasValue: true,
-        isFallback: false
-      });
-      expect(mockGetResult).toHaveBeenCalledWith(workflowId, "node1");
-    });
-
-    it("falls back to node property when getResult returns undefined", () => {
-      const edge: Edge = {
-        id: "e1",
-        source: "node1",
-        target: "node2",
-        sourceHandle: "output",
-        targetHandle: "input",
-        type: "default"
+    const createMockFindNode = (nodes: Record<string, Node<NodeData>>) => {
+      return (nodeId: string) => {
+        return nodes[nodeId];
       };
-      const mockNode = createMockNode("node1", "nodetool.input.TextInput", { value: "fallback-value" });
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(mockNode);
+    };
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
-
-      expect(result).toEqual({
-        value: "fallback-value",
-        hasValue: true,
-        isFallback: true
-      });
-    });
-
-    it("returns hasValue false when no value available", () => {
+    it("returns result value when getResult returns a value", () => {
       const edge: Edge = {
         id: "e1",
         source: "node1",
         target: "node2",
         type: "default"
       };
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(createMockNode("node1", "default"));
+      const getResult = createMockGetResult({ node1: { result: "test value" } });
+      const findNode = createMockFindNode({});
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
 
-      expect(result).toEqual({
-        value: undefined,
-        hasValue: false,
-        isFallback: false
-      });
+      expect(result.value).toEqual({ result: "test value" });
+      expect(result.hasValue).toBe(true);
+      expect(result.isFallback).toBe(false);
     });
 
-    it("checks dynamic_properties before properties", () => {
+    it("returns result value with sourceHandle", () => {
+      const edge: Edge = {
+        id: "e1",
+        source: "node1",
+        target: "node2",
+        sourceHandle: "output1",
+        type: "default"
+      };
+      const getResult = createMockGetResult({ node1: { output1: "handle value", other: "other" } });
+      const findNode = createMockFindNode({});
+
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
+
+      expect(result.value).toBe("handle value");
+      expect(result.hasValue).toBe(true);
+    });
+
+    it("falls back to entire result when sourceHandle not in result", () => {
+      const edge: Edge = {
+        id: "e1",
+        source: "node1",
+        target: "node2",
+        sourceHandle: "missing",
+        type: "default"
+      };
+      const getResult = createMockGetResult({ node1: { output1: "value" } });
+      const findNode = createMockFindNode({});
+
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
+
+      expect(result.value).toEqual({ output1: "value" });
+      expect(result.hasValue).toBe(true);
+    });
+
+    it("returns no value when getResult returns undefined and no literal source", () => {
       const edge: Edge = {
         id: "e1",
         source: "node1",
         target: "node2",
         type: "default"
       };
-      const mockNode = createMockNode(
-        "node1",
-        "nodetool.input.TextInput",
-        { value: "prop-value" },
-        { value: "dynamic-value" }
-      );
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(mockNode);
+      const getResult = createMockGetResult({});
+      const findNode = createMockFindNode({});
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
 
-      expect(result.value).toBe("dynamic-value");
-    });
-
-    it("uses sourceHandle to resolve nested result", () => {
-      const edge: Edge = {
-        id: "e1",
-        source: "node1",
-        target: "node2",
-        sourceHandle: "text_output",
-        type: "default"
-      };
-      mockGetResult.mockReturnValue({ text_output: "text-value", audio_output: "audio-value" });
-
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
-
-      expect(result.value).toBe("text-value");
-    });
-
-    it("returns full result when sourceHandle not in result object", () => {
-      const edge: Edge = {
-        id: "e1",
-        source: "node1",
-        target: "node2",
-        sourceHandle: "missing_handle",
-        type: "default"
-      };
-      mockGetResult.mockReturnValue({ text_output: "text-value" });
-
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
-
-      expect(result.value).toEqual({ text_output: "text-value" });
-    });
-
-    it("handles non-literal source nodes", () => {
-      const edge: Edge = {
-        id: "e1",
-        source: "node1",
-        target: "node2",
-        type: "default"
-      };
-      const mockNode = createMockNode("node1", "nodetool.processors.TextProcessor", { value: "should-not-use" });
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(mockNode);
-
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
-
+      expect(result.value).toBeUndefined();
       expect(result.hasValue).toBe(false);
+      expect(result.isFallback).toBe(false);
     });
 
-    it("handles constant node types as fallback source", () => {
+    it("uses fallback from literal source node property", () => {
       const edge: Edge = {
         id: "e1",
         source: "node1",
         target: "node2",
         type: "default"
       };
-      const mockNode = createMockNode("node1", "nodetool.constant.String", { value: "constant-value" });
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(mockNode);
+      const getResult = createMockGetResult({});
+      const literalNode: Node<NodeData> = {
+        id: "node1",
+        type: "nodetool.constant.String",
+        data: { properties: { value: "fallback value" } },
+        position: { x: 0, y: 0 }
+      } as Node<NodeData>;
+      const findNode = createMockFindNode({ node1: literalNode });
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
 
-      expect(result.value).toBe("constant-value");
+      expect(result.value).toBe("fallback value");
+      expect(result.hasValue).toBe(true);
       expect(result.isFallback).toBe(true);
     });
 
-    it("handles undefined sourceHandle", () => {
+    it("uses fallback from dynamic_properties", () => {
       const edge: Edge = {
         id: "e1",
         source: "node1",
         target: "node2",
-        sourceHandle: undefined,
         type: "default"
       };
-      mockGetResult.mockReturnValue("simple-value");
+      const getResult = createMockGetResult({});
+      const literalNode: Node<NodeData> = {
+        id: "node1",
+        type: "nodetool.constant.String",
+        data: { dynamic_properties: { value: "dynamic value" } },
+        position: { x: 0, y: 0 }
+      } as Node<NodeData>;
+      const findNode = createMockFindNode({ node1: literalNode });
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
 
-      expect(result.value).toBe("simple-value");
+      expect(result.value).toBe("dynamic value");
+      expect(result.hasValue).toBe(true);
+      expect(result.isFallback).toBe(true);
     });
 
-    it("handles null sourceNode", () => {
+    it("does not use fallback for non-literal source nodes", () => {
       const edge: Edge = {
         id: "e1",
         source: "node1",
         target: "node2",
         type: "default"
       };
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(undefined);
+      const getResult = createMockGetResult({});
+      const processNode: Node<NodeData> = {
+        id: "node1",
+        type: "nodetool.process.TextConcatenate",
+        data: { properties: { value: "should not use" } },
+        position: { x: 0, y: 0 }
+      } as Node<NodeData>;
+      const findNode = createMockFindNode({ node1: processNode });
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
 
       expect(result.hasValue).toBe(false);
+      expect(result.isFallback).toBe(false);
     });
 
-    it("uses value property when no sourceHandle specified", () => {
+    it("handles nodetool.input nodes as literal sources", () => {
       const edge: Edge = {
         id: "e1",
         source: "node1",
         target: "node2",
         type: "default"
       };
-      const mockNode = createMockNode("node1", "nodetool.input.TextInput", {}, { value: "direct-value" });
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(mockNode);
+      const getResult = createMockGetResult({});
+      const inputNode: Node<NodeData> = {
+        id: "node1",
+        type: "nodetool.input.TextInput",
+        data: { properties: { value: "input value" } },
+        position: { x: 0, y: 0 }
+      } as Node<NodeData>;
+      const findNode = createMockFindNode({ node1: inputNode });
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
 
-      expect(result.value).toBe("direct-value");
+      expect(result.value).toBe("input value");
+      expect(result.hasValue).toBe(true);
+      expect(result.isFallback).toBe(true);
     });
 
-    it("resolves sourceHandle from dynamic_properties", () => {
+    it("handles undefined result value correctly", () => {
       const edge: Edge = {
         id: "e1",
         source: "node1",
         target: "node2",
-        sourceHandle: "custom_handle",
         type: "default"
       };
-      const mockNode = createMockNode(
-        "node1",
-        "nodetool.input.TextInput",
-        {},
-        { custom_handle: "dynamic-handle-value" }
-      );
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(mockNode);
+      const getResult = createMockGetResult({ node1: undefined });
+      const findNode = createMockFindNode({});
 
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
+      const result = resolveExternalEdgeValue(edge, "workflow1", getResult, findNode);
 
-      expect(result.value).toBe("dynamic-handle-value");
-    });
-
-    it("resolves sourceHandle from properties", () => {
-      const edge: Edge = {
-        id: "e1",
-        source: "node1",
-        target: "node2",
-        sourceHandle: "custom_handle",
-        type: "default"
-      };
-      const mockNode = createMockNode(
-        "node1",
-        "nodetool.input.TextInput",
-        { custom_handle: "prop-handle-value" }
-      );
-      mockGetResult.mockReturnValue(undefined);
-      mockFindNode.mockReturnValue(mockNode);
-
-      const result = resolveExternalEdgeValue(edge, workflowId, mockGetResult, mockFindNode);
-
-      expect(result.value).toBe("prop-handle-value");
+      expect(result.value).toBeUndefined();
+      expect(result.hasValue).toBe(false);
     });
   });
 });

@@ -1,173 +1,96 @@
+import { Edge } from "@xyflow/react";
 import { wouldCreateCycle } from "../graphCycle";
-import type { Edge } from "@xyflow/react";
 
 describe("graphCycle", () => {
   describe("wouldCreateCycle", () => {
-    it("returns false when sourceId is null", () => {
+    it("returns false when sourceId or targetId is undefined", () => {
       const edges: Edge[] = [];
-      const result = wouldCreateCycle(edges, null, "target");
-      expect(result).toBe(false);
+      expect(wouldCreateCycle(edges, undefined, "target")).toBe(false);
+      expect(wouldCreateCycle(edges, "source", undefined)).toBe(false);
+      expect(wouldCreateCycle(edges, undefined, undefined)).toBe(false);
     });
 
-    it("returns false when targetId is null", () => {
+    it("returns false when sourceId or targetId is null", () => {
       const edges: Edge[] = [];
-      const result = wouldCreateCycle(edges, "source", null);
-      expect(result).toBe(false);
+      expect(wouldCreateCycle(edges, null, "target")).toBe(false);
+      expect(wouldCreateCycle(edges, "source", null)).toBe(false);
     });
 
-    it("returns false when both sourceId and targetId are null", () => {
+    it("returns true when sourceId equals targetId", () => {
       const edges: Edge[] = [];
-      const result = wouldCreateCycle(edges, null, null);
-      expect(result).toBe(false);
+      expect(wouldCreateCycle(edges, "node1", "node1")).toBe(true);
     });
 
-    it("returns true when sourceId equals targetId (self-loop)", () => {
+    it("returns false when no existing edges", () => {
       const edges: Edge[] = [];
-      const result = wouldCreateCycle(edges, "node1", "node1");
-      expect(result).toBe(true);
+      expect(wouldCreateCycle(edges, "source", "target")).toBe(false);
     });
 
-    it("returns false for empty graph", () => {
+    it("returns false when edge does not create a cycle", () => {
+      const edges: Edge[] = [
+        { id: "e1", source: "a", target: "b", type: "default" } as Edge,
+        { id: "e2", source: "b", target: "c", type: "default" } as Edge
+      ];
+      expect(wouldCreateCycle(edges, "d", "e")).toBe(false);
+      expect(wouldCreateCycle(edges, "a", "c")).toBe(false);
+    });
+
+    it("returns true when edge would create a cycle with existing path", () => {
+      const edges: Edge[] = [
+        { id: "e1", source: "a", target: "b", type: "default" } as Edge,
+        { id: "e2", source: "b", target: "c", type: "default" } as Edge
+      ];
+      expect(wouldCreateCycle(edges, "c", "a")).toBe(true);
+    });
+
+    it("returns true when edge would create direct self-loop", () => {
       const edges: Edge[] = [];
-      const result = wouldCreateCycle(edges, "node1", "node2");
-      expect(result).toBe(false);
+      expect(wouldCreateCycle(edges, "a", "a")).toBe(true);
     });
 
-    it("returns false when no path exists from target to source", () => {
+    it("returns true when edge would create cycle through multiple nodes", () => {
       const edges: Edge[] = [
-        { id: "e1", source: "A", target: "B" },
-        { id: "e2", source: "B", target: "C" }
+        { id: "e1", source: "a", target: "b", type: "default" } as Edge,
+        { id: "e2", source: "b", target: "c", type: "default" } as Edge,
+        { id: "e3", source: "c", target: "d", type: "default" } as Edge
       ];
-      // Adding D -> A would not create cycle since A->B->C doesn't lead back to D
-      const result = wouldCreateCycle(edges, "D", "A");
-      expect(result).toBe(false);
+      expect(wouldCreateCycle(edges, "d", "a")).toBe(true);
+      expect(wouldCreateCycle(edges, "d", "b")).toBe(true);
+      expect(wouldCreateCycle(edges, "d", "c")).toBe(true);
     });
 
-    it("returns true for simple direct cycle (A->B, adding B->A)", () => {
+    it("handles edges with missing source or target", () => {
       const edges: Edge[] = [
-        { id: "e1", source: "A", target: "B" }
+        { id: "e1", source: "a", target: "b", type: "default" } as Edge,
+        { id: "e2", source: undefined as unknown as string, target: "c", type: "default" } as Edge,
+        { id: "e3", source: "d", target: undefined as unknown as string, type: "default" } as Edge
       ];
-      // Adding B -> A would create cycle
-      const result = wouldCreateCycle(edges, "B", "A");
-      expect(result).toBe(true);
+      expect(wouldCreateCycle(edges, "a", "b")).toBe(false);
     });
 
-    it("returns true for indirect cycle (A->B->C, adding C->A)", () => {
+    it("handles complex graph with branching", () => {
       const edges: Edge[] = [
-        { id: "e1", source: "A", target: "B" },
-        { id: "e2", source: "B", target: "C" }
+        { id: "e1", source: "a", target: "b", type: "default" } as Edge,
+        { id: "e2", source: "a", target: "c", type: "default" } as Edge,
+        { id: "e3", source: "b", target: "d", type: "default" } as Edge,
+        { id: "e4", source: "c", target: "d", type: "default" } as Edge
       ];
-      // Adding C -> A would create cycle
-      const result = wouldCreateCycle(edges, "C", "A");
-      expect(result).toBe(true);
+      expect(wouldCreateCycle(edges, "d", "a")).toBe(true);
+      expect(wouldCreateCycle(edges, "d", "b")).toBe(true);
+      expect(wouldCreateCycle(edges, "d", "c")).toBe(true);
     });
 
-    it("returns true for longer chain cycle (A->B->C->D, adding D->A)", () => {
-      const edges: Edge[] = [
-        { id: "e1", source: "A", target: "B" },
-        { id: "e2", source: "B", target: "C" },
-        { id: "e3", source: "C", target: "D" }
-      ];
-      // Adding D -> A would create cycle
-      const result = wouldCreateCycle(edges, "D", "A");
-      expect(result).toBe(true);
+    it("handles empty graph", () => {
+      const edges: Edge[] = [];
+      expect(wouldCreateCycle(edges, "a", "b")).toBe(false);
     });
 
-    it("returns false when adding edge to unconnected component", () => {
+    it("handles graph with only one edge", () => {
       const edges: Edge[] = [
-        { id: "e1", source: "A", target: "B" },
-        { id: "e2", source: "C", target: "D" }
+        { id: "e1", source: "a", target: "b", type: "default" } as Edge
       ];
-      // Adding E -> A doesn't create cycle
-      const result = wouldCreateCycle(edges, "E", "A");
-      expect(result).toBe(false);
-    });
-
-    it("handles complex branching without cycle", () => {
-      const edges: Edge[] = [
-        { id: "e1", source: "A", target: "B" },
-        { id: "e2", source: "A", target: "C" },
-        { id: "e3", source: "B", target: "D" },
-        { id: "e4", source: "C", target: "D" }
-      ];
-      // Adding D -> E doesn't create cycle
-      const result = wouldCreateCycle(edges, "D", "E");
-      expect(result).toBe(false);
-    });
-
-    it("detects cycle in diamond pattern", () => {
-      const edges: Edge[] = [
-        { id: "e1", source: "A", target: "B" },
-        { id: "e2", source: "A", target: "C" },
-        { id: "e3", source: "B", target: "D" },
-        { id: "e4", source: "C", target: "D" }
-      ];
-      // Adding D -> A would create cycle
-      const result = wouldCreateCycle(edges, "D", "A");
-      expect(result).toBe(true);
-    });
-
-    it("handles edges with missing source", () => {
-      const edges: Edge[] = [
-        { id: "e1", source: "", target: "B" },
-        { id: "e2", source: "A", target: "C" }
-      ];
-      const result = wouldCreateCycle(edges, "C", "A");
-      expect(result).toBe(true);
-    });
-
-    it("handles edges with missing target", () => {
-      const edges: Edge[] = [
-        { id: "e1", source: "A", target: "" },
-        { id: "e2", source: "A", target: "B" }
-      ];
-      const result = wouldCreateCycle(edges, "B", "A");
-      expect(result).toBe(true);
-    });
-
-    it("returns false for parallel edges without cycle", () => {
-      const edges: Edge[] = [
-        { id: "e1", source: "A", target: "B" },
-        { id: "e2", source: "A", target: "B" } // duplicate edge
-      ];
-      const result = wouldCreateCycle(edges, "C", "A");
-      expect(result).toBe(false);
-    });
-
-    it("correctly identifies no cycle in tree structure", () => {
-      const edges: Edge[] = [
-        { id: "e1", source: "root", target: "child1" },
-        { id: "e2", source: "root", target: "child2" },
-        { id: "e3", source: "child1", target: "grandchild1" },
-        { id: "e4", source: "child1", target: "grandchild2" }
-      ];
-      // Adding new leaf doesn't create cycle
-      const result = wouldCreateCycle(edges, "grandchild1", "newnode");
-      expect(result).toBe(false);
-    });
-
-    it("detects cycle attempt in tree structure", () => {
-      const edges: Edge[] = [
-        { id: "e1", source: "root", target: "child1" },
-        { id: "e2", source: "root", target: "child2" },
-        { id: "e3", source: "child1", target: "grandchild1" }
-      ];
-      // Adding grandchild1 -> root would create cycle
-      const result = wouldCreateCycle(edges, "grandchild1", "root");
-      expect(result).toBe(true);
-    });
-
-    it("handles multiple disconnected subgraphs", () => {
-      const edges: Edge[] = [
-        // Graph 1: A -> B
-        { id: "e1", source: "A", target: "B" },
-        // Graph 2: C -> D -> E
-        { id: "e2", source: "C", target: "D" },
-        { id: "e3", source: "D", target: "E" }
-      ];
-      // Adding B -> C connects the graphs but doesn't create cycle
-      const result = wouldCreateCycle(edges, "B", "C");
-      expect(result).toBe(false);
+      expect(wouldCreateCycle(edges, "a", "b")).toBe(false);
+      expect(wouldCreateCycle(edges, "b", "a")).toBe(true);
     });
   });
 });

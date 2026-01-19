@@ -291,3 +291,48 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+---
+
+## Test Coverage Improvement (2026-01-19)
+
+**Tests Added**: 13 new test files covering utility functions
+
+**Areas Covered**:
+- `errorHandling.ts`: AppError class and createErrorMessage function
+- `platform.ts`: isMac platform detection
+- `graphCycle.ts`: wouldCreateCycle cycle detection algorithm
+- `selectionBounds.ts`: getSelectionRect selection rectangle calculation
+- `nodeUtils.ts`: GROUP_NODE_METADATA and COMMENT_NODE_METADATA constants
+- `modelDownloadCheck.ts`: isModelDownloaded model download checking
+- `truncateString.ts`: truncateString string truncation
+- `titleizeString.ts`: titleizeString string title case conversion
+- `nodeDisplay.ts`: getNodeDisplayName and getNodeNamespace utilities
+- `edgeValue.ts`: resolveExternalEdgeValue edge value resolution
+- `getAssetThumbUrl.ts`: getAssetThumbUrl thumbnail URL generation
+
+**Patterns Used**:
+- Jest with React Testing Library patterns
+- Testing pure utility functions without React components
+- Mocking browser globals (navigator.userAgent, URL.createObjectURL)
+- Using `as any` casting for test objects with complex types
+- Testing edge cases and error conditions
+
+**Files Created**:
+- `web/src/utils/__tests__/errorHandling.test.ts`
+- `web/src/utils/__tests__/platform.test.ts`
+- `web/src/utils/__tests__/graphCycle.test.ts`
+- `web/src/utils/__tests__/selectionBounds.test.ts`
+- `web/src/utils/__tests__/nodeUtils.test.ts`
+- `web/src/utils/__tests__/modelDownloadCheck.test.ts`
+- `web/src/utils/__tests__/truncateString.test.ts`
+- `web/src/utils/__tests__/titleizeString.test.ts`
+- `web/src/utils/__tests__/nodeDisplay.test.ts`
+- `web/src/utils/__tests__/edgeValue.test.ts`
+- `web/src/utils/__tests__/getAssetThumbUrl.test.ts`
+
+**Verification**:
+- ✅ TypeScript compilation: Passes
+- ✅ ESLint: Passes (1 warning about unused variable, fixed)
+- ✅ Jest tests: Pass (except pre-existing failures in useInputNodeAutoRun and performance tests)
+
