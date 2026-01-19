@@ -255,10 +255,13 @@ NodeTool follows a client-server architecture with multiple components:
 After making any code changes, you MUST run the following commands to ensure code quality:
 
 ```bash
+make install    # Install all dependencies first (required for typecheck)
 make typecheck  # Type check all packages
 make lint       # Lint all packages
 make test       # Run all tests
 ```
+
+**Note**: The mobile package requires dependencies to be installed before type checking.
 
 **Keep it green** - All three commands must pass with exit code 0 before considering the task complete.
 

@@ -33,6 +33,10 @@ cd mobile
 npm install
 ```
 
+**Required for**: Development, type checking, testing, and building.
+
+**Note**: The mobile package has its own `package.json` with separate dependencies from the web and electron packages. You must run `npm install` in the mobile directory before running `make typecheck` or `make test`.
+
 ## Configuration
 
 The app requires a running NodeTool server. You can configure the server URL in the Settings screen within the app.
