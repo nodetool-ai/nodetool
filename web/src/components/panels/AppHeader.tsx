@@ -75,9 +75,6 @@ const styles = (theme: Theme) =>
     ".mode-pills": {
       display: "flex",
       alignItems: "center",
-      backgroundColor: "rgba(255, 255, 255, 0.06)",
-      borderRadius: "20px",
-      padding: "3px",
       gap: "2px"
     },
     ".mode-pill": {
