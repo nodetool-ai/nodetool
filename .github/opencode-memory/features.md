@@ -4,7 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-18
+Last updated: 2026-01-19
+
+- **Store JSDoc Documentation (2026-01-19)**: Added module-level JSDoc to ResultsStore, AssetStore, and StatusStore for consistent documentation across all critical stores
 
 - **Documentation Audit (2026-01-18)**: Fixed table formatting in docs/AGENTS.md, removed duplicate entry, updated file structure tree to match actual docs directory
 

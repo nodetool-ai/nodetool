@@ -1,3 +1,16 @@
+/**
+ * ResultsStore manages workflow execution results and streaming data.
+ *
+ * Responsibilities:
+ * - Store node execution results (output values, preview data)
+ * - Track streaming progress and accumulated chunks
+ * - Manage tool calls and planning updates from the assistant
+ * - Handle edge status updates for visual feedback
+ * - Provide typed accessors for results organized by workflow and node
+ *
+ * Data is organized using composite keys: "workflowId:nodeId"
+ */
+
 import { create } from "zustand";
 import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
 

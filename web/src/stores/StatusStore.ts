@@ -1,3 +1,15 @@
+/**
+ * StatusStore tracks execution status values for nodes.
+ *
+ * Responsibilities:
+ * - Store arbitrary status values for workflow nodes
+ * - Provide thread-safe status updates and retrieval
+ * - Clear all statuses when a workflow completes
+ *
+ * Status values can be strings, objects, or null/undefined.
+ * Used to track node state during workflow execution.
+ */
+
 import { create } from "zustand";
 
 type StatusValue = string | Record<string, unknown> | null | undefined;
