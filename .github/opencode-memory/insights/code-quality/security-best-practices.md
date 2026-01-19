@@ -17,16 +17,20 @@
 // Transitive dependencies - use overrides
 "overrides": {
   "qs": ">=6.14.1",
-  "express": ">=4.21.2"
+  "express": ">=4.21.2",
+  "glob": ">=10.5.0",
+  "tar": ">=7.5.3"
 }
 ```
 
 **CSP Implementation**:
 ```html
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' http://localhost:* ws://localhost:* https:; media-src 'self' blob:; frame-src 'self';">
 ```
 
-**Impact**: Comprehensive security patching reduced web vulnerabilities from 8 to 2 and electron from 12 to 0.
+**Impact**: 
+- 2026-01-12: Comprehensive security patching reduced web vulnerabilities from 8 to 2 and electron from 12 to 0
+- 2026-01-19: Added overrides for glob and tar vulnerabilities; reduced web from 10 to 9, electron from 23 to 9, mobile from 10 to 0
 
-**Date**: 2026-01-12
+**Date**: 2026-01-19 (updated from 2026-01-12)

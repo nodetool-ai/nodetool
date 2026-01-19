@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Vulnerability Fixes (2026-01-19)
+
+**What**: Fixed high-severity vulnerabilities in glob and tar packages using npm overrides across all packages.
+
+**Files**: web/package.json, electron/package.json, mobile/package.json
+
+**Impact**: Web reduced from 10 to 9 vulnerabilities (0 high), Electron from 23 to 9 (0 high), Mobile from 10 to 0.
+
+---
+
 ### Handler Memoization (2026-01-19)
 
 **What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
