@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Box, Typography, IconButton, Tooltip } from "@mui/material";
+import { Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
@@ -13,7 +13,6 @@ import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import EditIcon from "@mui/icons-material/Edit";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -256,15 +255,24 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>
       </Box>
       <Box className="actions">
-        <IconButton
+        <Button
           className="open-button"
           size="small"
+          variant="contained"
           onClick={handleOpen}
           title="Open workflow"
-          sx={{ padding: "4px" }}
+          sx={{ 
+            padding: "2px 10px",
+            minWidth: "unset",
+            fontSize: "0.7rem",
+            fontWeight: 600,
+            textTransform: "none",
+            lineHeight: 1.4,
+            borderRadius: "4px"
+          }}
         >
-          <OpenInNewIcon sx={{ fontSize: "1rem" }} />
-        </IconButton>
+          OPEN
+        </Button>
         <IconButton
           className="favorite-button"
           size="small"
