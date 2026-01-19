@@ -1,23 +1,23 @@
 import { DataType } from "./data_types";
 import { solarizedColors, monokaiColors } from "./comfy_colors";
-import comfy_taesd from "../icons/comfy_taesd.svg?react";
-import comfy_clip from "../icons/comfy_clip.svg?react";
-import comfy_clip_vision from "../icons/comfy_clip_vision.svg?react";
-import comfy_clip_vision_output from "../icons/comfy_clip_vision_output.svg?react";
-import comfy_conditioning from "../icons/comfy_conditioning.svg?react";
-import comfy_control_net from "../icons/comfy_control_net.svg?react";
-import comfy_embeds from "../icons/comfy_embeds.svg?react";
-import comfy_gligen from "../icons/comfy_gligen.svg?react";
-import comfy_image_tensor from "../icons/comfy_image_tensor.svg?react";
-import comfy_insight_face from "../icons/comfy_insight_face.svg?react";
-import comfy_ip_adapter from "../icons/comfy_ip_adapter.svg?react";
-import comfy_latent from "../icons/comfy_latent.svg?react";
-import comfy_mask from "../icons/comfy_mask.svg?react";
-import comfy_sampler from "../icons/comfy_sampler.svg?react";
-import comfy_sigmas from "../icons/comfy_sigmas.svg?react";
-import comfy_style_model from "../icons/comfy_style_model.svg?react";
-import comfy_unet from "../icons/comfy_unet.svg?react";
-import comfy_vae from "../icons/comfy_vae.svg?react";
+import comfy_taesd from "../icons/data_types/comfy/comfy_taesd.svg?react";
+import comfy_clip from "../icons/data_types/comfy/comfy_clip.svg?react";
+import comfy_clip_vision from "../icons/data_types/comfy/comfy_clip_vision.svg?react";
+import comfy_clip_vision_output from "../icons/data_types/comfy/comfy_clip_vision_output.svg?react";
+import comfy_conditioning from "../icons/data_types/comfy/comfy_conditioning.svg?react";
+import comfy_control_net from "../icons/data_types/comfy/comfy_control_net.svg?react";
+import comfy_embeds from "../icons/data_types/comfy/comfy_embeds.svg?react";
+import comfy_gligen from "../icons/data_types/comfy/comfy_gligen.svg?react";
+import comfy_image_tensor from "../icons/data_types/comfy/comfy_image_tensor.svg?react";
+import comfy_insight_face from "../icons/data_types/comfy/comfy_insight_face.svg?react";
+import comfy_ip_adapter from "../icons/data_types/comfy/comfy_ip_adapter.svg?react";
+import comfy_latent from "../icons/data_types/comfy/comfy_latent.svg?react";
+import comfy_mask from "../icons/data_types/comfy/comfy_mask.svg?react";
+import comfy_sampler from "../icons/data_types/comfy/comfy_sampler.svg?react";
+import comfy_sigmas from "../icons/data_types/comfy/comfy_sigmas.svg?react";
+import comfy_style_model from "../icons/data_types/comfy/comfy_style_model.svg?react";
+import comfy_unet from "../icons/data_types/comfy/comfy_unet.svg?react";
+import comfy_vae from "../icons/data_types/comfy/comfy_vae.svg?react";
 
 export const comfyIconMap: Record<
   string,
