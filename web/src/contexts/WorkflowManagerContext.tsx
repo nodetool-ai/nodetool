@@ -27,8 +27,31 @@ import {
 // CONTEXT SETUP
 // -----------------------------------------------------------------
 
+// Extend Window interface for HMR context preservation
+declare global {
+  interface Window {
+    __WORKFLOW_MANAGER_CONTEXT__?: React.Context<WorkflowManagerStore | null>;
+  }
+}
+
 // Create a React context to hold the workflow manager store.
-const WorkflowManagerContext = createContext<WorkflowManagerStore | null>(null);
+// In development, preserve the context reference on window to survive HMR.
+// This prevents "must be used within Provider" errors during hot reloads.
+const WorkflowManagerContext: React.Context<WorkflowManagerStore | null> = (() => {
+  // In development, reuse existing context from window if available
+  if (import.meta.hot && window.__WORKFLOW_MANAGER_CONTEXT__) {
+    return window.__WORKFLOW_MANAGER_CONTEXT__;
+  }
+  
+  const ctx = createContext<WorkflowManagerStore | null>(null);
+  
+  // Store on window for HMR persistence in development
+  if (import.meta.hot) {
+    window.__WORKFLOW_MANAGER_CONTEXT__ = ctx;
+  }
+  
+  return ctx;
+})();
 
 // -----------------------------------------------------------------
 // CUSTOM HOOK
@@ -156,3 +179,4 @@ export const WorkflowManagerProvider: React.FC<{
     </WorkflowManagerContext.Provider>
   );
 };
+
