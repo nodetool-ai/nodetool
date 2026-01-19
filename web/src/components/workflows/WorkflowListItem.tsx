@@ -190,6 +190,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       key={workflow.id}
       className={
         "workflow list" +
+        (showGraphPreview ? " with-preview" : "") +
         (isSelected ? " selected" : "") +
         (isCurrent ? " current" : "") +
         (isAlternate ? " alternate" : "") +
@@ -249,48 +250,48 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             {workflow.name}
           </Typography>
         )}
+        <Box className="actions">
+          <Button
+            className="open-button"
+            size="small"
+            variant="contained"
+            onClick={handleOpen}
+            title="Open workflow"
+            sx={{ 
+              padding: "2px 10px",
+              minWidth: "unset",
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              textTransform: "none",
+              lineHeight: 1.4,
+              borderRadius: "4px"
+            }}
+          >
+            OPEN
+          </Button>
+          <IconButton
+            className="favorite-button"
+            size="small"
+            onClick={handleToggleFavorite}
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            sx={{ padding: "4px" }}
+          >
+            {isFavorite ? <StarIcon sx={{ fontSize: "1rem", color: "warning.main" }} /> : <StarBorderIcon sx={{ fontSize: "1rem" }} />}
+          </IconButton>
+          <IconButton
+            className="edit-button"
+            size="small"
+            onClick={handleEdit}
+            title="Edit workflow settings"
+            sx={{ padding: "4px" }}
+          >
+            <EditIcon sx={{ fontSize: "1rem" }} />
+          </IconButton>
+        </Box>
       </Box>
       <Box className="date-container">
         {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "0.85rem", color: "warning.main" }} />}
         <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>
-      </Box>
-      <Box className="actions">
-        <Button
-          className="open-button"
-          size="small"
-          variant="contained"
-          onClick={handleOpen}
-          title="Open workflow"
-          sx={{ 
-            padding: "2px 10px",
-            minWidth: "unset",
-            fontSize: "0.7rem",
-            fontWeight: 600,
-            textTransform: "none",
-            lineHeight: 1.4,
-            borderRadius: "4px"
-          }}
-        >
-          OPEN
-        </Button>
-        <IconButton
-          className="favorite-button"
-          size="small"
-          onClick={handleToggleFavorite}
-          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          sx={{ padding: "4px" }}
-        >
-          {isFavorite ? <StarIcon sx={{ fontSize: "1rem", color: "warning.main" }} /> : <StarBorderIcon sx={{ fontSize: "1rem" }} />}
-        </IconButton>
-        <IconButton
-          className="edit-button"
-          size="small"
-          onClick={handleEdit}
-          title="Edit workflow settings"
-          sx={{ padding: "4px" }}
-        >
-          <EditIcon sx={{ fontSize: "1rem" }} />
-        </IconButton>
       </Box>
     </Box>
   );
