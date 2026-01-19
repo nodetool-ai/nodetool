@@ -19,27 +19,24 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
         variant="extended"
         aria-label="New Chat"
         sx={{
-          width: "calc(100% - 32px)",
-          margin: "16px",
-          height: "48px",
+          height: "2.75em",
           textAlign: "center",
           position: "relative",
           overflow: "hidden",
-          borderRadius: "16px",
-          color: (theme as any).vars.palette.common.white,
+          border: `1px solid ${(theme as any).vars.palette.grey[600]}`,
+          borderRadius: ".5em",
+          color: (theme as any).vars.palette.text.primary,
           background: (theme as any).vars.palette.grey[800],
-          boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-          textTransform: "none",
-          fontWeight: 600,
-          fontSize: "0.95rem",
-          letterSpacing: "0.02em",
+          boxShadow: "2px 2px 0px var(--palette-grey-600)",
+          fontSize: "var(--fontSizeSmaller)",
+          fontWeight: 300,
+          textTransform: "uppercase",
           justifyContent: "center",
-          border: `1px solid ${(theme as any).vars.palette.grey[700]}`,
-
+          transition: "all 0.1s ease-in-out",
           "&:hover": {
             background: (theme as any).vars.palette.grey[700],
-            boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
-            border: `1px solid ${(theme as any).vars.palette.grey[600]}`,
+            boxShadow: "0px 0px 3px var(--palette-grey-500)",
+            border: `1px solid ${(theme as any).vars.palette.grey[700]}`,
           },
           "&:active": {
             boxShadow: "0 2px 10px rgba(0,0,0,0.2)",

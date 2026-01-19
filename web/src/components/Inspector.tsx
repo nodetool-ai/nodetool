@@ -17,6 +17,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { typesAreEqual } from "../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
 import { EditorUiProvider } from "./editor_ui";
+import PanelHeadline from "./ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
   css({
@@ -297,15 +298,19 @@ const Inspector: React.FC = () => {
           <Box className="top">
             <Box className="top-content">
               <div className="inspector-header">
-                <Typography variant="h5">Inspector</Typography>
-                <IconButton
-                  className="close-button"
-                  aria-label="Close inspector"
-                  size="small"
-                  onClick={handleInspectorClose}
-                >
-                  <CloseRoundedIcon fontSize="small" />
-                </IconButton>
+                <PanelHeadline
+                  title="Inspector"
+                  actions={
+                    <IconButton
+                      className="close-button"
+                      aria-label="Close inspector"
+                      size="small"
+                      onClick={handleInspectorClose}
+                    >
+                      <CloseRoundedIcon fontSize="small" />
+                    </IconButton>
+                  }
+                />
                 <div className="title">
                   {`Editing ${selectedNodes.length} nodes`}
                 </div>
@@ -370,7 +375,7 @@ const Inspector: React.FC = () => {
         <Box className="top">
           <Box className="top-content">
             <Box className="inspector-header">
-              <Typography variant="h4">Inspector</Typography>
+              <PanelHeadline title="Inspector" />
               <Typography variant="body2" color="text.secondary">
                 Select nodes to edit
               </Typography>
@@ -408,15 +413,19 @@ const Inspector: React.FC = () => {
         <Box className="top">
           <Box className="top-content">
             <div className="inspector-header">
-              <Typography variant="h5">Inspector</Typography>
-              <IconButton
-                className="close-button"
-                aria-label="Close inspector"
-                size="small"
-                onClick={handleInspectorClose}
-              >
-                <CloseRoundedIcon fontSize="small" />
-              </IconButton>
+              <PanelHeadline
+                title="Inspector"
+                actions={
+                  <IconButton
+                    className="close-button"
+                    aria-label="Close inspector"
+                    size="small"
+                    onClick={handleInspectorClose}
+                  >
+                    <CloseRoundedIcon fontSize="small" />
+                  </IconButton>
+                }
+              />
               <div className="header-row">
                 <div className="title">{metadata.title}</div>
               </div>

@@ -20,6 +20,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
+import PanelHeadline from "../ui/PanelHeadline";
 
 type ExplorerEntry = {
   node: Node<NodeData>;
@@ -266,17 +267,19 @@ const NodeExplorer: React.FC = () => {
 
   return (
     <Box className="node-explorer" css={explorerStyles}>
-      <div className="explorer-header">
-        <Typography variant="h5">Node Explorer</Typography>
-        <Chip
-          size="small"
-          label={
-            filter.trim().length === 0
-              ? `${nodes.length}`
-              : `${entries.length} / ${nodes.length}`
-          }
-        />
-      </div>
+      <PanelHeadline
+        title="Node Explorer"
+        actions={
+          <Chip
+            size="small"
+            label={
+              filter.trim().length === 0
+                ? `${nodes.length}`
+                : `${entries.length} / ${nodes.length}`
+            }
+          />
+        }
+      />
       <TextField
         className="filter-input"
         size="medium"

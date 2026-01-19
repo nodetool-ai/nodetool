@@ -24,7 +24,6 @@ import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 
-
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -38,7 +37,7 @@ const styles = (theme: Theme) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      padding: "0.5em 0.75em",
+      padding: "0.5em 0",
       background: "transparent",
       backdropFilter: "blur(4px)",
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`

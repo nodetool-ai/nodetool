@@ -6,12 +6,9 @@ import {
   Box,
   CircularProgress,
   LinearProgress,
-  Typography,
-  Fab,
-  Tooltip
+  Typography
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
@@ -32,7 +29,6 @@ const MiniAppPage: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { workflowId } = useParams<{ workflowId?: string }>();
-  const navigate = useNavigate();
   const [_submitError, setSubmitError] = useState<string | null>(null);
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
@@ -151,11 +147,6 @@ const MiniAppPage: React.FC = () => {
   const isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
-  const handleOpenInEditor = useCallback(() => {
-    if (workflow?.id) {
-      navigate(`/editor/${workflow.id}`);
-    }
-  }, [navigate, workflow?.id]);
 
   // const notificationsCount = notifications?.length ?? 0;
   // const showAlerts = submitError || notificationsCount > 0;
@@ -183,34 +174,6 @@ const MiniAppPage: React.FC = () => {
         {error && <Typography color="error">{error.message}</Typography>}
         {workflow && (
           <>
-            <Tooltip title="Open in Editor" placement="left">
-              <Fab
-                size="medium"
-                onClick={handleOpenInEditor}
-                sx={{
-                  position: "fixed",
-                  top: 40,
-                  right: 0,
-                  zIndex: 100,
-                  borderRadius: "0 0 0 .4em",
-                  width: "48px",
-                  height: "37px",
-                  backgroundColor: "info.main",
-                  color: "info.contrastText",
-                  // boxShadow:
-                  //   "0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)",
-                  "&:hover": {
-                    backgroundColor: "info.dark",
-                    boxShadow:
-                      "0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)",
-                    transform: "scale(1.05)"
-                  },
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-                }}
-              >
-                <EditIcon />
-              </Fab>
-            </Tooltip>
             <Box
               mb={2}
               display="flex"

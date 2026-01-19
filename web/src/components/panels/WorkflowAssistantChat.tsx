@@ -32,6 +32,7 @@ import SvgFileIcon from "../SvgFileIcon";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
+import PanelHeadline from "../ui/PanelHeadline";
 
 const containerStyles = css({
   flex: 1,
@@ -40,7 +41,7 @@ const containerStyles = css({
   width: "100%",
   height: "100%",
   overflow: "hidden",
-  marginRight: "1em",
+  padding: "0 1em",
   ".chat-view": {
     height: "calc(100% - 45px)"
   },
@@ -459,6 +460,7 @@ const WorkflowAssistantChat: React.FC = () => {
 
   return (
     <div className="workflow-assistant-chat" css={containerStyles}>
+      <PanelHeadline title={isHelpMode ? "Operator" : "Workflow Chat"} />
       <div
         style={{
           display: "flex",

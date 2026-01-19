@@ -6,6 +6,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AppHeader from "../panels/AppHeader";
 import CollectionList from "./CollectionList";
+import PanelHeadline from "../ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
   css({
@@ -44,7 +45,7 @@ const CollectionsExplorer: React.FC = () => {
         <AppHeader />
       </Box>
       <Box className="collections-explorer">
-        <h3>Collections</h3>
+        <PanelHeadline title="Collections" />
         <CollectionList />
       </Box>
     </Box>

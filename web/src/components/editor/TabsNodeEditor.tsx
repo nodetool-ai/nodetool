@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       position: "relative",
       padding: "4px 0px 0px 10px",
-      width: "calc(100% - 50px)", // -50px to account for the run as app button
+      width: "100%",
       WebkitAppRegion: "drag",
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },

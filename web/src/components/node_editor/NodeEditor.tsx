@@ -31,7 +31,6 @@ import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
-import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
@@ -158,7 +157,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           <ReactFlowWrapper workflowId={workflowId} active={active} />
           {active && (
             <>
-              <RunAsAppFab workflowId={workflowId} />
               <SelectionActionToolbar
                 visible={selectedNodes.length >= 2}
               />
