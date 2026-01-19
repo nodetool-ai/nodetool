@@ -15,33 +15,43 @@ The `/docs` directory contains user-facing documentation built with Jekyll stati
 ```
 /docs
 ├── index.md                    # Homepage
-├── getting-started.md           # Setup and installation
-├── installation.md              # Installation instructions
-├── user-interface.md            # UI guide
-├── workflow-editor.md           # Editor usage
+├── getting-started.md          # Quick start guide
+├── installation.md             # Installation instructions
+├── user-interface.md           # UI overview
+├── workflow-editor.md          # Editor usage guide
 ├── workflows/                  # Workflow examples
 │   ├── index.md
 │   ├── movie-posters.md
-│   └── ...
+│   ├── story-to-video-generator.md
+│   └── ... (20+ workflow examples)
 ├── developer/                  # Developer guides
 │   ├── index.md
-│   ├── custom-nodes.md
-│   ├── node-reference.md
+│   ├── node-examples.md
 │   ├── node-patterns.md
+│   ├── node-reference.md
 │   ├── suspendable-nodes.md
 │   ├── dsl-guide.md
 │   └── gradio-conversion.md
-├── developer/suspendable-nodes.md
-├── api-reference.md             # API documentation
+├── api.md                      # Main API docs
+├── api-reference.md            # API endpoints
+├── workflow-api.md             # Workflow API
+├── chat-api.md                 # Chat API
+├── chat-server.md              # Chat server
+├── chat.md                     # Chat feature
+├── global-chat.md              # Global chat
 ├── authentication.md           # Auth setup
-├── providers.md                # AI providers setup
-├── models.md                  # Model management
-├── assets.md                  # Asset management (in content)
+├── providers.md                # AI providers
+├── models.md                   # Model management
+├── models-manager.md           # Model manager UI
+├── configuration.md            # Configuration options
+├── deployment.md               # Deployment guide
+├── self_hosted.md              # Self-hosted deployment
 ├── troubleshooting.md          # Common issues
-├── glossary.md                # Terms and definitions
-└── _layouts/                  # Jekyll templates
-    ├── default.html
-    └── home.html
+├── glossary.md                 # Terminology
+├── _layouts/                   # Jekyll templates
+│   ├── default.html
+│   └── home.html
+└── _includes/                  # Reusable includes
 ```
 
 ### Key Documentation Files
@@ -70,7 +80,7 @@ The `/docs` directory contains user-facing documentation built with Jekyll stati
 #### Developer Guides
 
 - **`developer/index.md`** - Developer documentation home
-- **`developer/custom-nodes.md`** - Creating custom nodes
+- **`developer/node-examples.md`** - Node implementation examples
 - **`developer/node-reference.md`** - Node API reference
 - **`developer/node-patterns.md`** - Common node patterns
 - **`developer/suspendable-nodes.md`** - Suspendable node implementation
@@ -439,7 +449,7 @@ Output is in `_site/` directory
 | Bold | `**text**` | **text** |
 | Italic | `*text*` | *text* |
 | Code | `` `code` `` | `code` |
-| Code block | \`\`\`language` | Code |
+| Code block | Three backticks with language | Code |
 | Link | `[text](url)` | [link](https://) |
 | Image | `
 ![alt](url)

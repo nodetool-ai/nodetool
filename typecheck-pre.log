@@ -4,13 +4,15 @@ cd web && npm run typecheck
 > nodetool@0.6.2-rc.27 typecheck
 > tsc --noEmit
 
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(18,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(32,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(44,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(45,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(58,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(74,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(89,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(99,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-src/stores/__tests__/FavoriteWorkflowsStore.test.ts(111,46): error TS2339: Property 'actions' does not exist on type 'FavoriteWorkflowsState'.
-make: *** [Makefile:147: typecheck-web] Error 2
+Type checking electron package...
+cd electron && npm run typecheck
+
+> nodetool-electron@0.6.2-rc.27 typecheck
+> tsc --noEmit
+
+Type checking mobile package...
+cd mobile && npm run typecheck
+
+> nodetool-mobile@0.6.2-rc.27 typecheck
+> tsc --noEmit
+
