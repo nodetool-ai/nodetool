@@ -91,7 +91,7 @@ The hooks directory contains reusable React hooks organized by functionality. Ho
 **Location**: `/assets` subdirectory
 
 - **`useAssetUpload.ts`** (in serverState): Asset upload with progress tracking
-- **`useCopyPaste.ts`** (in handlers): Copy/paste for nodes and edges
+- **`useCopyPaste.tsx`** (in handlers): Copy/paste for nodes and edges
 - **`useFileDrop.ts`** (in handlers): File drag-and-drop with validation
 - **`useDropHandler.ts`** (in handlers): Dropping files onto canvas
 - **`addNodeFromAsset`**: Creates appropriate nodes from uploaded assets
