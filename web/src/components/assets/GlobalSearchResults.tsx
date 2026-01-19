@@ -260,14 +260,25 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       }
 
       // Use unified drag serialization
-      serializeDragData(
-        {
-          type: "assets-multiple",
-          payload: assetIds,
-          metadata: { count: assetIds.length, sourceId: asset.id }
-        },
-        e.dataTransfer
-      );
+      if (assetIds.length === 1) {
+        serializeDragData(
+          {
+            type: "asset",
+            payload: asset,
+            metadata: { sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      } else {
+        serializeDragData(
+          {
+            type: "assets-multiple",
+            payload: assetIds,
+            metadata: { count: assetIds.length, sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      }
 
       // Also set legacy single asset key for components that only check "asset"
       // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
@@ -385,9 +396,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
             return (
               <div
                 key={asset.id}
-                className={`global-search-result-item search-result-item ${
-                  isSelected ? "selected global-search-selected" : ""
-                }`}
+                className={`global-search-result-item search-result-item ${isSelected ? "selected global-search-selected" : ""
+                  }`}
                 draggable={true}
                 onDragStart={(e) => handleDragStart(e, asset)}
                 onDragEnd={handleDragEnd}
@@ -405,9 +415,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                   <div
                     className="global-search-result-thumbnail result-item-thumbnail"
                     style={{
-                      backgroundImage: `url(${
-                        asset.thumb_url || asset.get_url
-                      })`
+                      backgroundImage: `url(${asset.thumb_url || asset.get_url
+                        })`
                     }}
                     title={`${asset.content_type} thumbnail`}
                     data-testid="global-search-result-thumbnail"
