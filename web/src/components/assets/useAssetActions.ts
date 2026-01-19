@@ -71,14 +71,25 @@ export const useAssetActions = (asset: Asset) => {
       }
 
       // Use unified drag serialization
-      serializeDragData(
-        {
-          type: "assets-multiple",
-          payload: assetIds,
-          metadata: { count: assetIds.length, sourceId: asset.id }
-        },
-        e.dataTransfer
-      );
+      if (assetIds.length === 1) {
+        serializeDragData(
+          {
+            type: "asset",
+            payload: asset,
+            metadata: { sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      } else {
+        serializeDragData(
+          {
+            type: "assets-multiple",
+            payload: assetIds,
+            metadata: { count: assetIds.length, sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      }
 
       // Also set legacy single asset key for components that only check "asset"
       // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
