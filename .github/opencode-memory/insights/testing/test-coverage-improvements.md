@@ -1,5 +1,110 @@
 # Test Coverage Improvements (2026-01-19)
 
+**Coverage Added**: 1 new test file with 19 tests for drag-and-drop serialization utilities
+
+**Tests Added**:
+- `dragdrop-serialization.test.ts` - 19 tests for drag and drop utilities
+  - serializeDragData: 5 tests for data serialization with unified and legacy formats
+  - deserializeDragData: 7 tests for data deserialization with fallback handling
+  - hasExternalFiles: 3 tests for file detection in dataTransfer
+  - extractFiles: 2 tests for file extraction
+  - createDragCountBadge: 2 tests for badge element creation
+
+**Areas Covered**:
+- Unified drag data format serialization
+- Legacy format backward compatibility
+- Fallback from unified to legacy formats
+- External file detection
+- File extraction from dataTransfer
+- Drag image badge creation
+
+**Test Patterns Used**:
+
+1. **DataTransfer Mock Testing**:
+```typescript
+let mockDataTransfer: DataTransfer;
+
+beforeEach(() => {
+  mockDataTransfer = {
+    setData: jest.fn(),
+    getData: jest.fn(),
+    items: [],
+    files: [],
+    clearData: jest.fn()
+  } as unknown as DataTransfer;
+});
+```
+
+2. **Serialization Testing**:
+```typescript
+it("sets unified format in dataTransfer", () => {
+  const data: DragData<"create-node"> = {
+    type: "create-node",
+    payload: { id: "test-node" } as any
+  };
+
+  serializeDragData(data, mockDataTransfer);
+
+  expect(mockDataTransfer.setData).toHaveBeenCalledWith(
+    DRAG_DATA_MIME,
+    JSON.stringify(data)
+  );
+});
+```
+
+3. **Deserialization with Fallback Testing**:
+```typescript
+it("falls back to legacy create-node format", () => {
+  mockDataTransfer.getData.mockImplementation((key: string) => {
+    if (key === "create-node") return JSON.stringify({ id: "legacy-node" });
+    return "";
+  });
+
+  const result = deserializeDragData(mockDataTransfer);
+
+  expect(result?.type).toBe("create-node");
+  expect(result.payload.id).toBe("legacy-node");
+});
+```
+
+4. **Edge Case Testing**:
+```typescript
+it("returns null for invalid JSON", () => {
+  mockDataTransfer.getData.mockImplementation((key: string) => {
+    if (key === DRAG_DATA_MIME) return "invalid json";
+    return "";
+  });
+
+  const result = deserializeDragData(mockDataTransfer);
+
+  expect(result).toBeNull();
+});
+```
+
+**Files Created**:
+- `web/src/lib/__tests__/dragdrop-serialization.test.ts`
+
+**Key Learnings**:
+1. DataTransfer API requires careful mocking with TypeScript types
+2. Test both success and failure paths for JSON parsing
+3. Verify both unified format and legacy format handling
+4. Edge cases include null items, empty arrays, and invalid JSON
+5. FileList and DataTransferItemList require proper type casting
+
+**Coverage Impact**:
+- **Before**: 236 test suites, 3,092 tests
+- **After**: 237 test suites, 3,111 tests
+- **Net Gain**: +1 test file, +19 tests
+
+**Test Results**:
+- All 19 tests passing
+- Test execution time: ~0.7 seconds
+- No failing tests
+
+---
+
+# Test Coverage Improvements (2026-01-19)
+
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
 
 **Issues Fixed**:
