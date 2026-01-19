@@ -44,6 +44,10 @@ export function graphNodeToReactFlowNode(
 
   const isBypassed = ui_properties?.bypassed || false;
 
+  // PreviewNodes are selectable via click and selection box, 
+  // but should be ignored when dragging (handled in drag handler)
+  const selectable = ui_properties?.selectable;
+
   return {
     type: node.type,
     id: node.id,
@@ -54,14 +58,14 @@ export function graphNodeToReactFlowNode(
       node.type === "nodetool.workflows.base_node.Comment" ||
       node.type === "nodetool.workflows.base_node.Group"
     ),
-    selectable: ui_properties?.selectable,
+    selectable,
     className: isBypassed ? "bypassed" : undefined,
     data: {
       properties: node.data || {},
       dynamic_properties: node.dynamic_properties || {},
       dynamic_outputs: node.dynamic_outputs || {},
       sync_mode: node.sync_mode,
-      selectable: ui_properties?.selectable,
+      selectable,
       collapsed: false,
       bypassed: isBypassed,
       workflow_id: workflow.id,

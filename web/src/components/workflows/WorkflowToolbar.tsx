@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { FC, useCallback } from "react";
+import { FC, useCallback, memo } from "react";
 import { Button, Tooltip, Box, IconButton } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
@@ -7,7 +7,7 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -30,12 +30,24 @@ interface WorkflowToolbarProps {
 
 const styles = (theme: Theme) =>
   css({
+      width: "calc(100% - 10px)",
     ".tools": {
       display: "flex",
-      flexDirection: "row",
-      gap: "1em",
-      alignItems: "center",
+      flexDirection: "column",
+      gap: "0.5em",
       margin: "0 10px"
+    },
+    ".tools .search-row": {
+      display: "flex",
+      width: "100%",
+      maxWidth: "200px"
+    },
+    ".tools .buttons-row": {
+      display: "flex",
+      flexDirection: "row",
+      gap: "0.5em",
+      alignItems: "center",
+      width: "100%"
     },
     ".tools .checkbox-button": {
       fontSize: "0.7em",
@@ -121,13 +133,13 @@ const styles = (theme: Theme) =>
       height: "28px",
       minWidth: "28px",
       borderRadius: "6px",
-      color: theme.vars.palette.grey[400],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.primary.main,
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: "all 0.2s ease",
       "&:hover": {
-        color: theme.vars.palette.grey[100],
-        borderColor: theme.vars.palette.grey[500],
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        color: theme.vars.palette.primary.light,
+        // borderColor: theme.vars.palette.primary.light,
+        backgroundColor: theme.vars.palette.primary.dark
       }
     }
   });
@@ -168,82 +180,93 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   return (
     <Box css={styles(theme)}>
       <div className="tools">
-        <Tooltip title="Search workflows by name" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <div>
-            <SearchInput
-              onSearchChange={handleSearchChange}
-              focusSearchInput={false}
-              width="100%"
-            />
-          </div>
-        </Tooltip>
+        <div className="search-row">
+          <Tooltip title="Search workflows by name" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <div style={{ flex: 1 }}>
+              <SearchInput
+                onSearchChange={handleSearchChange}
+                focusSearchInput={false}
+                width="100%"
+              />
+            </div>
+          </Tooltip>
+        </div>
 
-        {selectedWorkflowsCount > 0 && (
+        <div className="buttons-row">
+          {selectedWorkflowsCount > 0 && (
+            <Tooltip
+              title={`Delete ${selectedWorkflowsCount} selected workflow${selectedWorkflowsCount > 1 ? "s" : ""
+                }`}
+              enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+              <Button
+                variant="outlined"
+                className="delete-selected-button"
+                onClick={onBulkDelete}
+              >
+                <DeleteIcon />
+              </Button>
+            </Tooltip>
+          )}
+
           <Tooltip
-            title={`Delete ${selectedWorkflowsCount} selected workflow${selectedWorkflowsCount > 1 ? "s" : ""
-              }`}
+            title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
+            placement="top"
             enterDelay={TOOLTIP_ENTER_DELAY}
           >
-            <Button
-              variant="outlined"
-              className="delete-selected-button"
-              onClick={onBulkDelete}
-            >
-              <DeleteIcon />
-            </Button>
+            <IconButton className="checkbox-button" onClick={toggleCheckboxes}>
+              <CheckBoxIcon />
+            </IconButton>
           </Tooltip>
-        )}
 
-        <Tooltip
-          title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
-          placement="top"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <IconButton className="checkbox-button" onClick={toggleCheckboxes}>
-            <CheckBoxIcon />
-          </IconButton>
-        </Tooltip>
+          {onToggleFavorites && (
+            <Tooltip
+              title={`${showFavoritesOnly ? "Show all workflows" : "Show favorites only"}`}
+              placement="top"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+              <IconButton
+                className={`favorite-button ${showFavoritesOnly ? "active" : ""}`}
+                onClick={onToggleFavorites}
+              >
+                {showFavoritesOnly ? <StarIcon /> : <StarBorderIcon />}
+              </IconButton>
+            </Tooltip>
+          )}
 
-        {onToggleFavorites && (
           <Tooltip
-            title={`${showFavoritesOnly ? "Show all workflows" : "Show favorites only"}`}
+            title={`${showGraphPreview ? "Hide" : "Show"} graph preview`}
             placement="top"
             enterDelay={TOOLTIP_ENTER_DELAY}
           >
             <IconButton
-              className={`favorite-button ${showFavoritesOnly ? "active" : ""}`}
-              onClick={onToggleFavorites}
+              className={`preview-toggle-button ${showGraphPreview ? "active" : ""}`}
+              onClick={handleToggleGraphPreview}
             >
-              {showFavoritesOnly ? <StarIcon /> : <StarBorderIcon />}
+              {showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
             </IconButton>
           </Tooltip>
-        )}
 
-        <Tooltip
-          title={`${showGraphPreview ? "Hide" : "Show"} graph preview`}
-          placement="top"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <IconButton
-            className={`preview-toggle-button ${showGraphPreview ? "active" : ""}`}
-            onClick={handleToggleGraphPreview}
-          >
-            {showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
-          </IconButton>
-        </Tooltip>
+          <div style={{ flexGrow: 1 }} />
 
-        <Tooltip title="Create new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className="add-button"
-            onClick={handleCreateWorkflow}
-            size="large"
+          <Tooltip
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+            placement="top"
+            title="Create new workflow"
           >
-            <AddIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+            <IconButton
+              className="add-button"
+              onClick={handleCreateWorkflow}
+              size="large"
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </div>
       </div>
     </Box>
   );
 };
 
-export default WorkflowToolbar;
+export default memo(WorkflowToolbar);

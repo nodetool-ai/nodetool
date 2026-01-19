@@ -33,6 +33,18 @@ The hooks directory contains reusable React hooks organized by functionality. Ho
   - Integrates with `KeyPressedStore` and `config/shortcuts.ts`
   - Uses React Router for navigation
 
+- **`useNodeFocus.ts`**: Keyboard navigation for nodes
+  - Tab-based sequential navigation between nodes
+  - Alt+Arrow keys for directional navigation
+  - History tracking for "go back" functionality
+  - Visual focus indicator on focused nodes
+
+- **`useSelectionActions.ts`**: Batch operations for selected nodes
+  - Alignment: Left, Center, Right, Top, Middle, Bottom
+  - Distribution: Horizontal and vertical spacing
+  - Operations: Delete, Duplicate, Group, Bypass
+  - Integrates with `SelectionActionToolbar` component
+
 - **`useCreateNode.ts`**: Factory hook for creating nodes
   - Generates proper node IDs and positions
   - Integrates with metadata store for node types
@@ -49,10 +61,12 @@ The hooks directory contains reusable React hooks organized by functionality. Ho
 - **`useFocusPan.ts`**: Camera focus and panning
   - Smooth transitions to specific nodes
   - Viewport centering
+  - Auto-pan when nodes receive keyboard focus
 
 - **`useFitView.ts`**, **`useFitNodeEvent.ts`**: Viewport fitting
   - Auto-fit selected nodes or entire graph
   - Configurable padding and transitions
+  - Supports zoom presets (25%, 50%, 75%, 100%, 150%, 200%)
 
 - **`useProcessedEdges.ts`**: Edge processing and validation
   - Validates connections based on type compatibility
@@ -77,7 +91,7 @@ The hooks directory contains reusable React hooks organized by functionality. Ho
 **Location**: `/assets` subdirectory
 
 - **`useAssetUpload.ts`** (in serverState): Asset upload with progress tracking
-- **`useCopyPaste.ts`** (in handlers): Copy/paste for nodes and edges
+- **`useCopyPaste.tsx`** (in handlers): Copy/paste for nodes and edges
 - **`useFileDrop.ts`** (in handlers): File drag-and-drop with validation
 - **`useDropHandler.ts`** (in handlers): Dropping files onto canvas
 - **`addNodeFromAsset`**: Creates appropriate nodes from uploaded assets

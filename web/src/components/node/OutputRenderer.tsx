@@ -749,7 +749,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   }
 
   return (
-    <div className="nodrag" style={{ height: "100%", width: "100%" }}>
+    <div style={{ height: "100%", width: "100%" }}>
       {openAsset && (
         <AssetViewer
           asset={openAsset}

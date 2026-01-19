@@ -4,11 +4,13 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Button, Tooltip, Box } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
+import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
+import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
 import { NodeTextField } from "../ui_primitives";
@@ -145,6 +147,13 @@ const PropertyDropzone = ({
       ".prop-drop": {
         fontSize: theme.fontSizeTiny,
         lineHeight: "1.1em"
+      },
+      ".image-dimensions": {
+        opacity: 0,
+        transition: "opacity 0.2s ease"
+      },
+      "&:hover .image-dimensions": {
+        opacity: 1
       }
     });
 
@@ -181,7 +190,16 @@ const PropertyDropzone = ({
 
   useEffect(() => {
     setImageDimensions(null);
-  }, [uri]);
+    // Check if image is already loaded (cached) after DOM update
+    requestAnimationFrame(() => {
+      if (imageRef.current?.complete && imageRef.current.naturalWidth > 0) {
+        setImageDimensions({
+          width: imageRef.current.naturalWidth,
+          height: imageRef.current.naturalHeight
+        });
+      }
+    });
+  }, [uri, asset?.get_url]);
 
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
@@ -202,25 +220,13 @@ const PropertyDropzone = ({
                 style={{ width: "100%", height: "auto" }}
                 onLoad={handleImageLoad}
                 onDoubleClick={() => setOpenViewer(true)}
+                draggable={false}
               />
               {imageDimensions && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    bottom: 4,
-                    right: 4,
-                    bgcolor: "rgba(0, 0, 0, 0.6)",
-                    color: "white",
-                    px: 0.5,
-                    py: 0.25,
-                    borderRadius: 0.5,
-                    fontSize: "0.65rem",
-                    fontFamily: "monospace",
-                    pointerEvents: "none"
-                  }}
-                >
-                  {imageDimensions.width} × {imageDimensions.height}
-                </Box>
+                <ImageDimensions
+                  width={imageDimensions.width}
+                  height={imageDimensions.height}
+                />
               )}
             </div>
           </>
@@ -373,6 +379,9 @@ const PropertyDropzone = ({
         </div>
         {contentType.split("/")[0] === "audio" && showRecorder && (
           <WaveRecorder onChange={onChangeAsset} />
+        )}
+        {contentType.split("/")[0] === "video" && showRecorder && (
+          <VideoRecorder onChange={onChangeAsset} />
         )}
       </div>
     </div>

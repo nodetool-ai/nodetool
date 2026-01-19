@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import { Typography, Box, CircularProgress } from "@mui/material";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -174,7 +174,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const TemplateGrid = () => {
+const TemplateGrid = memo(function TemplateGrid() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const loadWorkflows = useWorkflowManager((state) => state.loadTemplates);
@@ -616,6 +616,8 @@ const TemplateGrid = () => {
       </Box>
     </Box>
   );
-};
+});
+
+TemplateGrid.displayName = "TemplateGrid";
 
 export default TemplateGrid;

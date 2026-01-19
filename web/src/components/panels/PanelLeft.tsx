@@ -372,11 +372,15 @@ const PanelContent = memo(function PanelContent({
             width: "100%",
             height: "100%",
             margin: "0 1em",
-            overflow: "auto"
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
           }}
         >
           <PanelHeadline title="Workflows" />
-          <WorkflowList />
+          <Box sx={{ flex: 1, overflow: "auto" }}>
+            <WorkflowList />
+          </Box>
         </Box>
       )}
     </>

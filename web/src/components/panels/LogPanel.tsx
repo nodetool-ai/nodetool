@@ -122,6 +122,7 @@ const SEVERITIES: Severity[] = ["info", "warning", "error"];
 const LogPanel: React.FC = () => {
   const theme = useTheme();
   const logs = useLogsStore((s) => s.logs);
+  const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const _addNotification = useNotificationStore((s) => s.addNotification);
@@ -148,15 +149,7 @@ const LogPanel: React.FC = () => {
     });
   }, [logs, wfName]);
 
-  // Filters
-  const workflowOptions = useMemo(() => {
-    const set = new Set<string>();
-    rows.forEach((r) => set.add(r.workflowName));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [rows]);
-
   const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>([]);
-  const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
 
   const handleSeverityChange = (e: SelectChangeEvent<string[]>) => {
     setSelectedSeverities(
@@ -166,18 +159,14 @@ const LogPanel: React.FC = () => {
 
   const filtered = useMemo(() => {
     return rows
+      .filter((r) => currentWorkflowId && r.workflowId === currentWorkflowId)
       .filter(
         (r) =>
           selectedSeverities.length === 0 ||
           selectedSeverities.includes(r.severity)
       )
-      .filter(
-        (r) =>
-          selectedWorkflows.length === 0 ||
-          selectedWorkflows.includes(r.workflowName)
-      )
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [rows, selectedSeverities, selectedWorkflows]);
+  }, [rows, selectedSeverities, currentWorkflowId]);
 
   // Export action moved to Settings menu
 
@@ -225,40 +214,10 @@ const LogPanel: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-
-          <FormControl size="small" sx={{ flex: "1" }}>
-            <InputLabel id="workflow-label">Workflow</InputLabel>
-            <Select
-              labelId="workflow-label"
-              multiple
-              value={selectedWorkflows}
-              onChange={(e) => {
-                const val = e.target.value as string[];
-                if (val.includes("__all__")) {
-                  setSelectedWorkflows([]);
-                } else {
-                  setSelectedWorkflows(val);
-                }
-              }}
-              input={<OutlinedInput label="Workflow" />}
-              renderValue={(selected) => 
-                (selected as string[]).length === 0 ? "All Workflows" : (selected as string[]).join(", ")
-              }
-            >
-              <MenuItem value="__all__">
-                <em>All Workflows</em>
-              </MenuItem>
-              {workflowOptions.map((w) => (
-                <MenuItem key={w} value={w}>
-                  {w}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
         </Box>
       </Box>
 
-      <LogsTable rows={filtered} height={undefined} />
+      <LogsTable rows={filtered} height={undefined} showTimestampColumn={false} />
     </Box>
   );
 };

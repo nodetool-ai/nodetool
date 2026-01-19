@@ -299,45 +299,44 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           IconComponent={<FitScreenIcon />}
           tooltip={getShortcutTooltip("fit-view")}
         />
-        {favorites.length > 0 && (
-          <>
-            <Divider />
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5em",
-                padding: "4px 16px",
-                color: "text.secondary",
-                fontSize: "0.7rem",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px"
-              }}
-            >
-              <StarIcon
-                sx={{ fontSize: "0.85rem", color: "warning.main" }}
+        {favorites.length > 0 && [
+          <Divider key="favorites-divider" />,
+          <Box
+            key="favorites-header"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5em",
+              padding: "4px 16px",
+              color: "text.secondary",
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px"
+            }}
+          >
+            <StarIcon
+              sx={{ fontSize: "0.85rem", color: "warning.main" }}
+            />
+            <Typography variant="inherit">Favorites</Typography>
+          </Box>,
+          ...favorites.map((favorite) => {
+            const displayName = getNodeDisplayName(favorite.nodeType);
+            return (
+              <ContextMenuItem
+                key={favorite.nodeType}
+                onClick={(e) => addFavoriteNode(favorite.nodeType, e)}
+                label={displayName}
+                IconComponent={
+                  <StarIcon
+                    sx={{ fontSize: "1rem", color: "warning.main", opacity: 0.7 }}
+                  />
+                }
+                tooltip={`Add ${displayName} node`}
               />
-              <Typography variant="inherit">Favorites</Typography>
-            </Box>
-            {favorites.map((favorite) => {
-              const displayName = getNodeDisplayName(favorite.nodeType);
-              return (
-                <ContextMenuItem
-                  key={favorite.nodeType}
-                  onClick={(e) => addFavoriteNode(favorite.nodeType, e)}
-                  label={displayName}
-                  IconComponent={
-                    <StarIcon
-                      sx={{ fontSize: "1rem", color: "warning.main", opacity: 0.7 }}
-                    />
-                  }
-                  tooltip={`Add ${displayName} node`}
-                />
-              );
-            })}
-          </>
-        )}
+            );
+          })
+        ]}
         <Divider />
         <ContextMenuItem
           onClick={handleOpenConstantMenu}

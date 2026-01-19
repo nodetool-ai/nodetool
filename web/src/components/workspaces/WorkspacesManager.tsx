@@ -21,7 +21,7 @@ import {
   FormControlLabel,
   Checkbox
 } from "@mui/material";
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, memo } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -467,7 +467,18 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
               </Box>
             ) : error ? (
               <Box className="empty-state">
-                <Typography color="error">Failed to load workspaces</Typography>
+                <Typography color="error" sx={{ mb: 1 }}>
+                  Unable to load workspaces
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Check your connection and try again
+                </Typography>
+                <Button
+                  variant="outlined"
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ["workspaces"] })}
+                >
+                  Retry
+                </Button>
               </Box>
             ) : workspaces && workspaces.length > 0 ? (
               <List className="workspace-list">
@@ -681,4 +692,4 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
   );
 };
 
-export default WorkspacesManager;
+export default memo(WorkspacesManager);

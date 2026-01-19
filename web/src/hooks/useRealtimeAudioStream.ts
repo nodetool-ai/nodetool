@@ -11,6 +11,25 @@ type UseRealtimeAudioStream = {
   version: number;
 };
 
+/**
+ * Custom hook for streaming real-time audio to workflow input nodes.
+ * 
+ * Captures microphone audio, converts to PCM16LE format, and streams
+ * chunks to an input node during workflow execution. Used by realtime
+ * voice agents and audio processing nodes.
+ * 
+ * @param inputNodeName - Optional name of the input node to stream to
+ * @returns Object containing streaming state and control functions
+ * 
+ * @example
+ * ```typescript
+ * const { isStreaming, start, stop, toggle } = useRealtimeAudioStream("audio-input");
+ * 
+ * <button onClick={toggle}>
+ *   {isStreaming ? "Stop Recording" : "Start Recording"}
+ * </button>
+ * ```
+ */
 export const useRealtimeAudioStream = (
   inputNodeName?: string
 ): UseRealtimeAudioStream => {

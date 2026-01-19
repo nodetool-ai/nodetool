@@ -8,7 +8,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
-import { colorForType } from "../../config/data_types";
+import { colorForType, IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
 
 interface SearchResultItemProps {
@@ -33,13 +33,16 @@ const searchResultStyles = (theme: Theme) =>
       transition: "all 0.15s ease",
       border: "1px solid transparent",
       backgroundColor: "transparent",
+      position: "relative",
+      zIndex: 1,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         border: `1px solid ${theme.vars.palette.divider}`
       },
       "&.expanded": {
         backgroundColor: theme.vars.palette.action.hover,
-        border: `1px solid ${theme.vars.palette.divider}`
+        border: `1px solid ${theme.vars.palette.divider}`,
+        zIndex: 10
       },
       "&.keyboard-selected": {
         backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
@@ -126,13 +129,23 @@ const searchResultStyles = (theme: Theme) =>
           borderColor: "rgba(var(--palette-primary-mainChannel) / 0.3)"
         }
       },
+      ".io-info-wrapper": {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: "100%",
+        zIndex: 100,
+        padding: "0 12px 10px 12px"
+      },
       ".io-info": {
-        marginTop: "8px",
-        paddingTop: "8px",
-        borderTop: `1px solid ${theme.vars.palette.divider}`,
+        padding: "8px",
+        backgroundColor: theme.vars.palette.background.paper,
+        border: `1px solid ${theme.vars.palette.divider}`,
+        borderRadius: "0 0 6px 6px",
         display: "flex",
         flexDirection: "column",
-        gap: "4px"
+        gap: "4px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
       },
       ".io-row": {
         display: "flex",
@@ -165,6 +178,8 @@ const SearchResultItem = memo(
   forwardRef<HTMLDivElement, SearchResultItemProps>(
     ({ node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false }, ref) => {
       const theme = useTheme();
+      const outputType =
+        node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
       // Parse description and tags
@@ -216,6 +231,27 @@ const SearchResultItem = memo(
           <div className="result-header">
             <div className="result-main">
               <div className="result-title-row">
+                <IconForType
+                  iconName={outputType}
+                  containerStyle={{
+                    borderRadius: "0 0 3px 0",
+                    marginLeft: "0",
+                    marginTop: "0"
+                  }}
+                  bgStyle={{
+                    backgroundColor: theme.vars.palette.grey[900],
+                    margin: "0",
+                    padding: "1px",
+                    borderRadius: "0 0 3px 0",
+                    boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+                    width: "20px",
+                    height: "20px"
+                  }}
+                  svgProps={{
+                    width: "15px",
+                    height: "15px"
+                  }}
+                />
                 <Typography className="result-title" component="div">
                   <HighlightText 
                     text={node.title} 
@@ -253,8 +289,8 @@ const SearchResultItem = memo(
             </Typography>
           )}
 
-          {/* Input/Output info - click to expand */}
-          <Collapse in={isExpanded} timeout={150}>
+          {/* Input/Output info - click to expand (absolutely positioned overlay) */}
+          <Collapse in={isExpanded} timeout={150} className="io-info-wrapper">
             <Box className="io-info">
               {node.properties.length > 0 && (
                 <Box className="io-row">

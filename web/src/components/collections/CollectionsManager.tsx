@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -8,10 +8,21 @@ import {
   DialogTitle,
   IconButton
 } from "@mui/material";
-import React from "react";
+import React, { memo } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import CollectionList from "./CollectionList";
 import PanelHeadline from "../ui/PanelHeadline";
+
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
 
 const styles = (theme: Theme) =>
   css({
@@ -19,7 +30,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       height: "100%",
-      overflow: "hidden"
+      overflow: "hidden",
+      animation: `${fadeIn} 0.3s ease-out`
     },
     ".collections-content": {
       flex: 1,
@@ -34,15 +46,18 @@ const styles = (theme: Theme) =>
       margin: 0,
       padding: theme.spacing(3, 4),
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backdropFilter: "blur(10px)"
+      backdropFilter: "blur(20px) saturate(180%)"
     },
     ".close-button": {
       position: "absolute",
       right: theme.spacing(2),
       top: theme.spacing(2),
       color: theme.vars.palette.text.secondary,
+      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       "&:hover": {
-        color: theme.vars.palette.text.primary
+        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.hover,
+        transform: "rotate(90deg)"
       }
     }
   });
@@ -66,14 +81,15 @@ const CollectionsManager: React.FC<CollectionsManagerProps> = ({
       maxWidth="md"
       sx={{
         "& .MuiDialog-paper": {
-          width: "70vw",
+          width: "80vw",
           minWidth: "600px",
           maxWidth: "900px",
-          height: "80vh",
+          height: "85vh",
           margin: "auto",
           borderRadius: theme.vars.rounded.dialog,
           border: `1px solid ${theme.vars.palette.grey[700]}`,
-          backgroundColor: theme.vars.palette.glass.backgroundDialogContent
+          backgroundColor: theme.vars.palette.glass.backgroundDialogContent,
+          backdropFilter: "blur(40px) saturate(180%)"
         }
       }}
       slotProps={{
@@ -99,6 +115,7 @@ const CollectionsManager: React.FC<CollectionsManagerProps> = ({
               className="close-button"
               onClick={onClose}
               size="small"
+              aria-label="close"
             >
               <CloseIcon />
             </IconButton>
@@ -118,4 +135,4 @@ const CollectionsManager: React.FC<CollectionsManagerProps> = ({
   );
 };
 
-export default CollectionsManager;
+export default memo(CollectionsManager);

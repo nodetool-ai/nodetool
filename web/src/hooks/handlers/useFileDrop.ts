@@ -1,5 +1,9 @@
-// useFileDrop hook: Handles file drag and drop functionality for various file types,
-// with optional asset uploading
+/**
+ * Hook for handling file drag-and-drop functionality with optional asset uploading.
+ * 
+ * This hook provides drag-and-drop handlers for dropping files onto components,
+ * with support for various file types and optional automatic asset uploading.
+ */
 
 import { Asset } from "../../stores/ApiTypes";
 import { DragEventHandler, useCallback, DragEvent, useState } from "react";
@@ -11,19 +15,59 @@ import {
   extractFiles
 } from "../../lib/dragdrop";
 
+/**
+ * Configuration options for file drop handling.
+ */
 export type FileDropProps = {
+  /** The type of files to accept: image, audio, video, document, or all */
   type: "image" | "audio" | "video" | "document" | "all";
+  /** Whether to upload dropped files as assets to the server */
   uploadAsset?: boolean;
+  /** Callback fired when a file is dropped and processed (returns URI) */
   onChange?: (uri: string) => void;
+  /** Callback fired when a file is dropped and uploaded as an asset (returns Asset) */
   onChangeAsset?: (asset: Asset) => void;
 };
 
-export function useFileDrop(props: FileDropProps): {
+/**
+ * Result object containing drag-and-drop handlers and upload state.
+ */
+export type FileDropResult = {
+  /** Handler to attach to dragOver events (required to enable dropping) */
   onDragOver: DragEventHandler<HTMLDivElement>;
+  /** Handler to attach to drop events */
   onDrop: DragEventHandler<HTMLDivElement>;
-  uploading: boolean;
+  /** Name of the currently uploading file */
   filename: string;
-} {
+  /** Whether an upload is in progress */
+  uploading: boolean;
+};
+
+/**
+ * Provides drag-and-drop handlers for file uploads.
+ * 
+ * Handles dropping files from external sources (file system) and internal
+ * asset transfers. Supports type filtering and automatic asset uploading.
+ * 
+ * @param props - Configuration options for file drop behavior
+ * @returns Object containing drag handlers and upload state
+ * 
+ * @example
+ * ```typescript
+ * const { onDragOver, onDrop, uploading, filename } = useFileDrop({
+ *   type: "image",
+ *   uploadAsset: true,
+ *   onChangeAsset: (asset) => console.log("Uploaded:", asset),
+ * });
+ * 
+ * return (
+ *   <div onDragOver={onDragOver} onDrop={onDrop}>
+ *     {uploading ? `Uploading ${filename}...` : "Drop image here"}
+ *   </div>
+ * );
+ * ```
+ */
+export function useFileDrop(props: FileDropProps): FileDropResult {
   const [filename, setFilename] = useState("");
   const notificationStore = useNotificationStore();
   const { uploadAsset, isUploading } = useAssetUpload();

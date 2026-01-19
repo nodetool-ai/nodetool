@@ -7,7 +7,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import {
   serializeDragData,
   deserializeDragData,
-  createDragCountBadge
+  createAssetDragImage
 } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 
@@ -71,23 +71,42 @@ export const useAssetActions = (asset: Asset) => {
       }
 
       // Use unified drag serialization
-      serializeDragData(
-        {
-          type: "assets-multiple",
-          payload: assetIds,
-          metadata: { count: assetIds.length, sourceId: asset.id }
-        },
-        e.dataTransfer
-      );
+      if (assetIds.length === 1) {
+        serializeDragData(
+          {
+            type: "asset",
+            payload: asset,
+            metadata: { sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      } else {
+        serializeDragData(
+          {
+            type: "assets-multiple",
+            payload: assetIds,
+            metadata: { count: assetIds.length, sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      }
 
       // Also set legacy single asset key for components that only check "asset"
       // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
       // Create and set drag image using the unified utility
-      const dragImage = createDragCountBadge(assetIds.length);
+      // Try to get other selected assets from store for preview
+      const allSelectedAssets =
+        useAssetGridStore.getState().selectedAssets || [];
+      const dragImage = createAssetDragImage(
+        asset,
+        assetIds.length,
+        allSelectedAssets
+      );
+
       document.body.appendChild(dragImage);
-      e.dataTransfer.setDragImage(dragImage, 25, 30);
+      e.dataTransfer.setDragImage(dragImage, 10, 10);
       setTimeout(() => document.body.removeChild(dragImage), 0);
 
       // Update global drag state

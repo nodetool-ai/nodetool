@@ -15,7 +15,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Container } from "@mui/material";
+import { Button, Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -40,15 +40,18 @@ import NodeResizeHandle from "./NodeResizeHandle";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
-import { useNodeFocus } from "../../hooks/useNodeFocus";
+import { useNodeFocusStore } from "../../stores/NodeFocusStore";
+import { useNodes } from "../../contexts/NodeContext";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { isProduction } from "../../stores/ApiClient";
 
-
-// Node sizing constants
+// CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-import { isProduction } from "../../stores/ApiClient";
+const MIN_NODE_HEIGHT = 100;
 
 const resizer = (
   <div className="node-resizer">
@@ -59,28 +62,46 @@ const resizer = (
           params: ResizeParams & { direction: number[] }
         ) => {
           const [dirX, dirY] = params.direction;
-          return dirX !== 0 && dirY === 0;
+          // Allow both horizontal and vertical resizing
+          return dirX !== 0 || dirY !== 0;
         }}
         minWidth={200}
         maxWidth={MAX_NODE_WIDTH}
+        minHeight={MIN_NODE_HEIGHT}
       />
     </div>
   </div>
 );
 
+const TOOLBAR_SHOW_DELAY = 200; // ms delay before showing toolbar after selection
+
 const Toolbar = memo(function Toolbar({
   id,
-  selected
+  selected,
+  dragging
 }: {
   id: string;
   selected: boolean;
+  dragging?: boolean;
 }) {
   const { activeSelect } = useSelect();
-  if (activeSelect || !selected) {
-    return null;
-  }
+  const selectedCount = useNodes((state) => state.getSelectedNodes().length);
+  const [delayedSelected, setDelayedSelected] = useState(false);
+
+  // Delay showing toolbar to avoid flash when clicking to drag
+  useEffect(() => {
+    if (selected && !dragging) {
+      const timer = setTimeout(() => setDelayedSelected(true), TOOLBAR_SHOW_DELAY);
+      return () => clearTimeout(timer);
+    } else {
+      setDelayedSelected(false);
+    }
+  }, [selected, dragging]);
+
+  // Only show toolbar when exactly one node is selected
+  const isVisible = delayedSelected && !activeSelect && !dragging && selectedCount === 1;
   return (
-    <NodeToolbar position={Position.Top} offset={0}>
+    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
       <NodeToolButtons nodeId={id} />
     </NodeToolbar>
   );
@@ -237,10 +258,10 @@ const getHeaderColors = (
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
-  const { id, type, data, selected, parentId } = props;
+  const { id, type, data, selected, parentId, dragging } = props;
   const { workflow_id, title } = data;
-  const { focusedNodeId } = useNodeFocus();
-  const isFocused = focusedNodeId === id;
+  // Subscribe directly to focusedNodeId with equality check to avoid re-renders
+  const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -420,22 +441,22 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         "--node-primary-color": baseColor || "var(--palette-primary-main)",
         ...(hasToggleableResult
           ? {
-              // Match PreviewNode behavior: show the corner resize handle on hover
-              "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-                opacity: 0,
-                position: "absolute",
-                right: "-8px",
-                bottom: "-9px",
-                transition: "opacity 0.2s"
-              },
-              "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
-                opacity: 1
-              }
+            // Match PreviewNode behavior: show the corner resize handle on hover
+            "& .react-flow__resize-control.nodrag.bottom.right.handle": {
+              opacity: 0,
+              position: "absolute",
+              right: "-8px",
+              bottom: "-9px",
+              transition: "opacity 0.2s"
+            },
+            "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
+              opacity: 1
             }
+          }
           : {})
       }}
     >
-      {selected && <Toolbar id={id} selected={selected} />}
+      {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />}
       <NodeHeader
         id={id}
@@ -518,28 +539,46 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {title && <EditableTitle nodeId={id} title={title} />}
 
       {selected && metadata.namespace && (
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: -25,
-            left: "50%",
-            transform: "translateX(-50%)",
-            bgcolor: "background.paper",
-            color: "text.secondary",
-            px: 1,
-            py: 0.25,
-            borderRadius: 1,
-            fontSize: "0.65rem",
-            fontWeight: 400,
-            zIndex: 1000,
-            border: "1px solid",
-            borderColor: "divider",
-            whiteSpace: "nowrap",
-            pointerEvents: "none"
-          }}
-        >
-          {metadata.namespace}
-        </Box>
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY * 2} title="Open Node Menu here" placement="bottom" arrow>
+          <Button
+            variant="text"
+            className="node-namespace nodrag nopan"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              // Open nodeMenu at that namespace
+              const namespacePath = metadata.namespace?.split(".") || [];
+              useNodeMenuStore.getState().openNodeMenu({
+                x: e.clientX,
+                y: e.clientY,
+                selectedPath: namespacePath
+              });
+            }}
+            sx={{
+              position: "absolute",
+              bottom: -25,
+              left: "50%",
+              transform: "translateX(-50%)",
+              bgcolor: "background.paper",
+              color: "text.secondary",
+              px: 1,
+              py: 0.25,
+              borderRadius: 1,
+              fontSize: "0.65rem",
+              fontWeight: 400,
+              zIndex: 1000,
+              border: "1px solid",
+              borderColor: "divider",
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+              "&:hover": {
+                bgcolor: "action.hover"
+              }
+            }}
+          >
+            {metadata.namespace}
+          </Button>
+        </Tooltip>
       )}
     </Container>
   );
@@ -552,10 +591,9 @@ export default memo(BaseNode, (prevProps, nextProps) => {
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
+    prevProps.dragging === nextProps.dragging &&
     prevFocused === nextFocused &&
     prevProps.parentId === nextProps.parentId &&
     isEqual(prevProps.data, nextProps.data)
   );
 });
-
-import { useNodeFocusStore } from "../../stores/NodeFocusStore";

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -13,7 +13,7 @@ interface EdgeContextMenuProps {
   edgeId?: string;
 }
 
-const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
+const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -161,4 +161,4 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
   );
 };
 
-export default EdgeContextMenu;
+export default memo(EdgeContextMenuComponent);

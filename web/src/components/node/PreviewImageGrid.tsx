@@ -340,6 +340,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                   src={urlMapRef.current.get(img) as string}
                   alt={`image-${idx + 1}`}
                   loading="lazy"
+                  draggable={false}
                 />
               ) : (
                 <div className="placeholder">IMAGE</div>

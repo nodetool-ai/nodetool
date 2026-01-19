@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import isEqual from "lodash/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import log from "loglevel";
@@ -245,8 +245,17 @@ const WorkspaceTree: React.FC = () => {
   const theme = useTheme();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
-
-  const { getCurrentWorkflow, updateWorkflow, saveWorkflow } = useWorkflowManager((state) => ({
+  const [filesWorkspaceId, setFilesWorkspaceId] = useState<string | undefined>();
+  const previousWorkflowId = useRef<string | null | undefined>(undefined);
+  const {
+    currentWorkflowId,
+    openWorkflows,
+    getCurrentWorkflow,
+    updateWorkflow,
+    saveWorkflow
+  } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId,
+    openWorkflows: state.openWorkflows,
     getCurrentWorkflow: state.getCurrentWorkflow,
     updateWorkflow: state.updateWorkflow,
     saveWorkflow: state.saveWorkflow
@@ -255,40 +264,63 @@ const WorkspaceTree: React.FC = () => {
   const { setIsOpen: setWorkspaceManagerOpen } = useWorkspaceManagerStore();
 
   const currentWorkflow = getCurrentWorkflow();
-  const workflowId = currentWorkflow?.id;
-  const workspaceId = currentWorkflow?.workspace_id;
+  const currentWorkflowMeta = openWorkflows.find(
+    (workflow) => workflow.id === currentWorkflowId
+  );
+  const workflowId = currentWorkflowId ?? currentWorkflow?.id;
+  const workspaceId = currentWorkflowMeta?.workspace_id ?? currentWorkflow?.workspace_id;
 
   const {
     data: initialFiles,
     isLoading: isLoadingFiles,
     refetch: refetchFiles
   } = useQuery({
-    queryKey: ["workflow-workspace-files", workflowId],
+    queryKey: ["workflow-workspace-files", workflowId, filesWorkspaceId],
     queryFn: () => fetchWorkspaceFiles(workflowId!),
-    enabled: Boolean(workflowId)
+    enabled: Boolean(workflowId && filesWorkspaceId)
   });
 
   // Query for workspace is no longer needed since we use WorkspaceSelect
 
   const handleWorkspaceChange = useCallback(
-    (newWorkspaceId: string | undefined) => {
+    async (newWorkspaceId: string | undefined) => {
       if (!currentWorkflow) { return; }
       const updatedWorkflow = {
         ...currentWorkflow,
         workspace_id: newWorkspaceId
       };
       updateWorkflow(updatedWorkflow);
-      saveWorkflow(updatedWorkflow);
-      // Refetch files after workspace change
-      refetchFiles();
+      try {
+        await saveWorkflow(updatedWorkflow);
+        setFilesWorkspaceId(newWorkspaceId);
+      } catch (error) {
+        log.error("Failed to save workspace change:", error);
+      }
     },
-    [currentWorkflow, updateWorkflow, saveWorkflow, refetchFiles]
+    [currentWorkflow, updateWorkflow, saveWorkflow]
   );
 
-  // Update files when data loads
-  if (initialFiles && !isEqual(initialFiles, files)) {
-    setFiles(initialFiles);
-  }
+  useEffect(() => {
+    if (initialFiles && !isEqual(initialFiles, files)) {
+      setFiles(initialFiles);
+    }
+  }, [files, initialFiles]);
+
+  useEffect(() => {
+    setSelectedFilePath("");
+    setFiles([]);
+  }, [filesWorkspaceId, workflowId]);
+
+  useEffect(() => {
+    if (workflowId !== previousWorkflowId.current) {
+      previousWorkflowId.current = workflowId;
+      setFilesWorkspaceId(workspaceId ?? undefined);
+      return;
+    }
+    if (filesWorkspaceId === undefined && workspaceId) {
+      setFilesWorkspaceId(workspaceId);
+    }
+  }, [filesWorkspaceId, workflowId, workspaceId]);
 
   const handleItemClick = useCallback(
     async (event: React.MouseEvent, itemId: string) => {
@@ -397,7 +429,16 @@ const WorkspaceTree: React.FC = () => {
       )}
 
       <div className="file-tree-container">
-        {isLoadingFiles ? (
+        {!workspaceId ? (
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", py: 3 }}>
+            <Typography color="text.secondary" sx={{ mb: 1 }}>
+              No workspace selected
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Select a workspace from the dropdown above to browse files
+            </Typography>
+          </Box>
+        ) : isLoadingFiles ? (
           <Typography>Loading files...</Typography>
         ) : files.length > 0 ? (
           <div
@@ -428,7 +469,14 @@ const WorkspaceTree: React.FC = () => {
             />
           </div>
         ) : (
-          <Typography color="text.secondary">No files in workspace</Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", py: 3 }}>
+            <Typography color="text.secondary" sx={{ mb: 1 }}>
+              No files in this workspace
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Add files to your workspace folder to browse them here
+            </Typography>
+          </Box>
         )}
       </div>
     </Box>

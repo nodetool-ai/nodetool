@@ -12,7 +12,7 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit
+  PowerSettingsNew
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
@@ -187,7 +187,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         disabled: !canGroup
       },
       {
-        icon: <CallSplit fontSize="small" />,
+        icon: <PowerSettingsNew fontSize="small" />,
         label: "Bypass",
         slug: "bypassNode",
         action: selectionActions.bypassSelected
@@ -224,7 +224,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
       sx={{
         position: "absolute",
         bottom: "auto",
-        top: 80,
+        top: 30,
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 1000,
@@ -232,11 +232,9 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         alignItems: "center",
         gap: 0.5,
         padding: "6px 10px",
-        bgcolor: "background.paper",
+        backgroundColor: 'var(--palette-grey-800)',
         borderRadius: 2,
-        boxShadow: 3,
-        border: 1,
-        borderColor: "divider"
+        boxShadow: 1,
       }}
     >
       {allButtons.map((button, index) => {

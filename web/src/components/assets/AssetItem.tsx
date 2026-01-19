@@ -328,9 +328,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   const result = (
     <div
       css={styles(theme)}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
-        isDragHovered ? "drag-hover" : ""
-      } ${isParent ? "parent" : ""}`}
+      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
+        } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
@@ -405,18 +404,39 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         )}
         {isVideo && (
           <>
-            <VideoFileIcon
-              className="placeholder"
-              style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
-              titleAccess={asset.content_type || "Video file"}
-            />
-            <div
-              className="image"
-              style={{
-                backgroundImage: `url(${asset.get_url})`
-              }}
-              aria-label={asset.id}
-            />
+            {!asset.thumb_url && !asset.get_url ? (
+              <VideoFileIcon
+                className="placeholder"
+                style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
+                titleAccess={asset.content_type || "Video file"}
+              />
+            ) : (
+              <div
+                className="image"
+                style={{
+                  backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+                }}
+                aria-label={asset.id}
+              />
+            )}
+
+            {/* Always show icon overlay for video if we have a thumbnail to indicate it's playble/video */}
+            {(asset.thumb_url || asset.get_url) && (
+              <VideoFileIcon
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  color: "white",
+                  fontSize: "3em",
+                  opacity: 0.8,
+                  filter: "drop-shadow(0px 0px 4px rgba(0,0,0,0.5))",
+                  zIndex: 10
+                }}
+              />
+            )}
+
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Typography className="duration info">
                 {secondsToHMS(asset.duration)}

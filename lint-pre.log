@@ -1,12 +1,18 @@
 Linting web package...
 cd web && npm run lint
 
-> nodetool@0.6.2-rc.26 lint
+> nodetool@0.6.2-rc.27 lint
 > eslint src
+
+
+/home/runner/work/nodetool/nodetool/web/src/hooks/nodes/useSurroundWithGroup.ts
+  11:6  warning  'SurroundWithGroupOptions' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 1 problem (0 errors, 1 warning)
 
 Linting electron package...
 cd electron && npm run lint
 
-> nodetool-electron@0.6.2-rc.26 lint
+> nodetool-electron@0.6.2-rc.27 lint
 > eslint .
 

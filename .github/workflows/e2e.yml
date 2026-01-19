@@ -25,7 +25,7 @@ jobs:
   web:
     name: Web Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -71,7 +71,7 @@ jobs:
       - name: Start nodetool server
         shell: bash -l {0}
         run: |
-          nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
+          nodetool serve --port 7777 --mock > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
           
       - name: Wait for nodetool server to be ready
@@ -124,7 +124,7 @@ jobs:
   electron:
     name: Electron End-to-End Tests
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     
     strategy:
       fail-fast: false

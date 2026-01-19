@@ -5,6 +5,30 @@ import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 
+/**
+ * Options for surroundWithGroup function.
+ */
+type SurroundWithGroupOptions = {
+  /** Array of nodes to surround with a group */
+  selectedNodes: Node<NodeData>[];
+};
+
+/**
+ * Hook for grouping selected nodes within a group/loop node.
+ * 
+ * Creates a group node that contains the selected nodes as children,
+ * automatically calculating bounds and adjusting node positions.
+ * 
+ * @returns Function to surround selected nodes with a group
+ * 
+ * @example
+ * ```typescript
+ * const surroundWithGroup = useSurroundWithGroup();
+ * 
+ * // Surround selected nodes with a group
+ * surroundWithGroup({ selectedNodes: selectedNodesArray });
+ * ```
+ */
 export const useSurroundWithGroup = () => {
   const theme = useTheme();
   const { createNode, setNodes } = useNodes((state) => ({
@@ -43,7 +67,7 @@ export const useSurroundWithGroup = () => {
   }, []);
 
   const surroundWithGroup = useCallback(
-    ({ selectedNodes }: { selectedNodes: Node<NodeData>[] }) => {
+    ({ selectedNodes }: SurroundWithGroupOptions) => {
       if (!selectedNodes) { return; }
       
       const validSelectedNodes = selectedNodes.filter(

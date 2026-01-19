@@ -90,6 +90,7 @@ span.tooltip-small {
   text-transform: uppercase;
   color: var(--palette-grey-50);
   margin:0;
+  font-size: var(--fontSizeSmaller);
   padding:.2em .5em;
 }
 .tooltip-key {
@@ -99,7 +100,7 @@ span.tooltip-small {
   background-color: transparent;
   color: var(--palette-grey-50);
   word-spacing: 1em;
-  font-size: var(--fontSizeBig);
+  font-size: var(--fontSizeNormal);
   font-family: var(--fontFamily2);
   letter-spacing: 0.15em;
   margin: 0;
@@ -123,7 +124,7 @@ kbd {
   border: 1px solid var(--palette-grey-500);
   border-radius: 4px;
   display: inline-block;
-  font-size: var(--fontSizeNormal);
+  font-size: var(--fontSizeSmaller);
   font-family: var(--fontFamily2);
   letter-spacing: 0.05em;
   line-height: 1.1;

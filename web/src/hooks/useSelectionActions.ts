@@ -3,6 +3,38 @@ import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
+/**
+ * Custom hook providing batch operations for selected nodes in the workflow editor.
+ * 
+ * This hook provides a comprehensive set of alignment, distribution, and manipulation
+ * actions for multiple selected nodes including:
+ * - Alignment: Left, Center, Right, Top, Middle, Bottom
+ * - Distribution: Horizontal and vertical spacing
+ * - Operations: Delete, Duplicate, Group, Bypass
+ * 
+ * All operations work with the currently selected nodes retrieved via getSelectedNodes().
+ * Actions that require multiple nodes (align, distribute) will silently do nothing if
+ * fewer than 2 nodes are selected.
+ * 
+ * @returns SelectionActionsReturn object containing all batch operation callbacks
+ * 
+ * @example
+ * ```typescript
+ * const { alignLeft, distributeHorizontal, deleteSelected } = useSelectionActions();
+ * 
+ * // Align selected nodes to the left edge
+ * alignLeft();
+ * 
+ * // Distribute selected nodes evenly
+ * distributeHorizontal();
+ * 
+ * // Delete all selected nodes
+ * deleteSelected();
+ * ```
+ * 
+ * @see useAlignNodes - For single-node alignment with grid snapping
+ * @see useDuplicateNodes - For duplicating individual nodes
+ */
 interface SelectionActionsReturn {
   alignLeft: () => void;
   alignCenter: () => void;
@@ -18,6 +50,24 @@ interface SelectionActionsReturn {
   bypassSelected: () => void;
 }
 
+/**
+ * Custom hook providing selection-based node actions.
+ * 
+ * Provides alignment (left, center, right, top, middle, bottom),
+ * distribution (horizontal, vertical), and manipulation actions
+ * (delete, duplicate, group, bypass) for selected nodes.
+ * 
+ * @returns Object containing all selection action functions
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   alignLeft,
+ *   distributeHorizontal,
+ *   deleteSelected
+ * } = useSelectionActions();
+ * ```
+ */
 const NODE_WIDTH = 280;
 const HORIZONTAL_SPACING = 40;
 const VERTICAL_SPACING = 20;

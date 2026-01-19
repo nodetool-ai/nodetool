@@ -19,8 +19,6 @@ import {
 import {
   Restore as RestoreIcon,
   Delete as DeleteIcon,
-  PushPin as PinIcon,
-  PushPinOutlined as PinOutlinedIcon,
   Compare as CompareIcon
 } from "@mui/icons-material";
 import { SaveType } from "../../stores/VersionHistoryStore";
@@ -36,7 +34,6 @@ interface VersionListItemProps {
   onSelect: (versionId: string) => void;
   onRestore: (version: WorkflowVersion) => void;
   onDelete: (versionId: string) => void;
-  onPin: (versionId: string, pinned: boolean) => void;
   onCompare: (versionId: string) => void;
   isRestoring?: boolean;
 }
@@ -91,7 +88,6 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   onSelect,
   onRestore,
   onDelete,
-  onPin,
   onCompare,
   isRestoring = false
 }) => {
@@ -117,14 +113,6 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
       onDelete(version.id);
     },
     [version.id, onDelete]
-  );
-
-  const handlePin = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onPin(version.id, !version.is_pinned);
-    },
-    [version.id, version.is_pinned, onPin]
   );
 
   const timeAgo = formatDistanceToNow(new Date(version.created_at), {
@@ -178,9 +166,6 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
               color={getSaveTypeColor(version.save_type)}
               sx={{ height: 20, fontSize: "0.7rem" }}
             />
-            {version.is_pinned && (
-              <PinIcon fontSize="small" color="primary" sx={{ fontSize: 14 }} />
-            )}
           </Box>
         }
         primaryTypographyProps={{ component: "div" }}
@@ -223,15 +208,6 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
               <Tooltip title="Restore this version">
                 <IconButton size="small" onClick={handleRestore}>
                   <RestoreIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={version.is_pinned ? "Unpin" : "Pin"}>
-                <IconButton size="small" onClick={handlePin}>
-                  {version.is_pinned ? (
-                    <PinIcon fontSize="small" />
-                  ) : (
-                    <PinOutlinedIcon fontSize="small" />
-                  )}
                 </IconButton>
               </Tooltip>
               <Tooltip title="Delete version">

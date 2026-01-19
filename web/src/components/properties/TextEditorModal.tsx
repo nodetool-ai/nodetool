@@ -126,7 +126,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       fontSize: "var(--fontSizeBigger)",
       width: "92%",
-      maxWidth: "1600px",
+      maxWidth: "2400px",
       height: "100%",
       margin: "auto",
       display: "flex",
@@ -246,7 +246,7 @@ const styles = (theme: Theme) =>
         outline: "none",
         overflow: "auto !important",
         height: "100%",
-        padding: "1.5em 2em", // More breathing room
+        padding: "1.5em 2em 1.5em 3em",
         pre: {
           height: "100%",
           overflowWrap: "break-word",
