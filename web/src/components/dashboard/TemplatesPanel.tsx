@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { Box, Typography, CircularProgress, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
@@ -126,6 +126,11 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
   handleViewAllTemplates
 }) => {
   const theme = useTheme();
+
+  const onExampleClick = useCallback((example: Workflow) => {
+    handleExampleClick(example);
+  }, [handleExampleClick]);
+
   return (
     <Box className="templates-panel" css={styles(theme)}>
       <Box className="panel-header">
@@ -152,7 +157,7 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
               <Box
                 key={example.id}
                 className="example-card"
-                onClick={() => handleExampleClick(example)}
+                onClick={onExampleClick.bind(null, example)}
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">

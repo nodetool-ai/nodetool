@@ -292,13 +292,26 @@ const ProviderSetupPanel: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
 
+  const handleToggleExpand = useCallback(() => {
+    setIsExpanded((prev) => !prev);
+  }, []);
+
+  const handleProviderSave = useCallback((providerKey: ProviderKey) => {
+    handleSaveKey(providerKey);
+  }, [handleSaveKey]);
+
+  const handleProviderLink = useCallback((url: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    handleOpenLink(url);
+  }, [handleOpenLink]);
+
   return (
     <Box css={panelStyles(theme)} className="provider-setup-panel">
       <div className="scrollable-content">
         <Box className="provider-setup-container">
           <div
             className="collapse-header"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleToggleExpand}
           >
             <div className="section-title">
               <Typography
@@ -361,10 +374,7 @@ const ProviderSetupPanel: React.FC = () => {
                         <a
                           href={provider.link}
                           className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenLink(provider.link);
-                          }}
+                          onClick={handleProviderLink.bind(null, provider.link)}
                         >
                           {provider.linkText}
                           <OpenInNewIcon sx={{ fontSize: 14 }} />
@@ -394,7 +404,7 @@ const ProviderSetupPanel: React.FC = () => {
                         <Button
                           variant="contained"
                           size="small"
-                          onClick={() => handleSaveKey(provider.key)}
+                          onClick={handleProviderSave.bind(null, provider.key)}
                           disabled={!hasInput || isSaving}
                           startIcon={
                             isSaving ? (
