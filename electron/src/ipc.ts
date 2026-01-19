@@ -603,4 +603,34 @@ export function initializeIpcHandlers(): void {
       return { canceled, filePaths };
     }
   );
+
+  // LaunchAgent service handlers (macOS only)
+  createIpcMainHandler(IpcChannels.SERVICE_GET_STATUS, async () => {
+    const { getServiceStatus } = await import("./launchAgentService");
+    return await getServiceStatus();
+  });
+
+  createIpcMainHandler(IpcChannels.SERVICE_INSTALL, async (_event, request) => {
+    const { installLaunchAgent } = await import("./launchAgentService");
+    logMessage(`Installing LaunchAgent service${request?.port ? ` on port ${request.port}` : ""}`);
+    return await installLaunchAgent(request?.port);
+  });
+
+  createIpcMainHandler(IpcChannels.SERVICE_UNINSTALL, async () => {
+    const { uninstallLaunchAgent } = await import("./launchAgentService");
+    logMessage("Uninstalling LaunchAgent service");
+    return await uninstallLaunchAgent();
+  });
+
+  createIpcMainHandler(IpcChannels.SERVICE_START, async () => {
+    const { startLaunchAgent } = await import("./launchAgentService");
+    logMessage("Starting LaunchAgent service");
+    return await startLaunchAgent();
+  });
+
+  createIpcMainHandler(IpcChannels.SERVICE_STOP, async () => {
+    const { stopLaunchAgent } = await import("./launchAgentService");
+    logMessage("Stopping LaunchAgent service");
+    return await stopLaunchAgent();
+  });
 }
