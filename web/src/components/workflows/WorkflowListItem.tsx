@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useEffect, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Box, Typography, IconButton, Tooltip } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import { Workflow } from "../../stores/ApiTypes";
@@ -13,6 +13,7 @@ import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import EditIcon from "@mui/icons-material/Edit";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -25,6 +26,7 @@ interface WorkflowListItemProps {
   onSelect: (workflow: Workflow) => void;
   onDelete: (workflow: Workflow) => void;
   onEdit: (workflow: Workflow) => void;
+  onRename: (workflow: Workflow, newName: string) => void;
   onOpenAsApp?: (workflow: Workflow) => void;
 }
 
@@ -39,6 +41,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   onSelect,
   onDelete,
   onEdit,
+  onRename,
   onOpenAsApp
 }: WorkflowListItemProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -47,6 +50,9 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const showGraphPreview = useShowGraphPreview();
   const isFavorite = useIsWorkflowFavorite(workflow.id);
   const { toggleFavorite } = useFavoriteWorkflowActions();
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleToggleFavorite = useCallback(
     (e: React.MouseEvent) => {
@@ -64,6 +70,52 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       onEdit(workflow);
     },
     [onEdit, workflow]
+  );
+
+  const handleOpen = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onOpenWorkflow(workflow);
+    },
+    [onOpenWorkflow, workflow]
+  );
+
+  const handleNameDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsEditing(true);
+    },
+    []
+  );
+
+  const handleNameChange = useCallback(
+    (newName: string) => {
+      if (newName.trim() && newName !== workflow.name) {
+        onRename(workflow, newName.trim());
+      }
+      setIsEditing(false);
+    },
+    [onRename, workflow]
+  );
+
+  const handleNameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        handleNameChange(e.currentTarget.value);
+      } else if (e.key === "Escape") {
+        setIsEditing(false);
+      }
+    },
+    [handleNameChange]
+  );
+
+  const handleNameBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      handleNameChange(e.target.value);
+    },
+    [handleNameChange]
   );
 
   useEffect(() => {
@@ -145,11 +197,6 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         (isFavorite ? " favorite" : "")
       }
       onContextMenu={handleContextMenu}
-      onClick={(e) => {
-        if (!e.defaultPrevented) {
-          onOpenWorkflow(workflow);
-        }
-      }}
     >
       {showCheckboxes && (
         <Checkbox
@@ -171,15 +218,53 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             label={workflow.name}
           />
         )}
-        <Typography className="name">
-          {workflow.name}
-        </Typography>
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            defaultValue={workflow.name}
+            autoFocus
+            onFocus={(e) => e.target.select()}
+            onBlur={handleNameBlur}
+            onKeyDown={handleNameKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "transparent",
+              border: "1px solid var(--palette-primary-main)",
+              borderRadius: "4px",
+              color: "inherit",
+              padding: "4px 8px",
+              fontSize: "inherit",
+              fontWeight: 500,
+              lineHeight: "2em",
+              width: "calc(100% - 140px)",
+              outline: "none"
+            }}
+          />
+        ) : (
+          <Typography 
+            className="name"
+            onDoubleClick={handleNameDoubleClick}
+            title="Double-click to rename"
+          >
+            {workflow.name}
+          </Typography>
+        )}
       </Box>
       <Box className="date-container">
         {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "0.85rem", color: "warning.main" }} />}
         <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>
       </Box>
       <Box className="actions">
+        <IconButton
+          className="open-button"
+          size="small"
+          onClick={handleOpen}
+          title="Open workflow"
+          sx={{ padding: "4px" }}
+        >
+          <OpenInNewIcon sx={{ fontSize: "1rem" }} />
+        </IconButton>
         <IconButton
           className="favorite-button"
           size="small"

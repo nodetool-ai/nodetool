@@ -22,6 +22,7 @@ interface WorkflowListViewProps {
   onSelect: (workflow: Workflow) => void;
   onDelete: (workflow: Workflow) => void;
   onEdit: (workflow: Workflow) => void;
+  onRename: (workflow: Workflow, newName: string) => void;
   onOpenAsApp?: (workflow: Workflow) => void;
   onScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   selectedWorkflows: string[] | null;
@@ -165,6 +166,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   onSelect,
   onDelete,
   onEdit,
+  onRename,
   onOpenAsApp,
   onScroll,
   selectedWorkflows,
@@ -219,10 +221,10 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
 
   const listRef = useRef<VariableSizeList>(null);
 
-  // Reset list cache when flatList changes
+  // Reset list cache when flatList or showGraphPreview changes
   useEffect(() => {
     listRef.current?.resetAfterIndex(0);
-  }, [flatList]);
+  }, [flatList, showGraphPreview]);
 
   const getItemSize = (index: number) => {
     const item = flatList[index];
@@ -260,6 +262,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           onSelect={onSelect}
           onDelete={onDelete}
           onEdit={onEdit}
+          onRename={onRename}
           onOpenAsApp={onOpenAsApp}
           isAlternate={workflowIndex % 2 === 1}
         />
