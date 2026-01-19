@@ -1041,3 +1041,144 @@ it("falls back to URI when createAssetFile fails", async () => {
 **Maintained By**: Automated OpenCode testing agent
 
 **Last Updated**: 2026-01-18
+
+---
+
+### Test Coverage Improvements (2026-01-19)
+
+**Coverage Added**: 5 new test files with comprehensive tests for graph utilities, date/time formatting, and node metadata
+
+**Tests Added**:
+- `graphNodeToReactFlowNode.test.ts` - 31 tests for converting backend graph nodes to ReactFlow format
+- `graphEdgeToReactFlowEdge.test.ts` - 11 tests for converting backend edges to ReactFlow edges
+- `graphDiff.test.ts` - 32 tests for computing differences between workflow graph versions
+- `formatDateAndTime.test.ts` - 26 tests for date/time formatting utilities
+- `nodeUtils.test.ts` - 18 tests for node metadata constants
+
+**Areas Covered**:
+- Graph node conversion with position, size, bypassed state, z-index handling
+- Special handling for Preview nodes (400x300) and CompareImages nodes (450x350)
+- Edge conversion with UUID generation and handle mapping
+- Graph diff computation (added/removed/modified nodes and edges)
+- Human-readable diff summaries
+- Date formatting (12h/24h, normal/verbose styles)
+- Time formatting (secondsToHMS, relativeTime, timestamps)
+- Node metadata constants (GROUP_NODE_METADATA, COMMENT_NODE_METADATA)
+
+**Test Patterns Used**:
+
+1. **Graph Conversion Testing**:
+```typescript
+describe("graphNodeToReactFlowNode", () => {
+  it("converts basic graph node to ReactFlow node", () => {
+    const workflow = createMockWorkflow();
+    const graphNode = createMockGraphNode();
+
+    const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+    expect(result.type).toBe("nodetool.test.TestNode");
+    expect(result.id).toBe("node-1");
+    expect(result.position).toEqual({ x: 0, y: 0 });
+  });
+
+  it("sets Preview node width to 400 when not specified", () => {
+    const workflow = createMockWorkflow();
+    const graphNode = createMockGraphNode({
+      type: "nodetool.workflows.base_node.Preview",
+      ui_properties: {},
+    });
+
+    const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+    expect(result.style.width).toBe(400);
+    expect(result.style.height).toBe(300);
+  });
+});
+```
+
+2. **Graph Diff Testing**:
+```typescript
+describe("computeGraphDiff", () => {
+  it("detects added nodes", () => {
+    const oldGraph = { nodes: [createMockNode("1")], edges: [] };
+    const newGraph = { nodes: [createMockNode("1"), createMockNode("2")], edges: [];
+
+    const result = computeGraphDiff(oldGraph, newGraph);
+
+    expect(result.addedNodes).toHaveLength(1);
+    expect(result.addedNodes[0].id).toBe("2");
+    expect(result.hasChanges).toBe(true);
+  });
+
+  it("detects modified nodes with data changes", () => {
+    const oldGraph = {
+      nodes: [createMockNode("1", { key: "old-value" })],
+      edges: [],
+    };
+    const newGraph = {
+      nodes: [createMockNode("1", { key: "new-value" })],
+      edges: [],
+    };
+
+    const result = computeGraphDiff(oldGraph, newGraph);
+
+    expect(result.modifiedNodes).toHaveLength(1);
+    expect(result.modifiedNodes[0].changes).toHaveLength(1);
+  });
+});
+```
+
+3. **Date Formatting Testing**:
+```typescript
+describe("secondsToHMS", () => {
+  it("converts hours, minutes, and seconds", () => {
+    expect(secondsToHMS(3661)).toBe("01:01:01");
+  });
+
+  it("pads all values to two digits", () => {
+    expect(secondsToHMS(5)).toBe("00:00:05");
+  });
+});
+
+describe("relativeTime", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("returns 'just now' for current time", () => {
+    expect(relativeTime(new Date())).toBe("just now");
+  });
+
+  it("returns singular units for single values", () => {
+    const past = new Date(Date.now() - 3600000);
+    expect(relativeTime(past)).toBe("1 hour ago");
+  });
+});
+```
+
+**Files Created**:
+- `web/src/stores/__tests__/graphNodeToReactFlowNode.test.ts`
+- `web/src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts`
+- `web/src/utils/__tests__/graphDiff.test.ts`
+- `web/src/utils/__tests__/formatDateAndTime.test.ts`
+- `web/src/utils/__tests__/nodeUtils.test.ts`
+
+**Key Learnings**:
+1. Graph conversion utilities need extensive edge case testing (null values, special node types)
+2. Date/time formatting requires fake timers for relativeTime testing
+3. Metadata constants can be tested for structural integrity
+4. Graph diff algorithms need testing with empty graphs, complete replacements, and multiple change types
+
+**Status**: Tests pass with pre-existing Monaco editor mock issues unrelated to new tests
+
+**Test Results**:
+- 230+ test suites passing
+- 3000+ tests passing
+- 5 new test files with 118 tests added
+
+**Last Updated**: 2026-01-19
