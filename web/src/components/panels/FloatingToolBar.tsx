@@ -717,4 +717,4 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   );
 });
 
-export default FloatingToolBar;
+export default memo(FloatingToolBar);

@@ -637,4 +637,4 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   );
 });
 
-export default QuickActionTiles;
+export default memo(QuickActionTiles);
