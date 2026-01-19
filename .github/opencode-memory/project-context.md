@@ -481,6 +481,22 @@ _No entries yet - this memory system is new as of 2026-01-10_
 - `web/src/components/ProtectedRoute.tsx` - Converted useAuth() to selective selector
 - `web/src/hooks/handlers/dropHandlerUtils.ts` - Converted useAuth() to selective selector and replaced catch(error: any) with proper error handling using createErrorMessage
 - `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
+### Performance Audit (2026-01-19)
+
+**What**: Comprehensive performance audit verifying all optimizations are in place.
+
+**Findings**:
+- ✅ All large components have React.memo (10+ verified)
+- ✅ Zustand selective subscriptions pattern in place
+- ✅ useCallback for inline handlers verified
+- ✅ Event listener cleanup properly implemented
+- ✅ Route-based code splitting (11 lazy routes)
+- ⚠️ Bundle size increased from 5.74MB to 9.2MB (+67%)
+
+**Impact**: Codebase well-optimized; main bundle size regression identified for investigation.
+
+**Files**: .github/opencode-memory/insights/performance/audit-2026-01-19.md
+
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.
 
