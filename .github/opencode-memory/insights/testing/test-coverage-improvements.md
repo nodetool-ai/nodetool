@@ -38,7 +38,60 @@
 
 ---
 
-# Test Coverage Improvements (2026-01-18)
+# Test Coverage Improvements (2026-01-19 - Additional)
+
+**Tests Added**: 3 new test files covering critical hooks and stores
+
+**Test Files Created**:
+
+1. **useChatService.test.ts** (`web/src/hooks/__tests__/useChatService.test.ts`)
+   - 21 comprehensive tests for chat service hook
+   - Tests state selectors (status, threads, progress, statusMessage)
+   - Tests message sending with thread creation and navigation
+   - Tests thread selection and creation
+   - Tests thread preview generation
+   - Tests planning and task update handling
+   - Tests error handling and edge cases
+
+2. **useCreateNode.test.ts** (`web/src/hooks/__tests__/useCreateNode.test.ts`)
+   - 10 tests for node creation hook
+   - Tests null reactFlowInstance handling
+   - Tests position calculation (clickPosition vs centerPosition)
+   - Tests node creation with metadata
+   - Tests recent node tracking
+   - Tests node menu closing
+   - Tests rapid node creation
+
+3. **WorkflowRunner.test.ts** (`web/src/stores/__tests__/WorkflowRunner.test.ts`)
+   - 22 tests for workflow runner store
+   - Tests state transitions (idle, running, etc.)
+   - Tests workflow, nodes, edges, job_id returns
+   - Tests all action functions (cancel, pause, resume, run, reconnect)
+   - Tests statusMessage and notifications
+   - Tests messageHandler and unsubscribe
+
+**Test Results**:
+- **New Tests**: 53 tests added
+- **New Test Files**: 3 files
+- **Coverage Areas**: Critical hooks (useChatService, useCreateNode), core store (WorkflowRunner)
+- **Pass Rate**: 100% (53/53 tests passing)
+
+**Key Testing Patterns Used**:
+1. Mock external dependencies (GlobalChatStore, ReactFlow, stores)
+2. Test both happy path and edge cases
+3. Use renderHook for hook testing
+4. Test state transitions and action functions
+5. Mock async operations for hooks with side effects
+
+**Impact**:
+- Improved coverage for critical chat functionality
+- Improved coverage for node creation workflow
+- Improved coverage for workflow execution engine
+- No regressions in existing tests (3,139 tests still passing)
+
+**Related Memory**:
+- `.github/opencode-memory/build-test-lint.md` - Testing requirements
+- `.github/opencode-memory/insights/testing/hook-tests-added.md` - Hook testing patterns
 
 **Coverage Added**: 13 new test files with 424 tests for utility functions and store utilities
 
