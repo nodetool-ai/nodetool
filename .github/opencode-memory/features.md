@@ -126,6 +126,7 @@ Last updated: 2026-01-17
 - **Infinite Scroll**: Load content incrementally on scroll
 - **Context Menus**: Right-click menus for various elements (nodes, edges, pane, properties)
 - **Keyboard Shortcuts**: Configurable keyboard shortcuts system including undo/redo, copy/paste, align, distribute, find, and reset zoom
+- **Keyboard Shortcuts Reference**: Searchable dialog showing all available keyboard shortcuts organized by category, accessible via button or Ctrl+/ / Cmd+/ shortcut
 - **Close Button**: Consistent close button component
 - **Delete Button**: Consistent delete button component
 

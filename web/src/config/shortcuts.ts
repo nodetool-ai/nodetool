@@ -750,6 +750,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  // ---------- SHORTCUTS DIALOG --------------------------------------------
+  {
+    title: "Show Keyboard Shortcuts",
+    slug: "showKeyboardShortcuts",
+    keyCombo: ["Control", "/"],
+    keyComboMac: ["Meta", "/"],
+    category: "panel" as const,
+    description: "Open keyboard shortcuts reference dialog",
+    registerCombo: true
   }
 ] as Shortcut[];
 

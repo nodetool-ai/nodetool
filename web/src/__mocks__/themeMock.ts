@@ -25,6 +25,7 @@ const mockTheme = createTheme({
     c_gray6: "#D9D9D9"
   } as any, // Use 'as any' to bypass TypeScript checking for custom properties
   fontSizeNormal: "16px",
+  fontSizeBig: "1.125rem",
   fontSizeSmall: "0.875em",
   fontSizeSmaller: "0.75em",
   fontFamily1: "'Inter', Arial, sans-serif",
@@ -149,6 +150,18 @@ const mockTheme = createTheme({
     Button: {
       inheritContainedBg: "rgba(255, 255, 255, 0.08)",
       inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)"
+    },
+    // Add InputBase properties for TextField component
+    input: {
+      placeholder: {
+        color: "rgba(255, 255, 255, 0.54)"
+      }
+    },
+    InputPlaceholder: {
+      color: "rgba(255, 255, 255, 0.54)"
+    },
+    inputPlaceholder: {
+      color: "rgba(255, 255, 255, 0.54)"
     }
   },
   // Provide spacing variables expected by MUI components (e.g., Button)

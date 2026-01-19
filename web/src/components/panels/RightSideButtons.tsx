@@ -5,12 +5,15 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo } from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
+import KeyboardIcon from "@mui/icons-material/Keyboard";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import Help from "../content/Help/Help";
 import SettingsMenu from "../menus/SettingsMenu";
 import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
+import KeyboardShortcutsDialog from "../dialogs/KeyboardShortcutsDialog";
+import { useKeyboardShortcutsDialogStore } from "../../stores/KeyboardShortcutsDialogStore";
 import { isProduction } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -40,6 +43,9 @@ const RightSideButtons: React.FC = () => {
   const helpOpen = useAppHeaderStore((state) => state.helpOpen);
   const handleCloseHelp = useAppHeaderStore((state) => state.handleCloseHelp);
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
+  const openShortcuts = useKeyboardShortcutsDialogStore(
+    (state) => state.open
+  );
 
   return (
     <Box className="buttons-right" css={styles(theme)}>
@@ -50,6 +56,26 @@ const RightSideButtons: React.FC = () => {
         </>
       )}
       <NotificationButton />
+      <Tooltip
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        title={
+          <div style={{ textAlign: "center" }}>
+            <Typography variant="inherit">Keyboard Shortcuts</Typography>
+          </div>
+        }
+      >
+        <Button
+          className="command-icon"
+          onClick={(e) => {
+            e.preventDefault();
+            openShortcuts();
+          }}
+          tabIndex={-1}
+          aria-label="Keyboard shortcuts"
+        >
+          <KeyboardIcon />
+        </Button>
+      </Tooltip>
       <Help open={helpOpen} handleClose={handleCloseHelp} />
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -71,6 +97,7 @@ const RightSideButtons: React.FC = () => {
         </Button>
       </Tooltip>
       <SettingsMenu />
+      <KeyboardShortcutsDialog />
     </Box>
   );
 };

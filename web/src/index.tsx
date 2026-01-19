@@ -63,6 +63,13 @@ import log from "loglevel";
 import Alert from "./components/node_editor/Alert";
 import MobileClassProvider from "./components/MobileClassProvider";
 import AppHeader from "./components/panels/AppHeader";
+import { useKeyboardShortcutsShortcut } from "./hooks/useKeyboardShortcutsShortcut";
+import { memo } from "react";
+
+const KeyboardShortcutsInitializer = memo(function KeyboardShortcutsInitializer() {
+  useKeyboardShortcutsShortcut();
+  return null;
+});
 
 // Lazy-loaded route components for code splitting
 const Dashboard = React.lazy(
@@ -367,6 +374,7 @@ const AppWrapper = () => {
             <MenuProvider>
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
+                  <KeyboardShortcutsInitializer />
                   {status === "pending" && (
                     <div
                       style={{
