@@ -15,6 +15,57 @@ The `nodetool` CLI manages local development workflows, servers, deployments, an
 
 ## Core Runtime Commands
 
+### `nodetool agent`
+
+Runs an autonomous AI agent from start to finish using a YAML configuration file. Agents use the planning agent architecture to break down tasks, execute them iteratively, and achieve goals through tool usage.
+
+**Arguments:**
+
+- `--config FILE` (required) — Path to agent YAML configuration file.
+- `--prompt TEXT` — Inline prompt for the agent to execute.
+- `--prompt-file FILE` — Load prompt from a text file.
+- `--interactive` / `-i` — Start interactive session with the agent.
+
+**Options:**
+
+- `--workspace DIR` — Override workspace directory from config.
+- `--max-iterations N` — Override maximum planning iterations from config.
+- `--output FILE` — Save agent output to file.
+- `--jsonl` — Output in JSONL format for automation.
+- `--verbose` / `-v` — Enable DEBUG-level logging.
+
+**Examples:**
+
+```bash
+# Run agent with inline prompt
+nodetool agent --config research-agent.yaml --prompt "Research AI trends"
+
+# Run agent with prompt from file
+nodetool agent --config code-assistant.yaml --prompt-file task.txt
+
+# Interactive mode for multi-turn conversations
+nodetool agent --config content-creator.yaml --interactive
+
+# Save output to file
+nodetool agent --config agent.yaml --prompt "Task" --output result.txt
+
+# JSONL output for automation
+nodetool agent --config agent.yaml --prompt "Task" --jsonl
+```
+
+**Agent Configuration:**
+
+Agents are configured via YAML files that specify:
+
+- **System prompt**: Instructions defining agent behavior
+- **Model**: Primary AI model (provider and model ID)
+- **Planning agent**: Always enabled, coordinates task execution
+- **Tools**: Available capabilities (search, code execution, file operations)
+- **Parameters**: Token limits, temperature, iteration limits
+- **Workspace**: Sandboxed directory for file operations
+
+See [Agent CLI Documentation](agent-cli.md) for complete configuration reference and [examples/agents/](examples/agents/) for sample configurations.
+
 ### `nodetool serve`
 
 Runs the FastAPI backend server for the NodeTool platform. This serves the REST API, WebSocket endpoints, and optionally static assets or app bundles.
