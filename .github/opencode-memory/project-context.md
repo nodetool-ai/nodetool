@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### AssetTree Sort Memoization (2026-01-19)
+
+**What**: Memoized sort operation in AssetTree component using useMemo/useCallback and added React.memo wrapper.
+
+**Files**: web/src/components/assets/AssetTree.tsx
+
+**Impact**: Asset tree sorting now only happens when data changes, not on every re-render.
+
+---
+
 ### Handler Memoization (2026-01-19)
 
 **What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
