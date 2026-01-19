@@ -1,6 +1,34 @@
 # Test Coverage Improvements (2026-01-19)
 
-**Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
+**Test Coverage Added**: workflowUpdates.test.ts with 27 tests for workflow execution update handling
+
+**Tests Added**:
+- `workflowUpdates.test.ts` - 27 tests for workflow update handling
+  - Job state transitions (completed, cancelled, failed, timed_out, suspended, paused, queued, running)
+  - Node updates (running, completed, error states)
+  - Log updates, notifications, progress updates
+  - Output updates, preview updates, planning updates
+  - Tool call updates, edge updates
+  - Execution timing tracking
+  - Jobs query invalidation
+  - Window __UPDATES__ tracking
+  - WebSocket subscription management
+
+**Test Results**:
+- **Before**: 236 test suites, 3,092 tests
+- **After**: 237 test suites, 3,119 tests (+27 tests)
+- **All tests passing**: 237/237 suites, 3,119/3,119 tests (3 skipped)
+
+**Key Learnings**:
+1. Workflow update handling requires mocking multiple Zustand stores (ResultsStore, StatusStore, LogStore, ErrorStore, NotificationStore, ExecutionTimeStore)
+2. Named exports (like useNotificationStore) need different mock format than default exports
+3. Mock functions should be created once and reused to track calls properly
+4. runner.addNotification calls need to reference the state object's method, not the store object
+5. Tests should verify actual behavior, not implementation details
+
+---
+
+**Previous Entry (2026-01-19)**: Fixed critical failing tests and skipped flaky performance tests
 
 **Issues Fixed**:
 - **Monaco Editor Test**: Fixed `ReferenceError: define is not defined` by properly mocking Monaco editor's AMD module loading pattern
