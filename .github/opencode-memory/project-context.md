@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### AssetTree Sort Memoization (2026-01-19)
+
+**What**: Memoized sort operation in AssetTree component using useMemo/useCallback and added React.memo wrapper.
+
+**Files**: web/src/components/assets/AssetTree.tsx
+
+**Impact**: Asset tree sorting now only happens when data changes, not on every re-render.
+
+---
+
 ### Handler Memoization (2026-01-19)
 
 **What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
@@ -91,13 +101,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### Component Memoization (2026-01-18)
+### Performance Audit & Terminal Memoization (2026-01-19)
 
-**What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
+**What**: Comprehensive performance audit - all major optimizations already in place. Added React.memo to Terminal.tsx (441 lines).
 
-**Files**: 12 files in web/src/components/
+**Files**: web/src/components/terminal/Terminal.tsx
 
-**Impact**: Reduced unnecessary re-renders in dashboard, workflow management, and context menu components.
+**Impact**: Verified 20+ large components properly memoized. Terminal component now memoized for reduced re-renders.
 ### Quality Checks Fixes (2026-01-18)
 
 **What**: Fixed TypeScript type errors and lint warnings in test files.
