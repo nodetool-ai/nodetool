@@ -19,7 +19,7 @@ import { app } from "electron";
 import * as path from "path";
 import { promises as fsPromises } from "fs";
 import { logMessage } from "./logger";
-import { exec, execSync } from "child_process";
+import { exec } from "child_process";
 import { promisify } from "util";
 import {
   getPythonPath,
@@ -29,6 +29,7 @@ import {
   getOllamaModelsPath,
 } from "./config";
 import { readSettings } from "./settings";
+import type { LaunchAgentStatus, LaunchAgentResult } from "./types.d";
 
 const execAsync = promisify(exec);
 
@@ -46,21 +47,6 @@ const LOG_DIR: string = path.join(
   app.getPath("home"),
   "Library/Logs/nodetool"
 );
-
-export interface LaunchAgentStatus {
-  installed: boolean;
-  running: boolean;
-  pid?: number;
-  label: string;
-  plistPath: string;
-  error?: string;
-}
-
-export interface LaunchAgentResult {
-  success: boolean;
-  message: string;
-  status?: LaunchAgentStatus;
-}
 
 /**
  * Check if running on macOS
